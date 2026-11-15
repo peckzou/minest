@@ -1,269 +1,336 @@
-/* Clun · 外景：劳特布龙嫩山谷（用户照片做远景）+ 3D 花园。
-   比例的办法：照片里木屋（约 12 m）和教堂塔（约 30 m）的像素高度与它们底边离地平线的距离之比，反推出拍摄机位离谷底约 18 m。
-   3D 相机放在同样高度、同样视角（照片按水平 66° 视角贴在远处的平面上，地平线在照片中线），房子站在谷底草地上，
-   这样它的底边落在照片里对应深度的地面上，大小和旁边的木屋是同一个量级。
-   山谷坐标（Z 向上）：相机在 (0,0,18)，看向 +Y；Y 是离镜头的距离。外面整体转成 three 的 Y 向上。 */
+/* Clun · 外景：劳特布龙嫩山谷（用户照片做远景）+ 照交付效果图（图 2）布置的 3D 花园。
+   比例：照片里木屋（约 12 m）和教堂塔（约 30 m）的像素高度与它们底边离地平线的距离之比，反推出拍摄机位离谷底约 18 m。
+   3D 相机放在同样高度、同样视角（照片按水平 66° 贴在远处平面上，地平线在照片中线）。房子放在河左岸的缓坡台地上，
+   离镜头 61 m：底边落在画面 7 成高处（和效果图一样），大小比效果图小约三成，和身后照片里的木屋比例协调。
+   山谷坐标（Z 向上）：相机在 (0,0,18)，看向 +Y；Y 是离镜头的距离；照片里的河在画面右侧（+8.6° 以右），3D 地面只铺到河左岸。
+   风格：写实一点的动画风。树冠是叶片卡片簇（手绘叶片贴图 + 球形法线），草坪、石阶、树皮、木板都是细节贴图。 */
 (function () {
   'use strict';
   var C = window.Clun = window.Clun || {};
   var D2R = Math.PI / 180;
   var V = C.VALLEY = {
-    img: 'art/lauterbrunnen-valley.jpg', IW: 1266, IH: 860, hfov: 66,       /* 照片：假定水平视角 66°（无法确定，影响的只是整体放大倍数） */
+    img: 'art/lauterbrunnen-valley.jpg', IW: 1266, IH: 860, hfov: 66,       /* 照片：假定水平视角 66° */
     camZ: 18,                                                              /* ESTIMATED：由照片里木屋和教堂的比例反推 */
-    house: [-13, 65], houseRot: 30,                                        /* 房子位置（离镜头 65 m，偏左 11°）和朝向 */
-    RB: 2500
+    house: [-14, 61], houseRot: 20, viewHfov: 64, RB: 2500
+  };
+  function lin(hex) { return new THREE.Color(hex).convertSRGBToLinear(); }
+  function canvas(n) { var c = document.createElement('canvas'); c.width = c.height = n; return c; }
+  function texOf(cv, rep) { var t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.encoding = THREE.sRGBEncoding; t.anisotropy = 8; if (rep) t.repeat.set(1 / rep, 1 / rep); return t; }
+  function prng(s) { return function () { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
+
+  /* —— 贴图 —— */
+  function grassTex() {                                                    /* 草坪：多层斑块 + 细草叶，铺 6 m */
+    var N = 1024, cv = canvas(N), g = cv.getContext('2d'), r = prng(3), i;
+    g.fillStyle = '#649f33'; g.fillRect(0, 0, N, N);
+    for (i = 0; i < 120; i++) { var x = r() * N, y = r() * N, rr = 60 + r() * 160, gr = g.createRadialGradient(x, y, 0, x, y, rr), k = r();
+      gr.addColorStop(0, k < 0.5 ? 'rgba(60,110,30,0.14)' : 'rgba(140,182,64,0.14)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x - rr, y - rr, rr * 2, rr * 2); }
+    for (i = 0; i < 70000; i++) {
+      var x2 = r() * N, y2 = r() * N, a = -1.2 - r() * 0.7, L = 2 + r() * 5, k2 = r();
+      g.strokeStyle = k2 < 0.35 ? 'rgba(58,104,30,0.3)' : k2 < 0.75 ? 'rgba(104,156,48,0.3)' : k2 < 0.95 ? 'rgba(146,188,74,0.3)' : 'rgba(186,204,108,0.3)';
+      g.lineWidth = 1 + r() * 0.8; g.beginPath(); g.moveTo(x2, y2); g.lineTo(x2 + Math.cos(a) * L, y2 + Math.sin(a) * L); g.stroke();
+    }
+    return texOf(cv, 7);
+  }
+  function leafTex() {                                                     /* 几团叶簇（透明底）：每团左上受光、右下背光，边缘是一片片叶子 */
+    var N = 512, cv = canvas(N), g = cv.getContext('2d'), r = prng(5), i, j;
+    var clumps = [[256, 300, 150], [170, 220, 105], [340, 210, 110], [250, 150, 100], [130, 330, 90], [385, 330, 95]];
+    clumps.forEach(function (cl) {
+      for (j = 0; j < 420; j++) {
+        var a = r() * 6.28, d = Math.pow(r(), 0.6) * cl[2], x = cl[0] + Math.cos(a) * d, y = cl[1] + Math.sin(a) * d;
+        if (Math.hypot(x - 256, y - 256) > 245) continue;
+        var lx = ((x - cl[0]) * -0.6 + (y - cl[1]) * -0.8) / cl[2], k = Math.max(0, Math.min(1, 0.5 + lx * 0.6 + (r() - 0.5) * 0.35));
+        var c0 = [42, 82, 26], c1 = [92, 140, 44], c2 = [158, 196, 78], c = k < 0.5 ? mix(c0, c1, k * 2) : mix(c1, c2, (k - 0.5) * 2);
+        var L = 9 + r() * 9, W = 4 + r() * 3.5, rot = a + (r() - 0.5) * 1.2;
+        g.fillStyle = 'rgb(' + c.join(',') + ')';
+        g.save(); g.translate(x, y); g.rotate(rot); g.beginPath(); g.moveTo(-L, 0); g.quadraticCurveTo(0, -W, L, 0); g.quadraticCurveTo(0, W, -L, 0); g.fill(); g.restore();
+      }
+    });
+    function mix(a, b, t) { return [Math.round(a[0] + (b[0] - a[0]) * t), Math.round(a[1] + (b[1] - a[1]) * t), Math.round(a[2] + (b[2] - a[2]) * t)]; }
+    var t = texOf(cv); t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; return t;
+  }
+  function flowerTex() {                                                   /* 一簇小花（白色，按颜色染） */
+    var N = 128, cv = canvas(N), g = cv.getContext('2d'), r = prng(9), i, p;
+    for (i = 0; i < 26; i++) {
+      var a = r() * 6.28, d = Math.sqrt(r()) * 50, x = 64 + Math.cos(a) * d, y = 64 + Math.sin(a) * d, R = 5 + r() * 4;
+      for (p = 0; p < 5; p++) { var pa = p * 1.2566 + r(); g.fillStyle = 'rgba(' + (225 + r() * 30 | 0) + ',' + (225 + r() * 30 | 0) + ',' + (225 + r() * 30 | 0) + ',1)';
+        g.beginPath(); g.ellipse(x + Math.cos(pa) * R * 0.6, y + Math.sin(pa) * R * 0.6, R * 0.55, R * 0.35, pa, 0, 6.28); g.fill(); }
+      g.fillStyle = 'rgb(240,200,90)'; g.beginPath(); g.arc(x, y, R * 0.22, 0, 6.28); g.fill();
+    }
+    var t = texOf(cv); t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; t.encoding = THREE.LinearEncoding; return t;
+  }
+  function stoneTex() {
+    var N = 256, cv = canvas(N), g = cv.getContext('2d'), r = prng(13), i;
+    g.fillStyle = '#a49d92'; g.fillRect(0, 0, N, N);
+    for (i = 0; i < 3000; i++) { var k = r(); g.fillStyle = k < 0.5 ? 'rgba(120,114,104,0.35)' : 'rgba(196,190,180,0.35)'; g.fillRect(r() * N, r() * N, 1 + r() * 3, 1 + r() * 3); }
+    for (i = 0; i < 18; i++) { g.strokeStyle = 'rgba(80,76,70,0.35)'; g.lineWidth = 1; g.beginPath(); var x = r() * N, y = r() * N; g.moveTo(x, y); for (var j = 0; j < 4; j++) { x += (r() - 0.5) * 40; y += (r() - 0.5) * 40; g.lineTo(x, y); } g.stroke(); }
+    return texOf(cv, 1.2);
+  }
+  function barkTex() {
+    var N = 256, cv = canvas(N), g = cv.getContext('2d'), r = prng(17), i;
+    g.fillStyle = '#5b4434'; g.fillRect(0, 0, N, N);
+    for (i = 0; i < 260; i++) { var x = r() * N, k = r(); g.strokeStyle = k < 0.5 ? 'rgba(40,30,22,0.6)' : 'rgba(120,100,80,0.45)'; g.lineWidth = 1 + r() * 3; g.beginPath(); g.moveTo(x, 0); g.bezierCurveTo(x + (r() - 0.5) * 20, N * 0.3, x + (r() - 0.5) * 20, N * 0.7, x + (r() - 0.5) * 10, N); g.stroke(); }
+    return texOf(cv, 1.0);
+  }
+  function plankTex(base) {
+    var N = 256, cv = canvas(N), g = cv.getContext('2d'), r = prng(23), i, j, ph = N / 8;
+    g.fillStyle = base; g.fillRect(0, 0, N, N);
+    for (i = 0; i < 8; i++) {
+      g.fillStyle = 'rgba(' + (r() < 0.5 ? '255,235,200,0.1' : '60,35,15,0.14') + ')'; g.fillRect(0, i * ph, N, ph);
+      for (j = 0; j < 14; j++) { g.strokeStyle = 'rgba(70,40,20,0.18)'; g.lineWidth = 0.7; g.beginPath(); var y = i * ph + r() * ph; g.moveTo(0, y); g.bezierCurveTo(N * 0.3, y + (r() - 0.5) * 6, N * 0.6, y + (r() - 0.5) * 6, N, y); g.stroke(); }
+      g.fillStyle = 'rgba(40,24,12,0.6)'; g.fillRect(0, i * ph, N, 1.5);
+    }
+    return texOf(cv, 1.6);
+  }
+  function shingleTex() {
+    var N = 256, cv = canvas(N), g = cv.getContext('2d'), r = prng(29), i, j, rows = 10, ch = N / rows, w = N / 6;
+    g.fillStyle = '#3d2a20'; g.fillRect(0, 0, N, N);
+    for (i = 0; i < rows; i++) for (j = -1; j < 7; j++) { var k = (r() - 0.5) * 0.2; g.fillStyle = 'rgb(' + Math.round(128 * (1 + k)) + ',' + Math.round(80 * (1 + k)) + ',' + Math.round(58 * (1 + k)) + ')'; g.fillRect(j * w + (i % 2) * w / 2 + 1, N - (i + 1) * ch, w - 2, ch - 2); }
+    return texOf(cv, 1.4);
+  }
+
+  /* —— 地形 —— */
+  var H = V.house, TH = V.houseRot * D2R, CS = Math.cos(TH), SN = Math.sin(TH), HP = 6.05;
+  function riverEdge(y) {                                                  /* 照片里河的左岸：近处在 8.6°，桥那里约 11.8°（略留余量） */
+    var a = (8.2 + Math.max(0, Math.min(1, (y - 41) / 65)) * 3.2) * D2R; return y * Math.tan(a) - 0.6;
+  }
+  function local(x, y) { var dx = x - H[0], dy = y - H[1]; return [dx * CS + dy * SN, -dx * SN + dy * CS]; }   /* 山谷 → 房子工程坐标 */
+  function hp(x, y) { return [H[0] + x * CS - y * SN, H[1] + x * SN + y * CS]; }                               /* 房子工程坐标 → 山谷 */
+  function sstep(a, b, v) { var t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); }
+  function baseZ(x, y) {                                                    /* 从河岸往左上坡；左边（树屋那里）再高一些 */
+    var z = Math.min(6.4, Math.max(0, (riverEdge(y) - x) * 0.18) + 0.3);
+    z += 2.6 * sstep(-19, -27, x) * (1 - sstep(48, 60, y));
+    return z + 0.08 * Math.sin(x * 0.43) * Math.sin(y * 0.31);
+  }
+  function plateauW(x, y) {                                                 /* 房子台地：房子四周 1，向外 5 m 内降到 0 */
+    var l = local(x, y), ox = Math.max(0, Math.abs(l[0] - 1.5) - 11.5), oyF = Math.max(0, -3.4 - l[1]), oyB = Math.max(0, l[1] - 13);
+    var d = Math.sqrt(ox * ox + Math.max(oyF, oyB) * Math.max(oyF, oyB));
+    var t = Math.max(0, Math.min(1, d / 7)); return 1 - t * t * t * (t * (t * 6 - 15) + 10);
+  }
+  function rawZ(x, y) { var w = plateauW(x, y), b = baseZ(x, y); return b + (HP - b) * w; }
+  var ST = { y0: -3.6, y1: -7.8, w: 1.7 }, stFoot = null;                  /* 门前台阶（房子工程坐标） */
+  function stairZ(ly) { if (stFoot == null) { var f = hp(0, ST.y1); stFoot = rawZ(f[0], f[1]); } return HP + (stFoot - HP) * Math.max(0, Math.min(1, (ST.y0 - ly) / (ST.y0 - ST.y1))); }
+  function terrainZ(x, y) {                                                 /* 台阶两侧 0.6 m 以内按台阶斜线下挖，台阶不被坡面埋住 */
+    var z = rawZ(x, y), l = local(x, y), ax = Math.abs(l[0]) - (ST.w / 2 + 0.25);
+    if (l[1] < ST.y0 + 0.3 && l[1] > ST.y1 - 1 && ax < 0.8) { var zs = stairZ(l[1]) - 0.08; z = ax <= 0 ? Math.min(z, zs) : Math.min(z, zs + (z - zs) * (ax / 0.8)); }
+    return z;
+  }
+  C.VALLEY.terrainZ = terrainZ;
+
+  /* —— 叶片卡片：一批卡片合成一个网格，法线取树冠球心方向，卡片正面朝镜头 —— */
+  function Cards(tex, alphaTest) { this.p = []; this.n = []; this.u = []; this.c = []; this.tex = tex; this.at = alphaTest; }
+  var CAM = new THREE.Vector3(0, 0, V.camZ);
+  Cards.prototype.card = function (pos, size, nrm, col, rot) {
+    var to = CAM.clone().sub(pos).normalize(), up0 = new THREE.Vector3(0, 0, 1), right = new THREE.Vector3().crossVectors(up0, to).normalize(), up = new THREE.Vector3().crossVectors(to, right);
+    var c = Math.cos(rot), s = Math.sin(rot), R = right.clone().multiplyScalar(c).addScaledVector(up, s), U = up.clone().multiplyScalar(c).addScaledVector(right, -s), h = size / 2, self = this;
+    var q = [[-1, -1, 0, 0], [1, -1, 1, 0], [1, 1, 1, 1], [-1, 1, 0, 1]], idx = [0, 1, 2, 0, 2, 3];
+    idx.forEach(function (i) { var v = pos.clone().addScaledVector(R, q[i][0] * h).addScaledVector(U, q[i][1] * h); self.p.push(v.x, v.y, v.z); self.n.push(nrm.x, nrm.y, nrm.z); self.u.push(q[i][2], q[i][3]); self.c.push(col[0], col[1], col[2]); });
+  };
+  Cards.prototype.mesh = function () {
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(this.p, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(this.n, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(this.u, 2)); g.setAttribute('color', new THREE.Float32BufferAttribute(this.c, 3));
+    var m = new THREE.MeshStandardMaterial({ map: this.tex, alphaTest: this.at, side: THREE.DoubleSide, vertexColors: true, roughness: 0.95 });
+    var mesh = new THREE.Mesh(g, m); mesh.castShadow = true; mesh.receiveShadow = true;
+    mesh.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: this.tex, alphaTest: this.at });
+    return mesh;
   };
 
-  function lin(hex) { return new THREE.Color(hex).convertSRGBToLinear(); }
-  function mat(hex, rough, extra) { var o = { color: lin(hex), roughness: rough == null ? 0.9 : rough, metalness: 0 }; for (var k in extra || {}) o[k] = extra[k]; return new THREE.MeshStandardMaterial(o); }
-
-  /* 地形高度：镜头脚下的坡（视线之下，基本看不见）落到谷底草地 */
-  function terrainZ(x, y) {
-    if (y < 5) return 15.6;
-    var z = 15.6 - (y - 5) * 0.5;
-    if (z > 0) return z;
-    return 0.06 * Math.sin(x * 0.35) * Math.sin(y * 0.27);              /* 草地的细微起伏 */
-  }
-  function rightEdge(y) { return y < 36 ? 30 : 6 + 1.2 * Math.sin(y * 0.21); }
-
-  /* 草坪：大块的明暗斑 + 割草的条纹 + 细草叶，平铺 16 m 一块 */
-  function grassTex() {
-    var N = 512, cv = document.createElement('canvas'); cv.width = cv.height = N; var g = cv.getContext('2d'), i, s = 3;
-    function r() { s = (s * 16807) % 2147483647; return s / 2147483647; }
-    g.fillStyle = '#4a8a26'; g.fillRect(0, 0, N, N);
-    for (i = 0; i < 8; i++) { g.fillStyle = i % 2 ? 'rgba(70,130,36,0.35)' : 'rgba(52,104,26,0.3)'; g.fillRect(0, i * N / 8, N, N / 8); }
-    for (i = 0; i < 70; i++) { var x = r() * N, y = r() * N, rr = 20 + r() * 70, gr = g.createRadialGradient(x, y, 0, x, y, rr), dk = r() < 0.5;
-      gr.addColorStop(0, dk ? 'rgba(30,70,18,0.28)' : 'rgba(130,175,60,0.22)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x - rr, y - rr, rr * 2, rr * 2); }
-    for (i = 0; i < 14000; i++) { var k = r(); g.fillStyle = k < 0.45 ? 'rgba(34,84,20,0.5)' : k < 0.85 ? 'rgba(96,150,44,0.45)' : 'rgba(150,186,72,0.45)'; g.fillRect(r() * N, r() * N, 1, 2 + r() * 4); }
-    var t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.encoding = THREE.sRGBEncoding; t.anisotropy = 8; return t;
-  }
-  /* 树叶：一块块叶团的笔触，给圆树冠加细节（几何体的贴图坐标单位是米，这张铺 1.6 m） */
-  function leafTex() {
-    var N = 256, cv = document.createElement('canvas'); cv.width = cv.height = N; var g = cv.getContext('2d'), i, s = 5;
-    function r() { s = (s * 16807) % 2147483647; return s / 2147483647; }
-    g.fillStyle = '#d4d4d4'; g.fillRect(0, 0, N, N);
-    for (i = 0; i < 1400; i++) { var x = r() * N, y = r() * N, w = 3 + r() * 7, h = 2 + r() * 5, v = r();
-      g.fillStyle = v < 0.4 ? 'rgba(90,90,90,0.5)' : v < 0.8 ? 'rgba(185,185,185,0.5)' : 'rgba(255,255,255,0.6)';
-      g.beginPath(); g.ellipse(x, y, w, h, r() * 3.14, 0, 6.28); g.fill(); }
-    var t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.encoding = THREE.sRGBEncoding; t.repeat.set(1 / 1.6, 1 / 1.6); t.anisotropy = 4; return t;
-  }
-
   C.buildValley = function (scene, house) {
-    var K = C.Kit, disp = [], P = V;
+    var K = C.Kit, P = V, disp = [], rnd = prng(11);
     var root = new THREE.Group(); root.name = 'valley'; scene.add(root);
     var site = new THREE.Group(); site.rotation.x = -Math.PI / 2; root.add(site);          /* 山谷坐标（Z 向上）→ three */
-    var LT = leafTex(); disp.push(LT);
-    function leaf(hex) { return mat(hex, 1, { map: LT }); }
-    var M = {
-      leaf1: leaf(0x5f9c35), leaf2: leaf(0x4a8a2e), leaf3: leaf(0x86b845), leafD: leaf(0x356a27), pine: leaf(0x34603a),
-      trunk: mat(0x6b4a33), wood: mat(0xa8743f, 0.8), woodD: mat(0x7a5232, 0.8), shingle: mat(0x7d4b35, 0.9),
-      white: mat(0xf4f1ea, 0.6), slate: mat(0x6f7378, 0.8), stone: mat(0xb5afa3, 0.95), stoneD: mat(0x8f897e, 0.95), rock: mat(0x9a958c, 0.95),
-      water: mat(0x5aa2b0, 0.08, { metalness: 0.2 }), glassT: mat(0x8fb4c4, 0.1, { metalness: 0.2 }), swan: mat(0xfbfbf8, 0.6), beak: mat(0xe0802a, 0.5), black: mat(0x1d1d1d, 0.6),
-      pink: mat(0xe86aa0, 0.7), rose: mat(0xd94a6a, 0.7), lilac: mat(0x9a78d0, 0.7), blue: mat(0x7d9be0, 0.7), cream: mat(0xf6f0dc, 0.7), yellow: mat(0xf2c94c, 0.7), soil: mat(0x5a4330)
-    };
-    for (var mk in M) disp.push(M[mk]);
+    var T = { grass: grassTex(), leaf: leafTex(), flower: flowerTex(), stone: stoneTex(), bark: barkTex(), plank: plankTex('#9a6a40'), plankD: plankTex('#6e4a2e'), shingle: shingleTex() };
+    for (var tk in T) disp.push(T[tk]);
+    function sm(map, hex, rough) { var m = new THREE.MeshStandardMaterial({ map: map || null, color: lin(hex == null ? 0xffffff : hex), roughness: rough == null ? 0.9 : rough }); disp.push(m); return m; }
+    var M = { stone: sm(T.stone), stoneD: sm(T.stone, 0xcfc8bd), bark: sm(T.bark), wood: sm(T.plank), woodD: sm(T.plankD), shingle: sm(T.shingle),
+      white: sm(null, 0xf3efe6, 0.6), glassT: sm(null, 0x7d9fae, 0.15), soil: sm(null, 0x4a3a2c, 1) };
     var b = new K.Batch();
-    function sphere(m, x, y, z, rx, ry, rz, det) { var g = new THREE.IcosahedronGeometry(1, det == null ? 2 : det); var t = new THREE.Matrix4().makeScale(rx, ry, rz); t.setPosition(x, y, z); b.geom(m, g, t); }
-    function cylinderAB(m, A, B, r0, r1, seg) {                                         /* 两点之间的圆柱（树枝、梯子） */
-      var d = new THREE.Vector3(B[0] - A[0], B[1] - A[1], B[2] - A[2]), L = d.length(), g = new THREE.CylinderGeometry(r1, r0, L, seg || 8);
-      var q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize()), t = new THREE.Matrix4().compose(new THREE.Vector3((A[0] + B[0]) / 2, (A[1] + B[1]) / 2, (A[2] + B[2]) / 2), q, new THREE.Vector3(1, 1, 1));
-      b.geom(m, g, t);
+    function boxM(m, q) { b.box(m, q[0], q[1], q[2], q[3], q[4], q[5]); }
+    function cyl(m, A, B, r0, r1, seg) {
+      var d = new THREE.Vector3(B[0] - A[0], B[1] - A[1], B[2] - A[2]), L = d.length(), g = new THREE.CylinderGeometry(r1, r0, L, seg || 8, 1, true);
+      var q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize());
+      b.geom(m, g, new THREE.Matrix4().compose(new THREE.Vector3((A[0] + B[0]) / 2, (A[1] + B[1]) / 2, (A[2] + B[2]) / 2), q, new THREE.Vector3(1, 1, 1)));
     }
-    var seed = 11; function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
-    function canopy(x, y, z, r, n, m) {
-      n = Math.round(n * 4.5);
-      for (var i = 0; i < n; i++) {                                          /* 很多小叶团堆成一个外轮廓起伏的树冠 */
-        var u = rnd() * 2 - 1, a = rnd() * 6.28, q = Math.sqrt(1 - u * u), rr = r * (0.55 + rnd() * 0.35), s = r * (0.2 + rnd() * 0.16);
-        var dz = u * r * 0.75;
-        sphere(m || (dz < -0.15 * r ? 'leafD' : dz > 0.3 * r ? 'leaf3' : (rnd() < 0.5 ? 'leaf1' : 'leaf2')), x + Math.cos(a) * rr * q, y + Math.sin(a) * rr * q, z + dz, s, s, s * 0.85, 1);
-      }
-    }
-    function tree(x, y, h, r) { var z0 = terrainZ(x, y); cylinderAB('trunk', [x, y, z0 - 0.2], [x, y, z0 + h * 0.6], r * 0.12, r * 0.08, 7); canopy(x, y, z0 + h * 0.68, r, 6); }
-    function pine(x, y, h) { var z0 = terrainZ(x, y); cylinderAB('trunk', [x, y, z0], [x, y, z0 + h * 0.3], 0.25, 0.2, 6); for (var i = 0; i < 4; i++) { var g = new THREE.ConeGeometry(h * (0.28 - i * 0.05), h * 0.35, 9), t = new THREE.Matrix4().makeRotationX(Math.PI / 2); t.setPosition(x, y, z0 + h * (0.35 + i * 0.17)); b.geom('pine', g, t); } }
-    function hedge(pts, h, step) {
-      for (var i = 0; i < pts.length - 1; i++) {
-        var a = pts[i], c = pts[i + 1], L = Math.hypot(c[0] - a[0], c[1] - a[1]), n = Math.max(1, Math.round(L / (step || 1.3)));
-        for (var k = 0; k <= n; k++) {
-          var x = a[0] + (c[0] - a[0]) * k / n + (rnd() - 0.5) * 0.8, y = a[1] + (c[1] - a[1]) * k / n + (rnd() - 0.5) * 0.8, hh = h * (0.55 + rnd() * 0.9);
-          if (rnd() < 0.18) { canopy(x, y, terrainZ(x, y) + hh * 1.4, hh * 0.9, 3); continue; }        /* 偶尔一棵高些的灌木 */
-          canopy(x, y, terrainZ(x, y) + hh * 0.55, hh * 0.75, 2);
-        }
-      }
-    }
-    var FL = ['pink', 'rose', 'lilac', 'cream', 'yellow', 'blue'];
-    function flowers(x, y, n, spread, palette, size) {                                     /* 一丛花：绿底 + 花头 */
-      size = size || 1;
-      for (var i = 0; i < n; i++) {
-        var px = x + (rnd() - 0.5) * spread, py = y + (rnd() - 0.5) * spread, z = terrainZ(px, py);
-        sphere(rnd() < 0.5 ? 'leaf1' : 'leaf2', px, py, z + 0.18 * size, 0.32 * size, 0.32 * size, 0.24 * size, 1);
-        var pm = palette ? palette[i % palette.length] : FL[Math.floor(rnd() * FL.length)];
-        for (var j = 0; j < 5; j++) sphere(pm, px + (rnd() - 0.5) * 0.45 * size, py + (rnd() - 0.5) * 0.45 * size, z + (0.32 + rnd() * 0.15) * size, 0.09 * size, 0.09 * size, 0.07 * size, 1);
-      }
-    }
-    function hydrangea(x, y, n) { for (var i = 0; i < n; i++) { var px = x + (rnd() - 0.5) * 1.6, py = y + (rnd() - 0.5) * 0.8, z = terrainZ(px, py); sphere('leaf2', px, py, z + 0.3, 0.45, 0.45, 0.35, 1); sphere(['blue', 'lilac', 'cream'][i % 3], px + 0.05, py - 0.1, z + 0.6, 0.3, 0.3, 0.25, 1); } }
 
-    /* —— 远景照片：一块远处的平面，跟着镜头平移（山是无穷远），所以只在照片范围内转动 —— */
+    /* —— 远景照片：远处一块平面，跟着镜头平移（山是无穷远） —— */
     var tex = new THREE.TextureLoader().load(P.img); tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 8; tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false; disp.push(tex);
     var BW = 2 * P.RB * Math.tan(P.hfov / 2 * D2R), BH = BW * P.IH / P.IW;
     var back = new THREE.Mesh(new THREE.PlaneGeometry(BW, BH), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, depthWrite: false, fog: false }));
     back.renderOrder = -10; back.frustumCulled = false; root.add(back); disp.push(back.geometry, back.material);
 
-    /* —— 地形：谷底草地（只铺左半边，右边留给照片里的河）+ 镜头下的坡 —— */
+    /* —— 地形：河左岸往左上坡，房子在台地上 —— */
     (function () {
-      var x0 = -75, x1 = 30, y0 = 2, y1 = 100, st = 1.5, nx = Math.round((x1 - x0) / st), ny = Math.round((y1 - y0) / st), pos = [], uv = [], idx = [], i, j, map = {};
-      var col = [];
-      for (j = 0; j <= ny; j++) for (i = 0; i <= nx; i++) { var x = x0 + i * st, y = y0 + j * st; map[j * (nx + 1) + i] = pos.length / 3; pos.push(x, y, terrainZ(x, y)); uv.push(x / 40, y / 40);
-        var sh = 1 - 0.22 * Math.max(0, Math.min(1, (y - 82) / 14)) - 0.18 * Math.max(0, Math.min(1, (x - rightEdge(y) + 5) / 5)); col.push(sh, sh, sh); }
+      var x0 = -80, x1 = 16, y0 = 28, y1 = 104, st = 0.8, nx = Math.round((x1 - x0) / st), ny = Math.round((y1 - y0) / st), pos = [], uv = [], col = [], idx = [], i, j;
+      for (j = 0; j <= ny; j++) for (i = 0; i <= nx; i++) {
+        var y = y0 + j * st, x = x0 + (riverEdge(y) - x0) * i / nx, z = terrainZ(x, y); pos.push(x, y, z); uv.push(x, y);
+        var sl = Math.abs(terrainZ(x + 0.5, y) - terrainZ(x - 0.5, y)) + Math.abs(terrainZ(x, y + 0.5) - terrainZ(x, y - 0.5));
+        var sh = 1 - 0.18 * Math.min(1, sl * 0.8) - 0.16 * sstep(88, 100, y) - 0.12 * sstep(-3, 0, x - riverEdge(y)) + (rnd() - 0.5) * 0.04; col.push(sh, sh, sh);
+      }
       for (j = 0; j < ny; j++) for (i = 0; i < nx; i++) {
-        var cx = x0 + (i + 0.5) * st, cy = y0 + (j + 0.5) * st; if (cx > rightEdge(cy) || cy > 97) continue;
+        var cy = y0 + (j + 0.5) * st; if (cy > 101) continue;
         var a = j * (nx + 1) + i; idx.push(a, a + 1, a + nx + 2, a, a + nx + 2, a + nx + 1);
       }
       var g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setIndex(idx); g.computeVertexNormals();
-      var gt = grassTex(); gt.repeat.set(40 / 16, 40 / 16); disp.push(gt, g);
-      var gm = new THREE.MeshStandardMaterial({ map: gt, color: lin(0xd2dbc4), roughness: 1, vertexColors: true }); disp.push(gm);
+      var gm = new THREE.MeshStandardMaterial({ map: T.grass, color: lin(0xc8d0ba), roughness: 1, vertexColors: true }); disp.push(g, gm);
       var m = new THREE.Mesh(g, gm); m.receiveShadow = true; site.add(m);
     })();
 
     /* —— 房子 —— */
-    var H = P.house, th = P.houseRot * D2R, cs = Math.cos(th), sn = Math.sin(th);
-    function hp(x, y) { return [H[0] + x * cs - y * sn, H[1] + x * sn + y * cs]; }      /* 房子工程坐标 → 山谷坐标 */
-    var holder = new THREE.Group(); holder.position.set(H[0], 0.3, -H[1]); holder.rotation.y = th; root.add(holder);
+    var holder = new THREE.Group(); holder.position.set(H[0], HP + 0.3, -H[1]); holder.rotation.y = TH; root.add(holder);
     if (house.parent) house.parent.remove(house); holder.add(house);
 
-    /* —— 石板路：前门 → 草地前沿；花境沿房前 —— */
-    var path = [hp(0, -2.2), hp(0.2, -5), hp(1.5, -8.5), [-9.5, 52], [-8, 47.5], [-7.5, 43]];
+    /* —— 植物 —— */
+    var leaves = new Cards(T.leaf, 0.42), fls = new Cards(T.flower, 0.45);
+    function canopy(cx, cy, cz, rx, rz, density, tint) {                 /* 一团树冠：卡片散在椭球里，越往外越密 */
+      var n = Math.max(3, Math.round(rx * rz * (density || 9) * 0.45)), i, c0 = new THREE.Vector3(cx, cy, cz);
+      for (i = 0; i < n; i++) {
+        var u = rnd() * 2 - 1, a = rnd() * 6.28, q = Math.sqrt(1 - u * u), rr = 0.45 + 0.55 * Math.sqrt(rnd());
+        var p = new THREE.Vector3(cx + Math.cos(a) * q * rx * rr, cy + Math.sin(a) * q * rx * rr, cz + u * rz * rr);
+        var nrm = p.clone().sub(c0); nrm.z *= 1.4; nrm.normalize(); nrm.z += 0.25; nrm.normalize();
+        var shade = 0.8 + 0.3 * (u * 0.5 + 0.5) + (rnd() - 0.5) * 0.1, t = tint || [1, 1, 1];
+        leaves.card(p, Math.max(0.9, rx * (0.6 + rnd() * 0.35)), nrm, [shade * t[0] * 0.95, shade * t[1] * 0.93, shade * t[2] * 0.78], (rnd() - 0.5) * 0.8);
+      }
+    }
+    function tree(x, y, h, r, tint) {
+      var z0 = terrainZ(x, y);
+      cyl('bark', [x, y, z0 - 0.3], [x, y, z0 + h * 0.62], r * 0.11, r * 0.07, 9);
+      cyl('bark', [x, y, z0 + h * 0.45], [x - r * 0.4, y + 0.3, z0 + h * 0.7], r * 0.05, r * 0.03, 6); cyl('bark', [x, y, z0 + h * 0.5], [x + r * 0.45, y - 0.2, z0 + h * 0.74], r * 0.05, r * 0.03, 6);
+      canopy(x, y, z0 + h * 0.7, r, h * 0.3, 9, tint);
+      canopy(x - r * 0.45, y + 0.4, z0 + h * 0.62, r * 0.6, h * 0.2, 9, tint); canopy(x + r * 0.5, y + 0.2, z0 + h * 0.66, r * 0.55, h * 0.2, 9, tint);
+    }
+    function conifer(x, y, h) {                                             /* 冷杉：一层层下垂的枝叶 */
+      var z0 = terrainZ(x, y), i; cyl('bark', [x, y, z0], [x, y, z0 + h * 0.95], 0.28, 0.06, 7);
+      for (i = 0; i < 9; i++) { var t = i / 9, z = z0 + h * (0.18 + t * 0.8), r = h * 0.24 * (1 - t) + 0.3; canopy(x, y, z, r, 0.55, 10, [0.62, 0.78, 0.7]); }
+    }
+    function bush(x, y, r, h, tint) { var z = terrainZ(x, y); canopy(x, y, z + h * 0.5, r, h * 0.5, 13, tint); }
+    var PAL = {}; [['pink', 0xf27aae], ['rose', 0xe0466e], ['white', 0xfbf8f0], ['lilac', 0xa98ae0], ['blue', 0x7f9fe8], ['yellow', 0xf4cf52], ['magenta', 0xd2459a]].forEach(function (q) {
+      var c = lin(q[1]); PAL[q[0]] = [c.r, c.g, c.b]; });                  /* 顶点色是线性值 */
+    function flowerBush(x, y, r, colors, h) {                               /* 一丛花：叶子打底，上面一簇簇花 */
+      h = h || 0.7; var z = terrainZ(x, y), i, n = Math.max(3, Math.round(r * r * 14));
+      canopy(x, y, z + h * 0.4, r, h * 0.45, 16, [0.95, 1, 0.9]);
+      for (i = 0; i < n * 2; i++) { var a = rnd() * 6.28, d = Math.sqrt(rnd()) * r * 0.9, col = PAL[colors[i % colors.length]], k = 0.9 + rnd() * 0.15;
+        fls.card(new THREE.Vector3(x + Math.cos(a) * d, y + Math.sin(a) * d - 0.15, z + h * (0.6 + rnd() * 0.5)), 0.5 + rnd() * 0.25, new THREE.Vector3(0.1, -0.5, 0.86).normalize(), [col[0] * k, col[1] * k, col[2] * k], rnd() * 6.28); }
+    }
+    function hydrangea(x, y) { var z = terrainZ(x, y), i, cols = ['blue', 'lilac', 'white'];
+      canopy(x, y, z + 0.45, 0.65, 0.42, 16, [0.85, 0.95, 0.85]);
+      for (i = 0; i < 10; i++) { var a = rnd() * 6.28, d = rnd() * 0.55, col = PAL[cols[i % 3]]; fls.card(new THREE.Vector3(x + Math.cos(a) * d, y + Math.sin(a) * d - 0.15, z + 0.75 + rnd() * 0.25), 0.6, new THREE.Vector3(0, -0.4, 0.92).normalize(), col, rnd() * 6.28); } }
+
+    /* —— 台阶：从坡上的草地走上房前台地，两边是花 —— */
     (function () {
-      for (var i = 0; i < path.length - 1; i++) {
-        var a = path[i], c = path[i + 1], L = Math.hypot(c[0] - a[0], c[1] - a[1]), n = Math.round(L / 0.85);
+      var n = 12, y0 = ST.y0, y1 = ST.y1, w = ST.w, i;
+      var zTop = HP, zBot = stairZ(y1), rise = (zTop - zBot) / n;
+      for (i = 0; i < n; i++) {
+        var ya = y0 + (y1 - y0) * (i + 1) / n, yb = y0 + (y1 - y0) * i / n, zt = zTop - rise * i;
+        var c = [hp(-w / 2, ya), hp(w / 2, ya), hp(w / 2, yb + 0.03), hp(-w / 2, yb + 0.03)];
+        b.extrude(i % 2 ? 'stone' : 'stoneD', c.map(function (p) { return [p[0], p[1], zt]; }), [0, 0, -(rise + 0.25)]);
+      }
+      [-1, 1].forEach(function (s) {                                       /* 两侧矮石墙 */
+        var a = hp(s * (w / 2 + 0.18), y0), c = hp(s * (w / 2 + 0.18), y1);
+        b.extrude('stone', [[a[0] - 0.15 * CS, a[1] - 0.15 * SN, zTop + 0.25], [c[0] - 0.15 * CS, c[1] - 0.15 * SN, zBot + 0.35], [c[0] + 0.15 * CS, c[1] + 0.15 * SN, zBot + 0.35], [a[0] + 0.15 * CS, a[1] + 0.15 * SN, zTop + 0.25]], [0, 0, -1.4]);
+      });
+      /* 台阶两侧的花坡、门前花境 */
+      for (i = 0; i < 6; i++) { var t = (i + 0.5) / 6, yy = y0 + (y1 - y0) * t;
+        var L = hp(-(w / 2 + 0.9 + rnd() * 0.3), yy), R = hp(w / 2 + 0.9 + rnd() * 0.3, yy);
+        flowerBush(L[0], L[1], 0.55, i % 2 ? ['pink', 'white'] : ['white', 'lilac']); flowerBush(R[0], R[1], 0.55, i % 2 ? ['rose', 'white'] : ['pink', 'lilac']); }
+      [[-5.5, -3.0], [-3.6, -3.0], [-2.0, -2.9], [2.2, -2.9], [3.8, -3.0], [5.6, -3.0], [7.6, -2.6]].forEach(function (q, k) { var p = hp(q[0], q[1]); if (k % 3 === 1) hydrangea(p[0], p[1]); else flowerBush(p[0], p[1], 0.7, k % 2 ? ['pink', 'white', 'magenta'] : ['white', 'lilac', 'pink']); });
+      [hp(-9.5, -1), hp(-9.8, 2.5), hp(10.8, 0.5), hp(11.2, 4)].forEach(function (p, k) { k % 2 ? hydrangea(p[0], p[1]) : bush(p[0], p[1], 1.1, 1.6); });
+      C.VALLEY.stairFoot = hp(0, y1 - 0.6);
+    })();
+
+    /* —— 石板小路：从画面下沿弯到台阶脚下 —— */
+    (function () {
+      var f = C.VALLEY.stairFoot, path = [[-4.5, 40], [-6.2, 44], [-6.5, 48], [f[0] + 0.4, f[1] - 1.2], f], i;
+      for (i = 0; i < path.length - 1; i++) {
+        var a = path[i], c = path[i + 1], L = Math.hypot(c[0] - a[0], c[1] - a[1]), n = Math.max(1, Math.round(L / 0.75));
         for (var k = 0; k < n; k++) {
-          var t = (k + 0.5) / n, x = a[0] + (c[0] - a[0]) * t + (rnd() - 0.5) * 0.25, y = a[1] + (c[1] - a[1]) * t + (rnd() - 0.5) * 0.25, r = 0.38 + rnd() * 0.16;
-          var g = new THREE.CylinderGeometry(r, r * 1.05, 0.1, 9), m = new THREE.Matrix4().makeRotationX(Math.PI / 2); m.setPosition(x, y, terrainZ(x, y) + 0.04); b.geom(rnd() < 0.5 ? 'stone' : 'stoneD', g, m);
+          var t = (k + 0.5) / n, x = a[0] + (c[0] - a[0]) * t + (rnd() - 0.5) * 0.3, y = a[1] + (c[1] - a[1]) * t + (rnd() - 0.5) * 0.3, r = 0.33 + rnd() * 0.12, sides = 7 + (rnd() * 3 | 0);
+          var g = new THREE.CylinderGeometry(r, r * 1.04, 0.1, sides), m = new THREE.Matrix4().makeRotationX(Math.PI / 2); m.premultiply(new THREE.Matrix4().makeRotationZ(rnd() * 3)); m.setPosition(x, y, terrainZ(x, y) + 0.03);
+          b.geom(rnd() < 0.5 ? 'stone' : 'stoneD', g, m);
         }
       }
+      for (i = 0; i < 9; i++) { var q = path[1 + (i % 3)]; flowerBush(q[0] - 1.6 - rnd(), q[1] + (rnd() - 0.5) * 3, 0.5, ['pink', 'white', 'lilac', 'magenta']); }
     })();
-    [[-5.2, -3.3], [-3.0, -3.4], [-1.6, -3.0], [1.8, -3.0], [3.4, -3.4], [5.6, -3.3]].forEach(function (q, i) { var p = hp(q[0], q[1]); if (i % 2) hydrangea(p[0], p[1], 2); else flowers(p[0], p[1], 4, 1.4); });
-    [hp(-6.5, 1.5), hp(6.8, 1.0)].forEach(function (p) { flowers(p[0], p[1], 3, 1.2); });
-    [[-11, 50], [-6.5, 49], [-10.6, 46], [-5.6, 45.2]].forEach(function (p) { flowers(p[0], p[1], 3, 1.1); });
 
-    /* —— 树屋：坡上的大树，木屋搭在树杈上，长梯子落到坡脚 —— */
+    /* —— 河边木栅栏 —— */
     (function () {
-      var x = -14.2, y = 34, z0 = terrainZ(x, y), zp = 10.6;
-      cylinderAB('trunk', [x, y, z0 - 0.5], [x, y, zp + 4.5], 0.7, 0.42, 10);
-      cylinderAB('trunk', [x, y, zp + 1.5], [x - 2.4, y + 1, zp + 4.8], 0.3, 0.16, 7); cylinderAB('trunk', [x, y, zp + 2], [x + 2.2, y + 0.6, zp + 5.2], 0.28, 0.15, 7);
-      canopy(x - 0.6, y + 0.8, zp + 6, 3.8, 10); canopy(x - 2.8, y + 1.2, zp + 4.6, 2.3, 4); canopy(x + 1.6, y + 1.2, zp + 5.6, 2.2, 4);
-      var hx = x + 0.6, hy = y - 0.6;
-      [[hx - 1.8, hy - 1.6, zp - 0.15, hx + 1.8, hy + 1.6, zp]].forEach(function (q) { boxM('woodD', q); });
-      boxM('wood', [hx - 1.15, hy - 1.0, zp, hx + 1.15, hy + 1.1, zp + 2.0]);
-      [[-0.75, -0.15], [0.25, 0.85]].forEach(function (w) {
-        boxM('white', [hx + w[0] - 0.06, hy - 1.05, zp + 0.84, hx + w[1] + 0.06, hy - 1.0, zp + 1.66]);
-        boxM('glassT', [hx + w[0], hy - 1.07, zp + 0.9, hx + w[1], hy - 1.04, zp + 1.6]);
-        boxM('white', [hx + (w[0] + w[1]) / 2 - 0.02, hy - 1.08, zp + 0.9, hx + (w[0] + w[1]) / 2 + 0.02, hy - 1.05, zp + 1.6]);
-      });
-      boxM('woodD', [hx - 1.2, hy - 1.05, zp, hx - 1.12, hy + 1.15, zp + 2.0]); boxM('woodD', [hx + 1.12, hy - 1.05, zp, hx + 1.2, hy + 1.15, zp + 2.0]);
-      [-1, 1].forEach(function (s) { b.slab('shingle', [[hx - 1.45, hy, zp + 3.1], [hx + 1.45, hy, zp + 3.1], [hx + 1.45, hy + s * 1.45, zp + 1.85], [hx - 1.45, hy + s * 1.45, zp + 1.85]], 0.1); });
-      b.extrude('wood', [[hx - 1.15, hy - 1.1, zp + 2.0], [hx - 1.15, hy + 1.1, zp + 2.0], [hx - 1.15, hy, zp + 3.0]], [2.3, 0, 0]);   /* 两头的山墙三角 */
-      for (var i = -3; i <= 3; i++) { boxM('woodD', [hx + i * 0.55 - 0.04, hy - 1.6, zp, hx + i * 0.55 + 0.04, hy - 1.52, zp + 0.95]); }
-      boxM('woodD', [hx - 1.8, hy - 1.62, zp + 0.9, hx + 1.8, hy - 1.5, zp + 1.0]); boxM('woodD', [hx - 1.8, hy - 1.62, zp + 0.45, hx + 1.8, hy - 1.52, zp + 0.52]);
-      cylinderAB('woodD', [x, y, zp - 2.2], [hx - 1.6, hy - 1.4, zp - 0.1], 0.08, 0.08, 6); cylinderAB('woodD', [x, y, zp - 2.2], [hx + 1.6, hy - 1.4, zp - 0.1], 0.08, 0.08, 6);
-      var lx = hx - 1.4, ly = hy - 1.7, gz = terrainZ(lx, ly - 2.4);                    /* 梯子 */
-      [-0.25, 0.25].forEach(function (o) { cylinderAB('woodD', [lx + o, ly - 2.4, gz], [lx + o, ly, zp + 0.9], 0.045, 0.045, 6); });
-      for (var k = 1; k < 26; k++) { var t = k / 26, ry = ly - 2.4 + 2.4 * t, rz = gz + (zp + 0.9 - gz) * t; cylinderAB('woodD', [lx - 0.25, ry, rz], [lx + 0.25, ry, rz], 0.03, 0.03, 5); }
-    })();
-    function boxM(m, q) { var g = new THREE.BoxGeometry(q[3] - q[0], q[4] - q[1], q[5] - q[2]), t = new THREE.Matrix4().makeTranslation((q[0] + q[3]) / 2, (q[1] + q[4]) / 2, (q[2] + q[5]) / 2); b.geom(m, g, t); }
-
-    /* —— 凉亭：八角白色木亭，灰石板顶 —— */
-    (function () {
-      var x = -1.2, y = 55.5, z0 = terrainZ(x, y), R = 1.9, i;
-      var fg = new THREE.CylinderGeometry(R + 0.25, R + 0.35, 0.3, 8), fm = new THREE.Matrix4().makeRotationX(Math.PI / 2); fm.setPosition(x, y, z0 + 0.15); b.geom('stone', fg, fm);
-      for (i = 0; i < 8; i++) {
-        var a = (i + 0.5) * Math.PI / 4, px = x + Math.cos(a) * R, py = y + Math.sin(a) * R, a2 = (i + 1.5) * Math.PI / 4, qx = x + Math.cos(a2) * R, qy = y + Math.sin(a2) * R;
-        cylinderAB('white', [px, py, z0 + 0.3], [px, py, z0 + 2.7], 0.07, 0.07, 8);
-        cylinderAB('white', [px, py, z0 + 2.65], [qx, qy, z0 + 2.65], 0.08, 0.08, 6);
-        if (i !== 6) { cylinderAB('white', [px, py, z0 + 1.15], [qx, qy, z0 + 1.15], 0.05, 0.05, 6); cylinderAB('white', [px, py, z0 + 0.5], [qx, qy, z0 + 0.5], 0.04, 0.04, 6);
-          for (var k = 1; k < 5; k++) { var t = k / 5; cylinderAB('white', [px + (qx - px) * t, py + (qy - py) * t, z0 + 0.5], [px + (qx - px) * t, py + (qy - py) * t, z0 + 1.15], 0.022, 0.022, 5); } }
+      var ys = [], y; for (y = 40; y <= 96; y += 2.0) ys.push(y);
+      ys.forEach(function (yy, i) { var x = riverEdge(yy) - 0.7, z = terrainZ(x, yy); boxM('woodD', [x - 0.06, yy - 0.06, z - 0.1, x + 0.06, yy + 0.06, z + 1.05]);
+        if (i) { var yp = ys[i - 1], xp = riverEdge(yp) - 0.7, zp = terrainZ(xp, yp); cyl('woodD', [xp, yp, zp + 0.92], [x, yy, z + 0.92], 0.045, 0.045, 6); cyl('woodD', [xp, yp, zp + 0.48], [x, yy, z + 0.48], 0.04, 0.04, 6); } });
+      for (y = 39; y < 100; y += 2.6 + rnd() * 2.4) {                      /* 河岸：稀疏一些、高低不齐的灌木丛，颜色跟照片里的河岸一样深 */
+        var bx = riverEdge(y) - 0.3 - rnd() * 0.5, big = rnd() < 0.3;
+        bush(bx, y, big ? 1.5 + rnd() * 0.5 : 0.9 + rnd() * 0.5, big ? 2.4 + rnd() * 1.2 : 1.0 + rnd() * 0.7, [0.74, 0.8, 0.74]);
       }
-      var rg = new THREE.ConeGeometry(R + 0.55, 1.5, 8), rm = new THREE.Matrix4().makeRotationX(Math.PI / 2); rm.multiply(new THREE.Matrix4().makeRotationY(Math.PI / 8)); rm.setPosition(x, y, z0 + 3.5); b.geom('slate', rg, rm);
-      var eg = new THREE.CylinderGeometry(R + 0.5, R + 0.5, 0.14, 8), em = new THREE.Matrix4().makeRotationX(Math.PI / 2); em.multiply(new THREE.Matrix4().makeRotationY(Math.PI / 8)); em.setPosition(x, y, z0 + 2.78); b.geom('white', eg, em);
-      cylinderAB('white', [x, y, z0 + 4.2], [x, y, z0 + 4.7], 0.05, 0.02, 6); sphere('white', x, y, z0 + 4.25, 0.1, 0.1, 0.1, 1);
-      flowers(x + 2.6, y - 1.0, 3, 1.0); flowers(x - 2.5, y - 1.2, 3, 1.0);
+      tree(riverEdge(70) - 1.2, 70, 7, 2.6, [0.8, 0.86, 0.8]);
     })();
 
-    /* —— 石桌和四个石凳 —— */
+    /* —— 树屋：左边高处的大树，木屋搭在树杈上，长梯子落到草地 —— */
     (function () {
-      var x = 2.8, y = 47.5, z0 = terrainZ(x, y);
-      var g1 = new THREE.CylinderGeometry(0.35, 0.45, 0.7, 10), m1 = new THREE.Matrix4().makeRotationX(Math.PI / 2); m1.setPosition(x, y, z0 + 0.35); b.geom('stoneD', g1, m1);
-      var g2 = new THREE.CylinderGeometry(1.0, 0.95, 0.14, 14), m2 = new THREE.Matrix4().makeRotationX(Math.PI / 2); m2.setPosition(x, y, z0 + 0.76); b.geom('stone', g2, m2);
-      for (var i = 0; i < 4; i++) { var a = i * Math.PI / 2 + 0.4, g = new THREE.CylinderGeometry(0.28, 0.3, 0.45, 9), m = new THREE.Matrix4().makeRotationX(Math.PI / 2); m.setPosition(x + Math.cos(a) * 1.45, y + Math.sin(a) * 1.45, z0 + 0.225); b.geom('stone', g, m); }
+      var x = -22.5, y = 41, z0 = terrainZ(x, y), zp = z0 + 6.6, i;
+      cyl('bark', [x, y, z0 - 0.6], [x, y, zp + 5.5], 0.72, 0.4, 12);
+      cyl('bark', [x, y, zp + 1.5], [x - 2.6, y + 1.2, zp + 5.2], 0.3, 0.14, 8); cyl('bark', [x, y, zp + 2.2], [x + 2.4, y + 0.8, zp + 5.6], 0.28, 0.13, 8);
+      cyl('bark', [x, y, zp + 3], [x - 0.6, y - 1.8, zp + 6.2], 0.24, 0.12, 7);
+      canopy(x, y + 0.6, zp + 7.0, 4.6, 2.8, 10); canopy(x - 3.0, y + 1.0, zp + 5.6, 2.6, 1.8, 10); canopy(x + 2.8, y + 1.2, zp + 6.2, 2.6, 1.8, 10); canopy(x - 0.4, y - 1.5, zp + 8.4, 2.6, 1.6, 10);
+      var hx = x + 1.9, hy = y - 0.4;
+      boxM('woodD', [hx - 2.0, hy - 1.8, zp - 0.16, hx + 2.0, hy + 1.6, zp]);                                        /* 平台 */
+      boxM('wood', [hx - 1.25, hy - 1.05, zp, hx + 1.25, hy + 1.2, zp + 2.05]);                                      /* 小屋 */
+      boxM('woodD', [hx - 1.32, hy - 1.12, zp, hx - 1.2, hy - 1.0, zp + 2.05]); boxM('woodD', [hx + 1.2, hy - 1.12, zp, hx + 1.32, hy - 1.0, zp + 2.05]);
+      [[-0.85, -0.2], [0.25, 0.9]].forEach(function (w) {
+        boxM('white', [hx + w[0] - 0.07, hy - 1.09, zp + 0.82, hx + w[1] + 0.07, hy - 1.04, zp + 1.68]);
+        boxM('glassT', [hx + w[0], hy - 1.11, zp + 0.9, hx + w[1], hy - 1.07, zp + 1.6]);
+        boxM('white', [hx + (w[0] + w[1]) / 2 - 0.025, hy - 1.12, zp + 0.9, hx + (w[0] + w[1]) / 2 + 0.025, hy - 1.09, zp + 1.6]);
+        boxM('white', [hx + w[0], hy - 1.12, zp + 1.23, hx + w[1], hy - 1.09, zp + 1.27]);
+      });
+      b.extrude('wood', [[hx - 1.25, hy - 1.05, zp + 2.05], [hx - 1.25, hy + 1.2, zp + 2.05], [hx - 1.25, hy + 0.08, zp + 3.0]], [2.5, 0, 0]);
+      [-1, 1].forEach(function (s) { b.slab('shingle', [[hx - 1.6, hy + 0.08, zp + 3.12], [hx + 1.6, hy + 0.08, zp + 3.12], [hx + 1.6, hy + 0.08 + s * 1.62, zp + 1.86], [hx - 1.6, hy + 0.08 + s * 1.62, zp + 1.86]], 0.1); });
+      for (i = -3; i <= 3; i++) boxM('woodD', [hx + i * 0.62 - 0.045, hy - 1.8, zp, hx + i * 0.62 + 0.045, hy - 1.71, zp + 1.0]);   /* 栏杆 */
+      boxM('woodD', [hx - 2.0, hy - 1.82, zp + 0.92, hx + 2.0, hy - 1.68, zp + 1.03]);
+      for (i = -12; i <= 12; i++) boxM('woodD', [hx + i * 0.155 - 0.015, hy - 1.78, zp + 0.05, hx + i * 0.155 + 0.015, hy - 1.75, zp + 0.92]);
+      cyl('woodD', [x + 0.2, y, zp - 2.4], [hx - 1.7, hy - 1.6, zp - 0.12], 0.09, 0.09, 6); cyl('woodD', [x + 0.2, y, zp - 2.4], [hx + 1.8, hy - 1.6, zp - 0.12], 0.09, 0.09, 6);
+      var lx = hx - 1.2, ly = hy - 1.85, gy = ly - 2.6, gz = terrainZ(lx, gy);                               /* 梯子 */
+      [-0.26, 0.26].forEach(function (o) { cyl('woodD', [lx + o, gy, gz - 0.1], [lx + o, ly, zp + 1.0], 0.05, 0.05, 6); });
+      for (i = 1; i < 24; i++) { var t = i / 24; cyl('woodD', [lx - 0.26, gy + 2.6 * t, gz + (zp + 1.0 - gz) * t], [lx + 0.26, gy + 2.6 * t, gz + (zp + 1.0 - gz) * t], 0.03, 0.03, 5); }
+      flowerBush(x + 1.2, y - 2.8, 0.7, ['pink', 'white']); bush(x - 1.6, y - 1.6, 1.0, 1.0);
     })();
 
-    /* —— 小池塘和天鹅 —— */
-    (function () {
-      var x = -22, y = 50.5, z0 = 0.02, i;
-      var wg = new THREE.CircleGeometry(1, 32), wm = new THREE.Matrix4().makeScale(3.4, 2.3, 1); wm.setPosition(x, y, z0 + 0.06); b.geom('water', wg, wm);
-      for (i = 0; i < 16; i++) { var a = i / 16 * 6.28, r = 1.05 + rnd() * 0.1; sphere(rnd() < 0.5 ? 'rock' : 'stoneD', x + Math.cos(a) * 3.4 * r, y + Math.sin(a) * 2.3 * r, 0.12, 0.45 + rnd() * 0.3, 0.4 + rnd() * 0.25, 0.25 + rnd() * 0.15, 1); }
-      var sx = x + 0.6, sy = y - 0.3;
-      sphere('swan', sx, sy, 0.22, 0.45, 0.24, 0.2); sphere('swan', sx + 0.3, sy, 0.3, 0.2, 0.17, 0.14);
-      var neck = [[0.42, 0, 0.32], [0.52, 0, 0.45], [0.55, 0, 0.6], [0.52, 0, 0.72], [0.5, 0, 0.8]];
-      neck.forEach(function (q) { sphere('swan', sx + q[0], sy + q[1], q[2], 0.055, 0.055, 0.06, 1); });
-      sphere('swan', sx + 0.55, sy, 0.84, 0.08, 0.07, 0.065, 1);
-      var bg = new THREE.ConeGeometry(0.03, 0.12, 6), bm = new THREE.Matrix4().makeRotationZ(-Math.PI / 2); bm.setPosition(sx + 0.66, sy, 0.83); b.geom('beak', bg, bm);
-      flowers(x - 3.6, y + 1.6, 3, 1.2); flowers(x + 2.5, y + 2.6, 2, 1.0);
-    })();
+    /* —— 左下前景：一片粉白的花 —— */
+    for (var fx = -19; fx < -7; fx += 1.1 + rnd() * 0.6) flowerBush(fx, 42.5 + rnd() * 2.5, 0.7, fx < -13 ? ['pink', 'white', 'magenta'] : ['white', 'pink', 'lilac'], 0.8);
 
-    /* —— 木栅栏（右边沿河）、绿篱和树（把草地边缘和照片接上）—— */
-    (function () {
-      var ys = [], y;
-      for (y = 42; y <= 92; y += 2.2) ys.push(y);
-      ys.forEach(function (yy, i) { var x = rightEdge(yy) - 0.6, z = terrainZ(x, yy); boxM('woodD', [x - 0.06, yy - 0.06, z, x + 0.06, yy + 0.06, z + 1.05]);
-        if (i) { var yp = ys[i - 1], xp = rightEdge(yp) - 0.6; cylinderAB('woodD', [xp, yp, z + 0.9], [x, yy, z + 0.9], 0.04, 0.04, 5); cylinderAB('woodD', [xp, yp, z + 0.45], [x, yy, z + 0.45], 0.035, 0.035, 5); } });
-    })();
-    hedge([[-70, 95.5], [-30, 96], [-10, 95], [5, 94]], 2.6);
-    hedge([[rightEdge(68) - 1.6, 68], [rightEdge(82) - 1.6, 82], [rightEdge(93) - 1.6, 93]], 1.8);
-    /* 右边沿河：坡岸上的灌木和小树，接上照片里河岸的树 */
-    [[52, 5.5, 2.2], [63, 6.5, 2.4], [77, 6, 2.2]].forEach(function (t) { tree(rightEdge(t[0]) - 2.2, t[0], t[1], t[2]); });
-    hedge([[-70, 40], [-45, 41], [-32, 39]], 2.4);
-    tree(-34, 70, 11, 4.2); tree(-27, 88, 12, 4.5); tree(-46, 58, 10, 4); tree(-21, 92, 9, 3.6);
-    pine(-40, 86, 14); pine(-52, 76, 13);
-    tree(-30, 44, 9, 4.2); tree(-38, 50, 13, 5.2); tree(-33, 60, 12, 4.6);                      /* 左边缘：挡住照片里只剩半截的木屋 */
-    /* 房子两侧和后面的灌木 */
-    [hp(-8.2, 0.5), hp(-8.4, 3.5), hp(9.6, 2.0), hp(10.4, 5.0), hp(-4, 8.5), hp(3, 9)].forEach(function (p) { canopy(p[0], p[1], 0.9, 1.3, 3); });
-    /* 画面下沿的花境（粉、白、紫）和一段木栅栏，像效果图前景 */
-    for (var fx = -24; fx <= -2; fx += 1.5) flowers(fx, 47.0 + Math.sin(fx) * 0.5, 2, 1.0, null, 1.15);
-    (function () { var xs = [], x; for (x = -26; x <= -12; x += 2) xs.push(x);
-      xs.forEach(function (x, i) { var y = 46.0, z = terrainZ(x, y); boxM('woodD', [x - 0.07, y - 0.07, z, x + 0.07, y + 0.07, z + 1.0]);
-        if (i) { cylinderAB('woodD', [xs[i - 1], y, z + 0.85], [x, y, z + 0.85], 0.045, 0.045, 5); cylinderAB('woodD', [xs[i - 1], y, z + 0.42], [x, y, z + 0.42], 0.04, 0.04, 5); } }); })();
-    for (var k2 = 0; k2 < 26; k2++) { var px = -40 + rnd() * 44, py = 46 + rnd() * 40; if (Math.hypot(px - H[0], py - H[1]) < 11 || Math.hypot(px + 1.2, py - 55.5) < 3.5 || px > rightEdge(py) - 2) continue; flowers(px, py, 1, 0.5, null, 0.8); }
+    /* —— 树和灌木：把草地边缘和照片接上 —— */
+    tree(-36, 50, 13, 5.2); tree(-31, 62, 12, 4.6); tree(-42, 70, 14, 5.4); tree(-24, 86, 11, 4.4); tree(-6, 95, 9, 3.6, [0.92, 1, 0.92]);
+    conifer(-38, 84, 16); conifer(-50, 78, 15); conifer(-18, 96, 12);
+    for (var hxp = -60; hxp < 8; hxp += 2.4 + rnd() * 1.5) bush(hxp, 98 + rnd() * 2, 1.2 + rnd() * 0.6, 1.6 + rnd() * 1.4);
+    [hp(-4, 12.5), hp(4, 13), hp(12, 9)].forEach(function (p) { tree(p[0], p[1], 8, 3.2); });
 
     b.build(site, M);
     site.traverse(function (o) { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    var lm = leaves.mesh(), fm = fls.mesh(); site.add(lm, fm); disp.push(lm.geometry, lm.material, fm.geometry, fm.material);
 
-    /* —— 光：和照片一样的晴天，太阳在镜头右后方高处 —— */
-    var hemi = new THREE.HemisphereLight(0xd6e6ff, 0x4a6332, 0.55); root.add(hemi);
-    var sun = new THREE.DirectionalLight(0xfff0d6, 1.55), tgt = new THREE.Vector3(H[0] + 2, 3, -(H[1] - 10));
-    sun.position.set(tgt.x + 55, 95, tgt.z + 70); sun.target.position.copy(tgt); root.add(sun, sun.target);
-    sun.castShadow = true; sun.shadow.mapSize.set(4096, 4096); sun.shadow.bias = -0.0003; sun.shadow.normalBias = 0.05;
-    var sc = sun.shadow.camera; sc.left = -45; sc.right = 45; sc.top = 45; sc.bottom = -45; sc.near = 10; sc.far = 260;
+    /* —— 光：照片里的晴天，太阳在右前上方 —— */
+    var hemi = new THREE.HemisphereLight(0xf3f4ee, 0x5f7a3c, 0.6); root.add(hemi);
+    var sun = new THREE.DirectionalLight(0xfff1dc, 1.7), tgt = new THREE.Vector3(H[0] + 4, 4, -(H[1] - 8));
+    sun.position.set(tgt.x + 60, 90, tgt.z + 55); sun.target.position.copy(tgt); root.add(sun, sun.target);
+    sun.castShadow = true; sun.shadow.mapSize.set(4096, 4096); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.06;
+    var sc = sun.shadow.camera; sc.left = -42; sc.right = 42; sc.top = 42; sc.bottom = -42; sc.near = 10; sc.far = 260;
 
-    /* —— 镜头：固定在照片的拍摄位置附近，只能在照片范围内小幅转动（绕房子）和推近 —— */
-    var pivot = new THREE.Vector3(H[0], 4, -H[1]), C0 = new THREE.Vector3(0, P.camZ, 0), photoV = Math.atan(Math.tan(P.hfov / 2 * D2R) * P.IH / P.IW);
+    /* —— 镜头：照片机位，只能在照片范围内小幅转动和推近 —— */
+    var pivot = new THREE.Vector3(H[0], HP + 4, -H[1]), C0 = new THREE.Vector3(0, P.camZ, 0), photoV = Math.atan(Math.tan(P.hfov / 2 * D2R) * P.IH / P.IW);
     function frame(a, zoom) {
-      var hh = Math.min(30 * D2R * zoom, 32 * D2R), vh = Math.atan(Math.tan(hh) / a);
+      var hh = Math.min(P.viewHfov / 2 * D2R * zoom, 32.5 * D2R), vh = Math.atan(Math.tan(hh) / a);
       if (vh > photoV - 4 * D2R) { vh = photoV - 4 * D2R; hh = Math.atan(Math.tan(vh) * a); }
       var yaw0 = a < 1 ? Math.min(0.2, P.hfov / 2 * D2R - hh) : 0, azMax = Math.max(0, P.hfov / 2 * D2R - hh - Math.abs(yaw0) - 0.004);
       return { vfov: vh * 2 / D2R, yaw0: yaw0, azMax: azMax, pMax: Math.max(0, photoV - vh - 0.004), pitch0: -3 * D2R };
     }
-    var api = {
+    return {
       root: root, holder: holder,
       limits: function (a, zoom) { return frame(a, zoom); },
       place: function (camera, O) {
-        var f = frame(camera.aspect, O.zoom || 1); O.az = Math.max(-f.azMax, Math.min(f.azMax, O.az)); O.el = Math.max(-f.pMax - 0.08, Math.min(f.pMax, O.el));
+        var f = frame(camera.aspect, O.zoom || 1); O.az = Math.max(-f.azMax, Math.min(f.azMax, O.az)); O.el = Math.max(-f.pMax - 0.06, Math.min(f.pMax, O.el));
         if (Math.abs(camera.fov - f.vfov) > 0.01) { camera.fov = f.vfov; camera.updateProjectionMatrix(); }
         var v = C0.clone().sub(pivot).applyAxisAngle(new THREE.Vector3(0, 1, 0), O.az); camera.position.copy(pivot).add(v);
-        camera.rotation.order = 'YXZ'; camera.rotation.set(Math.max(-f.pMax - 0.08, Math.min(f.pMax, f.pitch0 + O.el)), f.yaw0 + O.az, 0);
+        camera.rotation.order = 'YXZ'; camera.rotation.set(Math.max(-f.pMax - 0.06, Math.min(f.pMax, f.pitch0 + O.el)), f.yaw0 + O.az, 0);
         back.position.set(camera.position.x, P.camZ, camera.position.z - P.RB);
       },
       dispose: function () { scene.remove(root); disp.forEach(function (d) { try { d.dispose(); } catch (e) {} }); }
     };
-    return api;
   };
 })();
