@@ -11,11 +11,11 @@
   $('stage').appendChild(renderer.domElement);
 
   var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(32, 1, 0.5, 400);
-  var house = C.build('white'); scene.add(house);
+  var house = C.build(q.get('mode') === 'white' ? 'white' : 'final'); scene.add(house);
   var G = house.userData.groups;
 
   /* 简单地面：一块接阴影的圆盘 + 一个指北箭头 */
-  var ground = new THREE.Mesh(new THREE.CircleGeometry(70, 72), new THREE.MeshStandardMaterial({ color: new THREE.Color(0xa9ad98).convertSRGBToLinear(), roughness: 1 }));
+  var ground = new THREE.Mesh(new THREE.CircleGeometry(70, 72), new THREE.MeshStandardMaterial({ color: new THREE.Color(0xc9b994).convertSRGBToLinear(), roughness: 1 }));
   ground.rotation.x = -Math.PI / 2; ground.position.y = P.groundZ - 0.005; ground.receiveShadow = true; scene.add(ground);
   (function () {
     var s = new THREE.Shape(); s.moveTo(0, 1.6); s.lineTo(0.7, -0.6); s.lineTo(0, -0.2); s.lineTo(-0.7, -0.6); s.closePath();
@@ -34,8 +34,8 @@
   /* —— 环绕镜头 —— az=0 在正东（看正立面），az 增大向北转 */
   var O = { az: 0.55, el: 0.3, d: 46, t: new THREE.Vector3(1.6, 3.6, -3.4), auto: false };
   var VIEWS = {
-    hero: [0.55, 0.3, 40], eye: [0, -0.075, 30], front: [0, 0.1, 38], rear: [Math.PI, 0.16, 46], south: [-Math.PI / 2, 0.14, 44], north: [Math.PI / 2, 0.14, 44],
-    top: [0, 1.52, 40], 'rear-n': [Math.PI - 0.7, 0.32, 46], 'rear-s': [Math.PI + 0.7, 0.32, 46], 'front-s': [-0.6, 0.3, 46], aerial: [0.25, 0.75, 50]
+    hero: [0.55, 0.3, 40], eye: [0, -0.075, 30], detail: [0.35, 0.02, 13], front: [0, 0.1, 38], rear: [Math.PI, 0.16, 38], south: [-Math.PI / 2, 0.14, 36], north: [Math.PI / 2, 0.14, 36],
+    top: [0, 1.52, 40], 'rear-n': [Math.PI - 0.7, 0.32, 46], 'rear-s': [Math.PI + 0.7, 0.32, 46], 'front-s': [-0.6, 0.3, 46], aerial: [0.25, 0.75, 38]
   };
   var fly = null;
   function setView(n, instant) {
@@ -86,7 +86,7 @@
   }
 
   /* —— 界面 —— */
-  function sync() { $('auto').classList.toggle('on', O.auto); }
+  function sync() { $('auto').classList.toggle('on', O.auto); $('mode').textContent = C.mode === 'final' ? '看白模' : '看外观'; }
   [['hero', '主视角'], ['front', '正面 · 东'], ['rear', '背面 · 西'], ['south', '南侧'], ['north', '北侧'], ['aerial', '俯瞰'], ['top', '屋顶']].forEach(function (v) {
     var b = document.createElement('button'); b.textContent = v[1]; b.addEventListener('click', function () { setView(v[0]); }); $('views').appendChild(b);
   });
@@ -98,6 +98,7 @@
   function setLayer(n, on) { if (G[n]) { G[n].visible = on; var cb = $('ly-' + n); if (cb) cb.checked = on; } }
   $('cut').max = CUT_MAX; $('cut').addEventListener('input', function () { setCut(+this.value); });
   $('auto').addEventListener('click', function () { O.auto = !O.auto; sync(); });
+  $('mode').addEventListener('click', function () { C.setMode(house, C.mode === 'final' ? 'white' : 'final'); sync(); });
   [['roofOff', function () { setLayer('roof', false); setLayer('chimneys', false); setCut(CUT_MAX); }], ['f2', function () { all(true); setCut(P.floor2Z + 1.3 - P.groundZ * 0); }],
     ['f1', function () { all(true); setCut(P.floor1Z + 1.4); }], ['f0', function () { all(true); setCut(1.5); }], ['whole', function () { all(true); setCut(CUT_MAX); }]
   ].forEach(function (a) { $(a[0]).addEventListener('click', a[1]); });
@@ -141,6 +142,6 @@
   }
   requestAnimationFrame(loop);
 
-  C.app = { setView: setView, setCut: setCut, setLayer: setLayer, orbit: O, stats: st, fps: function () { return fps; }, renderer: renderer, scene: scene, camera: camera, house: house,
+  C.app = { setView: setView, setCut: setCut, setMode: function (m) { C.setMode(house, m); sync(); }, setLayer: setLayer, orbit: O, stats: st, fps: function () { return fps; }, renderer: renderer, scene: scene, camera: camera, house: house,
     shot: function () { place(); renderer.render(scene, camera); return renderer.domElement.toDataURL('image/jpeg', 0.9); } };
 })();
