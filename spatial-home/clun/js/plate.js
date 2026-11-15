@@ -102,7 +102,7 @@
         var sz = renderer.getSize(new THREE.Vector2()), va = sz.x / Math.max(1, sz.y), fw, fh, ox, oy, z = Math.max(0.45, Math.min(1, O.zoom || 1));
         if (va > A) { fw = sz.x; fh = sz.x / A; } else { fh = sz.y; fw = sz.y * A; }        /* 底图铺满视口（多出的裁掉） */
         fw /= z; fh /= z;
-        var cx = va < 1 ? 0.42 : 0.5;                                        /* 竖屏时以房子为中心 */
+        var cx = va < 1 ? 0.31 : 0.5;                                        /* 竖屏时以房子为中心 */
         O.az = Math.max(-0.5, Math.min(0.5, O.az)); O.el = Math.max(-0.5, Math.min(0.5, O.el));
         ox = Math.max(0, Math.min(fw - sz.x, fw * cx - sz.x / 2 - O.az * (fw - sz.x)));
         oy = Math.max(0, Math.min(fh - sz.y, (fh - sz.y) / 2 + O.el * (fh - sz.y)));
