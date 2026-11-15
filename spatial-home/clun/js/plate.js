@@ -26,7 +26,9 @@
     river: [[1665, 1022], [1855, 1022], [1864, 1118], [1852, 1180], [1802, 1230], [1752, 1290], [1720, 1350], [1690, 1400], [1672, 1438],
       [1198, 1438], [1218, 1368], [1280, 1318], [1380, 1268], [1488, 1218], [1578, 1168], [1628, 1108]],
     bridge: [1760, 1018],
-    walk: [[760, 1330], [985, 1222]],   /* 小旅人来回走的石板路两端 */
+    walk: [[760, 1330], [985, 1222]],   /* 小旅人来回走的石板路两端（近景） */
+    table: [[1985, 1405], [2095, 1392]], /* 远景里小旅人的位置：石桌左前方的草地 */
+    heroScale: 0.72,                     /* 小旅人整体缩小 */
     pathDrop: 0.45                      /* 小路比房子台地低多少（米） */
   };
 
@@ -103,6 +105,11 @@
     bg.globalCompositeOperation = 'destination-in';
     var gr = bg.createLinearGradient(0, 445, 0, 700); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(0.5, 'rgba(0,0,0,1)'); gr.addColorStop(0.8, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0)');   /* 山延伸到遮罩里面一段（到 570），再在 650 前慢慢过渡成山林 */
     bg.fillStyle = gr; bg.fillRect(0, 445, W, 260); bg.fillStyle = '#000'; bg.globalCompositeOperation = 'source-over';
+    /* 悬崖右边的天空翻下来会在烟囱后面留一块白斑：用左边紧挨着的一段崖壁（右移 150）盖住，左缘羽化 */
+    var fx0 = 870, fw = 180, fy0 = 445, fh = 210, pc = document.createElement('canvas'); pc.width = fw; pc.height = fh; var pg = pc.getContext('2d');
+    pg.drawImage(band, fx0 - 150, fy0, fw, fh, 0, 0, fw, fh);
+    pg.globalCompositeOperation = 'destination-in'; var fg = pg.createLinearGradient(0, 0, 40, 0); fg.addColorStop(0, 'rgba(0,0,0,0)'); fg.addColorStop(1, 'rgba(0,0,0,1)'); pg.fillStyle = fg; pg.fillRect(0, 0, fw, fh);
+    bg.drawImage(pc, fx0, fy0);
     g.drawImage(band, 0, 0);
     g.drawImage(img, 330, 1098, 482, 52, 330, 1028, 482, 76);          /* 土路换成正下方的草坪 */
     var sh = g.createLinearGradient(330, 0, 700, 0); sh.addColorStop(0, 'rgba(20,45,10,0.42)'); sh.addColorStop(0.65, 'rgba(20,45,10,0.3)'); sh.addColorStop(1, 'rgba(20,45,10,0)');
@@ -177,7 +184,10 @@
     /* —— 小旅人：在石板路上来回走（路面高度 = 房子台地往下 pathDrop 米，两端由底图像素的射线和路面求交） —— */
     var hero = C.Hero.build(), gy = holder.position.y - 0.3 - PL.pathDrop;
     function onGround(px, py) { var r = rayTo(px, py); return r.clone().multiplyScalar((gy - cam.pos.y) / r.y).add(cam.pos); }
-    hero.setPath(onGround(PL.walk[0][0], PL.walk[0][1]), onGround(PL.walk[1][0], PL.walk[1][1]), cam.pos.clone());
+    hero.root.scale.setScalar(PL.heroScale);
+    var spot = null;
+    function heroAt(name) { if (name === spot) return; spot = name; var w = PL[name]; hero.setPath(onGround(w[0][0], w[0][1]), onGround(w[1][0], w[1][1]), cam.pos.clone()); }
+    heroAt('walk');
     root.add(hero.root);
 
     /* —— 接触阴影：房子脚下一块只接阴影的透明地面 —— */
@@ -208,10 +218,11 @@
       var w = Math.min(r.w, PL.W, PL.H * r.w / r.h), h = w * r.h / r.w;
       return { x: Math.max(0, Math.min(PL.W - w, r.cx - w / 2)), y: Math.max(0, Math.min(PL.H - h, r.cy - h / 2)), w: w, h: h };
     }
+    function shows(fr, x) { var c = clampRect(fr); return x > c.x + 40 && x < c.x + c.w - 40; }
     function frameFor(k, va) {                                            /* 各屏的取景：中心 + 宽（高由视口比例定） */
       if (k === 'outer') { var ho = Math.min(PL.H, Math.max(1100, 640 / va)); return { cx: HOUSE[0], cy: HOUSE[1] - 30, w: ho * va, h: ho }; }   /* 房子居中，略推近 */
-      var w = va > A ? PL.W : PL.H * va;
-      return { cx: va > A ? PL.W / 2 : (k === 'inner' ? 1225 : PL.W / 2), cy: PL.H / 2, w: w, h: w / va };
+      var w = va > A ? PL.W : PL.H * va;                                      /* 远景：房子左缘（约 x 520）留在画面里，能放下就往右多带上村庄、瀑布和石桌 */
+      return { cx: va > A ? PL.W / 2 : (k === 'inner' ? 520 + w / 2 : PL.W / 2), cy: PL.H / 2, w: w, h: w / va };
     }
     function closeUp(va) { var w = Math.min(760, PL.H * va); return { cx: HOUSE[0], cy: HOUSE[1] + 40, w: w, h: w / va }; }   /* 房子近景 */
     function ease(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
@@ -236,6 +247,7 @@
         var k = screenKind(sz.x, sz.y);
         if (k !== kind) { document.body.classList.toggle('duo-screen', (k === 'outer' || k === 'inner') && !PL.sim); var from = kind == null ? bootFrom : kind; kind = k; if (from && from !== k) { beginTransition(from, k, va, now); O.zoom = 1; O.az = O.el = 0; } else try { sessionStorage.setItem('clun.duo.kind', JSON.stringify({ k: k, t: Date.now() })); } catch (e) {} }
         var tgt = frameFor(k, va), r = tgt;
+        heroAt(k !== 'outer' && shows(tgt, PL.table[1][0]) ? 'table' : 'walk');   /* 远景看得到石桌就在石桌边，否则（外屏 / 接近方形的内屏）在门前小路上 */
         if (trans) {
           var p = Math.max(0, Math.min(1, (now - trans.t0 - trans.hold) / trans.dur)), e = ease(p);
           r = lerpR(trans.from, tgt, e);
