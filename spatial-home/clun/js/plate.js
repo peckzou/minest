@@ -18,7 +18,8 @@
     /* 原房子的轮廓（要抹掉的范围）。底边在门前花丛处抬高，花丛和台阶保留 */
     mask: [[425, 1040], [425, 730], [488, 556], [494, 446], [582, 446], [582, 548], [962, 552], [965, 552], [1040, 552], [1044, 664], [1118, 730], [1162, 730],
       [1172, 780], [1210, 836], [1284, 924], [1284, 1044], [1142, 1044], [1142, 1012], [808, 1012], [808, 1046]],
-    path: [[300, 990], [830, 990], [830, 1112], [300, 1112]],          /* 房前那条土路：铺成草地 */
+    path: [[300, 990], [830, 990], [830, 1112], [300, 1112]],
+    fence: [[1962, 1080], [2000, 1080], [2012, 1190], [2018, 1300], [2020, 1438], [1680, 1438], [1680, 1395], [1730, 1360], [1870, 1205]],   /* 石桌边沿河那道木栅栏和它的影子：铺成草地 */          /* 房前那条土路：铺成草地 */
     bush: { rect: [322, 790, 560, 1046], src: [200, 70, 420, 420] },    /* 房子左前方一丛树叶（取自左上大树的叶子），挡住左端 */
     /* 动画区域（底图像素） */
     fall: [[1973, 52], [1999, 52], [1986, 320], [1967, 540], [1948, 705], [1890, 705], [1922, 540], [1946, 320]],
@@ -125,10 +126,28 @@
     g.drawImage(lw, LX0, LY0);
     var shg = g.createLinearGradient(0, 990, 0, 1120); shg.addColorStop(0, 'rgba(255,250,210,0.10)'); shg.addColorStop(0.35, 'rgba(255,250,210,0)'); shg.addColorStop(1, 'rgba(20,45,10,0.18)');
     g.save(); g.globalCompositeOperation = 'source-atop'; g.fillStyle = shg; g.fillRect(LX0 + 40, 985, LX1 - LX0 - 60, 135); g.restore();   /* 坡顶受光、坡脚稍暗：有小山丘的起伏 */
+    /* 去掉石桌边那道木栅栏（连同影子）：用石凳下方那条干净的向阳草地一块块铺上去，越往下铺得越大（近大远小），左右交替翻转免得看出重复 */
+    var fc = document.createElement('canvas'); fc.width = W; fc.height = H; var fg2 = fc.getContext('2d');
+    fg2.beginPath(); PL.fence.forEach(function (q, i2) { if (i2) fg2.lineTo(q[0], q[1]); else fg2.moveTo(q[0], q[1]); }); fg2.closePath(); fg2.save(); fg2.clip();
+    var ty = 1060, row = 0;
+    while (ty < H) {
+      var sc = 0.45 + 0.55 * Math.max(0, ty - 1060) / 378, tw = 300 * sc, th = 70 * sc, tx = 1700 - (row % 2) * tw * 0.5, col = 0;
+      for (; tx < 2060; tx += tw, col++) {
+        fg2.save(); if ((row + col) % 2) { fg2.translate(tx + tw, ty); fg2.scale(-1, 1); fg2.drawImage(img, 2150, 1365, 300, 70, 0, 0, tw, th); }
+        else fg2.drawImage(img, 2150, 1365, 300, 70, tx, ty, tw, th);
+        fg2.restore();
+      }
+      ty += th * 0.92; row++;
+    }
+    fg2.restore();
+    var fm = document.createElement('canvas'); fm.width = W; fm.height = H; var fmg = fm.getContext('2d');   /* 羽化边 */
+    fmg.filter = 'blur(9px)'; fmg.fillStyle = '#000'; fmg.beginPath(); PL.fence.forEach(function (q, i2) { if (i2) fmg.lineTo(q[0], q[1]); else fmg.moveTo(q[0], q[1]); }); fmg.closePath(); fmg.fill();
+    fg2.globalCompositeOperation = 'destination-in'; fg2.drawImage(fm, 0, 0);
+    g.drawImage(fc, 0, 0);
     /* 遮罩：原房子的轮廓，低分辨率，放大时边缘自然羽化 */
     var f = 16, mk = document.createElement('canvas'); mk.width = Math.round(W / f); mk.height = Math.round(H / f); var mg = mk.getContext('2d');
     mg.fillStyle = '#000'; mg.fillRect(0, 0, mk.width, mk.height); mg.fillStyle = '#fff'; mg.beginPath();
-    [PL.mask, PL.path].forEach(function (poly) { mg.beginPath(); poly.forEach(function (p, i) { if (i) mg.lineTo(p[0] / f, p[1] / f); else mg.moveTo(p[0] / f, p[1] / f); }); mg.closePath(); mg.fill(); });
+    [PL.mask, PL.path, PL.fence].forEach(function (poly) { mg.beginPath(); poly.forEach(function (p, i) { if (i) mg.lineTo(p[0] / f, p[1] / f); else mg.moveTo(p[0] / f, p[1] / f); }); mg.closePath(); mg.fill(); });
     function tex(c) { var t = new THREE.CanvasTexture(c); t.minFilter = THREE.LinearFilter; t.magFilter = THREE.LinearFilter; t.generateMipmaps = false; t.flipY = true; return t; }
     return { patch: tex(cv), mask: tex(mk) };
   }
