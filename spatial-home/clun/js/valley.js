@@ -172,7 +172,9 @@
     });
     tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false; disp.push(tex);
     var BW = 2 * P.RB * Math.tan(P.hfov / 2 * D2R), BH = BW * P.IH / P.IW;
-    back = new THREE.Mesh(new THREE.PlaneGeometry(BW, BH), new THREE.MeshBasicMaterial({ toneMapped: false, depthWrite: false, fog: false })); back.visible = false;
+    var EXT = 0.14, bgeo = new THREE.PlaneGeometry(BW * (1 + EXT), BH); bgeo.translate(-BW * EXT / 2, 0, 0);    /* 往左多出 14%：照片左边缘镜像延伸，不靠树去挡 */
+    (function () { var uv = bgeo.attributes.uv; for (var i = 0; i < uv.count; i++) uv.setX(i, uv.getX(i) * (1 + EXT) - EXT); })();
+    back = new THREE.Mesh(bgeo, new THREE.MeshBasicMaterial({ toneMapped: false, depthWrite: false, fog: false })); back.visible = false;
     back.renderOrder = -10; back.frustumCulled = false; root.add(back); disp.push(back.geometry, back.material);
 
     /* —— 地形：河左岸往左上坡，房子在台地上 —— */
@@ -299,8 +301,8 @@
         var x = riverX(y) + sd * (riverHW(y) + 0.05 + rnd() * 0.45), r = 0.15 + rnd() * 0.3, gg = new THREE.IcosahedronGeometry(1, 1), m = new THREE.Matrix4().makeScale(r * (1 + rnd() * 0.5), r, r * 0.6); m.setPosition(x, y, waterZ(y));
         b.geom(rnd() < 0.5 ? 'stone' : 'stoneD', gg, m);
       });
-      for (y = 12; y < RY1; y += 2.2 + rnd() * 2) { var lx = riverEdge(y) - 0.8 - rnd() * 0.5; bush(lx, y, 0.6 + rnd() * 0.4, 0.7 + rnd() * 0.6, [0.86, 0.92, 0.86]); }
-      bush(riverX(RY1) - 2.0, RY1 + 0.2, 1.0, 1.3); bush(riverX(RY1) + 2.0, RY1 + 0.2, 1.1, 1.5);
+      for (y = 12; y < 22; y += 3 + rnd() * 2) { var lx = riverEdge(y) - 0.8 - rnd() * 0.5; bush(lx, y, 0.5 + rnd() * 0.3, 0.6 + rnd() * 0.4, [0.86, 0.92, 0.86]); }
+      bush(riverX(RY1) - 1.8, RY1 + 0.2, 0.6, 0.7); bush(riverX(RY1) + 1.8, RY1 + 0.2, 0.6, 0.7);
     })();
 
     /* —— 右岸：沿河栅栏、石桌和四个石凳、灌木、花、树 —— */
@@ -314,8 +316,7 @@
       var g2 = new THREE.CylinderGeometry(1.1, 1.04, 0.2, 12), m2 = new THREE.Matrix4().makeRotationX(Math.PI / 2); m2.setPosition(tx, ty, tz + 0.82); b.geom('stone', g2, m2);
       for (var i = 0; i < 4; i++) { var a = i * Math.PI / 2 + 0.5, g = new THREE.CylinderGeometry(0.32, 0.36, 0.46, 8), m = new THREE.Matrix4().makeRotationX(Math.PI / 2); var sx = tx + Math.cos(a) * 1.45, sy = ty + Math.sin(a) * 1.45; m.setPosition(sx, sy, terrainZ(sx, sy) + 0.23); b.geom('stone', g, m); }
       bush(9.5, 16, 1.0, 1.2); flowerBush(11.5, 20, 0.7, ['magenta', 'pink']); bush(15, 26, 1.3, 1.8); flowerBush(8.8, 14.5, 0.6, ['pink', 'white']);
-      for (var x = 13; x < 28; x += 1.8 + rnd()) bush(x, RY1 + rnd(), 0.9 + rnd() * 0.5, 1.2 + rnd() * 0.8);     /* 右岸远端：接照片 */
-      tree(17, 24, 7, 3.0); tree(21, 30, 8, 3.4);
+      for (var x = 13; x < 28; x += 2.2 + rnd()) bush(x, RY1 + rnd(), 0.6 + rnd() * 0.3, 0.6 + rnd() * 0.4);     /* 右岸远端：几丛矮灌木接上照片 */
     })();
 
     /* —— 前景：木栈道（两侧栅栏）接石板路；左下斜栅栏后面一片粉花 —— */
@@ -348,16 +349,16 @@
       for (i = 0; i < TP.length - 1; i++) seg('bark', TP[i], TP[i + 1], trunk[i][3], trunk[i + 1][3], 14);
       for (k = 0; k < 6; k++) { var a = k / 6 * 6.28 + 0.4, rb = W(tx + Math.cos(a) * 0.5, tv + Math.sin(a) * 0.5, z0 + 0.9), re = W(tx + Math.cos(a) * 2.0, tv + Math.sin(a) * 2.0, z0 - 0.15); seg('bark', rb, re, 0.42, 0.12, 8); }
       /* 粗枝：从树干顶部向外平伸再上扬，末端是一团团树冠 */
-      var top = TP[TP.length - 1], limbs = [[-1, 0.1, 3.0], [-0.6, -0.8, 2.6], [0.6, -0.8, 2.6], [1, 0.12, 3.0], [0.05, -1, 2.2], [-0.9, -0.45, 2.1], [0.9, -0.45, 2.1]];   /* 不往镜头方向伸，免得挡住小屋 */
+      var top = TP[TP.length - 1], limbs = [[-1, 0.1, 2.0], [-0.6, -0.8, 1.7], [0.5, -0.85, 1.4], [0.05, -1, 1.5], [-0.9, -0.45, 1.6]];   /* 短枝，树冠只在小屋上方和左边，不挡山 */   /* 不往镜头方向伸，免得挡住小屋 */
       limbs.forEach(function (L, j) {
         var dl = Math.hypot(L[0], L[1]), du = L[0] / dl, dv = L[1] / dl, len = L[2];
         var P0 = [top[0], top[1], top[2] - 0.6], P1 = W(tx + du * len * 1.1, tv + dv * len * 1.1, z0 + 7.2 + j % 2 * 0.5), P2 = W(tx + du * len * 2.0, tv + dv * len * 2.0, z0 + 8.9 + (j % 3) * 0.4);
         seg('bark', P0, P1, 0.42, 0.28, 10); seg('bark', P1, P2, 0.28, 0.13, 8);
         var Ps = W(tx + du * len * 1.5 + dv * 0.9, tv + dv * len * 1.5 - du * 0.9, z0 + 8.4); seg('bark', P1, Ps, 0.14, 0.06, 6);
-        canopy(P2[0], P2[1], P2[2] + 1.1, 2.7 + (j % 2) * 0.4, 1.6, 10);
-        canopy(Ps[0], Ps[1], Ps[2] + 0.9, 1.9, 1.2, 10);
+        canopy(P2[0], P2[1], P2[2] + 0.9, 2.0 + (j % 2) * 0.3, 1.3, 10);
+        if (j % 2 === 0) canopy(Ps[0], Ps[1], Ps[2] + 0.7, 1.4, 1.0, 10);
       });
-      canopy(top[0] - vd[0] * 1.0, top[1] - vd[1] * 1.0, z0 + 11.2, 3.6, 2.0, 10); canopy(top[0] + ud[0] * 1.8 - vd[0] * 0.8, top[1] + ud[1] * 1.8 - vd[1] * 0.8, z0 + 10.4, 2.6, 1.5, 10);
+      canopy(top[0] - vd[0] * 1.0 - ud[0] * 0.8, top[1] - vd[1] * 1.0 - ud[1] * 0.8, z0 + 10.6, 2.8, 1.6, 10);
       /* 树屋 */
       var zd = z0 + 4.4, cu = 0.2;                                   /* 平台面标高、小屋中心 */
       lbox('woodD', -2.3, -1.2, zd - 0.22, 2.5, 1.95, zd);            /* 平台（树干从后部穿过） */
@@ -414,9 +415,9 @@
 
 
     /* —— 树和灌木：左边大树框住画面，房子两侧和后面的树把草地边缘接上照片 —— */
-    tree(-13, 11, 12, 5.0); canopy(-8.5, 10, 14.2, 3.2, 1.8, 10); canopy(-11, 8, 13.4, 2.8, 1.6, 10);   /* 左上角的树冠，盖住远景照片的左边缘 */ tree(-24, 40, 12, 5.0); tree(-28, 54, 13, 5.4); tree(-20, 60, 11, 4.4);
-    conifer(-34, 60, 15);
-    [hp(-4, 12.5), hp(4, 13), hp(12, 9), hp(-12, 6)].forEach(function (p) { tree(p[0], p[1], 8, 3.2); });
+    canopy(-9.6, 8.5, 14.6, 2.0, 2.4, 12); canopy(-9.2, 8.2, 12.0, 1.6, 1.4, 12);   /* 左边缘一小团树冠，只盖住远景照片的左边 */
+    tree(-28, 54, 10, 4.0);
+    [hp(-12, 6), hp(-6, 12.5)].forEach(function (p) { tree(p[0], p[1], 7, 2.6); });
     for (var hxp = -40; hxp < 12; hxp += 2.2 + rnd() * 1.4) { var hy = 61 + rnd() * 2.5; if (hxp > 0.24 * hy - 1.8) continue; bush(hxp, hy, 1.1 + rnd() * 0.5, 1.4 + rnd() * 1.2); }
 
     b.build(site, M);

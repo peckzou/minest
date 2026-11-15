@@ -16,7 +16,7 @@
 
   /* 远景照片 → 绘画化贴图。src 是原始照片（按原值读），返回渲染目标的贴图（存的是 sRGB 值）。 */
   S.paintBackdrop = function (renderer, src, W, H) {
-    var rt = new THREE.WebGLRenderTarget(W, H, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: false, depthBuffer: false });
+    var rt = new THREE.WebGLRenderTarget(W, H, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: false, depthBuffer: false, wrapS: THREE.MirroredRepeatWrapping });   /* 左右可镜像延伸 */
     var mat = new THREE.ShaderMaterial({
       uniforms: { tSrc: { value: src }, uTexel: { value: new THREE.Vector2(1 / src.image.width, 1 / src.image.height) } },
       vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
@@ -44,7 +44,7 @@
         '  c = mix(c, vec3(0.70, 0.82, 0.94), haze);',
         '  float skyM = smoothstep(0.22, 0.45, o.b - o.r) * smoothstep(0.12, 0.3, o.b - o.g) * smoothstep(0.5, 0.7, y);',     /* 天空：照片上部很饱和的蓝（山的蓝和雪的阴影都不够饱和） */
         '  float px = vUv.x * 1266.0, py = (1.0 - y) * 860.0;',                              /* 左边大山的轮廓（照片像素）：山上不算天空 */
-        '  float edge = py < 88.0 ? -20.0 : py < 120.0 ? mix(40.0, 110.0, (py - 88.0) / 32.0) : py < 190.0 ? mix(110.0, 180.0, (py - 120.0) / 70.0) : py < 262.0 ? mix(180.0, 260.0, (py - 190.0) / 72.0) : 2000.0;',
+        '  float edge = py < 88.0 ? -20.0 : py < 120.0 ? mix(40.0, 110.0, (py - 88.0) / 32.0) : py < 190.0 ? mix(110.0, 180.0, (py - 120.0) / 70.0) : mix(180.0, 260.0, (py - 190.0) / 72.0);',
         '  skyM *= smoothstep(edge, edge + 14.0, px);',
         '  vec3 sky = mix(vec3(0.5, 0.7, 0.94), vec3(0.24, 0.5, 0.88), smoothstep(0.62, 1.0, y));',            /* 贴近照片原来的蓝，接缝看不出 */
         '  vec2 q = vec2(vUv.x * 3.2, vUv.y * 7.0);',
