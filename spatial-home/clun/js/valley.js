@@ -11,7 +11,7 @@
   var V = C.VALLEY = {
     img: 'art/lauterbrunnen-valley.jpg', IW: 1266, IH: 860, hfov: 66,       /* 照片：假定水平视角 66° */
     camZ: 10,                                                              /* 机位离谷底的高度（照用户的构图参考定的） */
-    house: [-11.1, 54], houseRot: 11.6, viewHfov: 64, RB: 2500, backYaw: 5.5   /* 远景照片往右挪 5.5°：教堂、瀑布、桥落在参考图的位置 */
+    house: [-11.1, 54], houseRot: 36, viewHfov: 64, RB: 2500, backYaw: 5.5   /* 远景照片往右挪 5.5°：教堂、瀑布、桥落在参考图的位置 */
   };
   function lin(hex) { return new THREE.Color(hex).convertSRGBToLinear(); }
   function canvas(n) { var c = document.createElement('canvas'); c.width = c.height = n; return c; }
