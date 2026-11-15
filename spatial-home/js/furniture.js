@@ -1139,4 +1139,213 @@
   };
   [{ id: 'deck-lounge', name: '湖畔休闲椅' }, { id: 'deck-table', name: '小圆桌' }].forEach(function (c) {
     if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.id, icon: '▣', place: 'floor', size: [0.8, 0.9, 0.8], note: '布莱德湖 · 湖畔木平台' }); });
+  /* a tap on a lantern, a cowbell or the campfire turns the place's own sound on and off */
+  function ambToggle() { var M = window.SpatialMedia; if (!M || !M.audio) return null; var q = M.audio.state(), on = !(q.playing && q.mode === 'ambient'); M.audio.set({ playing: on, mode: 'ambient' }); return on ? '环境声已打开 · ' + M.audio.ambience() : '环境声已关闭'; }
+  /* Hobbiton · the garden by the pond: a round oak table on a turned pedestal, a three-legged stool, a brass lantern
+     (its flame lit), a pumpkin. */
+  F['hob-table'] = function (T) {
+    var M = tmats(T), g = new T.Group(), i;
+    var top = lathe(T, [[0, 0.69], [0.5, 0.69], [0.525, 0.705], [0.53, 0.73], [0.515, 0.75], [0, 0.75]], M.oak, 40); top.castShadow = top.receiveShadow = true; g.add(top);
+    var ped = lathe(T, [[0, 0.06], [0.1, 0.06], [0.12, 0.12], [0.085, 0.2], [0.06, 0.32], [0.085, 0.44], [0.1, 0.52], [0.07, 0.6], [0.1, 0.66], [0.2, 0.69], [0, 0.69]], M.oakD, 24); ped.castShadow = true; g.add(ped);
+    for (i = 0; i < 4; i++) { var a = i * Math.PI / 2 + 0.4, f = box(T, g, M.oakD, Math.cos(a) * 0.2, 0.05, Math.sin(a) * 0.2, 0.44, 0.07, 0.08); f.rotation.y = -a; }
+    return { group: g, hb: [1.06, 0.75, 1.06], place: 'floor' };
+  };
+  F['hob-stool'] = function (T) {
+    var M = tmats(T), g = new T.Group();
+    var seat = lathe(T, [[0, 0.41], [0.17, 0.41], [0.185, 0.425], [0.18, 0.45], [0, 0.455]], M.oak, 28); seat.castShadow = true; g.add(seat);
+    for (var i = 0; i < 3; i++) { var a = i * 2.094 + 0.3; limb(T, g, M.oakD, [Math.cos(a) * 0.19, 0, Math.sin(a) * 0.19], [Math.cos(a) * 0.1, 0.42, Math.sin(a) * 0.1], 0.022, 0.028); }
+    return { group: g, hb: [0.42, 0.46, 0.42], place: 'floor' };
+  };
+  F['hob-lantern'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var br = new T.MeshStandardMaterial({ color: L(0xb98a3a), roughness: 0.35, metalness: 0.85 }), gl = new T.MeshStandardMaterial({ color: L(0xfff0c8), transparent: true, opacity: 0.28, roughness: 0.05 }), fm = new T.MeshBasicMaterial({ color: 0xffc04a });
+    g.add(lathe(T, [[0, 0], [0.06, 0], [0.065, 0.012], [0.05, 0.025], [0, 0.025]], br, 20));
+    var gm = new T.Mesh(new T.CylinderGeometry(0.045, 0.045, 0.13, 16, 1, true), gl); gm.position.y = 0.09; g.add(gm);
+    for (var i = 0; i < 4; i++) { var a = i * Math.PI / 2; box(T, g, br, Math.cos(a) * 0.047, 0.09, Math.sin(a) * 0.047, 0.006, 0.13, 0.006); }
+    g.add(lathe(T, [[0, 0.155], [0.058, 0.155], [0.05, 0.17], [0.02, 0.2], [0.012, 0.215], [0, 0.215]], br, 20));
+    var ring = new T.Mesh(new T.TorusGeometry(0.03, 0.004, 6, 20), br); ring.position.y = 0.24; g.add(ring);
+    var fl = new T.Mesh(new T.SphereGeometry(0.014, 10, 8), fm); fl.scale.y = 1.8; fl.position.y = 0.075; g.add(fl);
+    var lt = new T.PointLight(0xffc070, 0.5, 3.2, 2); lt.position.y = 0.09; g.add(lt);
+    return { group: g, hb: [0.14, 0.27, 0.14], place: 'floor', press: ambToggle };
+  };
+  F['hob-pumpkin'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var pm = new T.MeshStandardMaterial({ color: L(0xe07a1c), roughness: 0.7 }), sm = new T.MeshStandardMaterial({ color: L(0x5a6b2a), roughness: 0.9 });
+    for (var i = 0; i < 8; i++) { var a = i * Math.PI / 4; ball(T, g, pm, [Math.cos(a) * 0.075, 0.13, Math.sin(a) * 0.075], 0.12, [1, 1.08, 1]); }
+    limb(T, g, sm, [0, 0.24, 0], [0.02, 0.33, 0.01], 0.022, 0.014);
+    return { group: g, hb: [0.4, 0.32, 0.4], place: 'floor' };
+  };
+  [{ id: 'hob-table', name: '橡木圆桌', s: [1.06, 0.75, 1.06] }, { id: 'hob-stool', name: '三脚凳', s: [0.42, 0.46, 0.42] }, { id: 'hob-lantern', name: '铜提灯', s: [0.14, 0.27, 0.14] }, { id: 'hob-pumpkin', name: '南瓜', s: [0.4, 0.32, 0.4] }].forEach(function (c) {
+    if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.id, icon: '▣', place: c.pl || 'floor', size: c.s, note: '霍比屯 · 池塘边的花园' }); });
+  /* Cambridge · the Backs: a stack of books and a straw boater for the table. */
+  F['cam-books'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); }, pg = new T.MeshStandardMaterial({ color: L(0xf1ead8), roughness: 0.9 });
+    [[0x7a1f2b, 0.17, 0.035, 0.24, 0.05], [0x1f3f6b, 0.16, 0.03, 0.22, -0.12], [0x2f5a3a, 0.14, 0.028, 0.2, 0.2]].reduce(function (y, b) {
+      var c = box(T, g, new T.MeshStandardMaterial({ color: L(b[0]), roughness: 0.7 }), 0, y + b[2] / 2, 0, b[1], b[2], b[3]); c.rotation.y = b[4];
+      var p = box(T, g, pg, 0.004, y + b[2] / 2, 0, b[1] - 0.004, b[2] - 0.008, b[3] - 0.008); p.rotation.y = b[4]; return y + b[2]; }, 0);
+    return { group: g, hb: [0.2, 0.1, 0.26], place: 'floor' };
+  };
+  F['cam-boater'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var st = new T.MeshStandardMaterial({ color: L(0xe3cf95), roughness: 0.85 }), bd = new T.MeshStandardMaterial({ color: L(0x1c2c55), roughness: 0.7 });
+    var brim = lathe(T, [[0, 0], [0.165, 0], [0.168, 0.006], [0.165, 0.012], [0, 0.012]], st, 36); brim.castShadow = true; g.add(brim);
+    var crown = lathe(T, [[0.092, 0.012], [0.092, 0.085], [0.088, 0.09], [0, 0.09]], st, 36); crown.castShadow = true; g.add(crown);
+    g.add(lathe(T, [[0.0935, 0.014], [0.0935, 0.045]], bd, 36));
+    return { group: g, hb: [0.34, 0.1, 0.34], place: 'floor' };
+  };
+  [{ id: 'cam-books', name: '一摞书', s: [0.2, 0.1, 0.26] }, { id: 'cam-boater', name: '草编平顶帽', s: [0.34, 0.1, 0.34] }].forEach(function (c) {
+    if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.id, icon: '▣', place: 'floor', size: c.s, note: '剑桥 · 康河后园' }); });
+  /* Santorini · the terrace above Oia: a small white round table and a blue taverna chair with a rush seat. Front: +z. */
+  F['san-table'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); }, wh = new T.MeshStandardMaterial({ color: L(0xf7f5ef), roughness: 0.6 }), bl = new T.MeshStandardMaterial({ color: L(0x1f5fb4), roughness: 0.6 });
+    var top = lathe(T, [[0, 0.69], [0.4, 0.69], [0.412, 0.7], [0.41, 0.72], [0, 0.72]], wh, 40); top.castShadow = top.receiveShadow = true; g.add(top);
+    g.add(lathe(T, [[0.395, 0.672], [0.405, 0.672], [0.405, 0.69], [0.395, 0.69]], bl, 40));
+    var ped = lathe(T, [[0, 0], [0.24, 0], [0.25, 0.02], [0.06, 0.05], [0.035, 0.1], [0.035, 0.62], [0.09, 0.69], [0, 0.69]], wh, 24); ped.castShadow = true; g.add(ped);
+    return { group: g, hb: [0.84, 0.72, 0.84], place: 'floor' };
+  };
+  F['san-chair'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); }, bl = new T.MeshStandardMaterial({ color: L(0x1f66c4), roughness: 0.55 }), ru = new T.MeshStandardMaterial({ color: L(0xd9bf84), roughness: 0.95 }), i;
+    box(T, g, ru, 0, 0.45, 0, 0.4, 0.03, 0.38);
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (q) { box(T, g, bl, q[0] * 0.19, q[1] < 0 ? 0.45 : 0.225, q[1] * 0.18, 0.035, q[1] < 0 ? 0.9 : 0.45, 0.035); });
+    [[0.2, 0], [0.43, 0]].forEach(function (h) { [-1, 1].forEach(function (s) { box(T, g, bl, s * 0.19, h[0], 0, 0.02, 0.025, 0.36); }); box(T, g, bl, 0, h[0], 0.18, 0.38, 0.025, 0.02); box(T, g, bl, 0, h[0], -0.18, 0.38, 0.025, 0.02); });
+    for (i = 0; i < 3; i++) box(T, g, bl, 0, 0.6 + i * 0.12, -0.18, 0.36, 0.05, 0.018);
+    return { group: g, hb: [0.44, 0.9, 0.42], place: 'floor' };
+  };
+  [{ id: 'san-table', name: '白色小圆桌', s: [0.84, 0.72, 0.84] }, { id: 'san-chair', name: '蓝色木椅', s: [0.44, 0.9, 0.42] }].forEach(function (c) {
+    if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.id, icon: '▣', place: 'floor', size: c.s, note: '圣托里尼 · 伊亚露台' }); });
+  /* Lauterbrunnen · the chalet balcony: a brass cowbell on its leather strap. */
+  F['swiss-bell'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var br = new T.MeshStandardMaterial({ color: L(0xc9973a), roughness: 0.35, metalness: 0.85 }), le = new T.MeshStandardMaterial({ color: L(0x5a3520), roughness: 0.85 }), rd = new T.MeshStandardMaterial({ color: L(0xc8102e), roughness: 0.7 });
+    var bell = lathe(T, [[0, 0.1], [0.03, 0.1], [0.045, 0.085], [0.052, 0.04], [0.062, 0.008], [0.066, 0], [0.06, 0], [0.05, 0.03]], br, 24); bell.scale.z = 0.72; bell.castShadow = true; g.add(bell);
+    var loop = new T.Mesh(new T.TorusGeometry(0.02, 0.006, 6, 16), br); loop.position.y = 0.11; g.add(loop);
+    var st = new T.Mesh(new T.TorusGeometry(0.06, 0.004, 4, 28), le); st.scale.set(1, 1, 6); st.rotation.x = Math.PI / 2 - 0.5; st.position.set(0, 0.12, -0.04); g.add(st);
+    box(T, g, rd, 0, 0.135, 0.002, 0.03, 0.03, 0.03);
+    return { group: g, hb: [0.16, 0.18, 0.16], place: 'floor', press: ambToggle };
+  };
+  if (!CAT.some(function (x) { return x.id === 'swiss-bell'; })) CAT.push({ id: 'swiss-bell', name: '牛铃', en: 'swiss-bell', icon: '▣', place: 'floor', size: [0.16, 0.18, 0.16], note: '劳特布龙嫩 · 木屋阳台' });
+  /* Mt Hood · the lake shore: a small campfire — a ring of stones, crossed logs, flames, sparks, its glow. A tap turns the
+     place's sound on and off (the lake, the wind in the firs, birds, the fire itself from where it burns). */
+  F['camp-fire'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); }, i, s = 4242, rnd = function () { s = (s * 16807) % 2147483647; return s / 2147483647; };
+    var stM = new T.MeshStandardMaterial({ color: L(0x4a4c49), roughness: 0.95, flatShading: true }), logM = new T.MeshStandardMaterial({ color: L(0x33241a), roughness: 0.95 }), emb = new T.MeshBasicMaterial({ color: 0xff5a1a });
+    for (i = 0; i < 10; i++) { var a = i / 10 * 6.283, st = new T.Mesh(new T.IcosahedronGeometry(0.1 + rnd() * 0.04, 0), stM); st.position.set(Math.cos(a) * 0.4, 0.05, Math.sin(a) * 0.4); st.scale.set(1, 0.7, 1.2); st.rotation.set(rnd(), rnd() * 6, rnd()); st.castShadow = true; g.add(st); }
+    for (i = 0; i < 4; i++) { var lg = new T.Mesh(new T.CylinderGeometry(0.035, 0.04, 0.5, 8), logM); lg.rotation.set(Math.PI / 2 - 0.35, i * 1.571 + 0.4, 0); lg.position.set(Math.sin(i * 1.571 + 0.4) * 0.09, 0.1, Math.cos(i * 1.571 + 0.4) * 0.09); g.add(lg); }
+    var eb = new T.Mesh(new T.CircleGeometry(0.2, 16), emb); eb.rotation.x = -Math.PI / 2; eb.position.y = 0.02; g.add(eb);
+    var flames = [[0xff8a1e, 0.13, 0.42, 0, 0, 0.8], [0xff5a14, 0.1, 0.32, 0.07, 0.03, 0.85], [0xffc24a, 0.07, 0.3, -0.03, -0.02, 0.9], [0xff4a12, 0.09, 0.3, -0.04, 0.07, 0.8]].map(function (q, k) {
+      var m = new T.MeshBasicMaterial({ color: q[0], transparent: true, opacity: q[5], depthWrite: false }), cg = new T.ConeGeometry(q[1], q[2], 8); cg.translate(0, q[2] / 2, 0);
+      var f = new T.Mesh(cg, m); f.position.set(q[3], 0.08, q[4]); f.userData.k = k; g.add(f); return f; });
+    var spM = new T.MeshBasicMaterial({ color: 0xffb24a }), sparks = []; for (i = 0; i < 7; i++) { var sp = new T.Mesh(new T.SphereGeometry(0.008, 6, 4), spM); sp.userData = { o: rnd() * 3, x: (rnd() - 0.5) * 0.25, z: (rnd() - 0.5) * 0.25, v: 0.35 + rnd() * 0.3 }; g.add(sp); sparks.push(sp); }
+    var glow = new T.PointLight(0xff8a3a, 1.3, 6, 2); glow.position.set(0, 0.45, 0); g.add(glow);
+    return { group: g, hb: [1.0, 0.6, 1.0], place: 'floor',
+      tick: function (t) {
+        flames.forEach(function (f) { var k = f.userData.k; f.scale.set(1 + Math.sin(t * 9 + k * 2) * 0.12, 1 + Math.sin(t * 11 + k * 1.7) * 0.22 + Math.sin(t * 23 + k) * 0.08, 1 + Math.cos(t * 8 + k) * 0.12); f.rotation.z = Math.sin(t * 6 + k * 3) * 0.08; });
+        sparks.forEach(function (p) { var u = ((t * p.userData.v + p.userData.o) % 1.6) / 1.6; p.position.set(p.userData.x * (0.3 + u) + Math.sin(t * 2 + p.userData.o * 5) * 0.04 * u, 0.25 + u * 1.1, p.userData.z * (0.3 + u)); p.visible = u < 0.9; p.scale.setScalar(1.2 - u); });
+        glow.intensity = 1.25 + Math.sin(t * 13) * 0.18 + Math.sin(t * 29) * 0.1; },
+      press: ambToggle };
+  };
+  if (!CAT.some(function (x) { return x.id === 'camp-fire'; })) CAT.push({ id: 'camp-fire', name: '篝火', en: 'camp-fire', icon: '▣', place: 'floor', size: [1.0, 0.6, 1.0], note: '胡德山 · 延龄湖畔 · 点一下开关环境声' });
+  /* Neuschwanstein · the lookout: a brass spyglass on a wooden tripod. It points along −z. */
+  F['spyglass'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var br = new T.MeshStandardMaterial({ color: L(0xc9973a), roughness: 0.3, metalness: 0.9 }), wd = new T.MeshStandardMaterial({ color: L(0x6a4526), roughness: 0.7 }), gl = new T.MeshStandardMaterial({ color: L(0x1c2a3a), roughness: 0.1, metalness: 0.6 });
+    for (var i = 0; i < 3; i++) { var a = i * 2.094 + 0.5; limb(T, g, wd, [Math.cos(a) * 0.36, 0, Math.sin(a) * 0.36], [Math.cos(a) * 0.03, 1.12, Math.sin(a) * 0.03], 0.016, 0.02); }
+    var hd = new T.Mesh(new T.CylinderGeometry(0.04, 0.05, 0.08, 14), br); hd.position.y = 1.15; g.add(hd);
+    var tube = new T.Group(); tube.position.y = 1.24; tube.rotation.x = 0.1; g.add(tube);
+    [[0.045, 0.5, -0.2], [0.036, 0.36, 0.2], [0.028, 0.2, 0.46]].forEach(function (q) { var c = new T.Mesh(new T.CylinderGeometry(q[0], q[0], q[1], 20), br); c.rotation.x = Math.PI / 2; c.position.z = q[2]; c.castShadow = true; tube.add(c); });
+    [-0.45, 0.02, 0.38].forEach(function (z, k) { var r = new T.Mesh(new T.TorusGeometry([0.048, 0.04, 0.031][k], 0.006, 6, 20), br); r.position.z = z; tube.add(r); });
+    var lens = new T.Mesh(new T.CircleGeometry(0.042, 20), gl); lens.position.z = -0.452; lens.rotation.y = Math.PI; tube.add(lens);
+    return { group: g, hb: [0.8, 1.35, 1.1], place: 'floor' };
+  };
+  if (!CAT.some(function (x) { return x.id === 'spyglass'; })) CAT.push({ id: 'spyglass', name: '黄铜望远镜', en: 'spyglass', icon: '▣', place: 'floor', size: [0.8, 1.35, 1.1], note: '新天鹅堡 · 日落观景台' });
+  /* the outdoor scenes' own decorations, as things you can move, stash and put back: bougainvillea in a pot (Santorini),
+     a window box of geraniums (Lauterbrunnen), the punt (Cambridge), a run of picket fence with flowers at its foot and
+     the hobbit hole itself (Hobbiton). */
+  function seeded(s) { return function () { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
+  function blobs(T, g, list, mat, detail, shadow) {                 // [x, y, z, r, colour?] as one instanced mesh
+    var im = new T.InstancedMesh(new T.IcosahedronGeometry(1, detail), mat, list.length), M4 = new T.Matrix4(), Q = new T.Quaternion(), V = new T.Vector3(), SC = new T.Vector3(), C = new T.Color();
+    list.forEach(function (q, k) { M4.compose(V.set(q[0], q[1], q[2]), Q, SC.set(q[3], q[3] * (q[5] || 0.8), q[3])); im.setMatrixAt(k, M4); if (q[4] != null) im.setColorAt(k, C.set(q[4]).convertSRGBToLinear()); });
+    im.castShadow = !!shadow; im.frustumCulled = false; g.add(im); return im;
+  }
+  F['san-bougainvillea'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); }, rnd = seeded(1907), k, LV = [], FL = [], pinks = [0xd81b7a, 0xe6399b, 0xc2185b, 0xf06bb0], s = 0.9;
+    var pot = lathe(T, [[0, 0], [0.16 * s, 0], [0.2 * s, 0.06 * s], [0.24 * s, 0.34 * s], [0.27 * s, 0.38 * s], [0.25 * s, 0.4 * s], [0, 0.4 * s]], new T.MeshStandardMaterial({ color: L(0xc0693f), roughness: 0.9 }), 24); pot.castShadow = pot.receiveShadow = true; g.add(pot);
+    for (k = 0; k < 60; k++) { var a = rnd() * 6.28, r = rnd() * 0.4 * s; LV.push([Math.cos(a) * r, (0.45 + rnd() * 0.8) * s, Math.sin(a) * r, (0.07 + rnd() * 0.06) * s]); }
+    for (k = 0; k < 260; k++) { var a2 = rnd() * 6.28, r2 = (0.12 + rnd() * 0.4) * s; FL.push([Math.cos(a2) * r2, (0.42 + rnd() * 0.95) * s, Math.sin(a2) * r2, 0.018 + rnd() * 0.02, pinks[rnd() * 4 | 0], 1]); }
+    blobs(T, g, LV, new T.MeshLambertMaterial({ color: L(0x3f7a33) }), 1, true); blobs(T, g, FL, new T.MeshLambertMaterial({ color: 0xffffff }), 1);
+    return { group: g, hb: [0.9, 1.3, 0.9], place: 'floor' };
+  };
+  F['swiss-flowerbox'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); }, rnd = seeded(2718), k, q, LV = [], FL = [], reds = [0xe01b24, 0xc8102e, 0xf03a3a, 0xff5a6e];
+    box(T, g, new T.MeshStandardMaterial({ color: L(0x6a4a30), roughness: 0.8 }), 0, 0.1, 0, 1.1, 0.2, 0.22);
+    for (k = 0; k < 34; k++) LV.push([(rnd() - 0.5) * 1.05, 0.2 + rnd() * 0.12, (rnd() - 0.5) * 0.24, 0.05 + rnd() * 0.045, null, 0.7]);
+    for (k = 0; k < 16; k++) { var fx = (rnd() - 0.5) * 1.0, fy = 0.3 + rnd() * 0.12, fz = (rnd() - 0.5) * 0.26, col = reds[rnd() * 4 | 0]; for (q = 0; q < 7; q++) FL.push([fx + (rnd() - 0.5) * 0.07, fy + (rnd() - 0.5) * 0.05, fz + (rnd() - 0.5) * 0.07, 0.018 + rnd() * 0.012, col, 1]); }
+    blobs(T, g, LV, new T.MeshLambertMaterial({ color: L(0x3f7d2e) }), 1, true); blobs(T, g, FL, new T.MeshLambertMaterial({ color: 0xffffff }), 1);
+    return { group: g, hb: [1.15, 0.5, 0.35], place: 'floor' };
+  };
+  /* the punt: flat-bottomed, square-ended, the till at the stern, seats, cushions, the pole laid along it. Its length runs along z; it rides the water. */
+  F['cam-punt'] = function (T) {
+    var g = new T.Group(), punt = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); }, i; g.add(punt);
+    var v1 = new T.MeshStandardMaterial({ color: L(0x9a5526), roughness: 0.45 }), v2 = new T.MeshStandardMaterial({ color: L(0xc48a52), roughness: 0.6 }), cu = new T.MeshStandardMaterial({ color: L(0x8f2f2a), roughness: 0.9 }), po = new T.MeshStandardMaterial({ color: L(0xd9c08a), roughness: 0.6 });
+    function pb(m, x, y, z, w, h, d, rx, rz) { var k = box(T, punt, m, x, y, z, w, h, d); if (rx) k.rotation.x = rx; if (rz) k.rotation.z = rz; return k; }
+    var PL = 7.0, PW = 0.95;
+    pb(v2, 0, 0.03, 0, PW - 0.04, 0.04, PL - 1.6);
+    [-1, 1].forEach(function (s) { pb(v1, s * (PW / 2), 0.2, 0, 0.035, 0.36, PL - 0.3, 0, -s * 0.12); pb(v1, 0, 0.19, s * (PL / 2 - 0.02), PW - 0.1, 0.16, 0.04); });
+    pb(v2, 0, 0.09, PL / 2 - 0.42, PW - 0.06, 0.035, 0.9, -0.17); pb(v2, 0, 0.09, -(PL / 2 - 0.42), PW - 0.06, 0.035, 0.9, 0.17);
+    pb(v1, 0, 0.33, PL / 2 - 0.75, PW - 0.02, 0.03, 1.4);
+    for (i = 0; i < 5; i++) pb(v1, 0, 0.345, PL / 2 - 1.35 + i * 0.28, PW - 0.1, 0.012, 0.03);
+    [-1.9, -0.5, 0.9].forEach(function (z) { pb(v1, 0, 0.24, z, PW - 0.06, 0.03, 0.2); pb(v1, 0, 0.3, z - 0.34, PW - 0.1, 0.3, 0.03, 0.35); pb(cu, 0, 0.1, z - 0.02 + 0.45, PW - 0.2, 0.08, 0.7); pb(cu, 0, 0.3, z - 0.3, PW - 0.22, 0.26, 0.07, 0.35); });
+    var pole = new T.Mesh(new T.CylinderGeometry(0.022, 0.026, 4.8, 10), po); pole.rotation.x = Math.PI / 2; pole.rotation.z = 0.02; pole.position.set(0.3, 0.42, 0.3); pole.castShadow = true; punt.add(pole);
+    return { group: g, hb: [1.1, 0.6, 7.0], place: 'floor', tick: function (t) { punt.position.y = Math.sin(t * 0.9) * 0.012; punt.rotation.z = Math.sin(t * 0.6) * 0.012; punt.rotation.x = Math.sin(t * 0.45 + 1) * 0.004; } };
+  };
+  function hobGrass(T) {
+    if (F._hg) return F._hg;
+    var c = document.createElement('canvas'); c.width = c.height = 256; var x = c.getContext('2d'), i; x.fillStyle = '#7fa832'; x.fillRect(0, 0, 256, 256);
+    for (i = 0; i < 1500; i++) { var gx = Math.random() * 256, gy = Math.random() * 256; x.strokeStyle = 'rgba(' + (60 + Math.random() * 110 | 0) + ',' + (120 + Math.random() * 90 | 0) + ',' + (20 + Math.random() * 40 | 0) + ',' + (0.25 + Math.random() * 0.4) + ')'; x.beginPath(); x.moveTo(gx, gy); x.lineTo(gx + (Math.random() - 0.5) * 3, gy - 3 - Math.random() * 6); x.stroke(); }
+    var t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(7, 2.4);
+    return (F._hg = new T.MeshStandardMaterial({ map: t, roughness: 1, color: new T.Color(0xe2eabc).convertSRGBToLinear() }));
+  }
+  var HOBCOL = [0xffd23a, 0xffffff, 0xff7fa8, 0xff8a2a, 0xb07cff, 0xff4a3a];
+  /* a run of picket fence, 2.6 m along x, flowers at its foot on the +z side */
+  F['hob-fence'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); }, rnd = seeded(4711), k, pk = new T.MeshStandardMaterial({ color: L(0x9a7b54), roughness: 0.9 }), LEN = 2.6, n = Math.round(LEN / 0.17), FL = [], LV = [];
+    [0.2, 0.42].forEach(function (h) { box(T, g, pk, 0, h, 0, LEN, 0.05, 0.03); });
+    for (k = 0; k <= n; k++) { var post = k % 8 === 0, h = post ? 0.72 : 0.5 + Math.sin(k * 7.3) * 0.04, p = box(T, g, pk, -LEN / 2 + LEN * k / n, h / 2, 0, post ? 0.075 : 0.075, h, post ? 0.06 : 0.02); p.rotation.y = Math.sin(k * 3.1) * 0.05; }
+    for (k = 0; k < 55; k++) { var px = (rnd() - 0.5) * LEN, pz = 0.12 + rnd() * 0.5; FL.push([px, 0.16 + rnd() * 0.3, pz, 0.035 + rnd() * 0.03, HOBCOL[rnd() * 6 | 0], 0.7]); if (k % 3 === 0) LV.push([px, 0.07 + rnd() * 0.06, pz, 0.08 + rnd() * 0.07, null, 0.75]); }
+    blobs(T, g, LV, new T.MeshLambertMaterial({ color: L(0x4f8c34) }), 1, true); blobs(T, g, FL, new T.MeshLambertMaterial({ color: 0xffffff }), 0);
+    return { group: g, hb: [2.7, 0.75, 0.8], place: 'floor' };
+  };
+  /* the hobbit hole: a grassy mound, a round front let into it (plaster, a timber ring, the green door with its brass knob,
+     a lit round window and its box), stepping stones, a letter box, a brick chimney, flowers by the door. The door faces +z. */
+  F['hob-house'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); }, rnd = seeded(1937), i, gm = hobGrass(T);
+    var mound = new T.SphereGeometry(1, 40, 20, 0, Math.PI * 2, 0, Math.PI / 2);
+    var md = new T.Mesh(mound, gm); md.scale.set(2.5, 2.3, 2.4); md.position.y = -0.15; md.castShadow = md.receiveShadow = true; g.add(md);
+    var md2 = new T.Mesh(mound, gm); md2.scale.set(2.6, 1.5, 2.3); md2.position.set(-3.0, -0.15, -1.4); md2.receiveShadow = true; g.add(md2);
+    var fr = new T.Group(); fr.position.z = 2.4; g.add(fr);
+    var plM = new T.MeshStandardMaterial({ color: L(0xe9dcb4), roughness: 0.95 }), stM = new T.MeshStandardMaterial({ color: L(0xb9a98a), roughness: 0.95 }), tim = new T.MeshStandardMaterial({ color: L(0x8a5a30), roughness: 0.75 }), timD = new T.MeshStandardMaterial({ color: L(0x5b3a1e), roughness: 0.8 }),
+      doorM = new T.MeshStandardMaterial({ color: L(0x2f8a52), roughness: 0.55 }), brass = new T.MeshStandardMaterial({ color: L(0xe2b54a), roughness: 0.25, metalness: 0.9 }), glow = new T.MeshBasicMaterial({ color: 0xffd67a }), brick = new T.MeshStandardMaterial({ color: L(0xa85a3c), roughness: 0.95 });
+    function add(par, geo, m, x, y, z) { var k = new T.Mesh(geo, m); k.position.set(x, y, z); k.castShadow = k.receiveShadow = true; par.add(k); return k; }
+    var FY = 0.95, tun = add(fr, new T.CylinderGeometry(1.27, 1.27, 1.9, 40), gm, 0, FY, -0.86); tun.rotation.x = Math.PI / 2;
+    add(fr, new T.CircleGeometry(1.2, 48), plM, 0, FY, 0.1); add(fr, new T.TorusGeometry(1.2, 0.09, 10, 56), tim, 0, FY, 0.1);
+    var DX = -0.26, DY = 0.74, DR = 0.68, door = add(fr, new T.CylinderGeometry(DR, DR, 0.07, 48), doorM, DX, DY, 0.15); door.rotation.x = Math.PI / 2;
+    add(fr, new T.TorusGeometry(DR + 0.03, 0.055, 8, 48), timD, DX, DY, 0.16);
+    for (i = -3; i <= 3; i++) { var cx = i * 0.2; add(fr, new T.BoxGeometry(0.012, 2 * Math.sqrt(DR * DR - cx * cx) - 0.06, 0.01), timD, DX + cx, DY, 0.19).castShadow = false; }
+    add(fr, new T.SphereGeometry(0.06, 16, 12), brass, DX, DY, 0.21); add(fr, new T.CylinderGeometry(0.085, 0.085, 0.015, 20), brass, DX, DY, 0.19).rotation.x = Math.PI / 2;
+    var WX = 0.74, WY = 1.12, WR = 0.23;
+    add(fr, new T.CircleGeometry(WR, 28), glow, WX, WY, 0.125).castShadow = false; add(fr, new T.TorusGeometry(WR, 0.04, 8, 32), timD, WX, WY, 0.13);
+    add(fr, new T.BoxGeometry(WR * 2, 0.025, 0.02), timD, WX, WY, 0.14); add(fr, new T.BoxGeometry(0.025, WR * 2, 0.02), timD, WX, WY, 0.14); add(fr, new T.BoxGeometry(0.6, 0.05, 0.16), tim, WX, WY - WR - 0.07, 0.19);
+    [[DX, 0.75, 0.42], [DX + 0.15, 1.5, 0.4], [DX + 0.5, 2.25, 0.38], [DX + 1.1, 3.0, 0.36]].forEach(function (q) { var s = add(fr, new T.CylinderGeometry(q[2], q[2] * 1.05, 0.07, 9), stM, q[0], 0.02, q[1]); s.rotation.y = q[1]; s.scale.z = 0.8; s.castShadow = false; });
+    add(fr, new T.CylinderGeometry(0.035, 0.04, 1.0, 8), timD, 1.7, 0.5, 1.3); add(fr, new T.BoxGeometry(0.2, 0.17, 0.32), new T.MeshStandardMaterial({ color: L(0xc23b2a), roughness: 0.6 }), 1.7, 1.06, 1.3);
+    add(g, new T.BoxGeometry(0.42, 0.9, 0.42), brick, 0.9, 2.35, -0.5); add(g, new T.BoxGeometry(0.52, 0.07, 0.52), stM, 0.9, 2.83, -0.5);
+    [-0.1, 0.1].forEach(function (s) { add(g, new T.CylinderGeometry(0.08, 0.09, 0.2, 10), brick, 0.9 + s, 2.95, -0.5); });
+    var FL = [], LV = [];
+    [[-1.35, 0.6, 30, 0.9, 1.0], [1.4, 0.6, 46, 1.1, 1.2]].forEach(function (q) { for (var k = 0; k < q[2]; k++) { var x = q[0] + (rnd() - 0.5) * q[3], z = q[1] + (rnd() - 0.5) * q[4]; FL.push([x, 0.2 + rnd() * 0.5, z, 0.04 + rnd() * 0.03, HOBCOL[rnd() * 6 | 0], 0.7]); if (k % 2 === 0) LV.push([x, 0.1 + rnd() * 0.14, z, 0.1 + rnd() * 0.1, null, 0.75]); } });
+    for (i = 0; i < 12; i++) FL.push([WX - 0.3 + i * 0.055, WY - WR + 0.02 + rnd() * 0.05, 0.21, 0.04, HOBCOL[i % 3 === 0 ? 5 : i % 3 === 1 ? 2 : 0], 0.7]);
+    blobs(T, fr, LV, new T.MeshLambertMaterial({ color: L(0x4f8c34) }), 1, true); blobs(T, fr, FL, new T.MeshLambertMaterial({ color: 0xffffff }), 0);
+    return { group: g, hb: [5.0, 2.6, 5.4], place: 'floor' };
+  };
+  [{ id: 'san-bougainvillea', name: '三角梅盆栽', s: [0.9, 1.3, 0.9], n: '圣托里尼 · 伊亚露台' }, { id: 'swiss-flowerbox', name: '天竺葵花箱', s: [1.15, 0.5, 0.35], n: '劳特布龙嫩 · 木屋阳台' }, { id: 'cam-punt', name: '撑篙船', s: [1.1, 0.6, 7.0], n: '剑桥 · 康河后园' },
+   { id: 'hob-fence', name: '木栅栏与花', s: [2.7, 0.75, 0.8], n: '霍比屯 · 池塘边的花园' }, { id: 'hob-house', name: '霍比特洞屋', s: [5.0, 2.6, 5.4], n: '霍比屯 · 池塘边的花园' }].forEach(function (c) {
+    if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.id, icon: '▣', place: 'floor', size: c.s, note: c.n }); });
 })(window);

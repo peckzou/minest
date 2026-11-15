@@ -50,6 +50,17 @@
     g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     s.connect(f); f.connect(g); g.connect(BUS); s.start(t, Math.random() * 3); s.stop(t + dur + 0.05);
   }
+  function ambNight() { return !!(root.SpatialAmbPan || {}).night; }
+  function ambWater(g0, fc, rate) { var w = src('brown'), lp = filt('lowpass', fc), g = gain(g0); w.connect(lp); lp.connect(g); g.connect(BUS); lfo(rate, g0 * 0.45, g.gain, g0); }
+  function ambWind(g0, fc) { var f = src('pink'), bp = filt('bandpass', fc, 0.5), g = gain(g0); f.connect(bp); bp.connect(g); g.connect(BUS); lfo(0.05, g0 * 0.7, g.gain, g0); lfo(0.03, fc * 0.27, bp.frequency, fc); }
+  function ambTone(f0, f1, dur, vol, p, type) { var t = AC.currentTime, o = AC.createOscillator(), e = AC.createGain(), sp = AC.createStereoPanner ? AC.createStereoPanner() : null; o.type = type || 'sine';
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur); e.gain.setValueAtTime(0.0001, t); e.gain.exponentialRampToValueAtTime(vol, t + 0.02); e.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(e); if (sp) { sp.pan.value = p || 0; e.connect(sp); sp.connect(BUS); } else e.connect(BUS); o.start(t); o.stop(t + dur + 0.05); }
+  function ambBirds(ms, jit) { every(ms, function () { if (ambNight()) return; var p = Math.random() * 1.6 - 0.8, fq = 2400 + Math.random() * 1800, n = 2 + (Math.random() * 3 | 0);
+    for (var k = 0; k < n; k++) (function (k) { setTimeout(function () { try { ambTone(fq * (1 + k * 0.04), fq * (1.25 - k * 0.05), 0.1 + Math.random() * 0.06, 0.028, p); } catch (e) {} }, k * 150); })(k); }, jit); }
+  function ambCrickets() { every(1100, function () { if (!ambNight()) return; var p = Math.random() * 1.8 - 0.9, fq = 4100 + Math.random() * 500;
+    for (var k = 0; k < 3; k++) (function (k) { setTimeout(function () { try { ambTone(fq, fq * 1.01, 0.045, 0.011, p); } catch (e) {} }, k * 70); })(k); }, 500); }
+  function ambBell(fs, ms, jit, vol, dur, p) { every(ms, function () { var n = 3 + (Math.random() * 3 | 0); for (var k = 0; k < n; k++) (function (k) { setTimeout(function () { try { fs.forEach(function (f, i) { ambTone(f, f * 0.997, dur, vol / (i + 1), p, 'sine'); }); } catch (e) {} }, k * 1900); })(k); }, jit); }
   var AMB = {
     santorini: { label: '海浪与海鸥', build: function () {
       var w = src('brown'), lp = filt('lowpass', 520), g = gain(0.5); w.connect(lp); lp.connect(g); g.connect(BUS); lfo(0.11, 0.35, g.gain, 0.45);
@@ -66,6 +77,40 @@
       every(5200, function () { var f = 2600 + Math.random() * 1400; chirp(f, f * 1.3, 0.12, 0.03); setTimeout(function () { chirp(f * 1.1, f * 0.9, 0.14, 0.025); }, 160); }, 7000);
       every(16000, function () { [523, 1046, 1568].forEach(function (f, i) { chirp(f, f * 0.995, 1.6, 0.012 / (i + 1), 'triangle'); }); }, 12000);
     } },
+    'mt-hood': { label: '湖水、林间晨风、鸟鸣与篝火', build: function () {
+      var w = src('brown'), lp = filt('lowpass', 420), g = gain(0.3); w.connect(lp); lp.connect(g); g.connect(BUS); lfo(0.17, 0.14, g.gain, 0.26);                                        // the lake lapping at the gravel
+      var f = src('pink'), bp = filt('bandpass', 1100, 0.5), g2 = gain(0.05); f.connect(bp); bp.connect(g2); g2.connect(BUS); lfo(0.05, 0.035, g2.gain, 0.05); lfo(0.03, 300, bp.frequency, 1100);   // wind in the firs
+      /* the fire is heard from where it burns: the room says where that is relative to your look (SpatialAmbPan) */
+      var pan = AC.createStereoPanner ? AC.createStereoPanner() : null, fg = gain(0.7); if (pan) { nodes.push(pan); fg.connect(pan); pan.connect(BUS); } else fg.connect(BUS);
+      var cr = src('pink'), cl = filt('lowpass', 900), cg = gain(0.05); cr.connect(cl); cl.connect(cg); cg.connect(fg);
+      function pop() { var t = AC.currentTime, n = AC.createBufferSource(), q = AC.createBiquadFilter(), e = AC.createGain(); n.buffer = noise('white'); q.type = 'bandpass'; q.frequency.value = 1800 + Math.random() * 3500; q.Q.value = 2;
+        e.gain.setValueAtTime(0.05 + Math.random() * 0.12, t); e.gain.exponentialRampToValueAtTime(0.0001, t + 0.03 + Math.random() * 0.05); n.connect(q); q.connect(e); e.connect(fg); n.start(t, Math.random() * 3); n.stop(t + 0.15); }
+      every(140, function () { if (Math.random() < 0.55) pop(); }, 260);
+      every(250, function () { var P = root.SpatialAmbPan || {}; if (pan) pan.pan.setTargetAtTime(P.fire || 0, AC.currentTime, 0.15); fg.gain.setTargetAtTime(P.gain == null ? 0.7 : P.gain, AC.currentTime, 0.2); });
+      function bird(f0, f1, dur, vol, p) { var t = AC.currentTime, o = AC.createOscillator(), e = AC.createGain(), sp = AC.createStereoPanner ? AC.createStereoPanner() : null;
+        o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur); e.gain.setValueAtTime(0.0001, t); e.gain.exponentialRampToValueAtTime(vol, t + 0.02); e.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        o.connect(e); if (sp) { sp.pan.value = p; e.connect(sp); sp.connect(BUS); } else e.connect(BUS); o.start(t); o.stop(t + dur + 0.05); }
+      every(4200, function () { if ((root.SpatialAmbPan || {}).night) return; var p = Math.random() * 1.6 - 0.8, fq = 2400 + Math.random() * 1800, n = 2 + (Math.random() * 3 | 0);
+        for (var k = 0; k < n; k++) (function (k) { setTimeout(function () { try { bird(fq * (1 + k * 0.04), fq * (1.25 - k * 0.05), 0.1 + Math.random() * 0.06, 0.028, p); } catch (e) {} }, k * 150); })(k); }, 6000);   // dawn birds, each from its own side
+      every(19000, function () { var p = Math.random() < 0.5 ? -0.7 : 0.7; bird(700, 520, 0.9, 0.02, p); setTimeout(function () { try { bird(690, 500, 1.1, 0.016, p); } catch (e) {} }, 1300); }, 20000);                 // a loon far out on the water
+    } },
+    /* the picture-built outdoor scenes: what you would hear there. In the dark the birds stop and crickets take over (the room says when: SpatialAmbPan.night). */
+    hobbiton: { label: '池塘、微风与鸟鸣', build: function () { ambWater(0.14, 380, 0.13); ambWind(0.04, 900); ambBirds(3200, 4500); ambCrickets(); } },
+    'cambridge-backs': { label: '康河水声、鸟鸣与远处的钟声', build: function () { ambWater(0.2, 420, 0.21); ambWind(0.03, 800); ambBirds(4500, 6000); ambCrickets(); ambBell([392, 784, 1176, 988], 45000, 30000, 0.02, 3.2, 0.5); } },
+    'santorini-oia': { label: '崖下的海、海风、海鸥与教堂钟声', build: function () { ambWater(0.34, 520, 0.1); ambWind(0.035, 1700);
+      every(9000, function () { if (ambNight()) return; var p = Math.random() * 1.6 - 0.8; ambTone(1700, 1200, 0.35, 0.04, p, 'triangle'); setTimeout(function () { try { ambTone(1650, 1150, 0.3, 0.032, p, 'triangle'); } catch (e) {} }, 380); }, 9000);
+      ambCrickets(); ambBell([659, 1318, 1977], 50000, 30000, 0.018, 2.6, -0.2); } },
+    lauterbrunnen: { label: '瀑布、山风、牛铃与鸟鸣', build: function () {
+      var pan = AC.createStereoPanner ? AC.createStereoPanner() : null, fg = gain(1); if (pan) { nodes.push(pan); fg.connect(pan); pan.connect(BUS); } else fg.connect(BUS);
+      var w = src('white'), bp = filt('bandpass', 1400, 0.4), g = gain(0.1); w.connect(bp); bp.connect(g); g.connect(fg); var w2 = src('brown'), lp = filt('lowpass', 300), g2 = gain(0.18); w2.connect(lp); lp.connect(g2); g2.connect(fg);   // the fall, from where it comes down
+      every(250, function () { var P = root.SpatialAmbPan || {}; if (pan) pan.pan.setTargetAtTime(P.fall == null ? 0.5 : P.fall, AC.currentTime, 0.15); fg.gain.setTargetAtTime(P.gain == null ? 1 : P.gain, AC.currentTime, 0.2); });
+      ambWind(0.04, 700); ambBirds(5000, 7000); ambCrickets();
+      every(7000, function () { var p = Math.random() * 1.6 - 0.8, f = [523, 587, 659, 784][Math.random() * 4 | 0], n = 2 + (Math.random() * 4 | 0);
+        for (var k = 0; k < n; k++) (function (k) { setTimeout(function () { try { ambTone(f, f * 0.995, 0.5, 0.014, p, 'triangle'); ambTone(f * 2.7, f * 2.69, 0.25, 0.006, p, 'sine'); } catch (e) {} }, k * (260 + Math.random() * 200)); })(k); }, 9000); } },
+    neuschwanstein: { label: '山风、林间鸟鸣与山谷里的钟声', build: function () { ambWind(0.06, 650); ambBirds(4200, 6000); ambCrickets(); ambBell([440, 880, 1320, 1108], 40000, 30000, 0.016, 3.4, 0.6); } },
+    'maroon-bells': { label: '静湖、白杨叶声与鸟鸣', build: function () { ambWater(0.1, 360, 0.09);
+      var r = src('white'), hp = filt('highpass', 3500), g = gain(0.018); r.connect(hp); hp.connect(g); g.connect(BUS); lfo(0.19, 0.014, g.gain, 0.018);   // the aspen leaves
+      ambWind(0.04, 800); ambBirds(5200, 7000); ambCrickets(); } },
     train: { label: '车轮与铁轨', build: function () {
       var r = src('brown'), lp = filt('lowpass', 140), g = gain(0.7); r.connect(lp); lp.connect(g); g.connect(BUS);
       var hiss = src('pink'), bp = filt('bandpass', 2400, 0.6), g2 = gain(0.02); hiss.connect(bp); bp.connect(g2); g2.connect(BUS);

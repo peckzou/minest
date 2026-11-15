@@ -182880,6 +182880,8 @@ html.mf-book #mn-sh #sh-edit.float { width: auto !important; }
 #mn-sh .sh-fmenu button:hover { background: #9b9b9b; }
 #mn-sh .sh-fmenu button i { display: inline-flex; width: 16px; height: 16px; flex: none; }
 #mn-sh .sh-fmenu button i svg { width: 16px; height: 16px; }
+/* a long list of choices (the environment picker) scrolls inside its card instead of running off the screen */
+#mn-sh #sh-card { max-height: calc(100% - 52px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; }
 </style>
 <script id="mn-spatial-home">
 window.__SPATIAL_HOME_EMBEDDED__ = true;
@@ -186364,6 +186366,50 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       ['out-coffee', '咖啡杯', 0.42, 0.75, 0.12, 0.4, 9864], ['out-notebook', '皮面笔记本', -0.4, 0.75, 0.05, -0.2, 9865]] });
   /* a stage point (ys, zs) of a scene seen from (hy, hz) and scaled by k about the eye, in the room */
   function R0(hy, hz, k, ys, zs) { return [0, OUT_EYE[1] + k * (ys - hy), OUT_EYE[2] + k * (zs - hz)]; }
+  /* ───────── living pictures (2026-11-14) ─────────
+     What makes a headset's environment feel like a place, for the picture-built outdoor scenes: the water in the picture
+     ripples and glints, the sky has stars in the dark, windows light up, and each scene has a light and a dark (the
+     room's 光线 setting), going from one to the other slowly. liveBackM is the picture's material; liveSkyM a sky dome
+     that darkens with it; liveTime keeps the hour; nightLights dims a scene's sky and sun. */
+  var NOISE_GLSL = 'float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); } float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h(i), h(i + vec2(1.0, 0.0)), f.x), mix(h(i + vec2(0.0, 1.0)), h(i + vec2(1.0, 1.0)), f.x), f.y); }';
+  var NIGHT_GLSL = 'vec3 nightOf(vec3 c){ return pow(c, vec3(1.25)) * vec3(0.10, 0.17, 0.34) + vec3(0.004, 0.008, 0.02); }';
+  /* o: tex, IW, IH, HY; alpha / water / sky / lights: GLSL expressions over u, px, row (and c0 for water; c, lum for sky and lights); extra: GLSL statements on c; K, G: ripple and glint strength */
+  function liveBackM(o) {
+    var U = { uMap: { value: o.tex }, uT: { value: 0 }, uN: { value: 0 } }, IWf = o.IW + '.0', IHf = o.IH + '.0', HYf = o.HY.toFixed(1);
+    var fs = ['uniform sampler2D uMap; uniform float uT; uniform float uN; varying vec2 vUv;', NOISE_GLSL, NIGHT_GLSL,
+      'void main(){ float u = vUv.x, px = vUv.x * ' + IWf + ', row = (1.0 - vUv.y) * ' + IHf + '; vec2 uv = vUv; float w = 0.0, ph = 0.0;',
+      o.water ? '  { vec3 c0 = texture2D(uMap, vUv).rgb; w = ' + o.water + '; float d = clamp((row - ' + HYf + ') / ' + (o.IH - o.HY).toFixed(1) + ', 0.0, 1.0);' +
+        ' ph = 30.0 * log(d + 0.03) - uT * 0.8 + 6.0 * vn(vec2(u * 26.0, d * 9.0 + uT * 0.05)) + 3.0 * vn(vec2(u * 71.0 - uT * 0.03, d * 30.0));' +
+        ' float amp = w * (0.0004 + 0.0026 * d) * ' + (o.K == null ? 1 : o.K).toFixed(2) + '; uv += vec2(cos(ph * 1.3 + u * 70.0) * amp * 0.5, sin(ph) * amp); }' : '',
+      '  vec3 c = texture2D(uMap, uv).rgb;',
+      o.water ? '  c += w * ' + (o.G == null ? 0.03 : o.G).toFixed(3) + ' * smoothstep(0.8, 1.0, sin(ph * 2.0 + u * 130.0)) * vn(vec2(u * 60.0 + uT * 0.1, row * 0.05));' : '',
+      o.extra || '',
+      '  float lum = dot(c, vec3(0.3, 0.59, 0.11)); vec3 nc = nightOf(c);',
+      '  float sky = ' + (o.sky || '0.0') + ';',
+      '  float s0 = h(floor(vec2(u * ' + (o.IW * 0.29).toFixed(1) + ', row * 0.55))); nc += vec3(0.9, 0.95, 1.0) * step(0.9965, s0) * (0.55 + 0.45 * sin(uT * (1.5 + s0 * 40.0) + s0 * 90.0)) * sky;',
+      o.lights ? '  { float l0 = h(floor(vec2(u * ' + (o.IW / 5).toFixed(1) + ', row * 0.25))); nc += vec3(1.0, 0.72, 0.36) * step(' + (o.LT || 0.93).toFixed(3) + ', l0) * (0.8 + 0.2 * sin(uT * (0.5 + l0 * 3.0) + l0 * 50.0)) * (' + o.lights + '); }' : '',
+      '  gl_FragColor = vec4(mix(c, nc, uN), ' + (o.alpha || '1.0') + '); }'].join('\n');
+    return new THREE.ShaderMaterial({ uniforms: U, transparent: !!o.alpha, depthWrite: false, side: THREE.DoubleSide,
+      vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }', fragmentShader: fs });
+  }
+  function liveSkyM(top) {
+    return new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false, uniforms: { uC: { value: new THREE.Color(0.2, 0.5, 0.88) }, uLow: { value: new THREE.Color(0.55, 0.76, 0.93) }, uN: { value: 0 }, uT: { value: 0 } },
+      vertexShader: 'varying vec3 vD; void main(){ vD = normalize((modelMatrix * vec4(position,1.0)).xyz - cameraPosition); gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position,1.0); }',
+      fragmentShader: ['uniform vec3 uC; uniform vec3 uLow; uniform float uN; uniform float uT; varying vec3 vD;', NOISE_GLSL,
+        'void main(){ vec3 c = mix(uLow, uC, smoothstep(0.0, ' + top.toFixed(2) + ', vD.y)); vec3 n = mix(vec3(0.03, 0.05, 0.11), vec3(0.008, 0.014, 0.04), smoothstep(0.0, 0.6, vD.y));',
+        '  float s0 = h(floor(vec2(atan(vD.x, -vD.z) * 150.0, asin(clamp(vD.y, -1.0, 1.0)) * 150.0))); n += vec3(0.9, 0.95, 1.0) * step(0.992, s0) * (0.55 + 0.45 * sin(uT * (1.5 + s0 * 40.0) + s0 * 90.0)) * step(0.02, vD.y);',
+        '  gl_FragColor = vec4(mix(c, n, uN), 1.0); }'].join('\n') });
+  }
+  function liveTime(shade) {
+    var nT = 0, nV = -1;
+    function tod(m) { if (m === 'night') return 1; if (m === 'dusk') return 0.5; if (m === 'day') return 0; var hr = new Date().getHours() + new Date().getMinutes() / 60; return hr < 5.5 || hr >= 20.5 ? 1 : hr < 6.5 ? (6.5 - hr) : hr >= 19 ? (hr - 19) / 1.5 : 0; }
+    return { set: function (m) { nT = tod(m || 'auto'); if (nV < 0) { nV = nT; shade(nV); } },
+      step: function () { if (nV < 0) { nV = nT; shade(nV); } else if (Math.abs(nV - nT) > 0.002) { nV += Math.max(-0.006, Math.min(0.006, nT - nV)); shade(nV); } return nV; } };
+  }
+  function nightLights(hemi, sun) {
+    var h0 = hemi.intensity, s0 = sun.intensity, hc = hemi.color.clone(), sc = sun.color.clone(), hn = new THREE.Color(0x5a78b8), sn = new THREE.Color(0x9ab4ff);
+    return function (n) { hemi.intensity = h0 * (1 - 0.72 * n); hemi.color.copy(hc).lerp(hn, n); sun.intensity = s0 * (1 - 0.86 * n); sun.color.copy(sc).lerp(sn, n); };
+  }
   /* ───────── Lake Bled · the lakeside deck (2026-11-14, after the user's picture) ─────────
      A timber boardwalk along the shore in the morning mist: the corner of a cabin on the left (a post, the eave, glass),
      lounge chairs with cushions looking out over the water, a round side table with the MacBook, a cup and the quill.
@@ -186485,6 +186531,665 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       };
     }
     SR.register({ id: 'bled-deck', name: 'Lake Bled · Lakeside Deck', zh: '布莱德湖 · 湖畔木平台', icon: '🛶', build: build });
+  })();
+  /* ───────── Hobbiton · the garden by the pond (2026-11-14, after the user's pictures) ─────────
+     A hobbit's garden on the near bank: a round green door in a grassy mound on the left (plaster front, timber ring, a
+     lit round window, a brick chimney, stepping stones), a low picket fence, flowers, pumpkins, reeds at the water, and a
+     round oak table with the MacBook, a teapot and a lantern. The far view is the picture itself (the hill, its doors,
+     the great trees) on a wide arc; the pond is real geometry that mirrors it and melts into the picture's own water.
+     The lens and the look stay inside the picture (room.view). Everything else of the room waits in the backpack. */
+  (function () {
+    var IMG = 'scenic-environments/outdoor/hobbiton/backdrop.jpg', IW = 1500, IH = 1000, WL = 902, ARC = 90 * D2R, PPR = IW / ARC, WLE = 0.035, HY = WL - WLE * PPR, TOP = HY / PPR, LOW = (IH - 6 - HY) / PPR;
+    var T1 = [0.8, -1.3], TY = 0.75, WY = -0.45, MC = [-4.6, -8.45];      // the table, its top, the water, the mound
+    var ITEMS = [
+      { kind: 'hob-table', title: '橡木圆桌', p: [T1[0], 0, T1[1]], ry: 0, uid: 9901 },
+      { kind: 'hob-stool', title: '三脚凳', p: [0.72, 0, -0.45], ry: 0.3, uid: 9902 }, { kind: 'hob-stool', title: '三脚凳', p: [1.72, 0, -1.5], ry: 1.1, uid: 9903 },
+      { kind: 'out-macbook', title: 'MacBook', p: [T1[0] - 0.08, TY, T1[1] + 0.05], ry: Math.atan2(-T1[0], 1.0 - T1[1]), uid: 9904 },
+      { kind: 'tea-pot', title: '茶壶', p: [T1[0] + 0.27, TY, T1[1] - 0.14], ry: 0.6, uid: 9905 }, { kind: 'tea-cup', title: '茶杯', p: [T1[0] + 0.24, TY, T1[1] + 0.2], ry: 0.2, uid: 9906 },
+      { kind: 'hob-lantern', title: '铜提灯', p: [T1[0] - 0.3, TY, T1[1] - 0.26], ry: 0.4, uid: 9907 },
+      { kind: 'hob-pumpkin', title: '南瓜', p: [2.5, 0, -3.3], ry: 0.2, uid: 9908 }, { kind: 'hob-pumpkin', title: '南瓜', p: [2.95, 0, -3.05], ry: 1.4, uid: 9909 },
+      { kind: 'hob-pumpkin', title: '南瓜', p: [-1.7, 0, -3.5], ry: 2.2, uid: 9910 },
+      { kind: 'hob-house', title: '霍比特洞屋', p: [MC[0], 0, MC[1]], ry: Math.atan2(0.3 - MC[0], 1.0 - MC[1]), uid: 9911 }].concat(
+      [[[1.3, -3.85], [3.9, -3.95]], [[3.9, -3.95], [6.5, -4.05]], [[6.6, -4.02], [9.1, -3.3]], [[-2.95, -4.2], [-0.45, -3.9]]].map(function (r, k) {
+        return { kind: 'hob-fence', title: '木栅栏与花', p: [(r[0][0] + r[1][0]) / 2, 0, (r[0][1] + r[1][1]) / 2], ry: Math.atan2(-(r[1][1] - r[0][1]), r[1][0] - r[0][0]), uid: 9912 + k }; }));
+    function sm(t) { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); }
+    function shore(x) { return -5.0 + 0.35 * Math.sin(x * 0.5) - 5.6 * sm((-1 - x) / 2); }   // the bank's edge: across in front, falling away on the left round the mound
+    var view = {
+      fov: function (a) { return 2 * Math.atan(Math.min(Math.tan(25 * D2R), Math.tan(34 * D2R) / Math.max(0.3, a))) / D2R; },
+      clamp: function (a, f) { var hv = f * D2R / 2, hh = Math.atan(Math.tan(hv) * a), Y = Math.max(0, ARC / 2 * 0.97 - hh); return { y0: -Y, y1: Y, p0: -0.6, p1: Math.max(-0.4, TOP * 0.97 - hv) }; } };
+    function grassTex() {
+      var c = document.createElement('canvas'); c.width = c.height = 512; var x = c.getContext('2d'), i;
+      x.fillStyle = '#7fa832'; x.fillRect(0, 0, 512, 512);
+      for (i = 0; i < 90; i++) { x.fillStyle = 'rgba(' + (60 + Math.random() * 110 | 0) + ',' + (120 + Math.random() * 80 | 0) + ',' + (20 + Math.random() * 40 | 0) + ',.3)'; x.beginPath(); x.ellipse(Math.random() * 512, Math.random() * 512, 30 + Math.random() * 60, 20 + Math.random() * 40, Math.random() * 3, 0, 6.3); x.fill(); }
+      for (i = 0; i < 5200; i++) { var gx = Math.random() * 512, gy = Math.random() * 512, l = 4 + Math.random() * 9;
+        x.strokeStyle = 'rgba(' + (60 + Math.random() * 110 | 0) + ',' + (120 + Math.random() * 90 | 0) + ',' + (20 + Math.random() * 40 | 0) + ',' + (0.25 + Math.random() * 0.4) + ')';
+        x.lineWidth = 1 + Math.random(); x.beginPath(); x.moveTo(gx, gy); x.lineTo(gx + (Math.random() - 0.5) * 4, gy - l); x.stroke(); }
+      var t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; return t;
+    }
+    function build(scene) {
+      var holder = new THREE.Group(); holder.name = 'env-hobbiton'; scene.add(holder);
+      var g = new THREE.Group(); holder.add(g); var disp = [], EYE = [0, 1.5, 1.0], i, j;
+      PT.theme(null);
+      var tex = new THREE.TextureLoader().load(siteBase() + IMG); tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 8; tex.minFilter = THREE.LinearFilter; disp.push(tex);
+      /* the far view: the whole picture on an arc round where you stand, its waterline a little below the horizon; top and sides fade into the sky */
+      var RB = 520, NA = 96, NE = 28, bg = new THREE.BufferGeometry(), bp = [], bu = [], bi = [];
+      for (j = 0; j <= NE; j++) for (i = 0; i <= NA; i++) {
+        var az = (i / NA - 0.5) * ARC, el = -LOW + (TOP + LOW) * j / NE;
+        bp.push(EYE[0] + Math.sin(az) * RB, EYE[1] + Math.tan(el) * RB, EYE[2] - Math.cos(az) * RB);
+        bu.push(i / NA, 1 - (HY - el * PPR) / IH);
+      }
+      for (j = 0; j < NE; j++) for (i = 0; i < NA; i++) { var a0 = j * (NA + 1) + i; bi.push(a0, a0 + 1, a0 + NA + 1, a0 + 1, a0 + NA + 2, a0 + NA + 1); }
+      bg.setAttribute('position', new THREE.Float32BufferAttribute(bp, 3)); bg.setAttribute('uv', new THREE.Float32BufferAttribute(bu, 2)); bg.setIndex(bi); disp.push(bg);
+      var backM = liveBackM({ tex: tex, IW: IW, IH: IH, HY: HY, alpha: 'smoothstep(0.0, 40.0, row) * smoothstep(0.0, 40.0, px) * smoothstep(' + IW + '.0, ' + (IW - 40) + '.0, px)',
+        sky: 'step(row, ' + (WL - 40) + '.0) * smoothstep(0.02, 0.14, c.b - max(c.r, c.g))' }), BKU = backM.uniforms;
+      disp.push(backM);
+      var back = new THREE.Mesh(bg, backM); back.frustumCulled = false; back.renderOrder = -10; holder.add(back);
+      /* the sky: the picture's own blue (read off its top and off the sky by the hill) */
+      var skyM = liveSkyM(0.75);
+      var sky = new THREE.Mesh(new THREE.SphereGeometry(900, 32, 16), skyM); sky.renderOrder = -20; holder.add(sky); disp.push(skyM, sky.geometry);
+      var img = new Image(); img.crossOrigin = 'anonymous'; img.onload = function () {
+        try { var c = document.createElement('canvas'); c.width = 64; c.height = 64; var x = c.getContext('2d');
+          function avg(sx, sy, sw, sh) { x.drawImage(img, sx, sy, sw, sh, 0, 0, 64, 64); var d = x.getImageData(0, 0, 64, 64).data, r = 0, gg = 0, b = 0, n = 0; for (var k = 0; k < d.length; k += 4) { r += d[k]; gg += d[k + 1]; b += d[k + 2]; n++; } return [r / n / 255, gg / n / 255, b / n / 255]; }
+          var s0 = avg(700, 0, 700, 24), m0 = avg(1320, 380, 170, 50);
+          skyM.uniforms.uC.value.setRGB(s0[0], s0[1], s0[2]); skyM.uniforms.uLow.value.setRGB(m0[0], m0[1], m0[2]); } catch (er) {} };
+      img.src = siteBase() + IMG;
+      /* the pond: it mirrors the far bank (the same picture, as far above its waterline as you look below it), ripples, and
+         far out it thins away into the picture's own water */
+      var waterU = { uMap: { value: tex }, uT: { value: 0 }, uN: { value: 0 } };
+      var waterM = new THREE.ShaderMaterial({ uniforms: waterU, transparent: true, depthWrite: false,
+        vertexShader: 'varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
+        fragmentShader: ['uniform sampler2D uMap; uniform float uT; uniform float uN; varying vec3 vW;', NIGHT_GLSL,
+          'vec3 far(float az, float el){ float u = clamp(0.5 + az / ' + ARC.toFixed(5) + ', 0.03, 0.97); float row = clamp(' + HY.toFixed(1) + ' - el * ' + PPR.toFixed(2) + ', 44.0, ' + (WL - 3) + '.0);',
+          '  return texture2D(uMap, vec2(u, 1.0 - row / ' + IH + '.0)).rgb; }',
+          'void main(){ vec3 d = vW - cameraPosition; float dist = length(d.xz), az = atan(d.x, -d.z), el = atan(-d.y, dist);',
+          '  float rp = sin(vW.x * 1.9 + uT * 0.7) * sin(vW.z * 2.6 - uT * 0.5) + 0.5 * sin(vW.x * 5.3 - vW.z * 3.9 + uT * 1.3);',
+          '  float k = 0.004 + 0.035 / (1.0 + dist * 0.12), e = el - ' + (2 * WLE).toFixed(3) + ';',
+          '  vec3 r = (far(az + rp * k * 0.6, e + rp * k) + far(az - rp * k * 0.4, e * 1.05 + 0.003)) * 0.5;',
+          '  vec3 deep = vec3(0.20, 0.25, 0.08); float fr = pow(1.0 - clamp(el / 1.2, 0.0, 1.0), 3.0);',
+          '  vec3 c = mix(deep, r * 0.9, 0.4 + 0.55 * fr); c += vec3(0.06, 0.07, 0.05) * smoothstep(0.8, 1.0, rp) * fr;',
+          '  c = mix(c, nightOf(c), uN); gl_FragColor = vec4(c, smoothstep(' + (WLE + 0.003).toFixed(3) + ', ' + (WLE + 0.03).toFixed(3) + ', el)); }'].join('\n') });
+      disp.push(waterM);
+      var water = new THREE.Mesh(new THREE.PlaneGeometry(400, 400, 1, 1), waterM); water.rotation.x = -Math.PI / 2; water.position.set(0, WY, -60); water.renderOrder = -5; holder.add(water); disp.push(water.geometry);
+      /* the near bank: turf, flat where you stand, rolling down into the water at its edge */
+      var grassT = grassTex(); disp.push(grassT);
+      var grassM = new THREE.MeshStandardMaterial({ map: grassT, roughness: 1, color: lin(0xe2eabc) }); disp.push(grassM);
+      var NX = 140, NZ = 56, gg = new THREE.PlaneGeometry(1, 1, NX, NZ), GP = gg.attributes.position, GU = gg.attributes.uv;
+      for (i = 0; i < GP.count; i++) {
+        var u = GP.getX(i) + 0.5, v = GP.getY(i) + 0.5, gx = -42 + u * 84, gz = -15 + v * 26, dd = gz - shore(gx);
+        var gy = dd > 1.3 ? 0 : -0.75 + 0.75 * sm((dd + 0.1) / 1.4);
+        if (dd > 1.3) gy += 0.07 * sm((Math.hypot(gx - 0.2, gz - 0.6) - 4.5) / 4) * Math.sin(gx * 0.9) * Math.cos(gz * 0.7);
+        GP.setXYZ(i, gx, gy, gz); GU.setXY(i, gx / 2.2, gz / 2.2);
+      }
+      gg.setIndex(Array.prototype.slice.call(gg.index.array).reverse()); gg.computeVertexNormals(); disp.push(gg);
+      var ground = new THREE.Mesh(gg, grassM); ground.receiveShadow = true; g.add(ground);
+      /* (the hobbit hole, the picket fence and its flowers are things of the layout now: hob-house, hob-fence) */
+      var M4 = new THREE.Matrix4(), Q = new THREE.Quaternion(), V = new THREE.Vector3(), SC = new THREE.Vector3(), C3 = new THREE.Color();
+      var rnd = (function (s) { return function () { s = (s * 16807) % 2147483647; return s / 2147483647; }; })(4711);
+      var buM = new THREE.MeshLambertMaterial({ color: lin(0x3d7426) }), rdM = new THREE.MeshLambertMaterial({ color: 0xffffff }); disp.push(buM, rdM);
+      var BU = [];
+      [[11, -2.6, 1.1], [12.5, -1.4, 1.5], [-7.5, -2.5, 1.3], [-9.5, -0.5, 1.7]].forEach(function (b) {
+        for (var k = 0; k < 9; k++) BU.push([b[0] + (rnd() - 0.5) * b[2] * 1.3, b[2] * (0.25 + rnd() * 0.55), b[1] + (rnd() - 0.5) * b[2] * 1.3, b[2] * (0.45 + rnd() * 0.3)]); });
+      var bu2 = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 2), buM, BU.length);
+      BU.forEach(function (q, k) { M4.compose(V.set(q[0], q[1], q[2]), Q, SC.set(q[3], q[3] * 0.85, q[3])); bu2.setMatrixAt(k, M4); }); bu2.castShadow = bu2.receiveShadow = true; holder.add(bu2); disp.push(bu2.geometry);
+      var RD = []; for (i = 0; i < 520; i++) { var rx = -12 + rnd() * 26, rz = shore(rx) + 0.35 + rnd() * 0.75; if (rx > -1.0 && rx < 1.1 && rnd() < 0.7) continue; RD.push([rx + (rnd() - 0.5) * 0.2, rz, 0.35 + rnd() * 0.6, rnd()]); }
+      var rg = new THREE.ConeGeometry(0.022, 1, 4); rg.translate(0, 0.5, 0);
+      var rd = new THREE.InstancedMesh(rg, rdM, RD.length), E3 = new THREE.Euler();
+      RD.forEach(function (q, k) { Q.setFromEuler(E3.set((q[3] - 0.5) * 0.5, q[3] * 6, (Math.sin(k * 1.7)) * 0.25)); M4.compose(V.set(q[0], -0.42 + 0.3 * sm((q[1] - shore(q[0])) / 1.1), q[1]), Q, SC.set(1, q[2], 1)); rd.setMatrixAt(k, M4);
+        rd.setColorAt(k, C3.setRGB(0.32 + q[3] * 0.3, 0.52 + q[3] * 0.22, 0.12).convertSRGBToLinear()); }); holder.add(rd); disp.push(rg);
+      /* butterflies over the flower bed */
+      var wgM = new THREE.MeshBasicMaterial({ color: 0xfff3b0, side: THREE.DoubleSide }), wg = new THREE.PlaneGeometry(0.05, 0.06); wg.translate(0.025, 0, 0); disp.push(wgM, wg);
+      var flies = [[3.2, 0.7, -3.4], [4.6, 0.9, -3.5], [-1.8, 0.8, -3.6]].map(function (p, k) { var b = new THREE.Group(), l = new THREE.Mesh(wg, wgM), r = new THREE.Mesh(wg, wgM); r.scale.x = -1; b.add(l); b.add(r); b.userData = { p: p, l: l, r: r, k: k }; holder.add(b); return b; });
+      /* fireflies, in the dark */
+      var ffM = new THREE.MeshBasicMaterial({ color: 0xdcff7a }), ffG = new THREE.SphereGeometry(0.018, 6, 4); disp.push(ffM, ffG);
+      var ffs = []; for (i = 0; i < 16; i++) { var ff = new THREE.Mesh(ffG, ffM); ff.userData = { x: -4 + rnd() * 9, z: -4.6 + rnd() * 3.6, y: 0.4 + rnd() * 0.9, o: rnd() * 20 }; ff.visible = false; holder.add(ff); ffs.push(ff); }
+      /* light: a high afternoon sun from the left, as in the picture; the sky and the turf fill */
+      var hemi = new THREE.HemisphereLight(0xdcecff, 0x7f9a4a, 0.8); holder.add(hemi);
+      var sun = new THREE.DirectionalLight(0xfff2d8, 1.25); sun.position.set(-8, 12, 1); sun.target.position.set(-1.5, 0, -4);
+      sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); var sc = sun.shadow.camera; sc.left = -12; sc.right = 12; sc.top = 12; sc.bottom = -12; sc.near = 0.5; sc.far = 40; sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.03;
+      holder.add(sun); holder.add(sun.target);
+      scene.fog = null; scene.background = new THREE.Color(0x8fbde8);
+      var NL = nightLights(hemi, sun), TM = liveTime(function (n) { BKU.uN.value = n; waterU.uN.value = n; skyM.uniforms.uN.value = n; flies.forEach(function (f) { f.visible = n < 0.5; }); ffs.forEach(function (f) { f.visible = n > 0.5; }); NL(n); });
+      back.onBeforeRender = function (r, s, cam) { window.SpatialAmbPan = { night: BKU.uN.value > 0.6 }; };
+      var A = PT.anchors(0.95); A['desk.quill'] = { p: [T1[0] - 0.34, TY, T1[1] + 0.2], ry: -0.3 };
+      var B = [-2.0, -0.6, 2.0, 3.2];
+      return {
+        id: 'hobbiton', name: 'Hobbiton · Garden by the Pond', group: g, holder: holder, far: 2400, size: { W: 3.0, D: 2.6, H: 6 },
+        anchors: A, avatar: PT.avatar, start: { pos: EYE.slice(), yaw: -0.08, pitch: -0.06 }, startV: 1, bounds: B,
+        desk: { pos: EYE.slice(), look: [T1[0], 0.8, T1[1]] }, solids: [], areas: [B], credit: 'Hobbiton · the garden by the pond — after the user\'s pictures',
+        surfaces: [], dress: null, view: view, realistic: false, movable: false,
+        upgrade: { v: 2, fn: function (L) { L.extras = (L.extras || []).filter(function (e) { return e.uid < 9901 || e.uid > 9919; }).concat(JSON.parse(JSON.stringify(ITEMS))); OUT_HIDE.forEach(function (id) { L[id] = { stashed: true }; }); } },
+        defaultLayout: function () { return { extras: JSON.parse(JSON.stringify(ITEMS)) }; },
+        setTime: function (m) { TM.set(m); }, tick: function (t) { waterU.uT.value = t; BKU.uT.value = t; skyM.uniforms.uT.value = t; TM.step();
+          ffs.forEach(function (f) { var u = f.userData; f.position.set(u.x + Math.sin(t * 0.3 + u.o) * 0.6, u.y + Math.sin(t * 0.7 + u.o * 2) * 0.2, u.z + Math.cos(t * 0.25 + u.o) * 0.5); f.scale.setScalar(0.5 + 0.5 * Math.max(0, Math.sin(t * 1.3 + u.o * 3))); });
+          flies.forEach(function (b) { var u = b.userData, a = t * 0.5 + u.k * 2.1; b.position.set(u.p[0] + Math.sin(a) * 0.9, u.p[1] + Math.sin(a * 2.3) * 0.18, u.p[2] + Math.cos(a * 1.3) * 0.35); b.rotation.y = a * 1.3; var f = Math.sin(t * 16 + u.k) * 1.0; u.l.rotation.y = -f; u.r.rotation.y = f; }); },
+        dispose: function () { disp.forEach(function (d) { try { d.dispose(); } catch (er) {} }); SR.disposeTree(holder); scene.background = null; try { delete window.SpatialAmbPan; } catch (er) {} }
+      };
+    }
+    SR.register({ id: 'hobbiton', name: 'Hobbiton · Garden by the Pond', zh: '霍比屯 · 池塘边的花园', icon: '🚪', build: build });
+  })();
+  /* ───────── Cambridge · the Backs by the Cam (2026-11-14, after the user's picture) ─────────
+     The near bank of the river, on the grass behind an iron estate fence: a garden table with the MacBook, tea, books and
+     a straw boater. The river runs away to the far left towards the bridge; across it a stone edge, a grass bank, the
+     sandy path and the great lawn — and beyond the lawn the picture itself (Clare, King's College Chapel, the sky), the
+     people painted out of it. One punt, empty, lies moored by the near bank. The water mirrors the far view.
+     The lens and the look stay inside the picture (room.view). Everything else of the room waits in the backpack. */
+  (function () {
+    var IMG = 'scenic-environments/outdoor/cambridge-backs/backdrop.jpg', IW = 1500, IH = 660, HY = 588, ARC = 90 * D2R, PPR = IW / ARC, TOP = HY / PPR, LOW = (IH - 4 - HY) / PPR;
+    var RA = -35 * D2R, Dv = [Math.sin(RA), -Math.cos(RA)], Nv = [Math.cos(RA), Math.sin(RA)], O = [4 * Nv[0], 1.0 + 4 * Nv[1]], RW = 16, WY = -0.5;   // the river: along Dv, across Nv, 4 m from where you stand, 16 m wide
+    function W(t, s) { return [O[0] + Dv[0] * t + Nv[0] * s, O[1] + Dv[1] * t + Nv[1] * s]; }
+    var T1 = [-0.55, -1.3], TY = 0.75, ITEMS = [
+      { kind: 'out-wood-table', title: '花园木桌', p: [T1[0], 0, T1[1]], ry: 0, uid: 9921 },
+      { kind: 'out-wood-chair', title: '木椅', p: [T1[0] + 0.05, 0, T1[1] + 0.78], ry: Math.PI, uid: 9922 }, { kind: 'out-wood-chair', title: '木椅', p: [T1[0] - 1.05, 0, T1[1] - 0.05], ry: Math.PI / 2, uid: 9923 },
+      { kind: 'out-macbook', title: 'MacBook', p: [T1[0] + 0.1, TY, T1[1] + 0.05], ry: Math.atan2(-(T1[0] + 0.1), 1.0 - T1[1]), uid: 9924 },
+      { kind: 'tea-pot', title: '茶壶', p: [T1[0] - 0.42, TY, T1[1] - 0.17], ry: 0.6, uid: 9925 }, { kind: 'tea-cup', title: '茶杯', p: [T1[0] + 0.46, TY, T1[1] + 0.18], ry: 0.2, uid: 9926 },
+      { kind: 'cam-books', title: '一摞书', p: [T1[0] - 0.4, TY, T1[1] + 0.16], ry: 0.25, uid: 9927 }, { kind: 'cam-boater', title: '草编平顶帽', p: [T1[0] + 0.42, TY, T1[1] - 0.16], ry: 0.5, uid: 9928 },
+      { kind: 'hob-lantern', title: '铜提灯', p: [T1[0] + 0.14, TY, T1[1] - 0.24], ry: 0.3, uid: 9929 },
+      { kind: 'cam-punt', title: '撑篙船', p: [W(2.6, 1.5)[0], WY - 0.04, W(2.6, 1.5)[1]], ry: Math.atan2(Dv[0], Dv[1]), uid: 9930 }];
+    var view = {
+      fov: function (a) { return 2 * Math.atan(Math.min(Math.tan(25 * D2R), Math.tan(34 * D2R) / Math.max(0.3, a))) / D2R; },
+      clamp: function (a, f) { var hv = f * D2R / 2, hh = Math.atan(Math.tan(hv) * a), Y = Math.max(0, ARC / 2 * 0.97 - hh); return { y0: -Y, y1: Y, p0: -0.6, p1: Math.max(-0.4, TOP * 0.97 - hv) }; } };
+    function lawnTex(stripes) {
+      var c = document.createElement('canvas'); c.width = c.height = 512; var x = c.getContext('2d'), i;
+      x.fillStyle = '#5f9230'; x.fillRect(0, 0, 512, 512);
+      for (i = 0; i < 70; i++) { x.fillStyle = 'rgba(' + (50 + Math.random() * 90 | 0) + ',' + (110 + Math.random() * 70 | 0) + ',' + (20 + Math.random() * 30 | 0) + ',.28)'; x.beginPath(); x.ellipse(Math.random() * 512, Math.random() * 512, 25 + Math.random() * 60, 18 + Math.random() * 40, Math.random() * 3, 0, 6.3); x.fill(); }
+      if (stripes) for (i = 0; i < 4; i++) { x.fillStyle = 'rgba(150,200,70,.35)'; x.fillRect(0, i * 128, 512, 64); }
+      for (i = 0; i < 4200; i++) { var gx = Math.random() * 512, gy = Math.random() * 512;
+        x.strokeStyle = 'rgba(' + (60 + Math.random() * 90 | 0) + ',' + (120 + Math.random() * 80 | 0) + ',' + (20 + Math.random() * 40 | 0) + ',' + (0.18 + Math.random() * 0.3) + ')';
+        x.lineWidth = 1 + Math.random(); x.beginPath(); x.moveTo(gx, gy); x.lineTo(gx + (Math.random() - 0.5) * 3, gy - 3 - Math.random() * 7); x.stroke(); }
+      var t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; return t;
+    }
+    function build(scene) {
+      var holder = new THREE.Group(); holder.name = 'env-cambridge-backs'; scene.add(holder);
+      var g = new THREE.Group(); holder.add(g); var disp = [], EYE = [0, 1.5, 1.0], i, j;
+      PT.theme(null);
+      var tex = new THREE.TextureLoader().load(siteBase() + IMG); tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 8; tex.minFilter = THREE.LinearFilter; disp.push(tex);
+      /* the far view: the picture above the lawn's far edge, on an arc; top and sides fade into the sky */
+      var RB = 1100, NA = 96, NE = 24, bg = new THREE.BufferGeometry(), bp = [], bu = [], bi = [];
+      for (j = 0; j <= NE; j++) for (i = 0; i <= NA; i++) {
+        var az = (i / NA - 0.5) * ARC, el = -LOW + (TOP + LOW) * j / NE;
+        bp.push(EYE[0] + Math.sin(az) * RB, EYE[1] + Math.tan(el) * RB, EYE[2] - Math.cos(az) * RB);
+        bu.push(i / NA, 1 - (HY - el * PPR) / IH);
+      }
+      for (j = 0; j < NE; j++) for (i = 0; i < NA; i++) { var a0 = j * (NA + 1) + i; bi.push(a0, a0 + 1, a0 + NA + 1, a0 + 1, a0 + NA + 2, a0 + NA + 1); }
+      bg.setAttribute('position', new THREE.Float32BufferAttribute(bp, 3)); bg.setAttribute('uv', new THREE.Float32BufferAttribute(bu, 2)); bg.setIndex(bi); disp.push(bg);
+      var backM = liveBackM({ tex: tex, IW: IW, IH: IH, HY: HY, alpha: 'smoothstep(0.0, 46.0, row) * smoothstep(0.0, 40.0, px) * smoothstep(' + IW + '.0, ' + (IW - 40) + '.0, px)',
+        sky: 'step(row, 560.0) * smoothstep(0.02, 0.14, c.b - max(c.r, c.g))', LT: 0.9,
+        lights: 'step(430.0, row) * step(row, 584.0) * smoothstep(0.26, 0.12, lum) * step(0.27, u) * (1.0 - step(0.735, u) * step(u, 0.8))' }), BU = backM.uniforms;   // in the dark some of the college windows are lit
+      disp.push(backM);
+      var back = new THREE.Mesh(bg, backM); back.frustumCulled = false; back.renderOrder = -10; holder.add(back);
+      var skyM = liveSkyM(0.55);
+      var sky = new THREE.Mesh(new THREE.SphereGeometry(1500, 32, 16), skyM); sky.renderOrder = -20; holder.add(sky); disp.push(skyM, sky.geometry);
+      var img = new Image(); img.crossOrigin = 'anonymous'; img.onload = function () {
+        try { var c = document.createElement('canvas'); c.width = 64; c.height = 64; var x = c.getContext('2d');
+          function avg(sx, sy, sw, sh) { x.drawImage(img, sx, sy, sw, sh, 0, 0, 64, 64); var d = x.getImageData(0, 0, 64, 64).data, r = 0, gg = 0, b = 0, n = 0; for (var k = 0; k < d.length; k += 4) { r += d[k]; gg += d[k + 1]; b += d[k + 2]; n++; } return [r / n / 255, gg / n / 255, b / n / 255]; }
+          var s0 = avg(880, 6, 220, 50), m0 = avg(320, 450, 70, 40);
+          skyM.uniforms.uC.value.setRGB(s0[0], s0[1], s0[2]); skyM.uniforms.uLow.value.setRGB(m0[0], m0[1], m0[2]); } catch (er) {} };
+      img.src = siteBase() + IMG;
+      /* the river: blue under the sky, the far view mirrored in it, ripples */
+      var waterU = { uMap: { value: tex }, uT: { value: 0 }, uN: { value: 0 } };
+      var waterM = new THREE.ShaderMaterial({ uniforms: waterU,
+        vertexShader: 'varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
+        fragmentShader: ['uniform sampler2D uMap; uniform float uT; uniform float uN; varying vec3 vW;', NIGHT_GLSL,
+          'vec3 far(float az, float el){ float u = clamp(0.5 + az / ' + ARC.toFixed(5) + ', 0.03, 0.97); float row = clamp(' + HY + '.0 - el * ' + PPR.toFixed(2) + ', 50.0, ' + (HY - 3) + '.0);',
+          '  return texture2D(uMap, vec2(u, 1.0 - row / ' + IH + '.0)).rgb; }',
+          'void main(){ vec3 d = vW - cameraPosition; float dist = length(d.xz), az = atan(d.x, -d.z), el = atan(-d.y, dist);',
+          '  float rp = sin(vW.x * 2.3 + uT * 0.9) * sin(vW.z * 3.1 - uT * 0.7) + 0.6 * sin(vW.x * 6.1 - vW.z * 4.3 + uT * 1.6) + 0.3 * sin(vW.x * 11.0 + vW.z * 9.0 - uT * 2.2);',
+          '  float k = 0.006 + 0.05 / (1.0 + dist * 0.1);',
+          '  vec3 r = (far(az + rp * k * 0.6, el + rp * k) + far(az - rp * k * 0.4, el * 1.06 + 0.004)) * 0.5;',
+          '  vec3 deep = vec3(0.10, 0.19, 0.33); float fr = pow(1.0 - clamp(el / 1.2, 0.0, 1.0), 3.0);',
+          '  vec3 c = mix(deep, r * 0.85, 0.22 + 0.6 * fr); c += vec3(0.10, 0.13, 0.16) * smoothstep(0.9, 1.5, rp) * fr;',
+          '  c = mix(c, nightOf(c), uN); gl_FragColor = vec4(c, 1.0); }'].join('\n') });
+      disp.push(waterM);
+      var water = new THREE.Mesh(new THREE.PlaneGeometry(2400, 2400, 1, 1), waterM); water.rotation.x = -Math.PI / 2; water.position.set(-300, WY, -500); holder.add(water); disp.push(water.geometry);
+      /* the banks, laid out along the river: [t, s, y] corners */
+      function quad(m, c, uk, shadow) {
+        var gq = new THREE.BufferGeometry(), p = [], u = [];
+        c.forEach(function (q) { var w = W(q[0], q[1]); p.push(w[0], q[2], w[1]); u.push(q[0] / uk, (q[1] + q[2] * 0.999) / uk); });
+        gq.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); gq.setAttribute('uv', new THREE.Float32BufferAttribute(u, 2)); gq.setIndex([0, 1, 2, 0, 2, 3]); gq.computeVertexNormals();
+        var N = gq.attributes.normal; if (N.getY(0) < -0.01) { gq.setIndex([0, 2, 1, 0, 3, 2]); gq.computeVertexNormals(); }
+        var k = new THREE.Mesh(gq, m); k.receiveShadow = shadow !== false; holder.add(k); disp.push(gq); return k;
+      }
+      var nearT = lawnTex(false), farT = lawnTex(true), stT = stoneTex('dressed'); disp.push(nearT, farT, stT);
+      var nearM = new THREE.MeshStandardMaterial({ map: nearT, roughness: 1, color: lin(0xcdd6a8), side: THREE.DoubleSide }), farM = new THREE.MeshStandardMaterial({ map: farT, roughness: 1, color: lin(0xd6dfae), side: THREE.DoubleSide }),
+        stM = new THREE.MeshStandardMaterial({ map: stT, roughness: 0.95, color: lin(0xb3a990), side: THREE.DoubleSide }), sandM = new THREE.MeshStandardMaterial({ color: lin(0xd9b97e), roughness: 1, side: THREE.DoubleSide });
+      disp.push(nearM, farM, stM, sandM);
+      var TA = -400, TB = 1000, FL = 0.85;
+      quad(nearM, [[TA, -500, 0], [TB, -500, 0], [TB, 0, 0], [TA, 0, 0]], 2.4);
+      quad(stM, [[TA, 0, 0.001], [TB, 0, 0.001], [TB, 0.28, 0.001], [TA, 0.28, 0.001]], 1.6); quad(stM, [[TA, 0.28, 0], [TB, 0.28, 0], [TB, 0.28, WY - 0.2], [TA, 0.28, WY - 0.2]], 1.6);
+      quad(stM, [[TA, RW, WY - 0.2], [TB, RW, WY - 0.2], [TB, RW, 0.15], [TA, RW, 0.15]], 1.6); quad(stM, [[TA, RW, 0.15], [TB, RW, 0.15], [TB, RW + 0.4, 0.15], [TA, RW + 0.4, 0.15]], 1.6);
+      quad(farM, [[TA, RW + 0.4, 0.15], [TB, RW + 0.4, 0.15], [TB, RW + 4.6, FL], [TA, RW + 4.6, FL]], 3.2);
+      quad(farM, [[TA, RW + 4.6, FL], [TB, RW + 4.6, FL], [TB, 1200, FL], [TA, 1200, FL]], 6.4);
+      quad(sandM, [[TA, RW + 5.6, FL + 0.006], [TB, RW + 5.6, FL + 0.006], [TB, RW + 7.3, FL + 0.006], [TA, RW + 7.3, FL + 0.006]], 3);
+      /* the iron estate fence along the near bank */
+      var ironM = new THREE.MeshStandardMaterial({ color: lin(0x23262a), roughness: 0.6, metalness: 0.6 }); disp.push(ironM);
+      var FA = Math.atan2(Dv[0], Dv[1]), F0 = 6.4, F1 = 52, PN = Math.round((F1 - F0) / 2.2), posts = new THREE.InstancedMesh(new THREE.BoxGeometry(0.03, 0.86, 0.01), ironM, PN + 1), M4 = new THREE.Matrix4(), Q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), FA), V = new THREE.Vector3(), SC = new THREE.Vector3(1, 1, 1);
+      for (i = 0; i <= PN; i++) { var fp = W(F0 + (F1 - F0) * i / PN, -1.0); M4.compose(V.set(fp[0], 0.43, fp[1]), Q, SC); posts.setMatrixAt(i, M4); }
+      posts.castShadow = true; holder.add(posts); disp.push(posts.geometry);
+      var fm = W((F0 + F1) / 2, -1.0); [0.18, 0.38, 0.58, 0.72, 0.85].forEach(function (h, k) { var w = new THREE.Mesh(new THREE.BoxGeometry(k === 4 ? 0.018 : 0.008, k === 4 ? 0.018 : 0.008, F1 - F0), ironM); w.position.set(fm[0], h, fm[1]); w.rotation.y = FA; w.castShadow = true; holder.add(w); });
+      /* (the punt is a thing of the layout now: cam-punt) */
+      var var1 = new THREE.MeshStandardMaterial({ color: lin(0x9a5526), roughness: 0.45 }); disp.push(var1);
+      var mp = W(6.4, 0.5), post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 1.5, 10), var1); post.position.set(mp[0], WY + 0.35, mp[1]); post.castShadow = true; holder.add(post);
+      /* light: the afternoon sun high on the left, as in the picture */
+      var hemi = new THREE.HemisphereLight(0xd8eaff, 0x86a050, 0.8); holder.add(hemi);
+      var sun = new THREE.DirectionalLight(0xfff4de, 1.25); sun.position.set(-7, 12, 5); sun.target.position.set(1, 0, -3);
+      sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); var sc = sun.shadow.camera; sc.left = -12; sc.right = 12; sc.top = 12; sc.bottom = -12; sc.near = 0.5; sc.far = 40; sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.03;
+      holder.add(sun); holder.add(sun.target);
+      scene.fog = null; scene.background = new THREE.Color(0x7fb4ea);
+      var NL = nightLights(hemi, sun), TM = liveTime(function (n) { BU.uN.value = n; waterU.uN.value = n; skyM.uniforms.uN.value = n; NL(n); });
+      back.onBeforeRender = function (r, s, cam) { window.SpatialAmbPan = { night: BU.uN.value > 0.6 }; };
+      var A = PT.anchors(0.95); A['desk.quill'] = { p: [T1[0] - 0.12, TY, T1[1] - 0.22], ry: -0.3 };
+      var B = [-2.2, -0.4, 1.4, 3.2];
+      return {
+        id: 'cambridge-backs', name: 'Cambridge · The Backs', group: g, holder: holder, far: 4000, size: { W: 3.0, D: 2.6, H: 6 },
+        anchors: A, avatar: PT.avatar, start: { pos: EYE.slice(), yaw: 0, pitch: -0.06 }, startV: 1, bounds: B,
+        desk: { pos: EYE.slice(), look: [T1[0], 0.8, T1[1]] }, solids: [], areas: [B], credit: 'Cambridge · the Backs by the Cam — after the user\'s picture',
+        surfaces: [], dress: null, view: view, realistic: false, movable: false,
+        upgrade: { v: 3, fn: function (L) { L.extras = (L.extras || []).filter(function (e) { return e.uid < 9921 || e.uid > 9939; }).concat(JSON.parse(JSON.stringify(ITEMS))); OUT_HIDE.forEach(function (id) { L[id] = { stashed: true }; }); } },
+        defaultLayout: function () { return { extras: JSON.parse(JSON.stringify(ITEMS)) }; },
+        setTime: function (m) { TM.set(m); }, tick: function (t) { waterU.uT.value = t; BU.uT.value = t; skyM.uniforms.uT.value = t; TM.step(); },
+        dispose: function () { disp.forEach(function (d) { try { d.dispose(); } catch (er) {} }); SR.disposeTree(holder); scene.background = null; try { delete window.SpatialAmbPan; } catch (er) {} }
+      };
+    }
+    SR.register({ id: 'cambridge-backs', name: 'Cambridge · The Backs', zh: '剑桥 · 康河后园', icon: '🎓', build: build });
+  })();
+  /* ───────── Santorini · a terrace above Oia (2026-11-14, after the user's panorama) ─────────
+     A whitewashed terrace with a low rounded parapet, high over the caldera: a small white table with the MacBook and a
+     coffee, two blue taverna chairs, bougainvillea in terracotta pots. Everything beyond the parapet is the panorama
+     itself (the blue domes, the white town, the sea, the islands, the sun in the cloud) on a wide arc — 150° of it, so
+     you can turn a long way. The lens and the look stay inside the picture (room.view). The rest of the room waits in the backpack. */
+  (function () {
+    var IMG = 'scenic-environments/outdoor/santorini-oia/backdrop.jpg', IW = 2906, IH = 1032, HY = 501, ARC = 150 * D2R, PPR = IW / ARC, TOP = HY / PPR, LOW = (IH - 2 - HY) / PPR;
+    var T1 = [0.75, -0.75], TY = 0.72, RT = 3.2, ITEMS = [
+      { kind: 'san-table', title: '白色小圆桌', p: [T1[0], 0, T1[1]], ry: 0, uid: 9941 },
+      { kind: 'san-chair', title: '蓝色木椅', p: [T1[0] - 0.05, 0, T1[1] + 0.72], ry: Math.PI, uid: 9942 }, { kind: 'san-chair', title: '蓝色木椅', p: [T1[0] + 0.78, 0, T1[1] - 0.1], ry: -Math.PI / 2 - 0.3, uid: 9943 },
+      { kind: 'out-macbook', title: 'MacBook', p: [T1[0] - 0.05, TY, T1[1] + 0.02], ry: Math.atan2(-T1[0], 1.0 - T1[1]), uid: 9944 },
+      { kind: 'out-coffee', title: '咖啡杯', p: [T1[0] + 0.25, TY, T1[1] + 0.14], ry: 0.5, uid: 9945 },
+      { kind: 'hob-lantern', title: '铜提灯', p: [T1[0] + 0.2, TY, T1[1] - 0.2], ry: 0.3, uid: 9946 },
+      { kind: 'san-bougainvillea', title: '三角梅盆栽', p: [-1.7, 0, -1.55], ry: 0, uid: 9947 }, { kind: 'san-bougainvillea', title: '三角梅盆栽', p: [2.05, 0, -1.2], ry: 1.3, uid: 9948 }, { kind: 'san-bougainvillea', title: '三角梅盆栽', p: [-2.75, 0, -0.2], ry: 2.6, uid: 9949 }];
+    var view = {
+      fov: function (a) { return 2 * Math.atan(Math.min(Math.tan(24 * D2R), Math.tan(34 * D2R) / Math.max(0.3, a))) / D2R; },
+      clamp: function (a, f) { var hv = f * D2R / 2, hh = Math.atan(Math.tan(hv) * a), Y = Math.max(0, ARC / 2 * 0.98 - hh), up = TOP * 0.98 - hv; return { y0: -Y, y1: Y, p0: Math.min(-0.5, up), p1: up }; } };
+    function build(scene) {
+      var holder = new THREE.Group(); holder.name = 'env-santorini-oia'; scene.add(holder);
+      var g = new THREE.Group(); holder.add(g); var disp = [], EYE = [0, 1.5, 1.0], i, j;
+      PT.theme(null);
+      var tex = new THREE.TextureLoader().load(siteBase() + IMG); tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 8; tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false; disp.push(tex);
+      /* the panorama: the whole picture on an arc round where you stand, its sea horizon at eye level */
+      var RB = 900, NA = 120, NE = 32, bg = new THREE.BufferGeometry(), bp = [], bu = [], bi = [];
+      for (j = 0; j <= NE; j++) for (i = 0; i <= NA; i++) {
+        var az = (i / NA - 0.5) * ARC, el = -LOW + (TOP + LOW) * j / NE;
+        bp.push(EYE[0] + Math.sin(az) * RB, EYE[1] + Math.tan(el) * RB, EYE[2] - Math.cos(az) * RB);
+        bu.push(i / NA, 1 - (HY - el * PPR) / IH);
+      }
+      for (j = 0; j < NE; j++) for (i = 0; i < NA; i++) { var a0 = j * (NA + 1) + i; bi.push(a0, a0 + 1, a0 + NA + 1, a0 + 1, a0 + NA + 2, a0 + NA + 1); }
+      bg.setAttribute('position', new THREE.Float32BufferAttribute(bp, 3)); bg.setAttribute('uv', new THREE.Float32BufferAttribute(bu, 2)); bg.setIndex(bi); disp.push(bg);
+      var backM = liveBackM({ tex: tex, IW: IW, IH: IH, HY: HY, K: 1.0, G: 0.07,
+        water: 'step(' + (HY + 4) + '.0, row) * smoothstep(0.03, 0.12, c0.b - c0.r * 1.25) * (1.0 - step(length(vec2((u - 0.553) / 0.085, (row - 836.0) / 195.0)), 1.0)) * (1.0 - step(length(vec2((u - 0.427) / 0.03, (row - 700.0) / 62.0)), 1.0))',   // the sea, not the blue domes
+        sky: 'step(row, ' + (HY - 8) + '.0) * smoothstep(0.0, 0.1, c.b - c.r * 1.15)', LT: 0.9,
+        lights: 'smoothstep(0.72, 0.88, lum) * ((u < 0.25 || u > 0.7) ? step(270.0, row) : step(' + (HY + 50) + '.0, row)) * (1.0 - step(0.26, u) * step(u, 0.5) * step(row, 870.0))' }), BU = backM.uniforms;   // in the dark the town's lights come on
+      disp.push(backM);
+      var back = new THREE.Mesh(bg, backM); back.frustumCulled = false; back.renderOrder = -10; holder.add(back);
+      /* the terrace: whitewash underfoot, a low rounded parapet round the front, the wall dropping away below it */
+      var c = document.createElement('canvas'); c.width = c.height = 512; var x = c.getContext('2d');
+      x.fillStyle = '#f4f1ea'; x.fillRect(0, 0, 512, 512);
+      for (i = 0; i < 260; i++) { x.fillStyle = 'rgba(' + (200 + Math.random() * 40 | 0) + ',' + (198 + Math.random() * 40 | 0) + ',' + (190 + Math.random() * 40 | 0) + ',.16)'; x.beginPath(); x.ellipse(Math.random() * 512, Math.random() * 512, 10 + Math.random() * 50, 8 + Math.random() * 30, Math.random() * 3, 0, 6.3); x.fill(); }
+      for (i = 0; i < 30; i++) { x.strokeStyle = 'rgba(150,145,135,.12)'; x.beginPath(); var cx = Math.random() * 512, cy = Math.random() * 512; x.moveTo(cx, cy); x.lineTo(cx + (Math.random() - 0.5) * 120, cy + (Math.random() - 0.5) * 120); x.stroke(); }
+      var wT = new THREE.CanvasTexture(c); wT.encoding = THREE.sRGBEncoding; wT.wrapS = wT.wrapT = THREE.RepeatWrapping; wT.repeat.set(3, 3); wT.anisotropy = 8; disp.push(wT);
+      var whM = new THREE.MeshStandardMaterial({ map: wT, roughness: 0.95, color: lin(0xf6f3ec) }), whS = new THREE.MeshStandardMaterial({ roughness: 0.95, color: lin(0xf3f0e8), side: THREE.DoubleSide }); disp.push(whM, whS);
+      var fgT = stoneTex('flags'); fgT.repeat.set(3.2, 3.2); disp.push(fgT); var flM = new THREE.MeshStandardMaterial({ map: fgT, roughness: 0.95, color: lin(0xfff8ea) }); disp.push(flM);
+      var fl = new THREE.Mesh(new THREE.CircleGeometry(RT + 0.05, 72), flM); fl.rotation.x = -Math.PI / 2; fl.position.set(EYE[0], 0, EYE[2]); fl.receiveShadow = true; g.add(fl); disp.push(fl.geometry);
+      var bk = new THREE.Mesh(new THREE.PlaneGeometry(14, 10), flM); bk.rotation.x = -Math.PI / 2; bk.position.set(0, -0.001, EYE[2] + 5); bk.receiveShadow = true; g.add(bk); disp.push(bk.geometry);
+      var pr = [[RT, 0], [RT, 0.26], [RT + 0.03, 0.32], [RT + 0.09, 0.355], [RT + 0.17, 0.355], [RT + 0.23, 0.32], [RT + 0.26, 0.26], [RT + 0.26, -6]].map(function (q) { return new THREE.Vector2(q[0], q[1]); });
+      var par = new THREE.Mesh(new THREE.LatheGeometry(pr, 96, Math.PI - 105 * D2R, 210 * D2R), whS); par.position.set(EYE[0], 0, EYE[2]); par.castShadow = par.receiveShadow = true; holder.add(par); disp.push(par.geometry);
+      [-1, 1].forEach(function (sd) {                                                                   // where the parapet ends: a square pier each side, a blue pot on it
+        var a = sd * 105 * D2R, px = EYE[0] + Math.sin(a) * (RT + 0.13), pz = EYE[2] - Math.cos(a) * (RT + 0.13);
+        var pier = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.7, 0.5), whS); pier.position.set(px, 0.25, pz); pier.rotation.y = -a; pier.castShadow = true; holder.add(pier); });
+      /* (the bougainvillea pots are things of the layout now: san-bougainvillea) */
+      /* light: the bright Aegean day; the sun where the picture has it, ahead on the left, so shadows fall towards you */
+      var hemi = new THREE.HemisphereLight(0xeaf3ff, 0xd8d2c4, 0.95); holder.add(hemi);
+      var sun = new THREE.DirectionalLight(0xfff3dc, 1.05); sun.position.set(-3.2, 5.2, -7.5); sun.target.position.set(0.3, 0, -0.5);
+      sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); var sc = sun.shadow.camera; sc.left = -7; sc.right = 7; sc.top = 7; sc.bottom = -7; sc.near = 0.5; sc.far = 30; sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.03;
+      holder.add(sun); holder.add(sun.target);
+      scene.fog = null; scene.background = new THREE.Color(0x2f6fc0);
+      var NL = nightLights(hemi, sun), TM = liveTime(function (n) { BU.uN.value = n; NL(n); });
+      back.onBeforeRender = function (r, s, cam) { window.SpatialAmbPan = { night: BU.uN.value > 0.6 }; };
+      var A = PT.anchors(0.95); A['desk.quill'] = { p: [T1[0] - 0.26, TY, T1[1] - 0.14], ry: -0.3 };
+      var B = [-1.8, -0.9, 1.8, 3.0];
+      return {
+        id: 'santorini-oia', name: 'Santorini · Terrace above Oia', group: g, holder: holder, far: 3000, size: { W: 3.0, D: 2.6, H: 6 },
+        anchors: A, avatar: PT.avatar, start: { pos: EYE.slice(), yaw: 0, pitch: -0.12 }, startV: 1, bounds: B,
+        desk: { pos: EYE.slice(), look: [T1[0], 0.8, T1[1]] }, solids: [], areas: [B], credit: 'Santorini · a terrace above Oia — after the user\'s panorama',
+        surfaces: [], dress: null, view: view, realistic: false, movable: false,
+        upgrade: { v: 3, fn: function (L) { L.extras = (L.extras || []).filter(function (e) { return e.uid < 9941 || e.uid > 9959; }).concat(JSON.parse(JSON.stringify(ITEMS))); OUT_HIDE.forEach(function (id) { L[id] = { stashed: true }; }); } },
+        defaultLayout: function () { return { extras: JSON.parse(JSON.stringify(ITEMS)) }; },
+        setTime: function (m) { TM.set(m); }, tick: function (t) { BU.uT.value = t; TM.step(); },
+        dispose: function () { disp.forEach(function (d) { try { d.dispose(); } catch (er) {} }); SR.disposeTree(holder); scene.background = null; try { delete window.SpatialAmbPan; } catch (er) {} }
+      };
+    }
+    SR.register({ id: 'santorini-oia', name: 'Santorini · Terrace above Oia', zh: '圣托里尼 · 伊亚露台', icon: '⛪', build: build });
+  })();
+  /* ───────── Lauterbrunnen · a chalet balcony over the valley (2026-11-14, after the user's picture) ─────────
+     A timber balcony high above the village: boards underfoot, a low rail with clear glass under it so nothing stands in
+     the view, window boxes of red geraniums along the edge, a wooden table with the MacBook, a coffee and a cowbell.
+     Everything beyond the rail is the picture itself (the cliffs, the Staubbach fall, the snow at the head of the valley,
+     the village and the river below) on an arc — you look down into it. The lens and the look stay inside the picture
+     (room.view). The rest of the room waits in the backpack. */
+  (function () {
+    var IMG = 'scenic-environments/outdoor/lauterbrunnen/backdrop.jpg', IW = 2048, IH = 1152, HY = 410, ARC = 100 * D2R, PPR = IW / ARC, TOP = HY / PPR, LOW = (IH - 2 - HY) / PPR;
+    var T1 = [0.3, -0.9], TY = 0.75, ZF = -1.75, ITEMS = [
+      { kind: 'out-wood-table', title: '木桌', p: [T1[0], 0, T1[1]], ry: 0, uid: 9961 }, { kind: 'out-wood-chair', title: '木椅', p: [T1[0], 0, T1[1] + 0.62], ry: Math.PI, uid: 9962 },
+      { kind: 'out-macbook', title: 'MacBook', p: [T1[0], TY, T1[1] + 0.05], ry: 0, uid: 9963 }, { kind: 'out-coffee', title: '咖啡杯', p: [T1[0] + 0.42, TY, T1[1] + 0.12], ry: 0.4, uid: 9964 },
+      { kind: 'swiss-bell', title: '牛铃', p: [T1[0] - 0.42, TY, T1[1] + 0.02], ry: -0.3, uid: 9965 }].concat(
+      [-4.5, -2.7, -1.35, 2.25, 3.6, 5.4].map(function (cx, k) { return { kind: 'swiss-flowerbox', title: '天竺葵花箱', p: [cx, 0, ZF + 0.22], ry: 0, uid: 9966 + k }; }));
+    var view = {
+      fov: function (a) { return 2 * Math.atan(Math.min(Math.tan(24 * D2R), Math.tan(34 * D2R) / Math.max(0.3, a))) / D2R; },
+      clamp: function (a, f) { var hv = f * D2R / 2, hh = Math.atan(Math.tan(hv) * a), Y = Math.max(0, ARC / 2 * 0.98 - hh), up = TOP * 0.98 - hv; return { y0: -Y, y1: Y, p0: Math.min(-0.5, up), p1: up }; } };
+    function build(scene) {
+      var holder = new THREE.Group(); holder.name = 'env-lauterbrunnen'; scene.add(holder);
+      var g = new THREE.Group(); holder.add(g); var disp = [], EYE = [0, 1.5, 1.0], i, j;
+      PT.theme(null);
+      var tex = new THREE.TextureLoader().load(siteBase() + IMG); tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 8; tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false; disp.push(tex);
+      var RB = 900, NA = 96, NE = 40, bg = new THREE.BufferGeometry(), bp = [], bu = [], bi = [];
+      for (j = 0; j <= NE; j++) for (i = 0; i <= NA; i++) {
+        var az = (i / NA - 0.5) * ARC, el = -LOW + (TOP + LOW) * j / NE;
+        bp.push(EYE[0] + Math.sin(az) * RB, EYE[1] + Math.tan(el) * RB, EYE[2] - Math.cos(az) * RB);
+        bu.push(i / NA, 1 - (HY - el * PPR) / IH);
+      }
+      for (j = 0; j < NE; j++) for (i = 0; i < NA; i++) { var a0 = j * (NA + 1) + i; bi.push(a0, a0 + 1, a0 + NA + 1, a0 + 1, a0 + NA + 2, a0 + NA + 1); }
+      bg.setAttribute('position', new THREE.Float32BufferAttribute(bp, 3)); bg.setAttribute('uv', new THREE.Float32BufferAttribute(bu, 2)); bg.setIndex(bi); disp.push(bg);
+      var backM = liveBackM({ tex: tex, IW: IW, IH: IH, HY: HY, LT: 0.9,
+        /* the Staubbach falls: the white of it streams down; low cloud drifts through the valley */
+        extra: '  { float l1 = dot(c, vec3(0.333)); float wf = smoothstep(0.735, 0.755, u) * (1.0 - smoothstep(0.785, 0.805, u)) * (1.0 - smoothstep(430.0, 500.0, row)) * smoothstep(0.5, 0.75, l1);' +
+          ' c += wf * 0.2 * (vn(vec2(u * 900.0, row * 0.035 - uT * 2.2)) - 0.45);' +
+          ' float ws = vn(vec2(u * 5.0 - uT * 0.01, row * 0.006)) * vn(vec2(u * 11.0 + uT * 0.006, row * 0.012 + 3.0)); c = mix(c, vec3(0.93, 0.95, 0.97), smoothstep(250.0, 380.0, row) * (1.0 - smoothstep(480.0, 640.0, row)) * smoothstep(0.3, 0.62, ws) * 0.5); }',
+        sky: 'step(row, 185.0) * smoothstep(0.62, 0.8, lum) * step(0.28, u) * step(u, 0.62)',
+        lights: 'step(560.0, row) * step(row, 1040.0) * smoothstep(0.12, 0.3, lum) * max(smoothstep(0.0, 0.06, c.r - c.g * 0.97), smoothstep(0.7, 0.85, lum))' }), BU = backM.uniforms;   // in the dark the village's lights come on
+      disp.push(backM);
+      var back = new THREE.Mesh(bg, backM); back.frustumCulled = false; back.renderOrder = -10; holder.add(back);
+      /* the balcony: boards, a fascia, a low rail on slim posts with clear glass under it */
+      var bT = stoneTex('boards'); bT.repeat.set(7, 4); disp.push(bT); var sT = stoneTex('boards'); sT.repeat.set(1, 6); disp.push(sT);
+      var deckM = new THREE.MeshStandardMaterial({ map: bT, roughness: 0.82, color: lin(0xc9a074) }), darkM = new THREE.MeshStandardMaterial({ map: sT, roughness: 0.8, color: lin(0x7a5234) }),
+        glassM = new THREE.MeshStandardMaterial({ color: 0xeaf4f8, transparent: true, opacity: 0.1, roughness: 0.05, metalness: 0.1, depthWrite: false }); disp.push(deckM, darkM, glassM);
+      function bx(m, x, y, z, w, h, d) { var k = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); k.position.set(x, y, z); k.castShadow = k.receiveShadow = true; holder.add(k); return k; }
+      var HW = 7.5, deck = new THREE.Mesh(new THREE.PlaneGeometry(HW * 2, 8), deckM); deck.rotation.x = -Math.PI / 2; deck.position.set(0, 0, ZF + 4); deck.receiveShadow = true; g.add(deck); disp.push(deck.geometry);
+      bx(darkM, 0, -0.5, ZF - 0.04, HW * 2, 1.0, 0.08);
+      bx(darkM, 0, 0.38, ZF + 0.05, HW * 2, 0.05, 0.09); bx(darkM, 0, 0.03, ZF + 0.05, HW * 2, 0.06, 0.07);
+      var gl = bx(glassM, 0, 0.2, ZF + 0.05, HW * 2, 0.3, 0.012); gl.castShadow = false;
+      for (i = -4; i <= 4; i++) bx(darkM, i * 1.8 + 0.9, 0.2, ZF + 0.05, 0.05, 0.36, 0.05);
+      /* (the window boxes of geraniums are things of the layout now: swiss-flowerbox) */
+      /* light: a soft bright day under high cloud, as in the picture */
+      var hemi = new THREE.HemisphereLight(0xf2f6ff, 0x9a8a6c, 0.95); holder.add(hemi);
+      var sun = new THREE.DirectionalLight(0xfff6e6, 0.9); sun.position.set(4, 8, 3); sun.target.position.set(0, 0, -0.8);
+      sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); var sc = sun.shadow.camera; sc.left = -8; sc.right = 8; sc.top = 8; sc.bottom = -8; sc.near = 0.5; sc.far = 30; sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.03;
+      holder.add(sun); holder.add(sun.target);
+      scene.fog = null; scene.background = new THREE.Color(0xcfdde8);
+      var NL = nightLights(hemi, sun), TM = liveTime(function (n) { BU.uN.value = n; NL(n); });
+      back.onBeforeRender = function (r, s, cam) { fv.set(140, 40, -270).applyMatrix4(cam.matrixWorldInverse); window.SpatialAmbPan = { fall: Math.max(-1, Math.min(1, fv.x / fv.length() * 1.4)), gain: fv.z > 0 ? 0.55 : 1, night: BU.uN.value > 0.6 }; };
+      var fv = new THREE.Vector3();
+      var A = PT.anchors(0.95); A['desk.quill'] = { p: [T1[0] + 0.36, TY, T1[1] - 0.2], ry: -0.3 };
+      var B = [-2.6, -0.2, 2.6, 3.4];
+      return {
+        id: 'lauterbrunnen', name: 'Lauterbrunnen · Chalet Balcony', group: g, holder: holder, far: 3000, size: { W: 3.0, D: 2.6, H: 6 },
+        anchors: A, avatar: PT.avatar, start: { pos: EYE.slice(), yaw: 0, pitch: -0.16 }, startV: 1, bounds: B,
+        desk: { pos: EYE.slice(), look: [T1[0], 0.8, T1[1]] }, solids: [], areas: [B], credit: 'Lauterbrunnen · a chalet balcony over the valley — after the user\'s picture',
+        surfaces: [], dress: null, view: view, realistic: false, movable: false,
+        upgrade: { v: 2, fn: function (L) { L.extras = (L.extras || []).filter(function (e) { return e.uid < 9961 || e.uid > 9979; }).concat(JSON.parse(JSON.stringify(ITEMS))); OUT_HIDE.forEach(function (id) { L[id] = { stashed: true }; }); } },
+        defaultLayout: function () { return { extras: JSON.parse(JSON.stringify(ITEMS)) }; },
+        setTime: function (m) { TM.set(m); }, tick: function (t) { BU.uT.value = t; TM.step(); },
+        dispose: function () { disp.forEach(function (d) { try { d.dispose(); } catch (er) {} }); SR.disposeTree(holder); scene.background = null; try { delete window.SpatialAmbPan; } catch (er) {} }
+      };
+    }
+    SR.register({ id: 'lauterbrunnen', name: 'Lauterbrunnen · Chalet Balcony', zh: '劳特布龙嫩 · 木屋阳台', icon: '🏔', build: build });
+  })();
+  /* ───────── Maroon Bells · a deck on the lake shore (2026-11-14, after the user's picture) ─────────
+     A timber platform at the water's edge in autumn: boards underfoot, no rail — only two mooring posts and a rope —
+     a wooden table with the MacBook, a coffee and a lantern, a lounge chair turned to the lake, aspen leaves blown onto
+     the boards. Everything beyond the edge is the picture itself (the snow peaks, the gold aspens, the still lake and the
+     mountains mirrored in it) on an arc. The lens and the look stay inside the picture (room.view). */
+  (function () {
+    var IMG = 'scenic-environments/outdoor/maroon-bells/backdrop.jpg', IW = 2000, IH = 1205, HY = 640, ARC = 100 * D2R, PPR = IW / ARC, TOP = HY / PPR, LOW = (IH - 2 - HY) / PPR;
+    var T1 = [0.45, -0.9], TY = 0.75, ZF = -1.75, ITEMS = [
+      { kind: 'out-wood-table', title: '木桌', p: [T1[0], 0, T1[1]], ry: 0, uid: 9981 }, { kind: 'out-wood-chair', title: '木椅', p: [T1[0], 0, T1[1] + 0.62], ry: Math.PI, uid: 9982 },
+      { kind: 'out-macbook', title: 'MacBook', p: [T1[0], TY, T1[1] + 0.05], ry: 0, uid: 9983 }, { kind: 'out-coffee', title: '咖啡杯', p: [T1[0] + 0.42, TY, T1[1] + 0.12], ry: 0.4, uid: 9984 },
+      { kind: 'hob-lantern', title: '铜提灯', p: [T1[0] - 0.44, TY, T1[1] - 0.05], ry: 0.3, uid: 9985 },
+      { kind: 'deck-lounge', title: '湖畔休闲椅', p: [-1.75, 0, -0.75], ry: Math.PI - 0.35, uid: 9986 }];
+    var view = {
+      fov: function (a) { return 2 * Math.atan(Math.min(Math.tan(24 * D2R), Math.tan(34 * D2R) / Math.max(0.3, a))) / D2R; },
+      clamp: function (a, f) { var hv = f * D2R / 2, hh = Math.atan(Math.tan(hv) * a), Y = Math.max(0, ARC / 2 * 0.98 - hh), up = TOP * 0.98 - hv; return { y0: -Y, y1: Y, p0: Math.min(-0.5, up), p1: up }; } };
+    function build(scene) {
+      var holder = new THREE.Group(); holder.name = 'env-maroon-bells'; scene.add(holder);
+      var g = new THREE.Group(); holder.add(g); var disp = [], EYE = [0, 1.5, 1.0], i, j;
+      PT.theme(null);
+      var tex = new THREE.TextureLoader().load(siteBase() + IMG); tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 8; tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false; disp.push(tex);
+      var RB = 900, NA = 96, NE = 40, bg = new THREE.BufferGeometry(), bp = [], bu = [], bi = [];
+      for (j = 0; j <= NE; j++) for (i = 0; i <= NA; i++) {
+        var az = (i / NA - 0.5) * ARC, el = -LOW + (TOP + LOW) * j / NE;
+        bp.push(EYE[0] + Math.sin(az) * RB, EYE[1] + Math.tan(el) * RB, EYE[2] - Math.cos(az) * RB);
+        bu.push(i / NA, 1 - (HY - el * PPR) / IH);
+      }
+      for (j = 0; j < NE; j++) for (i = 0; i < NA; i++) { var a0 = j * (NA + 1) + i; bi.push(a0, a0 + 1, a0 + NA + 1, a0 + 1, a0 + NA + 2, a0 + NA + 1); }
+      bg.setAttribute('position', new THREE.Float32BufferAttribute(bp, 3)); bg.setAttribute('uv', new THREE.Float32BufferAttribute(bu, 2)); bg.setIndex(bi); disp.push(bg);
+      var backM = liveBackM({ tex: tex, IW: IW, IH: IH, HY: HY, K: 0.75, G: 0.02,
+        water: 'smoothstep(' + (HY + 6) + '.0, ' + (HY + 44) + '.0, row)',
+        sky: 'step(row, ' + (HY - 60) + '.0) * smoothstep(0.2, 0.34, c.b - max(c.r, c.g))' }), BU = backM.uniforms;
+      disp.push(backM);
+      var back = new THREE.Mesh(bg, backM); back.frustumCulled = false; back.renderOrder = -10; holder.add(back);
+      /* the platform: weathered boards to the water's edge, an edge beam, two mooring posts and a rope between them */
+      var bT = stoneTex('boards'); bT.repeat.set(7, 4); disp.push(bT); var sT = stoneTex('boards'); sT.repeat.set(1, 6); disp.push(sT);
+      var deckM = new THREE.MeshStandardMaterial({ map: bT, roughness: 0.88, color: lin(0xb49a7c) }), darkM = new THREE.MeshStandardMaterial({ map: sT, roughness: 0.85, color: lin(0x6b5038) }),
+        ropeM = new THREE.MeshStandardMaterial({ color: lin(0xcbb78c), roughness: 0.95 }); disp.push(deckM, darkM, ropeM);
+      function bx(m, x, y, z, w, h, d) { var k = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); k.position.set(x, y, z); k.castShadow = k.receiveShadow = true; holder.add(k); return k; }
+      var HW = 7.5, deck = new THREE.Mesh(new THREE.PlaneGeometry(HW * 2, 8), deckM); deck.rotation.x = -Math.PI / 2; deck.position.set(0, 0, ZF + 4); deck.receiveShadow = true; g.add(deck); disp.push(deck.geometry);
+      bx(darkM, 0, -0.5, ZF - 0.04, HW * 2, 1.0, 0.08); bx(darkM, 0, 0.035, ZF + 0.07, HW * 2, 0.07, 0.14);
+      var PX = [-2.9, 2.9]; PX.forEach(function (x) { var p = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.085, 0.62, 12), darkM); p.position.set(x, 0.31, ZF + 0.12); p.castShadow = true; holder.add(p);
+        var c = new THREE.Mesh(new THREE.TorusGeometry(0.085, 0.016, 6, 18), ropeM); c.rotation.x = Math.PI / 2; c.position.set(x, 0.42, ZF + 0.12); holder.add(c); });
+      var pts = []; for (i = 0; i <= 24; i++) { var u = i / 24; pts.push(new THREE.Vector3(PX[0] + (PX[1] - PX[0]) * u, 0.42 - 0.3 * Math.sin(u * Math.PI), ZF + 0.12)); }
+      var rope = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 48, 0.014, 6), ropeM); rope.castShadow = true; holder.add(rope); disp.push(rope.geometry);
+      /* aspen leaves blown onto the boards */
+      var rnd = (function (s) { return function () { s = (s * 16807) % 2147483647; return s / 2147483647; }; })(1859);
+      var lg = new THREE.CircleGeometry(0.028, 7); lg.rotateX(-Math.PI / 2); disp.push(lg);
+      var lfM = new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide }); disp.push(lfM);
+      var NL = 150, lf = new THREE.InstancedMesh(lg, lfM, NL), M4 = new THREE.Matrix4(), Q = new THREE.Quaternion(), E3 = new THREE.Euler(), V = new THREE.Vector3(), SC = new THREE.Vector3(), C3 = new THREE.Color(), golds = [0xf2b705, 0xe89a0c, 0xffd23a, 0xd9780f, 0xc9a227];
+      for (i = 0; i < NL; i++) { var lx = (rnd() - 0.5) * 9, lz = ZF + 0.2 + rnd() * rnd() * 4.2, s = 0.7 + rnd() * 0.8; Q.setFromEuler(E3.set((rnd() - 0.5) * 0.5, rnd() * 6.28, (rnd() - 0.5) * 0.5));
+        M4.compose(V.set(lx, 0.006 + rnd() * 0.008, lz), Q, SC.set(s, 1, s * (0.8 + rnd() * 0.4))); lf.setMatrixAt(i, M4); lf.setColorAt(i, C3.set(golds[rnd() * 5 | 0]).convertSRGBToLinear()); }
+      holder.add(lf);
+      /* light: early sun from the right, as on the aspens in the picture; a deep blue sky fills the shade */
+      var hemi = new THREE.HemisphereLight(0xcfe0ff, 0x8a7a5c, 0.85); holder.add(hemi);
+      var sun = new THREE.DirectionalLight(0xffe9c4, 1.05); sun.position.set(7, 6, 2); sun.target.position.set(0, 0, -0.8);
+      sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); var sc = sun.shadow.camera; sc.left = -8; sc.right = 8; sc.top = 8; sc.bottom = -8; sc.near = 0.5; sc.far = 30; sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.03;
+      holder.add(sun); holder.add(sun.target);
+      scene.fog = null; scene.background = new THREE.Color(0x1f5fb0);
+      var NL = nightLights(hemi, sun), TM = liveTime(function (n) { BU.uN.value = n; NL(n); });
+      back.onBeforeRender = function (r, s, cam) { window.SpatialAmbPan = { night: BU.uN.value > 0.6 }; };
+      var A = PT.anchors(0.95); A['desk.quill'] = { p: [T1[0] + 0.36, TY, T1[1] - 0.2], ry: -0.3 };
+      var B = [-2.6, -0.2, 2.6, 3.4];
+      return {
+        id: 'maroon-bells', name: 'Maroon Bells · Lakeshore Deck', group: g, holder: holder, far: 3000, size: { W: 3.0, D: 2.6, H: 6 },
+        anchors: A, avatar: PT.avatar, start: { pos: EYE.slice(), yaw: 0, pitch: 0.0 }, startV: 1, bounds: B,
+        desk: { pos: EYE.slice(), look: [T1[0], 0.8, T1[1]] }, solids: [], areas: [B], credit: 'Maroon Bells · a deck on the lake shore — after the user\'s picture',
+        surfaces: [], dress: null, view: view, realistic: false, movable: false,
+        upgrade: { v: 1, fn: function (L) { L.extras = (L.extras || []).filter(function (e) { return e.uid < 9981 || e.uid > 9999; }).concat(JSON.parse(JSON.stringify(ITEMS))); OUT_HIDE.forEach(function (id) { L[id] = { stashed: true }; }); } },
+        defaultLayout: function () { return { extras: JSON.parse(JSON.stringify(ITEMS)) }; },
+        setTime: function (m) { TM.set(m); }, tick: function (t) { BU.uT.value = t; TM.step(); },
+        dispose: function () { disp.forEach(function (d) { try { d.dispose(); } catch (er) {} }); SR.disposeTree(holder); scene.background = null; try { delete window.SpatialAmbPan; } catch (er) {} }
+      };
+    }
+    SR.register({ id: 'maroon-bells', name: 'Maroon Bells · Lakeshore Deck', zh: '马龙钟山 · 湖畔木平台', icon: '🍂', build: build });
+  })();
+  /* ───────── Mt Hood · the shore of Trillium Lake at dawn (2026-11-14, after the user's picture) ─────────
+     The gravel shore in the first light: a wooden table with the MacBook, a coffee and a lit lantern, a chair, a small
+     campfire in a ring of stones. Everything else is the picture itself (the mountain, its mirror in the lake, the mist,
+     the fir slopes, the shore rocks) on an arc; the ground at your feet is the picture's own dark gravel carried on,
+     melting into it. The lens and the look stay inside the picture (room.view).
+     The place is alive, after the way a headset's environment is: the lake ripples and glints, the mist drifts along the
+     waterline, birds cross far off, the fire burns and throws sparks; it has a light and a dark (the room's 光线 setting:
+     day is the picture's dawn, night is the same shore under stars and a moon, lit by the fire and the lantern), going
+     from one to the other slowly; and its sound comes from where things are (the fire pans with your look). */
+  (function () {
+    var IMG = 'scenic-environments/outdoor/mt-hood/backdrop.jpg', IW = 3072, IH = 1836, HY = 932, ARC = 100 * D2R, PPR = IW / ARC, TOP = HY / PPR, LOW = (IH - 2 - HY) / PPR;
+    var T1 = [0.5, -0.9], TY = 0.75, FP = [-1.7, -2.3], ITEMS = [
+      { kind: 'out-wood-table', title: '木桌', p: [T1[0], 0, T1[1]], ry: 0, uid: 10001 }, { kind: 'out-wood-chair', title: '木椅', p: [T1[0], 0, T1[1] + 0.62], ry: Math.PI, uid: 10002 },
+      { kind: 'out-macbook', title: 'MacBook', p: [T1[0], TY, T1[1] + 0.05], ry: 0, uid: 10003 }, { kind: 'out-coffee', title: '咖啡杯', p: [T1[0] + 0.42, TY, T1[1] + 0.12], ry: 0.4, uid: 10004 },
+      { kind: 'hob-lantern', title: '铜提灯', p: [T1[0] - 0.44, TY, T1[1] - 0.05], ry: 0.3, uid: 10005 },
+      { kind: 'camp-fire', title: '篝火', p: [FP[0], 0, FP[1]], ry: 0, uid: 10006 }];
+    var view = {
+      fov: function (a) { return 2 * Math.atan(Math.min(Math.tan(24 * D2R), Math.tan(34 * D2R) / Math.max(0.3, a))) / D2R; },
+      clamp: function (a, f) { var hv = f * D2R / 2, hh = Math.atan(Math.tan(hv) * a), Y = Math.max(0, ARC / 2 * 0.98 - hh), up = TOP * 0.98 - hv; return { y0: -Y, y1: Y, p0: Math.min(-0.5, up), p1: up }; } };
+    function build(scene) {
+      var holder = new THREE.Group(); holder.name = 'env-mt-hood'; scene.add(holder);
+      var g = new THREE.Group(); holder.add(g); var disp = [], EYE = [0, 1.5, 1.0], i, j;
+      PT.theme(null);
+      var tex = new THREE.TextureLoader().load(siteBase() + IMG); tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 8; tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false; disp.push(tex);
+      var RB = 900, NA = 96, NE = 40, bg = new THREE.BufferGeometry(), bp = [], bu = [], bi = [];
+      for (j = 0; j <= NE; j++) for (i = 0; i <= NA; i++) {
+        var az = (i / NA - 0.5) * ARC, el = -LOW + (TOP + LOW) * j / NE;
+        bp.push(EYE[0] + Math.sin(az) * RB, EYE[1] + Math.tan(el) * RB, EYE[2] - Math.cos(az) * RB);
+        bu.push(i / NA, 1 - (HY - el * PPR) / IH);
+      }
+      for (j = 0; j < NE; j++) for (i = 0; i < NA; i++) { var a0 = j * (NA + 1) + i; bi.push(a0, a0 + 1, a0 + NA + 1, a0 + 1, a0 + NA + 2, a0 + NA + 1); }
+      bg.setAttribute('position', new THREE.Float32BufferAttribute(bp, 3)); bg.setAttribute('uv', new THREE.Float32BufferAttribute(bu, 2)); bg.setIndex(bi); disp.push(bg);
+      var BU = { uMap: { value: tex }, uT: { value: 0 }, uN: { value: 0 } };
+      var backM = new THREE.ShaderMaterial({ uniforms: BU, depthWrite: false, side: THREE.DoubleSide,
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+        fragmentShader: ['uniform sampler2D uMap; uniform float uT; uniform float uN; varying vec2 vUv;',
+          'float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
+          'float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h(i), h(i + vec2(1.0, 0.0)), f.x), mix(h(i + vec2(0.0, 1.0)), h(i + vec2(1.0, 1.0)), f.x), f.y); }',
+          'void main(){ float u = vUv.x, row = (1.0 - vUv.y) * ' + IH + '.0;',
+          /* the lake (between the far waterline and the near shore, which comes up higher at the rocks left and right): ripples that lengthen towards you, glints */
+          '  float endR = 1400.0 - 70.0 * smoothstep(0.40, 0.20, u) - 140.0 * smoothstep(0.70, 0.80, u);',
+          '  float w = smoothstep(' + (HY + 2) + '.0, ' + (HY + 46) + '.0, row) * (1.0 - smoothstep(endR - 70.0, endR, row));',
+          '  float d = clamp((row - ' + HY + '.0) / ' + (IH - HY) + '.0, 0.0, 1.0);',
+          '  float ph = 30.0 * log(d + 0.03) - uT * 0.8 + 6.0 * vn(vec2(u * 26.0, d * 9.0 + uT * 0.05)) + 3.0 * vn(vec2(u * 71.0 - uT * 0.03, d * 30.0)), amp = w * (0.0004 + 0.0026 * d);',
+          '  vec3 c = texture2D(uMap, vUv + vec2(cos(ph * 1.3 + u * 70.0) * amp * 0.5, sin(ph) * amp)).rgb;',
+          '  c += w * 0.03 * smoothstep(0.8, 1.0, sin(ph * 2.0 + u * 130.0)) * vn(vec2(u * 60.0 + uT * 0.1, d * 40.0));',
+          /* the mist along the far waterline, drifting */
+          '  float band = smoothstep(' + (HY - 46) + '.0, ' + (HY - 6) + '.0, row) * (1.0 - smoothstep(' + (HY + 10) + '.0, ' + (HY + 90) + '.0, row));',
+          '  float m = vn(vec2(u * 9.0 - uT * 0.012, row * 0.012)) * 0.6 + vn(vec2(u * 23.0 + uT * 0.02, row * 0.03)) * 0.4;',
+          '  c = mix(c, vec3(0.86, 0.89, 0.92), band * smoothstep(0.35, 0.8, m) * 0.55);',
+          /* the dark: the same shore in deep blue, stars where the sky is, a moon and its halo */
+          '  float lum = dot(c, vec3(0.3, 0.59, 0.11));',
+          '  vec3 nc = pow(c, vec3(1.25)) * vec3(0.10, 0.17, 0.34) + vec3(0.004, 0.008, 0.02);',
+          '  float sky = smoothstep(0.42, 0.62, lum) * step(row, (u > 0.25 && u < 0.9) ? 540.0 : ' + (HY - 30) + '.0);',
+          '  float s0 = h(floor(vec2(u * 900.0, row * 0.55)));',
+          '  nc += vec3(0.9, 0.95, 1.0) * step(0.9965, s0) * (0.55 + 0.45 * sin(uT * (1.5 + s0 * 40.0) + s0 * 90.0)) * sky;',
+          '  float md = length(vec2((u - 0.2) * ' + IW + '.0, row - 190.0));',
+          '  nc += vec3(0.92, 0.95, 1.0) * (smoothstep(30.0, 26.0, md) * 0.9 + 0.22 * exp(-md / 110.0));',
+          '  gl_FragColor = vec4(mix(c, nc, uN), 1.0); }'].join('\n') });
+      disp.push(backM);
+      var back = new THREE.Mesh(bg, backM); back.frustumCulled = false; back.renderOrder = -10; holder.add(back);
+      /* the ground at your feet: the picture's own dark gravel (its colour, read off its lower edge), with sprigs of green,
+         fading out at its rim into the picture; a shadow-catcher over it */
+      var GR = 3.4, c = document.createElement('canvas'); c.width = c.height = 1024; var x = c.getContext('2d');
+      x.fillStyle = 'rgb(34,44,43)'; x.fillRect(0, 0, 1024, 1024);
+      for (i = 0; i < 9000; i++) { var v = 20 + Math.random() * 50 | 0; x.fillStyle = 'rgba(' + v + ',' + (v + 8) + ',' + (v + 7) + ',' + (0.25 + Math.random() * 0.4) + ')'; x.beginPath(); x.ellipse(Math.random() * 1024, Math.random() * 1024, 1 + Math.random() * 3.5, 1 + Math.random() * 2.5, Math.random() * 3, 0, 6.3); x.fill(); }
+      for (i = 0; i < 700; i++) { x.fillStyle = 'rgba(' + (40 + Math.random() * 30 | 0) + ',' + (70 + Math.random() * 40 | 0) + ',' + (40 + Math.random() * 20 | 0) + ',.55)'; x.beginPath(); x.ellipse(Math.random() * 1024, Math.random() * 1024, 1.5 + Math.random() * 3, 1 + Math.random() * 2, Math.random() * 3, 0, 6.3); x.fill(); }
+      x.globalCompositeOperation = 'destination-in'; var rg = x.createRadialGradient(512, 512, 512 * 0.74, 512, 512, 510); rg.addColorStop(0, 'rgba(0,0,0,1)'); rg.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = rg; x.fillRect(0, 0, 1024, 1024);
+      var gT = new THREE.CanvasTexture(c); gT.encoding = THREE.sRGBEncoding; gT.anisotropy = 8; disp.push(gT);
+      var gM = new THREE.MeshBasicMaterial({ map: gT, transparent: true, depthWrite: false }); disp.push(gM);
+      var gd = new THREE.Mesh(new THREE.PlaneGeometry(GR * 2, GR * 2), gM); gd.rotation.x = -Math.PI / 2; gd.position.set(EYE[0], 0, EYE[2]); gd.renderOrder = -5; g.add(gd); disp.push(gd.geometry);
+      var shM = new THREE.ShadowMaterial({ opacity: 0.45 }); disp.push(shM);
+      var shd = new THREE.Mesh(new THREE.CircleGeometry(GR, 48), shM); shd.rotation.x = -Math.PI / 2; shd.position.set(EYE[0], 0.003, EYE[2]); shd.receiveShadow = true; shd.renderOrder = -4; holder.add(shd); disp.push(shd.geometry);
+      /* birds far out over the lake (in the light only): two wings each, beating, on slow crossings */
+      var bdM = new THREE.MeshBasicMaterial({ color: 0x1a1f22, side: THREE.DoubleSide }), wgG = new THREE.BufferGeometry(); disp.push(bdM, wgG);
+      wgG.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, -0.5, 0, 0, 0.5, 2.2, 0, 0.1], 3));
+      var birds = [0, 1, 2, 3, 4].map(function (k) { var b = new THREE.Group(), l = new THREE.Mesh(wgG, bdM), r = new THREE.Mesh(wgG, bdM); r.scale.x = -1; b.add(l); b.add(r); b.userData = { l: l, r: r, k: k, o: k * 37.7, el: 0.1 + (k % 3) * 0.035, sp: 0.011 + k * 0.0017, dir: k % 2 ? 1 : -1 }; b.frustumCulled = false; holder.add(b); return b; });
+      /* light: before sunrise — a cool dim sky, the first warm light low from the right where the picture glows */
+      var hemi = new THREE.HemisphereLight(0xc4d2e6, 0x3a403c, 0.6); holder.add(hemi);
+      var sun = new THREE.DirectionalLight(0xffd9a8, 0.6); sun.position.set(6, 3.2, -5); sun.target.position.set(0, 0, -0.6);
+      sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); var sc = sun.shadow.camera; sc.left = -7; sc.right = 7; sc.top = 7; sc.bottom = -7; sc.near = 0.5; sc.far = 30; sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.03;
+      holder.add(sun); holder.add(sun.target);
+      scene.fog = null; scene.background = new THREE.Color(0x222c2b);
+      /* light and dark: the room's 光线 setting; it goes over slowly */
+      var nT = 0, nV = 0, cD = [new THREE.Color(0xc4d2e6), new THREE.Color(0xffd9a8)], cN = [new THREE.Color(0x5a78b8), new THREE.Color(0x9ab4ff)], fv = new THREE.Vector3();
+      function tod(m) { if (m === 'night') return 1; if (m === 'dusk') return 0.5; if (m === 'day') return 0; var hr = new Date().getHours() + new Date().getMinutes() / 60; return hr < 5.5 || hr >= 20.5 ? 1 : hr < 6.5 ? (6.5 - hr) : hr >= 19 ? (hr - 19) / 1.5 : 0; }
+      function shade() { BU.uN.value = nV; gM.color.setRGB(1 - 0.84 * nV, 1 - 0.76 * nV, 1 - 0.6 * nV); shM.opacity = 0.45 * (1 - 0.5 * nV);
+        hemi.intensity = 0.6 - 0.42 * nV; hemi.color.copy(cD[0]).lerp(cN[0], nV); sun.intensity = 0.6 - 0.5 * nV; sun.color.copy(cD[1]).lerp(cN[1], nV); }
+      back.onBeforeRender = function (r, s, cam) { fv.set(FP[0], 0.3, FP[1]).applyMatrix4(cam.matrixWorldInverse); var dd = Math.max(0.5, fv.length());
+        window.SpatialAmbPan = { fire: Math.max(-1, Math.min(1, fv.x / dd * 1.3)), gain: Math.max(0.25, Math.min(1, 2.4 / dd)) * (fv.z > 0 ? 0.6 : 1), night: nV > 0.6 }; };
+      var A = PT.anchors(0.95); A['desk.quill'] = { p: [T1[0] + 0.36, TY, T1[1] - 0.2], ry: -0.3 };
+      var B = [-1.2, 0.2, 1.2, 2.4];
+      return {
+        id: 'mt-hood', name: 'Mt Hood · Trillium Lake Shore', group: g, holder: holder, far: 3000, size: { W: 3.0, D: 2.6, H: 6 },
+        anchors: A, avatar: PT.avatar, start: { pos: EYE.slice(), yaw: 0, pitch: -0.06 }, startV: 1, bounds: B,
+        desk: { pos: EYE.slice(), look: [T1[0], 0.8, T1[1]] }, solids: [], areas: [B], credit: 'Mt Hood · the shore of Trillium Lake at dawn — after the user\'s picture',
+        surfaces: [], dress: null, view: view, realistic: false, movable: false,
+        upgrade: { v: 2, fn: function (L) { L.extras = (L.extras || []).filter(function (e) { return e.uid < 10001 || e.uid > 10019; }).concat(JSON.parse(JSON.stringify(ITEMS))); OUT_HIDE.forEach(function (id) { L[id] = { stashed: true }; }); } },
+        defaultLayout: function () { return { extras: JSON.parse(JSON.stringify(ITEMS)) }; },
+        setTime: function (m) { var first = nT === 0 && nV === 0 && !BU.uT.value; nT = tod(m || 'auto'); if (first) { nV = nT; shade(); } },
+        tick: function (t) { BU.uT.value = t; if (Math.abs(nV - nT) > 0.002) { nV += Math.max(-0.006, Math.min(0.006, nT - nV)); shade(); }
+          birds.forEach(function (b) { var u = b.userData, a = (((t * u.sp + u.o) % 2.4) - 1.2) * u.dir, R = 380, f = Math.sin(t * (5 + u.k * 0.6) + u.k) * 0.7;
+            b.position.set(EYE[0] + Math.sin(a) * R, EYE[1] + Math.tan(u.el + Math.sin(t * 0.2 + u.k) * 0.01) * R, EYE[2] - Math.cos(a) * R); b.rotation.y = -a + (u.dir > 0 ? 0 : Math.PI); b.scale.setScalar(1.6);
+            u.l.rotation.z = f; u.r.rotation.z = -f; b.visible = nV < 0.5; }); },
+        dispose: function () { disp.forEach(function (d) { try { d.dispose(); } catch (er) {} }); SR.disposeTree(holder); scene.background = null; try { delete window.SpatialAmbPan; } catch (er) {} }
+      };
+    }
+    SR.register({ id: 'mt-hood', name: 'Mt Hood · Trillium Lake Shore', zh: '胡德山 · 延龄湖畔晨光', icon: '🗻', build: build });
+  })();
+  /* ───────── Neuschwanstein · a stone lookout at sunset (2026-11-14, after the user's picture) ─────────
+     A flagged lookout with a low stone parapet, across the gorge from the castle: a wooden table with the MacBook, a
+     coffee and a lantern, a chair, a brass spyglass on its tripod. Everything beyond the parapet is the picture itself
+     (the castle on its crag, the forest in the last sun, the rose-lit Alps, the second castle down in the valley) on a
+     wide arc. A living picture: haze drifts in the valley; in the dark the sky has stars and the castles' windows are lit.
+     The lens and the look stay inside the picture (room.view). */
+  (function () {
+    var IMG = 'scenic-environments/outdoor/neuschwanstein/backdrop.jpg', IW = 3840, IH = 1599, HY = 730, ARC = 120 * D2R, PPR = IW / ARC, TOP = HY / PPR, LOW = (IH - 2 - HY) / PPR;
+    var T1 = [0.5, -0.9], TY = 0.75, ZF = -1.75, ITEMS = [
+      { kind: 'out-wood-table', title: '木桌', p: [T1[0], 0, T1[1]], ry: 0, uid: 10021 }, { kind: 'out-wood-chair', title: '木椅', p: [T1[0], 0, T1[1] + 0.62], ry: Math.PI, uid: 10022 },
+      { kind: 'out-macbook', title: 'MacBook', p: [T1[0], TY, T1[1] + 0.05], ry: 0, uid: 10023 }, { kind: 'out-coffee', title: '咖啡杯', p: [T1[0] + 0.42, TY, T1[1] + 0.12], ry: 0.4, uid: 10024 },
+      { kind: 'hob-lantern', title: '铜提灯', p: [T1[0] - 0.44, TY, T1[1] - 0.05], ry: 0.3, uid: 10025 },
+      { kind: 'spyglass', title: '黄铜望远镜', p: [-1.25, 0, -1.2], ry: 0.45, uid: 10026 }];
+    var view = {
+      fov: function (a) { return 2 * Math.atan(Math.min(Math.tan(24 * D2R), Math.tan(34 * D2R) / Math.max(0.3, a))) / D2R; },
+      clamp: function (a, f) { var hv = f * D2R / 2, hh = Math.atan(Math.tan(hv) * a), Y = Math.max(0, ARC / 2 * 0.98 - hh), up = TOP * 0.98 - hv; return { y0: -Y, y1: Y, p0: Math.min(-0.5, up), p1: up }; } };
+    function build(scene) {
+      var holder = new THREE.Group(); holder.name = 'env-neuschwanstein'; scene.add(holder);
+      var g = new THREE.Group(); holder.add(g); var disp = [], EYE = [0, 1.5, 1.0], i, j;
+      PT.theme(null);
+      var tex = new THREE.TextureLoader().load(siteBase() + IMG); tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 8; tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false; disp.push(tex);
+      var RB = 900, NA = 120, NE = 36, bg = new THREE.BufferGeometry(), bp = [], bu = [], bi = [];
+      for (j = 0; j <= NE; j++) for (i = 0; i <= NA; i++) {
+        var az = (i / NA - 0.5) * ARC, el = -LOW + (TOP + LOW) * j / NE;
+        bp.push(EYE[0] + Math.sin(az) * RB, EYE[1] + Math.tan(el) * RB, EYE[2] - Math.cos(az) * RB);
+        bu.push(i / NA, 1 - (HY - el * PPR) / IH);
+      }
+      for (j = 0; j < NE; j++) for (i = 0; i < NA; i++) { var a0 = j * (NA + 1) + i; bi.push(a0, a0 + 1, a0 + NA + 1, a0 + 1, a0 + NA + 2, a0 + NA + 1); }
+      bg.setAttribute('position', new THREE.Float32BufferAttribute(bp, 3)); bg.setAttribute('uv', new THREE.Float32BufferAttribute(bu, 2)); bg.setIndex(bi); disp.push(bg);
+      var backM = liveBackM({ tex: tex, IW: IW, IH: IH, HY: HY, LT: 0.9,
+        /* evening haze drifting in the valley between the ridges */
+        extra: '  { float ws = vn(vec2(u * 4.0 - uT * 0.008, row * 0.0026)) * vn(vec2(u * 9.0 + uT * 0.005, row * 0.0057 + 2.0)); c = mix(c, vec3(0.96, 0.84, 0.8), smoothstep(0.42, 0.6, u) * smoothstep(600.0, 760.0, row) * (1.0 - smoothstep(980.0, 1180.0, row)) * smoothstep(0.28, 0.6, ws) * 0.32); }',
+        sky: 'step(row, 300.0) * step(0.13, u) * smoothstep(0.35, 0.55, lum)',
+        lights: 'smoothstep(0.66, 0.8, lum) * step(max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b)), 0.17) * (step(0.208, u) * step(u, 0.348) * step(440.0, row) * step(row, 840.0) + step(0.762, u) * step(u, 0.822) * step(1215.0, row) * step(row, 1350.0))' }), BU = backM.uniforms;   // in the dark the castles' windows are lit
+      disp.push(backM);
+      var back = new THREE.Mesh(bg, backM); back.frustumCulled = false; back.renderOrder = -10; holder.add(back);
+      /* the lookout: flagstones, a low parapet of dressed stone with a coping, a pier at each end of the view */
+      var fT = stoneTex('flags'); fT.repeat.set(6, 3.2); disp.push(fT); var dT = stoneTex('dressed'); dT.repeat.set(10, 1); disp.push(dT);
+      var flM = new THREE.MeshStandardMaterial({ map: fT, roughness: 0.95, color: lin(0xe6dccb) }), stM = new THREE.MeshStandardMaterial({ map: dT, roughness: 0.95, color: lin(0xb9ad98) }); disp.push(flM, stM);
+      function bx(m, x, y, z, w, h, d) { var k = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); k.position.set(x, y, z); k.castShadow = k.receiveShadow = true; holder.add(k); return k; }
+      var HW = 7.5, fl = new THREE.Mesh(new THREE.PlaneGeometry(HW * 2, 8), flM); fl.rotation.x = -Math.PI / 2; fl.position.set(0, 0, ZF + 4); fl.receiveShadow = true; g.add(fl); disp.push(fl.geometry);
+      bx(stM, 0, -0.35, ZF - 0.12, HW * 2, 1.3, 0.3); bx(stM, 0, 0.33, ZF - 0.12, HW * 2, 0.06, 0.38);
+      [-3.6, 3.6].forEach(function (x) { bx(stM, x, 0.3, ZF - 0.12, 0.5, 0.6, 0.44); bx(stM, x, 0.63, ZF - 0.12, 0.58, 0.07, 0.52); });
+      /* light: the last low sun from the left, warm, long shadows; a rose sky fills */
+      var hemi = new THREE.HemisphereLight(0xf0d8e4, 0x6a5a4c, 0.8); holder.add(hemi);
+      var sun = new THREE.DirectionalLight(0xffc890, 0.95); sun.position.set(-8, 3.6, -3); sun.target.position.set(0, 0, -0.6);
+      sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); var sc = sun.shadow.camera; sc.left = -8; sc.right = 8; sc.top = 8; sc.bottom = -8; sc.near = 0.5; sc.far = 30; sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.03;
+      holder.add(sun); holder.add(sun.target);
+      scene.fog = null; scene.background = new THREE.Color(0x3a4a5a);
+      var NL = nightLights(hemi, sun), TM = liveTime(function (n) { BU.uN.value = n; NL(n); });
+      back.onBeforeRender = function () { window.SpatialAmbPan = { night: BU.uN.value > 0.6 }; };
+      var A = PT.anchors(0.95); A['desk.quill'] = { p: [T1[0] + 0.36, TY, T1[1] - 0.2], ry: -0.3 };
+      var B = [-2.6, -0.2, 2.6, 3.4];
+      return {
+        id: 'neuschwanstein', name: 'Neuschwanstein · Sunset Lookout', group: g, holder: holder, far: 3000, size: { W: 3.0, D: 2.6, H: 6 },
+        anchors: A, avatar: PT.avatar, start: { pos: EYE.slice(), yaw: 0.3, pitch: -0.1 }, startV: 1, bounds: B,
+        desk: { pos: EYE.slice(), look: [T1[0], 0.8, T1[1]] }, solids: [], areas: [B], credit: 'Neuschwanstein · a stone lookout at sunset — photo: Felix Mittermeier (Pexels)',
+        surfaces: [], dress: null, view: view, realistic: false, movable: false,
+        upgrade: { v: 1, fn: function (L) { L.extras = (L.extras || []).filter(function (e) { return e.uid < 10021 || e.uid > 10039; }).concat(JSON.parse(JSON.stringify(ITEMS))); OUT_HIDE.forEach(function (id) { L[id] = { stashed: true }; }); } },
+        defaultLayout: function () { return { extras: JSON.parse(JSON.stringify(ITEMS)) }; },
+        setTime: function (m) { TM.set(m); }, tick: function (t) { BU.uT.value = t; TM.step(); },
+        dispose: function () { disp.forEach(function (d) { try { d.dispose(); } catch (er) {} }); SR.disposeTree(holder); scene.background = null; try { delete window.SpatialAmbPan; } catch (er) {} }
+      };
+    }
+    SR.register({ id: 'neuschwanstein', name: 'Neuschwanstein · Sunset Lookout', zh: '新天鹅堡 · 日落观景台', icon: '🏰', build: build });
   })();
   SR.register({ id: 'kings-hall', name: "The King's Hall", zh: '斯科克洛斯特城堡 · 国王大厅', icon: '♛', build: makeEnv(KINGS) });
   SR.register({ id: 'victorian', name: 'EC–6 Victorian Study', zh: 'EC–6 备考书房 · 维多利亚', icon: '▤', build: makeEnv(VICT) });
@@ -187766,6 +188471,215 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   };
   [{ id: 'deck-lounge', name: '湖畔休闲椅' }, { id: 'deck-table', name: '小圆桌' }].forEach(function (c) {
     if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.id, icon: '▣', place: 'floor', size: [0.8, 0.9, 0.8], note: '布莱德湖 · 湖畔木平台' }); });
+  /* a tap on a lantern, a cowbell or the campfire turns the place's own sound on and off */
+  function ambToggle() { var M = window.SpatialMedia; if (!M || !M.audio) return null; var q = M.audio.state(), on = !(q.playing && q.mode === 'ambient'); M.audio.set({ playing: on, mode: 'ambient' }); return on ? '环境声已打开 · ' + M.audio.ambience() : '环境声已关闭'; }
+  /* Hobbiton · the garden by the pond: a round oak table on a turned pedestal, a three-legged stool, a brass lantern
+     (its flame lit), a pumpkin. */
+  F['hob-table'] = function (T) {
+    var M = tmats(T), g = new T.Group(), i;
+    var top = lathe(T, [[0, 0.69], [0.5, 0.69], [0.525, 0.705], [0.53, 0.73], [0.515, 0.75], [0, 0.75]], M.oak, 40); top.castShadow = top.receiveShadow = true; g.add(top);
+    var ped = lathe(T, [[0, 0.06], [0.1, 0.06], [0.12, 0.12], [0.085, 0.2], [0.06, 0.32], [0.085, 0.44], [0.1, 0.52], [0.07, 0.6], [0.1, 0.66], [0.2, 0.69], [0, 0.69]], M.oakD, 24); ped.castShadow = true; g.add(ped);
+    for (i = 0; i < 4; i++) { var a = i * Math.PI / 2 + 0.4, f = box(T, g, M.oakD, Math.cos(a) * 0.2, 0.05, Math.sin(a) * 0.2, 0.44, 0.07, 0.08); f.rotation.y = -a; }
+    return { group: g, hb: [1.06, 0.75, 1.06], place: 'floor' };
+  };
+  F['hob-stool'] = function (T) {
+    var M = tmats(T), g = new T.Group();
+    var seat = lathe(T, [[0, 0.41], [0.17, 0.41], [0.185, 0.425], [0.18, 0.45], [0, 0.455]], M.oak, 28); seat.castShadow = true; g.add(seat);
+    for (var i = 0; i < 3; i++) { var a = i * 2.094 + 0.3; limb(T, g, M.oakD, [Math.cos(a) * 0.19, 0, Math.sin(a) * 0.19], [Math.cos(a) * 0.1, 0.42, Math.sin(a) * 0.1], 0.022, 0.028); }
+    return { group: g, hb: [0.42, 0.46, 0.42], place: 'floor' };
+  };
+  F['hob-lantern'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var br = new T.MeshStandardMaterial({ color: L(0xb98a3a), roughness: 0.35, metalness: 0.85 }), gl = new T.MeshStandardMaterial({ color: L(0xfff0c8), transparent: true, opacity: 0.28, roughness: 0.05 }), fm = new T.MeshBasicMaterial({ color: 0xffc04a });
+    g.add(lathe(T, [[0, 0], [0.06, 0], [0.065, 0.012], [0.05, 0.025], [0, 0.025]], br, 20));
+    var gm = new T.Mesh(new T.CylinderGeometry(0.045, 0.045, 0.13, 16, 1, true), gl); gm.position.y = 0.09; g.add(gm);
+    for (var i = 0; i < 4; i++) { var a = i * Math.PI / 2; box(T, g, br, Math.cos(a) * 0.047, 0.09, Math.sin(a) * 0.047, 0.006, 0.13, 0.006); }
+    g.add(lathe(T, [[0, 0.155], [0.058, 0.155], [0.05, 0.17], [0.02, 0.2], [0.012, 0.215], [0, 0.215]], br, 20));
+    var ring = new T.Mesh(new T.TorusGeometry(0.03, 0.004, 6, 20), br); ring.position.y = 0.24; g.add(ring);
+    var fl = new T.Mesh(new T.SphereGeometry(0.014, 10, 8), fm); fl.scale.y = 1.8; fl.position.y = 0.075; g.add(fl);
+    var lt = new T.PointLight(0xffc070, 0.5, 3.2, 2); lt.position.y = 0.09; g.add(lt);
+    return { group: g, hb: [0.14, 0.27, 0.14], place: 'floor', press: ambToggle };
+  };
+  F['hob-pumpkin'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var pm = new T.MeshStandardMaterial({ color: L(0xe07a1c), roughness: 0.7 }), sm = new T.MeshStandardMaterial({ color: L(0x5a6b2a), roughness: 0.9 });
+    for (var i = 0; i < 8; i++) { var a = i * Math.PI / 4; ball(T, g, pm, [Math.cos(a) * 0.075, 0.13, Math.sin(a) * 0.075], 0.12, [1, 1.08, 1]); }
+    limb(T, g, sm, [0, 0.24, 0], [0.02, 0.33, 0.01], 0.022, 0.014);
+    return { group: g, hb: [0.4, 0.32, 0.4], place: 'floor' };
+  };
+  [{ id: 'hob-table', name: '橡木圆桌', s: [1.06, 0.75, 1.06] }, { id: 'hob-stool', name: '三脚凳', s: [0.42, 0.46, 0.42] }, { id: 'hob-lantern', name: '铜提灯', s: [0.14, 0.27, 0.14] }, { id: 'hob-pumpkin', name: '南瓜', s: [0.4, 0.32, 0.4] }].forEach(function (c) {
+    if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.id, icon: '▣', place: c.pl || 'floor', size: c.s, note: '霍比屯 · 池塘边的花园' }); });
+  /* Cambridge · the Backs: a stack of books and a straw boater for the table. */
+  F['cam-books'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); }, pg = new T.MeshStandardMaterial({ color: L(0xf1ead8), roughness: 0.9 });
+    [[0x7a1f2b, 0.17, 0.035, 0.24, 0.05], [0x1f3f6b, 0.16, 0.03, 0.22, -0.12], [0x2f5a3a, 0.14, 0.028, 0.2, 0.2]].reduce(function (y, b) {
+      var c = box(T, g, new T.MeshStandardMaterial({ color: L(b[0]), roughness: 0.7 }), 0, y + b[2] / 2, 0, b[1], b[2], b[3]); c.rotation.y = b[4];
+      var p = box(T, g, pg, 0.004, y + b[2] / 2, 0, b[1] - 0.004, b[2] - 0.008, b[3] - 0.008); p.rotation.y = b[4]; return y + b[2]; }, 0);
+    return { group: g, hb: [0.2, 0.1, 0.26], place: 'floor' };
+  };
+  F['cam-boater'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var st = new T.MeshStandardMaterial({ color: L(0xe3cf95), roughness: 0.85 }), bd = new T.MeshStandardMaterial({ color: L(0x1c2c55), roughness: 0.7 });
+    var brim = lathe(T, [[0, 0], [0.165, 0], [0.168, 0.006], [0.165, 0.012], [0, 0.012]], st, 36); brim.castShadow = true; g.add(brim);
+    var crown = lathe(T, [[0.092, 0.012], [0.092, 0.085], [0.088, 0.09], [0, 0.09]], st, 36); crown.castShadow = true; g.add(crown);
+    g.add(lathe(T, [[0.0935, 0.014], [0.0935, 0.045]], bd, 36));
+    return { group: g, hb: [0.34, 0.1, 0.34], place: 'floor' };
+  };
+  [{ id: 'cam-books', name: '一摞书', s: [0.2, 0.1, 0.26] }, { id: 'cam-boater', name: '草编平顶帽', s: [0.34, 0.1, 0.34] }].forEach(function (c) {
+    if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.id, icon: '▣', place: 'floor', size: c.s, note: '剑桥 · 康河后园' }); });
+  /* Santorini · the terrace above Oia: a small white round table and a blue taverna chair with a rush seat. Front: +z. */
+  F['san-table'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); }, wh = new T.MeshStandardMaterial({ color: L(0xf7f5ef), roughness: 0.6 }), bl = new T.MeshStandardMaterial({ color: L(0x1f5fb4), roughness: 0.6 });
+    var top = lathe(T, [[0, 0.69], [0.4, 0.69], [0.412, 0.7], [0.41, 0.72], [0, 0.72]], wh, 40); top.castShadow = top.receiveShadow = true; g.add(top);
+    g.add(lathe(T, [[0.395, 0.672], [0.405, 0.672], [0.405, 0.69], [0.395, 0.69]], bl, 40));
+    var ped = lathe(T, [[0, 0], [0.24, 0], [0.25, 0.02], [0.06, 0.05], [0.035, 0.1], [0.035, 0.62], [0.09, 0.69], [0, 0.69]], wh, 24); ped.castShadow = true; g.add(ped);
+    return { group: g, hb: [0.84, 0.72, 0.84], place: 'floor' };
+  };
+  F['san-chair'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); }, bl = new T.MeshStandardMaterial({ color: L(0x1f66c4), roughness: 0.55 }), ru = new T.MeshStandardMaterial({ color: L(0xd9bf84), roughness: 0.95 }), i;
+    box(T, g, ru, 0, 0.45, 0, 0.4, 0.03, 0.38);
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (q) { box(T, g, bl, q[0] * 0.19, q[1] < 0 ? 0.45 : 0.225, q[1] * 0.18, 0.035, q[1] < 0 ? 0.9 : 0.45, 0.035); });
+    [[0.2, 0], [0.43, 0]].forEach(function (h) { [-1, 1].forEach(function (s) { box(T, g, bl, s * 0.19, h[0], 0, 0.02, 0.025, 0.36); }); box(T, g, bl, 0, h[0], 0.18, 0.38, 0.025, 0.02); box(T, g, bl, 0, h[0], -0.18, 0.38, 0.025, 0.02); });
+    for (i = 0; i < 3; i++) box(T, g, bl, 0, 0.6 + i * 0.12, -0.18, 0.36, 0.05, 0.018);
+    return { group: g, hb: [0.44, 0.9, 0.42], place: 'floor' };
+  };
+  [{ id: 'san-table', name: '白色小圆桌', s: [0.84, 0.72, 0.84] }, { id: 'san-chair', name: '蓝色木椅', s: [0.44, 0.9, 0.42] }].forEach(function (c) {
+    if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.id, icon: '▣', place: 'floor', size: c.s, note: '圣托里尼 · 伊亚露台' }); });
+  /* Lauterbrunnen · the chalet balcony: a brass cowbell on its leather strap. */
+  F['swiss-bell'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var br = new T.MeshStandardMaterial({ color: L(0xc9973a), roughness: 0.35, metalness: 0.85 }), le = new T.MeshStandardMaterial({ color: L(0x5a3520), roughness: 0.85 }), rd = new T.MeshStandardMaterial({ color: L(0xc8102e), roughness: 0.7 });
+    var bell = lathe(T, [[0, 0.1], [0.03, 0.1], [0.045, 0.085], [0.052, 0.04], [0.062, 0.008], [0.066, 0], [0.06, 0], [0.05, 0.03]], br, 24); bell.scale.z = 0.72; bell.castShadow = true; g.add(bell);
+    var loop = new T.Mesh(new T.TorusGeometry(0.02, 0.006, 6, 16), br); loop.position.y = 0.11; g.add(loop);
+    var st = new T.Mesh(new T.TorusGeometry(0.06, 0.004, 4, 28), le); st.scale.set(1, 1, 6); st.rotation.x = Math.PI / 2 - 0.5; st.position.set(0, 0.12, -0.04); g.add(st);
+    box(T, g, rd, 0, 0.135, 0.002, 0.03, 0.03, 0.03);
+    return { group: g, hb: [0.16, 0.18, 0.16], place: 'floor', press: ambToggle };
+  };
+  if (!CAT.some(function (x) { return x.id === 'swiss-bell'; })) CAT.push({ id: 'swiss-bell', name: '牛铃', en: 'swiss-bell', icon: '▣', place: 'floor', size: [0.16, 0.18, 0.16], note: '劳特布龙嫩 · 木屋阳台' });
+  /* Mt Hood · the lake shore: a small campfire — a ring of stones, crossed logs, flames, sparks, its glow. A tap turns the
+     place's sound on and off (the lake, the wind in the firs, birds, the fire itself from where it burns). */
+  F['camp-fire'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); }, i, s = 4242, rnd = function () { s = (s * 16807) % 2147483647; return s / 2147483647; };
+    var stM = new T.MeshStandardMaterial({ color: L(0x4a4c49), roughness: 0.95, flatShading: true }), logM = new T.MeshStandardMaterial({ color: L(0x33241a), roughness: 0.95 }), emb = new T.MeshBasicMaterial({ color: 0xff5a1a });
+    for (i = 0; i < 10; i++) { var a = i / 10 * 6.283, st = new T.Mesh(new T.IcosahedronGeometry(0.1 + rnd() * 0.04, 0), stM); st.position.set(Math.cos(a) * 0.4, 0.05, Math.sin(a) * 0.4); st.scale.set(1, 0.7, 1.2); st.rotation.set(rnd(), rnd() * 6, rnd()); st.castShadow = true; g.add(st); }
+    for (i = 0; i < 4; i++) { var lg = new T.Mesh(new T.CylinderGeometry(0.035, 0.04, 0.5, 8), logM); lg.rotation.set(Math.PI / 2 - 0.35, i * 1.571 + 0.4, 0); lg.position.set(Math.sin(i * 1.571 + 0.4) * 0.09, 0.1, Math.cos(i * 1.571 + 0.4) * 0.09); g.add(lg); }
+    var eb = new T.Mesh(new T.CircleGeometry(0.2, 16), emb); eb.rotation.x = -Math.PI / 2; eb.position.y = 0.02; g.add(eb);
+    var flames = [[0xff8a1e, 0.13, 0.42, 0, 0, 0.8], [0xff5a14, 0.1, 0.32, 0.07, 0.03, 0.85], [0xffc24a, 0.07, 0.3, -0.03, -0.02, 0.9], [0xff4a12, 0.09, 0.3, -0.04, 0.07, 0.8]].map(function (q, k) {
+      var m = new T.MeshBasicMaterial({ color: q[0], transparent: true, opacity: q[5], depthWrite: false }), cg = new T.ConeGeometry(q[1], q[2], 8); cg.translate(0, q[2] / 2, 0);
+      var f = new T.Mesh(cg, m); f.position.set(q[3], 0.08, q[4]); f.userData.k = k; g.add(f); return f; });
+    var spM = new T.MeshBasicMaterial({ color: 0xffb24a }), sparks = []; for (i = 0; i < 7; i++) { var sp = new T.Mesh(new T.SphereGeometry(0.008, 6, 4), spM); sp.userData = { o: rnd() * 3, x: (rnd() - 0.5) * 0.25, z: (rnd() - 0.5) * 0.25, v: 0.35 + rnd() * 0.3 }; g.add(sp); sparks.push(sp); }
+    var glow = new T.PointLight(0xff8a3a, 1.3, 6, 2); glow.position.set(0, 0.45, 0); g.add(glow);
+    return { group: g, hb: [1.0, 0.6, 1.0], place: 'floor',
+      tick: function (t) {
+        flames.forEach(function (f) { var k = f.userData.k; f.scale.set(1 + Math.sin(t * 9 + k * 2) * 0.12, 1 + Math.sin(t * 11 + k * 1.7) * 0.22 + Math.sin(t * 23 + k) * 0.08, 1 + Math.cos(t * 8 + k) * 0.12); f.rotation.z = Math.sin(t * 6 + k * 3) * 0.08; });
+        sparks.forEach(function (p) { var u = ((t * p.userData.v + p.userData.o) % 1.6) / 1.6; p.position.set(p.userData.x * (0.3 + u) + Math.sin(t * 2 + p.userData.o * 5) * 0.04 * u, 0.25 + u * 1.1, p.userData.z * (0.3 + u)); p.visible = u < 0.9; p.scale.setScalar(1.2 - u); });
+        glow.intensity = 1.25 + Math.sin(t * 13) * 0.18 + Math.sin(t * 29) * 0.1; },
+      press: ambToggle };
+  };
+  if (!CAT.some(function (x) { return x.id === 'camp-fire'; })) CAT.push({ id: 'camp-fire', name: '篝火', en: 'camp-fire', icon: '▣', place: 'floor', size: [1.0, 0.6, 1.0], note: '胡德山 · 延龄湖畔 · 点一下开关环境声' });
+  /* Neuschwanstein · the lookout: a brass spyglass on a wooden tripod. It points along −z. */
+  F['spyglass'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var br = new T.MeshStandardMaterial({ color: L(0xc9973a), roughness: 0.3, metalness: 0.9 }), wd = new T.MeshStandardMaterial({ color: L(0x6a4526), roughness: 0.7 }), gl = new T.MeshStandardMaterial({ color: L(0x1c2a3a), roughness: 0.1, metalness: 0.6 });
+    for (var i = 0; i < 3; i++) { var a = i * 2.094 + 0.5; limb(T, g, wd, [Math.cos(a) * 0.36, 0, Math.sin(a) * 0.36], [Math.cos(a) * 0.03, 1.12, Math.sin(a) * 0.03], 0.016, 0.02); }
+    var hd = new T.Mesh(new T.CylinderGeometry(0.04, 0.05, 0.08, 14), br); hd.position.y = 1.15; g.add(hd);
+    var tube = new T.Group(); tube.position.y = 1.24; tube.rotation.x = 0.1; g.add(tube);
+    [[0.045, 0.5, -0.2], [0.036, 0.36, 0.2], [0.028, 0.2, 0.46]].forEach(function (q) { var c = new T.Mesh(new T.CylinderGeometry(q[0], q[0], q[1], 20), br); c.rotation.x = Math.PI / 2; c.position.z = q[2]; c.castShadow = true; tube.add(c); });
+    [-0.45, 0.02, 0.38].forEach(function (z, k) { var r = new T.Mesh(new T.TorusGeometry([0.048, 0.04, 0.031][k], 0.006, 6, 20), br); r.position.z = z; tube.add(r); });
+    var lens = new T.Mesh(new T.CircleGeometry(0.042, 20), gl); lens.position.z = -0.452; lens.rotation.y = Math.PI; tube.add(lens);
+    return { group: g, hb: [0.8, 1.35, 1.1], place: 'floor' };
+  };
+  if (!CAT.some(function (x) { return x.id === 'spyglass'; })) CAT.push({ id: 'spyglass', name: '黄铜望远镜', en: 'spyglass', icon: '▣', place: 'floor', size: [0.8, 1.35, 1.1], note: '新天鹅堡 · 日落观景台' });
+  /* the outdoor scenes' own decorations, as things you can move, stash and put back: bougainvillea in a pot (Santorini),
+     a window box of geraniums (Lauterbrunnen), the punt (Cambridge), a run of picket fence with flowers at its foot and
+     the hobbit hole itself (Hobbiton). */
+  function seeded(s) { return function () { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
+  function blobs(T, g, list, mat, detail, shadow) {                 // [x, y, z, r, colour?] as one instanced mesh
+    var im = new T.InstancedMesh(new T.IcosahedronGeometry(1, detail), mat, list.length), M4 = new T.Matrix4(), Q = new T.Quaternion(), V = new T.Vector3(), SC = new T.Vector3(), C = new T.Color();
+    list.forEach(function (q, k) { M4.compose(V.set(q[0], q[1], q[2]), Q, SC.set(q[3], q[3] * (q[5] || 0.8), q[3])); im.setMatrixAt(k, M4); if (q[4] != null) im.setColorAt(k, C.set(q[4]).convertSRGBToLinear()); });
+    im.castShadow = !!shadow; im.frustumCulled = false; g.add(im); return im;
+  }
+  F['san-bougainvillea'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); }, rnd = seeded(1907), k, LV = [], FL = [], pinks = [0xd81b7a, 0xe6399b, 0xc2185b, 0xf06bb0], s = 0.9;
+    var pot = lathe(T, [[0, 0], [0.16 * s, 0], [0.2 * s, 0.06 * s], [0.24 * s, 0.34 * s], [0.27 * s, 0.38 * s], [0.25 * s, 0.4 * s], [0, 0.4 * s]], new T.MeshStandardMaterial({ color: L(0xc0693f), roughness: 0.9 }), 24); pot.castShadow = pot.receiveShadow = true; g.add(pot);
+    for (k = 0; k < 60; k++) { var a = rnd() * 6.28, r = rnd() * 0.4 * s; LV.push([Math.cos(a) * r, (0.45 + rnd() * 0.8) * s, Math.sin(a) * r, (0.07 + rnd() * 0.06) * s]); }
+    for (k = 0; k < 260; k++) { var a2 = rnd() * 6.28, r2 = (0.12 + rnd() * 0.4) * s; FL.push([Math.cos(a2) * r2, (0.42 + rnd() * 0.95) * s, Math.sin(a2) * r2, 0.018 + rnd() * 0.02, pinks[rnd() * 4 | 0], 1]); }
+    blobs(T, g, LV, new T.MeshLambertMaterial({ color: L(0x3f7a33) }), 1, true); blobs(T, g, FL, new T.MeshLambertMaterial({ color: 0xffffff }), 1);
+    return { group: g, hb: [0.9, 1.3, 0.9], place: 'floor' };
+  };
+  F['swiss-flowerbox'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); }, rnd = seeded(2718), k, q, LV = [], FL = [], reds = [0xe01b24, 0xc8102e, 0xf03a3a, 0xff5a6e];
+    box(T, g, new T.MeshStandardMaterial({ color: L(0x6a4a30), roughness: 0.8 }), 0, 0.1, 0, 1.1, 0.2, 0.22);
+    for (k = 0; k < 34; k++) LV.push([(rnd() - 0.5) * 1.05, 0.2 + rnd() * 0.12, (rnd() - 0.5) * 0.24, 0.05 + rnd() * 0.045, null, 0.7]);
+    for (k = 0; k < 16; k++) { var fx = (rnd() - 0.5) * 1.0, fy = 0.3 + rnd() * 0.12, fz = (rnd() - 0.5) * 0.26, col = reds[rnd() * 4 | 0]; for (q = 0; q < 7; q++) FL.push([fx + (rnd() - 0.5) * 0.07, fy + (rnd() - 0.5) * 0.05, fz + (rnd() - 0.5) * 0.07, 0.018 + rnd() * 0.012, col, 1]); }
+    blobs(T, g, LV, new T.MeshLambertMaterial({ color: L(0x3f7d2e) }), 1, true); blobs(T, g, FL, new T.MeshLambertMaterial({ color: 0xffffff }), 1);
+    return { group: g, hb: [1.15, 0.5, 0.35], place: 'floor' };
+  };
+  /* the punt: flat-bottomed, square-ended, the till at the stern, seats, cushions, the pole laid along it. Its length runs along z; it rides the water. */
+  F['cam-punt'] = function (T) {
+    var g = new T.Group(), punt = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); }, i; g.add(punt);
+    var v1 = new T.MeshStandardMaterial({ color: L(0x9a5526), roughness: 0.45 }), v2 = new T.MeshStandardMaterial({ color: L(0xc48a52), roughness: 0.6 }), cu = new T.MeshStandardMaterial({ color: L(0x8f2f2a), roughness: 0.9 }), po = new T.MeshStandardMaterial({ color: L(0xd9c08a), roughness: 0.6 });
+    function pb(m, x, y, z, w, h, d, rx, rz) { var k = box(T, punt, m, x, y, z, w, h, d); if (rx) k.rotation.x = rx; if (rz) k.rotation.z = rz; return k; }
+    var PL = 7.0, PW = 0.95;
+    pb(v2, 0, 0.03, 0, PW - 0.04, 0.04, PL - 1.6);
+    [-1, 1].forEach(function (s) { pb(v1, s * (PW / 2), 0.2, 0, 0.035, 0.36, PL - 0.3, 0, -s * 0.12); pb(v1, 0, 0.19, s * (PL / 2 - 0.02), PW - 0.1, 0.16, 0.04); });
+    pb(v2, 0, 0.09, PL / 2 - 0.42, PW - 0.06, 0.035, 0.9, -0.17); pb(v2, 0, 0.09, -(PL / 2 - 0.42), PW - 0.06, 0.035, 0.9, 0.17);
+    pb(v1, 0, 0.33, PL / 2 - 0.75, PW - 0.02, 0.03, 1.4);
+    for (i = 0; i < 5; i++) pb(v1, 0, 0.345, PL / 2 - 1.35 + i * 0.28, PW - 0.1, 0.012, 0.03);
+    [-1.9, -0.5, 0.9].forEach(function (z) { pb(v1, 0, 0.24, z, PW - 0.06, 0.03, 0.2); pb(v1, 0, 0.3, z - 0.34, PW - 0.1, 0.3, 0.03, 0.35); pb(cu, 0, 0.1, z - 0.02 + 0.45, PW - 0.2, 0.08, 0.7); pb(cu, 0, 0.3, z - 0.3, PW - 0.22, 0.26, 0.07, 0.35); });
+    var pole = new T.Mesh(new T.CylinderGeometry(0.022, 0.026, 4.8, 10), po); pole.rotation.x = Math.PI / 2; pole.rotation.z = 0.02; pole.position.set(0.3, 0.42, 0.3); pole.castShadow = true; punt.add(pole);
+    return { group: g, hb: [1.1, 0.6, 7.0], place: 'floor', tick: function (t) { punt.position.y = Math.sin(t * 0.9) * 0.012; punt.rotation.z = Math.sin(t * 0.6) * 0.012; punt.rotation.x = Math.sin(t * 0.45 + 1) * 0.004; } };
+  };
+  function hobGrass(T) {
+    if (F._hg) return F._hg;
+    var c = document.createElement('canvas'); c.width = c.height = 256; var x = c.getContext('2d'), i; x.fillStyle = '#7fa832'; x.fillRect(0, 0, 256, 256);
+    for (i = 0; i < 1500; i++) { var gx = Math.random() * 256, gy = Math.random() * 256; x.strokeStyle = 'rgba(' + (60 + Math.random() * 110 | 0) + ',' + (120 + Math.random() * 90 | 0) + ',' + (20 + Math.random() * 40 | 0) + ',' + (0.25 + Math.random() * 0.4) + ')'; x.beginPath(); x.moveTo(gx, gy); x.lineTo(gx + (Math.random() - 0.5) * 3, gy - 3 - Math.random() * 6); x.stroke(); }
+    var t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(7, 2.4);
+    return (F._hg = new T.MeshStandardMaterial({ map: t, roughness: 1, color: new T.Color(0xe2eabc).convertSRGBToLinear() }));
+  }
+  var HOBCOL = [0xffd23a, 0xffffff, 0xff7fa8, 0xff8a2a, 0xb07cff, 0xff4a3a];
+  /* a run of picket fence, 2.6 m along x, flowers at its foot on the +z side */
+  F['hob-fence'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); }, rnd = seeded(4711), k, pk = new T.MeshStandardMaterial({ color: L(0x9a7b54), roughness: 0.9 }), LEN = 2.6, n = Math.round(LEN / 0.17), FL = [], LV = [];
+    [0.2, 0.42].forEach(function (h) { box(T, g, pk, 0, h, 0, LEN, 0.05, 0.03); });
+    for (k = 0; k <= n; k++) { var post = k % 8 === 0, h = post ? 0.72 : 0.5 + Math.sin(k * 7.3) * 0.04, p = box(T, g, pk, -LEN / 2 + LEN * k / n, h / 2, 0, post ? 0.075 : 0.075, h, post ? 0.06 : 0.02); p.rotation.y = Math.sin(k * 3.1) * 0.05; }
+    for (k = 0; k < 55; k++) { var px = (rnd() - 0.5) * LEN, pz = 0.12 + rnd() * 0.5; FL.push([px, 0.16 + rnd() * 0.3, pz, 0.035 + rnd() * 0.03, HOBCOL[rnd() * 6 | 0], 0.7]); if (k % 3 === 0) LV.push([px, 0.07 + rnd() * 0.06, pz, 0.08 + rnd() * 0.07, null, 0.75]); }
+    blobs(T, g, LV, new T.MeshLambertMaterial({ color: L(0x4f8c34) }), 1, true); blobs(T, g, FL, new T.MeshLambertMaterial({ color: 0xffffff }), 0);
+    return { group: g, hb: [2.7, 0.75, 0.8], place: 'floor' };
+  };
+  /* the hobbit hole: a grassy mound, a round front let into it (plaster, a timber ring, the green door with its brass knob,
+     a lit round window and its box), stepping stones, a letter box, a brick chimney, flowers by the door. The door faces +z. */
+  F['hob-house'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); }, rnd = seeded(1937), i, gm = hobGrass(T);
+    var mound = new T.SphereGeometry(1, 40, 20, 0, Math.PI * 2, 0, Math.PI / 2);
+    var md = new T.Mesh(mound, gm); md.scale.set(2.5, 2.3, 2.4); md.position.y = -0.15; md.castShadow = md.receiveShadow = true; g.add(md);
+    var md2 = new T.Mesh(mound, gm); md2.scale.set(2.6, 1.5, 2.3); md2.position.set(-3.0, -0.15, -1.4); md2.receiveShadow = true; g.add(md2);
+    var fr = new T.Group(); fr.position.z = 2.4; g.add(fr);
+    var plM = new T.MeshStandardMaterial({ color: L(0xe9dcb4), roughness: 0.95 }), stM = new T.MeshStandardMaterial({ color: L(0xb9a98a), roughness: 0.95 }), tim = new T.MeshStandardMaterial({ color: L(0x8a5a30), roughness: 0.75 }), timD = new T.MeshStandardMaterial({ color: L(0x5b3a1e), roughness: 0.8 }),
+      doorM = new T.MeshStandardMaterial({ color: L(0x2f8a52), roughness: 0.55 }), brass = new T.MeshStandardMaterial({ color: L(0xe2b54a), roughness: 0.25, metalness: 0.9 }), glow = new T.MeshBasicMaterial({ color: 0xffd67a }), brick = new T.MeshStandardMaterial({ color: L(0xa85a3c), roughness: 0.95 });
+    function add(par, geo, m, x, y, z) { var k = new T.Mesh(geo, m); k.position.set(x, y, z); k.castShadow = k.receiveShadow = true; par.add(k); return k; }
+    var FY = 0.95, tun = add(fr, new T.CylinderGeometry(1.27, 1.27, 1.9, 40), gm, 0, FY, -0.86); tun.rotation.x = Math.PI / 2;
+    add(fr, new T.CircleGeometry(1.2, 48), plM, 0, FY, 0.1); add(fr, new T.TorusGeometry(1.2, 0.09, 10, 56), tim, 0, FY, 0.1);
+    var DX = -0.26, DY = 0.74, DR = 0.68, door = add(fr, new T.CylinderGeometry(DR, DR, 0.07, 48), doorM, DX, DY, 0.15); door.rotation.x = Math.PI / 2;
+    add(fr, new T.TorusGeometry(DR + 0.03, 0.055, 8, 48), timD, DX, DY, 0.16);
+    for (i = -3; i <= 3; i++) { var cx = i * 0.2; add(fr, new T.BoxGeometry(0.012, 2 * Math.sqrt(DR * DR - cx * cx) - 0.06, 0.01), timD, DX + cx, DY, 0.19).castShadow = false; }
+    add(fr, new T.SphereGeometry(0.06, 16, 12), brass, DX, DY, 0.21); add(fr, new T.CylinderGeometry(0.085, 0.085, 0.015, 20), brass, DX, DY, 0.19).rotation.x = Math.PI / 2;
+    var WX = 0.74, WY = 1.12, WR = 0.23;
+    add(fr, new T.CircleGeometry(WR, 28), glow, WX, WY, 0.125).castShadow = false; add(fr, new T.TorusGeometry(WR, 0.04, 8, 32), timD, WX, WY, 0.13);
+    add(fr, new T.BoxGeometry(WR * 2, 0.025, 0.02), timD, WX, WY, 0.14); add(fr, new T.BoxGeometry(0.025, WR * 2, 0.02), timD, WX, WY, 0.14); add(fr, new T.BoxGeometry(0.6, 0.05, 0.16), tim, WX, WY - WR - 0.07, 0.19);
+    [[DX, 0.75, 0.42], [DX + 0.15, 1.5, 0.4], [DX + 0.5, 2.25, 0.38], [DX + 1.1, 3.0, 0.36]].forEach(function (q) { var s = add(fr, new T.CylinderGeometry(q[2], q[2] * 1.05, 0.07, 9), stM, q[0], 0.02, q[1]); s.rotation.y = q[1]; s.scale.z = 0.8; s.castShadow = false; });
+    add(fr, new T.CylinderGeometry(0.035, 0.04, 1.0, 8), timD, 1.7, 0.5, 1.3); add(fr, new T.BoxGeometry(0.2, 0.17, 0.32), new T.MeshStandardMaterial({ color: L(0xc23b2a), roughness: 0.6 }), 1.7, 1.06, 1.3);
+    add(g, new T.BoxGeometry(0.42, 0.9, 0.42), brick, 0.9, 2.35, -0.5); add(g, new T.BoxGeometry(0.52, 0.07, 0.52), stM, 0.9, 2.83, -0.5);
+    [-0.1, 0.1].forEach(function (s) { add(g, new T.CylinderGeometry(0.08, 0.09, 0.2, 10), brick, 0.9 + s, 2.95, -0.5); });
+    var FL = [], LV = [];
+    [[-1.35, 0.6, 30, 0.9, 1.0], [1.4, 0.6, 46, 1.1, 1.2]].forEach(function (q) { for (var k = 0; k < q[2]; k++) { var x = q[0] + (rnd() - 0.5) * q[3], z = q[1] + (rnd() - 0.5) * q[4]; FL.push([x, 0.2 + rnd() * 0.5, z, 0.04 + rnd() * 0.03, HOBCOL[rnd() * 6 | 0], 0.7]); if (k % 2 === 0) LV.push([x, 0.1 + rnd() * 0.14, z, 0.1 + rnd() * 0.1, null, 0.75]); } });
+    for (i = 0; i < 12; i++) FL.push([WX - 0.3 + i * 0.055, WY - WR + 0.02 + rnd() * 0.05, 0.21, 0.04, HOBCOL[i % 3 === 0 ? 5 : i % 3 === 1 ? 2 : 0], 0.7]);
+    blobs(T, fr, LV, new T.MeshLambertMaterial({ color: L(0x4f8c34) }), 1, true); blobs(T, fr, FL, new T.MeshLambertMaterial({ color: 0xffffff }), 0);
+    return { group: g, hb: [5.0, 2.6, 5.4], place: 'floor' };
+  };
+  [{ id: 'san-bougainvillea', name: '三角梅盆栽', s: [0.9, 1.3, 0.9], n: '圣托里尼 · 伊亚露台' }, { id: 'swiss-flowerbox', name: '天竺葵花箱', s: [1.15, 0.5, 0.35], n: '劳特布龙嫩 · 木屋阳台' }, { id: 'cam-punt', name: '撑篙船', s: [1.1, 0.6, 7.0], n: '剑桥 · 康河后园' },
+   { id: 'hob-fence', name: '木栅栏与花', s: [2.7, 0.75, 0.8], n: '霍比屯 · 池塘边的花园' }, { id: 'hob-house', name: '霍比特洞屋', s: [5.0, 2.6, 5.4], n: '霍比屯 · 池塘边的花园' }].forEach(function (c) {
+    if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.id, icon: '▣', place: 'floor', size: c.s, note: c.n }); });
 })(window);
 
 /* Minest · Spatial Home — the MacBook on the stone table (2026-11-14, the Alpine Meadow outdoor office).
@@ -191191,6 +192105,17 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     s.connect(f); f.connect(g); g.connect(BUS); s.start(t, Math.random() * 3); s.stop(t + dur + 0.05);
   }
+  function ambNight() { return !!(root.SpatialAmbPan || {}).night; }
+  function ambWater(g0, fc, rate) { var w = src('brown'), lp = filt('lowpass', fc), g = gain(g0); w.connect(lp); lp.connect(g); g.connect(BUS); lfo(rate, g0 * 0.45, g.gain, g0); }
+  function ambWind(g0, fc) { var f = src('pink'), bp = filt('bandpass', fc, 0.5), g = gain(g0); f.connect(bp); bp.connect(g); g.connect(BUS); lfo(0.05, g0 * 0.7, g.gain, g0); lfo(0.03, fc * 0.27, bp.frequency, fc); }
+  function ambTone(f0, f1, dur, vol, p, type) { var t = AC.currentTime, o = AC.createOscillator(), e = AC.createGain(), sp = AC.createStereoPanner ? AC.createStereoPanner() : null; o.type = type || 'sine';
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur); e.gain.setValueAtTime(0.0001, t); e.gain.exponentialRampToValueAtTime(vol, t + 0.02); e.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(e); if (sp) { sp.pan.value = p || 0; e.connect(sp); sp.connect(BUS); } else e.connect(BUS); o.start(t); o.stop(t + dur + 0.05); }
+  function ambBirds(ms, jit) { every(ms, function () { if (ambNight()) return; var p = Math.random() * 1.6 - 0.8, fq = 2400 + Math.random() * 1800, n = 2 + (Math.random() * 3 | 0);
+    for (var k = 0; k < n; k++) (function (k) { setTimeout(function () { try { ambTone(fq * (1 + k * 0.04), fq * (1.25 - k * 0.05), 0.1 + Math.random() * 0.06, 0.028, p); } catch (e) {} }, k * 150); })(k); }, jit); }
+  function ambCrickets() { every(1100, function () { if (!ambNight()) return; var p = Math.random() * 1.8 - 0.9, fq = 4100 + Math.random() * 500;
+    for (var k = 0; k < 3; k++) (function (k) { setTimeout(function () { try { ambTone(fq, fq * 1.01, 0.045, 0.011, p); } catch (e) {} }, k * 70); })(k); }, 500); }
+  function ambBell(fs, ms, jit, vol, dur, p) { every(ms, function () { var n = 3 + (Math.random() * 3 | 0); for (var k = 0; k < n; k++) (function (k) { setTimeout(function () { try { fs.forEach(function (f, i) { ambTone(f, f * 0.997, dur, vol / (i + 1), p, 'sine'); }); } catch (e) {} }, k * 1900); })(k); }, jit); }
   var AMB = {
     santorini: { label: '海浪与海鸥', build: function () {
       var w = src('brown'), lp = filt('lowpass', 520), g = gain(0.5); w.connect(lp); lp.connect(g); g.connect(BUS); lfo(0.11, 0.35, g.gain, 0.45);
@@ -191207,6 +192132,40 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       every(5200, function () { var f = 2600 + Math.random() * 1400; chirp(f, f * 1.3, 0.12, 0.03); setTimeout(function () { chirp(f * 1.1, f * 0.9, 0.14, 0.025); }, 160); }, 7000);
       every(16000, function () { [523, 1046, 1568].forEach(function (f, i) { chirp(f, f * 0.995, 1.6, 0.012 / (i + 1), 'triangle'); }); }, 12000);
     } },
+    'mt-hood': { label: '湖水、林间晨风、鸟鸣与篝火', build: function () {
+      var w = src('brown'), lp = filt('lowpass', 420), g = gain(0.3); w.connect(lp); lp.connect(g); g.connect(BUS); lfo(0.17, 0.14, g.gain, 0.26);                                        // the lake lapping at the gravel
+      var f = src('pink'), bp = filt('bandpass', 1100, 0.5), g2 = gain(0.05); f.connect(bp); bp.connect(g2); g2.connect(BUS); lfo(0.05, 0.035, g2.gain, 0.05); lfo(0.03, 300, bp.frequency, 1100);   // wind in the firs
+      /* the fire is heard from where it burns: the room says where that is relative to your look (SpatialAmbPan) */
+      var pan = AC.createStereoPanner ? AC.createStereoPanner() : null, fg = gain(0.7); if (pan) { nodes.push(pan); fg.connect(pan); pan.connect(BUS); } else fg.connect(BUS);
+      var cr = src('pink'), cl = filt('lowpass', 900), cg = gain(0.05); cr.connect(cl); cl.connect(cg); cg.connect(fg);
+      function pop() { var t = AC.currentTime, n = AC.createBufferSource(), q = AC.createBiquadFilter(), e = AC.createGain(); n.buffer = noise('white'); q.type = 'bandpass'; q.frequency.value = 1800 + Math.random() * 3500; q.Q.value = 2;
+        e.gain.setValueAtTime(0.05 + Math.random() * 0.12, t); e.gain.exponentialRampToValueAtTime(0.0001, t + 0.03 + Math.random() * 0.05); n.connect(q); q.connect(e); e.connect(fg); n.start(t, Math.random() * 3); n.stop(t + 0.15); }
+      every(140, function () { if (Math.random() < 0.55) pop(); }, 260);
+      every(250, function () { var P = root.SpatialAmbPan || {}; if (pan) pan.pan.setTargetAtTime(P.fire || 0, AC.currentTime, 0.15); fg.gain.setTargetAtTime(P.gain == null ? 0.7 : P.gain, AC.currentTime, 0.2); });
+      function bird(f0, f1, dur, vol, p) { var t = AC.currentTime, o = AC.createOscillator(), e = AC.createGain(), sp = AC.createStereoPanner ? AC.createStereoPanner() : null;
+        o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur); e.gain.setValueAtTime(0.0001, t); e.gain.exponentialRampToValueAtTime(vol, t + 0.02); e.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        o.connect(e); if (sp) { sp.pan.value = p; e.connect(sp); sp.connect(BUS); } else e.connect(BUS); o.start(t); o.stop(t + dur + 0.05); }
+      every(4200, function () { if ((root.SpatialAmbPan || {}).night) return; var p = Math.random() * 1.6 - 0.8, fq = 2400 + Math.random() * 1800, n = 2 + (Math.random() * 3 | 0);
+        for (var k = 0; k < n; k++) (function (k) { setTimeout(function () { try { bird(fq * (1 + k * 0.04), fq * (1.25 - k * 0.05), 0.1 + Math.random() * 0.06, 0.028, p); } catch (e) {} }, k * 150); })(k); }, 6000);   // dawn birds, each from its own side
+      every(19000, function () { var p = Math.random() < 0.5 ? -0.7 : 0.7; bird(700, 520, 0.9, 0.02, p); setTimeout(function () { try { bird(690, 500, 1.1, 0.016, p); } catch (e) {} }, 1300); }, 20000);                 // a loon far out on the water
+    } },
+    /* the picture-built outdoor scenes: what you would hear there. In the dark the birds stop and crickets take over (the room says when: SpatialAmbPan.night). */
+    hobbiton: { label: '池塘、微风与鸟鸣', build: function () { ambWater(0.14, 380, 0.13); ambWind(0.04, 900); ambBirds(3200, 4500); ambCrickets(); } },
+    'cambridge-backs': { label: '康河水声、鸟鸣与远处的钟声', build: function () { ambWater(0.2, 420, 0.21); ambWind(0.03, 800); ambBirds(4500, 6000); ambCrickets(); ambBell([392, 784, 1176, 988], 45000, 30000, 0.02, 3.2, 0.5); } },
+    'santorini-oia': { label: '崖下的海、海风、海鸥与教堂钟声', build: function () { ambWater(0.34, 520, 0.1); ambWind(0.035, 1700);
+      every(9000, function () { if (ambNight()) return; var p = Math.random() * 1.6 - 0.8; ambTone(1700, 1200, 0.35, 0.04, p, 'triangle'); setTimeout(function () { try { ambTone(1650, 1150, 0.3, 0.032, p, 'triangle'); } catch (e) {} }, 380); }, 9000);
+      ambCrickets(); ambBell([659, 1318, 1977], 50000, 30000, 0.018, 2.6, -0.2); } },
+    lauterbrunnen: { label: '瀑布、山风、牛铃与鸟鸣', build: function () {
+      var pan = AC.createStereoPanner ? AC.createStereoPanner() : null, fg = gain(1); if (pan) { nodes.push(pan); fg.connect(pan); pan.connect(BUS); } else fg.connect(BUS);
+      var w = src('white'), bp = filt('bandpass', 1400, 0.4), g = gain(0.1); w.connect(bp); bp.connect(g); g.connect(fg); var w2 = src('brown'), lp = filt('lowpass', 300), g2 = gain(0.18); w2.connect(lp); lp.connect(g2); g2.connect(fg);   // the fall, from where it comes down
+      every(250, function () { var P = root.SpatialAmbPan || {}; if (pan) pan.pan.setTargetAtTime(P.fall == null ? 0.5 : P.fall, AC.currentTime, 0.15); fg.gain.setTargetAtTime(P.gain == null ? 1 : P.gain, AC.currentTime, 0.2); });
+      ambWind(0.04, 700); ambBirds(5000, 7000); ambCrickets();
+      every(7000, function () { var p = Math.random() * 1.6 - 0.8, f = [523, 587, 659, 784][Math.random() * 4 | 0], n = 2 + (Math.random() * 4 | 0);
+        for (var k = 0; k < n; k++) (function (k) { setTimeout(function () { try { ambTone(f, f * 0.995, 0.5, 0.014, p, 'triangle'); ambTone(f * 2.7, f * 2.69, 0.25, 0.006, p, 'sine'); } catch (e) {} }, k * (260 + Math.random() * 200)); })(k); }, 9000); } },
+    neuschwanstein: { label: '山风、林间鸟鸣与山谷里的钟声', build: function () { ambWind(0.06, 650); ambBirds(4200, 6000); ambCrickets(); ambBell([440, 880, 1320, 1108], 40000, 30000, 0.016, 3.4, 0.6); } },
+    'maroon-bells': { label: '静湖、白杨叶声与鸟鸣', build: function () { ambWater(0.1, 360, 0.09);
+      var r = src('white'), hp = filt('highpass', 3500), g = gain(0.018); r.connect(hp); hp.connect(g); g.connect(BUS); lfo(0.19, 0.014, g.gain, 0.018);   // the aspen leaves
+      ambWind(0.04, 800); ambBirds(5200, 7000); ambCrickets(); } },
     train: { label: '车轮与铁轨', build: function () {
       var r = src('brown'), lp = filt('lowpass', 140), g = gain(0.7); r.connect(lp); lp.connect(g); g.connect(BUS);
       var hiss = src('pink'), bp = filt('bandpass', 2400, 0.6), g2 = gain(0.02); hiss.connect(bp); bp.connect(g2); g2.connect(BUS);
