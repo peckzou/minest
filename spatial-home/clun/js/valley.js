@@ -90,16 +90,22 @@
 
   /* —— 地形 —— */
   var H = V.house, TH = V.houseRot * D2R, CS = Math.cos(TH), SN = Math.sin(TH), HP = 6.05;
-  function riverEdge(y) {                                                  /* 照片里河的左岸：近处在 8.6°，桥那里约 11.8°（略留余量） */
-    var a = (8.2 + Math.max(0, Math.min(1, (y - 41) / 65)) * 3.2) * D2R; return y * Math.tan(a) - 0.6;
-  }
+  /* 小溪：从照片里的桥下（离镜头约 105 m、偏右 11.8°）接出来，向左下斜着流到画面底部偏右 */
+  var RIV = [[28, 0.2], [40, 2.2], [50, 6.6], [60, 8.4], [72, 11.0], [84, 15.8], [94, 18.4], [104, 22.0]];   /* 略带 S 弯 */
+  function riverX(y) { for (var i = 0; i < RIV.length - 1; i++) if (y <= RIV[i + 1][0] || i === RIV.length - 2) { var a = RIV[i], b2 = RIV[i + 1], t = (y - a[0]) / (b2[0] - a[0]); t = t * t * (3 - 2 * t) * 0.35 + t * 0.65; return a[1] + (b2[1] - a[1]) * t; } }
+  function riverHW(y) { return 4.4 - 0.5 * Math.max(0, Math.min(1, (y - 40) / 60)) + 0.55 * Math.sin(y * 0.17) + 0.25 * Math.sin(y * 0.41 + 1); }
+  function riverEdge(y) { return riverX(y) - riverHW(y); }                 /* 左岸 */
+  function viewR(y) { return y * Math.tan(34 * D2R) + 3; }                 /* 画面右边缘外一点 */
   function local(x, y) { var dx = x - H[0], dy = y - H[1]; return [dx * CS + dy * SN, -dx * SN + dy * CS]; }   /* 山谷 → 房子工程坐标 */
   function hp(x, y) { return [H[0] + x * CS - y * SN, H[1] + x * SN + y * CS]; }                               /* 房子工程坐标 → 山谷 */
   function sstep(a, b, v) { var t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); }
-  function baseZ(x, y) {                                                    /* 从河岸往左上坡；左边（树屋那里）再高一些 */
-    var z = Math.min(6.4, Math.max(0, (riverEdge(y) - x) * 0.18) + 0.3);
-    z += 2.6 * sstep(-19, -27, x) * (1 - sstep(48, 60, y));
-    return z + 0.08 * Math.sin(x * 0.43) * Math.sin(y * 0.31);
+  function baseZ(x, y) {                                                    /* 左岸往左上坡（树屋那里再高些），右岸往右缓坡，中间是河道 */
+    var c = riverX(y), hw = riverHW(y), dr = x - c, z;
+    if (dr <= 0) { z = Math.min(6.4, Math.max(0, -dr - hw) * 0.18) + 0.3; z += 2.6 * sstep(-19, -27, x) * (1 - sstep(48, 60, y)); }
+    else z = (Math.min(5.5, Math.max(0, dr - hw) * 0.17) + 0.3) * (0.4 + 0.6 * (1 - sstep(86, 100, y)));
+    var bank = sstep(-0.3, 1.8, Math.abs(dr) - hw);
+    z = -0.55 + (z + 0.55) * bank;
+    return z + 0.08 * Math.sin(x * 0.43) * Math.sin(y * 0.31) * bank;
   }
   function plateauW(x, y) {                                                 /* 房子台地：房子四周 1，向外 5 m 内降到 0 */
     var l = local(x, y), ox = Math.max(0, Math.abs(l[0] - 1.5) - 11.5), oyF = Math.max(0, -3.4 - l[1]), oyB = Math.max(0, l[1] - 13);
@@ -142,7 +148,7 @@
     var T = { grass: grassTex(), leaf: leafTex(), flower: flowerTex(), stone: stoneTex(), bark: barkTex(), plank: plankTex('#9a6a40'), plankD: plankTex('#6e4a2e'), shingle: shingleTex() };
     for (var tk in T) disp.push(T[tk]);
     function sm(map, hex, rough) { var m = new THREE.MeshStandardMaterial({ map: map || null, color: lin(hex == null ? 0xffffff : hex), roughness: rough == null ? 0.9 : rough }); disp.push(m); return m; }
-    var M = { stone: sm(T.stone), stoneD: sm(T.stone, 0xcfc8bd), bark: sm(T.bark), wood: sm(T.plank), woodD: sm(T.plankD), shingle: sm(T.shingle), shingleD: sm(T.shingle, 0x8c8478),
+    var M = { stone: sm(T.stone), stoneD: sm(T.stone, 0xcfc8bd), bark: sm(T.bark), wood: sm(T.plank), woodD: sm(T.plankD), shingle: sm(T.shingle), shingleD: sm(T.shingle, 0x8c8478), gravel: sm(T.stone, 0xe8dcc4),
       white: sm(null, 0xf3efe6, 0.6), glassT: sm(null, 0x7d9fae, 0.15), soil: sm(null, 0x4a3a2c, 1) };
     var b = new K.Batch();
     function boxM(m, q) { b.box(m, q[0], q[1], q[2], q[3], q[4], q[5]); }
@@ -164,11 +170,11 @@
 
     /* —— 地形：河左岸往左上坡，房子在台地上 —— */
     (function () {
-      var x0 = -80, x1 = 16, y0 = 28, y1 = 104, st = 0.8, nx = Math.round((x1 - x0) / st), ny = Math.round((y1 - y0) / st), pos = [], uv = [], col = [], idx = [], i, j;
+      var x0 = -80, x1 = 76, y0 = 28, y1 = 104, st = 0.8, nx = Math.round((x1 - x0) / st), ny = Math.round((y1 - y0) / st), pos = [], uv = [], col = [], idx = [], i, j;
       for (j = 0; j <= ny; j++) for (i = 0; i <= nx; i++) {
-        var y = y0 + j * st, x = x0 + (riverEdge(y) - x0) * i / nx, z = terrainZ(x, y); pos.push(x, y, z); uv.push(x, y);
+        var y = y0 + j * st, x = x0 + i * st, z = terrainZ(x, y); pos.push(x, y, z); uv.push(x, y);
         var sl = Math.abs(terrainZ(x + 0.5, y) - terrainZ(x - 0.5, y)) + Math.abs(terrainZ(x, y + 0.5) - terrainZ(x, y - 0.5));
-        var sh = 1 - 0.18 * Math.min(1, sl * 0.8) - 0.16 * sstep(88, 100, y) - 0.12 * sstep(-3, 0, x - riverEdge(y)) + (rnd() - 0.5) * 0.04; col.push(sh, sh, sh);
+        var sh = 1 - 0.18 * Math.min(1, sl * 0.8) - 0.16 * sstep(88, 100, y) - 0.25 * (1 - sstep(0, 2.5, Math.abs(x - riverX(y)) - riverHW(y))) + (rnd() - 0.5) * 0.04; col.push(sh, sh, sh);
       }
       for (j = 0; j < ny; j++) for (i = 0; i < nx; i++) {
         var cy = y0 + (j + 0.5) * st; if (cy > 101) continue;
@@ -243,7 +249,7 @@
 
     /* —— 石板小路：从画面下沿弯到台阶脚下 —— */
     (function () {
-      var f = C.VALLEY.stairFoot, path = [[-4.5, 40], [-6.2, 44], [-6.5, 48], [f[0] + 0.4, f[1] - 1.2], f], i;
+      var f = C.VALLEY.stairFoot, path = [[-4.6, 47.3], [-5.6, 50], [f[0] + 0.4, f[1] - 1.2], f], i;
       for (i = 0; i < path.length - 1; i++) {
         var a = path[i], c = path[i + 1], L = Math.hypot(c[0] - a[0], c[1] - a[1]), n = Math.max(1, Math.round(L / 0.75));
         for (var k = 0; k < n; k++) {
@@ -252,19 +258,83 @@
           b.geom(rnd() < 0.5 ? 'stone' : 'stoneD', g, m);
         }
       }
-      for (i = 0; i < 9; i++) { var q = path[1 + (i % 3)]; flowerBush(q[0] - 1.6 - rnd(), q[1] + (rnd() - 0.5) * 3, 0.5, ['pink', 'white', 'lilac', 'magenta']); }
+      for (i = 0; i < 6; i++) { var q = path[1 + (i % 2)]; flowerBush(q[0] - 1.6 - rnd(), q[1] + (rnd() - 0.5) * 3, 0.5, ['pink', 'white', 'lilac', 'magenta']); }
     })();
 
-    /* —— 河边木栅栏 —— */
+    /* —— 小溪：水面（流动的白浪，接照片里的河）、岸边石头、两岸灌木 —— */
     (function () {
-      var ys = [], y; for (y = 40; y <= 96; y += 2.0) ys.push(y);
-      ys.forEach(function (yy, i) { var x = riverEdge(yy) - 0.7, z = terrainZ(x, yy); boxM('woodD', [x - 0.06, yy - 0.06, z - 0.1, x + 0.06, yy + 0.06, z + 1.05]);
-        if (i) { var yp = ys[i - 1], xp = riverEdge(yp) - 0.7, zp = terrainZ(xp, yp); cyl('woodD', [xp, yp, zp + 0.92], [x, yy, z + 0.92], 0.045, 0.045, 6); cyl('woodD', [xp, yp, zp + 0.48], [x, yy, z + 0.48], 0.04, 0.04, 6); } });
-      for (y = 39; y < 100; y += 2.6 + rnd() * 2.4) {                      /* 河岸：稀疏一些、高低不齐的灌木丛，颜色跟照片里的河岸一样深 */
-        var bx = riverEdge(y) - 0.3 - rnd() * 0.5, big = rnd() < 0.3;
-        bush(bx, y, big ? 1.5 + rnd() * 0.5 : 0.9 + rnd() * 0.5, big ? 2.4 + rnd() * 1.2 : 1.0 + rnd() * 0.7, [0.74, 0.8, 0.74]);
+      var pos = [], uv = [], idx = [], y, k = 0, st = 0.8;
+      for (y = 28; y <= 101.6; y += st, k++) {
+        var c = riverX(y), hw = riverHW(y) + 0.5; pos.push(c - hw, y, 0.0, c + hw, y, 0.0); uv.push(0, y / 5, 1, y / 5);
+        if (k) { var a = (k - 1) * 2; idx.push(a, a + 1, a + 3, a, a + 3, a + 2); }
       }
-      tree(riverEdge(70) - 1.2, 70, 7, 2.6, [0.8, 0.86, 0.8]);
+      var g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx);
+      var wm = new THREE.ShaderMaterial({ uniforms: { uTime: C.Paint.time }, vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+        fragmentShader: [
+          'uniform float uTime; varying vec2 vUv;',
+          'float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
+          'float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h2(i), h2(i + vec2(1.0, 0.0)), f.x), mix(h2(i + vec2(0.0, 1.0)), h2(i + vec2(1.0, 1.0)), f.x), f.y); }',
+          'float fbm(vec2 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { s += a * vn(p); p *= 2.07; a *= 0.5; } return s; }',
+          'void main(){',
+          '  float u = vUv.x, f = vUv.y + uTime * 0.55;',                                 /* 往镜头这边流 */
+          '  float n = fbm(vec2(u * 4.0, f * 1.4));',
+          '  float s = fbm(vec2(u * 11.0 + n * 1.5, f * 0.55));',
+          '  vec3 deep = vec3(0.40, 0.66, 0.72), mid = vec3(0.66, 0.85, 0.87), foam = vec3(0.96, 0.98, 0.98);',
+          '  vec3 c = mix(deep, mid, smoothstep(0.32, 0.68, n));',
+          '  float edge = smoothstep(0.16, 0.02, min(u, 1.0 - u));',
+          '  float fo = smoothstep(0.58, 0.78, s) + edge * 0.8 + smoothstep(0.66, 0.82, n) * 0.6;',
+          '  c = mix(c, foam, clamp(fo, 0.0, 1.0) * 0.88);',
+          '  gl_FragColor = vec4(c, 1.0);',
+          '}'].join('\n') });
+      var wmesh = new THREE.Mesh(g, wm); site.add(wmesh); disp.push(g, wm);
+      for (y = 30; y < 100; y += 2.2 + rnd() * 3) [-1, 1].forEach(function (sd) {                  /* 岸边和水里零散的石头 */
+        if (rnd() < 0.5) return;
+        var x = riverX(y) + sd * (riverHW(y) - 0.6 + rnd() * 1.4), r = 0.25 + rnd() * 0.6, gg = new THREE.IcosahedronGeometry(1, 1), m = new THREE.Matrix4().makeScale(r * (1 + rnd() * 0.5), r, r * 0.6); m.setPosition(x, y, 0.05);
+        b.geom(rnd() < 0.5 ? 'stone' : 'stoneD', gg, m);
+      });
+      for (y = 52; y < 97; y += 3 + rnd() * 3) [-1, 1].forEach(function (sd) {                        /* 两岸零星灌木 */
+        if (rnd() < 0.45) return; var x = riverX(y) + sd * (riverHW(y) + 1.6 + rnd()); bush(x, y, 0.9 + rnd() * 0.6, 1.0 + rnd() * 1.0, [0.82, 0.88, 0.82]);
+      });
+    })();
+
+    /* —— 右岸：沿河栅栏、石桌石凳、小路、灌木和树 —— */
+    (function () {
+      var ys = [], y; for (y = 37; y <= 64; y += 2.0) ys.push(y);
+      function fx(yy) { return riverX(yy) + riverHW(yy) + 1.4; }
+      ys.forEach(function (yy, i) { var x = fx(yy), z = terrainZ(x, yy); boxM('woodD', [x - 0.07, yy - 0.07, z - 0.1, x + 0.07, yy + 0.07, z + 1.1]);
+        if (i) { var yp = ys[i - 1], xp = fx(yp), zp = terrainZ(xp, yp); cyl('woodD', [xp, yp, zp + 0.98], [x, yy, z + 0.98], 0.05, 0.05, 6); cyl('woodD', [xp, yp, zp + 0.5], [x, yy, z + 0.5], 0.045, 0.045, 6); } });
+      var tx = 14.5, ty = 44.5, tz = terrainZ(tx, ty);                                                   /* 石桌和四个石凳 */
+      var g1 = new THREE.CylinderGeometry(0.5, 0.7, 0.85, 9), m1 = new THREE.Matrix4().makeRotationX(Math.PI / 2); m1.setPosition(tx, ty, tz + 0.42); b.geom('stoneD', g1, m1);
+      var g2 = new THREE.CylinderGeometry(1.35, 1.28, 0.22, 12), m2 = new THREE.Matrix4().makeRotationX(Math.PI / 2); m2.setPosition(tx, ty, tz + 0.95); b.geom('stone', g2, m2);
+      for (var i = 0; i < 4; i++) { var a = i * Math.PI / 2 + 0.5, g = new THREE.CylinderGeometry(0.38, 0.42, 0.55, 8), m = new THREE.Matrix4().makeRotationX(Math.PI / 2); var sx = tx + Math.cos(a) * 1.9, sy = ty + Math.sin(a) * 1.9; m.setPosition(sx, sy, terrainZ(sx, sy) + 0.24); b.geom('stone', g, m); }
+      var path = [[20, 38], [21, 52], [23.5, 66], [27, 80], [31, 96]], w = 1.0;                       /* 右坡上的砂石小路 */
+      for (i = 0; i < path.length - 1; i++) {
+        var p = path[i], q = path[i + 1], n = Math.round(Math.hypot(q[0] - p[0], q[1] - p[1]) / 1.0);
+        for (var k = 0; k < n; k++) {
+          var t0 = k / n, t1 = (k + 1) / n, A = [p[0] + (q[0] - p[0]) * t0, p[1] + (q[1] - p[1]) * t0], B = [p[0] + (q[0] - p[0]) * t1, p[1] + (q[1] - p[1]) * t1];
+          var dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy), nx = -dy / L * w, ny = dx / L * w;
+          b.fan('gravel', [[A[0] - nx, A[1] - ny, terrainZ(A[0] - nx, A[1] - ny) + 0.06], [B[0] - nx, B[1] - ny, terrainZ(B[0] - nx, B[1] - ny) + 0.06], [B[0] + nx, B[1] + ny, terrainZ(B[0] + nx, B[1] + ny) + 0.06], [A[0] + nx, A[1] + ny, terrainZ(A[0] + nx, A[1] + ny) + 0.06]]);
+        }
+      }
+      bush(23, 50, 1.4, 1.6); flowerBush(21, 57, 0.8, ['magenta', 'pink']); bush(26, 60, 1.6, 2.2); flowerBush(25.5, 45, 0.7, ['pink', 'white']);
+      tree(36, 64, 10, 4.2); tree(30, 86, 10, 4.0); tree(42, 76, 12, 4.6); tree(33, 47, 9, 4.0); conifer(44, 90, 15);
+      bush(18, 52, 1.2, 1.4); bush(27.5, 52, 1.6, 2.2); flowerBush(17.5, 58, 0.8, ['pink', 'white']); bush(21, 70, 1.3, 1.8); flowerBush(29, 44.5, 0.9, ['magenta', 'pink', 'lilac']); bush(31, 42, 1.4, 1.6);
+    })();
+
+    /* —— 前景：木栈道（两侧栅栏）接石板路；左下栅栏后面一片花 —— */
+    (function () {
+      var cx = -4.6, w = 1.2, y, z;
+      for (y = 36; y < 47.2; y += 0.32) { z = Math.max(terrainZ(cx - w, y), terrainZ(cx + w, y)) + 0.12; b.box('wood', cx - w, y, z - 0.06, cx + w, y + 0.26, z); }
+      [-1, 1].forEach(function (sd) {
+        var ys = []; for (y = 36; y <= 46; y += 1.7) ys.push(y);
+        ys.forEach(function (yy, i) { var x = cx + sd * (w + 0.08), zz = terrainZ(x, yy) + 0.1; boxM('woodD', [x - 0.07, yy - 0.07, zz - 0.3, x + 0.07, yy + 0.07, zz + 1.0]);
+          if (i) { var yp = ys[i - 1]; cyl('woodD', [x, yp, terrainZ(x, yp) + 1.0], [x, yy, zz + 0.9], 0.05, 0.05, 6); cyl('woodD', [x, yp, terrainZ(x, yp) + 0.55], [x, yy, zz + 0.45], 0.045, 0.045, 6); } });
+      });
+      var fp = [[-21, 44.5], [-15, 42.6], [-9, 41.2], [cx - w - 0.1, 40.4]];                       /* 左下斜栅栏 */
+      fp.forEach(function (p, i) { var zz = terrainZ(p[0], p[1]); boxM('woodD', [p[0] - 0.08, p[1] - 0.08, zz - 0.2, p[0] + 0.08, p[1] + 0.08, zz + 1.05]);
+        if (i) { var q = fp[i - 1], zq = terrainZ(q[0], q[1]); cyl('woodD', [q[0], q[1], zq + 0.95], [p[0], p[1], zz + 0.95], 0.05, 0.05, 6); cyl('woodD', [q[0], q[1], zq + 0.5], [p[0], p[1], zz + 0.5], 0.045, 0.045, 6); } });
+      for (var fx2 = -20; fx2 < -6.5; fx2 += 1.0 + rnd() * 0.5) flowerBush(fx2, 43.6 - (fx2 + 20) * 0.2 + rnd() * 1.5, 0.75, ['pink', 'magenta', 'white'], 0.9);
+      flowerBush(cx + w + 1.0, 44, 0.6, ['pink', 'white']); flowerBush(cx + w + 1.2, 40, 0.6, ['magenta', 'white']);
     })();
 
     /* —— 大橡树和树屋（照细节图）：粗壮的树干、根部外张，约 4 m 高处分出几根向外平伸的粗枝，宽而低的树冠由沿枝条的几大团叶子组成；
@@ -346,13 +416,11 @@
       flowerBush(W(fu1 + 1.0, fv + 1.0, 0)[0], W(fu1 + 1.0, fv + 1.0, 0)[1], 0.7, ['pink', 'white']); bush(W(-3.2, 0.5, 0)[0], W(-3.2, 0.5, 0)[1], 1.0, 1.0);
     })();
 
-    /* —— 左下前景：一片粉白的花 —— */
-    for (var fx = -19; fx < -7; fx += 1.1 + rnd() * 0.6) flowerBush(fx, 42.5 + rnd() * 2.5, 0.7, fx < -13 ? ['pink', 'white', 'magenta'] : ['white', 'pink', 'lilac'], 0.8);
 
     /* —— 树和灌木：把草地边缘和照片接上 —— */
     tree(-36, 50, 13, 5.2); tree(-31, 62, 12, 4.6); tree(-42, 70, 14, 5.4); tree(-24, 86, 11, 4.4); tree(-6, 95, 9, 3.6, [0.92, 1, 0.92]);
     conifer(-38, 84, 16); conifer(-50, 78, 15); conifer(-18, 96, 12);
-    for (var hxp = -60; hxp < 8; hxp += 2.4 + rnd() * 1.5) bush(hxp, 98 + rnd() * 2, 1.2 + rnd() * 0.6, 1.6 + rnd() * 1.4);
+    for (var hxp = -60; hxp < 56; hxp += 2.4 + rnd() * 1.5) { if (hxp > 13 && hxp < 31) continue; bush(hxp, 98 + rnd() * 2, 1.2 + rnd() * 0.6, 1.6 + rnd() * 1.4); }
     [hp(-4, 12.5), hp(4, 13), hp(12, 9)].forEach(function (p) { tree(p[0], p[1], 8, 3.2); });
 
     b.build(site, M);
@@ -365,9 +433,12 @@
     C.Paint.toonTree(holder);
     (function () {
       var pts = [], n = 0, y, x, l;
-      var N = (navigator.maxTouchPoints > 0 || Math.min(screen.width, screen.height) < 700) ? 9000 : 26000;   /* 手机上少铺一些 */
+      var N = (navigator.maxTouchPoints > 0 || Math.min(screen.width, screen.height) < 700) ? 11000 : 34000;   /* 手机上少铺一些 */
       while (n < N) {
-        y = 30 + Math.pow(rnd(), 1.2) * 69; x = -62 + rnd() * (riverEdge(y) - 0.5 + 62);
+        y = 30 + Math.pow(rnd(), 1.2) * 69; x = -62 + rnd() * (viewR(y) + 62);
+        if (Math.abs(x - riverX(y)) < riverHW(y) + 0.7) continue;                                /* 水里 */
+        if (x > -6.6 && x < -2.6 && y < 47.5) continue;                                              /* 木栈道 */
+        if (Math.hypot(x - 14.5, y - 44.5) < 3.0) continue;                                               /* 石桌 */
         l = local(x, y);
         if (l[0] > -9.2 && l[0] < 11.6 && l[1] > -3.0 && l[1] < 11.2) continue;          /* 房子底下 */
         if (Math.abs(l[0]) < 1.4 && l[1] < -3.2 && l[1] > -8.6) continue;                  /* 台阶 */
