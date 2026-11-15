@@ -44,6 +44,20 @@
     }
     return tex(cv, w, h);
   }
+  /* 木地板：长短不一的窄条，错缝 */
+  function boards(w, h) {
+    var cv = canvas(512, 512), g = cv.getContext('2d'), rows = 8, ch = 512 / rows, r;
+    g.fillStyle = '#6e4a2c'; g.fillRect(0, 0, 512, 512);
+    for (r = 0; r < rows; r++) {
+      var x = -rnd() * 200;
+      while (x < 512) {
+        var len = 120 + rnd() * 220;
+        g.fillStyle = shade(0xb08458, (rnd() - 0.5) * 0.22); g.fillRect(Math.round(x) + 1, r * ch + 1, Math.round(len) - 2, ch - 2);
+        x += len;
+      }
+    }
+    return tex(cv, w, h);
+  }
   function rep(s, n) { var a = []; for (var i = 0; i < n; i++) a.push(s); return a; }
 
   C.makeTextures = function () {
@@ -57,6 +71,7 @@
       brick: courses(rep('b', 16), 6, BR2, ST, '#d2a781', 1.35, 1.2),
       roof: tiles(rep('p', 8), 8, { p: 0x664438 }, '#3a2620', 1.36, 1.12, 0),
       hung: tiles(['p', 'p', 'p', 'f', 'f', 'p', 'p', 'p', 'f', 'f'], 8, { p: 0xcf5d30, f: 0xa9432a }, '#6e2c1c', 1.36, 1.1, 0),
+      boards: boards(2.4, 1.2),
       floorTile: tiles(rep('p', 6), 6, { p: 0xa5482f }, '#5c2a1c', 0.9, 0.9, 0)
     };
   };

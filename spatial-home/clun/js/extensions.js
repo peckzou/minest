@@ -14,8 +14,11 @@
     var ops = C.bayOps('bay', hw, ret, cant, 0.6, 2.1);
     ops['r.bay'] = [{ s: (rx1 - rx0) / 2, w: rx1 - rx0 - 0.3, z0: 0, z1: 2.15, kind: 'open' }];
     ops['r.s'] = [{ s: (rx0 - W) / 2, w: 0.85, z0: 0, z1: 2.05, kind: 'door', glazed: true }];
-    b.prism('slab', out.map(function (o) { return o.p; }), P.groundZ, 0);
-    b.walls(function (n) { return (n.indexOf('f.') === 0 || n.indexOf('bay') === 0) ? 'wall' : 'wallRear'; }, out, false, t, 0, ez, ops);
+    var poly = out.map(function (o) { return o.p; });
+    b.prism('slab', poly, P.groundZ, 0);
+    b.prism('floor', K.inset(poly, out.map(function (o) { return o.n === 'r.bay' ? 0 : o.n === 'end' ? 0.02 : t; })), 0, 0.02);
+    b.box('floor', rx0 + 0.25, y1 - 0.02, 0, rx1 - 0.25, y1 + rp - 0.25, 0.02);
+    b.walls(function (n) { return (n.indexOf('f.') === 0 || n.indexOf('bay') === 0) ? 'wall' : 'wallRear'; }, out, false, t, 0, ez, ops, 'inner');
     b.band('stone', [[W, y0]].concat(C.bayLine(P.kitBayX, y0, hw, ret, cant), [[x1, y0]]), false, 0.04, P.groundZ, 0.44);
     C.bayTrim(b, P.kitBayX, y0, hw, ret, cant, 0.6, 2.1, false);
     C.quoins(b, x1, y0, -1, 1, 0.44, ez - 0.1); C.quoins(b, x1, y1, -1, -1, 0, ez - 0.1);
@@ -37,13 +40,13 @@
     /* 背面玻璃凸间：矮砖墙 + 白色木窗 + 玻璃山墙顶 */
     var gz = 2.3, dz = 0.75, gout = [{ p: [rx1, y1], n: 'n' }, { p: [rx1, y1 + rp], n: 'w' }, { p: [rx0, y1 + rp], n: 's' }, { p: [rx0, y1], n: 'x' }];
     function pane(L, n) { return [{ s: L / 2, w: L - 0.16, z0: dz + 0.02, z1: gz - 0.1, lights: n, sill: false }]; }
-    b.walls('wallRear', gout, false, 0.25, 0, dz, null);
+    b.walls('wallRear', gout, false, 0.25, 0, dz, null, 'inner');
     b.walls('trim', gout, false, 0.12, dz, gz, { n: pane(rp, 2), s: pane(rp, 2), w: pane(rx1 - rx0, 4) });
     b.box('slab', rx0, y1, P.groundZ, rx1, y1 + rp, 0);
     K.gable(b, b, { cx: (rx0 + rx1) / 2, faceY: y1 + rp, dir: 1, halfW: (rx1 - rx0) / 2, ovh: 0.12, verge: 0.12, pitch: P.kitPitch, plateZ: gz,
       parentY: function (z) { return y1 - (z - ez) / tk; }, limitY: y1 + o, roofMat: 'glassRoof', faceMat: 'glass', faceT: 0.04, roofT: 0.05, barge: 'trim', bargeD: 0.12 });
     /* 烟囱：照片里立在屋脊与斜脊面交点附近 */
-    C.chimney(b, P.kitChimX, yc, 0.33, 0.45, 0, ez, P.kitChimTopZ, [[0, -0.2], [0, 0.2]]);
+    C.chimney(b, P.kitChimX, yc, 0.33, 0.45, 0, rz - 0.25, P.kitChimTopZ, [[0, -0.2], [0, 0.2]]);
     b.build(G.kitchen, C.mats);
   };
 
@@ -52,7 +55,8 @@
     var K = C.Kit, b = new K.Batch(), D = P.mainDepth, x0 = P.sunX0, x1 = P.sunX1, y1 = D + P.sunProj, dz = P.sunDwarfZ, ez = P.sunEaveZ, cx = (x0 + x1) / 2, hw = (x1 - x0) / 2;
     var out = [{ p: [x1, D], n: 'n' }, { p: [x1, y1], n: 'w' }, { p: [x0, y1], n: 's' }, { p: [x0, D], n: 'x' }];
     function panes(L) { var n = Math.max(1, Math.round(L / 1.15)), a = [], i; for (i = 0; i < n; i++) a.push({ s: (i + 0.5) * L / n, w: L / n - 0.1, z0: dz + 0.02, z1: ez - 0.1, lights: 2, sill: false }); return a; }
-    b.walls('wallRear', out, false, 0.25, 0, dz, null);
+    b.walls('wallRear', out, false, 0.25, 0, dz, null, 'inner');
+    b.box('floor', x0 + 0.25, D, 0, x1 - 0.25, y1 - 0.25, 0.02);
     b.band('stone', out.map(function (o) { return o.p; }), false, 0.03, dz - 0.07, dz + 0.02);
     b.walls('trim', out, false, 0.12, dz, ez, { n: panes(P.sunProj), w: panes(x1 - x0), s: panes(P.sunProj) });
     b.box('slab', x0, D, P.groundZ, x1, y1, 0);

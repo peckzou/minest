@@ -35,7 +35,7 @@
   var O = { az: 0.55, el: 0.3, d: 46, t: new THREE.Vector3(1.6, 3.6, -3.4), auto: false };
   var VIEWS = {
     hero: [0.55, 0.3, 40], eye: [0, -0.075, 30], detail: [0.35, 0.02, 13], front: [0, 0.1, 38], rear: [Math.PI, 0.16, 38], south: [-Math.PI / 2, 0.14, 36], north: [Math.PI / 2, 0.14, 36],
-    top: [0, 1.52, 40], 'rear-n': [Math.PI - 0.7, 0.32, 46], 'rear-s': [Math.PI + 0.7, 0.32, 46], 'front-s': [-0.6, 0.3, 46], aerial: [0.25, 0.75, 38]
+    top: [0, 1.52, 40], section: [Math.PI / 2, 0.06, 30], sectionStair: [-Math.PI / 2, 0.06, 26], 'rear-n': [Math.PI - 0.7, 0.32, 46], 'rear-s': [Math.PI + 0.7, 0.32, 46], 'front-s': [-0.6, 0.3, 46], aerial: [0.25, 0.75, 38]
   };
   var fly = null;
   function setView(n, instant) {
@@ -77,12 +77,17 @@
   })();
 
   /* —— 水平剖切：把标高 h 以上的部分切掉，看室内布局 —— */
-  var clip = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0), CUT_MAX = 11.5;
+  var clip = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0), CUT_MAX = 11.5, cutOn = false;
+  /* 竖向剖面：垂直于南北轴（X）切开。side = 1 留南半边（从北往南看），−1 留北半边 */
+  var sec = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0), secOn = false;
+  function planes() { var a = []; if (cutOn) a.push(clip); if (secOn) a.push(sec); renderer.clippingPlanes = a; }
   function setCut(h) {
-    h = Math.max(0.3, Math.min(CUT_MAX, h));
-    if (h >= CUT_MAX - 0.01) { renderer.clippingPlanes = []; $('cutVal').textContent = '关'; }
-    else { clip.constant = h; renderer.clippingPlanes = [clip]; $('cutVal').textContent = '+' + h.toFixed(1) + ' m'; }
-    $('cut').value = h;
+    h = Math.max(0.3, Math.min(CUT_MAX, h)); cutOn = h < CUT_MAX - 0.01; clip.constant = h; planes();
+    $('cutVal').textContent = cutOn ? '+' + h.toFixed(1) + ' m' : '关'; $('cut').value = h;
+  }
+  function setSection(x, side) {
+    secOn = x != null; side = side || 1; if (secOn) { sec.normal.set(-side, 0, 0); sec.constant = side * x; } planes();
+    $('sec').classList.toggle('on', secOn);
   }
 
   /* —— 界面 —— */
@@ -98,11 +103,14 @@
   function setLayer(n, on) { if (G[n]) { G[n].visible = on; var cb = $('ly-' + n); if (cb) cb.checked = on; } }
   $('cut').max = CUT_MAX; $('cut').addEventListener('input', function () { setCut(+this.value); });
   $('auto').addEventListener('click', function () { O.auto = !O.auto; sync(); });
+  /* 剖面：穿过卧室 4 的后老虎窗和客厅（看斜顶、矮墙、各层层高），从北往南看；楼梯剖面沿楼梯井切开，从南往北看 */
+  $('sec').addEventListener('click', function () { if (secOn) { setSection(null); return; } all(true); setCut(CUT_MAX); setSection(-3.0, 1); setView('section'); });
+  $('secStair').addEventListener('click', function () { all(true); setCut(CUT_MAX); setSection(0.4, -1); setView('sectionStair'); });
   $('mode').addEventListener('click', function () { C.setMode(house, C.mode === 'final' ? 'white' : 'final'); sync(); });
-  [['roofOff', function () { setLayer('roof', false); setLayer('chimneys', false); setCut(CUT_MAX); }], ['f2', function () { all(true); setCut(P.floor2Z + 1.3 - P.groundZ * 0); }],
+  [['roofOff', function () { setSection(null); setLayer('roof', false); setLayer('chimneys', false); setCut(CUT_MAX); }], ['f2', function () { all(true); setCut(P.floor2Z + 1.3 - P.groundZ * 0); }],
     ['f1', function () { all(true); setCut(P.floor1Z + 1.4); }], ['f0', function () { all(true); setCut(1.5); }], ['whole', function () { all(true); setCut(CUT_MAX); }]
   ].forEach(function (a) { $(a[0]).addEventListener('click', a[1]); });
-  function all(on) { C.LAYERS.forEach(function (l) { setLayer(l[0], on); }); }
+  function all(on) { C.LAYERS.forEach(function (l) { setLayer(l[0], on); }); setSection(null); }
   /* 参数表 */
   (function () {
     var h = '<table><tr><th>参数</th><th>值</th><th>说明</th><th>来源</th><th>可信度</th></tr>';
@@ -123,6 +131,8 @@
 
   /* 地址参数：?view=front&cut=4.3&hide=roof,chimneys&auto=1&ui=0 */
   if (q.get('view')) setView(q.get('view'), true);
+  if (q.get('sec')) setSection(+q.get('sec'), q.get('secside') === 'n' ? -1 : 1);
+  if (q.get('cam')) { var cm = q.get('cam').split(',').map(Number); if (cm.length >= 3) { O.az = cm[0]; O.el = cm[1]; O.d = cm[2]; } if (cm.length >= 6) O.t.set(cm[3], cm[4], cm[5]); fly = null; }   /* ?cam=方位,仰角,距离,目标x,y,z */
   (q.get('hide') || '').split(',').forEach(function (n) { if (n) setLayer(n, false); });
   setCut(q.get('cut') ? +q.get('cut') : CUT_MAX);
   if (q.get('auto') === '1') O.auto = true;
@@ -142,6 +152,6 @@
   }
   requestAnimationFrame(loop);
 
-  C.app = { setView: setView, setCut: setCut, setMode: function (m) { C.setMode(house, m); sync(); }, setLayer: setLayer, orbit: O, stats: st, fps: function () { return fps; }, renderer: renderer, scene: scene, camera: camera, house: house,
+  C.app = { setView: setView, setCut: setCut, setSection: setSection, setMode: function (m) { C.setMode(house, m); sync(); }, setLayer: setLayer, orbit: O, stats: st, fps: function () { return fps; }, renderer: renderer, scene: scene, camera: camera, house: house,
     shot: function () { place(); renderer.render(scene, camera); return renderer.domElement.toDataURL('image/jpeg', 0.9); } };
 })();

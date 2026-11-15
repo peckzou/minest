@@ -28,6 +28,20 @@
     });
   };
 
+  /* 屋面上表面在 (x,y) 处的标高（主屋面、正面山墙、老虎窗、后山墙取最高者）。阁楼里的墙顶据此算。 */
+  C.roofSurface = function (x, y) {
+    var K = C.Kit, R = C.roofFns(), W = P.mainHalfW, z = Math.min(R.eastZ(y), R.westZ(y)), d;
+    if (y < R.ridgeY) [P.bayS, P.bayN].forEach(function (cx) {
+      d = Math.abs(x - cx); if (d < P.gableHalfW + P.roofOvh) z = Math.max(z, P.eaveZ + (P.gableHalfW - d) * K.tan(P.gablePitch));
+    });
+    if (Math.abs(x - P.dormX) < P.dormHalfW + 0.2 && y >= P.dormFaceY - 0.2) z = Math.max(z, P.dormEaveZ + K.tan(P.dormPitch) * (y - P.dormFaceY));
+    if (y > R.ridgeY) {
+      d = Math.abs(x - (P.rearStepX + W) / 2); if (d < P.rearGableHalfW + 0.3) z = Math.max(z, P.eaveZ + (P.rearGableHalfW - d) * R.tm);
+      d = Math.abs(x - P.rearDormX); if (d < P.rearDormHalfW + 0.3 && y <= P.rearDormFaceY + 0.25) z = Math.max(z, P.rearDormEaveZ + (P.rearDormHalfW - d) * K.tan(P.rearDormPitch));
+    }
+    return z;
+  };
+
   C.buildRoof = function (G) {
     var K = C.Kit, R = C.roofFns(), W = P.mainHalfW, D = P.mainDepth, o = P.roofOvh, L = W + P.roofVerge, t = P.roofT;
     var roof = new K.Batch(), attic = new K.Batch(), chim = new K.Batch();
@@ -35,18 +49,18 @@
     function west(pts) { roof.slab('roof', pts.map(function (p) { return [p[0], p[1], R.westZ(p[1])]; }), t); }
 
     /* —— 中央老虎窗（楼梯间）：斜披顶从主屋面中上部伸出，窗面略退在檐口线后；七扇窗 —— */
-    var dw = P.dormHalfW, fy = P.dormFaceY, td = K.tan(P.dormPitch), ze = P.dormEaveZ;
+    var dw = P.dormHalfW, dx0 = P.dormX - dw, dx1 = P.dormX + dw, fy = P.dormFaceY, td = K.tan(P.dormPitch), ze = P.dormEaveZ;
     var yM = (ze - td * fy - P.eaveZ) / (R.tm - td);                 /* 披顶与主屋面相交处 */
     function dz(y) { return ze + td * (y - fy); }
-    roof.slab('roof', [[-dw - 0.2, fy - 0.2, dz(fy - 0.2)], [dw + 0.2, fy - 0.2, dz(fy - 0.2)], [dw + 0.2, yM, dz(yM)], [-dw - 0.2, yM, dz(yM)]], 0.14);
-    roof.box('trim', -dw - 0.22, fy - 0.24, dz(fy - 0.2) - 0.2, dw + 0.22, fy - 0.19, dz(fy - 0.2) + 0.02);
-    attic.wall('trim', [-dw, fy], [dw, fy], 0.18, R.eastZ(fy) - 0.05, ze, [{ s: dw, w: 2 * dw - 0.2, z0: P.floor2Z + 0.22, z1: ze - 0.16, lights: 7, transom: false, sill: false }]);
-    [-1, 1].forEach(function (s) {
-      attic.extrude('trim', [[s * dw, fy, R.eastZ(fy)], [s * dw, fy, ze - 0.08], [s * dw, yM - 0.15, dz(yM - 0.15) - 0.08]], [-s * 0.15, 0, 0]);
+    roof.slab('roof', [[dx0 - 0.2, fy - 0.2, dz(fy - 0.2)], [dx1 + 0.2, fy - 0.2, dz(fy - 0.2)], [dx1 + 0.2, yM, dz(yM)], [dx0 - 0.2, yM, dz(yM)]], 0.14);
+    roof.box('trim', dx0 - 0.22, fy - 0.24, dz(fy - 0.2) - 0.2, dx1 + 0.22, fy - 0.19, dz(fy - 0.2) + 0.02);
+    attic.wall('trim', [dx0, fy], [dx1, fy], 0.18, R.eastZ(fy) - 0.05, ze, [{ s: dw, w: 2 * dw - 0.2, z0: P.floor2Z + 0.22, z1: ze - 0.16, lights: 7, transom: false, sill: false }], 0, 0, 'inner');
+    [[dx0, 1], [dx1, -1]].forEach(function (q) {
+      attic.extrude('trim', [[q[0], fy, R.eastZ(fy)], [q[0], fy, ze - 0.08], [q[0], yM - 0.15, dz(yM - 0.15) - 0.08]], [q[1] * 0.15, 0, 0]);
     });
 
     /* —— 东坡（正面）：中央老虎窗处开口，留檐口一条 —— */
-    east(-L, -dw, -o, R.ridgeY); east(dw, L, -o, R.ridgeY); east(-dw, dw, -o, fy); east(-dw, dw, yM, R.ridgeY);
+    east(-L, dx0, -o, R.ridgeY); east(dx1, L, -o, R.ridgeY); east(dx0, dx1, -o, fy); east(dx0, dx1, yM, R.ridgeY);
 
     /* —— 正面两座山墙：压在两层凸窗上方，挂瓦，白色封檐板和托架；屋脊向后插入东坡 —— */
     [P.bayS, P.bayN].forEach(function (cx) {
@@ -91,10 +105,23 @@
     })();
 
     /* —— 南北山墙端（檐口以上的三角墙），各有阁楼小窗；顶边收在屋面板内 —— */
-    var gp = [[0.12, P.eaveZ], [D - 0.12, P.eaveZ], [ry, R.ridgeZ - 0.12 * R.tm]];
-    function gw(s0) { return { s0: s0, s1: s0 + 0.55, z0: P.floor2Z + 0.7, z1: P.floor2Z + 1.4, lights: 1, transom: false }; }
-    K.face(attic, { org: [-W, 0], U: [0, 1], N: [1, 0], pts: gp, t: P.wallExt, mat: 'wall', wins: [gw(4.2)] });
-    K.face(attic, { org: [W, 0], U: [0, 1], N: [-1, 0], pts: gp, t: P.wallExt, mat: 'wall', wins: [gw(2.05), gw(4.2)] });
+    var gp = [[0.12, P.eaveZ], [D - 0.12, P.eaveZ], [ry, R.ridgeZ - 0.12 * R.tm]], we = P.wallExt;
+    function gw(s0, k) { return { s0: s0, s1: s0 + 0.55, z0: P.floor2Z + 0.7, z1: P.floor2Z + 1.4, lights: 1, transom: false, kind: k }; }
+    K.face(attic, { org: [-W, 0], U: [0, 1], N: [1, 0], pts: gp, t: we, mat: 'wall', wins: [gw(4.2)] });
+    K.face(attic, { org: [W, 0], U: [0, 1], N: [-1, 0], pts: gp, t: we, mat: 'wall', wins: [gw(2.05), gw(4.2)] });
+    /* 室内一面的抹灰（贴在山墙内侧） */
+    K.face(attic, { org: [-W + we, 0], U: [0, 1], N: [1, 0], pts: gp, t: 0.01, mat: 'inner', wins: [gw(4.2, 'open')] });
+    K.face(attic, { org: [W - we, 0], U: [0, 1], N: [-1, 0], pts: gp, t: 0.01, mat: 'inner', wins: [gw(2.05, 'open'), gw(4.2, 'open')] });
+    (function () {                                             /* 后山墙内侧抹灰 */
+      var tg = R.tm, aF = rg.apexZ - t * 0.6 * Math.sqrt(1 + tg * tg), hw = (aF - P.eaveZ) / tg;
+      K.face(attic, { org: [gx, D + P.rearStep - we], U: [1, 0], N: [0, -1], pts: [[-hw, P.eaveZ], [hw, P.eaveZ], [0, aF]], t: 0.01, mat: 'inner',
+        wins: [{ s0: -0.55, s1: 0.55, z0: P.floor2Z + 0.5, z1: P.floor2Z + 1.15, kind: 'open' }] });
+    })();
+    /* 阁楼屋脊下的水平吊顶（两坡之间） */
+    (function () {
+      var zc = P.floor2Z + P.atticCeil, y0 = R.eastY(zc + 0.25), y1 = R.westY(zc + 0.25);
+      roof.box('ceil', -W + we, y0, zc - 0.05, W - we, y1, zc);
+    })();
     /* 屋脊 */
     roof.box('ridge', -L, ry - 0.1, R.ridgeZ - 0.06, L, ry + 0.1, R.ridgeZ + 0.08);
 
@@ -106,8 +133,9 @@
     [P.rearStepX - 0.14, -1.25].forEach(function (x) { roof.cyl('iron', x, D + 0.07, P.groundZ, zg - 0.2, 0.045, 0.045, 10); });
 
     /* —— 主烟囱：屋脊南北两端。南：斜向 45°；北：长边垂直于屋脊 —— */
-    C.chimney(chim, -W + P.chimInset, ry, 0.5, 0.5, Math.PI / 4, P.floor2Z, P.chimTopZ, [[-0.22, -0.22], [0.22, -0.22], [-0.22, 0.22], [0.22, 0.22]]);
-    C.chimney(chim, W - P.chimInset, ry, 0.4, 0.68, 0, P.floor2Z, P.chimTopZ, [[0, -0.42], [0, -0.14], [0, 0.14], [0, 0.42]]);
+    var zc0 = P.floor2Z + P.atticCeil - 0.05;
+    C.chimney(chim, -W + P.chimInset, ry, 0.5, 0.5, Math.PI / 4, zc0, P.chimTopZ, [[-0.22, -0.22], [0.22, -0.22], [-0.22, 0.22], [0.22, 0.22]]);
+    C.chimney(chim, W - P.chimInset, ry, 0.4, 0.68, 0, zc0, P.chimTopZ, [[0, -0.42], [0, -0.14], [0, 0.14], [0, 0.42]]);
 
     roof.build(G.roof, C.mats); attic.build(G.attic, C.mats); chim.build(G.chimneys, C.mats);
   };

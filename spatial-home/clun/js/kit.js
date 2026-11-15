@@ -30,14 +30,15 @@
   /* 凸平面多边形 */
   Batch.prototype.fan = function (mat, pts) { for (var i = 1; i < pts.length - 1; i++) this.tri(mat, pts[0], pts[i], pts[i + 1]); };
   /* 凸平面多边形沿 off 拉伸成实体 */
-  Batch.prototype.extrude = function (mat, pts, off) {
+  Batch.prototype.extrude = function (mat, pts, off, offMat, sideMat) {
     var n = newell(pts); if (dot(n, off) > 0) pts = pts.slice().reverse();
     var q = pts.map(function (p) { return add(p, off); }), L = pts.length;
-    this.fan(mat, pts); this.fan(mat, q.slice().reverse());
-    for (var i = 0; i < L; i++) { var j = (i + 1) % L; this.fan(mat, [pts[i], q[i], q[j], pts[j]]); }
+    this.fan(mat, pts); this.fan(offMat || mat, q.slice().reverse());
+    for (var i = 0; i < L; i++) { var j = (i + 1) % L; this.fan(sideMat || mat, [pts[i], q[i], q[j], pts[j]]); }
   };
   /* 屋面板：pts 是屋面上表面，向下加厚 t */
-  Batch.prototype.slab = function (mat, pts, t) { var n = newell(pts); if (n[2] < 0) n = mul(n, -1); this.extrude(mat, pts, mul(n, -t)); };
+  /* 屋瓦的底面默认是室内天花 / 檐下封板（ceil） */
+  Batch.prototype.slab = function (mat, pts, t, under) { var n = newell(pts); if (n[2] < 0) n = mul(n, -1); this.extrude(mat, pts, mul(n, -t), under || (mat === 'roof' ? 'ceil' : mat)); };
   /* 轴对齐盒 */
   Batch.prototype.box = function (mat, x0, y0, z0, x1, y1, z1) {
     this.extrude(mat, [[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]], [0, 0, z0 - z1]);
@@ -48,19 +49,44 @@
     function pt(u, v) { return [cx + u * c - v * s, cy + u * s + v * c, z1]; }
     this.extrude(mat, [pt(-hx, -hy), pt(hx, -hy), pt(hx, hy), pt(-hx, hy)], [0, 0, z0 - z1]);
   };
-  /* 任意（可凹）平面轮廓 pts2 = [[x,y],…] 在 z0..z1 之间的柱体：楼板用 */
-  Batch.prototype.prism = function (mat, pts2, z0, z1) {
-    var con = pts2.map(function (p) { return new THREE.Vector2(p[0], p[1]); });
+  /* 任意（可凹）平面轮廓 pts2 = [[x,y],…] 在 z0..z1 之间的柱体：楼板用。holes = 洞口轮廓列表；under = 底面材质（天花） */
+  Batch.prototype.prism = function (mat, pts2, z0, z1, holes, under) {
+    function V(p) { return new THREE.Vector2(p[0], p[1]); }
+    var con = pts2.map(V);
     if (THREE.ShapeUtils.isClockWise(con)) { con.reverse(); pts2 = pts2.slice().reverse(); }
-    var f = THREE.ShapeUtils.triangulateShape(con, []), self = this;
+    var hs = (holes || []).map(function (h) { var v = h.map(V); if (!THREE.ShapeUtils.isClockWise(v)) { v.reverse(); h = h.slice().reverse(); } return { v: v, p: h }; });
+    var all = pts2.concat.apply(pts2, hs.map(function (h) { return h.p; }));
+    var f = THREE.ShapeUtils.triangulateShape(con, hs.map(function (h) { return h.v; })), self = this;
     f.forEach(function (t) {
-      var a = pts2[t[0]], b = pts2[t[1]], c = pts2[t[2]];
+      var a = all[t[0]], b = all[t[1]], c = all[t[2]];
       if ((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]) < 0) { var x = b; b = c; c = x; }
       self.tri(mat, [a[0], a[1], z1], [b[0], b[1], z1], [c[0], c[1], z1]);
-      self.tri(mat, [a[0], a[1], z0], [c[0], c[1], z0], [b[0], b[1], z0]);
+      self.tri(under || mat, [a[0], a[1], z0], [c[0], c[1], z0], [b[0], b[1], z0]);
     });
-    for (var i = 0; i < pts2.length; i++) { var p = pts2[i], q = pts2[(i + 1) % pts2.length];
-      this.fan(mat, [[p[0], p[1], z1], [p[0], p[1], z0], [q[0], q[1], z0], [q[0], q[1], z1]]); }
+    [pts2].concat(hs.map(function (h) { return h.p; })).forEach(function (loop) {
+      for (var i = 0; i < loop.length; i++) { var p = loop[i], q = loop[(i + 1) % loop.length];
+        self.fan(mat, [[p[0], p[1], z1], [p[0], p[1], z0], [q[0], q[1], z0], [q[0], q[1], z1]]); }
+    });
+  };
+  /* 把逆时针轮廓向内收 d（数字，或每条边一个数：边 i 是 pts[i]→pts[i+1]） */
+  K.inset = function (pts, d) {
+    var N = pts.length, lines = [], out = [], i;
+    for (i = 0; i < N; i++) {
+      var a = pts[i], b = pts[(i + 1) % N], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.sqrt(dx * dx + dy * dy) || 1, u = [dx / l, dy / l], dd = typeof d === 'number' ? d : d[i];
+      lines.push({ p: [a[0] - u[1] * dd, a[1] + u[0] * dd], u: u });
+    }
+    for (i = 0; i < N; i++) {
+      var A = lines[(i - 1 + N) % N], B = lines[i], den = A.u[0] * B.u[1] - A.u[1] * B.u[0];
+      if (Math.abs(den) < 1e-9) { out.push(B.p.slice()); continue; }
+      var wx = B.p[0] - A.p[0], wy = B.p[1] - A.p[1], s = (wx * B.u[1] - wy * B.u[0]) / den;
+      out.push([A.p[0] + A.u[0] * s, A.p[1] + A.u[1] * s]);
+    }
+    return out;
+  };
+  /* 两点之间的方截面梁（扶手等）：w 水平宽、h 竖向高 */
+  Batch.prototype.beam = function (mat, A, B, w, h) {
+    var d = [B[0] - A[0], B[1] - A[1], B[2] - A[2]], hl = Math.sqrt(d[0] * d[0] + d[1] * d[1]) || 1, sx = -d[1] / hl * w / 2, sy = d[0] / hl * w / 2;
+    this.extrude(mat, [[A[0] + sx, A[1] + sy, A[2] - h / 2], [A[0] - sx, A[1] - sy, A[2] - h / 2], [A[0] - sx, A[1] - sy, A[2] + h / 2], [A[0] + sx, A[1] + sy, A[2] + h / 2]], d);
   };
   /* 现成的 THREE 几何体（如圆柱、带洞拉伸体），m 是放到工程坐标里的矩阵 */
   Batch.prototype.geom = function (mat, g, m) {
@@ -114,15 +140,24 @@
   };
 
   /* 一段墙。p0→p1 是外墙面线，室内在行进方向左手边，厚 t 向内。ops = 洞口：
-     { c:[x,y] 或 s:沿墙距离, w, z0, z1, kind:'glass'|'door'|'open', …窗的细部参数 }。e0/e1 = 两端延长（补阴角）。 */
-  Batch.prototype.wall = function (mat, p0, p1, t, z0, z1, ops, e0, e1) {
+     { c:[x,y] 或 s:沿墙距离, w, z0, z1, kind:'glass'|'door'|'open', frame(门套), …窗的细部参数 }。e0/e1 = 两端延长（补阴角）。
+     inner = 室内一面的材质（缺省同 mat）。 */
+  Batch.prototype.wall = function (mat, p0, p1, t, z0, z1, ops, e0, e1, inner) {
     var dx = p1[0] - p0[0], dy = p1[1] - p0[1], L = Math.sqrt(dx * dx + dy * dy); if (L < 1e-6) return;
-    var u = [dx / L, dy / L], nl = [-u[1], u[0]], self = this;
+    var u = [dx / L, dy / L], nl = [-u[1], u[0]], self = this, im = inner || mat;
     function at(s, d, z) { return [p0[0] + u[0] * s + nl[0] * d, p0[1] + u[1] * s + nl[1] * d, z]; }
+    function box6(m, sa, sb, za, zb, d0, d1) {
+      var oa = at(sa, d0, za), ob = at(sb, d0, za), OA = at(sa, d0, zb), OB = at(sb, d0, zb), ia = at(sa, d1, za), ib = at(sb, d1, za), IA = at(sa, d1, zb), IB = at(sb, d1, zb);
+      self.fan(m, [oa, ob, OB, OA]); self.fan(m, [ib, ia, IA, IB]); self.fan(m, [OA, OB, IB, IA]); self.fan(m, [oa, ia, ib, ob]);
+      self.fan(m, [oa, OA, IA, ia]); self.fan(m, [ob, ib, IB, OB]);
+    }
+    /* 外墙分两层：外面 0.14 m 是外墙材质（窗洞外侧的砖侧壁），里面是室内抹灰（窗洞内侧的侧壁也是抹灰） */
     function piece(sa, sb, za, zb) {
       if (sb - sa < 1e-4 || zb - za < 1e-4) return;
-      self.extrude(mat, [at(sa, 0, zb), at(sb, 0, zb), at(sb, t, zb), at(sa, t, zb)], [0, 0, za - zb]);
+      if (im === mat || t < 0.2) { box6(mat, sa, sb, za, zb, 0, t); return; }
+      box6(mat, sa, sb, za, zb, 0, 0.14); box6(im, sa, sb, za, zb, 0.14, t);
     }
+    function trim(sa, sb, za, zb, d0, d1) { self.extrude('trim', [at(sa, d0, zb), at(sb, d0, zb), at(sb, d1, zb), at(sa, d1, zb)], [0, 0, za - zb]); }
     var list = [];
     (ops || []).forEach(function (o) {
       var s = o.s != null ? o.s : (o.c[0] - p0[0]) * u[0] + (o.c[1] - p0[1]) * u[1];
@@ -135,13 +170,16 @@
       piece(cur, r.a, z0, z1); piece(r.a, r.b, z0, r.z0); piece(r.a, r.b, r.z1, z1);
       var kind = r.o.kind || 'glass';
       if (kind !== 'open') K.windowAt(self, function (s, d, z) { return at(r.a + s, d, z); }, r.b - r.a, r.z0, r.z1, r.o);
+      else if (r.o.frame) [[-0.02, 0], [t, t + 0.02]].forEach(function (d) {      /* 门套：两面各一圈 */
+        trim(r.a - 0.07, r.a, r.z0, r.z1 + 0.07, d[0], d[1]); trim(r.b, r.b + 0.07, r.z0, r.z1 + 0.07, d[0], d[1]); trim(r.a, r.b, r.z1, r.z1 + 0.07, d[0], d[1]);
+      });
       cur = r.b;
     });
     piece(cur, L + (e1 || 0), z0, z1);
   };
   /* 一圈墙。list = [{p:[x,y], n:'段名'}…]，段 i 从 list[i] 到 list[i+1]；closed 时最后一点连回第一点。
      室内在左手边。阴角（右转）处自动把相邻两段各延长一点补齐。ops[段名] = 该段洞口。mat 可以是 函数(段名)→材质名。 */
-  Batch.prototype.walls = function (mat, list, closed, t, z0, z1, ops) {
+  Batch.prototype.walls = function (mat, list, closed, t, z0, z1, ops, inner) {
     var N = list.length, segs = closed ? N : N - 1, i;
     function dir(i) { var a = list[i % N].p, b = list[(i + 1) % N].p, l = Math.sqrt(Math.pow(b[0] - a[0], 2) + Math.pow(b[1] - a[1], 2)) || 1; return [(b[0] - a[0]) / l, (b[1] - a[1]) / l]; }
     function ext(i) {   /* 段 i 起点处的补长 */
@@ -151,7 +189,7 @@
     }
     for (i = 0; i < segs; i++) {
       var e1 = (!closed && i === segs - 1) ? 0 : ext((i + 1) % N), nm = list[i].n;
-      this.wall(typeof mat === 'function' ? mat(nm) : mat, list[i].p, list[(i + 1) % N].p, t, z0, z1, ops && ops[nm], ext(i), e1);
+      this.wall(typeof mat === 'function' ? mat(nm) : mat, list[i].p, list[(i + 1) % N].p, t, z0, z1, ops && ops[nm], ext(i), e1, inner);
     }
   };
   /* 贴在外墙面上的一圈线脚 / 勒脚：pts = [[x,y]…]（外墙面线，室内在左），向外凸 out，标高 z0..z1。阳角处自动接齐。 */
@@ -182,8 +220,25 @@
     var m = new THREE.Matrix4().set(o.U[0], 0, o.N[0], o.org[0], o.U[1], 0, o.N[1], o.org[1], 0, 1, 0, 0, 0, 0, 0, 1);
     b.geom(o.mat, g, m);
     (o.wins || []).forEach(function (w) {
+      if (w.kind === 'open') return;
       K.windowAt(b, function (s, d, z) { return [o.org[0] + o.U[0] * (w.s0 + s) + o.N[0] * d, o.org[1] + o.U[1] * (w.s0 + s) + o.N[1] * d, z]; }, w.s1 - w.s0, w.z0, w.z1, w);
     });
+  };
+  /* 顶边跟着函数 top(x,y) 走的墙（阁楼里贴着屋面的墙）。p0→p1 是墙中线，厚 t。doors = [{ s 沿墙距离, w, h }]，从地面开口。 */
+  K.cutWall = function (b, mat, p0, p1, t, z0, top, doors) {
+    var dx = p1[0] - p0[0], dy = p1[1] - p0[1], L = Math.sqrt(dx * dx + dy * dy); if (L < 1e-6) return;
+    var U = [dx / L, dy / L], N = [-U[1], U[0]], org = [p0[0] - N[0] * t / 2, p0[1] - N[1] * t / 2], pts = [[0, z0]], i;
+    function zt(s) { return Math.max(z0 + 0.03, top(p0[0] + U[0] * s, p0[1] + U[1] * s)); }
+    (doors || []).slice().sort(function (a, c) { return a.s - c.s; }).forEach(function (d) {
+      var a = d.s - d.w / 2, c = d.s + d.w / 2, h = Math.min(z0 + (d.h || 2.0), Math.min(zt(a), zt(c)) - 0.05);
+      pts.push([a, z0], [a, h], [c, h], [c, z0]);
+    });
+    pts.push([L, z0]);
+    var n = Math.max(2, Math.ceil(L / 0.1));
+    for (i = n; i >= 0; i--) pts.push([L * i / n, zt(L * i / n)]);
+    pts.pop();                                                 /* 最后一点（0, 顶）和起点同列，留一个就行 */
+    pts.push([0, zt(0)]);
+    K.face(b, { org: org, U: U, N: N, pts: pts, t: t, mat: mat });
   };
   /* 山墙式屋顶（两坡，屋脊沿 Y），一端是山墙面，另一端插进一个母屋面或顶在一面墙上。
      o = { cx, faceY, dir(+1 山墙面朝西 / −1 朝东), halfW(墙面半宽), ovh, verge, pitch, plateZ(半宽处屋面标高),
