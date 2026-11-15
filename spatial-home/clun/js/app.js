@@ -67,7 +67,8 @@
     el.style.touchAction = 'none';
     el.addEventListener('contextmenu', function (e) { e.preventDefault(); });
     el.addEventListener('pointerdown', function (e) { el.setPointerCapture(e.pointerId); pts[e.pointerId] = { x: e.clientX, y: e.clientY, b: e.button }; last = null; fly = null; O.auto = false; sync(); });
-    el.addEventListener('pointerup', function (e) { delete pts[e.pointerId]; last = null; });
+    el.addEventListener('pointerup', function (e) { var p0 = pts[e.pointerId]; delete pts[e.pointerId]; last = null;
+      if (VAL && VAL.tap && p0 && Math.abs(e.clientX - p0.x) + Math.abs(e.clientY - p0.y) < 10) VAL.tap(e.clientX, e.clientY); });   /* 外景：点房门进屋 */
     el.addEventListener('pointercancel', function (e) { delete pts[e.pointerId]; last = null; });
     el.addEventListener('pointermove', function (e) {
       var p = pts[e.pointerId]; if (!p) return;

@@ -18,7 +18,7 @@
     /* 原房子的轮廓（要抹掉的范围）。底边在门前花丛处抬高，花丛和台阶保留 */
     mask: [[425, 1040], [425, 730], [488, 556], [494, 446], [582, 446], [582, 548], [962, 552], [965, 552], [1040, 552], [1044, 664], [1118, 730], [1162, 730],
       [1172, 780], [1210, 836], [1284, 924], [1284, 1044], [1142, 1044], [1142, 1012], [808, 1012], [808, 1046]],
-    path: [[330, 1026], [812, 1026], [812, 1104], [330, 1104]],          /* 房前那条土路：铺成草地 */
+    path: [[300, 990], [830, 990], [830, 1112], [300, 1112]],          /* 房前那条土路：铺成草地 */
     bush: { rect: [322, 790, 560, 1046], src: [200, 70, 420, 420] },    /* 房子左前方一丛树叶（取自左上大树的叶子），挡住左端 */
     /* 动画区域（底图像素） */
     fall: [[1973, 52], [1999, 52], [1986, 320], [1967, 540], [1948, 705], [1890, 705], [1922, 540], [1946, 320]],
@@ -29,6 +29,7 @@
     walk: [[760, 1330], [985, 1222]],   /* 小旅人来回走的石板路两端（近景） */
     table: [[1985, 1405], [2095, 1392]], /* 远景里小旅人的位置：石桌左前方的草地 */
     heroScale: 0.72,                     /* 小旅人整体缩小 */
+    mound: { h: 0.35, reach: 4.5, sample: 28 },   /* 小山丘：墙根处比房子地面高 0.35 m，向外 4.5 m 落到草地；颜色取下方 70 像素处的草 */
     pathDrop: 0.45                      /* 小路比房子台地低多少（米） */
   };
 
@@ -111,9 +112,19 @@
     pg.globalCompositeOperation = 'destination-in'; var fg = pg.createLinearGradient(0, 0, 40, 0); fg.addColorStop(0, 'rgba(0,0,0,0)'); fg.addColorStop(1, 'rgba(0,0,0,1)'); pg.fillStyle = fg; pg.fillRect(0, 0, fw, fh);
     bg.drawImage(pc, fx0, fy0);
     g.drawImage(band, 0, 0);
-    g.drawImage(img, 330, 1098, 482, 52, 330, 1028, 482, 76);          /* 土路换成正下方的草坪 */
-    var sh = g.createLinearGradient(330, 0, 700, 0); sh.addColorStop(0, 'rgba(20,45,10,0.42)'); sh.addColorStop(0.65, 'rgba(20,45,10,0.3)'); sh.addColorStop(1, 'rgba(20,45,10,0)');
-    g.fillStyle = sh; g.fillRect(330, 1028, 370, 76);                  /* 左边在大树的树荫里：压暗，和周围的草一致 */
+    /* 房前的草坡：原图里草坡一直隆起到房子墙脚。把正下方的一段坡上草地拉高铺上去，上沿是一条平缓的坡顶曲线、四周羽化，
+       原来那条土路和房子墙脚之间的空当都变成连续的小山丘（房子和小路的高度差由 3D 的小山丘接上，见 buildValley） */
+    var lw = document.createElement('canvas'), LX0 = 270, LX1 = 840, LY0 = 975, LY1 = 1125; lw.width = LX1 - LX0; lw.height = LY1 - LY0; var lg = lw.getContext('2d');
+    lg.drawImage(img, LX0, 1105, LX1 - LX0, 95, 0, 0, LX1 - LX0, LY1 - LY0);
+    lg.globalCompositeOperation = 'destination-in';
+    var lm = document.createElement('canvas'); lm.width = lw.width; lm.height = lw.height; var lmg = lm.getContext('2d');
+    lmg.filter = 'blur(10px)'; lmg.fillStyle = '#000'; lmg.beginPath(); lmg.moveTo(40, lw.height - 14);
+    for (var xx = 40; xx <= lw.width - 20; xx += 10) { var t = (xx - 40) / (lw.width - 60), crest = 1003 + 10 * t - 9 * Math.sin(t * Math.PI); lmg.lineTo(xx, crest - LY0); }
+    lmg.lineTo(lw.width - 20, lw.height - 14); lmg.closePath(); lmg.fill();
+    lg.drawImage(lm, 0, 0); lg.globalCompositeOperation = 'source-over';
+    g.drawImage(lw, LX0, LY0);
+    var shg = g.createLinearGradient(0, 990, 0, 1120); shg.addColorStop(0, 'rgba(255,250,210,0.10)'); shg.addColorStop(0.35, 'rgba(255,250,210,0)'); shg.addColorStop(1, 'rgba(20,45,10,0.18)');
+    g.save(); g.globalCompositeOperation = 'source-atop'; g.fillStyle = shg; g.fillRect(LX0 + 40, 985, LX1 - LX0 - 60, 135); g.restore();   /* 坡顶受光、坡脚稍暗：有小山丘的起伏 */
     /* 遮罩：原房子的轮廓，低分辨率，放大时边缘自然羽化 */
     var f = 16, mk = document.createElement('canvas'); mk.width = Math.round(W / f); mk.height = Math.round(H / f); var mg = mk.getContext('2d');
     mg.fillStyle = '#000'; mg.fillRect(0, 0, mk.width, mk.height); mg.fillStyle = '#fff'; mg.beginPath();
@@ -137,6 +148,7 @@
       [src, pm.patch, pm.mask, rt].forEach(function (d) { disp.push(d); });
       back.material.uniforms.map.value = rt.texture; back.visible = true;
       bush.material.uniforms.map.value = rt.texture; bush.visible = true;
+      mound.material.uniforms.map.value = rt.texture; mound.visible = true;
     };
     img.src = PL.img;
 
@@ -180,6 +192,49 @@
       root.add(mesh); disp.push(g, m); return mesh;
     })();
     house.traverse(function (o) { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+
+    /* —— 房子脚下的小山丘：草地从四周缓缓隆起，盖住墙脚那条硬边。
+       颜色取底图里每一点正下方一段的草地（按固定机位投影算好的贴图坐标），越往外越透明，和原来的草地融成一片 —— */
+    var mound = (function () {
+      var ry = holder.rotation.y; holder.rotation.y = 0; holder.updateMatrixWorld(true);
+      var bx = new THREE.Box3().setFromObject(house); holder.rotation.y = ry; holder.updateMatrixWorld(true);
+      var c0 = holder.position, ax0 = bx.min.x - c0.x + 0.2, ax1 = bx.max.x - c0.x - 0.2, az0 = bx.min.z - c0.z + 0.2, az1 = bx.max.z - c0.z - 0.2;
+      var y0 = c0.y - 0.3, H = PL.mound.h, L = PL.mound.reach, st = 0.3, cs = Math.cos(ry), sn = Math.sin(ry), inv = cam.quat.clone().invert();
+      var nx = Math.ceil((ax1 - ax0 + 2 * L) / st), nz = Math.ceil((az1 - az0 + 2 * L) / st), pos = [], uv = [], sh = [], al = [], idx = [], i, j;
+      function toPx(w) { var v = w.clone().sub(cam.pos).applyQuaternion(inv); return [(v.x / -v.z / Wn + 0.5) * PL.W, (0.5 - v.y / -v.z / Hn) * PL.H]; }
+      /* 房子墙脚在底图上的下沿：四条外墙脚线投影后，每个 x 取最低（最靠前）的那条；山丘只露在这条线以下 */
+      var corners = [[ax0, az0], [ax1, az0], [ax1, az1], [ax0, az1]].map(function (q) { return toPx(new THREE.Vector3(c0.x + q[0] * cs + q[1] * sn, y0, c0.z - q[0] * sn + q[1] * cs)); });
+      var pxMin = Math.min.apply(null, corners.map(function (q) { return q[0]; })), pxMax = Math.max.apply(null, corners.map(function (q) { return q[0]; }));
+      function baseAt(px) {
+        var x = Math.max(pxMin, Math.min(pxMax, px)), best = -1e9;
+        for (var e = 0; e < 4; e++) { var A = corners[e], B = corners[(e + 1) % 4]; if ((x - A[0]) * (x - B[0]) <= 0 && A[0] !== B[0]) best = Math.max(best, A[1] + (B[1] - A[1]) * (x - A[0]) / (B[0] - A[0])); }
+        return best;
+      }
+      function sm(e0, e1, x) { var t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0))); return t * t * (3 - 2 * t); }
+      for (j = 0; j <= nz; j++) for (i = 0; i <= nx; i++) {
+        var lx = ax0 - L + i * st, lz = az0 - L + j * st;
+        var dx = Math.max(0, ax0 - lx, lx - ax1), dz = Math.max(0, az0 - lz, lz - az1), dd = Math.sqrt(dx * dx + dz * dz);
+        var h = H * (1 - sm(0, L, dd)), wx = c0.x + lx * cs + lz * sn, wz = c0.z - lx * sn + lz * cs, w = new THREE.Vector3(wx, y0 + h, wz);
+        pos.push(wx, y0 + h, wz);
+        var v = w.clone().sub(cam.pos).applyQuaternion(inv), u = v.x / -v.z / Wn + 0.5, vv = 0.5 + v.y / -v.z / Hn;
+        uv.push(u, vv - PL.mound.sample / PL.H);
+        sh.push((0.82 + 0.18 * sm(0, 0.9, dd)) * (1.04 - 0.06 * sm(0, L, dd)));      /* 墙根处压暗一点（接触阴影），坡顶亮、坡脚暗 */
+        var pp = toPx(new THREE.Vector3(wx, y0, wz)), side = Math.max(0, pxMin - pp[0], pp[0] - pxMax);
+        al.push((1 - sm(L * 0.45, L, dd)) * sm(-12, 18, pp[1] - baseAt(pp[0])) * (1 - sm(20, 160, side)));   /* 只在墙脚线以下；房子两侧往外很快淡掉 */
+      }
+      for (j = 0; j < nz; j++) for (i = 0; i < nx; i++) { var k = j * (nx + 1) + i; idx.push(k, k + nx + 1, k + 1, k + 1, k + nx + 1, k + nx + 2); }
+      var g = new THREE.BufferGeometry(); g.setIndex(idx);
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+      g.setAttribute('shade', new THREE.Float32BufferAttribute(sh, 1)); g.setAttribute('alpha', new THREE.Float32BufferAttribute(al, 1));
+      var m = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, side: THREE.DoubleSide, uniforms: { map: { value: null } },
+        vertexShader: 'attribute float shade; attribute float alpha; varying vec2 vUv; varying float vS; varying float vA; void main(){ vUv = uv; vS = shade; vA = alpha; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+        fragmentShader: ['uniform sampler2D map; varying vec2 vUv; varying float vS; varying float vA;',
+          'float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
+          'void main(){ vec3 c = texture2D(map, vUv).rgb * vS;',
+          '  float a = vA * (0.85 + 0.15 * h2(floor(gl_FragCoord.xy / 3.0)));',
+          '  if (a < 0.02) discard; gl_FragColor = vec4(c, a); }'].join('\n') });
+      var mesh = new THREE.Mesh(g, m); mesh.renderOrder = 2; mesh.visible = false; mesh.frustumCulled = false; root.add(mesh); disp.push(g, m); return mesh;
+    })();
 
     /* —— 小旅人：在石板路上来回走（路面高度 = 房子台地往下 pathDrop 米，两端由底图像素的射线和路面求交） —— */
     var hero = C.Hero.build(), gy = holder.position.y - 0.3 - PL.pathDrop;
@@ -237,13 +292,101 @@
     var glow = document.createElement('div');                             /* 展开时从折痕处扫过的一道柔光 */
     glow.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:3;opacity:0;background:linear-gradient(90deg,rgba(255,250,235,0) 35%,rgba(255,250,235,.55) 50%,rgba(255,250,235,0) 65%);background-size:300% 100%;';
     document.body.appendChild(glow); disp.push({ dispose: function () { glow.remove(); } });
+    /* —— 进门：点房门 → 镜头推到门口 → 进屋、穿过门厅、上楼梯到二楼 → 进书房（南侧前面那间）。
+       Minest 开屏用（?entry=1）：走完给外层发 {clun:'enter'}，外层接着打开房间。随时可跳过。 —— */
+    var DOOR = { x: [800, 940], y: [895, 1040], c: [868, 985] }, lastC = null, walk = null, ENTRY = Q.get('entry') === '1';
+    function E(x, y, z) { house.updateMatrixWorld(true); return house.localToWorld(new THREE.Vector3(x, y, z)); }   /* 工程坐标（X 北、Y 进深、Z 上）→ 场景 */
+    var F1 = C.P.floor1Z, EYE = 1.55;
+    /* 白光一闪进到门厅 → 沿楼梯左侧往里走（不穿扶手）→ 绕到梯脚 → 顺着梯段往前上 → 转角踏步 → 二楼平台；
+       再一闪进书房（南侧前间），慢慢走向凸窗 */
+    var camPath = new THREE.CatmullRomCurve3([E(0, 0.55, 1.55), E(0.05, 1.6, 1.6), E(0.25, 3.3, 1.6), E(1.05, 3.85, 1.6),
+      E(1.17, 2.4, 0.75 + EYE), E(1.17, 1.5, 1.55 + EYE)], false, 'centripetal');
+    var lookPath = new THREE.CatmullRomCurve3([E(0, 2.5, 1.5), E(0.1, 3.5, 1.55), E(0.6, 4.3, 1.6), E(1.17, 2.6, 1.7), E(1.17, 0.9, 2.9)], false, 'centripetal');
+    var studyA = E(-1.2, 2.6, F1 + EYE), studyB = E(-2.6, 1.3, F1 + EYE), studyL = E(-3.42, -0.7, F1 + 1.25);
+    var veil = document.createElement('div');
+    veil.style.cssText = 'position:fixed;inset:0;pointer-events:none;opacity:0;z-index:30;background:radial-gradient(circle at 50% 55%, #fffaf0, #f3e6cf);transition:none';
+    document.body.appendChild(veil);
+    var ui = document.createElement('div'); ui.className = 'clun-entry';
+    ui.innerHTML = '<div class="ce-door" hidden><span class="ce-ring"></span><span class="ce-tip">轻点房门 · 进入</span></div>' +
+      '<button class="ce-skip" hidden>跳过动画 ›</button><button class="ce-go" hidden>直接进入房间 ›</button>';
+    document.body.appendChild(ui);
+    var css = document.createElement('style'); css.textContent =
+      '.clun-entry .ce-door{position:fixed;z-index:20;transform:translate(-50%,-50%);pointer-events:auto;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px}' +
+      '.clun-entry .ce-door[hidden],.clun-entry button[hidden]{display:none}' +
+      '.clun-entry .ce-ring{width:46px;height:46px;border-radius:50%;border:2px solid rgba(255,248,225,.95);box-shadow:0 0 18px rgba(255,235,180,.9),inset 0 0 12px rgba(255,235,180,.6);animation:cePulse 1.8s ease-in-out infinite}' +
+      '.clun-entry .ce-tip{font:600 13px/1 -apple-system,"PingFang SC",sans-serif;color:#fff;padding:7px 12px;border-radius:14px;background:rgba(40,52,40,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);white-space:nowrap}' +
+      '@keyframes cePulse{0%,100%{transform:scale(.85);opacity:.75}50%{transform:scale(1.15);opacity:1}}' +
+      '.clun-entry button{position:fixed;z-index:40;right:16px;font:600 13px/1 -apple-system,"PingFang SC",sans-serif;color:#fff;border:0;padding:10px 14px;border-radius:16px;background:rgba(30,36,30,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);cursor:pointer}' +
+      '.clun-entry .ce-skip{bottom:calc(16px + env(safe-area-inset-bottom))}.clun-entry .ce-go{top:calc(14px + env(safe-area-inset-top))}';
+    document.head.appendChild(css);
+    var doorEl = ui.querySelector('.ce-door'), skipEl = ui.querySelector('.ce-skip'), goEl = ui.querySelector('.ce-go');
+    doorEl.addEventListener('click', function () { enter(); });
+    skipEl.addEventListener('click', function () { finish(); }); goEl.addEventListener('click', function () { finish(); });
+    if (ENTRY) { goEl.hidden = false; document.body.classList.add('clun-entry-mode'); }
+    function post(m) { try { if (window.parent && window.parent !== window) window.parent.postMessage({ clun: m }, '*'); } catch (e) {} }
+    function enter() {
+      if (walk) return;
+      walk = { t0: performance.now() / 1000, from: lastC ? { cx: lastC.x + lastC.w / 2, cy: lastC.y + lastC.h / 2, w: lastC.w, h: lastC.h } : null, done: false };
+      doorEl.hidden = true; goEl.hidden = true; skipEl.hidden = false; post('entering');
+    }
+    function finish() {
+      if (walk && walk.done) return;
+      if (!walk) walk = { t0: performance.now() / 1000 - 99, from: null };
+      walk.done = true; skipEl.hidden = true; goEl.hidden = true; doorEl.hidden = true; veil.style.transition = 'opacity .35s'; veil.style.opacity = 1;
+      post('enter');
+      if (!ENTRY) setTimeout(function () { walk = null; veil.style.transition = 'opacity .6s'; veil.style.opacity = 0; if (ENTRY) goEl.hidden = false; }, 1600);   /* 独立页：回到外景 */
+    }
+    var WALK = { zoom: 1.3, flash: 0.35, inside: 7.0 }, near0 = null;
+    function walkCamera(camera, sz, va, now) {                            /* 返回 true = 这一帧的镜头由进门动画接管 */
+      if (!walk) return false;
+      var t = now - walk.t0;
+      if (walk.done) { if (t > 50) return true; }
+      if (t < WALK.zoom && !walk.done) {                                 /* 1. 推到门口：画框收向房门 */
+        var e = ease(Math.min(1, t / WALK.zoom)), to = { cx: DOOR.c[0], cy: DOOR.c[1], w: 150 * va, h: 150 };
+        var fr = walk.from || frameFor(kind, va), r = lerpR(fr, to, e), c = clampRect({ cx: r.cx, cy: r.cy, w: r.w, h: r.w / va }), s = sz.x / c.w;
+        veil.style.transition = 'none'; veil.style.opacity = Math.max(0, (t - (WALK.zoom - WALK.flash)) / WALK.flash).toFixed(3);
+        camera.position.copy(cam.pos); camera.quaternion.copy(cam.quat); camera.fov = vfov; camera.aspect = A;
+        camera.setViewOffset(PL.W * s, PL.H * s, c.x * s, c.y * s, sz.x, sz.y); camera.updateProjectionMatrix(); return true;
+      }
+      var u = walk.done ? 1 : Math.min(1, (t - WALK.zoom) / WALK.inside);
+      if (near0 == null) near0 = camera.near; camera.near = 0.05;                   /* 屋里贴着墙和扶手走：近裁剪面放到 5 cm */
+      camera.clearViewOffset(); camera.fov = 64; camera.aspect = va; camera.updateProjectionMatrix();
+      var U1 = 0.62, U2 = 0.7, op;                                       /* 0–U1 门厅到二楼平台；U1–U2 白光；U2–1 书房 */
+      if (u < U2 - 0.04) {
+        var a = Math.min(1, u / U1), k = a * a * (3 - 2 * a);
+        camera.position.copy(camPath.getPointAt(k)); camera.lookAt(lookPath.getPointAt(Math.min(1, k + 0.02)));
+        op = Math.max(1 - (t - WALK.zoom) / WALK.flash, (u - (U1 - 0.06)) / 0.06);
+      } else {
+        var b = (u - (U2 - 0.04)) / (1 - U2 + 0.04), kb = 1 - Math.pow(1 - b, 2);
+        camera.position.copy(studyA).lerp(studyB, kb); camera.lookAt(studyL);
+        op = Math.max(1 - (u - U2) / 0.07, (u - 0.93) / 0.07);
+      }
+      if (!walk.done) veil.style.opacity = Math.max(0, Math.min(1, op)).toFixed(3);
+      if (u >= 1 && !walk.done) finish();
+      return true;
+    }
+    function hitDoor(px, py) { return px > DOOR.x[0] && px < DOOR.x[1] && py > DOOR.y[0] && py < DOOR.y[1]; }
+    function placeDoorHint(c, sz) {
+      if (!ENTRY || walk || trans) { doorEl.hidden = true; return; }
+      var x = (DOOR.c[0] - c.x) / c.w * sz.x, y = (DOOR.c[1] - c.y) / c.h * sz.y, rect = renderer.domElement.getBoundingClientRect();
+      doorEl.hidden = x < 0 || x > sz.x || y < 0 || y > sz.y; doorEl.style.left = (rect.left + x) + 'px'; doorEl.style.top = (rect.top + y + 18) + 'px';
+    }
+    if (ENTRY) post('ready');
+
     return {
+      enter: enter, skipEntry: finish, walking: function () { return !!walk; },
+      tap: function (cx, cy) {                                           /* 点在房门上（底图坐标）就进门 */
+        if (!lastC || walk) return false;
+        var rect = renderer.domElement.getBoundingClientRect(), px = lastC.x + (cx - rect.left) / rect.width * lastC.w, py = lastC.y + (cy - rect.top) / rect.height * lastC.h;
+        if (hitDoor(px, py)) { enter(); return true; } return false;
+      },
       root: root, holder: holder, distance: d, hero: hero,
       kind: function () { return kind; },
       tick: function (t) { var dt = lastT == null ? 0 : t - lastT; lastT = t; C.Paint.time.value = t; hero.update(t, dt); },
       limits: function (a, zoom) { return { azMax: 0.5 * (1 - (zoom || 1)) + 0.0001 }; },
       place: function (camera, O) {
         var sz = renderer.getSize(new THREE.Vector2()), va = sz.x / Math.max(1, sz.y), now = performance.now() / 1000;
+        if (walkCamera(camera, sz, va, now)) return;
         var k = screenKind(sz.x, sz.y);
         if (k !== kind) { document.body.classList.toggle('duo-screen', (k === 'outer' || k === 'inner') && !PL.sim); var from = kind == null ? bootFrom : kind; kind = k; if (from && from !== k) { beginTransition(from, k, va, now); O.zoom = 1; O.az = O.el = 0; } else try { sessionStorage.setItem('clun.duo.kind', JSON.stringify({ k: k, t: Date.now() })); } catch (e) {} }
         var tgt = frameFor(k, va), r = tgt;
@@ -262,6 +405,7 @@
         var c = clampRect({ cx: r.cx, cy: r.cy, w: r.w, h: r.w / va }), s = sz.x / c.w;
         camera.position.copy(cam.pos); camera.quaternion.copy(cam.quat);
         camera.fov = vfov; camera.aspect = A; camera.setViewOffset(PL.W * s, PL.H * s, c.x * s, c.y * s, sz.x, sz.y); camera.updateProjectionMatrix();
+        lastC = c; placeDoorHint(c, sz); if (near0 != null) { camera.near = near0; near0 = null; camera.updateProjectionMatrix(); }
       },
       dispose: function () { scene.remove(root); disp.forEach(function (x) { try { x.dispose(); } catch (e) {} }); }
     };
