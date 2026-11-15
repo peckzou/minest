@@ -212,7 +212,7 @@
       var R = document.documentElement; if (R.classList.contains('duo-inner')) return 'inner'; if (R.classList.contains('duo-outer')) return 'outer';
       if (!(navigator.maxTouchPoints > 0)) return 'normal';                 /* 只在触屏设备上按尺寸猜，电脑窗口不算 */
       if (Math.min(w, h) >= 600 && Math.max(w, h) / Math.min(w, h) < 1.6) return 'inner';    /* 和 iPhoneDuo 页面的判定一致 */
-      return w / h < 0.62 ? 'outer' : 'normal';
+      return w < h ? 'outer' : 'normal';                                   /* 竖着的小屏 = 外屏（和 iPhoneDuo 页面一致）；横拿手机看全景 */
     }
     function clampRect(r) {                                               /* 矩形不超出底图 */
       var w = Math.min(r.w, PL.W, PL.H * r.w / r.h), h = w * r.h / r.w;
