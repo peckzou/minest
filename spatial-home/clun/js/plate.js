@@ -211,7 +211,7 @@
       var f = PL.sim || Q.get('duo'); if (f === 'outer' || f === 'inner') return f;
       var R = document.documentElement; if (R.classList.contains('duo-inner')) return 'inner'; if (R.classList.contains('duo-outer')) return 'outer';
       if (!(navigator.maxTouchPoints > 0)) return 'normal';                 /* 只在触屏设备上按尺寸猜，电脑窗口不算 */
-      if (Math.min(w, h) >= 600 && Math.max(w, h) / Math.min(w, h) < 1.35) return 'inner';
+      if (Math.min(w, h) >= 600 && Math.max(w, h) / Math.min(w, h) < 1.6) return 'inner';    /* 和 iPhoneDuo 页面的判定一致 */
       return w / h < 0.62 ? 'outer' : 'normal';
     }
     function clampRect(r) {                                               /* 矩形不超出底图 */
