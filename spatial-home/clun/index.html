@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Clun · 7 South Drive — Spatial Home</title>
+<style>
+  :root { --ink: #2b2a27; --mute: #77726a; --panel: rgba(255, 253, 249, .86); --line: rgba(60, 50, 40, .14); --accent: #b8553f; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: linear-gradient(#cfe0ee 0%, #e9eef0 46%, #efe9de 100%); color: var(--ink);
+    font: 13px/1.45 -apple-system, "PingFang SC", "Helvetica Neue", sans-serif; -webkit-user-select: none; user-select: none; }
+  #stage, #stage canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .card { position: fixed; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 6px 24px rgba(40, 30, 20, .08); }
+  #title { left: 14px; top: 14px; max-width: 300px; }
+  #title h1 { margin: 0; font: 600 17px/1.2 "Iowan Old Style", Georgia, "Songti SC", serif; letter-spacing: .01em; }
+  #title p { margin: 3px 0 0; color: var(--mute); font-size: 11.5px; }
+  #title .tag { display: inline-block; margin-top: 6px; padding: 1px 7px; border-radius: 9px; background: rgba(184, 85, 63, .12); color: var(--accent); font-size: 10.5px; letter-spacing: .04em; }
+  #panel { right: 14px; top: 14px; width: 212px; max-height: calc(100% - 52px); overflow: auto; }
+  #panel h2 { margin: 8px 0 5px; font-size: 10.5px; font-weight: 600; letter-spacing: .08em; color: var(--mute); }
+  #panel h2:first-child { margin-top: 0; }
+  .row { display: flex; flex-wrap: wrap; gap: 5px; }
+  button { font: inherit; color: var(--ink); background: #fff; border: 1px solid var(--line); border-radius: 9px; padding: 4px 9px; cursor: pointer; }
+  button:hover { border-color: rgba(60, 50, 40, .35); } button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  #layers { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; } #layers label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+  #cutrow { display: flex; align-items: center; gap: 8px; } #cut { flex: 1; min-width: 0; accent-color: var(--accent); } #cutVal { width: 52px; text-align: right; color: var(--mute); font-variant-numeric: tabular-nums; }
+  #foot { left: 14px; bottom: 12px; padding: 5px 10px; border-radius: 10px; color: var(--mute); font-size: 11px; font-variant-numeric: tabular-nums; }
+  #pwrap { position: fixed; inset: 0; background: rgba(40, 34, 28, .32); display: flex; align-items: center; justify-content: center; z-index: 5; } #pwrap[hidden] { display: none; }
+  #pbox { background: #fffdf9; border-radius: 16px; width: min(1040px, 94vw); max-height: 86vh; overflow: auto; padding: 16px 18px; -webkit-user-select: text; user-select: text; }
+  #pbox h2 { margin: 0 0 4px; font: 600 16px Georgia, "Songti SC", serif; } #pbox h3 { margin: 16px 0 6px; font-size: 13px; } #pbox p { color: var(--mute); margin: 6px 0; }
+  #pbox table { border-collapse: collapse; width: 100%; font-size: 12px; } #pbox th, #pbox td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  #pbox th { color: var(--mute); font-weight: 600; position: sticky; top: -16px; background: #fffdf9; } #pbox td.est { color: var(--accent); white-space: nowrap; } #pbox code { font: 11.5px ui-monospace, Menlo, monospace; }
+  #pclose { float: right; }
+  body.noui .card { display: none; }
+  @media (max-width: 640px) { #panel { top: auto; bottom: 44px; left: 10px; right: 10px; width: auto; max-height: 40vh; } #title { left: 10px; top: 10px; } }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="title" class="card">
+  <h1>Clun · 7 South Drive</h1>
+  <p>Wokingham, Berkshire · 约 1908–09 · Edwardian Arts &amp; Crafts</p>
+  <span class="tag">MILESTONE 1 · 建筑白模 · 尺寸均为估算</span>
+</div>
+<div id="panel" class="card">
+  <h2>视角</h2><div id="views" class="row"></div>
+  <div class="row" style="margin-top:6px"><button id="auto">自动旋转</button><button id="params">参数表</button></div>
+  <h2>看室内</h2>
+  <div class="row"><button id="whole">整栋</button><button id="roofOff">掀屋顶</button><button id="f2">阁楼</button><button id="f1">二层</button><button id="f0">一层</button></div>
+  <div id="cutrow" style="margin-top:6px"><span>剖切</span><input id="cut" type="range" min="0.3" step="0.05"><span id="cutVal"></span></div>
+  <h2>图层</h2><div id="layers"></div>
+</div>
+<div id="foot" class="card"><span id="stat"></span> · <span id="fps"></span> · 拖动旋转 · 滚轮/捏合缩放 · 右键或 Shift 拖动平移 · 红箭头指北</div>
+<div id="pwrap" hidden><div id="pbox"><button id="pclose">关闭</button><h2>参数表</h2>
+  <p>单位米；+X 北、+Y 西、+Z 上；原点在中央入口一楼地面。没有任何一项是实测值：平面图标注的记为 STATED（PROVISIONAL），其余全部 ESTIMATED。</p><div id="ptable"></div></div></div>
+<script src="../../vendor/three.min.js"></script>
+<script src="js/params.js"></script>
+<script src="js/kit.js"></script>
+<script src="js/shell.js"></script>
+<script src="js/roof.js"></script>
+<script src="js/extensions.js"></script>
+<script src="js/model.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
