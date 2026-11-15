@@ -17,7 +17,9 @@
     turn: 30,                      /* 正面比正对镜头多转的角度（露出左侧山墙） */
     /* 原房子的轮廓（要抹掉的范围）。底边在门前花丛处抬高，花丛和台阶保留 */
     mask: [[425, 1040], [425, 730], [488, 556], [494, 446], [582, 446], [582, 548], [962, 552], [965, 552], [1040, 552], [1044, 664], [1118, 730], [1162, 730],
-      [1172, 780], [1210, 836], [1284, 924], [1284, 1044], [1142, 1044], [1142, 1012], [808, 1012], [808, 1046]]
+      [1172, 780], [1210, 836], [1284, 924], [1284, 1044], [1142, 1044], [1142, 1012], [808, 1012], [808, 1046]],
+    path: [[330, 1026], [812, 1026], [812, 1104], [330, 1104]],          /* 房前那条土路：铺成草地 */
+    bush: { rect: [322, 790, 560, 1046], src: [200, 70, 420, 420] }     /* 房子左前方一丛树叶（取自左上大树的叶子），挡住左端 */
   };
 
   /* —— 抹掉原房子：补图（整张大小）和低分辨率遮罩 —— */
@@ -40,10 +42,11 @@
     var gr = bg.createLinearGradient(0, 445, 0, 700); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(0.5, 'rgba(0,0,0,1)'); gr.addColorStop(0.8, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0)');   /* 山延伸到遮罩里面一段（到 570），再在 650 前慢慢过渡成山林 */
     bg.fillStyle = gr; bg.fillRect(0, 445, W, 260); bg.fillStyle = '#000'; bg.globalCompositeOperation = 'source-over';
     g.drawImage(band, 0, 0);
+    g.drawImage(img, 330, 1098, 482, 52, 330, 1028, 482, 76);          /* 土路换成正下方的草坪 */
     /* 遮罩：原房子的轮廓，低分辨率，放大时边缘自然羽化 */
     var f = 16, mk = document.createElement('canvas'); mk.width = Math.round(W / f); mk.height = Math.round(H / f); var mg = mk.getContext('2d');
     mg.fillStyle = '#000'; mg.fillRect(0, 0, mk.width, mk.height); mg.fillStyle = '#fff'; mg.beginPath();
-    PL.mask.forEach(function (p, i) { if (i) mg.lineTo(p[0] / f, p[1] / f); else mg.moveTo(p[0] / f, p[1] / f); }); mg.closePath(); mg.fill();
+    [PL.mask, PL.path].forEach(function (poly) { mg.beginPath(); poly.forEach(function (p, i) { if (i) mg.lineTo(p[0] / f, p[1] / f); else mg.moveTo(p[0] / f, p[1] / f); }); mg.closePath(); mg.fill(); });
     function tex(c) { var t = new THREE.CanvasTexture(c); t.minFilter = THREE.LinearFilter; t.magFilter = THREE.LinearFilter; t.generateMipmaps = false; t.flipY = true; return t; }
     return { patch: tex(cv), mask: tex(mk) };
   }
@@ -62,6 +65,7 @@
       var pm = makePatch(img), rt = C.Paint.paintBackdrop(renderer, src, 2048, Math.round(2048 / A), { patch: pm.patch, mask: pm.mask, sky: false, haze: 0.08 });
       [src, pm.patch, pm.mask, rt].forEach(function (d) { disp.push(d); });
       back.material.map = rt.texture; back.material.needsUpdate = true; back.visible = true;
+      bush.material.uniforms.map.value = rt.texture; bush.visible = true;
     };
     img.src = PL.img;
 
@@ -81,6 +85,29 @@
     for (it = 0; it < 8; it++) { place(d); d *= heightPx() / target; }
     place(d);
     C.Paint.toonTree(holder);
+
+    /* —— 房子左前方一丛树叶：一块面向镜头的面片，颜色直接取绘画化底图里大树的叶子，边缘做成一团团叶子的轮廓 —— */
+    var bush = (function () {
+      var r = PL.bush.rect, sr = PL.bush.src, Dp = d * 0.85, g = new THREE.PlaneGeometry(1, 1);
+      var m = new THREE.ShaderMaterial({ transparent: true, depthWrite: false,
+        uniforms: { map: { value: null }, uSrc: { value: new THREE.Vector4(sr[0] / PL.W, 1 - sr[3] / PL.H, (sr[2] - sr[0]) / PL.W, (sr[3] - sr[1]) / PL.H) } },
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+        fragmentShader: ['uniform sampler2D map; uniform vec4 uSrc; varying vec2 vUv;',
+          'float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
+          'float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h2(i), h2(i + vec2(1.0, 0.0)), f.x), mix(h2(i + vec2(0.0, 1.0)), h2(i + vec2(1.0, 1.0)), f.x), f.y); }',
+          'void main(){',
+          '  vec3 c = texture2D(map, uSrc.xy + vUv * uSrc.zw).rgb;',
+          '  vec2 q = (vUv - vec2(0.5, 0.06)) / vec2(0.5, 0.94);',                 /* 半圆顶的一丛，底边贴着草地 */
+          '  float dd = length(q) + 0.16 * (vn(vUv * 9.0) - 0.5) + 0.08 * (vn(vUv * 23.0) - 0.5);',
+          '  float a = 1.0 - smoothstep(0.86, 0.98, dd); if (vUv.y < 0.06) a *= smoothstep(0.0, 0.06, vUv.y);',
+          '  c *= 0.82 + 0.25 * vUv.y;',                                               /* 下面暗一点 */
+          '  if (a < 0.02) discard; gl_FragColor = vec4(c, a);',
+          '}'].join('\n') });
+      var mesh = new THREE.Mesh(g, m), cxp = (r[0] + r[2]) / 2, cyp = (r[1] + r[3]) / 2;
+      mesh.position.set((cxp / PL.W - 0.5) * Wn * Dp, -(cyp / PL.H - 0.5) * Hn * Dp, -Dp).applyQuaternion(cam.quat); mesh.quaternion.copy(cam.quat);
+      mesh.scale.set((r[2] - r[0]) / PL.W * Wn * Dp, (r[3] - r[1]) / PL.H * Hn * Dp, 1); mesh.renderOrder = 5; mesh.visible = false; mesh.frustumCulled = false;
+      root.add(mesh); disp.push(g, m); return mesh;
+    })();
     house.traverse(function (o) { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
 
     /* —— 接触阴影：房子脚下一块只接阴影的透明地面 —— */
