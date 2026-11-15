@@ -1323,9 +1323,41 @@
   var queued = false;
   new MutationObserver(function () { if (queued) return; queued = true; requestAnimationFrame(function () { queued = false; entries(); }); }).observe(document.body, { childList: true, subtree: true });
   entries();
+  /* 开屏：先在 Clun（劳特布龙嫩山谷里的那栋房子）门前，点房门进屋、上二楼进书房，再进房间（书房暂时接到圣托里尼）。
+     Clun 是单独的页面，放在一个全屏 iframe 里；iOS 包里没有它的文件，走线上地址。?clun=0 或载入失败时直接进房间。 */
+  function clunSrc() {
+    var q = '?scene=valley&entry=1';
+    return location.protocol === 'file:' ? 'https://minest-app.vercel.app/spatial-home/clun/' + q : 'spatial-home/clun/index.html' + q;
+  }
+  function clunFirst(done) {
+    if (/[?&]clun=0\b/.test(location.search)) { done(); return; }
+    var f = document.createElement('iframe'), ready = false, opened = false;
+    f.id = 'mn-clun-splash'; f.src = clunSrc(); f.title = 'Clun';
+    f.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;max-width:none;max-height:none;margin:0;padding:0;border:0;z-index:2147483647;background:#cfe0ee;opacity:1';
+    document.body.appendChild(f);
+    try { if (f.showPopover) { f.setAttribute('popover', 'manual'); f.showPopover(); } } catch (e) {}   /* 放进顶层，盖过页面里所有浮层（迷你宠物、速览页等） */
+    var to = setTimeout(function () { if (!ready) end(); }, 9000);           /* 9 秒还没加载好（离线等）：直接进房间 */
+    function room() { if (opened) return; opened = true; done(); }
+    function end() {
+      room(); clearTimeout(to); window.removeEventListener('message', on);
+      setTimeout(function () { f.style.transition = 'opacity .7s ease'; f.style.opacity = '0'; setTimeout(function () { if (f.parentNode) f.parentNode.removeChild(f); }, 800); }, 250);
+    }
+    function on(e) {
+      if (e.source !== f.contentWindow || !e.data || typeof e.data.clun !== 'string') return;
+      if (e.data.clun === 'ready') { ready = true; clearTimeout(to); }
+      else if (e.data.clun === 'enter') end();
+    }
+    window.addEventListener('message', on);
+  }
   function boot() {
     if (!bootsFirst()) return;
-    PUB.open();
+    clunFirst(enterRoom);
+  }
+  function enterRoom() {
+    var a = PUB.open();
+    var t1 = Date.now(), iv1 = setInterval(function () {                     /* 从 Clun 进来：书房暂时是圣托里尼那间 */
+      try { var st = a.state(); if (st.env === 'santorini' || Date.now() - t1 > 4000) clearInterval(iv1); else if (!st.busy) a.setEnv('santorini'); } catch (e) { clearInterval(iv1); }
+    }, 200);
     /* Liquid Routine's own iOS start screen (Day Flow) may open at the same launch: the room is the start screen, so it is put away */
     var t0 = Date.now(), iv = setInterval(function () {
       try { if (window.MinestRoutine && MinestRoutine.isOpen() && PUB.isOpen() && !(API && API.state().inFeature)) MinestRoutine.close(); } catch (e) {}
