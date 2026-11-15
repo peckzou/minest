@@ -11,7 +11,7 @@
   var V = C.VALLEY = {
     img: 'art/lauterbrunnen-valley.jpg', IW: 1266, IH: 860, hfov: 66,       /* 照片：假定水平视角 66° */
     camZ: 18,                                                              /* ESTIMATED：由照片里木屋和教堂的比例反推 */
-    house: [-14, 61], houseRot: 20, viewHfov: 64, RB: 2500
+    house: [-14, 61], houseRot: 13, viewHfov: 64, RB: 2500
   };
   function lin(hex) { return new THREE.Color(hex).convertSRGBToLinear(); }
   function canvas(n) { var c = document.createElement('canvas'); c.width = c.height = n; return c; }
@@ -142,7 +142,7 @@
     var T = { grass: grassTex(), leaf: leafTex(), flower: flowerTex(), stone: stoneTex(), bark: barkTex(), plank: plankTex('#9a6a40'), plankD: plankTex('#6e4a2e'), shingle: shingleTex() };
     for (var tk in T) disp.push(T[tk]);
     function sm(map, hex, rough) { var m = new THREE.MeshStandardMaterial({ map: map || null, color: lin(hex == null ? 0xffffff : hex), roughness: rough == null ? 0.9 : rough }); disp.push(m); return m; }
-    var M = { stone: sm(T.stone), stoneD: sm(T.stone, 0xcfc8bd), bark: sm(T.bark), wood: sm(T.plank), woodD: sm(T.plankD), shingle: sm(T.shingle),
+    var M = { stone: sm(T.stone), stoneD: sm(T.stone, 0xcfc8bd), bark: sm(T.bark), wood: sm(T.plank), woodD: sm(T.plankD), shingle: sm(T.shingle), shingleD: sm(T.shingle, 0x8c8478),
       white: sm(null, 0xf3efe6, 0.6), glassT: sm(null, 0x7d9fae, 0.15), soil: sm(null, 0x4a3a2c, 1) };
     var b = new K.Batch();
     function boxM(m, q) { b.box(m, q[0], q[1], q[2], q[3], q[4], q[5]); }
@@ -267,33 +267,83 @@
       tree(riverEdge(70) - 1.2, 70, 7, 2.6, [0.8, 0.86, 0.8]);
     })();
 
-    /* —— 树屋：左边高处的大树，木屋搭在树杈上，长梯子落到草地 —— */
+    /* —— 大橡树和树屋（照细节图）：粗壮的树干、根部外张，约 4 m 高处分出几根向外平伸的粗枝，宽而低的树冠由沿枝条的几大团叶子组成；
+          木板小屋搭在分叉处，悬挑的瓦顶、窗和门，前面一圈带栏杆的阳台，斜撑和立柱托着，长梯落地。小屋正面朝镜头。 —— */
     (function () {
-      var x = -22.5, y = 41, z0 = terrainZ(x, y), zp = z0 + 6.6, i;
-      cyl('bark', [x, y, z0 - 0.6], [x, y, zp + 5.5], 0.72, 0.4, 12);
-      cyl('bark', [x, y, zp + 1.5], [x - 2.6, y + 1.2, zp + 5.2], 0.3, 0.14, 8); cyl('bark', [x, y, zp + 2.2], [x + 2.4, y + 0.8, zp + 5.6], 0.28, 0.13, 8);
-      cyl('bark', [x, y, zp + 3], [x - 0.6, y - 1.8, zp + 6.2], 0.24, 0.12, 7);
-      canopy(x, y + 0.6, zp + 7.0, 4.6, 2.8, 10); canopy(x - 3.0, y + 1.0, zp + 5.6, 2.6, 1.8, 10); canopy(x + 2.8, y + 1.2, zp + 6.2, 2.6, 1.8, 10); canopy(x - 0.4, y - 1.5, zp + 8.4, 2.6, 1.6, 10);
-      var hx = x + 1.9, hy = y - 0.4;
-      boxM('woodD', [hx - 2.0, hy - 1.8, zp - 0.16, hx + 2.0, hy + 1.6, zp]);                                        /* 平台 */
-      boxM('wood', [hx - 1.25, hy - 1.05, zp, hx + 1.25, hy + 1.2, zp + 2.05]);                                      /* 小屋 */
-      boxM('woodD', [hx - 1.32, hy - 1.12, zp, hx - 1.2, hy - 1.0, zp + 2.05]); boxM('woodD', [hx + 1.2, hy - 1.12, zp, hx + 1.32, hy - 1.0, zp + 2.05]);
-      [[-0.85, -0.2], [0.25, 0.9]].forEach(function (w) {
-        boxM('white', [hx + w[0] - 0.07, hy - 1.09, zp + 0.82, hx + w[1] + 0.07, hy - 1.04, zp + 1.68]);
-        boxM('glassT', [hx + w[0], hy - 1.11, zp + 0.9, hx + w[1], hy - 1.07, zp + 1.6]);
-        boxM('white', [hx + (w[0] + w[1]) / 2 - 0.025, hy - 1.12, zp + 0.9, hx + (w[0] + w[1]) / 2 + 0.025, hy - 1.09, zp + 1.6]);
-        boxM('white', [hx + w[0], hy - 1.12, zp + 1.23, hx + w[1], hy - 1.09, zp + 1.27]);
+      var ox = -23, oy = 42, z0 = terrainZ(ox, oy), i, k;
+      /* 局部坐标：u 向右（垂直于看过来的方向），v 朝镜头 */
+      var vd = [-ox, -oy], vl = Math.hypot(vd[0], vd[1]); vd = [vd[0] / vl, vd[1] / vl]; var ud = [-vd[1], vd[0]];
+      function W(u, v, z) { return [ox + ud[0] * u + vd[0] * v, oy + ud[1] * u + vd[1] * v, z]; }
+      function lbox(m, u0, v0, z0b, u1, v1, z1) { b.extrude(m, [W(u0, v0, z1), W(u1, v0, z1), W(u1, v1, z1), W(u0, v1, z1)], [0, 0, z0b - z1]); }
+      function seg(m, A, B, r0, r1, sides) { cyl(m, A, B, r0, r1, sides || 10); }
+      /* 树干：几段略弯的粗圆柱，根部外张 */
+      var tx = 0, tv = -1.9, trunk = [[0, 0, -0.6, 1.1], [0.15, 0.1, 1.6, 0.92], [-0.2, 0.05, 3.4, 0.8], [0.1, -0.1, 5.0, 0.72], [0.0, -0.2, 6.0, 0.62]];
+      var TP = trunk.map(function (q) { return W(tx + q[0], tv + q[1], z0 + q[2]); });
+      for (i = 0; i < TP.length - 1; i++) seg('bark', TP[i], TP[i + 1], trunk[i][3], trunk[i + 1][3], 14);
+      for (k = 0; k < 6; k++) { var a = k / 6 * 6.28 + 0.4, rb = W(tx + Math.cos(a) * 0.5, tv + Math.sin(a) * 0.5, z0 + 0.9), re = W(tx + Math.cos(a) * 2.0, tv + Math.sin(a) * 2.0, z0 - 0.15); seg('bark', rb, re, 0.42, 0.12, 8); }
+      /* 粗枝：从树干顶部向外平伸再上扬，末端是一团团树冠 */
+      var top = TP[TP.length - 1], limbs = [[-1, 0.1, 3.0], [-0.6, -0.8, 2.6], [0.6, -0.8, 2.6], [1, 0.12, 3.0], [0.05, -1, 2.2], [-0.9, -0.45, 2.1], [0.9, -0.45, 2.1]];   /* 不往镜头方向伸，免得挡住小屋 */
+      limbs.forEach(function (L, j) {
+        var dl = Math.hypot(L[0], L[1]), du = L[0] / dl, dv = L[1] / dl, len = L[2];
+        var P0 = [top[0], top[1], top[2] - 0.6], P1 = W(tx + du * len * 1.1, tv + dv * len * 1.1, z0 + 7.2 + j % 2 * 0.5), P2 = W(tx + du * len * 2.0, tv + dv * len * 2.0, z0 + 8.9 + (j % 3) * 0.4);
+        seg('bark', P0, P1, 0.42, 0.28, 10); seg('bark', P1, P2, 0.28, 0.13, 8);
+        var Ps = W(tx + du * len * 1.5 + dv * 0.9, tv + dv * len * 1.5 - du * 0.9, z0 + 8.4); seg('bark', P1, Ps, 0.14, 0.06, 6);
+        canopy(P2[0], P2[1], P2[2] + 1.1, 2.7 + (j % 2) * 0.4, 1.6, 10);
+        canopy(Ps[0], Ps[1], Ps[2] + 0.9, 1.9, 1.2, 10);
       });
-      b.extrude('wood', [[hx - 1.25, hy - 1.05, zp + 2.05], [hx - 1.25, hy + 1.2, zp + 2.05], [hx - 1.25, hy + 0.08, zp + 3.0]], [2.5, 0, 0]);
-      [-1, 1].forEach(function (s) { b.slab('shingle', [[hx - 1.6, hy + 0.08, zp + 3.12], [hx + 1.6, hy + 0.08, zp + 3.12], [hx + 1.6, hy + 0.08 + s * 1.62, zp + 1.86], [hx - 1.6, hy + 0.08 + s * 1.62, zp + 1.86]], 0.1); });
-      for (i = -3; i <= 3; i++) boxM('woodD', [hx + i * 0.62 - 0.045, hy - 1.8, zp, hx + i * 0.62 + 0.045, hy - 1.71, zp + 1.0]);   /* 栏杆 */
-      boxM('woodD', [hx - 2.0, hy - 1.82, zp + 0.92, hx + 2.0, hy - 1.68, zp + 1.03]);
-      for (i = -12; i <= 12; i++) boxM('woodD', [hx + i * 0.155 - 0.015, hy - 1.78, zp + 0.05, hx + i * 0.155 + 0.015, hy - 1.75, zp + 0.92]);
-      cyl('woodD', [x + 0.2, y, zp - 2.4], [hx - 1.7, hy - 1.6, zp - 0.12], 0.09, 0.09, 6); cyl('woodD', [x + 0.2, y, zp - 2.4], [hx + 1.8, hy - 1.6, zp - 0.12], 0.09, 0.09, 6);
-      var lx = hx - 1.2, ly = hy - 1.85, gy = ly - 2.6, gz = terrainZ(lx, gy);                               /* 梯子 */
-      [-0.26, 0.26].forEach(function (o) { cyl('woodD', [lx + o, gy, gz - 0.1], [lx + o, ly, zp + 1.0], 0.05, 0.05, 6); });
-      for (i = 1; i < 24; i++) { var t = i / 24; cyl('woodD', [lx - 0.26, gy + 2.6 * t, gz + (zp + 1.0 - gz) * t], [lx + 0.26, gy + 2.6 * t, gz + (zp + 1.0 - gz) * t], 0.03, 0.03, 5); }
-      flowerBush(x + 1.2, y - 2.8, 0.7, ['pink', 'white']); bush(x - 1.6, y - 1.6, 1.0, 1.0);
+      canopy(top[0] - vd[0] * 1.0, top[1] - vd[1] * 1.0, z0 + 11.2, 3.6, 2.0, 10); canopy(top[0] + ud[0] * 1.8 - vd[0] * 0.8, top[1] + ud[1] * 1.8 - vd[1] * 0.8, z0 + 10.4, 2.6, 1.5, 10);
+      /* 树屋 */
+      var zd = z0 + 4.4, cu = 0.2;                                   /* 平台面标高、小屋中心 */
+      lbox('woodD', -2.3, -1.2, zd - 0.22, 2.5, 1.95, zd);            /* 平台（树干从后部穿过） */
+      for (i = -2; i <= 2; i++) lbox('woodD', -2.3 + (i + 2) * 1.2, 1.85, zd - 0.42, -2.3 + (i + 2) * 1.2 + 0.12, 1.97, zd - 0.2);   /* 平台前沿的梁头 */
+      var cw = 1.45, cv0 = -1.0, cv1 = 0.75, ch = 2.15;              /* 小屋：u 方向半宽、v 范围、墙高 */
+      lbox('wood', cu - cw, cv0, zd, cu + cw, cv1, zd + ch);
+      [[-1, cv1], [1, cv1], [-1, cv0], [1, cv0]].forEach(function (c) { lbox('woodD', cu + c[0] * cw - 0.08, c[1] - 0.08, zd, cu + c[0] * cw + 0.08, c[1] + 0.08, zd + ch); });
+      /* 正面：中间门洞，两边窗 */
+      lbox('soil', cu - 0.36, cv1, zd, cu + 0.36, cv1 + 0.02, zd + 1.75); lbox('woodD', cu - 0.45, cv1, zd, cu - 0.36, cv1 + 0.06, zd + 1.84); lbox('woodD', cu + 0.36, cv1, zd, cu + 0.45, cv1 + 0.06, zd + 1.84); lbox('woodD', cu - 0.45, cv1, zd + 1.75, cu + 0.45, cv1 + 0.06, zd + 1.84);
+      [-0.95, 0.95].forEach(function (wu) {
+        var u0 = cu + wu - 0.32, u1 = cu + wu + 0.32;
+        lbox('glassT', u0, cv1, zd + 0.85, u1, cv1 + 0.02, zd + 1.6);
+        lbox('woodD', u0 - 0.07, cv1, zd + 0.78, u1 + 0.07, cv1 + 0.06, zd + 0.85); lbox('woodD', u0 - 0.07, cv1, zd + 1.6, u1 + 0.07, cv1 + 0.06, zd + 1.67);
+        lbox('woodD', u0 - 0.07, cv1, zd + 0.85, u0, cv1 + 0.06, zd + 1.6); lbox('woodD', u1, cv1, zd + 0.85, u1 + 0.07, cv1 + 0.06, zd + 1.6);
+        lbox('woodD', cu + wu - 0.025, cv1, zd + 0.85, cu + wu + 0.025, cv1 + 0.05, zd + 1.6); lbox('woodD', u0, cv1, zd + 1.2, u1, cv1 + 0.05, zd + 1.25);
+        lbox('woodD', u0 - 0.05, cv1, zd + 0.62, u1 + 0.05, cv1 + 0.24, zd + 0.78);                 /* 窗下花箱 */
+        var fb = W(cu + wu, cv1 + 0.18, 0); for (var f = 0; f < 4; f++) fls.card(new THREE.Vector3(fb[0] + ud[0] * (f - 1.5) * 0.16, fb[1] + ud[1] * (f - 1.5) * 0.16, zd + 0.86), 0.22, new THREE.Vector3(0, -0.4, 0.9).normalize(), PAL[f % 2 ? 'rose' : 'pink'], f);
+      });
+      /* 侧面一扇小窗 */
+      [-1, 1].forEach(function (sg) { var uu = cu + sg * (cw + 0.01); lbox('glassT', Math.min(uu, uu + sg * 0.02), -0.4, zd + 0.95, Math.max(uu, uu + sg * 0.02), 0.2, zd + 1.5); });
+      /* 屋顶：屋脊前后走向，三角山墙正对镜头（门上方），悬挑 0.4 m，深色瓦 */
+      var zr = zd + ch, ridge = zr + 1.4, ov = 0.4, ou = cw + 0.4, ze = ridge - 1.4 * ou / cw;
+      [-1, 1].forEach(function (sg) {
+        b.slab('shingleD', [W(cu, cv0 - ov, ridge), W(cu, cv1 + ov, ridge), W(cu + sg * ou, cv1 + ov, ze), W(cu + sg * ou, cv0 - ov, ze)], 0.12);
+        seg('woodD', W(cu + sg * ou, cv1 + ov + 0.03, ze - 0.05), W(cu, cv1 + ov + 0.03, ridge - 0.02), 0.07, 0.07, 6);    /* 前山墙封檐 */
+      });
+      [[cv1, -1], [cv0, 1]].forEach(function (g) {                    /* 前后山墙三角 */
+        b.extrude('wood', [W(cu - cw, g[0], zr), W(cu + cw, g[0], zr), W(cu, g[0], ridge - 0.08)], [vd[0] * g[1] * 0.12, vd[1] * g[1] * 0.12, 0]);
+      });
+      lbox('glassT', cu - 0.28, cv1, zr + 0.25, cu + 0.28, cv1 + 0.03, zr + 0.75);   /* 山墙上的小窗 */
+      lbox('woodD', cu - 0.34, cv1, zr + 0.19, cu + 0.34, cv1 + 0.06, zr + 0.25); lbox('woodD', cu - 0.34, cv1, zr + 0.75, cu + 0.34, cv1 + 0.06, zr + 0.81);
+      lbox('woodD', cu - 0.03, cv1, zr + 0.25, cu + 0.03, cv1 + 0.05, zr + 0.75);
+      lbox('woodD', cu - 0.08, cv0 - ov, ridge - 0.02, cu + 0.08, cv1 + ov, ridge + 0.1);
+      /* 阳台栏杆：前面和两侧，左前角留出梯子口 */
+      var ry = zd + 0.95, fu0 = -2.2, fu1 = 2.4, fv = 1.85, sv0 = -1.1;
+      function railRun(A, B, gapAt) {
+        var L = Math.hypot(B[0] - A[0], B[1] - A[1]), n = Math.round(L / 0.16), j;
+        for (j = 0; j <= n; j++) { var t = j / n, u = A[0] + (B[0] - A[0]) * t, v = A[1] + (B[1] - A[1]) * t; if (gapAt && gapAt(u, v)) continue;
+          var post = j % 4 === 0; lbox('woodD', u - (post ? 0.06 : 0.025), v - (post ? 0.06 : 0.025), zd, u + (post ? 0.06 : 0.025), v + (post ? 0.06 : 0.025), ry + (post ? 0.08 : 0)); }
+        seg('woodD', W(A[0], A[1], ry), W(B[0], B[1], ry), 0.055, 0.055, 6); seg('woodD', W(A[0], A[1], zd + 0.45), W(B[0], B[1], zd + 0.45), 0.035, 0.035, 5);
+      }
+      var gap = function (u, v) { return u < fu0 + 0.75 && v > fv - 0.1; };
+      railRun([fu0 + 0.75, fv], [fu1, fv]); railRun([fu0, sv0], [fu0, fv - 0.05], function (u, v) { return v > fv - 0.7; }); railRun([fu1, sv0], [fu1, fv]);
+      /* 支撑：前角两根立柱落地，两根斜撑回到树干 */
+      [[fu0 + 0.15, fv - 0.1], [fu1 - 0.15, fv - 0.1]].forEach(function (c) { var g = W(c[0], c[1], 0); seg('woodD', W(c[0], c[1], terrainZ(g[0], g[1]) - 0.3), W(c[0], c[1], zd - 0.2), 0.11, 0.1, 8); });
+      seg('woodD', W(tx - 0.5, tv + 0.4, zd - 2.0), W(fu0 + 0.4, fv - 0.3, zd - 0.24), 0.08, 0.08, 6); seg('woodD', W(tx + 0.5, tv + 0.4, zd - 2.0), W(fu1 - 0.4, fv - 0.3, zd - 0.24), 0.08, 0.08, 6);
+      /* 梯子：从左前角的缺口落到草地，略微斜 */
+      var lu = fu0 + 0.38, lvTop = fv + 0.05, lvBot = fv + 1.3, gb = W(lu, lvBot, 0), gz = terrainZ(gb[0], gb[1]);
+      [-0.26, 0.26].forEach(function (o) { seg('woodD', W(lu + o, lvBot, gz - 0.1), W(lu + o, lvTop, zd + 1.05), 0.05, 0.05, 6); });
+      var nr = Math.round((zd - gz) / 0.3);
+      for (i = 1; i <= nr; i++) { var t2 = i / (nr + 0.5), lv = lvBot + (lvTop - lvBot) * t2, lz = gz + (zd + 1.05 - gz) * t2; seg('woodD', W(lu - 0.26, lv, lz), W(lu + 0.26, lv, lz), 0.03, 0.03, 5); }
+      flowerBush(W(fu1 + 1.0, fv + 1.0, 0)[0], W(fu1 + 1.0, fv + 1.0, 0)[1], 0.7, ['pink', 'white']); bush(W(-3.2, 0.5, 0)[0], W(-3.2, 0.5, 0)[1], 1.0, 1.0);
     })();
 
     /* —— 左下前景：一片粉白的花 —— */
