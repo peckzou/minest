@@ -19,8 +19,70 @@
     mask: [[425, 1040], [425, 730], [488, 556], [494, 446], [582, 446], [582, 548], [962, 552], [965, 552], [1040, 552], [1044, 664], [1118, 730], [1162, 730],
       [1172, 780], [1210, 836], [1284, 924], [1284, 1044], [1142, 1044], [1142, 1012], [808, 1012], [808, 1046]],
     path: [[330, 1026], [812, 1026], [812, 1104], [330, 1104]],          /* 房前那条土路：铺成草地 */
-    bush: { rect: [322, 790, 560, 1046], src: [200, 70, 420, 420] }     /* 房子左前方一丛树叶（取自左上大树的叶子），挡住左端 */
+    bush: { rect: [322, 790, 560, 1046], src: [200, 70, 420, 420] },    /* 房子左前方一丛树叶（取自左上大树的叶子），挡住左端 */
+    /* 动画区域（底图像素） */
+    fall: [[1973, 52], [1999, 52], [1986, 320], [1967, 540], [1948, 705], [1890, 705], [1922, 540], [1946, 320]],
+    fallMist: [1918, 700, 95],
+    river: [[1665, 1022], [1855, 1022], [1864, 1118], [1852, 1180], [1802, 1230], [1752, 1290], [1720, 1350], [1690, 1400], [1672, 1438],
+      [1198, 1438], [1218, 1368], [1280, 1318], [1380, 1268], [1488, 1218], [1578, 1168], [1628, 1108]],
+    bridge: [1760, 1018],
+    walk: [[760, 1330], [985, 1222]],   /* 小旅人来回走的石板路两端 */
+    pathDrop: 0.45                      /* 小路比房子台地低多少（米） */
   };
+
+  /* 动画遮罩：R = 瀑布，G = 小溪，B = 瀑布底的水雾 */
+  function makeFlowMask() {
+    var f = 4, cv = document.createElement('canvas'); cv.width = Math.round(PL.W / f); cv.height = Math.round(PL.H / f); var g = cv.getContext('2d');
+    g.fillStyle = '#000'; g.fillRect(0, 0, cv.width, cv.height); g.globalCompositeOperation = 'lighter';
+    function poly(pts, col) { g.fillStyle = col; g.beginPath(); pts.forEach(function (p, i) { if (i) g.lineTo(p[0] / f, p[1] / f); else g.moveTo(p[0] / f, p[1] / f); }); g.closePath(); g.fill(); }
+    poly(PL.fall, 'rgb(255,0,0)'); poly(PL.river, 'rgb(0,255,0)');
+    var m = PL.fallMist, gr = g.createRadialGradient(m[0] / f, m[1] / f, 0, m[0] / f, m[1] / f, m[2] / f); gr.addColorStop(0, 'rgba(0,0,255,1)'); gr.addColorStop(1, 'rgba(0,0,255,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, cv.width, cv.height);
+    var t = new THREE.CanvasTexture(cv); t.minFilter = t.magFilter = THREE.LinearFilter; t.generateMipmaps = false; return t;
+  }
+  /* 底图材质：瀑布往下冲、小溪从桥下往镜头这边流（流动贴图：两相位交替采样，画面不会被越拉越远）、瀑布底水雾、云慢慢漂 */
+  function backMaterial() {
+    return new THREE.ShaderMaterial({ depthWrite: false,
+      uniforms: { map: { value: null }, mk: { value: makeFlowMask() }, uTime: C.Paint.time, uBridge: { value: new THREE.Vector2(PL.bridge[0] / PL.W, 1 - PL.bridge[1] / PL.H) }, uAsp: { value: PL.W / PL.H } },
+      vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: [
+        'uniform sampler2D map, mk; uniform float uTime, uAsp; uniform vec2 uBridge; varying vec2 vUv;',
+        'float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
+        'float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h2(i), h2(i + vec2(1.0, 0.0)), f.x), mix(h2(i + vec2(0.0, 1.0)), h2(i + vec2(1.0, 1.0)), f.x), f.y); }',
+        'float fbm(vec2 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { s += a * vn(p); p *= 2.03; a *= 0.5; } return s; }',
+        'vec3 flowSample(vec2 uv, vec2 v, float rate){',                           /* 沿 v 流动：两相位交替，每相位从 -0.5v 滑到 +0.5v */
+        '  float p0 = fract(uTime * rate), p1 = fract(uTime * rate + 0.5);',
+        '  vec3 a = texture2D(map, uv - v * (p0 - 0.5)).rgb, b = texture2D(map, uv - v * (p1 - 0.5)).rgb;',
+        '  return mix(a, b, abs(p0 - 0.5) * 2.0);',
+        '}',
+        'void main(){',
+        '  vec4 m = texture2D(mk, vUv); vec3 c = texture2D(map, vUv).rgb;',
+        '  if (m.g > 0.003) {',                                                     /* 小溪 */
+        '    vec2 d = vUv - uBridge; d.x *= uAsp; float r = length(d); vec2 dir = normalize(d); dir.x /= uAsp;',
+        '    vec3 w = flowSample(vUv, dir * (0.006 + r * 0.03), 0.45);',
+        '    vec2 q = vec2(atan(d.y, d.x) * 34.0, r * 55.0 - uTime * 2.2);',                  /* 横向 = 绕桥的角度，纵向 = 离桥的距离，白浪往镜头这边漂 */
+        '    float foam = smoothstep(0.58, 0.82, fbm(q * vec2(1.0, 0.35)));',
+        '    w = mix(w, vec3(0.96, 0.99, 1.0), foam * 0.45 * smoothstep(0.55, 0.85, dot(w, vec3(0.33))));',   /* 白浪只加在本来就亮的水面上 */
+        '    c = mix(c, w, m.g);',
+        '  }',
+        '  if (m.r > 0.003) {',                                                     /* 瀑布 */
+        '    vec3 w = flowSample(vUv, vec2(0.0015, -0.05), 0.9);',
+        '    float st = vn(vec2(vUv.x * 1400.0, vUv.y * 22.0 + uTime * 5.0)) * vn(vec2(vUv.x * 700.0 + 3.0, vUv.y * 9.0 + uTime * 3.2));',
+        '    w = mix(w, vec3(1.0), smoothstep(0.32, 0.62, st) * 0.55);',
+        '    c = mix(c, w, m.r);',
+        '  }',
+        '  if (m.b > 0.003) {',                                                     /* 水雾 */
+        '    float mist = fbm(vec2(vUv.x * 60.0 - uTime * 0.25, vUv.y * 45.0 + uTime * 0.4));',
+        '    c = mix(c, vec3(0.93, 0.96, 0.98), m.b * smoothstep(0.35, 0.8, mist) * 0.55);',
+        '  }',
+        '  if (vUv.y > 0.62) {',                                                    /* 云：亮而不饱和的天空像素，极慢地往右漂 */
+        '    float lum = dot(c, vec3(0.333)), sat = max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));',
+        '    float cm = smoothstep(0.72, 0.86, lum) * (1.0 - smoothstep(0.12, 0.28, sat)) * smoothstep(0.62, 0.72, vUv.y);',
+        '    if (cm > 0.01) c = mix(c, flowSample(vUv, vec2(0.012, 0.0), 0.03), cm);',
+        '  }',
+        '  gl_FragColor = vec4(c, 1.0);',
+        '}'].join('\n') });
+  }
 
   /* —— 抹掉原房子：补图（整张大小）和低分辨率遮罩 —— */
   function makePatch(img) {
@@ -43,6 +105,8 @@
     bg.fillStyle = gr; bg.fillRect(0, 445, W, 260); bg.fillStyle = '#000'; bg.globalCompositeOperation = 'source-over';
     g.drawImage(band, 0, 0);
     g.drawImage(img, 330, 1098, 482, 52, 330, 1028, 482, 76);          /* 土路换成正下方的草坪 */
+    var sh = g.createLinearGradient(330, 0, 700, 0); sh.addColorStop(0, 'rgba(20,45,10,0.42)'); sh.addColorStop(0.65, 'rgba(20,45,10,0.3)'); sh.addColorStop(1, 'rgba(20,45,10,0)');
+    g.fillStyle = sh; g.fillRect(330, 1028, 370, 76);                  /* 左边在大树的树荫里：压暗，和周围的草一致 */
     /* 遮罩：原房子的轮廓，低分辨率，放大时边缘自然羽化 */
     var f = 16, mk = document.createElement('canvas'); mk.width = Math.round(W / f); mk.height = Math.round(H / f); var mg = mk.getContext('2d');
     mg.fillStyle = '#000'; mg.fillRect(0, 0, mk.width, mk.height); mg.fillStyle = '#fff'; mg.beginPath();
@@ -58,13 +122,13 @@
     var cam = { pos: new THREE.Vector3(0, 0, 0), quat: new THREE.Quaternion().setFromEuler(new THREE.Euler(pitch, 0, 0, 'YXZ')) };
 
     /* —— 底图：挂在镜头前方远处，正好铺满整个画框 —— */
-    var RB = 4000, back = new THREE.Mesh(new THREE.PlaneGeometry(Wn * RB, Hn * RB), new THREE.MeshBasicMaterial({ toneMapped: false, depthWrite: false, fog: false }));
+    var RB = 4000, back = new THREE.Mesh(new THREE.PlaneGeometry(Wn * RB, Hn * RB), backMaterial());
     back.position.set(0, 0, -RB).applyQuaternion(cam.quat); back.quaternion.copy(cam.quat); back.renderOrder = -10; back.frustumCulled = false; back.visible = false; root.add(back); disp.push(back.geometry, back.material);
     var img = new Image(); img.onload = function () {
       var src = new THREE.Texture(img); src.minFilter = THREE.LinearFilter; src.generateMipmaps = false; src.needsUpdate = true;
       var pm = makePatch(img), rt = C.Paint.paintBackdrop(renderer, src, 2048, Math.round(2048 / A), { patch: pm.patch, mask: pm.mask, sky: false, haze: 0.08 });
       [src, pm.patch, pm.mask, rt].forEach(function (d) { disp.push(d); });
-      back.material.map = rt.texture; back.material.needsUpdate = true; back.visible = true;
+      back.material.uniforms.map.value = rt.texture; back.visible = true;
       bush.material.uniforms.map.value = rt.texture; bush.visible = true;
     };
     img.src = PL.img;
@@ -110,6 +174,12 @@
     })();
     house.traverse(function (o) { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
 
+    /* —— 小旅人：在石板路上来回走（路面高度 = 房子台地往下 pathDrop 米，两端由底图像素的射线和路面求交） —— */
+    var hero = C.Hero.build(), gy = holder.position.y - 0.3 - PL.pathDrop;
+    function onGround(px, py) { var r = rayTo(px, py); return r.clone().multiplyScalar((gy - cam.pos.y) / r.y).add(cam.pos); }
+    hero.setPath(onGround(PL.walk[0][0], PL.walk[0][1]), onGround(PL.walk[1][0], PL.walk[1][1]), cam.pos.clone());
+    root.add(hero.root);
+
     /* —— 接触阴影：房子脚下一块只接阴影的透明地面 —— */
     var ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.ShadowMaterial({ opacity: 0.32 }));
     ground.rotation.x = -Math.PI / 2; ground.position.copy(holder.position).add(new THREE.Vector3(0, -0.3, 0)); ground.receiveShadow = true; root.add(ground); disp.push(ground.geometry, ground.material);
@@ -121,9 +191,10 @@
     var sc = sun.shadow.camera; sc.left = -22; sc.right = 22; sc.top = 22; sc.bottom = -22; sc.near = 10; sc.far = 200;
 
     /* —— 镜头：固定在底图的机位；只能推近和在底图范围内平移（裁出底图的一部分来看） —— */
+    var lastT = null;
     return {
-      root: root, holder: holder, distance: d,
-      tick: function (t) { C.Paint.time.value = t; },
+      root: root, holder: holder, distance: d, hero: hero,
+      tick: function (t) { var dt = lastT == null ? 0 : t - lastT; lastT = t; C.Paint.time.value = t; hero.update(t, dt); },
       limits: function (a, zoom) { return { azMax: 0.5 * (1 - (zoom || 1)) + 0.0001 }; },
       place: function (camera, O) {
         var sz = renderer.getSize(new THREE.Vector2()), va = sz.x / Math.max(1, sz.y), fw, fh, ox, oy, z = Math.max(0.45, Math.min(1, O.zoom || 1));
