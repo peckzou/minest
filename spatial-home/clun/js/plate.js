@@ -24,9 +24,12 @@
     /* 动画区域（底图像素） */
     fall: [[1973, 52], [1999, 52], [1986, 320], [1967, 540], [1948, 705], [1890, 705], [1922, 540], [1946, 320]],
     fallMist: [1918, 700, 95],
-    river: [[1665, 1022], [1855, 1022], [1864, 1118], [1852, 1180], [1802, 1230], [1752, 1290], [1720, 1350], [1690, 1400], [1672, 1438],
+    river: [[1665, 1022], [1855, 1022], [1862, 1110], [1832, 1170], [1768, 1230], [1698, 1290], [1628, 1350], [1560, 1400], [1505, 1438],
       [1198, 1438], [1218, 1368], [1280, 1318], [1380, 1268], [1488, 1218], [1578, 1168], [1628, 1108]],
     bridge: [1760, 1018],
+    /* 小溪收窄：右岸往里推，原来的水面铺成向下的缓草坡（这一圈点 = 新岸线 + 原来右岸外的草地） */
+    bank: [[1855, 1030], [1862, 1110], [1832, 1170], [1768, 1230], [1698, 1290], [1628, 1350], [1560, 1400], [1505, 1438], [1760, 1438], [1800, 1330], [1860, 1230], [1885, 1120], [1880, 1030]],
+    rocks: [[1585, 1175, 15], [1468, 1248, 21], [1555, 1318, 18], [1365, 1338, 27], [1440, 1410, 31]],   /* 溪里的石头：中心 x, y, 半径（像素） */
     walk: [[760, 1330], [985, 1222]],   /* 小旅人来回走的石板路两端（近景） */
     table: [[1985, 1405], [2095, 1392]], /* 远景里小旅人的位置：石桌左前方的草地 */
     heroScale: 0.72,                     /* 小旅人整体缩小 */
@@ -40,6 +43,9 @@
     g.fillStyle = '#000'; g.fillRect(0, 0, cv.width, cv.height); g.globalCompositeOperation = 'lighter';
     function poly(pts, col) { g.fillStyle = col; g.beginPath(); pts.forEach(function (p, i) { if (i) g.lineTo(p[0] / f, p[1] / f); else g.moveTo(p[0] / f, p[1] / f); }); g.closePath(); g.fill(); }
     poly(PL.fall, 'rgb(255,0,0)'); poly(PL.river, 'rgb(0,255,0)');
+    g.globalCompositeOperation = 'source-over'; g.fillStyle = 'rgb(0,0,0)';
+    PL.rocks.forEach(function (r) { g.beginPath(); g.ellipse(r[0] / f, r[1] / f, r[2] * 0.95 / f, r[2] * 0.7 / f, 0, 0, Math.PI * 2); g.fill(); });
+    g.globalCompositeOperation = 'lighter';
     var m = PL.fallMist, gr = g.createRadialGradient(m[0] / f, m[1] / f, 0, m[0] / f, m[1] / f, m[2] / f); gr.addColorStop(0, 'rgba(0,0,255,1)'); gr.addColorStop(1, 'rgba(0,0,255,0)');
     g.fillStyle = gr; g.fillRect(0, 0, cv.width, cv.height);
     var t = new THREE.CanvasTexture(cv); t.minFilter = t.magFilter = THREE.LinearFilter; t.generateMipmaps = false; return t;
@@ -47,10 +53,10 @@
   /* 底图材质：瀑布往下冲、小溪从桥下往镜头这边流（流动贴图：两相位交替采样，画面不会被越拉越远）、瀑布底水雾、云慢慢漂 */
   function backMaterial() {
     return new THREE.ShaderMaterial({ depthWrite: false,
-      uniforms: { map: { value: null }, mk: { value: makeFlowMask() }, uTime: C.Paint.time, uBridge: { value: new THREE.Vector2(PL.bridge[0] / PL.W, 1 - PL.bridge[1] / PL.H) }, uAsp: { value: PL.W / PL.H } },
+      uniforms: { map: { value: null }, mk: { value: makeFlowMask() }, uTime: C.Paint.time, uRocks: { value: PL.rocks.map(function (r) { return new THREE.Vector4(r[0] / PL.W, 1 - r[1] / PL.H, r[2] / PL.H, 0); }) }, uBridge: { value: new THREE.Vector2(PL.bridge[0] / PL.W, 1 - PL.bridge[1] / PL.H) }, uAsp: { value: PL.W / PL.H } },
       vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
       fragmentShader: [
-        'uniform sampler2D map, mk; uniform float uTime, uAsp; uniform vec2 uBridge; varying vec2 vUv;',
+        'uniform sampler2D map, mk; uniform float uTime, uAsp; uniform vec2 uBridge; uniform vec4 uRocks[5]; varying vec2 vUv;',
         'float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
         'float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h2(i), h2(i + vec2(1.0, 0.0)), f.x), mix(h2(i + vec2(0.0, 1.0)), h2(i + vec2(1.0, 1.0)), f.x), f.y); }',
         'float fbm(vec2 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { s += a * vn(p); p *= 2.03; a *= 0.5; } return s; }',
@@ -67,7 +73,17 @@
         '    vec2 q = vec2(atan(d.y, d.x) * 34.0, r * 55.0 - uTime * 2.2);',                  /* 横向 = 绕桥的角度，纵向 = 离桥的距离，白浪往镜头这边漂 */
         '    float foam = smoothstep(0.58, 0.82, fbm(q * vec2(1.0, 0.35)));',
         '    w = mix(w, vec3(0.96, 0.99, 1.0), foam * 0.45 * smoothstep(0.55, 0.85, dot(w, vec3(0.33))));',   /* 白浪只加在本来就亮的水面上 */
-        '    c = mix(c, w, m.g);',
+        '    float sp = 0.0;',                                                       /* 石头：上游一侧水堆起来翻白，下游拖一条白色的尾流 */
+        '    for (int i = 0; i < 5; i++) {',
+        '      vec2 e = vUv - uRocks[i].xy; e.x *= uAsp; float R = uRocks[i].z, dl = length(e / vec2(1.0, 0.72));',
+        '      float along = dot(e, normalize(vec2(dir.x * uAsp, dir.y))), across = abs(dot(e, normalize(vec2(-dir.y, dir.x * uAsp))));',
+        '      float n = fbm(vec2(atan(e.y, e.x) * 3.0, dl / R * 2.0 - uTime * 3.0));',
+        '      float ring = smoothstep(R * 1.9, R * 1.0, dl) * smoothstep(0.25, 0.6, n) * (0.6 + 0.4 * smoothstep(0.0, -R, along));',
+        '      float wake = exp(-across * across / (R * R * 0.8)) * smoothstep(0.0, R * 0.8, along) * exp(-along / (R * 6.0)) * smoothstep(0.3, 0.65, fbm(vec2(along / R * 1.4 - uTime * 3.4, across / R * 2.5)));',
+        '      sp = max(sp, max(ring, wake * 0.85));',
+        '    }',
+        '    w = mix(w, vec3(0.97, 0.99, 1.0), sp * 0.85);',
+        '    c = mix(c, w, max(m.g, sp * smoothstep(0.0, 0.05, m.g + 0.02)));',
         '  }',
         '  if (m.r > 0.003) {',                                                     /* 瀑布 */
         '    vec3 w = flowSample(vUv, vec2(0.0015, -0.05), 0.9);',
@@ -144,10 +160,76 @@
     fmg.filter = 'blur(9px)'; fmg.fillStyle = '#000'; fmg.beginPath(); PL.fence.forEach(function (q, i2) { if (i2) fmg.lineTo(q[0], q[1]); else fmg.moveTo(q[0], q[1]); }); fmg.closePath(); fmg.fill();
     fg2.globalCompositeOperation = 'destination-in'; fg2.drawImage(fm, 0, 0);
     g.drawImage(fc, 0, 0);
+    /* 小溪右岸：原来的水面铺成草坡。草取石凳下方那条向阳草地（近大远小），靠水那一侧渐暗（坡往下到水边），岸线上一道湿边和细细的水花 */
+    var edge = [];                                                    /* 新岸线：每 8 像素一点，左右轻轻起伏，不是一条直线 */
+    for (var ei = 0; ei < 7; ei++) { var EA = PL.bank[ei], EB = PL.bank[ei + 1], en = Math.max(1, Math.round(Math.hypot(EB[0] - EA[0], EB[1] - EA[1]) / 8));
+      for (var ek = 0; ek < en; ek++) { var et = ek / en, ex = EA[0] + (EB[0] - EA[0]) * et, ey = EA[1] + (EB[1] - EA[1]) * et; edge.push([ex + 5 * Math.sin(ey * 0.11) + 3 * Math.sin(ey * 0.37 + 1.3), ey]); } }
+    edge.push(PL.bank[7]);
+    var bankPoly = edge.concat(PL.bank.slice(8));
+    var bc = document.createElement('canvas'); bc.width = W; bc.height = H; var bg2 = bc.getContext('2d');
+    function bpath(c2) { c2.beginPath(); bankPoly.forEach(function (q, i2) { if (i2) c2.lineTo(q[0], q[1]); else c2.moveTo(q[0], q[1]); }); c2.closePath(); }
+    bg2.save(); bpath(bg2); bg2.clip();
+    for (var by = 1000, brow = 0; by < H; brow++) {
+      var bsc = 0.4 + 0.6 * Math.max(0, by - 1000) / 438, bw = 300 * bsc, bh = 70 * bsc;
+      for (var bx = 1480 - (brow % 2) * bw * 0.5, bcol = 0; bx < 1900; bx += bw, bcol++) {
+        bg2.save(); if ((brow + bcol) % 2) { bg2.translate(bx + bw, by); bg2.scale(-1, 1); bg2.drawImage(img, 2150, 1365, 300, 70, 0, 0, bw, bh); } else bg2.drawImage(img, 2150, 1365, 300, 70, bx, by, bw, bh);
+        bg2.restore();
+      }
+      by += bh * 0.92;
+    }
+    function stroke(col, wid, blur, dx) { bg2.save(); bg2.filter = 'blur(' + blur + 'px)'; bg2.strokeStyle = col; bg2.lineWidth = wid; bg2.lineJoin = bg2.lineCap = 'round'; bg2.beginPath(); edge.forEach(function (q, i2) { if (i2) bg2.lineTo(q[0] + dx, q[1]); else bg2.moveTo(q[0] + dx, q[1]); }); bg2.stroke(); bg2.restore(); }
+    stroke('rgba(20,48,12,0.55)', 90, 22, 22);                        /* 坡往下到水边：靠水一侧暗下去 */
+    stroke('rgba(52,60,30,0.75)', 14, 4, 4);                           /* 水边湿土 */
+    for (var ti = 0; ti < edge.length; ti += 2) {                      /* 水边的草丛：一簇簇往水面探 */
+      var tq = edge[ti], ts = 0.6 + 0.6 * (tq[1] - 1000) / 438;
+      bg2.save(); bg2.translate(tq[0] + 2, tq[1]); bg2.strokeStyle = ti % 4 ? 'rgba(96,140,40,0.9)' : 'rgba(70,112,30,0.9)'; bg2.lineWidth = 1.6 * ts;
+      for (var tb = 0; tb < 4; tb++) { bg2.beginPath(); bg2.moveTo(0, 0); bg2.quadraticCurveTo(-4 * ts, -8 * ts, (-9 - tb * 3 + (ti % 3) * 2) * ts, (-12 - tb * 2) * ts); bg2.stroke(); }
+      bg2.restore();
+    }
+    bg2.restore();
+    stroke('rgba(235,245,250,0.85)', 5, 2, -4);                        /* 岸线上的细水花（画在草坡外侧的水面上） */
+    var bm = document.createElement('canvas'); bm.width = W; bm.height = H; var bmg = bm.getContext('2d');
+    bmg.filter = 'blur(16px)'; bmg.fillStyle = '#000'; bpath(bmg); bmg.fill(); bmg.filter = 'blur(2px)'; bmg.beginPath(); edge.concat([[1690, 1438], [1800, 1100]]).forEach(function (q, i2) { if (i2) bmg.lineTo(q[0], q[1]); else bmg.moveTo(q[0], q[1]); }); bmg.closePath(); bmg.fill();   /* 外侧（和原来的草地）大羽化，靠水一侧边缘清楚 */ bmg.lineWidth = 16; bmg.strokeStyle = '#000'; bmg.beginPath(); edge.forEach(function (q, i2) { if (i2) bmg.lineTo(q[0] - 4, q[1]); else bmg.moveTo(q[0] - 4, q[1]); }); bmg.stroke();
+    bg2.globalCompositeOperation = 'destination-in'; bg2.drawImage(bm, 0, 0);
+    g.drawImage(bc, 0, 0);
+    /* 右岸草坡和石桌边的草地：稀疏的野花（白、黄、粉、紫），近处大远处小，几朵一簇 */
+    var rnd = (function () { var x = 7; return function () { x = (x * 16807) % 2147483647; return x / 2147483647; }; })();
+    g.save(); g.beginPath();
+    [bankPoly, PL.fence].forEach(function (poly) { poly.forEach(function (q, i2) { if (i2) g.lineTo(q[0], q[1]); else g.moveTo(q[0], q[1]); }); g.closePath(); });
+    g.clip();
+    var FL = ['#fbfaf2', '#f6d84a', '#f2a6c2', '#b78ad8', '#fbfaf2', '#f6d84a'];
+    for (var fi = 0; fi < 60; fi++) {
+      var fy = 1060 + Math.pow(rnd(), 0.8) * 378, fx = 1560 + rnd() * 480, fs = 1.1 + 2.6 * (fy - 1060) / 378, fc2 = FL[Math.floor(rnd() * FL.length)], fn = 1 + Math.floor(rnd() * 3);
+      for (var fk = 0; fk < fn; fk++) {
+        var ax = fx + (rnd() - 0.5) * 14 * fs, ay = fy + (rnd() - 0.5) * 6 * fs;
+        g.strokeStyle = 'rgba(70,110,30,0.8)'; g.lineWidth = 0.8 * fs; g.beginPath(); g.moveTo(ax, ay); g.lineTo(ax + (rnd() - 0.5) * 2, ay + 5 * fs); g.stroke();
+        g.fillStyle = fc2; g.beginPath(); g.arc(ax, ay, 1.7 * fs, 0, Math.PI * 2); g.fill();
+        g.fillStyle = 'rgba(255,255,255,0.5)'; g.beginPath(); g.arc(ax - 0.5 * fs, ay - 0.5 * fs, 0.6 * fs, 0, Math.PI * 2); g.fill();
+      }
+    }
+    g.restore();
+    /* 溪里的石头：先画水撞上来的白浪（在石头后面），再画露出水面的圆顶石头，最后是前面一圈白沫 */
+    PL.rocks.forEach(function (r, ri) {
+      var x = r[0], y = r[1], R = r[2];
+      g.save(); g.translate(x, y);
+      g.fillStyle = 'rgba(20,40,50,0.3)'; g.beginPath(); g.ellipse(R * 0.15, R * 0.5, R * 1.15, R * 0.4, 0, 0, Math.PI * 2); g.fill();      /* 水下的影子 */
+      g.filter = 'blur(2px)'; g.fillStyle = 'rgba(246,251,255,0.9)';
+      g.beginPath(); g.ellipse(0, -R * 0.05, R * 1.35, R * 0.62, 0, Math.PI, Math.PI * 2); g.ellipse(0, -R * 0.05, R * 1.0, R * 0.25, 0, 0, Math.PI); g.fill();   /* 上游一侧堆起的白浪 */
+      g.filter = 'none';
+      g.beginPath();
+      for (var a = 0; a <= 16; a++) { var th = Math.PI + a / 16 * Math.PI, k = 1 + 0.1 * Math.sin(th * 3 + ri * 1.7) + 0.05 * Math.cos(th * 5 + ri); g.lineTo(Math.cos(th) * R * k, Math.sin(th) * R * 0.85 * k); }   /* 上半：圆顶 */
+      g.quadraticCurveTo(R * 0.6, R * 0.32, 0, R * 0.3); g.quadraticCurveTo(-R * 0.6, R * 0.32, -R, 0); g.closePath();                            /* 下半：没进水里，平一点 */
+      var rg = g.createLinearGradient(0, -R * 0.85, 0, R * 0.3); rg.addColorStop(0, '#a3a39a'); rg.addColorStop(0.5, '#6f716b'); rg.addColorStop(1, '#353b3c');
+      g.fillStyle = rg; g.fill();
+      g.fillStyle = 'rgba(255,250,235,0.4)'; g.beginPath(); g.ellipse(-R * 0.25, -R * 0.55, R * 0.42, R * 0.14, -0.25, 0, Math.PI * 2); g.fill();   /* 顶上的高光 */
+      g.filter = 'blur(1.2px)'; g.strokeStyle = 'rgba(246,251,255,0.9)'; g.lineWidth = R * 0.14; g.lineCap = 'round';
+      g.beginPath(); g.ellipse(0, R * 0.22, R * 1.02, R * 0.22, 0, Math.PI * 0.02, Math.PI * 0.98); g.stroke();                                      /* 和水面交界的白沫 */
+      g.filter = 'none'; g.restore();
+    });
     /* 遮罩：原房子的轮廓，低分辨率，放大时边缘自然羽化 */
     var f = 16, mk = document.createElement('canvas'); mk.width = Math.round(W / f); mk.height = Math.round(H / f); var mg = mk.getContext('2d');
     mg.fillStyle = '#000'; mg.fillRect(0, 0, mk.width, mk.height); mg.fillStyle = '#fff'; mg.beginPath();
-    [PL.mask, PL.path, PL.fence].forEach(function (poly) { mg.beginPath(); poly.forEach(function (p, i) { if (i) mg.lineTo(p[0] / f, p[1] / f); else mg.moveTo(p[0] / f, p[1] / f); }); mg.closePath(); mg.fill(); });
+    [PL.mask, PL.path, PL.fence, PL.bank].concat(PL.rocks.map(function (r) { var o = []; for (var a = 0; a < 10; a++) o.push([r[0] + Math.cos(a / 10 * 6.283) * r[2] * 1.6, r[1] + Math.sin(a / 10 * 6.283) * r[2] * 1.3]); return o; })).forEach(function (poly) { mg.beginPath(); poly.forEach(function (p, i) { if (i) mg.lineTo(p[0] / f, p[1] / f); else mg.moveTo(p[0] / f, p[1] / f); }); mg.closePath(); mg.fill(); });
     function tex(c) { var t = new THREE.CanvasTexture(c); t.minFilter = THREE.LinearFilter; t.magFilter = THREE.LinearFilter; t.generateMipmaps = false; t.flipY = true; return t; }
     return { patch: tex(cv), mask: tex(mk) };
   }
