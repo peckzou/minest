@@ -32,7 +32,7 @@
   var fill = new THREE.DirectionalLight(0xdbe6ff, 0.4); fill.position.set(14, 10, -20); scene.add(fill);
 
   /* —— 外景（?scene=valley）：劳特布龙嫩山谷 + 花园。展台的地面、指北箭头和灯关掉，镜头换成照片机位 —— */
-  var VAL = q.get('scene') === 'valley' && C.buildValley ? C.buildValley(scene, house) : null, VO = { az: 0, el: 0, zoom: 1 };
+  var VAL = q.get('scene') === 'valley' && C.buildValley ? C.buildValley(scene, house, renderer) : null, VO = { az: 0, el: 0, zoom: 1 };
   if (VAL) {
     ground.visible = false; arrow.visible = false; hemiS.visible = sun.visible = fill.visible = false; sun.castShadow = false;
     camera.far = 6000; camera.near = 0.8; camera.updateProjectionMatrix(); document.body.classList.add('valley'); renderer.toneMappingExposure = 0.85;
@@ -164,6 +164,7 @@
     if (fly) { fly.t = Math.min(1, fly.t + dt / 0.9); var k = fly.t * fly.t * (3 - 2 * fly.t);
       O.az = fly.a0 + (fly.a1 - fly.a0) * k; O.el = fly.e0 + (fly.e1 - fly.e0) * k; O.d = fly.d0 + (fly.d1 - fly.d0) * k; if (fly.t >= 1) fly = null; }
     if (O.auto) { if (VAL) VO.az = Math.sin(now / 1000 * 0.35) * VAL.limits(camera.aspect, VO.zoom).azMax; else O.az += dt * 0.25; }
+    if (VAL && VAL.tick) VAL.tick(now / 1000);
     place(); renderer.render(scene, camera);
     frames++; if (now - t0 > 1000) { fps = Math.round(frames * 1000 / (now - t0)); frames = 0; t0 = now; $('fps').textContent = fps + ' fps'; }
     requestAnimationFrame(loop);

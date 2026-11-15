@@ -135,7 +135,7 @@
     return mesh;
   };
 
-  C.buildValley = function (scene, house) {
+  C.buildValley = function (scene, house, renderer) {
     var K = C.Kit, P = V, disp = [], rnd = prng(11);
     var root = new THREE.Group(); root.name = 'valley'; scene.add(root);
     var site = new THREE.Group(); site.rotation.x = -Math.PI / 2; root.add(site);          /* 山谷坐标（Z 向上）→ three */
@@ -153,9 +153,13 @@
     }
 
     /* —— 远景照片：远处一块平面，跟着镜头平移（山是无穷远） —— */
-    var tex = new THREE.TextureLoader().load(P.img); tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 8; tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false; disp.push(tex);
+    var back, tex = new THREE.TextureLoader().load(P.img, function () {                  /* 照片载入后一次性绘画化，再显示 */
+      var rt = C.Paint.paintBackdrop(renderer, tex, 2048, Math.round(2048 * P.IH / P.IW)); disp.push(rt);
+      back.material.map = rt.texture; back.material.needsUpdate = true; back.visible = true;
+    });
+    tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false; disp.push(tex);
     var BW = 2 * P.RB * Math.tan(P.hfov / 2 * D2R), BH = BW * P.IH / P.IW;
-    var back = new THREE.Mesh(new THREE.PlaneGeometry(BW, BH), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, depthWrite: false, fog: false }));
+    back = new THREE.Mesh(new THREE.PlaneGeometry(BW, BH), new THREE.MeshBasicMaterial({ toneMapped: false, depthWrite: false, fog: false })); back.visible = false;
     back.renderOrder = -10; back.frustumCulled = false; root.add(back); disp.push(back.geometry, back.material);
 
     /* —— 地形：河左岸往左上坡，房子在台地上 —— */
@@ -304,6 +308,23 @@
     b.build(site, M);
     site.traverse(function (o) { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     var lm = leaves.mesh(), fm = fls.mesh(); site.add(lm, fm); disp.push(lm.geometry, lm.material, fm.geometry, fm.material);
+    lm.userData.sway = 0.07; fm.userData.sway = 0.03;
+
+    /* —— 统一画风：3D 全换成柔和分层的卡通光照；草坪铺随风摆的草叶 —— */
+    C.Paint.toonTree(site, function (o) { return { sway: o.userData.sway || 0, rim: o.userData.sway ? 1.3 : 1 }; });
+    C.Paint.toonTree(holder);
+    (function () {
+      var pts = [], n = 0, y, x, l;
+      var N = (navigator.maxTouchPoints > 0 || Math.min(screen.width, screen.height) < 700) ? 9000 : 26000;   /* 手机上少铺一些 */
+      while (n < N) {
+        y = 30 + Math.pow(rnd(), 1.2) * 69; x = -62 + rnd() * (riverEdge(y) - 0.5 + 62);
+        l = local(x, y);
+        if (l[0] > -9.2 && l[0] < 11.6 && l[1] > -3.0 && l[1] < 11.2) continue;          /* 房子底下 */
+        if (Math.abs(l[0]) < 1.4 && l[1] < -3.2 && l[1] > -8.6) continue;                  /* 台阶 */
+        pts.push([x, terrainZ(x, y) - 0.03, -y, 0.55 + rnd() * 0.45]); n++;
+      }
+      var gm = C.Paint.grass(pts, rnd); root.add(gm); disp.push(gm.geometry, gm.material);
+    })();
 
     /* —— 光：照片里的晴天，太阳在右前上方 —— */
     var hemi = new THREE.HemisphereLight(0xf3f4ee, 0x5f7a3c, 0.6); root.add(hemi);
@@ -322,6 +343,7 @@
     }
     return {
       root: root, holder: holder,
+      tick: function (t) { C.Paint.time.value = t; },
       limits: function (a, zoom) { return frame(a, zoom); },
       place: function (camera, O) {
         var f = frame(camera.aspect, O.zoom || 1); O.az = Math.max(-f.azMax, Math.min(f.azMax, O.az)); O.el = Math.max(-f.pMax - 0.06, Math.min(f.pMax, O.el));
