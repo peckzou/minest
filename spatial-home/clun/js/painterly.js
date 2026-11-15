@@ -15,24 +15,28 @@
   ].join('\n');
 
   /* 远景照片 → 绘画化贴图。src 是原始照片（按原值读），返回渲染目标的贴图（存的是 sRGB 值）。 */
-  S.paintBackdrop = function (renderer, src, W, H) {
+  /* opts: { patch 补图贴图, mask 补图范围（低分辨率，白 = 用补图）, sky 是否把天空换成画的云天（只对第一张照片）, haze 远山雾的强度 } */
+  S.paintBackdrop = function (renderer, src, W, H, opts) {
+    opts = opts || {};
     var rt = new THREE.WebGLRenderTarget(W, H, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: false, depthBuffer: false, wrapS: THREE.MirroredRepeatWrapping });   /* 左右可镜像延伸 */
     var mat = new THREE.ShaderMaterial({
-      uniforms: { tSrc: { value: src }, uTexel: { value: new THREE.Vector2(1 / src.image.width, 1 / src.image.height) } },
+      uniforms: { tSrc: { value: src }, tPatch: { value: opts.patch || src }, tMask: { value: opts.mask || src }, uUseMask: { value: opts.mask ? 1 : 0 }, uSky: { value: opts.sky === false ? 0 : 1 }, uHaze: { value: opts.haze == null ? 0.32 : opts.haze },
+        uTexel: { value: new THREE.Vector2(1 / src.image.width, 1 / src.image.height) } },
       vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
       fragmentShader: [
-        'uniform sampler2D tSrc; uniform vec2 uTexel; varying vec2 vUv;', NOISE,
+        'uniform sampler2D tSrc, tPatch, tMask; uniform float uUseMask, uSky, uHaze; uniform vec2 uTexel; varying vec2 vUv;', NOISE,
+        'vec3 smp(vec2 uv){ vec3 a = texture2D(tSrc, uv).rgb; if (uUseMask < 0.5) return a; return mix(a, texture2D(tPatch, uv).rgb, texture2D(tMask, uv).r); }',
         'void main(){',
         '  vec3 m0 = vec3(0.0), m1 = vec3(0.0), m2 = vec3(0.0), m3 = vec3(0.0), s0 = vec3(0.0), s1 = vec3(0.0), s2 = vec3(0.0), s3 = vec3(0.0);',
         '  for (int j = -3; j <= 3; j++) for (int i = -3; i <= 3; i++) {',            /* Kuwahara：四个象限里取方差最小的平均色，得到笔触感 */
-        '    vec3 c = texture2D(tSrc, vUv + vec2(float(i), float(j)) * uTexel * 0.9).rgb;',
+        '    vec3 c = smp(vUv + vec2(float(i), float(j)) * uTexel * 0.9);',
         '    if (i <= 0 && j <= 0) { m0 += c; s0 += c * c; } if (i >= 0 && j <= 0) { m1 += c; s1 += c * c; }',
         '    if (i <= 0 && j >= 0) { m2 += c; s2 += c * c; } if (i >= 0 && j >= 0) { m3 += c; s3 += c * c; }',
         '  }',
         '  float n = 16.0; m0 /= n; m1 /= n; m2 /= n; m3 /= n;',
         '  float v0 = dot(abs(s0 / n - m0 * m0), vec3(1.0)), v1 = dot(abs(s1 / n - m1 * m1), vec3(1.0)), v2 = dot(abs(s2 / n - m2 * m2), vec3(1.0)), v3 = dot(abs(s3 / n - m3 * m3), vec3(1.0));',
         '  vec3 c = m0; float v = v0; if (v1 < v) { c = m1; v = v1; } if (v2 < v) { c = m2; v = v2; } if (v3 < v) { c = m3; v = v3; }',
-        '  vec3 o = texture2D(tSrc, vUv).rgb; float y = vUv.y;',
+        '  vec3 o = smp(vUv); float y = vUv.y;',
         '  float lum = dot(c, vec3(0.299, 0.587, 0.114));',
         '  c = mix(vec3(lum), c, 1.12);',                                                 /* 饱和一点 */
         '  c += vec3(-0.03, 0.0, 0.05) * (1.0 - smoothstep(0.15, 0.55, lum));',            /* 暗部偏青蓝 */
@@ -40,12 +44,12 @@
         '  c = mix(c, vec3(0.55, 0.62, 0.6), 0.07);',                                       /* 整体粉一点、反差低一点 */
         '  float g = c.g - max(c.r, c.b);',
         '  c.g += 0.04 * smoothstep(0.02, 0.12, g); c.r += 0.03 * smoothstep(0.02, 0.12, g);',  /* 绿色往黄绿走 */
-        '  float haze = smoothstep(0.40, 0.92, y) * 0.32;',                                 /* 远山：越高越远，蒙一层蓝白的空气 */
+        '  float haze = smoothstep(0.40, 0.92, y) * uHaze;',                                 /* 远山：越高越远，蒙一层蓝白的空气 */
         '  c = mix(c, vec3(0.70, 0.82, 0.94), haze);',
         '  float skyM = smoothstep(0.22, 0.45, o.b - o.r) * smoothstep(0.12, 0.3, o.b - o.g) * smoothstep(0.5, 0.7, y);',     /* 天空：照片上部很饱和的蓝（山的蓝和雪的阴影都不够饱和） */
         '  float px = vUv.x * 1266.0, py = (1.0 - y) * 860.0;',                              /* 左边大山的轮廓（照片像素）：山上不算天空 */
         '  float edge = py < 88.0 ? -20.0 : py < 120.0 ? mix(40.0, 110.0, (py - 88.0) / 32.0) : py < 190.0 ? mix(110.0, 180.0, (py - 120.0) / 70.0) : mix(180.0, 260.0, (py - 190.0) / 72.0);',
-        '  skyM *= smoothstep(edge, edge + 14.0, px);',
+        '  skyM *= smoothstep(edge, edge + 14.0, px) * uSky;',
         '  vec3 sky = mix(vec3(0.5, 0.7, 0.94), vec3(0.24, 0.5, 0.88), smoothstep(0.62, 1.0, y));',            /* 贴近照片原来的蓝，接缝看不出 */
         '  vec2 q = vec2(vUv.x * 3.2, vUv.y * 7.0);',
         '  float cl = fbm(q + vec2(0.0, 3.7)) + 0.35 * fbm(q * 2.3);',
@@ -53,8 +57,8 @@
         '  vec3 cloud = mix(vec3(0.74, 0.82, 0.94), vec3(1.0, 0.99, 0.96), smoothstep(0.82, 1.1, fbm(q + vec2(0.05, 3.82)) + 0.35 * fbm(q * 2.3)));',
         '  sky = mix(sky, cloud, cm);',
         '  c = mix(c, sky, skyM);',
-        '  float e = length(vec2(dot(texture2D(tSrc, vUv + vec2(uTexel.x * 2.0, 0.0)).rgb - texture2D(tSrc, vUv - vec2(uTexel.x * 2.0, 0.0)).rgb, vec3(0.33)),',
-        '                       dot(texture2D(tSrc, vUv + vec2(0.0, uTexel.y * 2.0)).rgb - texture2D(tSrc, vUv - vec2(0.0, uTexel.y * 2.0)).rgb, vec3(0.33))));',
+        '  float e = length(vec2(dot(smp(vUv + vec2(uTexel.x * 2.0, 0.0)) - smp(vUv - vec2(uTexel.x * 2.0, 0.0)), vec3(0.33)),',
+        '                       dot(smp(vUv + vec2(0.0, uTexel.y * 2.0)) - smp(vUv - vec2(0.0, uTexel.y * 2.0)), vec3(0.33))));',
         '  c *= 1.0 - 0.18 * smoothstep(0.12, 0.35, e) * (1.0 - skyM);',                  /* 很淡的勾线感 */
         '  gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);',
         '}'].join('\n'),
