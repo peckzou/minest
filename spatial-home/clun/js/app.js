@@ -120,6 +120,13 @@
   $('cut').max = CUT_MAX; $('cut').addEventListener('input', function () { setCut(+this.value); });
   $('auto').addEventListener('click', function () { O.auto = !O.auto; sync(); });
   $('scene').textContent = VAL ? '回展台' : '外景 · 劳特布龙嫩';
+  /* Duo 预览（电脑上看外屏 / 内屏和展开动画）：把画面放进一个机身大小的框里 */
+  function duoSim(k) {
+    document.body.classList.toggle('duo-sim', !!k); document.body.dataset.sim = k || ''; C.PLATE && (C.PLATE.sim = k || null);
+    ['simOuter', 'simInner', 'simOff'].forEach(function (id) { $(id).classList.toggle('on', (id === 'simOuter' && k === 'outer') || (id === 'simInner' && k === 'inner') || (id === 'simOff' && !k)); });
+  }
+  if (VAL) { $('simOuter').onclick = function () { duoSim('outer'); }; $('simInner').onclick = function () { duoSim('inner'); }; $('simOff').onclick = function () { duoSim(null); };
+    if (q.get('sim')) duoSim(q.get('sim')); }
   $('scene').addEventListener('click', function () { var u = new URLSearchParams(location.search); if (VAL) u.delete('scene'); else u.set('scene', 'valley'); ['view', 'cam', 'sec', 'secside'].forEach(function (k) { u.delete(k); }); location.search = u.toString(); });
   /* 剖面：穿过卧室 4 的后老虎窗和客厅（看斜顶、矮墙、各层层高），从北往南看；楼梯剖面沿楼梯井切开，从南往北看 */
   $('sec').addEventListener('click', function () { if (secOn) { setSection(null); return; } all(true); setCut(CUT_MAX); setSection(-3.0, 1); setView('section'); });
@@ -142,7 +149,7 @@
   })();
 
   function resize() {
-    var w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false);
+    var st = $('stage'), w = st.clientWidth || window.innerWidth, h = st.clientHeight || window.innerHeight; renderer.setSize(w, h, false);
     camera.aspect = w / h; camera.fov = w / h < 0.8 ? 46 : 32; camera.updateProjectionMatrix();
   }
   window.addEventListener('resize', resize); resize();
@@ -159,11 +166,13 @@
 
   var st = C.stats(house), frames = 0, t0 = performance.now(), fps = 0, prev = t0;
   $('stat').textContent = st.meshes + ' 网格 · ' + Math.round(st.tris) + ' 三角面';
+  var lastW = 0, lastH = 0;
   function loop(now) {
     var dt = Math.min(0.05, (now - prev) / 1000); prev = now;
     if (fly) { fly.t = Math.min(1, fly.t + dt / 0.9); var k = fly.t * fly.t * (3 - 2 * fly.t);
       O.az = fly.a0 + (fly.a1 - fly.a0) * k; O.el = fly.e0 + (fly.e1 - fly.e0) * k; O.d = fly.d0 + (fly.d1 - fly.d0) * k; if (fly.t >= 1) fly = null; }
     if (O.auto) { if (VAL) VO.az = Math.sin(now / 1000 * 0.35) * VAL.limits(camera.aspect, VO.zoom).azMax; else O.az += dt * 0.25; }
+    var stg = $('stage'); if (stg.clientWidth !== lastW || stg.clientHeight !== lastH) { lastW = stg.clientWidth; lastH = stg.clientHeight; resize(); }   /* Duo 预览时画布跟着机身大小变 */
     if (VAL && VAL.tick) VAL.tick(now / 1000);
     place(); renderer.render(scene, camera);
     frames++; if (now - t0 > 1000) { fps = Math.round(frames * 1000 / (now - t0)); frames = 0; t0 = now; $('fps').textContent = fps + ' fps'; }

@@ -190,22 +190,66 @@
     sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.05;
     var sc = sun.shadow.camera; sc.left = -22; sc.right = 22; sc.top = 22; sc.bottom = -22; sc.near = 10; sc.far = 200;
 
-    /* —— 镜头：固定在底图的机位；只能推近和在底图范围内平移（裁出底图的一部分来看） —— */
-    var lastT = null;
+    /* —— 镜头：固定在底图的机位，画面 = 底图上裁出的一个矩形（底图像素）。
+          Duo：外屏（窄长）裁房子主体近景；展开到内屏裁远景全景。两者之间做过渡：
+            外屏 → 内屏（展开）：先在内屏上停在房子近景，再缓缓拉远，露出整片山谷，小旅人挥手；
+            内屏 → 外屏（合上）：镜头从山谷中间横移、推近到房子。
+          判断：根元素有 duo-outer / duo-inner 类就用它（Duo 版页面会加）；否则按尺寸：短边 ≥ 600 且长短边比 < 1.6 当内屏，
+          窄长竖屏（宽高比 < 0.62）当外屏，其余（电脑、平板横屏）按内屏的全景处理。?duo=outer|inner 或 C.PLATE.sim 可强制。 —— */
+    var HOUSE = [857, 812], lastT = null, kind = null, trans = null, Q = new URLSearchParams(location.search);
+    function screenKind(w, h) {
+      var f = PL.sim || Q.get('duo'); if (f === 'outer' || f === 'inner') return f;
+      var R = document.documentElement; if (R.classList.contains('duo-inner')) return 'inner'; if (R.classList.contains('duo-outer')) return 'outer';
+      if (!(navigator.maxTouchPoints > 0)) return 'normal';                 /* 只在触屏设备上按尺寸猜，电脑窗口不算 */
+      if (Math.min(w, h) >= 600 && Math.max(w, h) / Math.min(w, h) < 1.35) return 'inner';
+      return w / h < 0.62 ? 'outer' : 'normal';
+    }
+    function clampRect(r) {                                               /* 矩形不超出底图 */
+      var w = Math.min(r.w, PL.W, PL.H * r.w / r.h), h = w * r.h / r.w;
+      return { x: Math.max(0, Math.min(PL.W - w, r.cx - w / 2)), y: Math.max(0, Math.min(PL.H - h, r.cy - h / 2)), w: w, h: h };
+    }
+    function frameFor(k, va) {                                            /* 各屏的取景：中心 + 宽（高由视口比例定） */
+      if (k === 'outer') { var ho = Math.min(PL.H, Math.max(1100, 640 / va)); return { cx: HOUSE[0], cy: HOUSE[1] - 30, w: ho * va, h: ho }; }   /* 房子居中，略推近 */
+      var w = va > A ? PL.W : PL.H * va;
+      return { cx: va > A ? PL.W / 2 : (k === 'inner' ? 1225 : PL.W / 2), cy: PL.H / 2, w: w, h: w / va };
+    }
+    function closeUp(va) { var w = Math.min(760, PL.H * va); return { cx: HOUSE[0], cy: HOUSE[1] + 40, w: w, h: w / va }; }   /* 房子近景 */
+    function ease(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+    function lerpR(a, b, t) { return { cx: a.cx + (b.cx - a.cx) * t, cy: a.cy + (b.cy - a.cy) * t, w: a.w * Math.pow(b.w / a.w, t), h: a.h * Math.pow(b.h / a.h, t) }; }
+    function beginTransition(from, to, va, now) {
+      if (from === 'outer' && to !== 'outer') { trans = { from: closeUp(va), t0: now, dur: 2.6, hold: 0.5, glow: 1 }; hero.greet(); }
+      else if (to === 'outer' && from && from !== 'outer') { var f = frameFor('outer', va); trans = { from: { cx: 1300, cy: f.cy, w: f.w * 1.25, h: f.h * 1.25 }, t0: now, dur: 1.6, hold: 0.15, glow: 0 }; }
+      try { sessionStorage.setItem('clun.duo.kind', JSON.stringify({ k: to, t: Date.now() })); } catch (e) {}
+    }
+    /* 页面在换屏时被重新载入的情况：上一屏是外屏且刚过去不久，就补放展开动画 */
+    var bootFrom = null; try { var bk = JSON.parse(sessionStorage.getItem('clun.duo.kind') || 'null'); if (bk && Date.now() - bk.t < 8000) bootFrom = bk.k; } catch (e) {}
+    var glow = document.createElement('div');                             /* 展开时从折痕处扫过的一道柔光 */
+    glow.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:3;opacity:0;background:linear-gradient(90deg,rgba(255,250,235,0) 35%,rgba(255,250,235,.55) 50%,rgba(255,250,235,0) 65%);background-size:300% 100%;';
+    document.body.appendChild(glow); disp.push({ dispose: function () { glow.remove(); } });
     return {
       root: root, holder: holder, distance: d, hero: hero,
+      kind: function () { return kind; },
       tick: function (t) { var dt = lastT == null ? 0 : t - lastT; lastT = t; C.Paint.time.value = t; hero.update(t, dt); },
       limits: function (a, zoom) { return { azMax: 0.5 * (1 - (zoom || 1)) + 0.0001 }; },
       place: function (camera, O) {
-        var sz = renderer.getSize(new THREE.Vector2()), va = sz.x / Math.max(1, sz.y), fw, fh, ox, oy, z = Math.max(0.45, Math.min(1, O.zoom || 1));
-        if (va > A) { fw = sz.x; fh = sz.x / A; } else { fh = sz.y; fw = sz.y * A; }        /* 底图铺满视口（多出的裁掉） */
-        fw /= z; fh /= z;
-        var cx = va < 1 ? 0.31 : 0.5;                                        /* 竖屏时以房子为中心 */
-        O.az = Math.max(-0.5, Math.min(0.5, O.az)); O.el = Math.max(-0.5, Math.min(0.5, O.el));
-        ox = Math.max(0, Math.min(fw - sz.x, fw * cx - sz.x / 2 - O.az * (fw - sz.x)));
-        oy = Math.max(0, Math.min(fh - sz.y, (fh - sz.y) / 2 + O.el * (fh - sz.y)));
+        var sz = renderer.getSize(new THREE.Vector2()), va = sz.x / Math.max(1, sz.y), now = performance.now() / 1000;
+        var k = screenKind(sz.x, sz.y);
+        if (k !== kind) { document.body.classList.toggle('duo-screen', (k === 'outer' || k === 'inner') && !PL.sim); var from = kind == null ? bootFrom : kind; kind = k; if (from && from !== k) { beginTransition(from, k, va, now); O.zoom = 1; O.az = O.el = 0; } else try { sessionStorage.setItem('clun.duo.kind', JSON.stringify({ k: k, t: Date.now() })); } catch (e) {} }
+        var tgt = frameFor(k, va), r = tgt;
+        if (trans) {
+          var p = Math.max(0, Math.min(1, (now - trans.t0 - trans.hold) / trans.dur)), e = ease(p);
+          r = lerpR(trans.from, tgt, e);
+          if (trans.glow) { var g = Math.sin(Math.min(1, (now - trans.t0) / (trans.dur * 0.7)) * Math.PI); glow.style.opacity = (0.9 * g).toFixed(3); glow.style.backgroundPosition = (100 - 100 * Math.min(1, (now - trans.t0) / (trans.dur * 0.7))) + '% 0'; }
+          if (p >= 1) { trans = null; glow.style.opacity = 0; }
+        } else {                                                          /* 用户的推近和平移，叠在取景上 */
+          var z = Math.max(0.45, Math.min(1, O.zoom || 1)); O.az = Math.max(-0.5, Math.min(0.5, O.az)); O.el = Math.max(-0.5, Math.min(0.5, O.el));
+          var room = clampRect(tgt);
+          r = { cx: tgt.cx - O.az * PL.W * (1 - z) * 0.9, cy: tgt.cy + O.el * PL.H * (1 - z) * 0.9, w: room.w * z, h: room.h * z };
+          if (z >= 0.999) r = { cx: tgt.cx - O.az * (PL.W - room.w), cy: tgt.cy + O.el * (PL.H - room.h), w: room.w, h: room.h };
+        }
+        var c = clampRect({ cx: r.cx, cy: r.cy, w: r.w, h: r.w / va }), s = sz.x / c.w;
         camera.position.copy(cam.pos); camera.quaternion.copy(cam.quat);
-        camera.fov = vfov; camera.aspect = A; camera.setViewOffset(fw, fh, ox, oy, sz.x, sz.y); camera.updateProjectionMatrix();
+        camera.fov = vfov; camera.aspect = A; camera.setViewOffset(PL.W * s, PL.H * s, c.x * s, c.y * s, sz.x, sz.y); camera.updateProjectionMatrix();
       },
       dispose: function () { scene.remove(root); disp.forEach(function (x) { try { x.dispose(); } catch (e) {} }); }
     };

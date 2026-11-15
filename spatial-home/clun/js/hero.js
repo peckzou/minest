@@ -78,8 +78,10 @@
       R.setPath = function (A, B, faceCam) { st.A = A.clone(); st.B = B.clone(); st.cam = faceCam; st.s = 0; root.position.copy(A); };
       function yawTo(v) { return Math.atan2(v.x, v.z); }
       function turnTo(yaw, dt) { var d = yaw - root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); root.rotation.y += d * Math.min(1, dt * 5); }
+      R.greet = function () { st.greet = true; };                              /* 展开内屏时：停下来朝镜头挥手 */
       R.update = function (t, dt) {
         if (!st.A) return;
+        if (st.greet) { st.greet = false; st.mode = 'idle'; st.t0 = t; st.wave = true; st.idleFor = 4.5; }
         dt = Math.min(dt, 0.05);
         var L = st.A.distanceTo(st.B), speed = 0.75;
         var wind = Math.sin(t * 1.7) * 0.5 + Math.sin(t * 3.1) * 0.25;
