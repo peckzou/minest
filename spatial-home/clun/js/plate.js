@@ -399,11 +399,11 @@
     function E(x, y, z) { house.updateMatrixWorld(true); return house.localToWorld(new THREE.Vector3(x, y, z)); }   /* 工程坐标（X 北、Y 进深、Z 上）→ 场景 */
     var F1 = C.P.floor1Z, EYE = 1.55;
     /* 白光一闪进到门厅 → 沿楼梯左侧往里走（不穿扶手）→ 绕到梯脚 → 顺着梯段往前上 → 转角踏步 → 二楼平台；
-       再一闪进书房（南侧前间），慢慢走向凸窗 */
+       再一闪进书房（南侧后间），慢慢走向窗前书桌 */
     var camPath = new THREE.CatmullRomCurve3([E(0, 0.55, 1.55), E(0.05, 1.6, 1.6), E(0.25, 3.3, 1.6), E(1.05, 3.85, 1.6),
       E(1.17, 2.4, 0.75 + EYE), E(1.17, 1.5, 1.55 + EYE)], false, 'centripetal');
     var lookPath = new THREE.CatmullRomCurve3([E(0, 2.5, 1.5), E(0.1, 3.5, 1.55), E(0.6, 4.3, 1.6), E(1.17, 2.6, 1.7), E(1.17, 0.9, 2.9)], false, 'centripetal');
-    var studyA = E(-1.2, 2.6, F1 + EYE), studyB = E(-2.6, 1.3, F1 + EYE), studyL = E(-3.42, -0.7, F1 + 1.25);
+    var studyA = E(-1.25, 4.15, F1 + EYE), studyB = E(-2.75, 4.75, F1 + EYE), studyL = E(-5.6, 5.4, F1 + 0.95);   /* 书房（南侧后间）：从平台的门进去，看向窗前的书桌 */
     var veil = document.createElement('div');
     veil.style.cssText = 'position:fixed;inset:0;pointer-events:none;opacity:0;z-index:30;background:radial-gradient(circle at 50% 55%, #fffaf0, #f3e6cf);transition:none';
     document.body.appendChild(veil);
