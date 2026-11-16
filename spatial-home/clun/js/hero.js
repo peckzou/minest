@@ -69,7 +69,7 @@
       [[0, 0.15, -0.02, 0.2], [-0.06, 0.15, 0.03, -0.5], [0.07, 0.14, 0.0, 0.5]].forEach(function (t) { var c3 = mesh(new THREE.ConeGeometry(0.05, 0.14, 8), M.hair, t[0], t[1], t[2]); c3.rotation.z = t[3]; head.add(c3); });
       /* 脚下的软影子 */
       var shadow = new THREE.Mesh(new THREE.CircleGeometry(0.3, 24), new THREE.MeshBasicMaterial({ color: 0x1a2a10, transparent: true, opacity: 0.28, depthWrite: false }));
-      shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.01; shadow.scale.set(1, 0.7, 1); root.add(shadow);
+      shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.05; shadow.scale.set(1, 0.7, 1); root.add(shadow);
 
       /* 看书时拿在手里的一本书（平时藏着） */
       var book = new THREE.Group(); book.add(mesh(new THREE.BoxGeometry(0.24, 0.035, 0.17), mat(0x8e2b2a, 0.6))); book.add(mesh(new THREE.BoxGeometry(0.22, 0.04, 0.15), M.white, 0, 0.004, 0));

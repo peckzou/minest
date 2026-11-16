@@ -382,14 +382,18 @@
     var mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), C.mats[name] || C.mats.inner); mesh.position.copy(c).addScaledVector(n, 0.02); mesh.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(right, up, n));
     mesh.userData.mat = name; mesh.name = 'art:' + name; mesh.receiveShadow = true; G.add(mesh);
   }
-  function doorLeaf(b, w, s, z, side, ang) {           /* 门扇：白色四格面板门、黑色圆把手（照片里是黑把手），开着贴墙 */
-    var dx = w.b[0] - w.a[0], dy = w.b[1] - w.a[1], L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, nx = -uy * side, ny = ux * side, dw = P.doorW, dh = P.doorH - 0.02;
-    var hx = w.a[0] + ux * (s - dw / 2) + nx * w.t / 2, hy = w.a[1] + uy * (s - dw / 2) + ny * w.t / 2, a = (ang == null ? 82 : ang) * PI / 180;
-    var ex = ux * Math.cos(a) + nx * Math.sin(a), ey = uy * Math.cos(a) + ny * Math.sin(a), rot = Math.atan2(ey, ex), lw = dw - 0.03;
-    function at2(l, off) { return [hx + ex * l - ey * off, hy + ey * l + ex * off]; }
-    var c0 = at2(lw / 2, 0); b.obox('paintWhite', c0[0], c0[1], lw / 2, 0.02, rot, z, z + dh);
-    [[0.27, 0.55], [0.27, 1.55]].forEach(function (q) { [-1, 1].forEach(function (k) { [0.22, 0.56].forEach(function (u) { var p = at2(lw * u + 0.03, k * 0.021); b.obox('paintCream', p[0], p[1], lw * 0.15, 0.004, rot, z + q[1] - 0.38, z + q[1] + 0.38); }); }); });
-    var kn = at2(lw - 0.07, 0); b.obox('ironBlack', kn[0], kn[1], 0.025, 0.045, rot, z + 0.95, z + 1.0);
+  /* 门扇：白色四格面板门、黑色圆把手。每扇单独一个绕门轴转的组，默认关着；进屋探索里点门开 / 关（plate.js 转动 pivot）。
+     side = 往墙哪一侧开（开向房间） */
+  C.doors = [];
+  function doorLeaf(G, w, s, z, side) {
+    var dx = w.b[0] - w.a[0], dy = w.b[1] - w.a[1], L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, nx = -uy * side, ny = ux * side, dw = P.doorW, dh = P.doorH - 0.02, lw = dw - 0.03;
+    var pivot = new THREE.Group(); pivot.name = 'door'; pivot.position.set(w.a[0] + ux * (s - dw / 2) + nx * (w.t / 2 - 0.03), w.a[1] + uy * (s - dw / 2) + ny * (w.t / 2 - 0.03), z);
+    var base = Math.atan2(uy, ux), b = new C.Kit.Batch();
+    b.box('paintWhite', 0.015, -0.02, 0, lw + 0.015, 0.02, dh);
+    [0.55, 1.55].forEach(function (zc) { [-1, 1].forEach(function (k) { [0.22, 0.56].forEach(function (u) { var x0 = lw * u + 0.03 - lw * 0.15; b.box('paintCream', x0, k > 0 ? 0.02 : -0.024, zc - 0.38, x0 + lw * 0.3, k > 0 ? 0.024 : -0.02, zc + 0.38); }); }); });
+    [-1, 1].forEach(function (k) { b.cyl('ironBlack', lw - 0.06, k * 0.045, 0.94, 1.0, 0.028, 0.028, 10); });
+    b.build(pivot, C.mats); G.add(pivot);
+    pivot.rotation.z = base; C.doors.push({ pivot: pivot, base: base, side: side, open: false, a: 0 });
   }
   /* 真实灯光：每个吊灯 / 台灯一盏暖色点光源；walk = 外景进门路上那几盏（外景只建这几盏） */
   C.lamps = [];
@@ -405,7 +409,7 @@
   function seat(o, h, n, span) { n = n || 1; for (var i = 0; i < n; i++) { var lx = n > 1 ? (i - (n - 1) / 2) * span : 0, p = at(o, lx, 0.05); C.seats.push({ x: p[0], y: p[1], z: o.z, r: o.r || 0, h: h, kind: 'sit' }); } }
   function berth(o, top) { C.seats.push({ x: o.x, y: o.y, z: o.z, r: o.r || 0, h: top, kind: 'lie' }); }   /* 床：o 是床的中心，床头在局部 +ly */
   C.buildFurnishings = function (G) {
-    C.lamps = []; C.seats = [];
+    C.lamps = []; C.seats = []; C.doors = []; C.features = [];
     var K = C.Kit, F1 = P.floor1Z, F2 = P.floor2Z, W = P.mainHalfW, X0 = -W + P.wallExt, X1 = W - P.wallExt, YF = P.wallExt, YR = P.mainDepth - P.wallExt, YRN = YR + P.rearStep;
     var g0 = new K.Batch(), g1 = new K.Batch(), g2 = new K.Batch(), gk = new K.Batch(), gs = new K.Batch();
     var z0 = 0.02, z1 = F1 + 0.02, z2 = F2 + 0.02, c0 = F1 - P.slabT, c1 = F2 - P.slabT, cA = F2 + P.atticCeil, i, k;
@@ -427,9 +431,9 @@
     var fx = X0 + 0.47, fy0 = 2.82, fy1 = 4.28;
     g0.box('paintCharcoal', fx, fy0, z0, fx + 0.1, fy0 + 0.22, z0 + 1.18); g0.box('paintCharcoal', fx, fy1 - 0.22, z0, fx + 0.1, fy1, z0 + 1.18);
     g0.box('paintCharcoal', fx, fy0, z0 + 0.95, fx + 0.1, fy1, z0 + 1.18); g0.box('paintCharcoal', fx - 0.02, fy0 - 0.06, z0 + 1.18, fx + 0.2, fy1 + 0.06, z0 + 1.24);
-    g0.box('delftTile', fx + 0.01, fy0 + 0.22, z0 + 0.1, fx + 0.02, fy0 + 0.4, z0 + 0.95); g0.box('delftTile', fx + 0.01, fy1 - 0.4, z0 + 0.1, fx + 0.02, fy1 - 0.22, z0 + 0.95);
-    g0.box('range', fx + 0.005, fy0 + 0.4, z0 + 0.1, fx + 0.01, fy1 - 0.4, z0 + 0.8);
-    g0.box('slate', fx - 0.05, fy0 - 0.15, z0, fx + 0.5, fy1 + 0.15, z0 + 0.03);
+    g0.box('delftTile', fx + 0.035, fy0 + 0.22, z0 + 0.1, fx + 0.045, fy0 + 0.4, z0 + 0.95); g0.box('delftTile', fx + 0.035, fy1 - 0.4, z0 + 0.1, fx + 0.045, fy1 - 0.22, z0 + 0.95);
+    g0.box('range', fx + 0.035, fy0 + 0.4, z0 + 0.1, fx + 0.04, fy1 - 0.4, z0 + 0.8);
+    g0.box('slate', fx - 0.05, fy0 - 0.15, z0, fx + 0.5, fy1 + 0.15, z0 + 0.06);   /* 比原有的石炉前台高 1 cm，顶面不重合（不闪） */
     for (i = 0; i < 8; i++) g0.box('brass', fx + 0.15, fy0 + 0.35 + i * (fy1 - fy0 - 0.7) / 7, z0 + 0.03, fx + 0.17, fy0 + 0.36 + i * (fy1 - fy0 - 0.7) / 7, z0 + 0.6);
     g0.box('brass', fx + 0.15, fy0 + 0.35, z0 + 0.58, fx + 0.17, fy1 - 0.35, z0 + 0.62);
     mirror(g0, 'x', X0 + 0.4, 2.95, 4.15, z0 + 1.26, z0 + 2.45, 1, 'gilt', 0.09); g0.box('gilt', X0 + 0.4, 2.9, z0 + 2.45, X0 + 0.48, 4.2, z0 + 2.6);
@@ -583,6 +587,20 @@
     table(g1, O(X0 + 0.55, 5.4, PI / 2, z1), 1.5, 0.75, 0.76, 'woodDark'); ovalChair(g1, O(X0 + 1.25, 5.4, PI / 2, z1), 'woodDark', 'leather');
     g1.cyl('brass', X0 + 0.45, 4.95, z1 + 0.76, z1 + 1.08, 0.012, 0.012, 6); g1.box('leatherGreen', X0 + 0.38, 4.85, z1 + 1.04, X0 + 0.52, 5.1, z1 + 1.12);
     g1.box('fabLinen', X0 + 0.55, 5.6, z1 + 0.76, X0 + 0.8, 5.85, z1 + 0.79);
+    /* 书桌上：一台老式打字机（墨绿机身、三排圆键、滚筒和一张纸）、墨水瓶和一支羽毛笔。进屋探索时点它们 → 进 Minest 打开打字机 / 3D 字 */
+    (function () {
+      var tw = new THREE.Group(), b = new K.Batch(), dz = z1 + 0.76;
+      b.box('enamelGreen', -0.2, -0.17, 0, 0.2, 0.14, 0.09); b.prism('enamelGreen', [[-0.2, 0.0], [0.2, 0.0], [0.2, 0.14], [-0.2, 0.14]], 0.09, 0.15);
+      for (var row = 0; row < 3; row++) for (var c2 = 0; c2 < 9 - row; c2++) b.cyl(c2 % 4 ? 'ceramic' : 'chrome', -0.16 + row * 0.02 + c2 * 0.04, -0.13 + row * 0.045, 0.09 + row * 0.015, 0.11 + row * 0.015, 0.014, 0.014, 8);
+      b.geom('range', new THREE.CylinderGeometry(0.035, 0.035, 0.46, 14), new THREE.Matrix4().makeTranslation(0, 0.1, 0.19).multiply(new THREE.Matrix4().makeRotationZ(PI / 2)));
+      b.box('fabLinen', -0.11, 0.08, 0.2, 0.11, 0.1, 0.42); b.box('chrome', 0.23, 0.08, 0.17, 0.27, 0.1, 0.19);
+      b.build(tw, C.mats); tw.rotation.z = PI / 2; tw.position.set(X0 + 0.5, 5.3, dz); tw.name = 'feat:typewriter'; G.first.add(tw); C.features.push({ id: 'typewriter', obj: tw });
+      var ql = new THREE.Group(), q = new K.Batch();
+      q.cyl('range', 0, 0, 0, 0.07, 0.04, 0.045, 12); q.cyl('woodDark', 0, 0, 0.07, 0.08, 0.02, 0.02, 8);
+      q.geom('fabLinen', new THREE.ConeGeometry(0.03, 0.32, 8), new THREE.Matrix4().makeTranslation(0.05, 0.02, 0.22).multiply(new THREE.Matrix4().makeRotationY(0.4)).multiply(new THREE.Matrix4().makeRotationX(PI / 2)));
+      q.beam('woodLight', [0, 0, 0.06], [0.1, 0.04, 0.38], 0.008, 0.008);
+      q.build(ql, C.mats); ql.position.set(X0 + 0.4, 5.85, dz); ql.name = 'feat:quill'; G.first.add(ql); C.features.push({ id: 'quill', obj: ql });
+    })();
     [-4.95, -3.85, -2.75].forEach(function (x) { bookcase(g1, O(x, 3.75, PI, z1), 1.05, 2.25); });
     armchair(g1, O(-1.75, 5.6, -PI * 0.7, z1), 'leather');
     g1.cyl('woodDark', -2.55, 6.15, z1, z1 + 0.6, 0.03, 0.05, 8); g1.geom('jar', new THREE.SphereGeometry(0.17, 14, 10), new THREE.Matrix4().makeTranslation(-2.55, 6.15, z1 + 0.78));
@@ -643,7 +661,7 @@
 
     /* ======== 门扇：每个室内门洞一扇，往房间里开（不挡走廊、楼梯口） ======== */
     var SIDE = { '0:0:0': 1, '0:1:0': -1, '0:2:0': 1, '0:3:0': -1, '0:4:0': 1, '1:0:0': 1, '1:0:1': 1, '1:1:0': -1, '1:3:0': 1, '1:4:0': -1, '2:0:0': 1, '2:1:0': -1, '2:12:0': 1 };
-    [[0, g0, z0], [1, g1, z1], [2, g2, z2]].forEach(function (f) {
+    [[0, G.ground, z0], [1, G.first, z1], [2, G.attic, z2]].forEach(function (f) {
       (C.interiorWalls ? C.interiorWalls(f[0]) : []).forEach(function (w, wi) { (w.d || []).forEach(function (c, di) { doorLeaf(f[1], w, C.wallAlong(w, c), f[2], SIDE[f[0] + ':' + wi + ':' + di] || 1); }); });
     });
 

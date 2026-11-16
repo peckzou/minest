@@ -181915,7 +181915,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
   function clunFirst(done, force) {
     if (!force && /[?&]clun=0\b/.test(location.search)) { done(); return; }
-    var f = document.createElement('iframe'), ready = false, opened = false;
+    var f = document.createElement('iframe'), ready = false, opened = false, feature = null;
     f.id = 'mn-clun-splash'; f.src = clunSrc(); f.title = 'Clun';
     f.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;max-width:none;max-height:none;margin:0;padding:0;border:0;z-index:2147483647;background:#cfe0ee;opacity:1';
     document.body.appendChild(f);
@@ -181927,7 +181927,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     }
     fit(); window.addEventListener('resize', fit); if (window.visualViewport) { visualViewport.addEventListener('resize', fit); visualViewport.addEventListener('scroll', fit); }
     var to = setTimeout(function () { if (!ready) end(); }, 9000);           /* 9 秒还没加载好（离线等）：直接进房间 */
-    function room() { if (opened) return; opened = true; done(); }
+    function room() { if (opened) return; opened = true; done(feature); }
     function end() {
       room(); clearTimeout(to); window.removeEventListener('message', on); window.removeEventListener('resize', fit); if (window.visualViewport) { visualViewport.removeEventListener('resize', fit); visualViewport.removeEventListener('scroll', fit); }
       setTimeout(function () { f.style.transition = 'opacity .7s ease'; f.style.opacity = '0'; setTimeout(function () { if (f.parentNode) f.parentNode.removeChild(f); }, 800); }, 250);
@@ -181935,7 +181935,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     function on(e) {
       if (e.source !== f.contentWindow || !e.data || typeof e.data.clun !== 'string') return;
       if (e.data.clun === 'ready') { ready = true; clearTimeout(to); }
-      else if (e.data.clun === 'enter') end();
+      else if (e.data.clun === 'enter') { feature = typeof e.data.feature === 'string' ? e.data.feature : null; end(); }   /* Clun 里点了 ≡ 的某项、或书桌上的打字机 / 羽毛笔：进房间后打开它 */
     }
     window.addEventListener('message', on);
   }
@@ -181949,10 +181949,14 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     try { PUB.close(); } catch (e) {}
     clunFirst(enterRoom, true);
   };
-  function enterRoom() {
+  function enterRoom(feature) {
     var a = PUB.open();
-    var t1 = Date.now(), iv1 = setInterval(function () {                     /* 从 Clun 进来：书房暂时是圣托里尼那间 */
-      try { var st = a.state(); if (st.env === 'santorini' || Date.now() - t1 > 4000) clearInterval(iv1); else if (!st.busy) a.setEnv('santorini'); } catch (e) { clearInterval(iv1); }
+    var t1 = Date.now(), iv1 = setInterval(function () {                     /* 从 Clun 进来：书房暂时是圣托里尼那间；要打开的功能等房间换好再开 */
+      try {
+        var st = a.state();
+        if ((st.env === 'santorini' && !st.busy) || Date.now() - t1 > 5000) { clearInterval(iv1); if (feature && a.activate) setTimeout(function () { try { a.activate(feature); } catch (e) {} }, 400); }
+        else if (!st.busy && st.env !== 'santorini') a.setEnv('santorini');
+      } catch (e) { clearInterval(iv1); }
     }, 200);
     /* Liquid Routine's own iOS start screen (Day Flow) may open at the same launch: the room is the start screen, so it is put away */
     var t0 = Date.now(), iv = setInterval(function () {
