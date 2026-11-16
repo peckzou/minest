@@ -66,6 +66,30 @@
     }
     return tex(c, 0.7, 0.72);
   }
+  /* 墙上的画：几幅风格化的小油画（风景、海景、静物花、肖像），整张贴在画布上 */
+  function art(kind) {
+    var c = cv(256, 192), g = c.getContext('2d'), W = 256, H = 192, i;
+    function grad(y0, y1, a, b) { var gr = g.createLinearGradient(0, y0, 0, y1); gr.addColorStop(0, a); gr.addColorStop(1, b); g.fillStyle = gr; g.fillRect(0, y0, W, y1 - y0); }
+    if (kind === 'land') {
+      grad(0, 110, '#9cc0d8', '#e9dcc0'); g.fillStyle = '#7d8f6a'; g.beginPath(); g.moveTo(0, 120); for (i = 0; i <= 8; i++) g.lineTo(i * 32, 100 + Math.sin(i * 1.3) * 14); g.lineTo(W, H); g.lineTo(0, H); g.fill();
+      grad(130, H, '#6f8a4a', '#4b5f30'); g.fillStyle = '#3e5228'; for (i = 0; i < 5; i++) { g.beginPath(); g.ellipse(30 + i * 50, 118, 14, 22, 0, 0, 6.283); g.fill(); }
+      g.fillStyle = '#c9a46a'; g.fillRect(150, 140, 60, 6);
+    } else if (kind === 'sea') {
+      grad(0, 100, '#a9c9de', '#e6eef0'); grad(100, H, '#4e7d99', '#2f5870'); g.strokeStyle = 'rgba(255,255,255,0.6)'; g.lineWidth = 2;
+      for (i = 0; i < 14; i++) { var y = 110 + i * 6; g.beginPath(); g.moveTo(rnd() * 200, y); g.lineTo(rnd() * 200 + 40, y); g.stroke(); }
+      g.fillStyle = '#f4efe2'; g.beginPath(); g.moveTo(120, 96); g.lineTo(140, 50); g.lineTo(140, 96); g.fill(); g.fillStyle = '#5b3a26'; g.fillRect(112, 96, 38, 6);
+    } else if (kind === 'flower') {
+      grad(0, H, '#3a3f35', '#24271f'); g.fillStyle = '#8a6a44'; g.fillRect(100, 120, 56, 60);
+      var cols = ['#e6a3b6', '#f2e3b0', '#c4473f', '#f6f2ea', '#b48ad0']; for (i = 0; i < 16; i++) { g.fillStyle = cols[i % 5]; g.beginPath(); g.arc(128 + (rnd() - 0.5) * 110, 80 + (rnd() - 0.5) * 70, 9 + rnd() * 8, 0, 6.283); g.fill(); }
+      g.fillStyle = '#4f6b3a'; for (i = 0; i < 10; i++) { g.beginPath(); g.ellipse(128 + (rnd() - 0.5) * 120, 95 + (rnd() - 0.5) * 60, 12, 4, rnd() * 3, 0, 6.283); g.fill(); }
+    } else {
+      grad(0, H, '#4a3a2a', '#2a2018'); g.fillStyle = '#2b2f3a'; g.beginPath(); g.ellipse(128, 170, 70, 50, 0, 3.14, 6.283); g.fill(); g.fillRect(58, 165, 140, 30);
+      g.fillStyle = '#e2c0a0'; g.beginPath(); g.ellipse(128, 92, 30, 38, 0, 0, 6.283); g.fill(); g.fillStyle = '#5a3a22'; g.beginPath(); g.ellipse(128, 66, 34, 20, 0, 3.0, 6.43); g.fill();
+      g.fillStyle = '#f2ece0'; g.beginPath(); g.moveTo(110, 130); g.lineTo(128, 150); g.lineTo(146, 130); g.fill();
+    }
+    g.globalAlpha = 0.18; for (i = 0; i < 300; i++) { g.fillStyle = rnd() < 0.5 ? '#fff' : '#000'; g.fillRect(rnd() * W, rnd() * H, 3, 1); } g.globalAlpha = 1;   /* 笔触 */
+    var t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; return t;
+  }
   function tiles(c1, c2, size) { var c = cv(128, 128), g = c.getContext('2d'); g.fillStyle = c2; g.fillRect(0, 0, 128, 128); g.fillStyle = c1; g.fillRect(2, 2, 124, 124); return tex(c, size, size); }
 
   /* 外观模式的家具材质（白模时不加，名字落空就用白墙材质） */
@@ -73,7 +97,7 @@
     function t(map, rough, color) { return m(color || 0xffffff, rough == null ? 0.85 : rough, { map: map }); }
     var T = C.ftex || (C.ftex = { books: books(), runner: stripes('#7c2f2c', '#d9c49a', 4, 0.7, 0.5, true), toile: motif('#f3f0e6', '#2d4f88', '#5c79ad', 0.6, 'toile'),
       floral: motif('#f2ecd8', '#c98aa0', '#7e9a5c', 0.5, 'floral'), check: check('#f1efe8', '#5d76a0', 0.16), delft: delft(), ktile: tiles('#9a9890', '#7d7b75', 0.6),
-      stile: tiles('#e8dfcc', '#c9bfa9', 0.4), rugRed: persian('#8e2b2a', '#2b3550', '#d9b46a'), rugBlue: persian('#34507a', '#8e2b2a', '#e3cf9b'), rugGreen: persian('#5f6e45', '#7a3a2c', '#e0c88f') });
+      stile: tiles('#e8dfcc', '#c9bfa9', 0.4), rugRed: persian('#8e2b2a', '#2b3550', '#d9b46a'), rugBlue: persian('#34507a', '#8e2b2a', '#e3cf9b'), rugGreen: persian('#5f6e45', '#7a3a2c', '#e0c88f'), artLand: art('land'), artSea: art('sea'), artFlower: art('flower'), artPortrait: art('portrait') });
     return {
       fabCream: m(0xefe3c8, 0.95), fabTeal: m(0x1f5f6b, 0.9), fabRed: m(0xa3302d, 0.9), fabPink: m(0xd88c9e, 0.9), fabBlue: m(0x3c5a86, 0.9), fabLinen: m(0xf4f1ea, 0.95),
       fabFloral: t(T.floral, 0.95), fabToile: t(T.toile, 0.95), fabCheck: t(T.check, 0.95), leather: m(0x6a3523, 0.55), leatherGreen: m(0x2f4a33, 0.55),
@@ -82,7 +106,8 @@
       ironBlack: m(0x1c1c1e, 0.5), ceramic: m(0xf7f7f3, 0.25), jarBlue: m(0x2f4f8f, 0.3), shade: m(0xf6ead0, 0.9, { emissive: new THREE.Color(0x3a2c14) }), mirror: m(0xbfd0d8, 0.08, { metalness: 0.7 }),
       ovenGlass: m(0x202428, 0.15), tileInset: m(0x3f6f73, 0.4), plant: m(0x4f7a3a, 0.9), bloom: m(0xe7a0b4, 0.9), carpet: m(0xe4dccb, 1.0), carpetBlue: m(0xc9d1d8, 1.0),
       books: t(T.books, 0.9), delft: t(T.delft, 0.6), runner: t(T.runner, 0.95), ktile: t(T.ktile, 0.4), stile: t(T.stile, 0.5),
-      rugRed: m(0xffffff, 1, { map: T.rugRed }), rugBlue: m(0xffffff, 1, { map: T.rugBlue }), rugGreen: m(0xffffff, 1, { map: T.rugGreen })
+      rugRed: m(0xffffff, 1, { map: T.rugRed }), rugBlue: m(0xffffff, 1, { map: T.rugBlue }), rugGreen: m(0xffffff, 1, { map: T.rugGreen }),
+      artLand: m(0xffffff, 0.8, { map: T.artLand }), artSea: m(0xffffff, 0.8, { map: T.artSea }), artFlower: m(0xffffff, 0.8, { map: T.artFlower }), artPortrait: m(0xffffff, 0.8, { map: T.artPortrait })
     };
   };
 
@@ -176,7 +201,37 @@
   function vase(b, x, y, z, s) { s = s || 1; b.cyl('ceramic', x, y, z, z + 0.22 * s, 0.05 * s, 0.08 * s, 10); for (var i = 0; i < 6; i++) { var a = i * 1.05; b.cyl(i % 2 ? 'bloom' : 'plant', x + Math.cos(a) * 0.07 * s, y + Math.sin(a) * 0.07 * s, z + 0.2 * s, z + 0.32 * s, 0.05 * s, 0.03 * s, 6); } }
   function plantPot(b, x, y, z, h) { b.cyl('woodMid', x, y, z, z + 0.3, 0.16, 0.2, 12); b.cyl('plant', x, y, z + 0.28, z + (h || 1.0), 0.32, 0.08, 10); }
 
+  /* 画：画框（批量几何）+ 画布（单独一块平面，贴图 0..1）。axis = 所在墙面的法线轴 'x' / 'y'，face = 墙面坐标，dir = 朝房间 ±1 */
+  function painting(b, G, name, axis, face, along, zc, w, h, dir, frame) {
+    var n = axis === 'x' ? new THREE.Vector3(dir, 0, 0) : new THREE.Vector3(0, dir, 0), up = new THREE.Vector3(0, 0, 1), right = new THREE.Vector3().crossVectors(up, n);
+    var c = axis === 'x' ? new THREE.Vector3(face, along, zc) : new THREE.Vector3(along, face, zc), fw = 0.06;
+    function bx(u0, u1, v0, v1, d0, d1) { var A = c.clone().addScaledVector(right, u0).addScaledVector(up, v0).addScaledVector(n, d0), B = c.clone().addScaledVector(right, u1).addScaledVector(up, v1).addScaledVector(n, d1); b.box(frame || 'brass', Math.min(A.x, B.x), Math.min(A.y, B.y), Math.min(A.z, B.z), Math.max(A.x, B.x), Math.max(A.y, B.y), Math.max(A.z, B.z)); }
+    bx(-w / 2 - fw, w / 2 + fw, h / 2, h / 2 + fw, 0, 0.05); bx(-w / 2 - fw, w / 2 + fw, -h / 2 - fw, -h / 2, 0, 0.05);
+    bx(-w / 2 - fw, -w / 2, -h / 2, h / 2, 0, 0.05); bx(w / 2, w / 2 + fw, -h / 2, h / 2, 0, 0.05);
+    var mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), C.mats[name] || C.mats.inner);
+    mesh.position.copy(c).addScaledVector(n, 0.02); mesh.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(right, up, n));
+    mesh.userData.mat = name; mesh.name = 'art:' + name; mesh.receiveShadow = true; G.add(mesh);
+  }
+  /* 门扇：白色四格面板门、铜把手，开着贴向墙（side = 往墙哪一侧开，ang = 开的角度） */
+  function doorLeaf(b, w, s, z, side, ang) {
+    var dx = w.b[0] - w.a[0], dy = w.b[1] - w.a[1], L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, nx = -uy * side, ny = ux * side, dw = P.doorW, dh = P.doorH - 0.02;
+    var hx = w.a[0] + ux * (s - dw / 2) + nx * w.t / 2, hy = w.a[1] + uy * (s - dw / 2) + ny * w.t / 2, a = (ang == null ? 82 : ang) * PI / 180;
+    var ex = ux * Math.cos(a) + nx * Math.sin(a), ey = uy * Math.cos(a) + ny * Math.sin(a), rot = Math.atan2(ey, ex), lw = dw - 0.03;
+    function at2(l, off) { return [hx + ex * l - ey * off, hy + ey * l + ex * off]; }
+    var c0 = at2(lw / 2, 0); b.obox('paintWhite', c0[0], c0[1], lw / 2, 0.02, rot, z, z + dh);
+    [[0.27, 0.55], [0.27, 1.55]].forEach(function (q) { [-1, 1].forEach(function (k) { [0.22, 0.56].forEach(function (u) { var p = at2(lw * u + 0.03, k * 0.021); b.obox('paintCream', p[0], p[1], lw * 0.15, 0.004, rot, z + q[1] - 0.38, z + q[1] + 0.38); }); }); });
+    var kn = at2(lw - 0.07, 0); b.obox('brass', kn[0], kn[1], 0.025, 0.045, rot, z + 0.95, z + 1.0);
+  }
+  /* 真实灯光：每个吊灯 / 台灯一个暖色点光源。walk = 外景进门动画会经过的那几盏（外景里只放这几盏，别的不建，省性能） */
+  C.lamps = [];
+  function lampLight(G, x, y, z, I, dist, walk) {
+    if (C.lampMode === 'walk' && !walk) return;
+    var l = new THREE.PointLight(0xffc77d, I * 2.6, dist * 1.2, 1.5); l.position.set(x, y, z); l.castShadow = false; l.name = 'lamp'; G.add(l); C.lamps.push({ light: l, base: l.intensity, walk: !!walk });
+  }
+  C.setLampLevel = function (k) { C.lamps.forEach(function (o) { o.light.intensity = o.base * k; }); };
+
   C.buildFurnishings = function (G) {
+    C.lamps = [];
     var K = C.Kit, F1 = P.floor1Z, F2 = P.floor2Z, W = P.mainHalfW, X0 = -W + P.wallExt, X1 = W - P.wallExt, YF = P.wallExt, YR = P.mainDepth - P.wallExt;
     var g0 = new K.Batch(), g1 = new K.Batch(), g2 = new K.Batch(), gk = new K.Batch(), gs = new K.Batch();
     var z0 = 0.02, z1 = F1 + 0.02, z2 = F2 + 0.02, c0 = F1 - P.slabT, c1 = F2 - P.slabT;
@@ -327,6 +382,35 @@
     [-1, 1].forEach(function (s) { [-1, 1].forEach(function (t) { var a = at(rh, s * 0.1, t * 0.28); g2.beam('woodLight', [a[0], a[1], z2 + 0.52], [a[0], a[1], z2 + 0.12], 0.04, 0.04); });
       var p0 = at(rh, s * 0.12, -0.62), p1 = at(rh, s * 0.12, 0), p2 = at(rh, s * 0.12, 0.62); g2.beam('woodMid', [p0[0], p0[1], z2 + 0.16], [p1[0], p1[1], z2 + 0.04], 0.05, 0.05); g2.beam('woodMid', [p1[0], p1[1], z2 + 0.04], [p2[0], p2[1], z2 + 0.16], 0.05, 0.05); });
     chest(g2, O(X1 - 0.3, 2.6, -PI / 2, z2), 0.9, 0.8, 'paintWhite');
+
+    /* ============ 门扇：平面图上每个室内门洞一扇（一楼、二楼、阁楼），开着贴墙，门洞照样能走 ============ */
+    var SIDE = { '0:0:0': -1, '0:1:0': 1, '0:2:0': -1, '0:3:0': 1, '0:4:0': -1, '1:0:0': -1, '1:0:1': -1, '1:1:0': 1, '1:3:0': -1, '1:4:0': -1, '2:0:0': -1, '2:1:0': 1, '2:12:0': -1 };
+    [[0, g0, z0], [1, g1, z1], [2, g2, z2]].forEach(function (f) {
+      (C.interiorWalls ? C.interiorWalls(f[0]) : []).forEach(function (w, wi) { (w.d || []).forEach(function (c, di) { doorLeaf(f[1], w, C.wallAlong(w, c), f[2], SIDE[f[0] + ':' + wi + ':' + di] || 1); }); });
+    });
+
+    /* ============ 墙上的画（手册第 6、9、13、15 页都能看到墙上挂着画） ============ */
+    painting(g0, G.ground, 'artLand', 'x', -1.175, 3.6, z0 + 1.75, 1.1, 0.72, -1);          /* 客厅：沙发上方风景 */
+    painting(g0, G.ground, 'artFlower', 'y', YR, -3.45, z0 + 1.72, 0.85, 0.6, -1);          /* 客厅：后墙静物花 */
+    painting(g0, G.ground, 'artPortrait', 'x', -0.92, 1.1, z0 + 1.6, 0.48, 0.62, 1, 'woodDark');   /* 大厅：暖气片上方肖像 */
+    painting(g0, G.ground, 'artSea', 'y', 3.865, 4.6, z0 + 1.6, 1.0, 0.68, -1);             /* 餐厅：海景 */
+    painting(g0, G.ground, 'artPortrait', 'x', X1, 5.3, z0 + 1.6, 0.6, 0.78, -1, 'woodDark');   /* 小起居室 */
+    painting(g1, G.first, 'artSea', 'x', X0, 1.85, z1 + 1.75, 0.8, 0.55, 1);                /* 卧室 2：床头上方的海景（第 13 页） */
+    painting(g1, G.first, 'artFlower', 'y', 3.825, 2.6, z1 + 1.65, 0.7, 0.5, -1);           /* 卧室 1：五斗柜上方 */
+    painting(g1, G.first, 'artLand', 'y', YR, -2.75, z1 + 1.55, 0.75, 0.55, -1, 'woodDark');   /* 书房：两扇后窗之间 */
+    painting(g2, G.attic, 'artLand', 'x', X0 + 0.38, 3.55, z2 + 1.45, 0.45, 0.34, 1);       /* 阁楼：壁炉上方 */
+
+    /* ============ 灯：吊灯、台灯、落地灯的位置各放一盏暖色点光源 ============ */
+    pendant(g1, 0.0, 2.0, c1, 0.45, 0.16);                                                   /* 二楼平台补一盏吊灯（楼梯上方） */
+    pendant(g2, 3.8, 3.0, F2 + P.atticCeil, 0.3, 0.16);                                        /* 儿童房吊灯 */
+    lampLight(G.ground, -3.42, 3.4, c0 - 0.8, 1.1, 7); lampLight(G.ground, -1.55, 2.35, z0 + 1.45, 0.5, 3.5); lampLight(G.ground, -4.55, 5.75, z0 + 1.05, 0.4, 3);
+    lampLight(G.ground, -0.45, 1.9, c0 - 0.8, 0.9, 5, true);
+    lampLight(G.ground, 3.76, 2.15, c0 - 0.8, 1.0, 6); lampLight(G.ground, 3.97, 4.55, z0 + 1.0, 0.6, 4);
+    lampLight(G.kitchen, 8.25, 3.55, 1.75, 1.2, 6); lampLight(G.kitchen, 8.7, 7.9, 1.7, 0.6, 4); lampLight(G.sunroom, -3.45, 8.6, 1.9, 0.9, 6);
+    lampLight(G.first, 0.0, 2.0, c1 - 0.75, 0.8, 5, true);
+    lampLight(G.first, 3.76, 2.1, c1 - 0.8, 1.0, 6); lampLight(G.first, -3.42, 1.8, c1 - 0.65, 0.8, 5);
+    lampLight(G.first, X0 + 0.45, 4.95, z1 + 1.0, 0.7, 4, true); lampLight(G.first, -1.45, 6.1, z1 + 1.5, 0.6, 4, true);
+    lampLight(G.attic, -3.1, 3.5, F2 + 1.85, 0.7, 5); lampLight(G.attic, 3.8, 3.0, F2 + 1.85, 0.6, 5);
 
     g0.build(G.ground, C.mats); g1.build(G.first, C.mats); g2.build(G.attic, C.mats); gk.build(G.kitchen, C.mats); gs.build(G.sunroom, C.mats);
   };

@@ -435,7 +435,7 @@
       if (!walk) walk = { t0: performance.now() / 1000 - 99, from: null };
       walk.done = true; skipEl.hidden = true; goEl.hidden = true; doorEl.hidden = true; veil.style.transition = 'opacity .35s'; veil.style.opacity = 1;
       post('enter');
-      if (!ENTRY) setTimeout(function () { walk = null; veil.style.transition = 'opacity .6s'; veil.style.opacity = 0; if (ENTRY) goEl.hidden = false; }, 1600);   /* 独立页：回到外景 */
+      if (!ENTRY) setTimeout(function () { walk = null; if (C.setLampLevel) C.setLampLevel(0); veil.style.transition = 'opacity .6s'; veil.style.opacity = 0; if (ENTRY) goEl.hidden = false; }, 1600);   /* 独立页：回到外景 */
     }
     var WALK = { zoom: 1.3, flash: 0.35, inside: 7.0 }, near0 = null;
     function walkCamera(camera, sz, va, now) {                            /* 返回 true = 这一帧的镜头由进门动画接管 */
@@ -451,6 +451,7 @@
       }
       var u = walk.done ? 1 : Math.min(1, (t - WALK.zoom) / WALK.inside);
       if (near0 == null) near0 = camera.near; camera.near = 0.05;                   /* 屋里贴着墙和扶手走：近裁剪面放到 5 cm */
+      if (C.setLampLevel) C.setLampLevel(0.45 * Math.min(1, Math.max(0, (t - WALK.zoom) / 0.8)));   /* 进屋后灯慢慢亮起来（白天屋里本来就亮，灯只加一点暖光） */
       camera.clearViewOffset(); camera.fov = 64; camera.aspect = va; camera.updateProjectionMatrix();
       var U1 = 0.62, U2 = 0.7, op;                                       /* 0–U1 门厅到二楼平台；U1–U2 白光；U2–1 书房 */
       if (u < U2 - 0.04) {

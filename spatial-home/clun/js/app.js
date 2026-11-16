@@ -11,6 +11,7 @@
   $('stage').appendChild(renderer.domElement);
 
   var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(32, 1, 0.5, 400);
+  C.lampMode = q.get('scene') === 'valley' ? 'walk' : 'all';                 /* 外景只建进门路上那几盏灯 */
   var house = C.build(q.get('mode') === 'white' ? 'white' : 'final'); scene.add(house);
   var G = house.userData.groups;
 
@@ -120,6 +121,15 @@
   function setLayer(n, on) { if (G[n]) { G[n].visible = on; var cb = $('ly-' + n); if (cb) cb.checked = on; } }
   $('cut').max = CUT_MAX; $('cut').addEventListener('input', function () { setCut(+this.value); });
   $('auto').addEventListener('click', function () { O.auto = !O.auto; sync(); });
+  /* 室内的灯：开灯 = 傍晚（日光调暗、天色偏暖），屋里的吊灯台灯照亮各个房间；关灯 = 白天 */
+  var lampsOn = false;
+  function lampScene(on) {
+    lampsOn = on; if (C.setLampLevel) C.setLampLevel(on ? 1 : 0);
+    if (!VAL) { hemiS.intensity = on ? 0.18 : 0.6; sun.intensity = on ? 0.22 : 1.45; sun.color.set(on ? 0xffb27a : 0xfff0dc); fill.intensity = on ? 0.08 : 0.4; renderer.toneMappingExposure = on ? 1.05 : 0.92; }
+    $('lamps').textContent = on ? '白天' : '开灯（傍晚）';
+  }
+  lampScene(!VAL && q.get('lamps') === '1');
+  $('lamps').addEventListener('click', function () { lampScene(!lampsOn); });
   $('scene').textContent = VAL ? '回展台' : '外景 · 劳特布龙嫩';
   /* Duo 预览（电脑上看外屏 / 内屏和展开动画）：把画面放进一个机身大小的框里 */
   function duoSim(k) {

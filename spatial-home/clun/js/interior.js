@@ -106,6 +106,9 @@
   /* 楼板边上的平栏杆 */
   function landingRail(b, A, B, z) { rail(b, [A[0], A[1], z], [B[0], B[1], z]); }
 
+  /* 给内饰用（furnish.js 挂门扇）：各层隔墙和门洞，同上面的表 */
+  C.interiorWalls = function (F) { return F === 2 ? atticWalls() : walls(F); };
+  C.wallAlong = along;
   C.buildInterior = function (G) {
     var K = C.Kit, F1 = P.floor1Z, F2 = P.floor2Z, b0 = new K.Batch(), b1 = new K.Batch(), b2 = new K.Batch(), Y2 = C.STAIR_TOP;
     buildWalls(b0, 0, 0, F1 - P.slabT);
