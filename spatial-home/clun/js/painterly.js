@@ -89,7 +89,7 @@
     if (!m || m.isMeshBasicMaterial || m.isShaderMaterial || m.isMeshToonMaterial) return m;
     opt = opt || {};
     var t = new THREE.MeshToonMaterial({ color: m.color, map: m.map, gradientMap: GRAD, vertexColors: m.vertexColors, alphaTest: m.alphaTest, side: m.side,
-      transparent: m.transparent, opacity: m.opacity, depthWrite: m.depthWrite });
+      transparent: m.transparent, opacity: m.opacity, depthWrite: m.depthWrite, emissive: m.emissive, polygonOffset: m.polygonOffset, polygonOffsetFactor: m.polygonOffsetFactor, polygonOffsetUnits: m.polygonOffsetUnits });
     t.onBeforeCompile = function (sh) {
       rim(sh, opt.rim == null ? 1 : opt.rim);
       if (opt.sway) {                                                                   /* 树叶随风轻晃（几何体坐标 Z 向上） */

@@ -71,7 +71,11 @@
       var shadow = new THREE.Mesh(new THREE.CircleGeometry(0.3, 24), new THREE.MeshBasicMaterial({ color: 0x1a2a10, transparent: true, opacity: 0.28, depthWrite: false }));
       shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.01; shadow.scale.set(1, 0.7, 1); root.add(shadow);
 
-      var R = { root: root, body: body, hips: hips, torso: torso, legs: legs, arms: arms, head: head, neck: neck, tail: tail, hair: hairCap };
+      /* 看书时拿在手里的一本书（平时藏着） */
+      var book = new THREE.Group(); book.add(mesh(new THREE.BoxGeometry(0.24, 0.035, 0.17), mat(0x8e2b2a, 0.6))); book.add(mesh(new THREE.BoxGeometry(0.22, 0.04, 0.15), M.white, 0, 0.004, 0));
+      book.position.set(0, 0.16, 0.3); book.rotation.x = -0.75; book.visible = false; torso.add(book);
+      root.rotation.order = 'YXZ';
+      var R = { root: root, body: body, hips: hips, torso: torso, legs: legs, arms: arms, head: head, neck: neck, tail: tail, hair: hairCap, book: book };
 
       /* —— 动画 —— */
       var st = { mode: 'idle', t0: 0, s: 0, dir: 1, walkPhase: 0, idleFor: 2.5, wave: false };
@@ -80,9 +84,24 @@
       function turnTo(yaw, dt) { var d = yaw - root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); root.rotation.y += d * Math.min(1, dt * 5); }
       R.greet = function () { st.greet = true; };
       /* 进屋探索：由玩家操控。pos = 脚下位置，yaw = 面朝方向（three 的 Y 轴转角），moving = 这一帧在走 */
+      /* 姿势和动作（进屋探索里用）：pose 'sit' 坐（h = 座高，米）/ 'lie' 躺 / null 站；act 'wave' 挥手、'read' 看书（坐着时） */
+      R.pose = function (kind, h) { st.pose = kind || null; st.poseH = h || 0.45; if (!kind) { st.reading = false; book.visible = false; } };
+      R.act = function (name) { if (name === 'read') { st.reading = !st.reading; } else { st.act = name; st.actT = performance.now() / 1000; } };
+      R.posed = function () { return st.pose; };
+      R.reading = function () { return !!st.reading; };
+      function easeTo(o, k, v, a) { o[k] += (v - o[k]) * a; }
       R.drive = function (pos, yaw, moving, dt) {
         st.manual = true; root.visible = true; dt = Math.min(dt, 0.05);
-        root.position.copy(pos); turnTo(yaw, dt * 3);
+        var a = Math.min(1, dt * 8), now = performance.now() / 1000;
+        root.position.copy(pos);
+        if (st.pose === 'lie') {                                             /* 躺：整个人放平，脸朝上，头朝床头 */
+          root.rotation.set(-Math.PI / 2, yaw, 0);
+          [0, 1].forEach(function (k) { easeTo(R.legs[k].hip.rotation, 'x', 0, a); easeTo(R.legs[k].knee.rotation, 'x', 0.05, a); easeTo(R.arms[k].sh.rotation, 'x', 0, a); R.arms[k].sh.rotation.z = (k ? 1 : -1) * 0.25; });
+          easeTo(R.hips.position, 'y', 0.8, a); R.head.rotation.set(-0.15, 0, 0); book.visible = false; return;
+        }
+        root.rotation.x = 0;
+        turnTo(yaw, dt * (st.pose ? 8 : 3));
+        if (moving) { st.pose = null; st.reading = false; }
         if (moving) {
           st.walkPhase += 1.5 * dt / 0.55 * Math.PI; var ph = st.walkPhase, sw = Math.sin(ph);
           R.legs[0].hip.rotation.x = sw * 0.6; R.legs[1].hip.rotation.x = -sw * 0.6;
@@ -90,12 +109,24 @@
           R.arms[0].sh.rotation.x = -sw * 0.5; R.arms[1].sh.rotation.x = sw * 0.5; R.arms[0].el.rotation.x = -0.35; R.arms[1].el.rotation.x = -0.35;
           R.arms[1].sh.rotation.z = 0.2; R.arms[1].el.rotation.z = 0;
           R.hips.position.y = 0.8 + Math.abs(Math.cos(ph)) * 0.035; R.torso.rotation.y = sw * 0.08; R.head.rotation.y = 0;
+        } else if (st.pose === 'sit') {                                     /* 坐：大腿向前、小腿垂下，屁股落在座面上 */
+          [0, 1].forEach(function (k) { easeTo(R.legs[k].hip.rotation, 'x', -1.45, a); easeTo(R.legs[k].knee.rotation, 'x', 1.4, a); });
+          easeTo(R.hips.position, 'y', st.poseH / root.scale.y + 0.08, a); R.torso.rotation.y *= 0.85; easeTo(R.torso.rotation, 'x', st.reading ? 0.12 : -0.05, a);
+          if (st.reading) {                                                  /* 看书：两手捧书，低头 */
+            [0, 1].forEach(function (k) { easeTo(R.arms[k].sh.rotation, 'x', -1.0, a); easeTo(R.arms[k].el.rotation, 'x', -0.9, a); R.arms[k].sh.rotation.z = (k ? -1 : 1) * 0.35; });
+            easeTo(R.head.rotation, 'x', 0.4, a); book.visible = true;
+          } else { book.visible = false; [0, 1].forEach(function (k) { easeTo(R.arms[k].sh.rotation, 'x', -0.35, a); easeTo(R.arms[k].el.rotation, 'x', -0.5, a); }); easeTo(R.head.rotation, 'x', -0.05, a); }
         } else {
           [0, 1].forEach(function (k) { R.legs[k].hip.rotation.x *= 0.8; R.legs[k].knee.rotation.x *= 0.8; R.arms[k].sh.rotation.x *= 0.8; });
-          R.hips.position.y = 0.8; R.torso.rotation.y *= 0.85;
+          R.hips.position.y += (0.8 - R.hips.position.y) * a; R.torso.rotation.y *= 0.85; R.torso.rotation.x *= 0.8; R.head.rotation.x *= 0.85; book.visible = false;
         }
+        var wt = now - (st.actT || -99);
+        if (st.act === 'wave' && wt < 2.4) {                                   /* 挥手 */
+          var w = Math.min(1, wt * 3) * Math.min(1, (2.4 - wt) * 3);
+          R.arms[1].sh.rotation.z = 0.2 + w * 2.4; R.arms[1].sh.rotation.x = -w * 0.2; R.arms[1].el.rotation.z = w * (0.4 + 0.35 * Math.sin(wt * 10));
+        } else if (!st.reading) { R.arms[1].sh.rotation.z += (0.2 - R.arms[1].sh.rotation.z) * a; R.arms[1].el.rotation.z *= 0.8; }
       };
-      R.release = function () { st.manual = false; root.visible = true; };
+      R.release = function () { st.manual = false; root.visible = true; st.pose = null; st.reading = false; book.visible = false; root.rotation.x = 0; R.hips.position.y = 0.8; R.head.rotation.x = 0; R.torso.rotation.x = 0; };
       R.hide = function () { st.manual = true; root.visible = false; };                              /* 展开内屏时：停下来朝镜头挥手 */
       R.update = function (t, dt) {
         if (!st.A || st.manual) return;

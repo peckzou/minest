@@ -411,7 +411,7 @@
     ui.innerHTML = '<div class="ce-door" hidden><span class="ce-ring"></span><span class="ce-tip">轻点房门 · 进入</span></div>' +
       '<button class="ce-skip" hidden>跳过动画 ›</button><button class="ce-go" hidden>直接进入房间 ›</button>' +
       '<button class="ce-explore" hidden>进屋探索</button><button class="ce-out" hidden>‹ 回到门外</button>' +
-      '<button class="ce-view" hidden>👤 第一人称</button><div class="ce-stick" hidden><div class="ce-knob"></div></div><div class="ce-help" hidden>拖动看四周 · 摇杆或 WASD 走动 · 楼梯可以上楼</div>';
+      '<button class="ce-view" hidden>👤 第一人称</button><div class="ce-acts" hidden><button class="ce-sit" hidden>🪑 坐下</button><button class="ce-read" hidden>📖 看书</button><button class="ce-wave">👋 挥手</button></div><div class="ce-stick" hidden><div class="ce-knob"></div></div><div class="ce-help" hidden>拖动看四周 · 摇杆或 WASD 走动 · 楼梯可以上楼</div>';
     document.body.appendChild(ui);
     var css = document.createElement('style'); css.textContent =
       '.clun-entry .ce-door{position:fixed;z-index:20;transform:translate(-50%,-50%);pointer-events:auto;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px}' +
@@ -424,15 +424,20 @@
       '.clun-entry .ce-explore{bottom:calc(16px + env(safe-area-inset-bottom));right:auto;left:calc(16px + env(safe-area-inset-left));background:rgba(196,140,60,.78)}' +
       '.clun-entry .ce-stick{position:fixed;z-index:40;left:calc(24px + env(safe-area-inset-left));bottom:calc(70px + env(safe-area-inset-bottom));width:116px;height:116px;border-radius:50%;background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.55);touch-action:none}' +
       '.clun-entry .ce-view{bottom:calc(66px + env(safe-area-inset-bottom))}' +
+      '.clun-entry .ce-acts{position:fixed;z-index:40;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));display:flex;gap:8px}.clun-entry .ce-acts[hidden]{display:none}' +
+      '.clun-entry .ce-acts button{position:static;right:auto}' +
       '.clun-entry .ce-stick[hidden],.clun-entry .ce-help[hidden]{display:none}' +
       '.clun-entry .ce-knob{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:rgba(255,255,255,.75);box-shadow:0 2px 8px rgba(0,0,0,.25)}' +
       '.clun-entry .ce-help{position:fixed;z-index:40;left:50%;transform:translateX(-50%);top:calc(16px + env(safe-area-inset-top));font:500 12px/1 -apple-system,"PingFang SC",sans-serif;color:#fff;padding:7px 12px;border-radius:12px;background:rgba(30,36,30,.45);pointer-events:none;white-space:nowrap}';
     document.head.appendChild(css);
-    var doorEl = ui.querySelector('.ce-door'), skipEl = ui.querySelector('.ce-skip'), goEl = ui.querySelector('.ce-go'), exEl = ui.querySelector('.ce-explore'), outEl = ui.querySelector('.ce-out'), stickEl = ui.querySelector('.ce-stick'), viewEl = ui.querySelector('.ce-view'), knobEl = ui.querySelector('.ce-knob'), helpEl = ui.querySelector('.ce-help');
+    var doorEl = ui.querySelector('.ce-door'), skipEl = ui.querySelector('.ce-skip'), goEl = ui.querySelector('.ce-go'), exEl = ui.querySelector('.ce-explore'), outEl = ui.querySelector('.ce-out'), stickEl = ui.querySelector('.ce-stick'), viewEl = ui.querySelector('.ce-view'), actsEl = ui.querySelector('.ce-acts'), sitEl = ui.querySelector('.ce-sit'), readEl = ui.querySelector('.ce-read'), waveEl = ui.querySelector('.ce-wave'), knobEl = ui.querySelector('.ce-knob'), helpEl = ui.querySelector('.ce-help');
     doorEl.addEventListener('click', function () { enter(); });
     skipEl.addEventListener('click', function () { finish(); }); goEl.addEventListener('click', function () { finish(); });
     viewEl.addEventListener('click', function () { EX.third = !EX.third; viewEl.textContent = EX.third ? '👤 第一人称' : '🧍 第三人称'; });
-    exEl.addEventListener('click', function () { startExplore(); }); outEl.addEventListener('click', function () { leaveExplore(); });
+    exEl.addEventListener('click', function () { startExplore(); });
+    sitEl.addEventListener('click', function () { if (EX.pose) standUp(); else if (EX.near) sitDown(EX.near); });
+    readEl.addEventListener('click', function () { hero.act('read'); readEl.textContent = hero.reading() ? '📕 合上书' : '📖 看书'; });
+    waveEl.addEventListener('click', function () { hero.act('wave'); }); outEl.addEventListener('click', function () { leaveExplore(); });
     if (ENTRY) { goEl.hidden = false; document.body.classList.add('clun-entry-mode'); }
     function post(m) { try { if (window.parent && window.parent !== window) window.parent.postMessage({ clun: m }, '*'); } catch (e) {} }
     function enter() {
@@ -443,7 +448,7 @@
     function finish() {
       if (walk && walk.done) return;
       if (!walk) walk = { t0: performance.now() / 1000 - 99, from: null };
-      if (walk.explore) heroBack(); walk.done = true; walk.explore = false; viewEl.hidden = true; skipEl.hidden = true; goEl.hidden = true; doorEl.hidden = true; exEl.hidden = true; outEl.hidden = true; stickEl.hidden = true; helpEl.hidden = true; skipEl.textContent = '跳过动画 ›';
+      if (walk.explore) heroBack(); walk.done = true; walk.explore = false; viewEl.hidden = true; actsEl.hidden = true; EX.pose = null; skipEl.hidden = true; goEl.hidden = true; doorEl.hidden = true; exEl.hidden = true; outEl.hidden = true; stickEl.hidden = true; helpEl.hidden = true; skipEl.textContent = '跳过动画 ›';
       veil.style.transition = 'opacity .35s'; veil.style.opacity = 1;
       post('enter');
       if (!ENTRY) setTimeout(function () { walk = null; if (C.setLampLevel) C.setLampLevel(0); veil.style.transition = 'opacity .6s'; veil.style.opacity = 0; if (ENTRY) goEl.hidden = false; }, 1600);   /* 独立页：回到外景 */
@@ -457,9 +462,16 @@
       house.traverse(function (o) { if (o.isMesh && o.visible && o.userData.mat !== 'glassRoof' && !/^rug:|^art:/.test(o.name)) { var g = o.parent; while (g && g.name !== 'roof' && g !== house) g = g.parent; if (!g || g.name !== 'roof') hitList.push(o); } });
       return hitList;
     }
+    var allList = null;
+    function allSolids() {                                                 /* 镜头和头顶净空：连屋面一起算（阁楼的斜顶就是屋面） */
+      if (allList) return allList; allList = [];
+      house.traverse(function (o) { if (o.isMesh && o.visible && o.userData.mat !== 'glassRoof' && o.userData.mat !== 'glass' && !/^rug:|^art:/.test(o.name)) allList.push(o); });
+      return allList;
+    }
+    function headroom(p, floorY) { ray.set(new THREE.Vector3(p.x, floorY + 0.3, p.z), UPV); ray.far = 3; var h = ray.intersectObjects(allSolids(), false)[0]; return h ? h.distance + 0.3 : 9; }
     function floorAt(p, fromY) { ray.set(new THREE.Vector3(p.x, fromY, p.z), DOWN); ray.far = 3; var h = ray.intersectObjects(solids(), false)[0]; return h ? h.point.y : null; }
     function blocked(p, d, dist) {
-      for (var k = 0; k < 2; k++) { ray.set(new THREE.Vector3(p.x, EX.floorY + (k ? 1.1 : 0.5), p.z), d); ray.far = dist; if (ray.intersectObjects(solids(), false).length) return true; }
+      for (var k = 0; k < 2; k++) { ray.set(new THREE.Vector3(p.x, EX.floorY + (k ? 1.1 : 0.56), p.z), d); ray.far = dist; if (ray.intersectObjects(solids(), false).length) return true; }
       return false;
     }
     C._explore = { st: EX, eng: function (x, y, z) { return E(x, y, z); }, house: house };   /* 调试用 */
@@ -468,43 +480,77 @@
       var a = E(0, 1.1, 0), b = E(0, 3.0, 0); EX.floorY = (floorAt(a, a.y + 1.2) || a.y); EX.pos.set(a.x, EX.floorY + EYE, a.z);
       EX.yaw = Math.atan2(-(b.x - a.x), -(b.z - a.z)); EX.pitch = 0; EX.last = performance.now() / 1000;
       walk.explore = true; walk.done = false; veil.style.transition = 'opacity .5s'; veil.style.opacity = 0;
-      skipEl.textContent = '进入房间 ›'; skipEl.hidden = false; exEl.hidden = true; outEl.hidden = false; helpEl.hidden = false; stickEl.hidden = false; viewEl.hidden = false;
+      skipEl.textContent = '进入房间 ›'; skipEl.hidden = false; exEl.hidden = true; outEl.hidden = false; helpEl.hidden = false; stickEl.hidden = false; viewEl.hidden = false; actsEl.hidden = false;
       viewEl.textContent = EX.third ? '👤 第一人称' : '🧍 第三人称';
       setTimeout(function () { helpEl.hidden = true; }, 5000);
       post('explore');
     }
     function heroBack() { hero.release(); var sp = spot; spot = null; heroAt(sp || 'walk'); }
     function leaveExplore() {                                             /* 回到门外：回到外景，门上的提示重新出现 */
-      walk = null; EX.keys = {}; EX.stick = [0, 0]; skipEl.hidden = true; outEl.hidden = true; stickEl.hidden = true; helpEl.hidden = true; viewEl.hidden = true; heroBack(); skipEl.textContent = '跳过动画 ›';
+      walk = null; EX.keys = {}; EX.stick = [0, 0]; skipEl.hidden = true; outEl.hidden = true; stickEl.hidden = true; helpEl.hidden = true; viewEl.hidden = true; actsEl.hidden = true; EX.pose = null; heroBack(); skipEl.textContent = '跳过动画 ›';
       if (ENTRY) goEl.hidden = false; if (C.setLampLevel) C.setLampLevel(0); veil.style.transition = 'opacity .4s'; veil.style.opacity = 0;
     }
+    /* 椅子、沙发、床（furnish.js 登记的），换算到场景里 */
+    var seatsW = null;
+    function seats() {
+      if (seatsW) return seatsW;
+      seatsW = (C.seats || []).map(function (q) {
+        var p = E(q.x, q.y, q.z), f = E(q.x + Math.sin(q.r), q.y - Math.cos(q.r), q.z).sub(p); f.y = 0; f.normalize();
+        return { p: p, front: f, h: q.h, kind: q.kind };
+      });
+      return seatsW;
+    }
+    function nearSeat(feet) {
+      var best = null, bd = 9;
+      seats().forEach(function (q) { var dx = q.p.x - feet.x, dz = q.p.z - feet.z, d = Math.hypot(dx, dz), lim = q.kind === 'lie' ? 1.5 : 1.25; if (Math.abs(q.p.y - feet.y) < 0.6 && d < lim && d < bd) { bd = d; best = q; } });
+      return best;
+    }
+    function sitDown(q) {
+      EX.pose = q; hero.pose(q.kind, q.h); sitEl.textContent = '🧍 起来'; readEl.hidden = q.kind !== 'sit'; readEl.textContent = '📖 看书';
+      EX.yaw = Math.atan2(q.front.x, q.front.z) + 0.35; EX.pitch = 0.15;                        /* 镜头转到小人前方斜侧看着它 */
+    }
+    function standUp() {
+      var q = EX.pose; if (!q) return; EX.pose = null; hero.pose(null); readEl.hidden = true;
+      var out = q.p.clone().addScaledVector(q.front, q.kind === 'lie' ? 1.2 : 0.6); EX.floorY = q.p.y; EX.pos.set(out.x, q.p.y + EYE, out.z);
+      EX.yaw = Math.atan2(-q.front.x, -q.front.z) + Math.PI;
+    }
+    var far0 = null;
     function exploreStep(camera, va, now) {
       var dt = Math.min(0.05, now - EX.last); EX.last = now;
       var f = (EX.keys.w || EX.keys.arrowup ? 1 : 0) - (EX.keys.s || EX.keys.arrowdown ? 1 : 0) - EX.stick[1], r = (EX.keys.d ? 1 : 0) - (EX.keys.a ? 1 : 0) + EX.stick[0];
       if (EX.keys.arrowleft) EX.yaw += 1.8 * dt; if (EX.keys.arrowright) EX.yaw -= 1.8 * dt;
-      var m = Math.hypot(f, r), moved = false;
-      if (m > 0.05) {
+      var m = Math.hypot(f, r), moved = false, need = EX.third ? 1.4 : 1.7;              /* 头顶净空：第三人称小人 1.3 m，第一人称眼高 1.55 m */
+      if (EX.pose && m > 0.3) standUp();
+      if (!EX.pose && m > 0.05) {
         if (m > 1) { f /= m; r /= m; }
         var fw = new THREE.Vector3(-Math.sin(EX.yaw), 0, -Math.cos(EX.yaw)), rt = new THREE.Vector3(Math.cos(EX.yaw), 0, -Math.sin(EX.yaw));
-        var mv = fw.multiplyScalar(f).add(rt.multiplyScalar(r)).multiplyScalar(1.5 * dt);
-        [mv.clone(), new THREE.Vector3(mv.x, 0, 0), new THREE.Vector3(0, 0, mv.z)].some(function (step) {   /* 撞墙时沿墙滑 */
+        var mv = fw.multiplyScalar(f).add(rt.multiplyScalar(r)).multiplyScalar(1.5 * dt), L0 = mv.length();
+        var tries = [mv.clone(), new THREE.Vector3(mv.x, 0, 0), new THREE.Vector3(0, 0, mv.z)];
+        [0.6, -0.6, 1.1, -1.1].forEach(function (a) { tries.push(mv.clone().applyAxisAngle(UPV, a).multiplyScalar(0.8)); });   /* 被柱子、扶手挡住时斜着绕过去 */
+        tries.some(function (step) {
           var L = step.length(); if (L < 1e-5) return false;
-          var d = step.clone().normalize(); if (blocked(EX.pos, d, L + 0.32)) return false;
+          var d = step.clone().normalize(); if (blocked(EX.pos, d, L + 0.3)) return false;
           var np = EX.pos.clone().add(step), fy = floorAt(np, EX.floorY + 1.0);
-          if (fy == null || fy - EX.floorY > 0.42) return false;           /* 太高：家具、窗台 */
+          if (fy == null || fy - EX.floorY > 0.5) return false;             /* 太高：家具、窗台（台阶、转角踏步不超过 0.5 m） */
+          if (headroom(np, fy) < need) return false;                         /* 阁楼斜顶下太矮：不让走过去 */
           EX.pos.copy(np); EX.floorY = fy; moved = true; return true;
         });
       }
-      var fy2 = floorAt(EX.pos, EX.floorY + 1.0); if (fy2 != null && fy2 < EX.floorY - 0.01) EX.floorY = Math.max(fy2, EX.floorY - 3 * dt);   /* 下楼 */
+      if (!EX.pose) { var fy2 = floorAt(EX.pos, EX.floorY + 1.0); if (fy2 != null && fy2 < EX.floorY - 0.01) EX.floorY = Math.max(fy2, EX.floorY - 3 * dt); }   /* 下楼 */
       EX.pos.y += (EX.floorY + EYE - EX.pos.y) * Math.min(1, dt * 12);
-      if (near0 == null) near0 = camera.near; camera.near = 0.05; camera.clearViewOffset(); camera.fov = 70; camera.aspect = va; camera.updateProjectionMatrix();
-      var feet = new THREE.Vector3(EX.pos.x, EX.floorY, EX.pos.z);
-      if (EX.third) {                                                      /* 第三人称：镜头在小人身后偏上，后面有墙就拉近 */
-        hero.drive(feet, EX.yaw + Math.PI, moved, dt);
-        var head = feet.clone().add(new THREE.Vector3(0, 1.15, 0)), pc = Math.max(-0.25, Math.min(1.0, 0.28 - EX.pitch));
+      if (near0 == null) near0 = camera.near; if (far0 == null) far0 = camera.far;
+      camera.near = 0.05; camera.far = 80; camera.clearViewOffset(); camera.fov = 70; camera.aspect = va; camera.updateProjectionMatrix();   /* 屋里远平面收近：深度精度够用，地毯、地板不闪 */
+      var feet = new THREE.Vector3(EX.pos.x, EX.floorY, EX.pos.z), q = EX.pose;
+      if (!q) { EX.near = nearSeat(feet); sitEl.hidden = !EX.near; if (EX.near) sitEl.textContent = EX.near.kind === 'lie' ? '🛏 躺下' : '🪑 坐下'; }
+      if (EX.third || q) {                                                 /* 第三人称（坐、躺时也用）：镜头在小人身后偏上，碰到墙、屋顶就拉近 */
+        if (q && q.kind === 'lie') { var hd = q.front.clone().negate(), lp = q.p.clone().addScaledVector(hd, -0.62); lp.y = q.p.y + q.h + 0.14; hero.drive(lp, Math.atan2(-hd.x, -hd.z), false, dt); }
+        else if (q) hero.drive(q.p, Math.atan2(q.front.x, q.front.z), false, dt);
+        else hero.drive(feet, EX.yaw + Math.PI, moved, dt);
+        hero.root.updateMatrixWorld(true);
+        var head = hero.head.getWorldPosition(new THREE.Vector3()), pc = Math.max(-0.25, Math.min(1.0, 0.28 - EX.pitch));
         var back = new THREE.Vector3(Math.sin(EX.yaw) * Math.cos(pc), Math.sin(pc), Math.cos(EX.yaw) * Math.cos(pc));
-        ray.set(head, back); ray.far = 2.2; var hb = ray.intersectObjects(solids(), false)[0], want = hb ? Math.max(0.35, hb.distance - 0.2) : 1.9;
-        EX.camD += (want - EX.camD) * Math.min(1, dt * (want < EX.camD ? 20 : 4));
+        ray.set(head, back); ray.far = 2.3; var hb = ray.intersectObjects(allSolids(), false)[0], want = hb ? Math.max(0.3, hb.distance - 0.22) : 1.9;
+        EX.camD += (want - EX.camD) * Math.min(1, dt * (want < EX.camD ? 25 : 4));
         camera.position.copy(head).addScaledVector(back, EX.camD); camera.lookAt(head.clone().add(new THREE.Vector3(-Math.sin(EX.yaw) * 0.6, -0.1, -Math.cos(EX.yaw) * 0.6)));
       } else { hero.hide(); camera.position.copy(EX.pos); camera.rotation.set(EX.pitch, EX.yaw, 0, 'YXZ'); }
       if (C.setLampLevel) C.setLampLevel(0.45);
@@ -540,7 +586,7 @@
         camera.setViewOffset(PL.W * s, PL.H * s, c.x * s, c.y * s, sz.x, sz.y); camera.updateProjectionMatrix(); return true;
       }
       var u = walk.done ? 1 : Math.min(1, (t - WALK.zoom) / WALK.inside);
-      if (near0 == null) near0 = camera.near; camera.near = 0.05;                   /* 屋里贴着墙和扶手走：近裁剪面放到 5 cm */
+      if (near0 == null) near0 = camera.near; if (far0 == null) far0 = camera.far; camera.near = 0.05; camera.far = 80;   /* 屋里贴着墙和扶手走：近裁剪面 5 cm、远平面收近（深度精度够，不闪） */
       if (C.setLampLevel) C.setLampLevel(0.45 * Math.min(1, Math.max(0, (t - WALK.zoom) / 0.8)));   /* 进屋后灯慢慢亮起来（白天屋里本来就亮，灯只加一点暖光） */
       camera.clearViewOffset(); camera.fov = 64; camera.aspect = va; camera.updateProjectionMatrix();
       var U1 = 0.62, U2 = 0.7, op;                                       /* 0–U1 门厅到二楼平台；U1–U2 白光；U2–1 书房 */
@@ -597,7 +643,7 @@
         var c = clampRect({ cx: r.cx, cy: r.cy, w: r.w, h: r.w / va }), s = sz.x / c.w;
         camera.position.copy(cam.pos); camera.quaternion.copy(cam.quat);
         camera.fov = vfov; camera.aspect = A; camera.setViewOffset(PL.W * s, PL.H * s, c.x * s, c.y * s, sz.x, sz.y); camera.updateProjectionMatrix();
-        lastC = c; placeDoorHint(c, sz); if (near0 != null) { camera.near = near0; near0 = null; camera.updateProjectionMatrix(); }
+        lastC = c; placeDoorHint(c, sz); if (near0 != null) { camera.near = near0; near0 = null; if (far0 != null) { camera.far = far0; far0 = null; } camera.updateProjectionMatrix(); }
       },
       dispose: function () { scene.remove(root); disp.forEach(function (x) { try { x.dispose(); } catch (e) {} }); }
     };

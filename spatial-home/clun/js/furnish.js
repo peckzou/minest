@@ -180,7 +180,7 @@
       books: t(T.books), delft: t(T.delft, 0.6), runner: t(T.runner, 0.95), runnerPlain: m(0x7a6652, 0.95), coir: t(T.coir, 1), terracotta: t(T.terracotta, 0.6), limestone: t(T.limestone, 0.5), ktile: t(T.ktile, 0.35),
       dapple: t(T.dapple, 0.6)
     };
-    ['rugAgra', 'rugAubusson', 'rugTerra', 'rugStudy', 'artLand', 'artOld', 'artSea', 'artWater', 'artFlower', 'artPortrait'].forEach(function (k) { o[k] = m(0xffffff, k.indexOf('art') === 0 ? 0.8 : 1, { map: T[k] }); });
+    ['rugAgra', 'rugAubusson', 'rugTerra', 'rugStudy', 'artLand', 'artOld', 'artSea', 'artWater', 'artFlower', 'artPortrait'].forEach(function (k) { o[k] = m(0xffffff, k.indexOf('art') === 0 ? 0.8 : 1, { map: T[k], polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }); });   /* 贴在地板 / 墙上的平面往前挪一点，不和地板抢深度（不闪） */
     return o;
   };
 
@@ -351,7 +351,7 @@
   }
 
   /* ---- 软装 ---- */
-  function rug(G, name, x0, y0, x1, y1, z) { var mesh = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, y1 - y0), C.mats[name] || C.mats.floor); mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, z + 0.025); mesh.userData.mat = name; mesh.receiveShadow = true; mesh.name = 'rug:' + name; G.add(mesh); }
+  function rug(G, name, x0, y0, x1, y1, z) { var mesh = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, y1 - y0), C.mats[name] || C.mats.floor); mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, z + 0.032); mesh.userData.mat = name; mesh.receiveShadow = true; mesh.name = 'rug:' + name; G.add(mesh); }
   function vase(b, x, y, z, s, bloom) { s = s || 1; b.cyl('ceramic', x, y, z, z + 0.24 * s, 0.05 * s, 0.07 * s, 12); for (var i = 0; i < 7; i++) { var a = i * 0.9; ball(b, i % 3 ? (bloom || 'bloom') : 'plant', O(x, y, 0, z), Math.cos(a) * 0.07 * s, Math.sin(a) * 0.07 * s, (0.28 + (i % 2) * 0.05) * s, 0.045 * s); } }
   function frames(b, x, y, z, n, dx, dy) { for (var i = 0; i < n; i++) { var px = x + dx * (i % 4) + (rnd() - 0.5) * 0.04, py = y + dy * Math.floor(i / 4) + (rnd() - 0.5) * 0.04, h = 0.12 + rnd() * 0.1; b.obox('steel', px, py, 0.06, 0.008, rnd() - 0.5, z, z + h); } }   /* 阳光房圆桌上一堆银相框 */
   function radiator(b, x0, y0, x1, y1, z, h) { var L = Math.max(x1 - x0, y1 - y0), n = Math.max(3, Math.round(L / 0.065)), i; h = h || 0.62; for (i = 0; i < n; i++) { var t = (i + 0.5) / n; if (x1 - x0 > y1 - y0) b.box('paintWhite', x0 + (x1 - x0) * t - 0.022, y0, z + 0.12, x0 + (x1 - x0) * t + 0.022, y1, z + 0.12 + h); else b.box('paintWhite', x0, y0 + (y1 - y0) * t - 0.022, z + 0.12, x1, y0 + (y1 - y0) * t + 0.022, z + 0.12 + h); } }   /* 铸铁柱式暖气片 */
@@ -366,11 +366,11 @@
   }
   function alongPoly(b, mat, pts, za, zb, t, skipEnds) { for (var i = skipEnds ? 1 : 0; i < pts.length - 1 - (skipEnds ? 1 : 0); i++) { var a = pts[i], c = pts[i + 1], L = Math.hypot(c[0] - a[0], c[1] - a[1]); b.obox(mat, (a[0] + c[0]) / 2, (a[1] + c[1]) / 2, L / 2, t, Math.atan2(c[1] - a[1], c[0] - a[0]), za, zb); } }   /* 沿折线放一条 */
   function bayDress(b, cx, zTop, zBot, opts) {         /* 凸窗：罗马帘 / 卷帘、两侧落地窗帘、帘头、窗下暖气片、窗座 */
-    var inner = bayInner(cx, P.wallExt + 0.03), mx0 = cx - P.bayHalfW + P.wallExt, mx1 = cx + P.bayHalfW - P.wallExt;
+    var inner = bayInner(cx, P.wallExt + 0.07), mx0 = cx - P.bayHalfW + P.wallExt, mx1 = cx + P.bayHalfW - P.wallExt;
     if (opts.blind) alongPoly(b, opts.blind, inner, zTop - (opts.blindH || 0.38), zTop, 0.02, true);
     if (opts.roller) alongPoly(b, opts.roller, inner, zTop - 0.12, zTop, 0.03, true);
-    if (opts.curtain) [-1, 1].forEach(function (s) { var x = cx + s * (P.bayHalfW - P.wallExt + 0.12); b.box(opts.curtain, x - 0.14, P.wallExt - 0.02, zBot, x + 0.14, P.wallExt + 0.12, zTop + 0.12); });
-    if (opts.pelmet) b.box(opts.pelmet, mx0 - 0.25, P.wallExt - 0.02, zTop - 0.05, mx1 + 0.25, P.wallExt + 0.14, zTop + 0.18);
+    if (opts.curtain) [-1, 1].forEach(function (s) { var x = cx + s * (P.bayHalfW - P.wallExt + 0.12); b.box(opts.curtain, x - 0.14, P.wallExt + 0.015, zBot, x + 0.14, P.wallExt + 0.16, zTop + 0.12); });
+    if (opts.pelmet) b.box(opts.pelmet, mx0 - 0.25, P.wallExt + 0.015, zTop - 0.05, mx1 + 0.25, P.wallExt + 0.18, zTop + 0.18);
     if (opts.radiator) { var f = inner.slice(2, 4); radiator(b, Math.min(f[0][0], f[1][0]) + 0.25, f[0][1] + 0.02, Math.max(f[0][0], f[1][0]) - 0.25, f[0][1] + 0.12, opts.z, 0.55); }
     if (opts.seat) { var sp = bayInner(cx, P.wallExt + 0.03 + 0.25); alongPoly(b, 'paintCream', sp, opts.z, opts.z + 0.46, 0.25, true); alongPoly(b, opts.seat, sp, opts.z + 0.46, opts.z + 0.54, 0.23, true); }
   }
@@ -400,8 +400,12 @@
   C.setLampLevel = function (k) { C.lamps.forEach(function (o) { o.light.intensity = o.base * k; }); };
 
   /* ================= 各房间 ================= */
+  /* 可以坐 / 躺的地方（进屋探索里小人用）：工程坐标，o.r 是正面朝向，h 座高（躺：床面高），n 个位子沿宽排开 */
+  C.seats = [];
+  function seat(o, h, n, span) { n = n || 1; for (var i = 0; i < n; i++) { var lx = n > 1 ? (i - (n - 1) / 2) * span : 0, p = at(o, lx, 0.05); C.seats.push({ x: p[0], y: p[1], z: o.z, r: o.r || 0, h: h, kind: 'sit' }); } }
+  function berth(o, top) { C.seats.push({ x: o.x, y: o.y, z: o.z, r: o.r || 0, h: top, kind: 'lie' }); }   /* 床：o 是床的中心，床头在局部 +ly */
   C.buildFurnishings = function (G) {
-    C.lamps = [];
+    C.lamps = []; C.seats = [];
     var K = C.Kit, F1 = P.floor1Z, F2 = P.floor2Z, W = P.mainHalfW, X0 = -W + P.wallExt, X1 = W - P.wallExt, YF = P.wallExt, YR = P.mainDepth - P.wallExt, YRN = YR + P.rearStep;
     var g0 = new K.Batch(), g1 = new K.Batch(), g2 = new K.Batch(), gk = new K.Batch(), gs = new K.Batch();
     var z0 = 0.02, z1 = F1 + 0.02, z2 = F2 + 0.02, c0 = F1 - P.slabT, c1 = F2 - P.slabT, cA = F2 + P.atticCeil, i, k;
@@ -625,6 +629,17 @@
     mirror(g2, 'x', fz2, 3.15, 3.7, z2 + 1.15, z2 + 1.85, -1, 'gilt', 0.08);
     coneShade(g2, 3.8, 3.0, cA, 0.35);
     g2.box('fabFloralRG', 2.2, k0 - 0.02, z2 + 1.25, 3.7, k0 + 0.02, z2 + 1.6);
+
+    /* ======== 可以坐、躺的地方 ======== */
+    seat(O(-1.85, 3.75, -PI / 2, z0), 0.5, 3, 0.72); seat(O(-3.42, -0.55, PI, z0), 0.42); seat(O(-4.45, 2.55, PI * 0.72, z0), 0.52); seat(O(-2.05, 1.05, PI / 2, z0), 0.5); seat(O(-4.9, 0.6, PI * 0.82, z0), 0.5);
+    [1.45, 2.1, 2.75].forEach(function (y) { seat(O(3.0, y, PI / 2, z0), 0.5); seat(O(4.52, y, -PI / 2, z0), 0.5); }); seat(O(3.76, 0.75, PI, z0), 0.5); seat(O(X1 - 0.6, 3.3, -PI * 0.78, z0), 0.5);
+    seat(O(3.15, 5.85, PI * 0.88, z0), 0.5); seat(O(4.75, 4.55, -PI * 0.7, z0), 0.5); seat(O(5.05, 5.55, -PI * 0.55, z0), 0.5);
+    seat(O(P.kitBayX, -0.25, PI, 0.03), 0.45, 2, 0.76); seat(O(tx, by1 - 0.25, 0, 0.03), 0.46, 2, 0.75);
+    seat(O(-3.35, sy1 - 0.6, 0, 0.03), 0.5, 3, 0.6); seat(O(sx0 + 0.55, 8.4, PI / 2, 0.03), 0.5, 2, 0.6); seat(O(sx1 - 0.5, sy1 - 0.65, -PI * 0.85, 0.03), 0.5);
+    berth(O(X1 - 1.15, 2.1, -PI / 2, z1), 0.58); seat(O(2.55, 1.0, PI * 0.72, z1), 0.42);
+    berth(O(X0 + 1.1, 1.85, PI / 2, z1), 0.58); seat(O(X0 + 0.55, 3.0, PI * 0.62, z1), 0.5); seat(O(-1.55, 1.15, PI, z1), 0.5);
+    seat(O(X0 + 1.25, 5.4, PI / 2, z1), 0.5); seat(O(-1.75, 5.6, -PI * 0.7, z1), 0.5);
+    berth(O(-3.1, k1 - 1.25, 0, z2), 0.58); seat(O(2.75, 3.3, PI / 2, z2), 0.5, 2, 0.7); seat(O(2.6, k0 + 0.6, PI * 0.8, z2), 0.5);
 
     /* ======== 门扇：每个室内门洞一扇，往房间里开（不挡走廊、楼梯口） ======== */
     var SIDE = { '0:0:0': 1, '0:1:0': -1, '0:2:0': 1, '0:3:0': -1, '0:4:0': 1, '1:0:0': 1, '1:0:1': 1, '1:1:0': -1, '1:3:0': 1, '1:4:0': -1, '2:0:0': 1, '2:1:0': -1, '2:12:0': 1 };
