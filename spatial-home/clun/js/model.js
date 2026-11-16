@@ -17,22 +17,23 @@
       return new THREE.MeshStandardMaterial(o);
     }
     function t(map, rough) { return m(0xffffff, rough == null ? 0.92 : rough, { map: map }); }
-    if (mode !== 'final') return {
+    var fm = C.furnMats ? C.furnMats(m) : {};                                  /* 家具、软装（furnish.js）：白模里也保留本色，只有房子本身变白 */
+    function withFurn(o) { for (var k in fm) o[k] = fm[k]; return o; }
+    if (mode !== 'final') return withFurn({
       wall: m(0xefe8dc), wallRear: m(0xefe8dc), tile: m(0xdccdbb), slab: m(0xd6cdbf), stone: m(0xe6dfd2), trim: m(0xfaf7f0, 0.8),
       roof: m(0x9d958c, 0.95), ridge: m(0x8a8279, 0.95), chimney: m(0xe2d6c6), pot: m(0xcfae98, 0.8), iron: m(0xb9b4ac), porchFloor: m(0xd6cdbf),
       door: m(0x8fa3ad, 0.6), inner: m(0xf3efe7), ceil: m(0xf7f4ee), floor: m(0xddd5c7), stair: m(0xd3cabb), rail: m(0xbdb2a2),
       glass: m(0xa9cadb, 0.12, { transparent: true, opacity: 0.5, depthWrite: false }),
       glassRoof: m(0xc3dde8, 0.1, { transparent: true, opacity: 0.4, depthWrite: false })
-    };
+    });
     var base = {
       wall: t(T.band), wallRear: t(T.rear), chimney: t(T.brick), tile: t(T.hung, 0.85), roof: t(T.roof, 0.95), porchFloor: t(T.floorTile, 0.8),
       stone: m(0xd6ae66, 0.9), slab: m(0xd3ab62, 0.9), trim: m(0xf5f0e3, 0.7), ridge: m(0x6b4439, 0.9), pot: m(0xc9663c, 0.75), iron: m(0x26272a, 0.5),
-      door: m(0x244853, 0.45), inner: m(0xeee4d3, 0.95), ceil: m(0xf6f0e4, 0.95), floor: t(T.boards, 0.75), stair: m(0x9a6a43, 0.7), rail: m(0x5b3a26, 0.6),
+      door: m(0x244853, 0.45), inner: m(0xf0e2b6, 0.95), ceil: m(0xf8f3e7, 0.95),   /* 室内墙：手册照片里大厅、客厅、餐厅、卧室都是奶油黄 */ floor: t(T.boards, 0.75), stair: m(0x9a6a43, 0.7), rail: m(0x5b3a26, 0.6),
       glass: m(0x6f8f9f, 0.08, { transparent: true, opacity: 0.62, depthWrite: false, metalness: 0.25 }),
       glassRoof: m(0xbfd8e2, 0.08, { transparent: true, opacity: 0.38, depthWrite: false, metalness: 0.2 })
     };
-    if (C.furnMats) { var fm = C.furnMats(m); for (var k in fm) base[k] = fm[k]; }   /* 家具、软装（furnish.js） */
-    return base;
+    return withFurn(base);
   };
 
   C.LAYERS = [['roof', '屋顶'], ['chimneys', '烟囱'], ['attic', '阁楼层'], ['first', '二层'], ['ground', '一层'], ['kitchen', '厨房扩建'], ['sunroom', '阳光房'], ['porch', '门廊']];

@@ -78,9 +78,27 @@
       R.setPath = function (A, B, faceCam) { st.A = A.clone(); st.B = B.clone(); st.cam = faceCam; st.s = 0; root.position.copy(A); };
       function yawTo(v) { return Math.atan2(v.x, v.z); }
       function turnTo(yaw, dt) { var d = yaw - root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); root.rotation.y += d * Math.min(1, dt * 5); }
-      R.greet = function () { st.greet = true; };                              /* 展开内屏时：停下来朝镜头挥手 */
+      R.greet = function () { st.greet = true; };
+      /* 进屋探索：由玩家操控。pos = 脚下位置，yaw = 面朝方向（three 的 Y 轴转角），moving = 这一帧在走 */
+      R.drive = function (pos, yaw, moving, dt) {
+        st.manual = true; root.visible = true; dt = Math.min(dt, 0.05);
+        root.position.copy(pos); turnTo(yaw, dt * 3);
+        if (moving) {
+          st.walkPhase += 1.5 * dt / 0.55 * Math.PI; var ph = st.walkPhase, sw = Math.sin(ph);
+          R.legs[0].hip.rotation.x = sw * 0.6; R.legs[1].hip.rotation.x = -sw * 0.6;
+          R.legs[0].knee.rotation.x = Math.max(0, -Math.cos(ph)) * 0.75; R.legs[1].knee.rotation.x = Math.max(0, Math.cos(ph)) * 0.75;
+          R.arms[0].sh.rotation.x = -sw * 0.5; R.arms[1].sh.rotation.x = sw * 0.5; R.arms[0].el.rotation.x = -0.35; R.arms[1].el.rotation.x = -0.35;
+          R.arms[1].sh.rotation.z = 0.2; R.arms[1].el.rotation.z = 0;
+          R.hips.position.y = 0.8 + Math.abs(Math.cos(ph)) * 0.035; R.torso.rotation.y = sw * 0.08; R.head.rotation.y = 0;
+        } else {
+          [0, 1].forEach(function (k) { R.legs[k].hip.rotation.x *= 0.8; R.legs[k].knee.rotation.x *= 0.8; R.arms[k].sh.rotation.x *= 0.8; });
+          R.hips.position.y = 0.8; R.torso.rotation.y *= 0.85;
+        }
+      };
+      R.release = function () { st.manual = false; root.visible = true; };
+      R.hide = function () { st.manual = true; root.visible = false; };                              /* 展开内屏时：停下来朝镜头挥手 */
       R.update = function (t, dt) {
-        if (!st.A) return;
+        if (!st.A || st.manual) return;
         if (st.greet) { st.greet = false; st.mode = 'idle'; st.t0 = t; st.wave = true; st.idleFor = 4.5; }
         dt = Math.min(dt, 0.05);
         var L = st.A.distanceTo(st.B), speed = 0.75;
