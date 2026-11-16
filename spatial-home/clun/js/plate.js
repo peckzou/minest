@@ -295,7 +295,7 @@
     var target = (PL.door[1] - PL.top) * PL.scale, d = 60, it;
     for (it = 0; it < 8; it++) { place(d); d *= heightPx() / target; }
     place(d);
-    C.Paint.toonTree(holder);
+    C.Paint.toonTree(holder, function () { return { cel: true }; });   /* 房子：塞尔达式赛璐珞着色 */
 
     /* —— 房子左前方一丛树叶：一块面向镜头的面片，颜色直接取绘画化底图里大树的叶子，边缘做成一团团叶子的轮廓 —— */
     var bush = (function () {

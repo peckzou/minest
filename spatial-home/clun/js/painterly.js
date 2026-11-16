@@ -79,6 +79,30 @@
     v.forEach(function (x, i) { d[i * 3] = d[i * 3 + 1] = d[i * 3 + 2] = Math.round(x * 255); });
     var t = new THREE.DataTexture(d, v.length, 1, THREE.RGBFormat); t.minFilter = t.magFilter = THREE.LinearFilter; t.generateMipmaps = false; t.needsUpdate = true; return t;
   })();
+  /* 塞尔达式赛璐珞：两层明暗（亮面 / 暗面），中间一道柔边 */
+  var GRAD_CEL = (function () {
+    var v = [0.46, 0.46, 0.46, 0.46, 0.47, 0.9, 1.0, 1.0], d = new Uint8Array(v.length * 3);
+    v.forEach(function (x, i) { d[i * 3] = d[i * 3 + 1] = d[i * 3 + 2] = Math.round(x * 255); });
+    var t = new THREE.DataTexture(d, v.length, 1, THREE.RGBFormat); t.minFilter = t.magFilter = THREE.LinearFilter; t.generateMipmaps = false; t.needsUpdate = true; return t;
+  })();
+  /* 赛璐珞着色：贴图细节压平成手绘色块、颜色更饱和、暗面偏冷（蓝紫）而不是变黑、受光一侧边缘一道暖白的轮廓光 */
+  function cel(sh) {
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <map_fragment>', [
+        '#ifdef USE_MAP',
+        '  vec4 texelColor = texture2D( map, vUv ); vec4 texelAvg = texture2D( map, vUv, 4.0 );',
+        '  texelColor.rgb = mix( texelAvg.rgb, texelColor.rgb, 0.4 );',
+        '  texelColor = mapTexelToLinear( texelColor ); diffuseColor *= texelColor;',
+        '#endif',
+        '  diffuseColor.rgb = max( mix( vec3( dot( diffuseColor.rgb, vec3( 0.299, 0.587, 0.114 ) ) ), diffuseColor.rgb, 1.2 ), 0.0 );'].join('\n'))
+      .replace('gl_FragColor = vec4( outgoingLight, diffuseColor.a );', [
+        '  float celK = dot( reflectedLight.directDiffuse, vec3( 0.333 ) ) / ( dot( diffuseColor.rgb, vec3( 0.333 ) ) + 1e-3 );',   /* 只看太阳直射：受光 ≈ 1.6，背光 / 投影 ≈ 0.7 */
+        '  float celLit = smoothstep( 0.95, 1.25, celK );',
+        '  outgoingLight = mix( outgoingLight * vec3( 0.70, 0.76, 1.06 ), outgoingLight * vec3( 1.05, 1.02, 0.95 ), celLit );',
+        '  float celFr = pow( 1.0 - clamp( dot( normalize( normal ), normalize( vViewPosition ) ), 0.0, 1.0 ), 3.5 );',
+        '  outgoingLight += vec3( 1.0, 0.94, 0.80 ) * celFr * ( 0.08 + 0.22 * celLit );',
+        'gl_FragColor = vec4( outgoingLight, diffuseColor.a );'].join('\n'));   /* r128 没有 output_fragment 这个片段，直接接在最终输出那一行 */
+  }
   S.time = { value: 0 };
   function rim(shader, strength) {
     shader.uniforms.uRim = { value: new THREE.Color(0.32, 0.28, 0.18).multiplyScalar(strength) };
@@ -88,10 +112,11 @@
   S.toon = function (m, opt) {
     if (!m || m.isMeshBasicMaterial || m.isShaderMaterial || m.isMeshToonMaterial) return m;
     opt = opt || {};
-    var t = new THREE.MeshToonMaterial({ color: m.color, map: m.map, gradientMap: GRAD, vertexColors: m.vertexColors, alphaTest: m.alphaTest, side: m.side,
+    var t = new THREE.MeshToonMaterial({ color: m.color, map: m.map, gradientMap: opt.cel ? GRAD_CEL : GRAD, vertexColors: m.vertexColors, alphaTest: m.alphaTest, side: m.side,
       transparent: m.transparent, opacity: m.opacity, depthWrite: m.depthWrite, emissive: m.emissive, polygonOffset: m.polygonOffset, polygonOffsetFactor: m.polygonOffsetFactor, polygonOffsetUnits: m.polygonOffsetUnits });
+    t.customProgramCacheKey = function () { return (opt.cel ? 'cel' : 'std') + (opt.sway || 0); };   /* 不同着色方式各编各的程序，不能共用 */
     t.onBeforeCompile = function (sh) {
-      rim(sh, opt.rim == null ? 1 : opt.rim);
+      if (opt.cel) cel(sh); else rim(sh, opt.rim == null ? 1 : opt.rim);
       if (opt.sway) {                                                                   /* 树叶随风轻晃（几何体坐标 Z 向上） */
         sh.uniforms.uTime = S.time;
         sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>',
