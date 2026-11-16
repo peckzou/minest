@@ -101,14 +101,24 @@
         }
         root.rotation.x = 0;
         turnTo(yaw, dt * (st.pose ? 8 : 3));
-        if (moving) { st.pose = null; st.reading = false; }
-        if (moving) {
+        if (moving && st.pose !== 'climb') { st.pose = null; st.reading = false; }
+        if (moving && st.pose !== 'climb') {
           st.walkPhase += 1.5 * dt / 0.55 * Math.PI; var ph = st.walkPhase, sw = Math.sin(ph);
           R.legs[0].hip.rotation.x = sw * 0.6; R.legs[1].hip.rotation.x = -sw * 0.6;
           R.legs[0].knee.rotation.x = Math.max(0, -Math.cos(ph)) * 0.75; R.legs[1].knee.rotation.x = Math.max(0, Math.cos(ph)) * 0.75;
           R.arms[0].sh.rotation.x = -sw * 0.5; R.arms[1].sh.rotation.x = sw * 0.5; R.arms[0].el.rotation.x = -0.35; R.arms[1].el.rotation.x = -0.35;
           R.arms[1].sh.rotation.z = 0.2; R.arms[1].el.rotation.z = 0;
           R.hips.position.y = 0.8 + Math.abs(Math.cos(ph)) * 0.035; R.torso.rotation.y = sw * 0.08; R.head.rotation.y = 0;
+        } else if (st.pose === 'climb') {                                   /* 爬绳梯：手脚交替往上够；moving = 这一帧在爬 */
+          if (moving) st.walkPhase += dt * 6;
+          var cp = st.walkPhase, cs = Math.sin(cp);
+          R.legs[0].hip.rotation.x = -0.6 - cs * 0.35; R.legs[1].hip.rotation.x = -0.6 + cs * 0.35; R.legs[0].knee.rotation.x = 0.9 + cs * 0.3; R.legs[1].knee.rotation.x = 0.9 - cs * 0.3;
+          R.arms[0].sh.rotation.x = -2.6 + cs * 0.35; R.arms[1].sh.rotation.x = -2.6 - cs * 0.35; R.arms[0].el.rotation.x = -0.3; R.arms[1].el.rotation.x = -0.3; R.arms[0].sh.rotation.z = 0.15; R.arms[1].sh.rotation.z = -0.15;
+          R.hips.position.y = 0.8; R.head.rotation.x = -0.25; book.visible = false;
+        } else if (st.pose === 'crouch') {                                  /* 蹲在水边玩水：两手往水里拨 */
+          var sp2 = Math.sin(now * 7);
+          [0, 1].forEach(function (k) { easeTo(R.legs[k].hip.rotation, 'x', -1.25, a); easeTo(R.legs[k].knee.rotation, 'x', 2.1, a); R.arms[k].sh.rotation.x = -1.1 + (k ? sp2 : -sp2) * 0.35; R.arms[k].el.rotation.x = -0.3; R.arms[k].sh.rotation.z = (k ? -1 : 1) * 0.2; });
+          easeTo(R.hips.position, 'y', 0.42, a); easeTo(R.torso.rotation, 'x', 0.45, a); easeTo(R.head.rotation, 'x', 0.2, a); book.visible = false;
         } else if (st.pose === 'sit') {                                     /* 坐：大腿向前、小腿垂下，屁股落在座面上 */
           [0, 1].forEach(function (k) { easeTo(R.legs[k].hip.rotation, 'x', -1.45, a); easeTo(R.legs[k].knee.rotation, 'x', 1.4, a); });
           easeTo(R.hips.position, 'y', st.poseH / root.scale.y + 0.08, a); R.torso.rotation.y *= 0.85; easeTo(R.torso.rotation, 'x', st.reading ? 0.12 : -0.05, a);

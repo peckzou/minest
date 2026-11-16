@@ -1351,7 +1351,7 @@
     function on(e) {
       if (e.source !== f.contentWindow || !e.data || typeof e.data.clun !== 'string') return;
       if (e.data.clun === 'ready') { ready = true; clearTimeout(to); }
-      else if (e.data.clun === 'enter') { feature = typeof e.data.feature === 'string' ? e.data.feature : null; end(); }   /* Clun 里点了 ≡ 的某项、或书桌上的打字机 / 羽毛笔：进房间后打开它 */
+      else if (e.data.clun === 'enter') { feature = typeof e.data.feature === 'string' ? e.data.feature : (typeof e.data.action === 'string' && /^(pack|env|views|set)$/.test(e.data.action) ? '@' + e.data.action : null); end(); }   /* 进房间后打开某个功能，或按房间顶栏的同一个按钮（@pack 背包、@env 环境、@views 窗外、@set 设置） */   /* Clun 里点了 ≡ 的某项、或书桌上的打字机 / 羽毛笔：进房间后打开它 */
     }
     window.addEventListener('message', on);
   }
@@ -1370,7 +1370,7 @@
     var t1 = Date.now(), iv1 = setInterval(function () {                     /* 从 Clun 进来：书房暂时是圣托里尼那间；要打开的功能等房间换好再开 */
       try {
         var st = a.state();
-        if ((st.env === 'santorini' && !st.busy) || Date.now() - t1 > 5000) { clearInterval(iv1); if (feature && a.activate) setTimeout(function () { try { a.activate(feature); } catch (e) {} }, 400); }
+        if ((st.env === 'santorini' && !st.busy) || Date.now() - t1 > 5000) { clearInterval(iv1); if (feature) setTimeout(function () { try { if (feature.charAt(0) === '@') { var btn = document.getElementById('sh-' + feature.slice(1) + 'Btn'); if (btn) btn.click(); } else if (a.activate) a.activate(feature); } catch (e) {} }, 400); }
         else if (!st.busy && st.env !== 'santorini') a.setEnv('santorini');
       } catch (e) { clearInterval(iv1); }
     }, 200);
