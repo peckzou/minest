@@ -19,12 +19,12 @@
     mask: [[425, 1040], [425, 730], [488, 556], [494, 446], [582, 446], [582, 548], [962, 552], [965, 552], [1040, 552], [1044, 664], [1118, 730], [1162, 730],
       [1172, 780], [1210, 836], [1284, 924], [1284, 1044], [1142, 1044], [1142, 1012], [808, 1012], [808, 1046]],
     path: [[300, 990], [830, 990], [830, 1112], [300, 1112]],
-    ladders: [[[112, 668], [192, 748], [126, 1164], [28, 1114]], [[168, 790], [226, 790], [314, 1152], [228, 1164]]],   /* 原图树屋的两架木梯：抹掉，换成一条绳梯 */
+    ladders: [[[108, 662], [198, 744], [132, 1168], [22, 1118]], [[160, 784], [232, 784], [322, 1154], [222, 1168]]],   /* 原图树屋的两架木梯：抹掉，换成一条绳梯 */
     rope: [332, 808, 1152],                     /* 绳梯：挂在平台右端前沿（x, 平台底 y），下面地面 y */
-    walkOut: [[262, 1110], [420, 1060], [600, 1035], [790, 1032], [905, 1052], [930, 1120], [990, 1215], [1050, 1300], [1000, 1385], [760, 1395], [520, 1385], [330, 1320], [255, 1210]],   /* 屋外能走的范围：门前、左边草坪和石板路 */
-    walkBank: [[1600, 1205], [1820, 1120], [2120, 1150], [2420, 1230], [2555, 1330], [2555, 1430], [1560, 1430], [1545, 1330]],   /* 小溪对岸：石桌那片草坡 */
-    hops: [[1065, 1360], [1250, 1405], [1365, 1338], [1468, 1300], [1600, 1330]],   /* 踩着溪里的石头过溪（两头在两边草地上） */
-    waterSpots: [[1090, 1330, 1200, 1350], [1620, 1300, 1520, 1300]],   /* 玩水：小人站的地方 → 水面的点 */
+    walkOut: [[262, 1110], [420, 1060], [600, 1035], [790, 1032], [880, 1060], [835, 1130], [870, 1200], [930, 1270], [985, 1340], [1045, 1420], [760, 1428], [520, 1390], [330, 1320], [255, 1210]],   /* 右边沿着小路栏杆的内侧（不站到栏杆外面） */   /* 屋外能走的范围：门前、左边草坪和石板路 */
+    walkBank: [[1690, 1205], [1820, 1120], [2120, 1150], [2420, 1230], [2555, 1330], [2555, 1430], [1720, 1430], [1700, 1330]],   /* 小溪对岸：石桌那片草坡 */
+    hops: [[1010, 1405], [1215, 1428], [1365, 1338], [1555, 1318], [1745, 1315]],   /* 从小路尽头跳过栏杆，经溪里的石头到对岸 */   /* 踩着溪里的石头过溪（两头在两边草地上） */
+    waterSpots: [[1760, 1290, 1610, 1300], [1800, 1395, 1650, 1410]],   /* 玩水：小人站的地方 → 水面的点 */
     fence: [[1962, 1080], [2000, 1080], [2012, 1190], [2018, 1300], [2020, 1438], [1680, 1438], [1680, 1395], [1730, 1360], [1870, 1205]],   /* 石桌边沿河那道木栅栏和它的影子：铺成草地 */          /* 房前那条土路：铺成草地 */
     bush: { rect: [322, 790, 560, 1046], src: [200, 70, 420, 420] },    /* 房子左前方一丛树叶（取自左上大树的叶子），挡住左端 */
     /* 动画区域（底图像素） */
@@ -256,7 +256,7 @@
     /* 遮罩：原房子的轮廓，低分辨率，放大时边缘自然羽化 */
     var f = 16, mk = document.createElement('canvas'); mk.width = Math.round(W / f); mk.height = Math.round(H / f); var mg = mk.getContext('2d');
     mg.fillStyle = '#000'; mg.fillRect(0, 0, mk.width, mk.height); mg.fillStyle = '#fff'; mg.beginPath();
-    [PL.mask, PL.path, PL.fence, PL.bank].concat(PL.ladders).concat(PL.rocks.map(function (r) { var o = []; for (var a = 0; a < 10; a++) o.push([r[0] + Math.cos(a / 10 * 6.283) * r[2] * 1.6, r[1] + Math.sin(a / 10 * 6.283) * r[2] * 1.3]); return o; })).forEach(function (poly) { mg.beginPath(); poly.forEach(function (p, i) { if (i) mg.lineTo(p[0] / f, p[1] / f); else mg.moveTo(p[0] / f, p[1] / f); }); mg.closePath(); mg.fill(); });
+    [PL.mask, PL.path, PL.fence, PL.bank].concat(PL.ladders.map(function (poly) { var cx = 0, cy = 0; poly.forEach(function (q) { cx += q[0] / poly.length; cy += q[1] / poly.length; }); return poly.map(function (q) { var dx = q[0] - cx, dy = q[1] - cy, L = Math.hypot(dx, dy) || 1; return [q[0] + dx / L * 26, q[1] + dy / L * 26]; }); }))   /* 梯子很细：遮罩往外放宽，补好的那层完全盖住原来的木梯，不留残影 */.concat(PL.rocks.map(function (r) { var o = []; for (var a = 0; a < 10; a++) o.push([r[0] + Math.cos(a / 10 * 6.283) * r[2] * 1.6, r[1] + Math.sin(a / 10 * 6.283) * r[2] * 1.3]); return o; })).forEach(function (poly) { mg.beginPath(); poly.forEach(function (p, i) { if (i) mg.lineTo(p[0] / f, p[1] / f); else mg.moveTo(p[0] / f, p[1] / f); }); mg.closePath(); mg.fill(); });
     function tex(c) { var t = new THREE.CanvasTexture(c); t.minFilter = THREE.LinearFilter; t.magFilter = THREE.LinearFilter; t.generateMipmaps = false; t.flipY = true; return t; }
     return { patch: tex(cv), mask: tex(mk) };
   }
@@ -383,12 +383,14 @@
       var R = PL.rope, base = onTerrain(R[0], R[2]), inv = cam.quat.clone().invert(), depth = -base.clone().sub(cam.pos).applyQuaternion(inv).z;
       function atDepth(px, py, dz) { return new THREE.Vector3((px / PL.W - 0.5) * Wn, -(py / PL.H - 0.5) * Hn, -1).multiplyScalar(depth + (dz || 0)).applyQuaternion(cam.quat).add(cam.pos); }
       var top = atDepth(R[0], R[1]), full = top.y - (base.y + 0.5);
-      var ropeM = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x7d6a4c).convertSRGBToLinear(), roughness: 1 }), rungM = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x8a6c4a).convertSRGBToLinear(), roughness: 0.95 });   /* 照参考图：哑光麻绳色、浅木色横档，不要太亮 */
+      var ropeM = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x5c4b34).convertSRGBToLinear(), roughness: 1 }), rungM = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x6b5136).convertSRGBToLinear(), roughness: 0.95 });   /* 照参考图：哑光深麻绳色、旧木色横档 */   /* 照参考图：哑光麻绳色、浅木色横档，不要太亮 */
       var side = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quat); side.y = 0; side.normalize();
       var toCam = cam.pos.clone().sub(base); toCam.y = 0; toCam.normalize();
       var pivot = new THREE.Group(); pivot.position.copy(top); root.add(pivot);
       var ropes = [-0.17, 0.17].map(function (o) { var geo = new THREE.CylinderGeometry(0.019, 0.019, 1, 6); geo.translate(0, -0.5, 0); var m = new THREE.Mesh(geo, ropeM); m.position.copy(side).multiplyScalar(o); pivot.add(m); return m; });
       var NR = Math.max(9, Math.round(full / 0.24) + 1), rungs = []; for (var k = 0; k < NR; k++) { var d = full - (full - 0.12) * k / (NR - 1), rr = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.4, 0.045), rungM); rr.position.set(0, -d, 0); rr.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), side); rr.userData.d = d; pivot.add(rr); rungs.push(rr); }
+      var bar = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.56, 0.07), rungM); bar.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), side); bar.position.set(0, 0.04, 0); pivot.add(bar);   /* 平台下的木挂杆，绳子绕在上面打结 */
+      [-0.17, 0.17].forEach(function (o) { var kn = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), ropeM); kn.position.copy(side).multiplyScalar(o); kn.position.y = 0.02; pivot.add(kn); });
       var roll = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.4, 14), ropeM); roll.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), side); roll.position.set(0, -0.05, 0); pivot.add(roll);
       C.Paint.toonTree(pivot);
       var st = { k: 0, want: 0, ang: 0 };
@@ -721,7 +723,8 @@
         if (m > 0.05) {
           if (m > 1) { f2 /= m; r2 /= m; }
           var mv = fwd.multiplyScalar(f2).add(rgt.multiplyScalar(r2)).multiplyScalar(1.6 * dt);
-          [mv, new THREE.Vector3(mv.x, 0, 0), new THREE.Vector3(0, 0, mv.z)].some(function (st2) { var np = settle(OUT.pos.clone().add(st2)); if (!walkable(np)) return false; OUT.pos.copy(np); moving = true; return true; });
+          var inside = walkable(OUT.pos);
+          [mv, new THREE.Vector3(mv.x, 0, 0), new THREE.Vector3(0, 0, mv.z)].some(function (st2) { var np = settle(OUT.pos.clone().add(st2)); if (inside && !walkable(np)) return false; OUT.pos.copy(np); moving = true; return true; });   /* 万一站到了范围外（跳过溪、玩水之后），往哪走都行，好走回来 */
           if (moving) OUT.yaw = Math.atan2(mv.x, mv.z);
         }
         hero.drive(OUT.pos, OUT.yaw, moving, dt);
