@@ -27,6 +27,12 @@ EDITS = [
      'function followCard(){\n  var pane = document.querySelector(\'.sf-slot[data-sf-view="board"]\'); if (!pane) return;',
      'function followCard(){\n  if (window.__mn70Quiet > Date.now()) return;   /* duo-70 */\n'
      '  var pane = document.querySelector(\'.sf-slot[data-sf-view="board"]\'); if (!pane) return;'),
+    # board -> Cover: a card scrolled out above or below its own list is not "the top visible card"
+    ('follow-card-in-list',
+     "r.bottom < pr.top + 30 || r.top > pr.bottom) return;\n    var y = Math.max(r.top, pr.top) - pr.top;",
+     "r.bottom < pr.top + 30 || r.top > pr.bottom) return;\n"
+     "    var ls = a.closest('.kanban-cards-scroll'), lr = ls && ls.getBoundingClientRect(); if (lr && (r.bottom < lr.top + 30 || r.top > lr.bottom)) return;   /* duo-70 */\n"
+     "    var y = Math.max(r.top, pr.top) - pr.top;"),
     # speed: the Sync Center's 4-second look at all boards (a full re-serialise and hash, ~100 ms) waits for a quiet
     # moment instead of landing in the middle of a swipe. Same work, same cadence; see idle() in v70.js
     ('sync-scan-when-idle',

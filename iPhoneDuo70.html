@@ -144258,6 +144258,7 @@ function followCard(){
   var pr = pane.getBoundingClientRect(), best = null, bestY = 1e9;
   [].forEach.call(pane.querySelectorAll('article[data-card-id]'), function(a){
     var r = a.getBoundingClientRect(); if (r.width < 40 || r.right < pr.left || r.left > pr.right || r.bottom < pr.top + 30 || r.top > pr.bottom) return;
+    var ls = a.closest('.kanban-cards-scroll'), lr = ls && ls.getBoundingClientRect(); if (lr && (r.bottom < lr.top + 30 || r.top > lr.bottom)) return;   /* duo-70 */
     var y = Math.max(r.top, pr.top) - pr.top; if (y < bestY) { bestY = y; best = a; }
   });
   var id = best && best.getAttribute('data-card-id'); if (!id || id === cfLast) return; cfLast = id;

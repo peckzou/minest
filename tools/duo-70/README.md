@@ -9,12 +9,14 @@ A new page, `iPhoneDuo70.html`, built from `iphone.html`. No existing file is ed
 Open it with `python3 -m http.server 3005` → `http://localhost:3005/iPhoneDuo70.html`
 (`?clun=0&home=0` goes straight to the board).
 
-What is new (`v70.js`, `v70.css`, and three anchored edits in `build.py`):
+What is new (`v70.js`, `v70.css`, and four anchored edits in `build.py`):
 
 - **board | 3D Cover, both ways.** Swiping the Cover marks its front card on the board and scrolls the list to it
   when it is out of view. A card inside a closed stack marks the stack's top card. While the board is being
   scrolled this way it does not turn the Cover back (`followCard` stays quiet), and a finger on the board
   always leads.
+- **Board scroll → Cover.** The Cover follows the top card that is visible in its list; a card scrolled out above
+  the list no longer counts (it did in `iphone.html`).
 - **Switching boards with the split open.** The Cover used to stay empty until the board was scrolled; it now
   shows the new board's list at once, with its card marked.
 - **Motion and detail.** Lists rise in one after another when a board opens; the two panes of the split arrive
