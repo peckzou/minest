@@ -183677,6 +183677,11 @@ html.mn-dock-pill[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-pill-active, htm
   var dockAll = key('mn-ctx-key mn-ctx-dock', 'Dock · 全部入口', svg('<rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/>'),
     function () { var on = !R.classList.contains('mn-ctx-apps'); R.classList.toggle('mn-ctx-apps', on); dockAll.setAttribute('aria-pressed', on ? 'true' : 'false'); });
   dockAll.classList.remove('mn-sys-key'); dockAll.dataset.ctx = 'room'; dockAll.setAttribute('aria-pressed', 'false'); roomKeys.push(dockAll);
+  /* the study's pivoting board: turn it over (the EC–6 board / the blackboard) — only in the Victorian Study */
+  var flipKey = key('mn-ctx-key mn-ctx-flip', '翻转布告栏 · 黑板', svg('<rect x="4" y="5" width="16" height="11" rx="1"/><path d="M8 20h8M12 16v4M17 2.5l2 2-2 2M7 21.5l-2-2 2-2"/>'),
+    function () { var b = window.MinestStudyBoard; if (b && b.flip) b.flip(); });
+  flipKey.classList.remove('mn-sys-key'); flipKey.dataset.ctx = 'off'; roomKeys.push(flipKey);
+  function study() { try { var e = window.MinestSpatialHome.api().env(); return !!(e && e.envId === 'victorian' && window.MinestStudyBoard && window.MinestStudyBoard.flip); } catch (er) { return false; } }
   function inWorld() { try { return !!(window.MinestMyWorld && MinestMyWorld.isOpen && MinestMyWorld.isOpen()); } catch (e) { return false; } }
 
   function dock() { return document.querySelector('.mn-bdock'); }
@@ -183723,7 +183728,7 @@ html.mn-dock-pill[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-pill-active, htm
   }
   function context() {
     var c = inRoom() ? 'room' : inWorld() ? 'world' : 'board';
-    if (c === 'room') { modeLabel(roomKeys[0]); pixelIcons(); } else if (R.classList.contains('mn-ctx-apps')) { R.classList.remove('mn-ctx-apps'); dockAll.setAttribute('aria-pressed', 'false'); }
+    if (c === 'room') { modeLabel(roomKeys[0]); pixelIcons(); var fl = study() ? 'room' : 'off'; if (flipKey.dataset.ctx !== fl) flipKey.dataset.ctx = fl; } else if (R.classList.contains('mn-ctx-apps')) { R.classList.remove('mn-ctx-apps'); dockAll.setAttribute('aria-pressed', 'false'); }
     if (c !== ctx) { ctx = c; R.setAttribute('data-mn-ctx', c); }
     else if (R.getAttribute('data-mn-ctx') !== c) R.setAttribute('data-mn-ctx', c);
   }
@@ -186992,7 +186997,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   var VW = { z: -8.9, w: 6.8, h: 4.5, x: 8.45, face: 7.62 };            // the window: centre z, glass width / height, glass plane x, the bookcases' face x
   var VDOOR = { z: -3.6, x: 8.3 };
   var VNICHE = [[-6.7, -5.3], [5.3, 6.7]];
-  var VSTORE = [[-4.85, -2.55], [-11.0, -9.27], [-7.06, -5.33]];   // west bookcases left bare: the shelf bay, bay C (the board), bay A (the rotating bookcase)   // two bays of the north bookcases left bare for the viola and vases
+  var VSTORE = [[-4.85, -2.55], [-12.98, -9.27], [-7.06, -5.33]];   // west bookcases left bare: the shelf bay, bay C (the board), bay A (the rotating bookcase)   // two bays of the north bookcases left bare for the viola and vases
   function vicMats() {
     if (vicMats.m) return vicMats.m;
     var c = document.createElement('canvas'); c.width = 256; c.height = 512; var x = c.getContext('2d');
@@ -187084,22 +187089,102 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     return { group: g, alone: true };
   }
   /* the study board, built into the wall: a shallow gilt-and-walnut frame with a damask panel, flush with the bookcases */
-  function dressVicBoard(o) {
-    var S = VIC_STYLE, g = new THREE.Group(), M = vicMats(S), dm = damask(S), W = 1.36, H = 1.15, OW = 1.70;   // v20: one bay wide (1.73 m between the uprights)
-    // One fitted cassette, set into its bay: the face is flush with the bookcase front, the body inside.
-    bx(g, M.woodD || M.wood, 0, 0, -0.12, OW, 1.60, 0.24);
-    [-1,1].forEach(function(side) {
-      bx(g, M.wood || M.woodD, side*(OW / 2 - 0.065), 0, -0.015, 0.13, 1.60, 0.05);
-      bx(g, M.wood || M.woodD, 0, side*0.735, -0.015, OW, 0.13, 0.05);
+  /* the study board (v21, after the user): two bays wide and taller, set into the west bookcases (bays C + D, the
+     upright between them cut away), and a pivoting board like a Victorian classroom's — the live EC–6 board on one face,
+     a slate blackboard you can write on with chalk on the other. It comes 1.2 m out of the bookcase, turns over on its
+     long axis, goes home flush. Drawn at half size and shown at twice (o.baseScale 2: the live picture keeps its shape). */
+  var BS = 2.0;
+  var CHALK = { key: 'minest.study.chalk.v1', canvas: null, tex: null, W: 1824, H: 1216 };
+  function chalkCanvas() {
+    if (CHALK.canvas) return CHALK.canvas;
+    var c = CHALK.canvas = document.createElement('canvas'); c.width = CHALK.W; c.height = CHALK.H; slate(c.getContext('2d'));
+    try { var d = localStorage.getItem(CHALK.key); if (d) { var im = new Image(); im.onload = function () { c.getContext('2d').drawImage(im, 0, 0, CHALK.W, CHALK.H); if (CHALK.tex) CHALK.tex.needsUpdate = true; }; im.src = d; } } catch (e) {}
+    return c;
+  }
+  function slate(x) {   // the bare board: dark green-black slate, a little grain, the ghost of old wiping
+    var W = CHALK.W, H = CHALK.H, i; x.globalCompositeOperation = 'source-over'; x.fillStyle = '#1f2a25'; x.fillRect(0, 0, W, H);
+    for (i = 0; i < 9000; i++) { x.fillStyle = 'rgba(255,255,255,' + (Math.random() * 0.025) + ')'; x.fillRect(Math.random() * W, Math.random() * H, 2, 2); }
+    for (i = 0; i < 14; i++) { var gx = Math.random() * W, gy = Math.random() * H, r = 120 + Math.random() * 260, gr = x.createRadialGradient(gx, gy, 0, gx, gy, r); gr.addColorStop(0, 'rgba(230,236,230,.045)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = gr; x.fillRect(0, 0, W, H); }
+  }
+  function chalkLine(x, a, b, col, w) {   // a stroke of chalk: dry, broken at the edges
+    var dx = b[0] - a[0], dy = b[1] - a[1], n = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 2));
+    x.fillStyle = col;
+    for (var i = 0; i <= n; i++) { var t = i / n, px = a[0] + dx * t, py = a[1] + dy * t;
+      for (var k = 0; k < 5; k++) { x.globalAlpha = 0.35 + Math.random() * 0.5; var rr = w * (0.25 + Math.random() * 0.35); x.fillRect(px + (Math.random() - 0.5) * w, py + (Math.random() - 0.5) * w, rr, rr); } }
+    x.globalAlpha = 1;
+  }
+  /* the chalk panel: the blackboard full screen; chalk in four colours, the duster, clear, done. Kept on this device. */
+  function chalkPanel() {
+    return new Promise(function (done) {
+      var c = chalkCanvas(), wrap = document.createElement('div'); wrap.id = 'vic-chalk';
+      wrap.style.cssText = 'position:fixed;inset:0;z-index:2147483646;background:rgba(10,8,6,.86);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font:500 14px -apple-system,"PingFang SC",sans-serif;color:#f3eee4';
+      var board = document.createElement('canvas'); board.width = CHALK.W; board.height = CHALK.H;
+      board.style.cssText = 'max-width:calc(100vw - 32px);max-height:calc(100vh - 120px);aspect-ratio:3/2;border:14px solid #5a3a22;border-radius:6px;box-shadow:0 20px 60px rgba(0,0,0,.6),inset 0 0 40px rgba(0,0,0,.5);touch-action:none;cursor:crosshair;background:#1f2a25';
+      var bx2 = board.getContext('2d'); bx2.drawImage(c, 0, 0);
+      var bar = document.createElement('div'); bar.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;justify-content:center';
+      var tool = { col: '#f4f1e8', w: 9, erase: false };
+      function btn(label, fn, sw) { var b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.style.cssText = 'all:unset;cursor:pointer;padding:8px 14px;border-radius:10px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2)' + (sw ? ';box-shadow:inset 0 -4px 0 ' + sw : ''); b.addEventListener('click', function (e) { e.stopPropagation(); fn(b); }); bar.appendChild(b); return b; }
+      var keys = [];
+      function pick(b, t) { keys.forEach(function (k) { k.style.background = 'rgba(255,255,255,.12)'; }); b.style.background = 'rgba(255,255,255,.3)'; tool = t; }
+      [['白粉笔', '#f4f1e8'], ['黄', '#f6dd6a'], ['粉', '#f3a6b8'], ['蓝', '#9fd0f2']].forEach(function (q, i) { var b = btn(q[0], function (b) { pick(b, { col: q[1], w: 9, erase: false }); }, q[1]); keys.push(b); if (!i) b.style.background = 'rgba(255,255,255,.3)'; });
+      keys.push(btn('黑板擦', function (b) { pick(b, { col: null, w: 70, erase: true }); }));
+      btn('清空', function () { slate(bx2); });
+      btn('完成', function () { finish(); });
+      wrap.appendChild(board); wrap.appendChild(bar); document.body.appendChild(wrap);
+      var last = null;
+      function at(e) { var r = board.getBoundingClientRect(), bw = parseFloat(getComputedStyle(board).borderLeftWidth) || 0; return [(e.clientX - r.left - bw) / (r.width - 2 * bw) * CHALK.W, (e.clientY - r.top - bw) / (r.height - 2 * bw) * CHALK.H]; }
+      function wipe(p) { var gr = bx2.createRadialGradient(p[0], p[1], 0, p[0], p[1], tool.w); gr.addColorStop(0, 'rgba(31,42,37,.9)'); gr.addColorStop(1, 'rgba(31,42,37,0)'); bx2.fillStyle = gr; bx2.fillRect(p[0] - tool.w, p[1] - tool.w, tool.w * 2, tool.w * 2); }
+      board.addEventListener('pointerdown', function (e) { e.preventDefault(); board.setPointerCapture(e.pointerId); last = at(e); if (tool.erase) wipe(last); else chalkLine(bx2, last, last, tool.col, tool.w); });
+      board.addEventListener('pointermove', function (e) { if (!last) return; var p = at(e); if (tool.erase) wipe(p); else chalkLine(bx2, last, p, tool.col, tool.w); last = p; });
+      ['pointerup', 'pointercancel'].forEach(function (t) { board.addEventListener(t, function () { last = null; }); });
+      function key(e) { if (e.key === 'Escape') finish(); }
+      document.addEventListener('keydown', key, true);
+      function finish() {
+        document.removeEventListener('keydown', key, true);
+        c.getContext('2d').drawImage(board, 0, 0); if (CHALK.tex) CHALK.tex.needsUpdate = true;
+        try { localStorage.setItem(CHALK.key, c.toDataURL('image/jpeg', 0.85)); } catch (e) {}
+        wrap.remove(); done(null);
+      }
     });
-    [[0, H / 2 + 0.06, W + 0.22, 0.12], [0, -H / 2 - 0.06, W + 0.22, 0.12]].forEach(function (q) { bx(g, M.woodL || M.wood, q[0], q[1], 0.01, q[2], q[3], 0.05); });
-    [-1, 1].forEach(function (s) { bx(g, M.woodL || M.wood, s * (W / 2 + 0.06), 0, 0.01, 0.12, H, 0.05); });
+  }
+  function dressVicBoard(o) {
+    var S = VIC_STYLE, g = new THREE.Group(), M = vicMats(S), dm = damask(S), OW = 1.84, OH = 1.12, W = 1.60, H = 1.04, D = 0.06, F = 0.065;
+    if (o.baseScale0 === undefined) o.baseScale0 = o.baseScale || 1; o.baseScale = BS;
+    // the frame: both faces, the sides joining them, a thin core between (the board turns about its middle)
+    [1, -1].forEach(function (f) {
+      [-1, 1].forEach(function (s) { bx(g, M.wood || M.woodD, s * (OW / 2 - F / 2), 0, f * (D - 0.012), F, OH, 0.024); bx(g, M.wood || M.woodD, 0, s * (OH / 2 - F / 2), f * (D - 0.012), OW, F, 0.024); });
+      [-1, 1].forEach(function (s) { bx(g, M.gilt, s * (OW / 2 - F - 0.006), 0, f * (D - 0.002), 0.008, OH - 2 * F, 0.006); bx(g, M.gilt, 0, s * (OH / 2 - F - 0.006), f * (D - 0.002), OW - 2 * F, 0.008, 0.006); });
+    });
+    [-1, 1].forEach(function (s) { bx(g, M.woodD || M.wood, s * (OW / 2 - 0.01), 0, 0, 0.02, OH, 2 * D); bx(g, M.woodD || M.wood, 0, s * (OH / 2 - 0.01), 0, OW, 0.02, 2 * D); });
+    bx(g, M.woodD || M.wood, 0, 0, 0, OW - 0.04, OH - 0.04, 0.012);
     var silk = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.MeshStandardMaterial({ map: dm.clone(), roughness: 0.7 }));
-    silk.material.map.needsUpdate = true; silk.material.map.repeat.set(W / 0.22, H / 0.22); silk.position.z = 0.002; g.add(silk);
-    [[0, H / 2 - 0.01, W, 0.014], [0, -H / 2 + 0.01, W, 0.014]].forEach(function (q) { bx(g, M.gilt, q[0], q[1], 0.008, q[2], q[3], 0.01); });
-    [-1, 1].forEach(function (s) { bx(g, M.gilt, s * (W / 2 - 0.01), 0, 0.008, 0.014, H, 0.01); });
-    bx(g, M.gilt, 0, H / 2 + 0.06, 0.04, 0.62, 0.07, 0.012);
-    return { group: g };
+    silk.material.map.needsUpdate = true; silk.material.map.repeat.set(W / 0.22, H / 0.22); silk.position.z = 0.008; g.add(silk);
+    // the back: the slate (upside down here: right way up once the board has turned over) and its chalk ledge
+    CHALK.tex = new THREE.CanvasTexture(chalkCanvas()); CHALK.tex.encoding = THREE.sRGBEncoding; CHALK.tex.anisotropy = 8;
+    var slateM = new THREE.Mesh(new THREE.PlaneGeometry(OW - 2 * F - 0.02, OH - 2 * F - 0.02), new THREE.MeshStandardMaterial({ map: CHALK.tex, roughness: 0.92 }));
+    slateM.rotation.x = Math.PI; slateM.position.z = -0.008; g.add(slateM);
+    var ledgeY = OH / 2 - F - 0.03;   // its top edge here = its bottom edge when turned
+    bx(g, M.woodL || M.wood, 0, ledgeY, -(D + 0.02), OW - 2 * F, 0.02, 0.05);
+    [[-0.5, '#f4f1e8'], [-0.42, '#f6dd6a'], [0.3, '#f3a6b8']].forEach(function (q) { var st = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.05, 8), new THREE.MeshStandardMaterial({ color: q[1], roughness: 0.9 })); st.rotation.z = Math.PI / 2; st.position.set(q[0], ledgeY - 0.017, -(D + 0.03)); g.add(st); });
+    // turning over: out of the bookcase, over on the long axis, home
+    var st = window.MinestStudyBoard = window.MinestStudyBoard || { flipped: false }, phase = st.flipped ? 1 : 0, last = null, base = null, ec6 = o.panel;
+    function sm(x) { x = Math.max(0, Math.min(1, x)); return x * x * x * (x * (x * 6 - 15) + 10); }
+    st.flip = function () { st.flipped = !st.flipped; return st.flipped; };
+    st.isFlipped = function () { return st.flipped; };
+    function chalkTap() { return chalkPanel(); }
+    o.undress = function () { o.panel = ec6; if (base) { o.group.position.copy(base.p); o.group.rotation.set(0, base.ry, 0); } };
+    return { group: g, tick: function (T) {
+      var dt = last === null ? 0 : Math.min(0.1, T - last); last = T;
+      var target = st.flipped ? 1 : 0;
+      if (phase === 0 && target === 0) { base = { p: o.group.position.clone(), ry: o.group.rotation.y }; if (o.panel !== ec6) o.panel = ec6; return; }
+      if (!base) base = { p: o.group.position.clone(), ry: o.group.rotation.y };
+      phase = Math.max(0, Math.min(1, phase + Math.sign(target - phase) * dt / 2.8));
+      var out = sm(phase / 0.22) * (1 - sm((phase - 0.78) / 0.22)), turn = sm((phase - 0.18) / 0.64);
+      var nx = Math.sin(base.ry), nz = Math.cos(base.ry);
+      o.group.position.set(base.p.x + nx * 1.2 * out, base.p.y, base.p.z + nz * 1.2 * out);
+      o.group.rotation.order = 'YXZ'; o.group.rotation.set(Math.PI * turn, base.ry, 0);
+      o.panel = phase >= 0.999 ? chalkTap : ec6;   // turned over: a tap opens the chalk
+    } };
   }
   /* the study door, which is also the portal: an arched doorway the portal's opening fits, in a panelled walnut surround
      flush with the bookcases (pilasters, an entablature, a keystone), the door itself closed, its handle the one new, bright thing */
@@ -187408,6 +187493,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     L.board = { p: [-8.39, 1.90, -10.135], ry: Math.PI / 2, stashed: false };
     (L.extras || []).forEach(function (e) { if (e.uid === 9801) { e.p = [-8.59, 0, -6.195]; e.ry = Math.PI / 2; } });
   }
+  // v21: the board two bays wide (C + D) and taller, flush
+  function vicUp13(L) { L.board = { p: [-8.53, 1.90, -11.125], ry: Math.PI / 2, stashed: false }; }
   function vicUp6(L) {
     var ex = L.extras = L.extras || [];
     VDECO.forEach(function (d) { if (ex.some(function (e) { return e.uid === d.uid; })) return; ex.push({ kind: d.kind, title: d.title, p: [d.p[0], d.y || 0, d.p[1]], ry: d.ry, uid: d.uid }); });
@@ -187436,13 +187523,13 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     offset: [0, -0.2, -5.1], walk: [-8.4, -13.5, 8.4, 3.4], easel: null, far: 600,
     /* v20: each opening is one bay of the west bookcases, inside its uprights (bays: A −5.33…−7.06, B −7.29…−9.04,
        C −9.27…−11.00, D −11.23…−12.98; the front at x −8.36, the back at −8.85): A the rotating bookcase, C the board */
-    niches: [[-11.0, 0.03, -7.04, -7.6, 3.02, -5.35], [-8.9, 1.12, -10.98, -7.6, 2.68, -9.29]],
+    niches: [[-11.0, 0.03, -7.04, -7.6, 3.02, -5.35], [-8.9, 0.76, -12.96, -7.6, 3.04, -9.29]],
     cut: [ [7.6, 0.02, -4.6, 14, 3.3, -2.6], [7.5, 0.02, VW.z - VW.w / 2 - 0.3, 14, VW.h, VW.z + VW.w / 2 + 0.3]],   // the doorway; the window's opening, through the bookcases and the wall                          // the east bookcase where the study window goes (the Scenic Window stands in front of the bookcase)
     start: VSTART, startV: 10, deskCam: (function () { var a = vdesk(0, 0.95), b = vdesk(0, -0.2); return { pos: [a[0], 1.5, a[1]], look: [b[0], 0.78, b[1]] }; })(),
     dress: { board: dressVicBoard, aquarium: dressAquariumOf(VIC_STYLE), scenicWindow: dressVicWindow, tsqPortal: dressVicDoor },
     /* v1: the round table makes way for the pedestal desk (and its chair); it goes to the west reading corner with its vase */
     /* v2 (after the user's reference): the desk turned to face the room, a buttoned leather chair behind it */
-    upgrade: { v: 20, fn: function (L) { if ((L.up | 0) < 14) { VICT.upgrade3.fn(L); vicUp4(L); vicUp5(L); delete L.scenicWindow; delete L.tsqPortal; vicUp6(L); vicUp7(L); } if ((L.up | 0) < 15) vicUp8(L); if ((L.up | 0) < 16) vicUp9(L); vicUp10(L); vicUp11(L); vicUp12(L); } },
+    upgrade: { v: 21, fn: function (L) { if ((L.up | 0) < 14) { VICT.upgrade3.fn(L); vicUp4(L); vicUp5(L); delete L.scenicWindow; delete L.tsqPortal; vicUp6(L); vicUp7(L); } if ((L.up | 0) < 15) vicUp8(L); if ((L.up | 0) < 16) vicUp9(L); vicUp10(L); vicUp11(L); vicUp12(L); vicUp13(L); } },
     upgrade3: { fn: function (L) {
       var ex = L.extras = L.extras || [];
       /* v3: the west wall is the Scenic Window's now — its library ladder goes to the north wall, beside the fireplace,

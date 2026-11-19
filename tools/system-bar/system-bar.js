@@ -126,6 +126,11 @@
   var dockAll = key('mn-ctx-key mn-ctx-dock', 'Dock · 全部入口', svg('<rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/>'),
     function () { var on = !R.classList.contains('mn-ctx-apps'); R.classList.toggle('mn-ctx-apps', on); dockAll.setAttribute('aria-pressed', on ? 'true' : 'false'); });
   dockAll.classList.remove('mn-sys-key'); dockAll.dataset.ctx = 'room'; dockAll.setAttribute('aria-pressed', 'false'); roomKeys.push(dockAll);
+  /* the study's pivoting board: turn it over (the EC–6 board / the blackboard) — only in the Victorian Study */
+  var flipKey = key('mn-ctx-key mn-ctx-flip', '翻转布告栏 · 黑板', svg('<rect x="4" y="5" width="16" height="11" rx="1"/><path d="M8 20h8M12 16v4M17 2.5l2 2-2 2M7 21.5l-2-2 2-2"/>'),
+    function () { var b = window.MinestStudyBoard; if (b && b.flip) b.flip(); });
+  flipKey.classList.remove('mn-sys-key'); flipKey.dataset.ctx = 'off'; roomKeys.push(flipKey);
+  function study() { try { var e = window.MinestSpatialHome.api().env(); return !!(e && e.envId === 'victorian' && window.MinestStudyBoard && window.MinestStudyBoard.flip); } catch (er) { return false; } }
   function inWorld() { try { return !!(window.MinestMyWorld && MinestMyWorld.isOpen && MinestMyWorld.isOpen()); } catch (e) { return false; } }
 
   function dock() { return document.querySelector('.mn-bdock'); }
@@ -172,7 +177,7 @@
   }
   function context() {
     var c = inRoom() ? 'room' : inWorld() ? 'world' : 'board';
-    if (c === 'room') { modeLabel(roomKeys[0]); pixelIcons(); } else if (R.classList.contains('mn-ctx-apps')) { R.classList.remove('mn-ctx-apps'); dockAll.setAttribute('aria-pressed', 'false'); }
+    if (c === 'room') { modeLabel(roomKeys[0]); pixelIcons(); var fl = study() ? 'room' : 'off'; if (flipKey.dataset.ctx !== fl) flipKey.dataset.ctx = fl; } else if (R.classList.contains('mn-ctx-apps')) { R.classList.remove('mn-ctx-apps'); dockAll.setAttribute('aria-pressed', 'false'); }
     if (c !== ctx) { ctx = c; R.setAttribute('data-mn-ctx', c); }
     else if (R.getAttribute('data-mn-ctx') !== c) R.setAttribute('data-mn-ctx', c);
   }
