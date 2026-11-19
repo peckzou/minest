@@ -194601,8 +194601,14 @@ html.mn70-hidden *, html.mn70-hidden *::before, html.mn70-hidden *::after { anim
     if (id == null || id === boardId) return;
     var first = boardId === null; boardId = id;
     if (!reduce && !split() && (first || !document.hidden)) once('mn70-enter', 900);
-    /* another board: its saved Cover card raises no minest:image-selection, so the mark is placed here */
-    if (split()) queue(260);
+    /* another board while the split is open: the Cover still held the last board's list and stayed empty until the
+       board was scrolled. The Duo script sends the visible list on a scroll, so it is told there was one; then the
+       mark is placed (a board's first Cover card raises no event the mark could follow). */
+    if (split() && !first) {
+      window.__mn70Quiet = Date.now() + 600;
+      document.dispatchEvent(new Event('scroll'));
+      queue(900);
+    }
   }
   /* the split opens: both panes arrive together */
   var wasSplit = split();
