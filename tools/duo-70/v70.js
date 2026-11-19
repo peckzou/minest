@@ -176,6 +176,20 @@
     idle(function () { fn.__mn70Waiting = false; fn(); }, 0);
   };
 
+  /* the scan's version of a category (MinestSyncCore.version: parse, sort keys, hash; ~80 ms for the boards) depends
+     only on the data's JSON text. While that text is the same as at the last scan, the version is the one from then. */
+  var seen = {};
+  window.__mn70Ver = function (value, cat, version) {
+    var j;
+    try { j = JSON.stringify(value); } catch (e) {}
+    if (typeof j !== 'string') return version(value);
+    var m = seen[cat];
+    if (m && m.j === j) return m.v;
+    var v = version(value);
+    seen[cat] = { j: j, v: v };
+    return v;
+  };
+
   /* in the background (another app, the screen off) no CSS animation runs */
   function vis() { R.classList.toggle('mn70-hidden', document.hidden); }
   document.addEventListener('visibilitychange', vis); vis();

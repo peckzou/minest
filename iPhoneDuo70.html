@@ -260,7 +260,7 @@ function source(c){try{
  if(c==='myworld'){var k=window.MinestKnowledge&&window.MinestKnowledge._cloud?window.MinestKnowledge._cloud():read('minest.knowledge.v1');if(k)return {value:k,count:Object.keys(k.x||{}).length};}
  if(c==='teaching'){var t=window.MinestTeachingSets&&window.MinestTeachingSets.read?window.MinestTeachingSets.read():read('minest.teaching.wordsets.v1');if(t){var assets=window.MinestTeachingAssets&&window.MinestTeachingAssets.forBoard?window.MinestTeachingAssets.forBoard(t.id):{};return {value:{wordsets:t,assets:assets||{}},count:(t.columns||[]).length};}}
  }catch(e){}return null;}
-function scan(){C.categories.forEach(function(c){var s=source(c);if(s){var v=C.version(s.value);if(observed[c]!==v){var known=observed[c];observed[c]=v;engine.local(c,s.value,s.count);if(c==='boards'&&known&&engine.status(c)==='pending')window.dispatchEvent(new CustomEvent('minest:cloud-dirty',{detail:{immediate:true,domain:'boards'}}));}}});}
+function scan(){C.categories.forEach(function(c){var s=source(c);if(s){var v=(window.__mn70Ver||C.version)(s.value,c,C.version);if(observed[c]!==v){var known=observed[c];observed[c]=v;engine.local(c,s.value,s.count);if(c==='boards'&&known&&engine.status(c)==='pending')window.dispatchEvent(new CustomEvent('minest:cloud-dirty',{detail:{immediate:true,domain:'boards'}}));}}});}
 function payloadParts(p){var parts={};if(Array.isArray(p.boards))parts.boards=p.boards;if(typeof p.boardsGz==='string'&&(!Array.isArray(p.boards)||(p.gzUpdatedAt||0)>=(p.clientUpdatedAt||0)))parts.boards={gzip:p.boardsGz};if(p.routine)parts.routine=p.routine;if(typeof p.routineGz==='string')parts.routine={gzip:p.routineGz};if(p.knowledge&&typeof p.knowledge==='object')parts.myworld=p.knowledge;if(typeof p.knowledgeGz==='string')parts.myworld={gzip:p.knowledgeGz};if(p.teachingWordsets)parts.teaching={wordsets:p.teachingWordsets,assets:p.teachingAssets||{}};return parts;}
 function inflate(c,v){if(!v||!v.gzip)return Promise.resolve(normalize(c,v));if(typeof DecompressionStream==='undefined')return Promise.resolve(null);try{var bytes=Uint8Array.from(atob(v.gzip),function(ch){return ch.charCodeAt(0);});return new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text().then(function(t){return normalize(c,JSON.parse(t));}).catch(function(){return null;});}catch(e){return Promise.resolve(null);}}
 function parts(p){var values=payloadParts(p);return Promise.all(Object.keys(values).map(function(c){
@@ -194707,6 +194707,20 @@ html.mn70 #mn-sh .sh-ic:active { transform: scale(.9); transition-duration: .08s
     if (fn.__mn70Waiting) return;   /* one pending run per job */
     fn.__mn70Waiting = true;
     idle(function () { fn.__mn70Waiting = false; fn(); }, 0);
+  };
+
+  /* the scan's version of a category (MinestSyncCore.version: parse, sort keys, hash; ~80 ms for the boards) depends
+     only on the data's JSON text. While that text is the same as at the last scan, the version is the one from then. */
+  var seen = {};
+  window.__mn70Ver = function (value, cat, version) {
+    var j;
+    try { j = JSON.stringify(value); } catch (e) {}
+    if (typeof j !== 'string') return version(value);
+    var m = seen[cat];
+    if (m && m.j === j) return m.v;
+    var v = version(value);
+    seen[cat] = { j: j, v: v };
+    return v;
   };
 
   /* in the background (another app, the screen off) no CSS animation runs */

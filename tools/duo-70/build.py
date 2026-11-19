@@ -38,6 +38,11 @@ EDITS = [
     ('sync-scan-when-idle',
      'setInterval(function(){boot();if(!document.hidden)scan();},4000);',
      'setInterval(function(){boot();if(!document.hidden)(window.__mn70Idle||function(f){f();})(scan);},4000);'),
+    # speed: that look hashes every category again even when nothing changed. The hash is a pure function of the
+    # data's JSON, so the last JSON and its hash are remembered; see __mn70Ver in v70.js
+    ('sync-scan-remembers',
+     'var v=C.version(s.value);if(observed[c]!==v)',
+     'var v=(window.__mn70Ver||C.version)(s.value,c,C.version);if(observed[c]!==v)'),
 ]
 CSS_OPEN, CSS_CLOSE = '<style id="mn70-css">\n', '\n</style>\n'
 JS_OPEN, JS_CLOSE = '<script id="mn70-js">\n', '\n</script>\n'
