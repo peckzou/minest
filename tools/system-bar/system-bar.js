@@ -126,11 +126,13 @@
   var dockAll = key('mn-ctx-key mn-ctx-dock', 'Dock · 全部入口', svg('<rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/>'),
     function () { var on = !R.classList.contains('mn-ctx-apps'); R.classList.toggle('mn-ctx-apps', on); dockAll.setAttribute('aria-pressed', on ? 'true' : 'false'); });
   dockAll.classList.remove('mn-sys-key'); dockAll.dataset.ctx = 'room'; dockAll.setAttribute('aria-pressed', 'false'); roomKeys.push(dockAll);
-  /* the study's pivoting board: turn it over (the EC–6 board / the blackboard) — only in the Victorian Study */
-  var flipKey = key('mn-ctx-key mn-ctx-flip', '翻转布告栏 · 黑板', svg('<rect x="4" y="5" width="16" height="11" rx="1"/><path d="M8 20h8M12 16v4M17 2.5l2 2-2 2M7 21.5l-2-2 2-2"/>'),
-    function () { var b = window.MinestStudyBoard; if (b && b.flip) b.flip(); });
-  flipKey.classList.remove('mn-sys-key'); flipKey.dataset.ctx = 'off'; roomKeys.push(flipKey);
-  function study() { try { var e = window.MinestSpatialHome.api().env(); return !!(e && e.envId === 'victorian' && window.MinestStudyBoard && window.MinestStudyBoard.flip); } catch (er) { return false; } }
+  /* the study's sliding board: each panel up or down — the EC–6 board, blackboard 1, blackboard 2 (Victorian Study only) */
+  var slideKeys = [['布告栏 · 上下推拉', '<rect x="4" y="9" width="16" height="11" rx="1"/><path d="M8 13h8M8 16h5M12 2v5M9.5 4.5 12 2l2.5 2.5"/>'],
+    ['黑板 1 · 上下推拉', '<rect x="4" y="9" width="16" height="11" rx="1"/><path d="M12 2v5M9.5 4.5 12 2l2.5 2.5M11 12v5"/>'],
+    ['黑板 2 · 上下推拉', '<rect x="4" y="9" width="16" height="11" rx="1"/><path d="M12 2v5M9.5 4.5 12 2l2.5 2.5M10 12h3.5v2.4H10V17h3.5"/>']].map(function (q, i) {
+      var k = key('mn-ctx-key mn-ctx-slide', q[0], svg(q[1]), function () { var b = window.MinestStudyBoard; if (b && b.slide) b.slide(i); });
+      k.classList.remove('mn-sys-key'); k.dataset.ctx = 'off'; roomKeys.push(k); return k; });
+  function study() { try { var e = window.MinestSpatialHome.api().env(); return !!(e && e.envId === 'victorian' && window.MinestStudyBoard && window.MinestStudyBoard.slide); } catch (er) { return false; } }
   function inWorld() { try { return !!(window.MinestMyWorld && MinestMyWorld.isOpen && MinestMyWorld.isOpen()); } catch (e) { return false; } }
 
   function dock() { return document.querySelector('.mn-bdock'); }
@@ -177,7 +179,7 @@
   }
   function context() {
     var c = inRoom() ? 'room' : inWorld() ? 'world' : 'board';
-    if (c === 'room') { modeLabel(roomKeys[0]); pixelIcons(); var fl = study() ? 'room' : 'off'; if (flipKey.dataset.ctx !== fl) flipKey.dataset.ctx = fl; } else if (R.classList.contains('mn-ctx-apps')) { R.classList.remove('mn-ctx-apps'); dockAll.setAttribute('aria-pressed', 'false'); }
+    if (c === 'room') { modeLabel(roomKeys[0]); pixelIcons(); var fl = study() ? 'room' : 'off'; slideKeys.forEach(function (k) { if (k.dataset.ctx !== fl) k.dataset.ctx = fl; }); } else if (R.classList.contains('mn-ctx-apps')) { R.classList.remove('mn-ctx-apps'); dockAll.setAttribute('aria-pressed', 'false'); }
     if (c !== ctx) { ctx = c; R.setAttribute('data-mn-ctx', c); }
     else if (R.getAttribute('data-mn-ctx') !== c) R.setAttribute('data-mn-ctx', c);
   }
