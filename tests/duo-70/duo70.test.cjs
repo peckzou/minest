@@ -10,10 +10,11 @@ const block = '<style id="mn70-css">\n' + css + '\n</style>\n<script id="mn70-js
 const at = out.lastIndexOf(block);
 assert(at > 0 && out.slice(at + block.length).startsWith('</body>'), 'v70 block is before </body>');
 
-// 2. without the block and the two edits the page is iphone.html, byte for byte
+// 2. without the block and the three edits the page is iphone.html, byte for byte
 let back = out.slice(0, at) + out.slice(at + block.length);
 back = back.replace('<title>Minest Duo 70.0 · iPhone Fold</title>', '<title>Minest Duo 53.85 · iPhone Fold</title>')
-  .replace('  if (window.__mn70Quiet > Date.now()) return;   /* duo-70 */\n', '');
+  .replace('  if (window.__mn70Quiet > Date.now()) return;   /* duo-70 */\n', '')
+  .replace('if(!document.hidden)(window.__mn70Idle||function(f){f();})(scan);', 'if(!document.hidden)scan();');
 assert.strictEqual(back, src, 'iPhoneDuo70.html = iphone.html + edits + v70 block');
 
 // 3. a card inside a closed stack is shown on the board by the stack's top card

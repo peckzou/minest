@@ -119,6 +119,25 @@
   }).observe(R, { attributes: true, attributeFilter: ['class'] });
 
   /* ------------------------------------------------------------------ 3. speed */
+  /* periodic housekeeping (the Sync Center's 4-second scan of all boards) runs between gestures, not during one:
+     it waits while a finger is down or the screen moved in the last 1.2 s, for at most 8 s */
+  var inputAt = 0, fingers = 0;
+  function input() { inputAt = Date.now(); }
+  ['touchmove', 'wheel', 'scroll', 'pointermove', 'keydown'].forEach(function (n) { document.addEventListener(n, input, { passive: true, capture: true }); });
+  document.addEventListener('touchstart', function (e) { fingers = e.touches.length; input(); }, { passive: true, capture: true });
+  ['touchend', 'touchcancel'].forEach(function (n) { document.addEventListener(n, function (e) { fingers = e.touches.length; input(); }, { passive: true, capture: true }); });
+  function idle(fn, since) {
+    since = since || Date.now();
+    var busy = fingers > 0 || Date.now() - inputAt < 1200;
+    if (busy && Date.now() - since < 8000) { setTimeout(function () { idle(fn, since); }, 400); return; }
+    if (window.requestIdleCallback && !busy) requestIdleCallback(function () { fn(); }, { timeout: 1500 }); else fn();
+  }
+  window.__mn70Idle = function (fn) {
+    if (fn.__mn70Waiting) return;   /* one pending run per job */
+    fn.__mn70Waiting = true;
+    idle(function () { fn.__mn70Waiting = false; fn(); }, 0);
+  };
+
   /* in the background (another app, the screen off) no CSS animation runs */
   function vis() { R.classList.toggle('mn70-hidden', document.hidden); }
   document.addEventListener('visibilitychange', vis); vis();
@@ -139,6 +158,6 @@
 
   window.MinestV70 = {
     version: '70.0',
-    /* tests */ _stackTop: stackTop, _boardCard: boardCard, _sync: sync, current: function () { return curEl; }
+    /* tests */ _stackTop: stackTop, _idle: idle, _boardCard: boardCard, _sync: sync, current: function () { return curEl; }
   };
 })();

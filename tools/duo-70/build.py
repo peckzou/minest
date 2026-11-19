@@ -27,6 +27,11 @@ EDITS = [
      'function followCard(){\n  var pane = document.querySelector(\'.sf-slot[data-sf-view="board"]\'); if (!pane) return;',
      'function followCard(){\n  if (window.__mn70Quiet > Date.now()) return;   /* duo-70 */\n'
      '  var pane = document.querySelector(\'.sf-slot[data-sf-view="board"]\'); if (!pane) return;'),
+    # speed: the Sync Center's 4-second look at all boards (a full re-serialise and hash, ~100 ms) waits for a quiet
+    # moment instead of landing in the middle of a swipe. Same work, same cadence; see idle() in v70.js
+    ('sync-scan-when-idle',
+     'setInterval(function(){boot();if(!document.hidden)scan();},4000);',
+     'setInterval(function(){boot();if(!document.hidden)(window.__mn70Idle||function(f){f();})(scan);},4000);'),
 ]
 CSS_OPEN, CSS_CLOSE = '<style id="mn70-css">\n', '\n</style>\n'
 JS_OPEN, JS_CLOSE = '<script id="mn70-js">\n', '\n</script>\n'
