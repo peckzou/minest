@@ -863,6 +863,7 @@
   function dress() {
     DRESSED.forEach(function (d) { if (d.parent) d.parent.remove(d); try { window.SpatialRoom.disposeTree(d); } catch (e) {} }); DRESSED = [];
     HIDDEN.forEach(function (h) { if (h.l) h.l.intensity = h.i; else h.m.material = h.mat; }); HIDDEN = []; DTICK = [];
+    objects.forEach(function (o) { if (o.baseScale0 !== undefined) { o.baseScale = o.baseScale0; delete o.baseScale0; } if (o.undress) { try { o.undress(); } catch (e) {} o.undress = null; } });   // a room's dress may size a thing or change its tap: back to its own
     var real = room.realistic && window.SpatialRealistic;
     if (!room.dress && !real) return;
     objects.forEach(function (o) {
