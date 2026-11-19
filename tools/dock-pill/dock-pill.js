@@ -10,33 +10,41 @@
     syncLabels();
     if (window.MinestChrome && window.MinestChrome.show) window.MinestChrome.show();
   }
+  /* the name in the lens: the English part of "Spatial Home · 我的房间", a whole word or two, never cut mid-word */
   function shortLabel(btn) {
     var raw = (btn.getAttribute('aria-label') || btn.title || '').trim();
     if (!raw) return 'App';
-    var clean = raw.split(/[·•|—\-:(]/)[0].trim();
-    return clean.length > 10 ? clean.slice(0, 10) : clean;
+    var clean = raw.split(/\s[·•|—:(]\s?|\s-\s/)[0].trim();
+    if (clean.length > 12) { var w = clean.split(/\s+/); clean = w[0].length <= 12 ? w[0] : w[0].slice(0, 12); }
+    return clean;
   }
+  var UTIL = /^(close|back|more)\b|关闭|返回|更多/i;   // the dock's own keys never become "the app in use"
+  function isUtil(b) { return UTIL.test((b.getAttribute('aria-label') || b.title || '').trim()); }
   function syncLabels() {
     var dock = document.querySelector('.mn-bdock');
     if (!dock) return;
     var btns = Array.from(dock.querySelectorAll('.mn-bapp')).filter(function (b) {
       return getComputedStyle(b).display !== 'none';
     });
-    var hasOn = btns.some(function (b) { return b.classList.contains('on'); });
-    var hasActive = btns.some(function (b) { return b.classList.contains('mn-pill-active'); });
-    btns.forEach(function (b, idx) {
+    var apps = btns.filter(function (b) { return !isUtil(b); });
+    var hasOn = apps.some(function (b) { return b.classList.contains('on'); });
+    var hasActive = apps.some(function (b) { return b.classList.contains('mn-pill-active'); });
+    btns.forEach(function (b) {
+      var util = isUtil(b);
+      b.classList.toggle('mn-pill-util', util);
+      if (util) { b.classList.remove('mn-pill-active'); return; }
       var lbl = shortLabel(b);
       if (b.getAttribute('data-pill-label') !== lbl) b.setAttribute('data-pill-label', lbl);
       if (!b.dataset.mnPillBound) {
         b.dataset.mnPillBound = '1';
         b.addEventListener('click', function () {
-          btns.forEach(function (x) { x.classList.remove('mn-pill-active'); });
+          Array.from(dock.querySelectorAll('.mn-bapp')).forEach(function (x) { x.classList.remove('mn-pill-active'); });
           b.classList.add('mn-pill-active');
         }, true);
       }
-      if (!hasOn && !hasActive && idx === 0) b.classList.add('mn-pill-active');
       if (hasOn) b.classList.remove('mn-pill-active');
     });
+    if (!hasOn && !hasActive && apps[0]) apps[0].classList.add('mn-pill-active');
   }
   function injectIntoLooksFan(fan) {
     if (!fan || fan.querySelector('.mn-pill-fan-item')) return;

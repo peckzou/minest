@@ -2,18 +2,20 @@
 """Minest · Liquid-glass pill Dock and button motion (2026-11-19, from Antigravity's work in ~/Documents/minest).
 
 Antigravity added to iphone.html (uncommitted, on an older checkout) two self-contained blocks:
-  - dock-pill.css / dock-pill.js — a capsule Dock in the reference's liquid-glass style (dark glass and light frosted
-    glass, following the app's light / dark mode); the selected app opens into a glass lens with its label. A
+  - dock-pill.css / dock-pill.js — a capsule Dock (restyled 2026-11-19 after the user's "GO Club" reference: pale
+    lavender glass, big black icons, the app in use in an inset lens with its name running up beside the icon;
+    close / back / more stay small and never become "in use"). A
     "胶囊玻璃 Dock / 经典方块 Dock" item in the Dock's Looks fan switches between it and the classic Dock
     (localStorage 'mn_dock_pill_v1'); window.MinestPillDock.{isOn,set,toggle}.
   - btn-motion.css / btn-motion.js — press springs, a light sweep and a small per-icon motion on buttons
     (respects prefers-reduced-motion in its CSS).
-This puts them, as they are, before </body> of the phone pages (the same pages as tools/duo-70/apply.py).
+This puts them before </body> of the phone pages (the same pages as tools/duo-70/apply.py).
 
-    python3 tools/dock-pill/apply.py           # a page that already has them is skipped
-    python3 tools/dock-pill/apply.py --check   # exit 1 if a page lacks them
+    python3 tools/dock-pill/apply.py           # adds them, or replaces an older copy
+    python3 tools/dock-pill/apply.py --check   # exit 1 if a page lacks the current blocks
 """
 import pathlib
+import re
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -41,12 +43,14 @@ def main():
         if not p.exists():
             continue
         html = p.read_text(encoding='utf-8')
-        if 'id="mn-dock-pill-js"' in html:
-            print('dock-pill: %s has it' % rel)
+        if add in html:
+            print('dock-pill: %s is up to date' % rel)
             continue
         if check:
             missing.append(rel)
             continue
+        for tag, id_, f in BLOCKS:   # an older copy of a block goes; the current one is added below
+            html = re.sub(r'<%s id="%s">\n.*?\n</%s>\n' % (tag, id_, tag), '', html, count=1, flags=re.S)
         end = html.rfind('</body>')
         if end < 0:
             raise SystemExit('dock-pill: no </body> in ' + rel)
