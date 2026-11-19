@@ -139,6 +139,37 @@
     if (!exitKey.isConnected && document.body) document.body.appendChild(exitKey);
     R.classList.add('mn-sysbar');
   }
+  /* the Dock's shape on screen: standing (right) or lying (top / bottom, and the opening's own row) — and every key
+     sized so the whole Dock fits the screen */
+  function fit() {
+    var d = dock(); if (!d) return;
+    var cs = getComputedStyle(d), h = /^row/.test(cs.flexDirection);
+    R.classList.toggle('mn-dock-h', h); R.classList.toggle('mn-dock-v', !h);
+    var mc = ctx === 'room' || ctx === 'world', keys = 0, seps = 0;
+    [].forEach.call(d.children, function (c) { if (getComputedStyle(c).display === 'none') return; if (c.classList.contains('mn-sys-sep')) seps++; else keys++; });
+    var lens = mc ? 0 : (h ? 1.6 : 1.35), room = (h ? innerWidth : innerHeight) - 28 - (h ? 0 : 20);
+    var k = Math.floor((room - 10 - seps * 10 - Math.max(0, keys - 1) * 4) / (keys + lens));
+    k = Math.max(22, Math.min(mc ? 38 : 40, k));
+    if (R.style.getPropertyValue('--mn-key') !== k + 'px') R.style.setProperty('--mn-key', k + 'px');
+  }
+  /* where the Dock may sit: Right, Top or Bottom (not the left) — Top is the bottom row moved up under the title bar */
+  var TOP = 'mn_dock_top_v1';
+  function isTop() { try { return localStorage.getItem(TOP) === '1'; } catch (e) { return false; } }
+  function sides() {
+    if (R.getAttribute('data-mn-bd') === 'left') { R.setAttribute('data-mn-bd', 'right'); try { localStorage.setItem('minest.iphone.dockPos', 'right'); } catch (e) {} }
+    R.classList.toggle('mn-dock-top', isTop() && R.getAttribute('data-mn-bd') === 'bottom');
+  }
+  function menu(m) {
+    if (m.__mnSides) return; m.__mnSides = 1;
+    var items = m.querySelectorAll('button[role="menuitemradio"]'), left = null, bottom = null, top = isTop() && R.getAttribute('data-mn-bd') === 'bottom';
+    [].forEach.call(items, function (b) { var t = b.textContent.replace(/[✓\s]/g, ''); if (t === 'Left') left = b; if (t === 'Bottom') bottom = b; });
+    if (!left || !bottom) return;
+    m.insertBefore(left, m.querySelector('button'));   // Right · Top · Bottom, top first
+    left.innerHTML = '<i>' + (top ? '✓' : '') + '</i>Top'; left.setAttribute('aria-checked', String(top));
+    if (top) { bottom.setAttribute('aria-checked', 'false'); var i = bottom.querySelector('i'); if (i) i.textContent = ''; }
+    left.addEventListener('click', function (e) { e.stopImmediatePropagation(); e.preventDefault(); try { localStorage.setItem(TOP, '1'); } catch (er) {} bottom.click(); sides(); }, true);
+    [].forEach.call(items, function (b) { if (b !== left) b.addEventListener('click', function () { try { localStorage.setItem(TOP, '0'); } catch (er) {} setTimeout(sides, 0); }, true); });
+  }
   function context() {
     var c = inRoom() ? 'room' : inWorld() ? 'world' : 'board';
     if (c === 'room') { modeLabel(roomKeys[0]); pixelIcons(); } else if (R.classList.contains('mn-ctx-apps')) { R.classList.remove('mn-ctx-apps'); dockAll.setAttribute('aria-pressed', 'false'); }
@@ -150,11 +181,13 @@
   var queued = false;
   new MutationObserver(function () {
     if (queued) return; queued = true;
-    requestAnimationFrame(function () { queued = false; var d = dock(); if (d && (d.firstElementChild !== sysKeys[0] || sep.parentNode !== d || roomKeys[0].parentNode !== d)) mount(); context(); if (reading) syncFrames(); });
+    requestAnimationFrame(function () { queued = false; var d = dock(); if (d && (d.firstElementChild !== sysKeys[0] || sep.parentNode !== d || roomKeys[0].parentNode !== d)) mount(); context(); sides(); fit(); var m = document.querySelector('.mn-bd-menu'); if (m) menu(m); if (reading) syncFrames(); });
   }).observe(document.body || R, { childList: true, subtree: true });
-  setInterval(context, 900);
+  new MutationObserver(function () { sides(); fit(); }).observe(R, { attributes: true, attributeFilter: ['data-mn-bd'] });
+  window.addEventListener('resize', function () { fit(); });
+  setInterval(function () { context(); fit(); syncFrames(); }, 900);   // frames that load later (the opening) get the style too
   window.addEventListener('load', function () { setTimeout(syncFrames, 300); }, true);
-  function start() { mount(); setTools(toolsOn()); context(); }
+  function start() { mount(); setTools(toolsOn()); context(); sides(); fit(); }
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
   window.MinestSystemBar = { reading: setReading, tools: setTools, state: function () { return { reading: reading, tools: !R.classList.contains('mn-sys-tools-off'), ctx: ctx }; } };
 })();

@@ -1,22 +1,24 @@
 /* Minest · System buttons at the head of the Dock (see system-bar.js) */
 
-/* the Dock holds the system keys, so outside reading mode it stays on screen instead of sliding away when idle */
-html.mn-sysbar:not(.mn-sys-reading)[data-mn-bd=right] body .mn-bdock.mn-bdock,
-html.mn-sysbar:not(.mn-sys-reading)[data-mn-bd=left] body .mn-bdock.mn-bdock { transform: translate(0,-50%) !important; opacity: 1 !important; pointer-events: auto !important; visibility: visible !important; }
-html.mn-sysbar:not(.mn-sys-reading)[data-mn-bd=bottom] body .mn-bdock.mn-bdock { transform: translate(-50%,0) !important; opacity: 1 !important; pointer-events: auto !important; visibility: visible !important; }
+/* the Dock holds the system keys, so outside reading mode it stays on screen instead of sliding away when idle
+   (the opening's own Dock row keeps the place the opening gives it) */
+html.mn-sysbar:not(.mn-sys-reading):not(.mn-start-active)[data-mn-bd=right] body .mn-bdock.mn-bdock,
+html.mn-sysbar:not(.mn-sys-reading):not(.mn-start-active)[data-mn-bd=left] body .mn-bdock.mn-bdock { transform: translate(0,-50%) !important; opacity: 1 !important; pointer-events: auto !important; visibility: visible !important; }
+html.mn-sysbar:not(.mn-sys-reading):not(.mn-start-active)[data-mn-bd=bottom] body .mn-bdock.mn-bdock { transform: translate(-50%,0) !important; opacity: 1 !important; pointer-events: auto !important; visibility: visible !important; }
 html.mn-sysbar.sh-main-dock-disabled:not(.mn-sys-reading) body .mn-bdock.mn-bdock { display: flex !important; }
+/* Top: the bottom row, moved up under the title bar */
+html.mn-dock-top[data-mn-bd=bottom]:not(.mn-start-active) body .mn-bdock.mn-bdock { top: calc(env(safe-area-inset-top, 0px) + var(--mn-bd-top, 52px) + 6px) !important; bottom: auto !important; }
 
 /* the system keys: a size down from the apps, never "the app in use" */
 .mn-bdock .mn-bapp.mn-sys-key { flex-shrink: 0; }
-html.mn-dock-pill .mn-bdock .mn-bapp.mn-sys-key { width: 34px !important; height: 34px !important; min-width: 34px !important; }
-html.mn-dock-pill .mn-bdock .mn-bapp.mn-sys-key svg { width: 18px !important; height: 18px !important; }
+html .mn-bdock .mn-bapp.mn-sys-key { width: calc(var(--mn-key, 40px) * .86) !important; height: calc(var(--mn-key, 40px) * .86) !important; min-width: calc(var(--mn-key, 40px) * .86) !important; }
+html .mn-bdock .mn-bapp.mn-sys-key svg { width: calc(var(--mn-key, 40px) * .44) !important; height: calc(var(--mn-key, 40px) * .44) !important; }
 .mn-bdock .mn-bapp.mn-sys-key.mn-pill-active, .mn-bdock .mn-bapp.mn-sys-key.on { background: transparent !important; border-color: transparent !important; box-shadow: none !important; }
 .mn-bdock .mn-bapp.mn-sys-key::after { display: none !important; }
 
 /* the hairline between the system keys and the tools */
 .mn-sys-sep { flex: none; align-self: center; width: 22px; height: 1.5px; margin: 3px 0; border-radius: 1px; background: currentColor; opacity: .22; }
-html[data-mn-bd=bottom] .mn-sys-sep { width: 1.5px; height: 22px; margin: 0 3px; }
-html.mn-dock-pill .mn-sys-sep { color: #121212; }
+html.mn-dock-h .mn-sys-sep { width: 1.5px; height: 22px; margin: 0 3px; }
 
 /* "=" → "||": Apple's two bars; folding the tools turns them upright */
 .mn-eq { position: relative; display: block; width: 18px; height: 18px; pointer-events: none; }
@@ -45,20 +47,18 @@ html[data-mn-ctx=room] body .mn-bdock.mn-bdock, html[data-mn-ctx=world] body .mn
   padding: 4px !important; gap: 4px !important;
 }
 html[data-mn-ctx=room] body .mn-bdock .mn-bapp, html[data-mn-ctx=world] body .mn-bdock .mn-bapp {
-  width: 38px !important; height: 38px !important; min-width: 38px !important; border-radius: 0 !important; color: #fff !important;
+  width: var(--mn-key, 38px) !important; height: var(--mn-key, 38px) !important; min-width: var(--mn-key, 38px) !important; min-height: 0 !important; padding: 0 !important; border-radius: 0 !important; color: #fff !important;
   border: 2px solid #111 !important; background: rgba(110,110,118,.55) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
   box-shadow: inset 2px 2px 0 rgba(255,255,255,.38), inset -2px -2px 0 rgba(0,0,0,.42) !important; transition: none !important;
 }
 html[data-mn-ctx=room] body .mn-bdock .mn-bapp:active, html[data-mn-ctx=world] body .mn-bdock .mn-bapp:active { box-shadow: inset -2px -2px 0 rgba(255,255,255,.3), inset 2px 2px 0 rgba(0,0,0,.45) !important; }
-html[data-mn-ctx=room] body .mn-bdock .mn-bapp svg, html[data-mn-ctx=world] body .mn-bdock .mn-bapp svg { width: 20px !important; height: 20px !important; stroke-linecap: square; stroke-linejoin: miter; filter: drop-shadow(1px 1px 0 rgba(0,0,0,.45)); }
+html[data-mn-ctx=room] body .mn-bdock .mn-bapp svg, html[data-mn-ctx=world] body .mn-bdock .mn-bapp svg { width: calc(var(--mn-key, 38px) * .54) !important; height: calc(var(--mn-key, 38px) * .54) !important; stroke-linecap: square; stroke-linejoin: miter; filter: drop-shadow(1px 1px 0 rgba(0,0,0,.45)); }
 html[data-mn-ctx=room] body .mn-bdock .mn-bapp.on, html[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-pill-active,
 html[data-mn-ctx=world] body .mn-bdock .mn-bapp.on, html[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-pill-active,
 html.mn-ctx-apps body .mn-bdock .mn-bapp.mn-ctx-dock { background: rgba(70,140,70,.85) !important; }
 html[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-sys-key.mn-pill-active, html[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-sys-key.mn-pill-active { background: rgba(110,110,118,.55) !important; }
-html[data-mn-ctx=room] body .mn-bdock .mn-bapp.on::after, html[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-pill-active::after,
-html[data-mn-ctx=world] body .mn-bdock .mn-bapp.on::after, html[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-pill-active::after {
-  font: 700 12px/1 ui-monospace, Menlo, monospace !important; color: #fff !important; text-shadow: 1px 1px 0 #3f3f3f !important;
-}
+/* in the room's look the slot in use is just green: no name (a sideways name does not read in a hotbar) */
+html[data-mn-ctx=room] body .mn-bdock .mn-bapp::after, html[data-mn-ctx=world] body .mn-bdock .mn-bapp::after { display: none !important; }
 html[data-mn-ctx=room] .mn-sys-sep, html[data-mn-ctx=world] .mn-sys-sep { color: #fff; opacity: .35; border-radius: 0; }
 html[data-mn-ctx=room] .mn-eq i, html[data-mn-ctx=world] .mn-eq i { border-radius: 0; height: 2.6px; box-shadow: 1px 1px 0 rgba(0,0,0,.45); }
 /* tools folded away: only the system keys stay */
@@ -91,3 +91,9 @@ html.mn-sys-reading #sh-card, html.mn-sys-reading #sh-toast, html.mn-sys-reading
 }
 html.mn-sys-reading body .mn-bdock.mn-bdock, html.mn-sys-reading body .mn-bdock.mn-bdock::before, html.mn-sys-reading body .mn-bdock.mn-bdock::after { display: none !important; }
 @media (prefers-reduced-motion: reduce) { .mn-eq i { transition: none; } }
+/* the room's look: the slot in use keeps the slot's size (the pill Dock's tall lens does not apply) */
+html.mn-dock-pill[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-pill-active, html.mn-dock-pill[data-mn-ctx=room] body .mn-bdock .mn-bapp.on,
+html.mn-dock-pill[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-pill-active, html.mn-dock-pill[data-mn-ctx=world] body .mn-bdock .mn-bapp.on {
+  width: var(--mn-key, 38px) !important; height: var(--mn-key, 38px) !important; min-height: 0 !important; padding: 0 !important; flex-direction: row !important;
+  border: 2px solid #111 !important; box-shadow: inset 2px 2px 0 rgba(255,255,255,.38), inset -2px -2px 0 rgba(0,0,0,.42) !important;
+}

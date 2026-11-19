@@ -185886,7 +185886,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   var VW = { z: -8.9, w: 6.8, h: 4.5, x: 8.45, face: 7.62 };            // the window: centre z, glass width / height, glass plane x, the bookcases' face x
   var VDOOR = { z: -3.6, x: 8.3 };
   var VNICHE = [[-6.7, -5.3], [5.3, 6.7]];
-  var VSTORE = [[-4.85, -2.55], [-12.2, -9.9], [-7.65, -5.55]];   // two bays of the north bookcases left bare for the viola and vases
+  var VSTORE = [[-4.85, -2.55], [-11.0, -9.27], [-7.06, -5.33]];   // west bookcases left bare: the shelf bay, bay C (the board), bay A (the rotating bookcase)   // two bays of the north bookcases left bare for the viola and vases
   function vicMats() {
     if (vicMats.m) return vicMats.m;
     var c = document.createElement('canvas'); c.width = 256; c.height = 512; var x = c.getContext('2d');
@@ -185979,12 +185979,12 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
   /* the study board, built into the wall: a shallow gilt-and-walnut frame with a damask panel, flush with the bookcases */
   function dressVicBoard(o) {
-    var S = VIC_STYLE, g = new THREE.Group(), M = vicMats(S), dm = damask(S), W = 1.7, H = 1.15;
-    // One fitted cassette. Its face stays inside the original bookcase front plane.
-    bx(g, M.woodD || M.wood, 0, 0, -0.12, 2.14, 1.60, 0.24);
+    var S = VIC_STYLE, g = new THREE.Group(), M = vicMats(S), dm = damask(S), W = 1.36, H = 1.15, OW = 1.70;   // v20: one bay wide (1.73 m between the uprights)
+    // One fitted cassette, set into its bay: the face is flush with the bookcase front, the body inside.
+    bx(g, M.woodD || M.wood, 0, 0, -0.12, OW, 1.60, 0.24);
     [-1,1].forEach(function(side) {
-      bx(g, M.wood || M.woodD, side*1.005, 0, -0.015, 0.13, 1.60, 0.05);
-      bx(g, M.wood || M.woodD, 0, side*0.735, -0.015, 2.14, 0.13, 0.05);
+      bx(g, M.wood || M.woodD, side*(OW / 2 - 0.065), 0, -0.015, 0.13, 1.60, 0.05);
+      bx(g, M.wood || M.woodD, 0, side*0.735, -0.015, OW, 0.13, 0.05);
     });
     [[0, H / 2 + 0.06, W + 0.22, 0.12], [0, -H / 2 - 0.06, W + 0.22, 0.12]].forEach(function (q) { bx(g, M.woodL || M.wood, q[0], q[1], 0.01, q[2], q[3], 0.05); });
     [-1, 1].forEach(function (s) { bx(g, M.woodL || M.wood, s * (W / 2 + 0.06), 0, 0.01, 0.12, H, 0.05); });
@@ -186297,6 +186297,11 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     L.board = { p: [-7.99, 1.90, -11.05], ry: Math.PI / 2, stashed: false };
     (L.extras || []).forEach(function(e) { if(e.uid===9801) { e.p=[-8.22,0,-6.60];e.ry=Math.PI/2; } });
   }
+  // v20: the board and the rotating bookcase set into whole bays (C and A), flush with the bookcase front
+  function vicUp12(L) {
+    L.board = { p: [-8.39, 1.90, -10.135], ry: Math.PI / 2, stashed: false };
+    (L.extras || []).forEach(function (e) { if (e.uid === 9801) { e.p = [-8.59, 0, -6.195]; e.ry = Math.PI / 2; } });
+  }
   function vicUp6(L) {
     var ex = L.extras = L.extras || [];
     VDECO.forEach(function (d) { if (ex.some(function (e) { return e.uid === d.uid; })) return; ex.push({ kind: d.kind, title: d.title, p: [d.p[0], d.y || 0, d.p[1]], ry: d.ry, uid: d.uid }); });
@@ -186323,13 +186328,15 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     9504: { p: VNT, ry: 0 }, 9506: { p: VNT, ry: 0 } };                                         // the round tables; the pedestal desk
   var VICT = { realistic: true, id: 'victorian', name: 'EC–6 Victorian Study', finish: victorianFinish, glb: 'interiors-glb/assets/victorian_study.glb', h: 6.5, lit: true, showroom: true,
     offset: [0, -0.2, -5.1], walk: [-8.4, -13.5, 8.4, 3.4], easel: null, far: 600,
-    niches: [[-9.3, 0.03, -7.55, -7.55, 3.02, -5.65], [-9.3, 0.88, -12.20, -7.3, 2.70, -9.90]],
+    /* v20: each opening is one bay of the west bookcases, inside its uprights (bays: A −5.33…−7.06, B −7.29…−9.04,
+       C −9.27…−11.00, D −11.23…−12.98; the front at x −8.36, the back at −8.85): A the rotating bookcase, C the board */
+    niches: [[-9.4, 0.03, -7.04, -7.6, 3.02, -5.35], [-8.9, 1.12, -10.98, -7.6, 2.68, -9.29]],
     cut: [ [7.6, 0.02, -4.6, 14, 3.3, -2.6], [7.5, 0.02, VW.z - VW.w / 2 - 0.3, 14, VW.h, VW.z + VW.w / 2 + 0.3]],   // the doorway; the window's opening, through the bookcases and the wall                          // the east bookcase where the study window goes (the Scenic Window stands in front of the bookcase)
     start: VSTART, startV: 10, deskCam: (function () { var a = vdesk(0, 0.95), b = vdesk(0, -0.2); return { pos: [a[0], 1.5, a[1]], look: [b[0], 0.78, b[1]] }; })(),
     dress: { board: dressVicBoard, aquarium: dressAquariumOf(VIC_STYLE), scenicWindow: dressVicWindow, tsqPortal: dressVicDoor },
     /* v1: the round table makes way for the pedestal desk (and its chair); it goes to the west reading corner with its vase */
     /* v2 (after the user's reference): the desk turned to face the room, a buttoned leather chair behind it */
-    upgrade: { v: 19, fn: function (L) { if ((L.up | 0) < 14) { VICT.upgrade3.fn(L); vicUp4(L); vicUp5(L); delete L.scenicWindow; delete L.tsqPortal; vicUp6(L); vicUp7(L); } if ((L.up | 0) < 15) vicUp8(L); if ((L.up | 0) < 16) vicUp9(L); vicUp10(L); vicUp11(L); } },
+    upgrade: { v: 20, fn: function (L) { if ((L.up | 0) < 14) { VICT.upgrade3.fn(L); vicUp4(L); vicUp5(L); delete L.scenicWindow; delete L.tsqPortal; vicUp6(L); vicUp7(L); } if ((L.up | 0) < 15) vicUp8(L); if ((L.up | 0) < 16) vicUp9(L); vicUp10(L); vicUp11(L); vicUp12(L); } },
     upgrade3: { fn: function (L) {
       var ex = L.extras = L.extras || [];
       /* v3: the west wall is the Scenic Window's now — its library ladder goes to the north wall, beside the fireplace,
@@ -188187,7 +188194,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     var latch = box(T,g,M.gold,0.78,1.28,0.05,0.16,0.04,0.045);
     var phase = state.open ? 1 : 0, last = null;
     function smooth(x) { x = Math.max(0,Math.min(1,x)); return x*x*x*(x*(x*6-15)+10); }
-    return { group: g, hb: [1.86,3.0,0.8], place: 'wall',
+    g.scale.x = 0.86;   // v20: one bay wide (1.73 m between the uprights of the west bookcases)
+    return { group: g, hb: [1.6,3.0,0.8], place: 'wall',
       tick: function (t, realTime) {
         var now = typeof realTime === 'number' ? realTime : t;
         var dt = last === null ? 0 : Math.max(0,now-last); last=now;

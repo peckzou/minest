@@ -693,7 +693,8 @@
     var latch = box(T,g,M.gold,0.78,1.28,0.05,0.16,0.04,0.045);
     var phase = state.open ? 1 : 0, last = null;
     function smooth(x) { x = Math.max(0,Math.min(1,x)); return x*x*x*(x*(x*6-15)+10); }
-    return { group: g, hb: [1.86,3.0,0.8], place: 'wall',
+    g.scale.x = 0.86;   // v20: one bay wide (1.73 m between the uprights of the west bookcases)
+    return { group: g, hb: [1.6,3.0,0.8], place: 'wall',
       tick: function (t, realTime) {
         var now = typeof realTime === 'number' ? realTime : t;
         var dt = last === null ? 0 : Math.max(0,now-last); last=now;
