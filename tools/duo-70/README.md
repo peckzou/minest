@@ -9,7 +9,7 @@ A new page, `iPhoneDuo70.html`, built from `iphone.html`. No existing file is ed
 Open it with `python3 -m http.server 3005` → `http://localhost:3005/iPhoneDuo70.html`
 (`?clun=0&home=0` goes straight to the board).
 
-What is new (`v70.js`, `v70.css`, and four anchored edits in `build.py`):
+What is new (`v70.js`, `v70.css`, and five anchored edits in `build.py`):
 
 - **board | 3D Cover, both ways.** Swiping the Cover marks its front card on the board and scrolls the list to it
   when it is out of view. A card inside a closed stack marks the stack's top card. While the board is being
@@ -23,6 +23,14 @@ What is new (`v70.js`, `v70.css`, and four anchored edits in `build.py`):
   together; cards and list buttons sink under the finger; the hinge line fades towards its ends; the Cover's
   position bar keeps clear of the pane edges; thin list scrollbar; keyboard focus ring; even title wrapping;
   steady digits. All of it respects `prefers-reduced-motion`.
+- **Changing view.** Going between the board and the 3D Cover fades the new view up instead of snapping. The
+  Views menu gets a soft shade behind it, so its labels read over the board's text. Dock icons and Spatial
+  Home's buttons respond to a press.
+- **Outer screen.** On the Glance the Mini Pet's default spot was on top of the "start studying" button; it now
+  rests in the free corner below the cards, and goes back when the full app or the inner screen is shown. A
+  pet the user has dragged is left where it is.
 - **Speed.** The Sync Center's look at all boards every 4 seconds (a full re-serialise and hash, about 80 ms on
-  the demo data) waits for a quiet moment instead of landing in the middle of a swipe: same work, same cadence.
+  the demo data) waits for a quiet moment instead of landing in the middle of a swipe, and no longer hashes data
+  whose JSON is the same as at the last look (91 ms → 7 ms per look when nothing changed; a change is still seen
+  at the next look, as before).
   CSS animations pause while the app is in the background; pictures decode off the main thread.
