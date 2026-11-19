@@ -31,6 +31,11 @@ What is new (`v70.js`, `v70.css`, and five anchored edits in `build.py`):
   pet the user has dragged is left where it is.
 - **Pet screen.** Its ✕ went fully invisible, and took no taps, once the pet had been left alone for 4 seconds,
   so the full-screen pet showed no way out until something was touched. It now only dims and can be tapped.
+- **Spatial Home's album.** It opened the My World overview only; `spatial-home/README.md` notes that the
+  inventory was never wired because it wants a world to show. The album now opens My World as before with the
+  inventory (`MinestInventory`) on top, for the board in use, or the first board that has a list. The inventory's
+  own × leaves My World open; My World's close goes back to the room, as before. `v70.js` does this by wrapping
+  the album's entry in the room's feature table (`SpatialBridge.FEATURES.lists`) when the page starts.
 - **Speed.** The Sync Center's look at all boards every 4 seconds (a full re-serialise and hash, about 80 ms on
   the demo data) waits for a quiet moment instead of landing in the middle of a swipe, and no longer hashes data
   whose JSON is the same as at the last look (91 ms → 7 ms per look when nothing changed; a change is still seen

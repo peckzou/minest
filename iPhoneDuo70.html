@@ -194793,8 +194793,55 @@ html.mn70 #minest-pet-raising-overlay .minest-pet-x.idle:active { opacity: 1; }
   }).observe(document.body, { childList: true, subtree: true });
   lazy(document); boardEnter(); viewEnter();
 
+  /* Spatial Home's album. Its entry in the room's table of features (SpatialBridge.FEATURES.lists) opened the My World
+     overview only: the inventory wants a world to show and none was passed. Here My World opens as before and the
+     inventory (MinestInventory, the box of a world's lists) opens on top of it, for the board in use, or the first board
+     that has a list. Closing the inventory leaves My World; closing My World goes back to the room, as before.
+     No list anywhere: My World alone, as before. */
+  function albumWire(B) {
+    var F = B && B.FEATURES && B.FEATURES.lists, t = F && F.targets && F.targets[0];
+    if (!t || t.id !== 'MinestUniverse' || t.__mn70) return false;
+    var open0 = t.open, close0 = t.close, run = 0;
+    function hasList(b) {
+      return !!b && (b.columns || []).some(function (c) { return (c.cards || []).length > 0; });
+    }
+    function world(w) {
+      var A = w.MinestAI, cur = null, all = [];
+      try { cur = A.board(); } catch (e) {}
+      try { all = A.boards() || []; } catch (e) {}
+      if (cur) cur = all.filter(function (b) { return b.id === cur.id; })[0] || cur;
+      if (hasList(cur)) return cur.id;
+      var b = all.filter(hasList)[0];
+      return b ? b.id : null;
+    }
+    t.open = function (w) {
+      open0(w);
+      var mine = ++run, n = 0;
+      (function go() {
+        if (mine !== run) return;
+        var up = false;
+        try { up = w.MinestUniverse.isOpen() && !!w.document.querySelector('.uv'); } catch (e) {}
+        if (!up) { if (n++ < 40) w.setTimeout(go, 100); return; }
+        if (w.document.querySelector('.mn-invx')) return;   /* still open from last time: left as it is */
+        var bid = w.MinestInventory && world(w);
+        if (bid) try { w.MinestInventory.open({ t: 'world', bid: bid }); } catch (e) {}
+      })();
+    };
+    t.close = function (w) {
+      run++;
+      try { if (w.MinestInventory) w.MinestInventory.close(); } catch (e) {}
+      close0(w);
+    };
+    t.label = 'My World · 收藏箱';
+    t.entry = "window.MinestUniverse.open() → MinestInventory.open({ t: 'world', bid })";
+    t.__mn70 = true;
+    return true;
+  }
+  albumWire(window.SpatialBridge);
+
   window.MinestV70 = {
     version: '70.0',
+    _albumWire: albumWire,
     /* tests */ _stackTop: stackTop, _idle: idle, _boardCard: boardCard, _sync: sync, current: function () { return curEl; }
   };
 })();
