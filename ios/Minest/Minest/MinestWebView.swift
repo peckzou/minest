@@ -472,6 +472,7 @@ public final class CustomWKWebView: WKWebView {
     private var hingeState = "null"   // the last state as a JS literal, replayed so a page that loads later still gets it
     public override func didMoveToWindow() {
         super.didMoveToWindow()
+#if MINEST_HAS_UIHINGEINTERACTION
         guard !hingeObserved, window != nil else { return }
         if #available(iOS 27.1, *) {
             hingeObserved = true
@@ -493,6 +494,7 @@ public final class CustomWKWebView: WKWebView {
             }
             addInteraction(interaction)
         }
+#endif
     }
 
     /// Hands the hinge state to the page; only fires the event when the page does not have this state yet.
