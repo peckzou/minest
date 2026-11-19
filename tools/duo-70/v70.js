@@ -91,6 +91,41 @@
   new MutationObserver(function () { if (split()) queue(520); else if (curEl) mark(null); }).observe(R, { attributes: true, attributeFilter: ['class'] });
   document.addEventListener('click', function (e) { if (split() && e.target.closest && e.target.closest('.sf-slot[data-sf-view="board"]')) queue(380); }, true);
 
+  /* ------------------------------------------------------------------ 2. motion: things arrive once, then stay still */
+  function once(cls, ms) { R.classList.add(cls); setTimeout(function () { R.classList.remove(cls); }, ms); }
+  /* a board comes in list by list: on launch and each time another board is opened */
+  var boardId = null;
+  function boardEnter() {
+    var id = null;
+    try { id = window.MinestAI.board().id; } catch (e) {}
+    if (id == null || id === boardId) return;
+    var first = boardId === null; boardId = id;
+    if (!reduce && !split() && (first || !document.hidden)) once('mn70-enter', 900);
+  }
+  /* the split opens: both panes arrive together */
+  var wasSplit = split();
+  new MutationObserver(function () {
+    var s = split();
+    if (s && !wasSplit && !reduce) once('mn70-split-in', 700);
+    wasSplit = s;
+  }).observe(R, { attributes: true, attributeFilter: ['class'] });
+
+  /* ------------------------------------------------------------------ 3. speed */
+  /* in the background (another app, the screen off) no CSS animation runs */
+  function vis() { R.classList.toggle('mn70-hidden', document.hidden); }
+  document.addEventListener('visibilitychange', vis); vis();
+  /* pictures decode off the main thread, so a list of photo cards scrolls without a hitch */
+  function lazy(root) {
+    var im = root.querySelectorAll ? root.querySelectorAll('img:not([decoding])') : [];
+    for (var i = 0; i < im.length; i++) im[i].decoding = 'async';
+  }
+  var lazyQ = false;
+  new MutationObserver(function () {
+    if (lazyQ) return; lazyQ = true;
+    setTimeout(function () { lazyQ = false; lazy(document); boardEnter(); }, 300);
+  }).observe(document.body, { childList: true, subtree: true });
+  lazy(document); boardEnter();
+
   window.MinestV70 = {
     version: '70.0',
     /* tests */ _stackTop: stackTop, _boardCard: boardCard, _sync: sync, current: function () { return curEl; }

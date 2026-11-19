@@ -15,3 +15,65 @@ html.duo-cover .theme-white .sf-slot[data-sf-view="board"] article[data-mn70-cur
 @media (prefers-reduced-motion: reduce) {
   html.duo-cover .sf-slot[data-sf-view="board"] article[data-mn70-cur] { animation: none; }
 }
+
+/* ---------- 2. motion and detail */
+html.mn70 {
+  --mn70-out: cubic-bezier(.22,1,.36,1);        /* settles without a bounce */
+  --mn70-spring: cubic-bezier(.34,1.36,.64,1);  /* a small overshoot, for things that pop in */
+  -webkit-tap-highlight-color: transparent;
+}
+html.mn70 button, html.mn70 [role="button"], html.mn70 a { touch-action: manipulation; }
+
+/* a card answers the finger: it sinks a little while pressed (the card's own transition carries it back).
+   Only :active is styled, so a card being dragged (inline transform) is left alone. */
+html.mn70 .mobile-board-view article.kanban-card:active { transform: scale(.975); filter: brightness(1.08); }
+html.mn70 .mobile-board-view .kanban-column-wrapper button:active { transform: scale(.9); }
+
+/* keyboard focus is visible everywhere, and only for the keyboard */
+html.mn70 :is(button, a, [role="button"], [tabindex]):focus-visible { outline: 2px solid rgba(110,231,183,.95); outline-offset: 2px; border-radius: 10px; }
+
+/* numbers that change do not shift their neighbours */
+html.mn70 .kanban-column-wrapper .font-mono, html.mn70 .sf-slot[data-sf-view="coverflow"] .font-mono { font-variant-numeric: tabular-nums; }
+/* titles break into even lines */
+html.mn70 .coverflow-card-item h3, html.mn70 .kanban-column-wrapper h3 { text-wrap: balance; }
+html.mn70 article.kanban-card h4 { text-wrap: pretty; }
+
+/* list scrollbar: a thin pill, no arrow buttons */
+html.mn70 .kanban-cards-scroll { scrollbar-width: thin; }
+html.mn70 .kanban-cards-scroll::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+
+/* a board comes in list by list (once per board, see v70.js) */
+html.mn70-enter .mobile-board-view .kanban-column-wrapper { animation: mn70-rise .52s var(--mn70-out) both; }
+html.mn70-enter .mobile-board-view .kanban-column-wrapper:nth-child(2) { animation-delay: .05s; }
+html.mn70-enter .mobile-board-view .kanban-column-wrapper:nth-child(3) { animation-delay: .1s; }
+html.mn70-enter .mobile-board-view .kanban-column-wrapper:nth-child(4) { animation-delay: .15s; }
+html.mn70-enter .mobile-board-view .kanban-column-wrapper:nth-child(n+5) { animation-delay: .2s; }
+@keyframes mn70-rise { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: none; } }
+
+/* ---------- 3. board | 3D Cover split */
+/* the two panes arrive together instead of snapping in */
+html.mn70-split-in.duo-cover body #root main > .sf-slot[data-sf-view="coverflow"] { animation: mn70-pane-cover .56s var(--mn70-out) both; }
+html.mn70-split-in.duo-cover body #root main > .sf-slot[data-sf-view="board"] { animation: mn70-pane-board .56s var(--mn70-out) both; }
+@keyframes mn70-pane-cover { from { opacity: 0; transform: translateX(-22px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes mn70-pane-board { from { opacity: .35; transform: translateX(22px); } to { opacity: 1; transform: none; } }
+html.mn70-split-in.duo-cover.duo-tall body #root main > .sf-slot[data-sf-view="coverflow"] { animation-name: mn70-pane-cover-tall; }
+html.mn70-split-in.duo-cover.duo-tall body #root main > .sf-slot[data-sf-view="board"] { animation-name: mn70-pane-board-tall; }
+@keyframes mn70-pane-cover-tall { from { opacity: 0; transform: translateY(-22px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes mn70-pane-board-tall { from { opacity: .35; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+
+/* the hinge line fades out towards its ends instead of running edge to edge as a hard rule */
+html.mn70.duo-cover:not(.duo-tall) body #root main > .sf-slot[data-sf-view="coverflow"] { border-right-color: transparent !important; border-image: linear-gradient(to bottom, transparent, rgba(255,255,255,.2) 18%, rgba(255,255,255,.2) 82%, transparent) 1 !important; }
+html.mn70.duo-cover.duo-tall body #root main > .sf-slot[data-sf-view="coverflow"] { border-bottom-color: transparent !important; border-image: linear-gradient(to right, transparent, rgba(255,255,255,.2) 18%, rgba(255,255,255,.2) 82%, transparent) 1 !important; }
+
+/* the Cover's position bar keeps clear of the pane's edges (its "1" and "18" were cut off) */
+html.mn70.duo-cover .sf-slot[data-sf-view="coverflow"] section > div:has(> input[type="range"]) { padding-inline: 22px; box-sizing: border-box; }
+
+/* ---------- 4. speed */
+/* nothing animates while the app is in the background */
+html.mn70-hidden *, html.mn70-hidden *::before, html.mn70-hidden *::after { animation-play-state: paused !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  html.mn70-enter .mobile-board-view .kanban-column-wrapper,
+  html.mn70-split-in.duo-cover body #root main > .sf-slot { animation: none !important; }
+  html.mn70 .mobile-board-view article.kanban-card:active, html.mn70 .mobile-board-view .kanban-column-wrapper button:active { transform: none; }
+}
