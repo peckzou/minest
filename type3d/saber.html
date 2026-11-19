@@ -42,6 +42,7 @@ canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
   "three/addons/": "./vendor/jsm/"
 } }
 </script>
+<script src="lifecycle.js"></script>
 <script type="module">
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -484,6 +485,8 @@ window.__saber = { type, backspace, enter, get letters() { return letters; }, sw
 { const hello = (new URLSearchParams(location.search).get('t') ?? 'LIGHT').slice(0, 24);
   [...hello].forEach((c, i) => setTimeout(() => type(c), 500 + i * 380)); }
 requestAnimationFrame(frame);
+
+window.T3DLifecycle?.register(() => { renderer.setAnimationLoop(null); composer.passes.forEach(p => p.dispose?.()); composer.dispose(); scene.traverse(o => { o.geometry?.dispose(); const mats = Array.isArray(o.material) ? o.material : [o.material]; mats.forEach(m => m?.dispose()); }); renderer.dispose(); renderer.forceContextLoss(); });
 </script>
 <script src="fold.js"></script>
 <script src="picker.js"></script>

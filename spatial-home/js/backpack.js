@@ -241,6 +241,10 @@
       ui = { el: el, cat: 'all', q: '', sel: null, host: host, raf: 0, spin: 0, drag: null };
       el.querySelector('input').addEventListener('input', function () { ui.q = this.value.trim().toLowerCase(); render(); });
       el.addEventListener('click', onClick);
+      ['pointerdown', 'pointerup', 'pointermove', 'click', 'wheel', 'touchstart', 'touchmove'].forEach(function (name) {
+        el.addEventListener(name, function (e) { e.stopPropagation(); }, { passive: true });
+      });
+      el.addEventListener('keydown', function (e) { e.stopPropagation(); if (e.key === 'Escape') { e.preventDefault(); close(false); } });
     }
     ui.host = host; ui.el.hidden = false;
     if (!host.reduced || !host.reduced()) { ui.el.classList.remove('opening'); void ui.el.offsetWidth; ui.el.classList.add('opening'); }
@@ -250,7 +254,7 @@
   function isOpen() { return !!(ui && !ui.el.hidden); }
   function items() { return catalog(ui.host); }
   function render() {
-    var all = items(), host = ui.host, p = pref(), queue = [];
+    var all = items(), host = ui.host, p = pref(), queue = [], grid = ui.el.querySelector('.grid'), scroll = grid.scrollTop;
     ui.el.querySelector('.tabs').innerHTML = CATS.map(function (c) { return '<button type="button" data-cat="' + c[0] + '" class="' + (ui.cat === c[0] ? 'on' : '') + '" title="' + c[2] + '">' + c[1] + '</button>'; }).join('');
     var list = all.filter(function (it) { return ui.cat === 'all' || (ui.cat === 'fav' ? p.fav.indexOf(it.key) >= 0 : it.cat === ui.cat); })
       .filter(function (it) { return !ui.q || (it.name + ' ' + (it.note || '') + ' ' + (it.en || '')).toLowerCase().indexOf(ui.q) >= 0; });
@@ -260,7 +264,7 @@
       if (rec.length) h += '<h5>最近使用</h5>' + rec.map(card).join('') + '<h5>全部物品</h5>';
     }
     h += list.map(card).join('') || '<h5>' + (ui.cat === 'creations' ? '还没有 Type Workshop 作品 — 在工坊里做一个，它就会出现在这里' : (ui.cat === 'fav' ? '在物品详情里点 ☆ 收藏，常用的会放进快捷栏' : '没有找到')) + '</h5>';
-    ui.el.querySelector('.grid').innerHTML = h;
+    grid.innerHTML = h; grid.scrollTop = scroll;
     function card(it) {
       var st = host.status(it), P = previewer(T), src = it.ready === false ? '' : P.cache[it.key];   // a machine not built yet has no model to show
       if (src === undefined) queue.push(it);
@@ -268,17 +272,32 @@
         (src ? '<img alt="" src="' + src + '">' : '<i data-th="' + esc(it.key) + '">' + pix(it) + '</i>') + '<span>' + esc(it.name) + '</span>' +
         (st.badge ? '<b class="' + st.cls + '">' + esc(st.badge) + '</b>' : '') + '</button>';
     }
-    /* real model thumbnails, a few per frame, so the backpack opens at once */
-    var gen = (ui.gen = (ui.gen || 0) + 1);
-    (function fill() {
+    // Only visible slots need thumbnails. One idle task at a time leaves taps and scrolls responsive.
+    var gen = (ui.gen = (ui.gen || 0) + 1), pending = false;
+    function schedule() {
+      if (pending || !queue.length || ui.gen !== gen || ui.el.hidden) return;
+      pending = true;
+      (root.requestIdleCallback || function (fn) { return setTimeout(fn, 60); })(fill, { timeout: 350 });
+    }
+    function fill() {
+      pending = false;
       if (!ui || ui.gen !== gen || ui.el.hidden) return;
-      var t0 = performance.now();
-      while (queue.length && performance.now() - t0 < 12) {
-        var it = queue.shift(), src = thumb(T, it), slot = ui.el.querySelector('[data-th="' + it.key.replace(/"/g, '') + '"]');
-        if (src && slot) { var im = document.createElement('img'); im.alt = ''; im.src = src; slot.replaceWith(im); }
+      var bounds = grid.getBoundingClientRect(), found = -1, slot;
+      for (var i = 0; i < queue.length; i++) {
+        var slots = grid.querySelectorAll('[data-th]');
+        for (var j = 0; j < slots.length; j++) if (slots[j].getAttribute('data-th') === queue[i].key) {
+          var box = slots[j].getBoundingClientRect();
+          if (box.bottom >= bounds.top - 60 && box.top <= bounds.bottom + 60) { found = i; slot = slots[j]; }
+          break;
+        }
+        if (found >= 0) break;
       }
-      if (queue.length) requestAnimationFrame(fill);
-    })();
+      if (found < 0) return;
+      var it = queue.splice(found, 1)[0], src = thumb(T, it);
+      if (src && slot && slot.isConnected) { var im = document.createElement('img'); im.alt = ''; im.src = src; slot.replaceWith(im); }
+      schedule();
+    }
+    grid.onscroll = schedule; schedule();
     preview();
     hotbar(host);
   }
@@ -305,14 +324,14 @@
     /* the turning model */
     var cv = pv.querySelector('canvas'), g2 = cv.getContext('2d'), P = previewer(T), obj = null;
     try { if (it.ready !== false) { obj = objFor(T, it); frameOn(P, T, obj); } } catch (e) {}
-    var spin = 0, last = performance.now();
+    var spin = 0, last = performance.now(), rendered = 0;
     cv.onpointerdown = function (e) { ui.drag = { x: e.clientX, s: spin }; try { cv.setPointerCapture(e.pointerId); } catch (er) {} };
     cv.onpointermove = function (e) { if (ui.drag) spin = ui.drag.s + (e.clientX - ui.drag.x) * 0.012; };
     cv.onpointerup = cv.onpointercancel = function () { ui.drag = null; };
     (function loop(now) {
       if (!ui || ui.el.hidden || !cv.isConnected) return;
       if (!ui.drag) spin += (now - last) / 1000 * 0.6; last = now;
-      if (obj) { P.holder.rotation.y = spin; P.R.setSize(256, 214, false); P.C.aspect = 256 / 214; P.C.updateProjectionMatrix(); P.R.render(P.S, P.C); g2.clearRect(0, 0, cv.width, cv.height); g2.drawImage(P.cv, 0, 0, cv.width, cv.height); P.R.setSize(256, 256, false); P.C.aspect = 1; P.C.updateProjectionMatrix(); }
+      if (obj && now - rendered >= 50) { rendered = now; if (P.holder.children[0] !== obj) frameOn(P, T, obj); P.holder.rotation.y = spin; P.R.render(P.S, P.C); g2.clearRect(0, 0, cv.width, cv.height); var side = Math.min(cv.width, cv.height); g2.drawImage(P.cv, (cv.width - side) / 2, (cv.height - side) / 2, side, side); }
       ui.raf = requestAnimationFrame(loop);
     })(last);
   }

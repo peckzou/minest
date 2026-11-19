@@ -9,7 +9,7 @@
     '<canvas id="sh-gl" tabindex="0" aria-label="Santorini Atelier"></canvas><div id="sh-labels" aria-hidden="true"></div>' +
     '<div id="sh-top"><div class="sh-brand"><strong>Minest</strong><span id="sh-brandName">Santorini Atelier</span></div>' +
     '<div class="sh-seg" id="sh-modeSeg" role="tablist" aria-label="模式"><button type="button" data-mode="explore" role="tab">Explore</button><button type="button" data-mode="desk" role="tab">Desk</button></div>' +
-    '<button type="button" class="sh-ic" id="sh-packBtn" title="背包 · 布置">🎒</button><button type="button" class="sh-ic" id="sh-envBtn" title="切换环境">🌐</button><button type="button" class="sh-ic" id="sh-viewsBtn" title="窗外风景">🪟</button><button type="button" class="sh-ic" id="sh-sitBtn" title="坐下 / 起立（C）">🪑</button><button type="button" class="sh-ic" id="sh-viewBtn" title="第一 / 第三人称">👤</button><button type="button" class="sh-ic" id="sh-setBtn" title="设置">⚙</button><button type="button" class="sh-ic" id="sh-menuBtn" title="显示 / 收起按钮" aria-expanded="false">≡</button>' +
+    '<button type="button" class="sh-ic" id="sh-packBtn" title="背包 · 布置">🎒</button><button type="button" class="sh-ic" id="sh-envBtn" title="切换环境">🌐</button><button type="button" class="sh-ic" id="sh-viewsBtn" title="窗外风景">🪟</button><button type="button" class="sh-ic" id="sh-sitBtn" title="坐下 / 起立（C）">🪑</button><button type="button" class="sh-ic" id="sh-viewBtn" title="第一 / 第三人称">👤</button><button type="button" class="sh-ic" id="sh-setBtn" title="设置">⚙</button><button type="button" class="sh-ic" id="sh-dockBtn" title="显示 Dock" aria-label="显示 Dock" aria-controls="mn-main-dock" aria-pressed="false">Dock</button><button type="button" class="sh-ic" id="sh-readingBtn" title="全屏 · 纯净阅览" aria-label="全屏 · 纯净阅览">⛶</button><button type="button" class="sh-ic" id="sh-menuBtn" title="显示 / 收起按钮" aria-expanded="false">≡</button>' +
     (EMBED ? '<button type="button" class="sh-ic" id="sh-exitBtn" title="进入完整的 Minest">✕</button>' : '') + '</div>' +
     '<button type="button" id="sh-skip" hidden>跳过动画 ›</button><div id="sh-dock" role="toolbar" aria-label="功能入口"></div><div id="sh-hint"></div><div id="sh-stick" aria-hidden="true"><i></i></div>' +
     '<div id="sh-settings" hidden><h3>Spatial Home</h3>' +
@@ -30,12 +30,12 @@
   var body = document.createElement('div'); body.id = 'mn-sh'; body.hidden = true; body.innerHTML = MARKUP; document.body.appendChild(body);
   function made(tag, id, html) { var e = document.getElementById(id); if (!e) { e = document.createElement(tag); e.id = id; if (html) e.innerHTML = html; document.body.appendChild(e); } return e; }
   made('div', 'sh-host'); made('div', 'sh-veil');
-  var pillEl = made('button', 'sh-pill', '⌂ Home'); pillEl.type = 'button'; pillEl.title = '回到 Spatial Home'; pillEl.hidden = true;
+  var pillEl = made('button', 'sh-pill', '⌂'); pillEl.type = 'button'; pillEl.title = '回到 Spatial Home'; pillEl.hidden = true;
   var $ = function (id) { return document.getElementById('sh-' + id); };
   var canvas = $('gl');
 
   /* ------------------------------------------------------------ settings (kept) */
-  var S = { def: 'last', mode: 'explore', view: '1p', motion: null, preload: true, boot: null, pose: null, desk: null, medal: 'box', deskStyle: 'classic', audio: null, env: 'santorini', poses: {}, layouts: {}, tod: 'auto', wviews: {} };
+  var S = { def: 'last', mode: 'explore', dockVisible: null, mainDockVisible: null, view: '1p', motion: null, preload: true, boot: null, pose: null, desk: null, medal: 'box', deskStyle: 'classic', audio: null, env: 'santorini', poses: {}, layouts: {}, tod: 'auto', wviews: {} };
   try { var raw = JSON.parse(localStorage.getItem(KEY) || 'null'); if (raw && typeof raw === 'object') for (var k0 in S) if (raw[k0] !== undefined) S[k0] = raw[k0]; } catch (e) {}
   if (S.motion === null) S.motion = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   /* EC–6 Study Studio (2026-11-13): it becomes the current room once; the 🌐 switcher still offers every other room */
@@ -204,6 +204,7 @@
   }
   function activate(o) {
     if (busy || !o) return;
+    if (room.envId === 'victorian' && o.id === 'tsqPortal') { busy = true; o.houseOpening = true; setTimeout(function () { busy = false; o.houseOpening = false; if (window.MinestSpatialHome.house) window.MinestSpatialHome.house(); else if (window.MinestSpatialHome.home) window.MinestSpatialHome.home(); }, S.motion ? 0 : 750); return; }
     if (o.panel) {
       busy = true; walkTo = null; setHot(null); body.classList.add('busy'); $('settings').hidden = true;
       if (o.aim) try { o.aim(); } catch (e) {}   // a thing may fit its close-up to the room first (the Scenic Window: stand back, short of the furniture)
@@ -294,6 +295,7 @@
     return Promise.all([animK(o, 0, 0.5), flyHome(0.75)]).then(function () { busy = false; body.classList.remove('busy'); showHint(); });
   }
   function onLeave() {
+    if (mainDockReturn) { mainDockReturn = false; B.release(); body.hidden = false; paused = false; resize(); try { canvas.focus(); } catch (e) {} return; }
     var f = inFeature; if (!f) { B.hide(); return; }
     inFeature = null;
     veilFade(1, 0.2).then(function () {
@@ -310,11 +312,41 @@
     [].forEach.call($('modeSeg').children, function (b) { b.classList.toggle('on', b.dataset.mode === m); });
     $('viewBtn').style.display = m === 'explore' ? '' : 'none'; $('viewBtn').classList.toggle('on', S.view === '3p'); sitBtnShow();
     $('dock').classList.toggle('hide', m !== 'desk');
+    updateDock();
     if (m === 'desk') { DK.yaw = 0; DK.pitch = 0; }                               // Desk always starts facing the desk
     dirty = true; showHint();
     if (quick) { camAuto = true; return; }
     busy = true; flyHome(0.85).then(function () { busy = false; });
   }
+  var mainDockReturn = false;
+  function updateDock() {
+    var visible = S.mainDockVisible === true;
+    var root = document.documentElement;
+    root.classList.toggle('sh-main-dock-enabled', visible);
+    root.classList.toggle('sh-main-dock-disabled', S.mainDockVisible === false);
+    var main = document.querySelector('.mn-bdock');
+    if (main) main.id = 'mn-main-dock';
+    var b = $('dockBtn');
+    b.classList.toggle('on', visible);
+    b.setAttribute('aria-pressed', visible ? 'true' : 'false');
+    b.title = visible ? '隐藏 Dock · Settings / Pet Raising' : '显示 Dock · Settings / Pet Raising';
+    b.setAttribute('aria-label', visible ? '隐藏主 Dock' : '显示主 Dock');
+  }
+  $('dockBtn').addEventListener('click', function (e) {
+    e.stopPropagation(); S.mainDockVisible = S.mainDockVisible !== true;
+    updateDock(); save();
+    if (!EMBED && S.mainDockVisible) {
+      var url = new URL(B.appUrl(), location.href); url.searchParams.set('home', '1'); url.searchParams.set('clun', '0');
+      location.href = url.href;
+    }
+  });
+  // Use the original Dock and its original actions; Home returns to the same room.
+  window.addEventListener('click', function (e) {
+    var button = e.target.closest && e.target.closest('.mn-bdock .mn-bapp');
+    if (!EMBED || !button || button.hasAttribute('data-spatial-home-dock') || body.hidden || !S.mainDockVisible) return;
+    mainDockReturn = true; paused = true;
+    B.show({ id: 'MainDock', label: 'Minest', kind: 'host', base: true, test: function () { return true; }, isOpen: function () { return true; }, open: function () {} });
+  }, true);
   function setView(v) { if (busy) return; S.view = v; $('viewBtn').classList.toggle('on', v === '3p'); if (v !== '3p') AV.sitting = AV.wantSit = false; sitBtnShow(); dirty = true; busy = true; flyHome(0.5).then(function () { busy = false; }); }
 
   if ((navigator.maxTouchPoints || 0) > 0 && window.matchMedia && matchMedia('(pointer: coarse)').matches) body.classList.add('touch');
@@ -722,7 +754,7 @@
     var L = layout();
     if (!L.furnished) { L.extras = (L.extras || []).concat((d.items || []).filter(function (it) { return !(L.extras || []).some(function (x) { return x.uid === it.uid; }); })); L.furnished = 1; saveLayout(room.envId, L); }
     if (room.upgrade && (L.up | 0) < room.upgrade.v) { try { room.upgrade.fn(L); } catch (er) {} L.up = room.upgrade.v; saveLayout(room.envId, L); }   // the room's own refurnishing, once
-    buildExtras(); rebuildHits();
+    placeAll();
   });
   function move(dt) {
     if (mode !== 'explore' || busy) return;
@@ -870,9 +902,23 @@
       var m = BP.model(THREE, e), hb = m.hb, hit = new THREE.Mesh(new THREE.BoxGeometry(Math.max(0.05, hb[0]), Math.max(0.05, hb[1]), Math.max(0.05, hb[2])), new THREE.MeshBasicMaterial({ visible: false }));
       hit.position.set(0, m.hbY != null ? m.hbY : hb[1] / 2, m.hbZ || 0); m.group.add(hit);
       m.group.position.fromArray(e.p); m.group.rotation.y = e.ry || 0; scene.add(m.group);
+      if (room.envId === 'victorian' && e.kind === 'vic-armour') m.press = function () { var st = window.MinestStudySecret = window.MinestStudySecret || { open: false, progress: 0 }; st.reduced = !!S.motion; st.open = !st.open; return st.open ? '咔哒——书架正在转开。' : '机关书架正在合拢。'; };
       var x = { e: e, group: m.group, hit: hit, place: m.place, tick: m.tick, machine: m.machine, press: m.press }; hit.userData.extra = x; XS.push(x);
     });
   }
+  window.addEventListener('spatial:secret-enter', function () {
+    if (room.envId !== 'victorian' || body.hidden) return;
+    var st = window.MinestStudySecret; if (!st || !st.open || st.progress < 0.999) return;
+    if (!window.SpatialTSQ) { toast('时代广场暂时无法打开'); return; }
+    paused=true; body.hidden=true;
+    window.SpatialTSQ.open(function (r) {
+      paused=false; body.hidden=false; resize();
+      if (r) { var target=B.FEATURES[r.feature||'kanban'].targets[0]; mainDockReturn=true; paused=true;
+        if (B.show(target)) { try { if (r.after) r.after(B.hostWindow()); } catch (e) {} }
+        else { mainDockReturn=false; paused=false; }
+      }
+    });
+  });
   /* what is nearest along the ray wins: a piano in front of the window is the piano, not the window */
   function nearestAt(e) {
     var o = pick(e), od = o ? (ray.intersectObject(o.hit, false)[0] || {}).distance : Infinity;
@@ -969,6 +1015,7 @@
     body.classList.toggle('sh-fold', on); var mb = $('menuBtn'); mb.classList.toggle('on', !on); mb.setAttribute('aria-expanded', on ? 'false' : 'true');
     clearTimeout(foldT); if (!on) foldT = setTimeout(function () { if (!$('settings').hidden || (BP && BP.isOpen && BP.isOpen())) return fold(false); fold(true); }, 12000);
   }
+  $('readingBtn').addEventListener('click', function (e) { e.stopPropagation(); B.setReading(true); });
   $('menuBtn').addEventListener('click', function (e) { e.stopPropagation(); fold(!body.classList.contains('sh-fold')); });
   ['top', 'dock'].forEach(function (id) { $(id).addEventListener('pointerdown', function (e) { if (e.target.closest('#sh-menuBtn')) return; if (!body.classList.contains('sh-fold')) fold(false); }); });
   fold(true);
@@ -1222,12 +1269,12 @@
     requestAnimationFrame(frame);
     var dt = Math.min(0.05, clock.getDelta());
     stepTweens(dt);
-    if (paused || document.hidden || body.hidden || window.SpatialRoom.hold) return;   // hold: Scenic World is fully immersive over the room (scenic-window.js)
+    if (paused || document.hidden || body.hidden || (BP && BP.isOpen && BP.isOpen()) || window.SpatialRoom.hold) return;   // hold: Scenic World is fully immersive over the room (scenic-window.js)
     T += dt; move(dt); strollStep(dt);
     if (camAuto) { autoPose(camera.position, camera.quaternion); if (room.shake && !S.motion) { var sh = room.shake(T); camera.position.y += sh.y; camera.rotateZ(sh.roll); } }
     avatar.visible = mode === 'explore' && S.view === '3p' && boom > 0.7;
     if (avatar.visible) { placeFigure(dt); poseNow(dt); }
-    XS.forEach(function (x) { if (x.tick) try { x.tick(T); } catch (e) {} });
+    XS.forEach(function (x) { if (x.tick) try { x.tick(T, performance.now()/1000); } catch (e) {} });
     if (window.SpatialViews) window.SpatialViews.tick(T, dt, room);
     if (edit && arrows) placeArrows();
     for (var di = 0; di < DTICK.length; di++) try { DTICK[di](T); } catch (e) {}
@@ -1290,7 +1337,7 @@
   }
   var PUB = {
     version: '1.0',
-    open: function () { var a = mount(); a.open(); return a; },
+    open: function () { document.documentElement.classList.remove('mn-mac-web'); var a = mount(); a.open(); return a; },
     close: function () { if (API) API.close(); },
     isOpen: function () { return !!(API && API.isOpen()); },
     api: function () { return API; },
@@ -1325,14 +1372,14 @@
   entries();
   /* 开屏：先在 Clun（劳特布龙嫩山谷里的那栋房子）门前，点房门进屋、上二楼进书房，再进房间（书房暂时接到圣托里尼）。
      Clun 是单独的页面，放在一个全屏 iframe 里；iOS 包里没有它的文件，走线上地址。?clun=0 或载入失败时直接进房间。 */
-  function clunSrc() {
-    var q = '?scene=valley&entry=1';
+  function clunSrc(inside) {
+    var q = '?scene=valley&entry=1' + (inside ? '&inside=1' : '');
     return location.protocol === 'file:' ? 'https://minest-app.vercel.app/spatial-home/clun/' + q : 'spatial-home/clun/index.html' + q;
   }
-  function clunFirst(done, force) {
+  function clunFirst(done, force, inside) {
     if (!force && /[?&]clun=0\b/.test(location.search)) { done(); return; }
     var f = document.createElement('iframe'), ready = false, opened = false, feature = null;
-    f.id = 'mn-clun-splash'; f.src = clunSrc(); f.title = 'Clun';
+    f.id = 'mn-clun-splash'; f.src = clunSrc(inside); f.title = 'Clun';
     f.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;max-width:none;max-height:none;margin:0;padding:0;border:0;z-index:2147483647;background:#cfe0ee;opacity:1';
     document.body.appendChild(f);
     try { if (f.showPopover) { f.setAttribute('popover', 'manual'); f.showPopover(); } } catch (e) {}   /* 放进顶层，盖过页面里所有浮层（迷你宠物、速览页等） */
@@ -1348,9 +1395,11 @@
       room(); clearTimeout(to); window.removeEventListener('message', on); window.removeEventListener('resize', fit); if (window.visualViewport) { visualViewport.removeEventListener('resize', fit); visualViewport.removeEventListener('scroll', fit); }
       setTimeout(function () { f.style.transition = 'opacity .7s ease'; f.style.opacity = '0'; setTimeout(function () { if (f.parentNode) f.parentNode.removeChild(f); }, 800); }, 250);
     }
+    f.addEventListener('minest:open-web', function () { feature = '@mac-web'; end(); });
     function on(e) {
       if (e.source !== f.contentWindow || !e.data || typeof e.data.clun !== 'string') return;
       if (e.data.clun === 'ready') { ready = true; clearTimeout(to); }
+      else if (e.data.clun === 'web') { feature = '@mac-web'; end(); }
       else if (e.data.clun === 'enter') { feature = typeof e.data.feature === 'string' ? e.data.feature : (typeof e.data.action === 'string' && /^(pack|env|views|set)$/.test(e.data.action) ? '@' + e.data.action : null); end(); }   /* 进房间后打开某个功能，或按房间顶栏的同一个按钮（@pack 背包、@env 环境、@views 窗外、@set 设置） */   /* Clun 里点了 ≡ 的某项、或书桌上的打字机 / 羽毛笔：进房间后打开它 */
     }
     window.addEventListener('message', on);
@@ -1365,13 +1414,18 @@
     try { PUB.close(); } catch (e) {}
     clunFirst(enterRoom, true);
   };
+  PUB.house = function () { if (document.getElementById('mn-clun-splash')) return; try { PUB.close(); } catch (e) {} clunFirst(enterRoom, true, true); };
   function enterRoom(feature) {
-    var a = PUB.open();
+    if (feature === '@mac-web') {
+      try { PUB.close(); if (window.SpatialBridge) SpatialBridge.release(); if (window.MinestStartControls) MinestStartControls.showBoardDock(); } catch (e) {}
+      return;
+    }
+    var a = PUB.open(), requestedRoom = new URLSearchParams(location.search).get('room'), targetRoom = requestedRoom && a.envs().some(function (e) { return e.id === requestedRoom; }) ? requestedRoom : a.state().env;
     var t1 = Date.now(), iv1 = setInterval(function () {                     /* 从 Clun 进来：书房暂时是圣托里尼那间；要打开的功能等房间换好再开 */
       try {
         var st = a.state();
-        if ((st.env === 'santorini' && !st.busy) || Date.now() - t1 > 5000) { clearInterval(iv1); if (feature) setTimeout(function () { try { if (feature.charAt(0) === '@') { var btn = document.getElementById('sh-' + feature.slice(1) + 'Btn'); if (btn) btn.click(); } else if (a.activate) a.activate(feature); } catch (e) {} }, 400); }
-        else if (!st.busy && st.env !== 'santorini') a.setEnv('santorini');
+        if ((st.env === targetRoom && !st.busy) || Date.now() - t1 > 5000) { clearInterval(iv1); if (feature) setTimeout(function () { try { if (feature.charAt(0) === '@') { var btn = document.getElementById('sh-' + feature.slice(1) + 'Btn'); if (btn) btn.click(); } else if (a.activate) a.activate(feature); } catch (e) {} }, 400); }
+        else if (!st.busy && st.env !== targetRoom) a.setEnv(targetRoom);
       } catch (e) { clearInterval(iv1); }
     }, 200);
     /* Liquid Routine's own iOS start screen (Day Flow) may open at the same launch: the room is the start screen, so it is put away */

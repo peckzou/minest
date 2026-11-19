@@ -182636,6 +182636,842 @@ html.mn-type3d-on #minest-mini-pet-p0{visibility:hidden!important}
   window.MinestType3D = { open: open, close: close, isOpen: function () { return !!(ov && !ov.hidden); }, version: '1.0.0' };
 })();
 </script>
+<style id="mn70-css">
+/* Minest Duo 70 — added by tools/duo-70/build.py */
+
+/* ---------- 1. board | 3D Cover: the board's card for the Cover's front card */
+html.duo-cover .sf-slot[data-sf-view="board"] article[data-mn70-cur] {
+  box-shadow: 0 0 0 1.5px rgba(255,255,255,.82), 0 0 0 5px rgba(255,255,255,.14), 0 10px 26px -10px rgba(0,0,0,.55) !important;
+  animation: mn70-cur .46s cubic-bezier(.22,1,.36,1);   /* no fill, and `scale` not `transform`: a row being swiped keeps its inline transform */
+}
+html.duo-cover .theme-white .sf-slot[data-sf-view="board"] article[data-mn70-cur] {
+  box-shadow: 0 0 0 1.5px rgba(16,24,40,.72), 0 0 0 5px rgba(16,24,40,.10), 0 10px 26px -12px rgba(16,24,40,.35) !important;
+}
+@keyframes mn70-cur {
+  from { scale: .985; filter: brightness(1.28); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.duo-cover .sf-slot[data-sf-view="board"] article[data-mn70-cur] { animation: none; }
+}
+
+/* ---------- 2. motion and detail */
+html.mn70 {
+  --mn70-out: cubic-bezier(.22,1,.36,1);        /* settles without a bounce */
+  --mn70-spring: cubic-bezier(.34,1.36,.64,1);  /* a small overshoot, for things that pop in */
+  -webkit-tap-highlight-color: transparent;
+}
+html.mn70 button, html.mn70 [role="button"], html.mn70 a { touch-action: manipulation; }
+
+/* a card answers the finger: it sinks a little while pressed (the card's own transition carries it back).
+   Only :active is styled, so a card being dragged (inline transform) is left alone. */
+html.mn70 .mobile-board-view article.kanban-card:active { transform: scale(.975); filter: brightness(1.08); }
+html.mn70 .mobile-board-view .kanban-column-wrapper button:active { transform: scale(.9); }
+
+/* keyboard focus is visible everywhere, and only for the keyboard */
+html.mn70 :is(button, a, [role="button"], [tabindex]):focus-visible { outline: 2px solid rgba(110,231,183,.95); outline-offset: 2px; border-radius: 10px; }
+
+/* numbers that change do not shift their neighbours */
+html.mn70 .kanban-column-wrapper .font-mono, html.mn70 .sf-slot[data-sf-view="coverflow"] .font-mono { font-variant-numeric: tabular-nums; }
+/* titles break into even lines */
+html.mn70 .coverflow-card-item h3, html.mn70 .kanban-column-wrapper h3 { text-wrap: balance; }
+html.mn70 article.kanban-card h4 { text-wrap: pretty; }
+
+/* list scrollbar: a thin pill, no arrow buttons */
+html.mn70 .kanban-cards-scroll { scrollbar-width: thin; }
+html.mn70 .kanban-cards-scroll::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+
+/* a board comes in list by list (once per board, see v70.js) */
+html.mn70-enter .mobile-board-view .kanban-column-wrapper { animation: mn70-rise .52s var(--mn70-out) both; }
+html.mn70-enter .mobile-board-view .kanban-column-wrapper:nth-child(2) { animation-delay: .05s; }
+html.mn70-enter .mobile-board-view .kanban-column-wrapper:nth-child(3) { animation-delay: .1s; }
+html.mn70-enter .mobile-board-view .kanban-column-wrapper:nth-child(4) { animation-delay: .15s; }
+html.mn70-enter .mobile-board-view .kanban-column-wrapper:nth-child(n+5) { animation-delay: .2s; }
+@keyframes mn70-rise { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: none; } }
+
+/* ---------- 3. board | 3D Cover split */
+/* the two panes arrive together instead of snapping in */
+html.mn70-split-in.duo-cover body #root main > .sf-slot[data-sf-view="coverflow"] { animation: mn70-pane-cover .56s var(--mn70-out) both; }
+html.mn70-split-in.duo-cover body #root main > .sf-slot[data-sf-view="board"] { animation: mn70-pane-board .56s var(--mn70-out) both; }
+@keyframes mn70-pane-cover { from { opacity: 0; transform: translateX(-22px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes mn70-pane-board { from { opacity: .35; transform: translateX(22px); } to { opacity: 1; transform: none; } }
+html.mn70-split-in.duo-cover.duo-tall body #root main > .sf-slot[data-sf-view="coverflow"] { animation-name: mn70-pane-cover-tall; }
+html.mn70-split-in.duo-cover.duo-tall body #root main > .sf-slot[data-sf-view="board"] { animation-name: mn70-pane-board-tall; }
+@keyframes mn70-pane-cover-tall { from { opacity: 0; transform: translateY(-22px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes mn70-pane-board-tall { from { opacity: .35; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+
+/* the hinge line fades out towards its ends instead of running edge to edge as a hard rule */
+html.mn70.duo-cover:not(.duo-tall) body #root main > .sf-slot[data-sf-view="coverflow"] { border-right-color: transparent !important; border-image: linear-gradient(to bottom, transparent, rgba(255,255,255,.2) 18%, rgba(255,255,255,.2) 82%, transparent) 1 !important; }
+html.mn70.duo-cover.duo-tall body #root main > .sf-slot[data-sf-view="coverflow"] { border-bottom-color: transparent !important; border-image: linear-gradient(to right, transparent, rgba(255,255,255,.2) 18%, rgba(255,255,255,.2) 82%, transparent) 1 !important; }
+
+/* the Cover's position bar keeps clear of the pane's edges (its "1" and "18" were cut off) */
+html.mn70.duo-cover .sf-slot[data-sf-view="coverflow"] section > div:has(> input[type="range"]) { padding-inline: 22px; box-sizing: border-box; }
+
+/* ---------- 4. speed */
+/* nothing animates while the app is in the background */
+html.mn70-hidden *, html.mn70-hidden *::before, html.mn70-hidden *::after { animation-play-state: paused !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  html.mn70-enter .mobile-board-view .kanban-column-wrapper,
+  html.mn70-split-in.duo-cover body #root main > .sf-slot { animation: none !important; }
+  html.mn70 .mobile-board-view article.kanban-card:active, html.mn70 .mobile-board-view .kanban-column-wrapper button:active { transform: none; }
+}
+
+/* ---------- 4b. changing view (board, 3D Cover, Photos, Pins): the new view fades up instead of snapping in.
+   v70.js sets mn70-view-in for 1 s when the view's name changes (not when the split opens or closes).
+   `scale`, not `transform`, and no fill: the pane's own transform is never overridden. */
+html.mn70-view-in:not(.duo-cover) body #root main > .sf-slot[data-sf-view] { animation: mn70-view-x .42s var(--mn70-out); }
+html.mn70-view-in:not(.duo-cover) body #root main > .sf-slot[data-sf-view="board"] { animation-name: mn70-view-board; }
+html.mn70-view-in:not(.duo-cover) body #root main > .sf-slot[data-sf-view="coverflow"] { animation-name: mn70-view-cover; animation-duration: .5s; }
+@keyframes mn70-view-x { from { opacity: 0; scale: .985; } }
+@keyframes mn70-view-board { from { opacity: 0; scale: .985; } }
+@keyframes mn70-view-cover { from { opacity: 0; scale: 1.035; } }
+@media (prefers-reduced-motion: reduce) {
+  html.mn70-view-in:not(.duo-cover) body #root main > .sf-slot[data-sf-view] { animation: none !important; }
+}
+
+/* ---------- 5. Views fan: a soft shade behind the open fan, so its labels read over the board's text */
+html.mn70 .miv-fan::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .28s ease;
+  background: radial-gradient(120% 90% at 50% 100%, rgba(6,10,18,.62), rgba(6,10,18,.34) 45%, rgba(6,10,18,0) 78%);
+}
+html.mn70 .miv-fan.miv-fan-open::before { opacity: 1; }
+html.mn70 .theme-white .miv-fan::before, html.mn70 body.theme-white .miv-fan::before {
+  background: radial-gradient(120% 90% at 50% 100%, rgba(255,255,255,.7), rgba(255,255,255,.4) 45%, rgba(255,255,255,0) 78%);
+}
+
+/* ---------- 6. press feedback where a tap had none (the icon moves, never the tile: the dock sizes its tiles itself) */
+html.mn70 .mn-bdock .mn-bapp svg, html.mn70 .mn-bdock .mn-bapp img { transition: transform .26s var(--mn70-spring); }
+html.mn70 .mn-bdock .mn-bapp:active svg, html.mn70 .mn-bdock .mn-bapp:active img { transform: scale(.84); transition-duration: .08s; }
+html.mn70 #mn-sh .sh-ic { transition: transform .24s var(--mn70-spring), background-color .18s ease; }
+html.mn70 #mn-sh .sh-ic:active { transform: scale(.9); transition-duration: .08s; }
+@media (prefers-reduced-motion: reduce) {
+  html.mn70 .mn-bdock .mn-bapp:active svg, html.mn70 .mn-bdock .mn-bapp:active img, html.mn70 #mn-sh .sh-ic:active { transform: none; }
+}
+
+/* ---------- 8. a board card under a finger (v70.js marks it): `scale` only, so a swipe's own transform is untouched */
+html.mn70 .mobile-board-view article.kanban-card[data-mn70-press] { animation: mn70-press .12s ease-out forwards; }
+html.mn70 .mobile-board-view article.kanban-card[data-mn70-rel] { animation: mn70-release .22s var(--mn70-spring); }
+@keyframes mn70-press { to { scale: .975; } }
+@keyframes mn70-release { from { scale: .975; } }
+
+/* ---------- 9. pet screen: its ✕ stays in reach. The page hides it with the pet's own controls after 4 s without a
+   touch (opacity 0, no taps), which leaves the full-screen pet with no visible way out until something is tapped.
+   Here it only dims, and still takes the tap. */
+html.mn70 #minest-pet-raising-overlay .minest-pet-x.idle { opacity: .34; pointer-events: auto; }
+html.mn70 #minest-pet-raising-overlay .minest-pet-x.idle:active { opacity: 1; }
+</style>
+<script id="mn70-js">
+/* Minest Duo 70 — added by tools/duo-70/build.py. Everything here is additive: it listens to the app's own events
+   and marks its own attributes; no app state is written. */
+(function () {
+  'use strict';
+  if (window.MinestV70) return;
+  var R = document.documentElement;
+  R.classList.add('mn70');
+  var reduce = false;
+  try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+
+  /* ------------------------------------------------------------------ 1. board | 3D Cover, both ways
+     The board already turns the Cover (minest:cf-goto). Here the Cover turns the board: the card in front of the
+     Cover is marked on the board, and scrolled into view when it is out of sight. */
+  var CUR = 'data-mn70-cur';
+  var curEl = null, syncT = null, boardTouchAt = 0, ownScroll = null;
+
+  function split() { return R.classList.contains('duo-cover'); }
+  function boardPane() { return document.querySelector('.sf-slot[data-sf-view="board"]'); }
+  function q(id) { return String(id).replace(/\\/g, '\\\\').replace(/"/g, '\\"'); }
+  function shown(el) { var r = el.getBoundingClientRect(); return r.width > 40 && r.height > 8; }
+
+  /* the top card of the stack a card sits in (the card itself when it is not in a stack) */
+  function stackTop(board, id) {
+    var cols = (board && board.columns) || [];
+    function has(list) { return (list || []).some(function (c) { return String(c.id) === String(id) || has(c.stack); }); }
+    for (var i = 0; i < cols.length; i++) {
+      var cards = cols[i].cards || [];
+      for (var j = 0; j < cards.length; j++) {
+        if (String(cards[j].id) === String(id)) return String(id);
+        if (has(cards[j].stack)) return String(cards[j].id);
+      }
+    }
+    return null;
+  }
+  /* the board's element for a card: its own row, else (a card inside a closed stack) the stack's top card */
+  function boardCard(id) {
+    var pane = boardPane(); if (!pane || id == null) return null;
+    var own = pane.querySelectorAll('article[data-card-id="' + q(id) + '"]');
+    for (var i = 0; i < own.length; i++) if (shown(own[i])) return own[i];
+    var top = null;
+    try { top = stackTop(window.MinestAI.board(), id); } catch (e) {}
+    if (top == null || top === String(id)) return null;
+    var a = pane.querySelectorAll('article[data-card-id="' + q(top) + '"]');
+    for (var k = 0; k < a.length; k++) if (shown(a[k])) return a[k];
+    return null;
+  }
+  function scroller(el) {
+    for (var p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+      if (p.scrollHeight > p.clientHeight + 4 && /(auto|scroll)/.test(getComputedStyle(p).overflowY)) return p;
+    }
+    return null;
+  }
+  function mark(el) {
+    if (curEl === el) return false;
+    if (curEl) curEl.removeAttribute(CUR);
+    curEl = el;
+    if (el) el.setAttribute(CUR, '');
+    return true;
+  }
+  /* bring the card into the list's view; the board's own "top card turns the Cover" stays quiet until the scroll rests */
+  function reveal(el) {
+    var sc = scroller(el); if (!sc) return;
+    var a = el.getBoundingClientRect(), b = sc.getBoundingClientRect(), pad = 14;
+    if (a.top >= b.top + pad - 1 && a.bottom <= b.bottom - pad + 1) return;
+    var to = sc.scrollTop + (a.top - b.top) - Math.max(pad, (b.height - a.height) * 0.3);
+    to = Math.max(0, Math.min(sc.scrollHeight - sc.clientHeight, Math.round(to)));
+    if (Math.abs(to - sc.scrollTop) < 2) return;
+    ownScroll = sc; window.__mn70Quiet = Date.now() + 900;
+    try { sc.scrollTo({ top: to, behavior: reduce ? 'auto' : 'smooth' }); } catch (e) { sc.scrollTop = to; }
+  }
+  document.addEventListener('scroll', function (e) {
+    if (ownScroll && e.target === ownScroll) { if (window.__mn70Quiet > Date.now()) window.__mn70Quiet = Date.now() + 420; else ownScroll = null; }
+  }, true);
+  /* a finger (or wheel) on the board: the board leads, so it is marked but never scrolled under the finger */
+  function touched(e) { if (e.target && e.target.closest && e.target.closest('.sf-slot[data-sf-view="board"]')) { boardTouchAt = Date.now(); ownScroll = null; window.__mn70Quiet = 0; } }
+  ['touchstart', 'touchmove', 'wheel', 'pointerdown'].forEach(function (n) { document.addEventListener(n, touched, { passive: true, capture: true }); });
+
+  function sync() {
+    syncT = null;
+    if (!split()) { mark(null); return; }
+    var id = null;
+    try { id = window.MinestImageViews.state(window.MinestAI.board().id).selected; } catch (e) {}
+    var el = boardCard(id);
+    var moved = mark(el);
+    if (el && moved && Date.now() - boardTouchAt > 700) reveal(el);
+  }
+  function queue(ms) { clearTimeout(syncT); syncT = setTimeout(sync, ms == null ? 120 : ms); }
+  window.addEventListener('minest:image-selection', function () { if (split()) queue(); });
+  window.addEventListener('minest:cf-list', function () { if (split()) queue(260); });
+  /* the split opens or closes; a stack opens or closes (its rows appear) */
+  new MutationObserver(function () { if (split()) queue(520); else if (curEl) mark(null); }).observe(R, { attributes: true, attributeFilter: ['class'] });
+  document.addEventListener('click', function (e) { if (split() && e.target.closest && e.target.closest('.sf-slot[data-sf-view="board"]')) queue(380); }, true);
+
+  /* ------------------------------------------------------------------ 2. motion: things arrive once, then stay still */
+  function once(cls, ms) { R.classList.add(cls); setTimeout(function () { R.classList.remove(cls); }, ms); }
+  /* a board comes in list by list: on launch and each time another board is opened */
+  var boardId = null;
+  function boardEnter() {
+    var id = null;
+    try { id = window.MinestAI.board().id; } catch (e) {}
+    if (id == null || id === boardId) return;
+    var first = boardId === null; boardId = id;
+    if (!reduce && !split() && (first || !document.hidden)) once('mn70-enter', 900);
+    /* another board while the split is open: the Cover still held the last board's list and stayed empty until the
+       board was scrolled. The Duo script sends the visible list on a scroll, so it is told there was one; then the
+       mark is placed (a board's first Cover card raises no event the mark could follow). */
+    if (split() && !first) {
+      window.__mn70Quiet = Date.now() + 600;
+      document.dispatchEvent(new Event('scroll'));
+      queue(900);
+    }
+  }
+  /* the split opens: both panes arrive together */
+  var wasSplit = split();
+  new MutationObserver(function () {
+    var s = split();
+    if (s && !wasSplit && !reduce) once('mn70-split-in', 700);
+    if (s !== wasSplit) splitAt = Date.now();
+    wasSplit = s;
+  }).observe(R, { attributes: true, attributeFilter: ['class'] });
+  /* another view (board, 3D Cover) fades up instead of snapping in; not when the split opens or closes */
+  var viewName = null, splitAt = 0;
+  function viewEnter() {
+    var el = split() ? null : document.querySelector('#root main > .sf-slot[data-sf-view]');
+    var v = el && el.getAttribute('data-sf-view');
+    if (!v || v === viewName) return;
+    if (viewName && !reduce && !document.hidden && Date.now() - splitAt > 900) once('mn70-view-in', 1000);
+    viewName = v;
+  }
+
+  /* a board card sinks under the finger. `:active` does it for a mouse; a touch gets it here, because the board's own
+     touch handling keeps `:active` from showing. The mark is taken off every element that has it (a dragged card is
+     a copy that carries it), as soon as the finger moves, lifts, or has rested for half a second. */
+  var pressT = 0, pressX = 0, pressY = 0;
+  function pressOff(rel) {
+    clearTimeout(pressT); pressT = 0;
+    var all = document.querySelectorAll('[data-mn70-press]');
+    for (var i = 0; i < all.length; i++) {
+      all[i].removeAttribute('data-mn70-press');
+      if (rel && all[i].closest('.mobile-board-view')) relOn(all[i]);   /* the card itself, not a lifted copy */
+    }
+  }
+  function relOn(el) {
+    el.setAttribute('data-mn70-rel', '');
+    setTimeout(function () { el.removeAttribute('data-mn70-rel'); }, 240);
+  }
+  if (!reduce) {
+    document.addEventListener('touchstart', function (e) {
+      pressOff(false);
+      if (e.touches.length !== 1) return;
+      var a = e.target.closest && e.target.closest('.mobile-board-view article.kanban-card');
+      if (!a) return;
+      pressX = e.touches[0].clientX; pressY = e.touches[0].clientY;
+      a.setAttribute('data-mn70-press', '');
+      pressT = setTimeout(function () { pressOff(true); }, 500);
+    }, { passive: true, capture: true });
+    document.addEventListener('touchmove', function (e) {
+      if (!pressT) return;
+      var t = e.touches[0];
+      if (!t || Math.abs(t.clientX - pressX) > 6 || Math.abs(t.clientY - pressY) > 6) pressOff(false);
+    }, { passive: true, capture: true });
+    ['touchend', 'touchcancel'].forEach(function (n) {
+      document.addEventListener(n, function () {
+        if (!pressT) return;
+        clearTimeout(pressT); pressT = setTimeout(function () { pressOff(true); }, 90);
+      }, { passive: true, capture: true });
+    });
+  }
+
+  /* outer screen: the Mini Pet's default spot is on top of the Glance's "start studying" button. While the Glance
+     is showing, a pet that was never dragged rests in the free corner below the cards, and goes back after. */
+  function glance() {
+    var g = R.classList.contains('duo-outer') && document.querySelector('body > .duo-gl');
+    return !!g && !g.hidden;
+  }
+  function petPark() {
+    var pet = document.getElementById('minest-mini-pet-p0');
+    if (!pet || window.__miniPetHost) return;
+    var dragged = false;
+    try { dragged = !!localStorage.getItem('minest.miniPetP0.position'); } catch (e) {}
+    var parked = pet.hasAttribute('data-mn70-park');
+    if (dragged) { if (parked) pet.removeAttribute('data-mn70-park'); return; }
+    if (glance()) {
+      pet.setAttribute('data-mn70-park', '');
+      pet.style.left = Math.max(0, window.innerWidth - pet.offsetWidth + 10) + 'px';
+      pet.style.top = Math.max(0, window.innerHeight - pet.offsetHeight - 4) + 'px';
+    } else if (parked) {
+      pet.removeAttribute('data-mn70-park');
+      pet.style.left = '14px'; pet.style.top = '88px';
+    }
+  }
+  function petSoon() { setTimeout(petPark, 60); setTimeout(petPark, 700); }
+  window.addEventListener('resize', petSoon);
+  document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('.duo-gl, .duo-back')) petSoon(); }, true);
+  new MutationObserver(petSoon).observe(R, { attributes: true, attributeFilter: ['class'] });
+  setTimeout(petPark, 1500); setTimeout(petPark, 4000);
+
+  /* ------------------------------------------------------------------ 3. speed */
+  /* periodic housekeeping (the Sync Center's 4-second scan of all boards) runs between gestures, not during one:
+     it waits while a finger is down or the screen moved in the last 1.2 s, for at most 8 s */
+  var inputAt = 0, fingers = 0;
+  function input() { inputAt = Date.now(); }
+  ['touchmove', 'wheel', 'scroll', 'pointermove', 'keydown'].forEach(function (n) { document.addEventListener(n, input, { passive: true, capture: true }); });
+  document.addEventListener('touchstart', function (e) { fingers = e.touches.length; input(); }, { passive: true, capture: true });
+  ['touchend', 'touchcancel'].forEach(function (n) { document.addEventListener(n, function (e) { fingers = e.touches.length; input(); }, { passive: true, capture: true }); });
+  function idle(fn, since) {
+    since = since || Date.now();
+    var busy = fingers > 0 || Date.now() - inputAt < 1200;
+    if (busy && Date.now() - since < 8000) { setTimeout(function () { idle(fn, since); }, 400); return; }
+    if (window.requestIdleCallback && !busy) requestIdleCallback(function () { fn(); }, { timeout: 1500 }); else fn();
+  }
+  window.__mn70Idle = function (fn) {
+    if (fn.__mn70Waiting) return;   /* one pending run per job */
+    fn.__mn70Waiting = true;
+    idle(function () { fn.__mn70Waiting = false; fn(); }, 0);
+  };
+
+  /* the scan's version of a category (MinestSyncCore.version: parse, sort keys, hash; ~80 ms for the boards) depends
+     only on the data's JSON text. While that text is the same as at the last scan, the version is the one from then. */
+  var seen = {};
+  window.__mn70Ver = function (value, cat, version) {
+    var j;
+    try { j = JSON.stringify(value); } catch (e) {}
+    if (typeof j !== 'string') return version(value);
+    var m = seen[cat];
+    if (m && m.j === j) return m.v;
+    var v = version(value);
+    seen[cat] = { j: j, v: v };
+    return v;
+  };
+
+  /* in the background (another app, the screen off) no CSS animation runs */
+  function vis() { R.classList.toggle('mn70-hidden', document.hidden); }
+  document.addEventListener('visibilitychange', vis); vis();
+  /* pictures decode off the main thread, so a list of photo cards scrolls without a hitch */
+  function lazy(root) {
+    var im = root.querySelectorAll ? root.querySelectorAll('img:not([decoding])') : [];
+    for (var i = 0; i < im.length; i++) im[i].decoding = 'async';
+  }
+  var lazyQ = false;
+  new MutationObserver(function () {
+    viewEnter();
+    if (lazyQ) return; lazyQ = true;
+    setTimeout(function () {
+      lazyQ = false; lazy(document); boardEnter();
+      if (curEl && !curEl.isConnected && split()) queue(0);   /* the marked row was re-rendered */
+    }, 300);
+  }).observe(document.body, { childList: true, subtree: true });
+  lazy(document); boardEnter(); viewEnter();
+
+  /* Spatial Home's album. Its entry in the room's table of features (SpatialBridge.FEATURES.lists) opened the My World
+     overview only: the inventory wants a world to show and none was passed. Here My World opens as before and the
+     inventory (MinestInventory, the box of a world's lists) opens on top of it, for the board in use, or the first board
+     that has a list. Closing the inventory leaves My World; closing My World goes back to the room, as before.
+     No list anywhere: My World alone, as before. */
+  function albumWire(B) {
+    var F = B && B.FEATURES && B.FEATURES.lists, t = F && F.targets && F.targets[0];
+    if (!t || t.id !== 'MinestUniverse' || t.__mn70) return false;
+    var open0 = t.open, close0 = t.close, run = 0;
+    /* a list is a card that is not a section heading, as the inventory itself counts them */
+    function hasList(w, b) {
+      var K = w.MinestKnowledge;
+      return !!b && (b.columns || []).some(function (c) {
+        return (c.cards || []).some(function (k) { return k && k.id && !(K && K.isHeading && K.isHeading(k.id)); });
+      });
+    }
+    function world(w) {
+      var A = w.MinestAI, cur = null, all = [];
+      try { cur = A.board(); } catch (e) {}
+      try { all = A.boards() || []; } catch (e) {}
+      if (cur) cur = all.filter(function (b) { return b.id === cur.id; })[0] || cur;
+      if (hasList(w, cur)) return cur.id;
+      var b = all.filter(function (x) { return hasList(w, x); })[0];
+      return b ? b.id : null;
+    }
+    t.open = function (w) {
+      open0(w);
+      var mine = ++run, n = 0;
+      (function go() {
+        if (mine !== run) return;
+        var up = false;
+        try { up = w.MinestUniverse.isOpen() && !!w.document.querySelector('.uv'); } catch (e) {}
+        if (!up) { if (n++ < 40) w.setTimeout(go, 100); return; }
+        if (w.document.querySelector('.mn-invx')) return;   /* still open from last time: left as it is */
+        var bid = w.MinestInventory && world(w);
+        if (bid) try { w.MinestInventory.open({ t: 'world', bid: bid }); } catch (e) {}
+      })();
+    };
+    t.close = function (w) {
+      run++;
+      try { if (w.MinestInventory) w.MinestInventory.close(); } catch (e) {}
+      close0(w);
+    };
+    t.label = 'My World · 收藏箱';
+    t.entry = "window.MinestUniverse.open() → MinestInventory.open({ t: 'world', bid })";
+    t.__mn70 = true;
+    return true;
+  }
+  albumWire(window.SpatialBridge);
+
+  window.MinestV70 = {
+    version: '70.0',
+    _albumWire: albumWire,
+    /* tests */ _stackTop: stackTop, _idle: idle, _boardCard: boardCard, _sync: sync, current: function () { return curEl; }
+  };
+})();
+</script>
+<style id="mn-dock-pill-style">
+/* Minest · Pill Dock (2026-11-19, after the user's reference "GO Club" dock): one tall capsule of pale lavender glass —
+   a thin white rim, a soft inner light, a deep soft shadow; big solid-black icons with room round them; the app in use
+   sits in an inset glass lens, its icon at the bottom and its name running up the lens (read from bottom to top).
+   Docked at the bottom it is the same capsule lying down, the name beside the icon. Same look in light and dark mode
+   (the light page gets a slightly brighter glass). */
+html.mn-dock-pill .mn-bdock::before { display: none !important; }
+html.mn-dock-pill .mn-bdock {
+  --pd-glass: linear-gradient(180deg, rgba(206,201,255,.84) 0%, rgba(184,177,252,.80) 100%);
+  --pd-ink: #121212;
+  background: var(--pd-glass) !important;
+  border: 1.5px solid rgba(255,255,255,.72) !important;
+  border-radius: 999px !important;
+  -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
+  backdrop-filter: blur(24px) saturate(160%) !important;
+  box-shadow: inset 0 2px 3px rgba(255,255,255,.55), inset 0 -2px 6px rgba(120,110,220,.25),
+              0 14px 30px -10px rgba(22,12,90,.5), 0 3px 8px rgba(22,12,90,.16) !important;
+  padding: 5px !important;
+  gap: 4px !important;
+  align-items: center !important;
+  max-width: calc(100vw - 16px) !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+}
+html.mn-dock-pill .mn-bdock::-webkit-scrollbar { display: none; }
+html.mn-dock-pill[data-mn-bd=bottom] .mn-bdock {
+  bottom: max(calc(env(safe-area-inset-bottom, 0px) + 8px), 12px) !important;
+}
+html.mn-dock-pill[data-mn-bd=left] .mn-bdock,
+html.mn-dock-pill[data-mn-bd=right] .mn-bdock {
+  padding: 6px 5px !important;
+  gap: 3px !important;
+  max-height: calc(100vh - 110px) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+html.mn-dock-pill.mnh-tw .mn-bdock {
+  --pd-glass: linear-gradient(180deg, rgba(222,218,255,.86) 0%, rgba(196,190,255,.82) 100%);
+}
+
+/* every app: a big solid-black icon, no frame */
+html.mn-dock-pill .mn-bapp {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  border: 1.5px solid transparent !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  color: var(--pd-ink) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  padding: 0 !important;
+  flex-shrink: 0 !important;
+  position: relative !important;
+  transition: background .34s cubic-bezier(.22,1,.36,1), border-color .3s ease, box-shadow .34s ease, padding .34s cubic-bezier(.22,1,.36,1), height .34s cubic-bezier(.22,1,.36,1), width .34s cubic-bezier(.22,1,.36,1) !important;
+}
+html.mn-dock-pill .mn-bapp::before { display: none !important; }
+html.mn-dock-pill .mn-bapp::after { display: none !important; }
+html.mn-dock-pill .mn-bapp svg { width: 21px !important; height: 21px !important; flex-shrink: 0 !important; stroke-width: 2.2 !important; }
+html.mn-dock-pill .mn-bapp img { width: 22px !important; height: 22px !important; flex-shrink: 0 !important; border-radius: 50% !important; }
+/* the utility keys (close, back, more) stay a size down */
+html.mn-dock-pill .mn-bapp.mn-pill-util svg { width: 17px !important; height: 17px !important; }
+html.mn-dock-pill .mn-bapp.mn-pill-util { width: 34px !important; height: 34px !important; min-width: 34px !important; }
+html.mn-dock-pill .mn-bapp.mn-pill-util { opacity: .72; }
+
+/* the app in use: an inset lens of slightly deeper glass */
+html.mn-dock-pill .mn-bapp.on,
+html.mn-dock-pill .mn-bapp.mn-pill-active {
+  background: linear-gradient(180deg, rgba(170,163,236,.62) 0%, rgba(186,180,246,.52) 100%) !important;
+  border: 1.5px solid rgba(255,255,255,.78) !important;
+  box-shadow: inset 0 2px 5px rgba(255,255,255,.40), inset 0 -2px 5px rgba(110,100,210,.22), 0 4px 10px -4px rgba(40,30,120,.35) !important;
+  color: var(--pd-ink) !important;
+}
+html.mn-dock-pill .mn-bapp.on::after,
+html.mn-dock-pill .mn-bapp.mn-pill-active::after {
+  content: attr(data-pill-label) !important;
+  display: inline-block !important;
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  background: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  font: 600 13px/1 -apple-system, "SF Pro Text", "PingFang SC", system-ui, sans-serif !important;
+  white-space: nowrap !important;
+  color: inherit !important;
+  letter-spacing: .01em !important;
+}
+/* standing up: the lens is tall, icon below, the name running up above it */
+html.mn-dock-pill[data-mn-bd=left] .mn-bapp.on,
+html.mn-dock-pill[data-mn-bd=left] .mn-bapp.mn-pill-active,
+html.mn-dock-pill[data-mn-bd=right] .mn-bapp.on,
+html.mn-dock-pill[data-mn-bd=right] .mn-bapp.mn-pill-active {
+  height: auto !important;
+  min-height: 96px !important;
+  width: 40px !important;
+  flex-direction: column-reverse !important;
+  justify-content: center !important;
+  gap: 9px !important;
+  padding: 14px 0 12px !important;
+}
+html.mn-dock-pill[data-mn-bd=left] .mn-bapp.on::after,
+html.mn-dock-pill[data-mn-bd=left] .mn-bapp.mn-pill-active::after,
+html.mn-dock-pill[data-mn-bd=right] .mn-bapp.on::after,
+html.mn-dock-pill[data-mn-bd=right] .mn-bapp.mn-pill-active::after {
+  writing-mode: vertical-rl !important;
+  transform: rotate(180deg) !important;
+}
+/* lying down: the lens is wide, the name beside the icon */
+html.mn-dock-pill[data-mn-bd=bottom] .mn-bapp.on,
+html.mn-dock-pill[data-mn-bd=bottom] .mn-bapp.mn-pill-active {
+  width: auto !important;
+  padding: 0 14px 0 11px !important;
+}
+@media (prefers-reduced-motion: reduce) { html.mn-dock-pill .mn-bapp { transition: none !important; } }
+</style>
+<script id="mn-dock-pill-js">
+(function () {
+  var KEY = 'mn_dock_pill_v1';
+  var PILL_ICON = '<svg class="miv-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="7" width="19" height="10" rx="5"/><rect x="4.5" y="9" width="8" height="6" rx="3" fill="currentColor" stroke="none" opacity=".35"/><circle cx="16.5" cy="12" r="1.3" fill="currentColor" stroke="none"/></svg>';
+  function isOn() {
+    try { var v = localStorage.getItem(KEY); return v === null ? true : v === '1'; } catch (e) { return true; }
+  }
+  function apply(on) {
+    document.documentElement.classList.toggle('mn-dock-pill', !!on);
+    try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {}
+    syncLabels();
+    if (window.MinestChrome && window.MinestChrome.show) window.MinestChrome.show();
+  }
+  /* the name in the lens: the English part of "Spatial Home · 我的房间", a whole word or two, never cut mid-word */
+  function shortLabel(btn) {
+    var raw = (btn.getAttribute('aria-label') || btn.title || '').trim();
+    if (!raw) return 'App';
+    var clean = raw.split(/\s[·•|—:(]\s?|\s-\s/)[0].trim();
+    if (clean.length > 12) { var w = clean.split(/\s+/); clean = w[0].length <= 12 ? w[0] : w[0].slice(0, 12); }
+    return clean;
+  }
+  var UTIL = /^(close|back|more)\b|关闭|返回|更多/i;   // the dock's own keys never become "the app in use"
+  function isUtil(b) { return UTIL.test((b.getAttribute('aria-label') || b.title || '').trim()); }
+  function syncLabels() {
+    var dock = document.querySelector('.mn-bdock');
+    if (!dock) return;
+    var btns = Array.from(dock.querySelectorAll('.mn-bapp')).filter(function (b) {
+      return getComputedStyle(b).display !== 'none';
+    });
+    var apps = btns.filter(function (b) { return !isUtil(b); });
+    var hasOn = apps.some(function (b) { return b.classList.contains('on'); });
+    var hasActive = apps.some(function (b) { return b.classList.contains('mn-pill-active'); });
+    btns.forEach(function (b) {
+      var util = isUtil(b);
+      b.classList.toggle('mn-pill-util', util);
+      if (util) { b.classList.remove('mn-pill-active'); return; }
+      var lbl = shortLabel(b);
+      if (b.getAttribute('data-pill-label') !== lbl) b.setAttribute('data-pill-label', lbl);
+      if (!b.dataset.mnPillBound) {
+        b.dataset.mnPillBound = '1';
+        b.addEventListener('click', function () {
+          Array.from(dock.querySelectorAll('.mn-bapp')).forEach(function (x) { x.classList.remove('mn-pill-active'); });
+          b.classList.add('mn-pill-active');
+        }, true);
+      }
+      if (hasOn) b.classList.remove('mn-pill-active');
+    });
+    if (!hasOn && !hasActive && apps[0]) apps[0].classList.add('mn-pill-active');
+  }
+  function injectIntoLooksFan(fan) {
+    if (!fan || fan.querySelector('.mn-pill-fan-item')) return;
+    var items = fan.querySelectorAll('.miv-fan-item');
+    if (!items.length) return;
+    var last = items[items.length - 1];
+    var dir = fan.dataset.dir || 'up';
+    var lx = parseFloat(last.style.getPropertyValue('--x')) || 0;
+    var ly = parseFloat(last.style.getPropertyValue('--y')) || 0;
+    var lr = parseFloat(last.style.getPropertyValue('--r')) || 0;
+    var dx = parseFloat(last.style.getPropertyValue('--dx')) || 0;
+    var dy = parseFloat(last.style.getPropertyValue('--dy')) || 0;
+    var nx = dir === 'up' ? lx + 10 : lx;
+    var ny = dir === 'up' ? Math.max(36, ly - 58) : Math.min(innerHeight - 36, ly + 58);
+    var it = document.createElement('button');
+    it.type = 'button';
+    it.className = 'miv-fan-item mn-pill-fan-item';
+    it.setAttribute('role', 'menuitem');
+    it.title = 'Pill Dock · 液态玻璃胶囊 Dock';
+    it.style.setProperty('--x', nx + 'px');
+    it.style.setProperty('--y', ny + 'px');
+    it.style.setProperty('--r', (lr + 1.2) + 'deg');
+    it.style.setProperty('--dx', (dx - (nx - lx)) + 'px');
+    it.style.setProperty('--dy', (dy - (ny - ly)) + 'px');
+    it.style.setProperty('--d', (items.length * 38) + 'ms');
+    it.style.setProperty('--dc', '0ms');
+    it.innerHTML = '<span class="miv-fan-ic">' + PILL_ICON + '</span><span class="miv-fan-label">' + (isOn() ? '经典方块 Dock' : '胶囊玻璃 Dock') + '</span>';
+    function handleToggle(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      apply(!isOn());
+      fan.remove();
+    }
+    it.addEventListener('click', handleToggle);
+    fan.appendChild(it);
+  }
+  window.MinestPillDock = { isOn: isOn, set: apply, toggle: function () { apply(!isOn()); } };
+  apply(isOn());
+  var raf = 0;
+  new MutationObserver(function (muts) {
+    for (var i = 0; i < muts.length; i++) {
+      for (var j = 0; j < muts[i].addedNodes.length; j++) {
+        var n = muts[i].addedNodes[j];
+        if (n && n.nodeType === 1 && n.classList && n.classList.contains('mn-looks-fan')) {
+          injectIntoLooksFan(n);
+        }
+      }
+    }
+    if (raf) return;
+    raf = requestAnimationFrame(function () { raf = 0; syncLabels(); });
+  }).observe(document.documentElement, { childList: true, subtree: true });
+})();
+</script>
+<style id="mn-btn-motion-css">
+/* Crisp Monochrome Geometric Micro-Interactions (inspired by Ramin Nasibov's 36-tile collection) */
+:root {
+  --mn-ease-silky: cubic-bezier(.22, 1, .36, 1);
+  --mn-ease-spring: cubic-bezier(.34, 1.56, .64, 1);
+}
+
+/* Tactile spring press using standalone CSS scale (never clashes with transform!) */
+button:not(.miv-fan-item):not([disabled]) {
+  transition: scale .28s var(--mn-ease-spring), opacity .2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+button:not(.miv-fan-item):not([disabled]):active {
+  scale: 0.94;
+  transition: scale .09s var(--mn-ease-silky);
+}
+
+/* 01 · BARS: Horizontal Track Scanner sheen on tap */
+button.mn-fx-scan {
+  position: relative;
+  overflow: hidden;
+}
+button.mn-fx-scan::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,.26) 50%, transparent 70%);
+  transform: translateX(-120%);
+  animation: mnFxScan .52s var(--mn-ease-silky) forwards;
+}
+@keyframes mnFxScan {
+  0%   { transform: translateX(-120%); opacity: .9; }
+  100% { transform: translateX(120%);  opacity: 0; }
+}
+
+/* 01 · BARS: Rotating Cross (+ / x / menu) */
+.mn-anim-cross svg, .mn-anim-cross > span:first-child {
+  animation: mnAnimCross .46s var(--mn-ease-spring);
+}
+@keyframes mnAnimCross {
+  0%   { transform: rotate(0deg) scale(1); }
+  45%  { transform: rotate(90deg) scale(0.84); }
+  100% { transform: rotate(90deg) scale(1); }
+}
+
+/* 01 · BARS: Equalizer / Audio Pulse */
+.mn-anim-bars svg {
+  animation: mnAnimBars .52s var(--mn-ease-spring);
+}
+@keyframes mnAnimBars {
+  0%   { transform: scaleY(1); }
+  25%  { transform: scaleY(0.72) scaleX(1.08); }
+  55%  { transform: scaleY(1.18) scaleX(0.94); }
+  80%  { transform: scaleY(0.92); }
+  100% { transform: scaleY(1); }
+}
+
+/* 02 · SQUARES: Rocking / Sliding Tile (Kanban / Boards / Cards) */
+.mn-anim-square svg {
+  animation: mnAnimSquare .48s var(--mn-ease-spring);
+}
+@keyframes mnAnimSquare {
+  0%   { transform: rotate(0deg) scale(1); }
+  30%  { transform: rotate(-10deg) scale(0.88); }
+  65%  { transform: rotate(6deg) scale(1.10); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+/* 03 · ORBIT: Smooth Tapered Spin (Sync / Refresh / Looks / Sparkle) */
+.mn-anim-orbit svg {
+  animation: mnAnimOrbit .62s var(--mn-ease-silky);
+}
+@keyframes mnAnimOrbit {
+  0%   { transform: rotate(0deg) scale(1); }
+  35%  { transform: rotate(160deg) scale(1.14); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+/* 04 · PROGRESS: Checkmark Pop + Draw-In */
+.mn-anim-check svg {
+  animation: mnAnimCheck .46s var(--mn-ease-spring);
+}
+@keyframes mnAnimCheck {
+  0%   { transform: scale(0.7); opacity: .6; }
+  55%  { transform: scale(1.22); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* 04 · PROGRESS: Directional Pill Glide (Next / Prev / 完整 App >) */
+.mn-anim-glide-r svg {
+  animation: mnAnimGlideR .42s var(--mn-ease-spring);
+}
+@keyframes mnAnimGlideR {
+  0%   { transform: translateX(0); }
+  45%  { transform: translateX(4px) scale(1.08); }
+  100% { transform: translateX(0); }
+}
+.mn-anim-glide-l svg {
+  animation: mnAnimGlideL .42s var(--mn-ease-spring);
+}
+@keyframes mnAnimGlideL {
+  0%   { transform: translateX(0); }
+  45%  { transform: translateX(-4px) scale(1.08); }
+  100% { transform: translateX(0); }
+}
+
+/* 06 · OBJECTS: Ringing Bell (top-pivot damped swing) */
+.mn-anim-bell svg {
+  transform-origin: 50% 15%;
+  animation: mnAnimBell .62s var(--mn-ease-silky);
+}
+@keyframes mnAnimBell {
+  0%   { transform: rotate(0deg); }
+  18%  { transform: rotate(16deg); }
+  38%  { transform: rotate(-14deg); }
+  58%  { transform: rotate(9deg); }
+  78%  { transform: rotate(-5deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* 06 · OBJECTS: Starburst Pop (Favorite / Star / Award) */
+.mn-anim-star svg {
+  animation: mnAnimStar .54s var(--mn-ease-spring);
+}
+@keyframes mnAnimStar {
+  0%   { transform: scale(1) rotate(0deg); }
+  35%  { transform: scale(1.28) rotate(24deg); }
+  70%  { transform: scale(0.92) rotate(-8deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+/* Default Crisp Geometric Tap Pop for any icon button */
+.mn-anim-pop svg {
+  animation: mnAnimPop .42s var(--mn-ease-spring);
+}
+@keyframes mnAnimPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(0.82); }
+  75%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button, button::after, button svg { animation: none !important; transition: none !important; }
+}
+</style>
+<script id="mn-btn-motion-js">
+(function () {
+  var ALL = ['mn-fx-scan','mn-anim-cross','mn-anim-bars','mn-anim-square','mn-anim-orbit','mn-anim-check','mn-anim-glide-r','mn-anim-glide-l','mn-anim-bell','mn-anim-star','mn-anim-pop'];
+  function pickAnim(btn) {
+    var txt = ((btn.getAttribute('aria-label') || '') + ' ' + (btn.title || '') + ' ' + (btn.textContent || '')).toLowerCase();
+    if (/bell|notif|remind|提醒|通知|闹钟/.test(txt)) return 'mn-anim-bell';
+    if (/star|fav|bookmark|award|badge|收藏|勋章/.test(txt)) return 'mn-anim-star';
+    if (/check|done|complete|学会|完成|✓|✔/.test(txt)) return 'mn-anim-check';
+    if (/sync|refresh|reload|looks|fx|light|dark|theme|外观|刷新|同步/.test(txt)) return 'mn-anim-orbit';
+    if (/audio|voice|speak|read|sound|mic|朗读|语音|听/.test(txt)) return 'mn-anim-bars';
+    if (/prev|back|left|上一|返回|‹|◀|←/.test(txt)) return 'mn-anim-glide-l';
+    if (/next|forward|right|完整 app|开始|下一|›|▶|→/.test(txt)) return 'mn-anim-glide-r';
+    if (/add|new|plus|close|menu|加|新建|\+|✕|×/.test(txt)) return 'mn-anim-cross';
+    if (/board|kanban|list|card|wallet|grid|看板|列表|闪卡|书桌/.test(txt)) return 'mn-anim-square';
+    return 'mn-anim-pop';
+  }
+  document.addEventListener('click', function (e) {
+    var btn = e.target && e.target.closest && e.target.closest('button');
+    if (!btn || btn.disabled || btn.classList.contains('miv-fan-item')) return;
+    var anim = pickAnim(btn);
+    ALL.forEach(function (c) { btn.classList.remove(c); });
+    void btn.offsetWidth;
+    btn.classList.add(anim);
+    // Add subtle horizontal scanner sweep to pill/solid buttons (skip tiny icon-only buttons < 56px)
+    if (btn.offsetWidth >= 56 && getComputedStyle(btn).position !== 'static' || btn.classList.contains('mn-bapp')) {
+      btn.classList.add('mn-fx-scan');
+    }
+    clearTimeout(btn._mnAnimT);
+    btn._mnAnimT = setTimeout(function () {
+      btn.classList.remove(anim);
+      btn.classList.remove('mn-fx-scan');
+    }, 680);
+  }, true);
+})();
+</script>
 <style id="mn-spatial-home-css">
 /* Minest · Spatial Home — everything is scoped under #mn-sh (and the sh- ids), so it can live inside the Minest page. */
 #mn-sh, #sh-host, #sh-veil, #sh-pill { --sh-ink: #1d2b4f; --sh-blue: #2f6fd6; --sh-paper: #fbf7ee; --sh-glass: rgba(251, 247, 238, .82); --sh-line: rgba(29, 43, 79, .14); }
@@ -182883,6 +183719,53 @@ html.mf-book #mn-sh #sh-edit.float { width: auto !important; }
 #mn-sh .sh-fmenu button i svg { width: 16px; height: 16px; }
 /* a long list of choices (the environment picker) scrolls inside its card instead of running off the screen */
 #mn-sh #sh-card { max-height: calc(100% - 52px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; }
+
+/* This switch controls Minest's original main Dock (Settings, Pet Raising and other apps). */
+#mn-sh #sh-dockBtn { width: auto; min-width: 44px; padding-inline: 8px; font-size: 12px; }
+html.sh-main-dock-enabled body .mn-bdock { display: flex !important; z-index: 2147483610 !important; opacity: 1 !important; visibility: visible !important; pointer-events: auto !important; }
+html.sh-main-dock-enabled[data-mn-bd="bottom"] body .mn-bdock { transform: translate(-50%,0) !important; }
+html.sh-main-dock-enabled[data-mn-bd="right"] body .mn-bdock,
+html.sh-main-dock-enabled[data-mn-bd="left"] body .mn-bdock { transform: translate(0,-50%) !important; }
+html.sh-main-dock-disabled body .mn-bdock { display: none !important; }
+
+/* Feature navigation appears while interacting and rests in the lower-right corner. */
+#sh-pill, #sh-pill.mini, #sh-pill.mini:hover, #sh-pill.mini:focus-visible {
+  left: auto !important; top: auto !important; right: calc(14px + env(safe-area-inset-right)) !important;
+  bottom: calc(16px + env(safe-area-inset-bottom)) !important; transform: none !important;
+  width: 44px; min-width: 44px; height: 44px; padding: 0; border-radius: 50%; font-size: 22px; line-height: 42px; text-align: center; text-indent: 0; opacity: .9;
+}
+#sh-reading-enter, #sh-reading-exit {
+  position: fixed; z-index: 2147483647; min-width: 44px; height: 44px; padding: 0 14px;
+  border: 1px solid rgba(255,255,255,.5); border-radius: 999px; color: #fff; background: rgba(29,43,79,.82);
+  font: 600 13px/1.3 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif; cursor: pointer;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); transition: opacity .25s;
+}
+#sh-reading-enter { right: calc(70px + env(safe-area-inset-right)); bottom: calc(16px + env(safe-area-inset-bottom)); font-size: 24px; }
+#sh-reading-exit { left: calc(12px + env(safe-area-inset-left)); top: auto; bottom: calc(16px + env(safe-area-inset-bottom)); width: 44px; padding: 0; border-radius: 50%; line-height: 0; }
+#sh-reading-exit { box-sizing: border-box; text-indent: 0; overflow: hidden; }
+#sh-reading-exit svg { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: 0; transform: translate(-50%,-50%); display: block; pointer-events: none; }
+#sh-reading-enter[hidden], #sh-reading-exit[hidden] { display: none !important; }
+#sh-pill.sh-control-idle, #sh-reading-enter.sh-control-idle { opacity: 0 !important; visibility: hidden; pointer-events: none !important; }
+#sh-reading-enter:focus-visible, #sh-reading-exit:focus-visible, #sh-pill:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+
+/* Backpack stays inside the viewport; controls do not shrink below a finger-sized target. */
+#mn-bp, #mn-bp * { box-sizing: border-box; }
+#mn-bp { max-width: calc(100dvw - 24px); max-height: calc(100dvh - 80px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+#mn-bp .flap, #mn-bp .tabs { flex-shrink: 0; }
+#mn-bp .flap { flex-wrap: wrap; gap: 8px; }
+#mn-bp .flap .plate { flex: 1; }
+#mn-bp .flap input { order: 3; flex: 1 0 100%; }
+#mn-bp button { min-height: 44px; touch-action: manipulation; }
+#mn-bp .flap button { min-width: 64px; flex: none; }
+#mn-bp .grid, #mn-bp .pv { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+#mn-bp .tabs { touch-action: pan-x; }
+#mn-bp .it img, #mn-bp .it i { pointer-events: none; }
+@media (max-width: 640px) { #mn-bp { left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); width: auto; max-width: none; } #mn-bp .pv { max-height: 42%; min-height: 0; } }
+
+#mn-bp .grid { grid-auto-rows: max-content !important; }
+#mn-bp .grid .it { height: 108px !important; min-height: 108px !important; min-width: 0; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+#mn-bp .it img, #mn-bp .it i { flex: none; }
+#mn-bp .it span { flex: none; line-height: 18px; }
 </style>
 <script id="mn-spatial-home">
 window.__SPATIAL_HOME_EMBEDDED__ = true;
@@ -185114,6 +185997,29 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       if (keep.length !== idx.count) { g = m.geometry = g.clone(); g.setIndex(keep); }   // on its own copy: a model's rooms share one geometry (the study's four quadrants do) — cutting the shared one cut all four
     });
   }
+  /* Subtract a box from triangles, splitting boundary-crossing faces and interpolating UVs.
+     Unlike centroid cuts, this opens large wall panels as well as shelf boards. */
+  function carveNiches(model, boxes) {
+    model.updateMatrixWorld(true);
+    model.traverse(function (m) {
+      if (!m.isMesh || !m.geometry.attributes.position) return;
+      var src=m.geometry, attrs=Object.keys(src.attributes), pos=src.attributes.position, idx=src.index;
+      var bounds=new THREE.Box3().setFromObject(m);
+      var cuts=boxes.filter(function(q){return bounds.intersectsBox(new THREE.Box3(new THREE.Vector3(q[0],q[1],q[2]),new THREE.Vector3(q[3],q[4],q[5])));});
+      if (!cuts.length) return;
+      var out={}, groups=[], cursor=0, changed=false;
+      attrs.forEach(function(k){out[k]=[];});
+      function vertex(i){var a={};attrs.forEach(function(k){var at=src.attributes[k],v=[];for(var c=0;c<at.itemSize;c++){var v0=at.isInterleavedBufferAttribute?at.data.array[i*at.data.stride+at.offset+c]:at.array[i*at.itemSize+c];if(at.normalized){var ar=at.isInterleavedBufferAttribute?at.data.array:at.array;if(ar instanceof Int16Array)v0=Math.max(-1,v0/32767);else if(ar instanceof Uint16Array)v0/=65535;else if(ar instanceof Int8Array)v0=Math.max(-1,v0/127);else if(ar instanceof Uint8Array)v0/=255;}v.push(v0);}a[k]=v;});a.world=new THREE.Vector3().fromArray(a.position).applyMatrix4(m.matrixWorld).toArray();return a;}
+      function mix(a,b,t){var v={};attrs.concat(['world']).forEach(function(k){v[k]=a[k].map(function(x,c){return x+(b[k][c]-x)*t;});});return v;}
+      function partition(poly,axis,limit,sign){var inside=[],outside=[];for(var i=0;i<poly.length;i++){var a=poly[i],b=poly[(i+1)%poly.length],da=(a.world[axis]-limit)*sign,db=(b.world[axis]-limit)*sign,ia=da>=0,ib=db>=0;(ia?inside:outside).push(a);if(ia!==ib){var v=mix(a,b,da/(da-db));inside.push(v);outside.push(v);}}return [inside,outside];}
+      function subtract(poly,q){var planes=[[0,q[0],1],[0,q[3],-1],[1,q[1],1],[1,q[4],-1],[2,q[2],1],[2,q[5],-1]],rem=poly,kept=[];for(var j=0;j<6&&rem.length>=3;j++){var p=planes[j],s=partition(rem,p[0],p[1],p[2]);if(s[1].length>=3)kept.push(s[1]);rem=s[0];}if(rem.length>=3)changed=true;return kept;}
+      function emit(poly,mat){for(var j=1;j+1<poly.length;j++){[poly[0],poly[j],poly[j+1]].forEach(function(v){attrs.forEach(function(k){Array.prototype.push.apply(out[k],v[k]);});});var last=groups[groups.length-1];if(last&&last.materialIndex===mat)last.count+=3;else groups.push({start:cursor,count:3,materialIndex:mat});cursor+=3;}}
+      var count=idx?idx.count:pos.count;
+      for(var i=0;i+2<count;i+=3){var tri=[vertex(idx?idx.getX(i):i),vertex(idx?idx.getX(i+1):i+1),vertex(idx?idx.getX(i+2):i+2)],polys=[tri];cuts.forEach(function(q){var next=[];polys.forEach(function(p){var lo=[Infinity,Infinity,Infinity],hi=[-Infinity,-Infinity,-Infinity];p.forEach(function(v){for(var a=0;a<3;a++){lo[a]=Math.min(lo[a],v.world[a]);hi[a]=Math.max(hi[a],v.world[a]);}});if(hi[0]<=q[0]||lo[0]>=q[3]||hi[1]<=q[1]||lo[1]>=q[4]||hi[2]<=q[2]||lo[2]>=q[5])next.push(p);else Array.prototype.push.apply(next,subtract(p,q));});polys=next;});var sg=src.groups.find(function(gr){return i>=gr.start&&i<gr.start+gr.count;}),mat=sg?sg.materialIndex:0;polys.forEach(function(p){emit(p,mat);});}
+      if(!changed)return;
+      var dst=new THREE.BufferGeometry();attrs.forEach(function(k){dst.setAttribute(k,new THREE.Float32BufferAttribute(out[k],src.attributes[k].itemSize));});groups.forEach(function(g){dst.addGroup(g.start,g.count,g.materialIndex);});dst.computeBoundingBox();dst.computeBoundingSphere();m.geometry=dst;
+    });
+  }
   /* window glass out of a scan: inside each box, drop only the triangles whose texture is near-white (the blown-out
      glass and sheers); the frames and glazing bars, darker, stay — the view outside then shows through */
   function cutGlass(model, boxes, thr) {
@@ -185676,9 +186582,19 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     var _v = new THREE.Vector3(), _w = new THREE.Vector3();
     model.traverse(function (o) {
       if (!/^Books_\d+$/.test(o.name) || !o.parent) return;
-      o.getWorldPosition(_v); _w.copy(_v); _w.y -= DROP; o.parent.worldToLocal(_v); o.parent.worldToLocal(_w); o.position.add(_w.sub(_v));
+      o.getWorldPosition(_v); if (_v.x < -7.3 && VSTORE.some(function (r) { return _v.z > r[0] && _v.z < r[1]; })) { o.visible = false; return; }
+      if (_v.z < -11 && VNICHE.some(function (r) { return _v.x > r[0] && _v.x < r[1]; })) { o.visible = false; return; }
+      _w.copy(_v); _w.y -= DROP; o.parent.worldToLocal(_v); o.parent.worldToLocal(_w); o.position.add(_w.sub(_v));
     });
     model.updateMatrixWorld(true);
+    // Books are lowered onto their shelves above; trim them in their final pose as well.
+    model.traverse(function(o) { if (/^Books_\d+$/.test(o.name) && o.visible) carveNiches(o, VICT.niches); });
+    // Scanned book clusters have pivots outside their visible span. Clear by their final bounds.
+    model.traverse(function(o) {
+      if (!o.isMesh || !/Books_/.test(o.name + ' ' + (o.parent ? o.parent.name : ''))) return;
+      var b = new THREE.Box3().setFromObject(o);
+      if (b.min.x < -7.3 && [[-12.25,-9.85],[-7.65,-5.55]].some(function(z) { return b.max.z > z[0] && b.min.z < z[1]; })) o.visible=false;
+    });
     var seed = 20261113; function rnd() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
     function wallOf(x, z) { var dx = x - CX, dz = z - CZ; if (Math.abs(dx) >= Math.abs(dz)) return Math.abs(dx) > 7.0 ? (dx < 0 ? 'W' : 'E') : null; return Math.abs(dz) > 7.0 ? (dz < 0 ? 'N' : 'S') : null; }
     function along(w, x, z) { return (w === 'W' || w === 'E') ? z : x; }
@@ -185804,6 +186720,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
      Shared: a walnut with the bookcases' grain and tone, a deep green velvet with a gold fringe. */
   var VW = { z: -8.9, w: 6.8, h: 4.5, x: 8.45, face: 7.62 };            // the window: centre z, glass width / height, glass plane x, the bookcases' face x
   var VDOOR = { z: -3.6, x: 8.3 };
+  var VNICHE = [[-6.7, -5.3], [5.3, 6.7]];
+  var VSTORE = [[-4.85, -2.55], [-12.2, -9.9], [-7.65, -5.55]];   // two bays of the north bookcases left bare for the viola and vases
   function vicMats() {
     if (vicMats.m) return vicMats.m;
     var c = document.createElement('canvas'); c.width = 256; c.height = 512; var x = c.getContext('2d');
@@ -185829,17 +186747,26 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   /* a raised panel on a face facing +z (a frame, a sunk field, a raised centre) */
   function vpanel(g, M, x, y, z, w, h) { bxv(g, M.woodD, x, y, z + 0.004, w, h, 0.008); bxv(g, M.wood, x, y, z + 0.012, w - 0.07, h - 0.07, 0.012); bxv(g, M.woodL, x, y, z + 0.02, w - 0.16, h - 0.16, 0.008); }
   /* curtains: a pleated velvet drape gathered at a tie-back, hung from the pelmet. side -1: its outer edge on the left */
-  function vdrape(g, M, xOuter, side, z, top, w0) {
-    var tie = 1.15, geo = new THREE.PlaneGeometry(1, top, 40, 24), P = geo.attributes.position;
-    for (var i = 0; i < P.count; i++) {
-      var u = P.getX(i) + 0.5, y = P.getY(i) + top / 2;
-      var wd = y < tie ? w0 * (0.42 + 0.3 * Math.pow((tie - y) / tie, 1.4)) : w0 * (0.42 + 0.58 * Math.pow((y - tie) / (top - tie), 0.8));
-      var fold = Math.sin(u * Math.PI * 13) * 0.055 * (0.55 + wd / w0 * 0.6) + (y < 0.06 ? 0.02 : 0);
-      P.setXYZ(i, xOuter - side * 0 + side * u * wd, y, z + fold + (1 - u) * 0.03);
+  function vdrape(g, M, xOuter, side, z, top, w0, w1) {
+    var tie = 1.15, geo = new THREE.PlaneGeometry(1, top, 40, 24), P = geo.attributes.position, U = [], Y = [], i;
+    for (i = 0; i < P.count; i++) { U.push(P.getX(i) + 0.5); Y.push(P.getY(i) + top / 2); }
+    var tb = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.022, 8, 20), M.fringe); tb.scale.set(1, 0.45, 1); tb.rotation.x = Math.PI / 2; g.add(tb);
+    var tas = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.16, 10), M.fringe); g.add(tas);
+    /* t = 0: drawn back and held at the tie-back; t = 1: drawn across the window */
+    function set(t) {
+      for (var i = 0; i < P.count; i++) {
+        var u = U[i], y = Y[i];
+        var wo = y < tie ? w0 * (0.42 + 0.3 * Math.pow((tie - y) / tie, 1.4)) : w0 * (0.42 + 0.58 * Math.pow((y - tie) / (top - tie), 0.8));
+        var wd = wo + (w1 - wo) * t, ff = 13 * (1 + (w1 / 1.05 - 1) * t);
+        var fold = Math.sin(u * Math.PI * ff) * 0.055 * (0.55 + wd / w0 * 0.6 * (1 - t) + 0.6 * t) + (y < 0.06 ? 0.02 : 0);
+        P.setXYZ(i, xOuter + side * u * wd, y, z + fold + (1 - u) * 0.03);
+      }
+      P.needsUpdate = true; geo.computeVertexNormals();
+      tb.position.set(xOuter + side * w0 * 0.2, tie, z + 0.05); tas.position.set(xOuter + side * w0 * 0.4, tie - 0.12, z + 0.09); tb.visible = tas.visible = t < 0.5;
     }
-    geo.computeVertexNormals(); var d = new THREE.Mesh(geo, M.velvet); d.castShadow = true; g.add(d);
-    var tb = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.022, 8, 20), M.fringe); tb.scale.set(1, 0.45, 1); tb.rotation.x = Math.PI / 2; tb.position.set(xOuter + side * w0 * 0.2, tie, z + 0.05); g.add(tb);
-    var tas = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.16, 10), M.fringe); tas.position.set(xOuter + side * w0 * 0.4, tie - 0.12, z + 0.09); g.add(tas);
+    var d = new THREE.Mesh(geo, M.velvet); d.castShadow = true; g.add(d);
+    set(0);
+    return { set: set };
   }
   /* the Scenic Window, built into the east bookcases: the glass sits back in a deep panelled reveal (soffit, jambs,
      threshold), French casements with glazing bars in front of it, a moulded architrave with plinth blocks and a corniced
@@ -185875,8 +186802,33 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     var PW = W + 2 * AW + 0.9, PZ = D + 0.24, PT = H + 0.62;
     bxv(g, M.velvet, 0, PT - 0.22, PZ, PW, 0.46, 0.05); bxv(g, M.fringe, 0, PT - 0.46, PZ + 0.01, PW, 0.05, 0.06); bxv(g, M.gilt, 0, PT + 0.02, PZ, PW + 0.04, 0.04, 0.07);
     [-1, 1].forEach(function (s) { bxv(g, M.velvet, s * PW / 2, PT - 0.22, PZ - 0.12, 0.04, 0.46, 0.24); });
-    [-1, 1].forEach(function (s) { vdrape(g, M, s * (PW / 2 - 0.02), -s, PZ - 0.08, PT - 0.2, 1.05); });
+    var dr = [-1, 1].map(function (s) { return vdrape(g, M, s * (PW / 2 - 0.02), -s, PZ - 0.08 + (s > 0 ? 0.03 : 0), PT - 0.2, 1.05, PW / 2 + 0.08); });
+    /* the curtains: drawn across by default, a brass-and-silk cord by the window (vic-curtaincord) draws them back */
+    var cur = 1, tgt = 1, run = 0;
+    try { if (localStorage.getItem('minest.study.curtains') === '1') cur = tgt = 0; } catch (e) {}
+    function drawn() { dr.forEach(function (d) { d.set(cur); }); }
+    function step() { cur += Math.sign(tgt - cur) * Math.min(Math.abs(tgt - cur), 0.03); drawn(); if (cur !== tgt) run = requestAnimationFrame(step); else run = 0; }
+    drawn();
+    root.addEventListener('spatial:curtains', function (e) { tgt = e.detail && e.detail.on ? 0 : 1; if (!run) run = requestAnimationFrame(step); });
     return { group: g, alone: true };
+  }
+  /* the study board, built into the wall: a shallow gilt-and-walnut frame with a damask panel, flush with the bookcases */
+  function dressVicBoard(o) {
+    var S = VIC_STYLE, g = new THREE.Group(), M = vicMats(S), dm = damask(S), W = 1.7, H = 1.15;
+    // One fitted cassette. Its face stays inside the original bookcase front plane.
+    bx(g, M.woodD || M.wood, 0, 0, -0.12, 2.14, 1.60, 0.24);
+    [-1,1].forEach(function(side) {
+      bx(g, M.wood || M.woodD, side*1.005, 0, -0.015, 0.13, 1.60, 0.05);
+      bx(g, M.wood || M.woodD, 0, side*0.735, -0.015, 2.14, 0.13, 0.05);
+    });
+    [[0, H / 2 + 0.06, W + 0.22, 0.12], [0, -H / 2 - 0.06, W + 0.22, 0.12]].forEach(function (q) { bx(g, M.woodL || M.wood, q[0], q[1], 0.01, q[2], q[3], 0.05); });
+    [-1, 1].forEach(function (s) { bx(g, M.woodL || M.wood, s * (W / 2 + 0.06), 0, 0.01, 0.12, H, 0.05); });
+    var silk = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.MeshStandardMaterial({ map: dm.clone(), roughness: 0.7 }));
+    silk.material.map.needsUpdate = true; silk.material.map.repeat.set(W / 0.22, H / 0.22); silk.position.z = 0.002; g.add(silk);
+    [[0, H / 2 - 0.01, W, 0.014], [0, -H / 2 + 0.01, W, 0.014]].forEach(function (q) { bx(g, M.gilt, q[0], q[1], 0.008, q[2], q[3], 0.01); });
+    [-1, 1].forEach(function (s) { bx(g, M.gilt, s * (W / 2 - 0.01), 0, 0.008, 0.014, H, 0.01); });
+    bx(g, M.gilt, 0, H / 2 + 0.06, 0.04, 0.62, 0.07, 0.012);
+    return { group: g };
   }
   /* the study door, which is also the portal: an arched doorway the portal's opening fits, in a panelled walnut surround
      flush with the bookcases (pilasters, an entablature, a keystone), the door itself closed, its handle the one new, bright thing */
@@ -185918,7 +186870,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       var key = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.022, 0.004), M.dark); key.position.set(0, -0.1, 0.0135); hg.add(key);
     });
     [0.35, 1.7].forEach(function (y) { bxv(hinge, M.woodD, 0.0, y, 0, 0.02, 0.12, 0.06); });
-    return { group: g, alone: true, hideAll: true };
+    o.houseDoor = { hinge: hinge };
+    return { group: g, alone: true, hideAll: true, tick: function () { hinge.rotation.y += ((o.houseOpening ? -1.65 : 0) - hinge.rotation.y) * 0.12; } };
   }
   /* the pale pilasters between the bookcases take the bookcases' walnut, and nothing is shelved over them */
   function vicPilasters(model) {
@@ -185939,7 +186892,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     model.traverse(function (o) { if (/Line002/.test(o.name)) o.visible = false; });   // the scan's four floor strips came through the carpet as black lines
     var pilSkip = { W: [], E: [], N: [], S: [] }; try { pilSkip = vicPilasters(model); } catch (e) {}
     try { mantelPainting(model, holder); } catch (e) { if (root.console) console.warn('Spatial Home: painting', e); }
-    try { fillShelves(model, holder, { skipE: [[VW.z - VW.w / 2 - 0.6, VW.z + VW.w / 2 + 0.6], [-4.7, -2.5]].concat(pilSkip.E), skip: pilSkip }); } catch (e) { if (root.console) console.warn('Spatial Home: shelves', e); }   // the empty shelves get books (not behind the Scenic Window or the cut)
+    try { fillShelves(model, holder, { skipE: [[VW.z - VW.w / 2 - 0.6, VW.z + VW.w / 2 + 0.6], [-4.7, -2.5]].concat(pilSkip.E), skip: { W: pilSkip.W.concat(VSTORE), E: pilSkip.E, S: pilSkip.S, N: (pilSkip.N || []).concat(VNICHE) } }); } catch (e) { if (root.console) console.warn('Spatial Home: shelves', e); }   // the empty shelves get books (not behind the Scenic Window or the cut)
     /* reflections: a small warm room rendered once into an environment map */
     var envTex = null;
     if (R && THREE.PMREMGenerator) {
@@ -186043,7 +186996,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
           if (!holder.parent) return;                                   // the room was switched away while loading
           var m = gl.scene; capLoaded(m); m.position.fromArray(def.offset); m.rotation.y = def.ry || 0;
           m.traverse(function (o) { if (o.isMesh && o.material) { o.material.side = THREE.DoubleSide; o.receiveShadow = !!def.lit; if (o.material.map) o.material.map.anisotropy = 4; } });
-          holder.add(m); cut(m, def.cut); if (def.glass) cutGlass(m, def.glass, def.glassThr != null ? def.glassThr : 232);
+          holder.add(m); cut(m, def.cut); if (def.niches) carveNiches(m, def.niches); if (def.glass) cutGlass(m, def.glass, def.glassThr != null ? def.glassThr : 232);
           var furn = takeMovables(def, m);
           var R = solidsOf(m, 0, office); R.solids.forEach(function (s) { solids.push(s); });
           var SF = surfacesOf(m, def.walk); holder.add(SF.group); surfaces.push(SF.group);      // things can stand on the model now
@@ -186136,7 +187089,49 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     { uid: 9703, kind: 'vic-armour', title: '哥特式骑士盔甲', p: [7.5, -2.05], ry: -Math.PI / 2 },
     { uid: 9704, kind: 'vic-globe', title: '古典落地地球仪', p: [1.75, -6.75], ry: 0 },
     { uid: 9705, kind: 'vic-clock', title: '落地摆钟', p: [2.45, -12.72], ry: 0 },
-    { uid: 9706, kind: 'vic-lightswitch', title: '吊灯开关', p: [1.56, -11.985], y: 1.3, ry: 0 }];   // on the fireplace wall, right of the mantel
+    { uid: 9706, kind: 'vic-lightswitch', title: '吊灯开关', p: [1.56, -11.985], y: 1.3, ry: 0 },
+    { uid: 9707, kind: 'vic-curtaincord', title: '窗帘拉绳', p: [7.6, -4.95], y: 1.85, ry: -Math.PI / 2 }];   // on the fireplace wall, right of the mantel
+  /* v14: one armchair; the round tables and vases leave the floor; the viola stands in a bookcase bay; the board is built into the wall */
+  function vicUp7(L) {
+    var ex = L.extras = L.extras || [];
+    L.extras = ex = ex.filter(function (e) { return [9501, 9502, 9503, 9504, 9505, 9506, 9507].indexOf(e.uid) < 0; });
+    ex.forEach(function (e) { if (e.uid === 9508) { e.p = [-6.0, 1.12, -12.85]; e.ry = 0; } });
+    delete L.board;
+  }
+  // v15: one music table, a flush noticeboard, and a set of clear display bays.
+  function vicUp8(L) {
+    var placements = {
+      album: [-8.10, 1.005, -6.72], medals: [-8.10, 1.005, -5.54], carmodel: [-8.10, 1.005, -3.80],
+      ornament: [-8.10, 1.865, -6.72], projector: [-8.10, 1.865, -5.45], mochi: [-8.10, 1.865, -3.75],
+      bookstand: [-8.10, 2.735, -5.75], carkey: [-8.10, 2.735, -4.10], backpack: [-8.00, 0.135, -4.65],
+      gramophone: [-5.65, 0.725, -5.65], board: [-7.95, 1.85, -9.1]
+    };
+    Object.keys(placements).forEach(function (id) { L[id] = { p: placements[id], ry: Math.PI / 2, stashed: false }; });
+    L.projector16 = { p: [3.4, 0, -0.4], ry: 0, stashed: true };
+    var ex = L.extras = (L.extras || []).filter(function (e) { return e.uid !== 9504 && e.uid !== 9506; });
+    ex.push({ uid: 9504, kind: 'glb:victorian:Table_North', title: '红木留声机小桌', p: [-5.65, 0, -5.65], ry: 0 });
+  }
+  function vicUp9(L) {
+    L.gramophone = { p: [-5.65, 0.725, -5.65], ry: Math.PI / 2, stashed: false };
+    var ex = L.extras = L.extras || [];
+    ex.forEach(function (e) { if (e.uid === 9504) e.p = [-5.65, 0, -5.65]; });
+    if (!ex.some(function (e) { return e.uid === 9801; })) ex.push({ uid: 9801, kind: 'vic-secret-shelf', title: '红木书架', p: [7.98, 0, -0.65], ry: -Math.PI / 2 });
+  }
+  // v17: the reference-photo bays, and the armor beside the rotating bookcase.
+  function vicUp10(L) {
+    L.board = { p: [-7.95, 1.90, -11.05], ry: Math.PI / 2, stashed: false };
+    var places = { album: [1.005,-4.45], medals: [1.005,-3.65], carmodel: [1.005,-2.95], ornament: [1.865,-4.45], projector: [1.865,-3.65], mochi: [1.865,-2.95], bookstand: [2.735,-4.25], carkey: [2.735,-3.15], backpack: [0.135,-3.65] };
+    Object.keys(places).forEach(function (k) { L[k] = { p: [-8.10, places[k][0], places[k][1]], ry: Math.PI / 2, stashed: false }; });
+    (L.extras || []).forEach(function (e) {
+      if (e.uid === 9801) { e.p = [-7.98, 0, -6.60]; e.ry = Math.PI / 2; }
+      if (e.kind === 'vic-armour') { e.p = [-7.35, 0, -5.22]; e.ry = Math.PI / 2; }
+    });
+  }
+  // v18: place both working faces behind the surrounding casework, inside carved openings.
+  function vicUp11(L) {
+    L.board = { p: [-7.99, 1.90, -11.05], ry: Math.PI / 2, stashed: false };
+    (L.extras || []).forEach(function(e) { if(e.uid===9801) { e.p=[-8.22,0,-6.60];e.ry=Math.PI/2; } });
+  }
   function vicUp6(L) {
     var ex = L.extras = L.extras || [];
     VDECO.forEach(function (d) { if (ex.some(function (e) { return e.uid === d.uid; })) return; ex.push({ kind: d.kind, title: d.title, p: [d.p[0], d.y || 0, d.p[1]], ry: d.ry, uid: d.uid }); });
@@ -186156,19 +187151,20 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
         if (L.scenicWindow) delete L.scenicWindow;
         L.extras = ex = ex.filter(function (e) { return e.uid !== 9509 && e.uid !== 9510; });   // the two small rugs go: one carpet covers the room now
       }
-  var VSTART = { pos: [-6.6, 1.45, -8.8], yaw: -1.47, pitch: -0.07 };
+  var VSTART = { pos: [5.152, 1.45, -6.457], yaw: 0.7561, pitch: -0.0189 };
   var VEXTRA = { 9601: { p: vdesk(0, 0), ry: VD.ry }, 9602: { p: vdesk(0, 1.0), ry: VD.ry + Math.PI },
 9502: { p: [-0.85, -3.65], ry: -1.15 }, 9503: { p: [-0.35, -4.95], ry: -1.3 },                // two armchairs in the left foreground
 9500: { p: [-3.2, -10.9], ry: -1.36 }, 9501: { p: [-1.8, -10.4], ry: -0.99 },   // the fireplace pair, in the left foreground facing the fire
     9504: { p: VNT, ry: 0 }, 9506: { p: VNT, ry: 0 } };                                         // the round tables; the pedestal desk
   var VICT = { realistic: true, id: 'victorian', name: 'EC–6 Victorian Study', finish: victorianFinish, glb: 'interiors-glb/assets/victorian_study.glb', h: 6.5, lit: true, showroom: true,
     offset: [0, -0.2, -5.1], walk: [-8.4, -13.5, 8.4, 3.4], easel: null, far: 600,
-    cut: [[7.6, 0.02, -4.6, 14, 3.3, -2.6], [7.5, 0.02, VW.z - VW.w / 2 - 0.3, 14, VW.h, VW.z + VW.w / 2 + 0.3]],   // the doorway; the window's opening, through the bookcases and the wall                          // the east bookcase where the study window goes (the Scenic Window stands in front of the bookcase)
-    start: VSTART, startV: 8, deskCam: (function () { var a = vdesk(0, 0.95), b = vdesk(0, -0.2); return { pos: [a[0], 1.5, a[1]], look: [b[0], 0.78, b[1]] }; })(),
-    dress: { board: dressBoardOf(VIC_STYLE), aquarium: dressAquariumOf(VIC_STYLE), scenicWindow: dressVicWindow, tsqPortal: dressVicDoor },
+    niches: [[-9.3, 0.03, -7.55, -7.55, 3.02, -5.65], [-9.3, 0.88, -12.20, -7.3, 2.70, -9.90]],
+    cut: [ [7.6, 0.02, -4.6, 14, 3.3, -2.6], [7.5, 0.02, VW.z - VW.w / 2 - 0.3, 14, VW.h, VW.z + VW.w / 2 + 0.3]],   // the doorway; the window's opening, through the bookcases and the wall                          // the east bookcase where the study window goes (the Scenic Window stands in front of the bookcase)
+    start: VSTART, startV: 10, deskCam: (function () { var a = vdesk(0, 0.95), b = vdesk(0, -0.2); return { pos: [a[0], 1.5, a[1]], look: [b[0], 0.78, b[1]] }; })(),
+    dress: { board: dressVicBoard, aquarium: dressAquariumOf(VIC_STYLE), scenicWindow: dressVicWindow, tsqPortal: dressVicDoor },
     /* v1: the round table makes way for the pedestal desk (and its chair); it goes to the west reading corner with its vase */
     /* v2 (after the user's reference): the desk turned to face the room, a buttoned leather chair behind it */
-    upgrade: { v: 13, fn: function (L) { VICT.upgrade3.fn(L); vicUp4(L); vicUp5(L); delete L.scenicWindow; delete L.tsqPortal; vicUp6(L); } },   // v11: the window built in, the portal is the study door
+    upgrade: { v: 19, fn: function (L) { if ((L.up | 0) < 14) { VICT.upgrade3.fn(L); vicUp4(L); vicUp5(L); delete L.scenicWindow; delete L.tsqPortal; vicUp6(L); vicUp7(L); } if ((L.up | 0) < 15) vicUp8(L); if ((L.up | 0) < 16) vicUp9(L); vicUp10(L); vicUp11(L); } },
     upgrade3: { fn: function (L) {
       var ex = L.extras = L.extras || [];
       /* v3: the west wall is the Scenic Window's now — its library ladder goes to the north wall, beside the fireplace,
@@ -186189,7 +187185,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     anchors: {
       'desk.left': vdA(0, DY, 0.08, 0), 'desk.right': vdA(0.42, DY, 0.18, 0.2), 'desk.quill': vdA(-0.4, DY, 0.24, -0.3),
       'desk.key': vdA(-0.32, DY, -0.3, 0), 'desk.mochi': vdA(0.68, DY, -0.3, 0.3), 'desk.book': vdA(0.3, DY, -0.3, 0),
-      'wall.left': { p: [-2.7, 1.62, -0.38], ry: 0.35 }, 'wall.right': vnA(0, VY, 0.6),
+      'wall.left': { p: [-7.93, 1.7, -5.1], ry: Math.PI / 2 }, 'wall.right': vnA(0, VY, 0.6),
       'cabinet.top': vnA(-0.5, VY, 0.15), 'cabinet.left': vnA(0.5, VY, 0.15), 'cabinet.right': vnA(0, VY, 0.6),
       'shelf.mid': vnA(-0.45, VY, -0.4), 'sill.left': vnA(0.45, VY, -0.4),
       'corner.window': { p: [4.2, 0, -1.6], ry: -Math.PI / 2 }, 'floor.pack': { p: [-1.1, 0, 0.5], ry: 0.45 }, 'floor.gramo': { p: [-3.6, 0, -4.2], ry: Math.PI / 2 },
@@ -187990,6 +188986,59 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     return { group: g, hb: [0.66, 1.8, 0.5], place: 'floor' };
   };
 
+  // A complete bookcase swings on its concealed hinge; the armor is its hidden latch.
+  F['vic-secret-shelf'] = function (T) {
+    var g = new T.Group(), M = mats(T), state = root.MinestStudySecret = root.MinestStudySecret || { open: false, progress: 0 };
+    var wood = new T.MeshStandardMaterial({ color: new T.Color(0x3c2118).convertSRGBToLinear(), roughness: 0.43, metalness: 0.04 });
+    var trim = new T.MeshStandardMaterial({ color: new T.Color(0x643b27).convertSRGBToLinear(), roughness: 0.38, metalness: 0.05 });
+    // A central spindle lets the entire leaf reverse in its own bay instead of swinging into the next bay.
+    var pivot = new T.Group(); g.add(pivot);
+    var leaf = new T.Group(); pivot.add(leaf);
+    box(T, leaf, wood, 0, 1.36, -0.11, 1.44, 2.72, 0.12);
+    [-0.72, 0.72].forEach(function (x) { box(T, leaf, trim, x, 1.36, 0.02, 0.1, 2.72, 0.38); });
+    [0.12, 0.76, 1.40, 2.04, 2.68].forEach(function (y) { box(T, leaf, trim, 0, y, 0.02, 1.54, 0.08, 0.4); });
+    box(T, leaf, trim, 0, 2.79, 0.03, 1.64, 0.14, 0.44);
+    [0.08, 2.73].forEach(function (y) { box(T, leaf, M.gold, 0, y, 0.235, 1.44, 0.012, 0.012); });
+    var cols = [0x53201a, 0x202d3a, 0x334330, 0x6b4a2c];
+    [0.80, 1.44, 2.08].forEach(function (y, row) { for (var i = 0; i < 12; i++) {
+      var h = 0.40 + (i % 3) * 0.035, mat = new T.MeshStandardMaterial({ color: new T.Color(cols[(i + row) % cols.length]).convertSRGBToLinear(), roughness: 0.8 });
+      box(T, leaf, mat, -0.60 + i * 0.108, y + h / 2, 0.10, 0.09, h, 0.23);
+      box(T, leaf, M.gold, -0.60 + i * 0.108, y + 0.08, 0.219, 0.065, 0.008, 0.008);
+    } });
+    // The reverse carries the actual existing Times Square portal, including its live billboard and ticker.
+    var oldPortal = root.SpatialEntries && root.SpatialEntries.portal ? root.SpatialEntries.portal() : null;
+    if (oldPortal) { oldPortal.group.scale.setScalar(0.84); oldPortal.group.rotation.y = Math.PI; oldPortal.group.position.set(0,0.22,-0.25); leaf.add(oldPortal.group); }
+    // Full-depth jambs line the real opening; the reversing leaf sits inside, behind the outer lip.
+    box(T, g, wood, 0, 1.50, -0.68, 1.90, 3.0, 0.08);
+    [-1,1].forEach(function (side) {
+      box(T, g, wood, side*0.89, 1.50, -0.15, 0.12, 3.0, 1.10);
+      box(T, g, trim, side*0.94, 1.50, 0.18, 0.12, 3.06, 0.10);
+    });
+    box(T, g, wood, 0, 2.97, -0.15, 1.90, 0.10, 1.10);
+    box(T, g, wood, 0, 0.04, -0.15, 1.90, 0.08, 1.10);
+    box(T, g, trim, 0, 3.01, 0.18, 2.02, 0.12, 0.10);
+    box(T, g, trim, 0, 0.05, 0.18, 2.02, 0.10, 0.10);
+    [0.03,2.78].forEach(function (y) { var spindle = new T.Mesh(new T.CylinderGeometry(0.045,0.045,0.08,16),M.gold); spindle.position.set(0,y,0); g.add(spindle); });
+    var latch = box(T,g,M.gold,0.78,1.28,0.05,0.16,0.04,0.045);
+    var phase = state.open ? 1 : 0, last = null;
+    function smooth(x) { x = Math.max(0,Math.min(1,x)); return x*x*x*(x*(x*6-15)+10); }
+    return { group: g, hb: [1.86,3.0,0.8], place: 'wall',
+      tick: function (t, realTime) {
+        var now = typeof realTime === 'number' ? realTime : t;
+        var dt = last === null ? 0 : Math.max(0,now-last); last=now;
+        var target = state.open ? 1 : 0;
+        phase = state.reduced ? target : Math.max(0,Math.min(1,phase + Math.sign(target-phase)*dt/3.4));
+        var rotation = smooth((phase-0.20)/0.62), out = smooth((phase-0.08)/0.15)*(1-smooth((phase-0.84)/0.16));
+        pivot.position.z = 0.96*out; pivot.position.y = 0.018*smooth(phase/0.12)*(1-smooth((phase-0.90)/0.10));
+        pivot.rotation.y = Math.PI*rotation;
+        latch.position.x = 0.78+0.10*smooth(phase/0.08)*(1-smooth((phase-0.94)/0.06));
+        state.progress=phase; state.angle=pivot.rotation.y; state.moving=phase>0&&phase<1;
+        if (oldPortal) { oldPortal.group.visible = rotation>0.52; oldPortal.set(smooth((rotation-0.52)/0.48)); oldPortal.idle(t); }
+      },
+      press: function () { if (state.open && phase>=0.999) { root.dispatchEvent(new CustomEvent('spatial:secret-enter')); return ''; } return state.moving ? '机关正在转动，请稍候。' : '书架严丝合缝。'; }
+    };
+  };
+
   /* 4 · a library floor globe: an old map on the ball, a brass meridian at 23.5°, a carved mahogany horizon ring on four
      turned legs joined by a cross stretcher with a compass */
   F['vic-globe'] = function (T) {
@@ -188201,12 +189250,31 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       return on ? '吊灯点亮了 · 再按一下熄灭' : '吊灯熄灭了';
     } };
   };
+  /* 7 · the curtain pull: a brass rosette on the wall, a green silk cord and a gold tassel. A tap draws the study's curtains
+     back or across; the window listens for 'spatial:curtains' (kept in minest.study.curtains: 1 = open). */
+  F['vic-curtaincord'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var brassP = new T.MeshStandardMaterial({ color: L(0xe8bf62), roughness: 0.16, metalness: 1.0, envMapIntensity: 1.5 });
+    var silk = new T.MeshStandardMaterial({ color: L(0x1f5a3c), roughness: 0.55 }), gold = new T.MeshStandardMaterial({ color: L(0xc9a24a), roughness: 0.4, metalness: 0.5 });
+    var ros = new T.Mesh(new T.CylinderGeometry(0.05, 0.06, 0.03, 20), brassP); ros.rotation.x = Math.PI / 2; ros.position.z = 0.015; g.add(ros);
+    var cord = new T.Mesh(new T.CylinderGeometry(0.009, 0.009, 0.62, 8), silk); cord.position.set(0, -0.32, 0.045); g.add(cord);
+    var cap = new T.Mesh(new T.SphereGeometry(0.03, 12, 10), gold); cap.position.set(0, -0.66, 0.045); g.add(cap);
+    var tas = new T.Mesh(new T.ConeGeometry(0.036, 0.15, 14), silk); tas.rotation.x = Math.PI; tas.position.set(0, -0.76, 0.045); g.add(tas);
+    var fr = new T.Mesh(new T.CylinderGeometry(0.036, 0.04, 0.012, 14), gold); fr.position.set(0, -0.84, 0.045); g.add(fr);
+    var st = function () { try { return localStorage.getItem('minest.study.curtains') === '1'; } catch (e) { return false; } };
+    return { group: g, hb: [0.16, 0.95, 0.12], hbY: -0.42, place: 'floor', press: function () {
+      var on = !st(); try { localStorage.setItem('minest.study.curtains', on ? '1' : '0'); } catch (e) {}
+      root.dispatchEvent(new CustomEvent('spatial:curtains', { detail: { on: on } }));
+      return on ? '窗帘拉开了 · 再拉一下合上' : '窗帘拉上了';
+    } };
+  };
   [{ id: 'vic-piano', name: '三角钢琴', en: 'Concert grand piano', size: [1.56, 1.85, 2.9] },
    { id: 'vic-thinker', name: '思想者（大理石复刻）', en: 'The Thinker, marble replica', size: [0.62, 1.8, 0.62] },
    { id: 'vic-armour', name: '哥特式骑士盔甲', en: 'Gothic armour', size: [0.66, 1.8, 0.5] },
    { id: 'vic-globe', name: '古典落地地球仪', en: 'Library floor globe', size: [0.9, 1.04, 0.9] },
    { id: 'vic-clock', name: '落地摆钟', en: 'Longcase clock', size: [0.66, 2.55, 0.42] },
-   { id: 'vic-lightswitch', name: '吊灯开关', en: 'Chandelier switch', size: [0.14, 0.2, 0.08] }].forEach(function (c) {
+   { id: 'vic-lightswitch', name: '吊灯开关', en: 'Chandelier switch', size: [0.14, 0.2, 0.08] },
+   { id: 'vic-curtaincord', name: '窗帘拉绳', en: 'Curtain pull', size: [0.16, 0.95, 0.12] }].forEach(function (c) {
     if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.en, icon: '▣', place: 'floor', size: c.size, note: 'EC–6 维多利亚书房的陈设' }); });
 
   /* ───────── the outdoor office (Alpine Meadow, 2026-11-14): a round stone table, a stone chair, a stone bench, a MacBook
@@ -190630,7 +191698,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     var style = opts && opts.medal === 'wall' ? 'wall' : 'box';
     return [backpack(), gramophone(), filmProjector(), tsqPortal(), holoDesk(), aquarium(), quill(), mochi(), carKey(), style === 'wall' ? medalBoard() : medalBox(), bookstand(), carModel()];
   }
-  root.SpatialEntries = { make: make, routineCard: routineCard, ringsDay: ringsDay };
+  root.SpatialEntries = { make: make, portal: tsqPortal, routineCard: routineCard, ringsDay: ringsDay };
 })(window);
 
 /* Minest · Spatial Home — EC–6 Study Studio · the smart bulletin board (V1.0, Phase 1).
@@ -191849,6 +192917,10 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       ui = { el: el, cat: 'all', q: '', sel: null, host: host, raf: 0, spin: 0, drag: null };
       el.querySelector('input').addEventListener('input', function () { ui.q = this.value.trim().toLowerCase(); render(); });
       el.addEventListener('click', onClick);
+      ['pointerdown', 'pointerup', 'pointermove', 'click', 'wheel', 'touchstart', 'touchmove'].forEach(function (name) {
+        el.addEventListener(name, function (e) { e.stopPropagation(); }, { passive: true });
+      });
+      el.addEventListener('keydown', function (e) { e.stopPropagation(); if (e.key === 'Escape') { e.preventDefault(); close(false); } });
     }
     ui.host = host; ui.el.hidden = false;
     if (!host.reduced || !host.reduced()) { ui.el.classList.remove('opening'); void ui.el.offsetWidth; ui.el.classList.add('opening'); }
@@ -191858,7 +192930,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   function isOpen() { return !!(ui && !ui.el.hidden); }
   function items() { return catalog(ui.host); }
   function render() {
-    var all = items(), host = ui.host, p = pref(), queue = [];
+    var all = items(), host = ui.host, p = pref(), queue = [], grid = ui.el.querySelector('.grid'), scroll = grid.scrollTop;
     ui.el.querySelector('.tabs').innerHTML = CATS.map(function (c) { return '<button type="button" data-cat="' + c[0] + '" class="' + (ui.cat === c[0] ? 'on' : '') + '" title="' + c[2] + '">' + c[1] + '</button>'; }).join('');
     var list = all.filter(function (it) { return ui.cat === 'all' || (ui.cat === 'fav' ? p.fav.indexOf(it.key) >= 0 : it.cat === ui.cat); })
       .filter(function (it) { return !ui.q || (it.name + ' ' + (it.note || '') + ' ' + (it.en || '')).toLowerCase().indexOf(ui.q) >= 0; });
@@ -191868,7 +192940,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       if (rec.length) h += '<h5>最近使用</h5>' + rec.map(card).join('') + '<h5>全部物品</h5>';
     }
     h += list.map(card).join('') || '<h5>' + (ui.cat === 'creations' ? '还没有 Type Workshop 作品 — 在工坊里做一个，它就会出现在这里' : (ui.cat === 'fav' ? '在物品详情里点 ☆ 收藏，常用的会放进快捷栏' : '没有找到')) + '</h5>';
-    ui.el.querySelector('.grid').innerHTML = h;
+    grid.innerHTML = h; grid.scrollTop = scroll;
     function card(it) {
       var st = host.status(it), P = previewer(T), src = it.ready === false ? '' : P.cache[it.key];   // a machine not built yet has no model to show
       if (src === undefined) queue.push(it);
@@ -191876,17 +192948,32 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
         (src ? '<img alt="" src="' + src + '">' : '<i data-th="' + esc(it.key) + '">' + pix(it) + '</i>') + '<span>' + esc(it.name) + '</span>' +
         (st.badge ? '<b class="' + st.cls + '">' + esc(st.badge) + '</b>' : '') + '</button>';
     }
-    /* real model thumbnails, a few per frame, so the backpack opens at once */
-    var gen = (ui.gen = (ui.gen || 0) + 1);
-    (function fill() {
+    // Only visible slots need thumbnails. One idle task at a time leaves taps and scrolls responsive.
+    var gen = (ui.gen = (ui.gen || 0) + 1), pending = false;
+    function schedule() {
+      if (pending || !queue.length || ui.gen !== gen || ui.el.hidden) return;
+      pending = true;
+      (root.requestIdleCallback || function (fn) { return setTimeout(fn, 60); })(fill, { timeout: 350 });
+    }
+    function fill() {
+      pending = false;
       if (!ui || ui.gen !== gen || ui.el.hidden) return;
-      var t0 = performance.now();
-      while (queue.length && performance.now() - t0 < 12) {
-        var it = queue.shift(), src = thumb(T, it), slot = ui.el.querySelector('[data-th="' + it.key.replace(/"/g, '') + '"]');
-        if (src && slot) { var im = document.createElement('img'); im.alt = ''; im.src = src; slot.replaceWith(im); }
+      var bounds = grid.getBoundingClientRect(), found = -1, slot;
+      for (var i = 0; i < queue.length; i++) {
+        var slots = grid.querySelectorAll('[data-th]');
+        for (var j = 0; j < slots.length; j++) if (slots[j].getAttribute('data-th') === queue[i].key) {
+          var box = slots[j].getBoundingClientRect();
+          if (box.bottom >= bounds.top - 60 && box.top <= bounds.bottom + 60) { found = i; slot = slots[j]; }
+          break;
+        }
+        if (found >= 0) break;
       }
-      if (queue.length) requestAnimationFrame(fill);
-    })();
+      if (found < 0) return;
+      var it = queue.splice(found, 1)[0], src = thumb(T, it);
+      if (src && slot && slot.isConnected) { var im = document.createElement('img'); im.alt = ''; im.src = src; slot.replaceWith(im); }
+      schedule();
+    }
+    grid.onscroll = schedule; schedule();
     preview();
     hotbar(host);
   }
@@ -191913,14 +193000,14 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     /* the turning model */
     var cv = pv.querySelector('canvas'), g2 = cv.getContext('2d'), P = previewer(T), obj = null;
     try { if (it.ready !== false) { obj = objFor(T, it); frameOn(P, T, obj); } } catch (e) {}
-    var spin = 0, last = performance.now();
+    var spin = 0, last = performance.now(), rendered = 0;
     cv.onpointerdown = function (e) { ui.drag = { x: e.clientX, s: spin }; try { cv.setPointerCapture(e.pointerId); } catch (er) {} };
     cv.onpointermove = function (e) { if (ui.drag) spin = ui.drag.s + (e.clientX - ui.drag.x) * 0.012; };
     cv.onpointerup = cv.onpointercancel = function () { ui.drag = null; };
     (function loop(now) {
       if (!ui || ui.el.hidden || !cv.isConnected) return;
       if (!ui.drag) spin += (now - last) / 1000 * 0.6; last = now;
-      if (obj) { P.holder.rotation.y = spin; P.R.setSize(256, 214, false); P.C.aspect = 256 / 214; P.C.updateProjectionMatrix(); P.R.render(P.S, P.C); g2.clearRect(0, 0, cv.width, cv.height); g2.drawImage(P.cv, 0, 0, cv.width, cv.height); P.R.setSize(256, 256, false); P.C.aspect = 1; P.C.updateProjectionMatrix(); }
+      if (obj && now - rendered >= 50) { rendered = now; if (P.holder.children[0] !== obj) frameOn(P, T, obj); P.holder.rotation.y = spin; P.R.render(P.S, P.C); g2.clearRect(0, 0, cv.width, cv.height); var side = Math.min(cv.width, cv.height); g2.drawImage(P.cv, (cv.width - side) / 2, (cv.height - side) / 2, side, side); }
       ui.raf = requestAnimationFrame(loop);
     })(last);
   }
@@ -192916,10 +194003,79 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     return new URL(web ? t.web : t.flat, location.href).href;
   }
 
+  var reading = false, fullButton, exitButton, controlsTimer = 0, readingFocus = null, nativeReading = false, watchedDocuments = [];
+  var readingSelectors = 'button,[role="button"],[role="toolbar"],header.iphone-topbar,.ios-bottom-tab-bar,.mn-bdock,#minest-mini-pet-p0,#cs-btn,#sh-top,#sh-labels,#sh-stick,#sh-hint,#sh-credit,#sh-pill,#sh-reading-enter,#sh-dock,#sh-settings,#sh-pack,#sh-edit,#sh-card,#sh-toast,#sh-skip';
+  function readingDocument(doc, on, outer) {
+    try {
+      var style = doc.getElementById('sh-reading-style');
+      if (!style) {
+        style = doc.createElement('style'); style.id = 'sh-reading-style';
+        style.textContent = readingSelectors.split(',').map(function (s) { return 'html.sh-reading ' + s; }).join(',') + '{visibility:hidden!important;pointer-events:none!important}' +
+          'html.sh-reading body .mn-bdock.mn-bdock,html.sh-reading body .mn-bdock.mn-bdock::before,html.sh-reading body .mn-bdock.mn-bdock::after{display:none!important;visibility:hidden!important;pointer-events:none!important}' +
+          (outer ? 'html.sh-reading #sh-reading-exit{display:block!important;visibility:visible!important;pointer-events:auto!important}' : '');
+        doc.head.appendChild(style);
+      }
+      doc.documentElement.classList.toggle('sh-reading', on);
+    } catch (e) {}
+  }
+  function syncReading() {
+    readingDocument(document, reading, true);
+    [hostFrame, pageFrame].forEach(function (f) { if (f) try { readingDocument(f.contentDocument, reading, false); } catch (e) {} });
+  }
+  function wakeControls() {
+    if (!pill || pill.hidden || reading) return;
+    pill.classList.remove('sh-control-idle'); fullButton.classList.remove('sh-control-idle');
+    clearTimeout(controlsTimer);
+    controlsTimer = setTimeout(function () {
+      pill.classList.add('sh-control-idle'); fullButton.classList.add('sh-control-idle');
+    }, 2400);
+  }
+  function watchActivity(doc) {
+    if (!doc || watchedDocuments.indexOf(doc) !== -1) return;
+    watchedDocuments.push(doc);
+    ['pointermove', 'pointerdown', 'touchstart', 'wheel', 'keydown', 'focusin'].forEach(function (event) {
+      doc.addEventListener(event, wakeControls, { capture: true, passive: true });
+    });
+    doc.addEventListener('keydown', function (e) { if (reading && e.key === 'Escape') { e.preventDefault(); setReading(false); } }, true);
+  }
+  function watchFrame(frame) {
+    frame.addEventListener('load', function () {
+      try { watchActivity(frame.contentDocument); } catch (e) {}
+      syncReading();
+    });
+  }
+  function setReading(on) {
+    on = !!on; if (reading === on) return;
+    reading = on;
+    if (on) readingFocus = document.activeElement;
+    exitButton.hidden = !on; syncReading();
+    if (on) {
+      clearTimeout(controlsTimer); exitButton.focus({ preventScroll: true });
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        try {
+          var request = document.documentElement.requestFullscreen();
+          if (request && request.then) request.then(function () { nativeReading = true; if (!reading && document.exitFullscreen) document.exitFullscreen().catch(function () {}); }).catch(function () {});
+        } catch (e) {}
+      }
+    } else {
+      if (nativeReading && document.fullscreenElement && document.exitFullscreen) { try { document.exitFullscreen().catch(function () {}); } catch (e) {} }
+      nativeReading = false; wakeControls();
+      if (readingFocus && readingFocus.isConnected) try { readingFocus.focus({ preventScroll: true }); } catch (e) {}
+    }
+  }
   function init(o) {
-    wrap = o.wrap; pill = o.pill; onLeave = o.onLeave; onShow = o.onShow;
-    pill.addEventListener('click', function (e) { e.stopPropagation(); leave('home'); });
-    pill.addEventListener('mouseenter', function () { pill.textContent = '⌂ Home'; });
+    wrap = o.wrap; pill = o.pill; pill.setAttribute('aria-label', '回到 Spatial Home'); onLeave = o.onLeave; onShow = o.onShow;
+    fullButton = document.createElement('button'); fullButton.id = 'sh-reading-enter'; fullButton.type = 'button';
+    fullButton.textContent = '⛶'; fullButton.title = '全屏 · 纯净阅览'; fullButton.setAttribute('aria-label', fullButton.title); fullButton.hidden = true;
+    exitButton = document.createElement('button'); exitButton.id = 'sh-reading-exit'; exitButton.type = 'button';
+    exitButton.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h5V4M9 9 3 3M20 9h-5V4M15 9l6-6M4 15h5v5M9 15l-6 6M20 15h-5v5M15 15l6 6"/></svg>'; exitButton.title = '退出全屏'; exitButton.setAttribute('aria-label', '退出全屏'); exitButton.hidden = true;
+    document.body.appendChild(fullButton); document.body.appendChild(exitButton);
+    fullButton.addEventListener('click', function (e) { e.stopPropagation(); setReading(true); });
+    exitButton.addEventListener('click', function (e) { e.stopPropagation(); setReading(false); });
+    document.addEventListener('fullscreenchange', function () { if (reading && nativeReading && !document.fullscreenElement) setReading(false); });
+    watchActivity(document);
+    pill.addEventListener('click', function (e) { e.stopPropagation(); setReading(false); leave('home'); });
+    pill.addEventListener('mouseenter', function () { pill.textContent = '⌂'; });
     pill.addEventListener('mouseleave', function () { if (pill.classList.contains('mini')) pill.textContent = '⌂'; });
   }
   /* load the app once (standalone only); resolve with its window (or null if it never comes up) */
@@ -192930,7 +194086,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       if (hostState === 'loading') return;
       hostState = 'loading';
       hostFrame = document.createElement('iframe'); hostFrame.className = 'sh-frame'; hostFrame.title = 'Minest'; hostFrame.setAttribute('allow', 'camera; microphone; fullscreen; autoplay; clipboard-write');
-      hostFrame.src = appUrl(); wrap.appendChild(hostFrame);
+      watchFrame(hostFrame); hostFrame.src = appUrl(); wrap.appendChild(hostFrame);
       var t0 = Date.now(), iv = setInterval(function () {
         var ok = hostReady();
         if (ok || Date.now() - t0 > 45000) {
@@ -192986,13 +194142,13 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       if (EMBED) wrap.classList.remove('on');
       else { hostFrame.classList.add('on'); wrap.classList.add('on'); try { hostFrame.focus(); w.focus(); } catch (e2) {} }
     } else {
-      if (!pageFrame) { pageFrame = document.createElement('iframe'); pageFrame.className = 'sh-frame'; pageFrame.setAttribute('allow', 'camera; microphone; fullscreen; autoplay; xr-spatial-tracking; accelerometer; gyroscope'); wrap.appendChild(pageFrame); }
+      if (!pageFrame) { pageFrame = document.createElement('iframe'); pageFrame.className = 'sh-frame'; pageFrame.setAttribute('allow', 'camera; microphone; fullscreen; autoplay; xr-spatial-tracking; accelerometer; gyroscope'); watchFrame(pageFrame); wrap.appendChild(pageFrame); }
       var abs = pageUrl(t);
       if (pageFrame.dataset.url !== abs) { pageFrame.dataset.url = abs; pageFrame.src = abs; }
       pageFrame.classList.add('on'); if (hostFrame) hostFrame.classList.remove('on'); wrap.classList.add('on');
     }
-    current = t; seenOpen = false; pill.hidden = false; pill.classList.remove('mini'); pill.textContent = '⌂ Home';
-    clearTimeout(pill._mini); pill._mini = setTimeout(function () { if (!pill.hidden) { pill.classList.add('mini'); pill.textContent = '⌂'; } }, 2500);
+    current = t; seenOpen = false; pill.hidden = false; pill.classList.remove('mini'); pill.textContent = '⌂';
+    clearTimeout(pill._mini); fullButton.hidden = false; wakeControls();
     if (onShow) onShow(t);
     clearInterval(poll);
     if (t.kind === 'host' && !t.base && !t.sticky) poll = setInterval(function () {          // the feature's own ✕ brings you home
@@ -193003,7 +194159,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
   function isLive(t) { if (t.kind !== 'host' || t.base) return false; try { var w = hw(); return !!(w && t.test(w) && t.isOpen(w)); } catch (e) { return false; } }
   function leave(why) { if (!current) return; clearInterval(poll); var t = current; current = null; if (onLeave) onLeave(t, why); }
-  function hide() { clearTimeout(pill._mini); pill.hidden = true; wrap.classList.remove('on'); if (hostFrame) hostFrame.classList.remove('on'); if (pageFrame) pageFrame.classList.remove('on'); }
+  function hide() { setReading(false); clearTimeout(controlsTimer); clearTimeout(pill._mini); pill.hidden = true; if (fullButton) fullButton.hidden = true; wrap.classList.remove('on'); if (hostFrame) hostFrame.classList.remove('on'); if (pageFrame) pageFrame.classList.remove('on'); }
   /* leave Spatial Home for the plain app (the board): what the room opened is put away the feature's own way */
   function release() { clearInterval(poll); current = null; closeOthers(null); hide(); }
 
@@ -193028,7 +194184,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     if (q) { if (document.readyState === 'complete') openHere(q); else root.addEventListener('load', function () { openHere(q); }); }
     root.addEventListener('message', function (e) { var m = e.data; if (m && typeof m.mnLaptop === 'string') openHere(m.mnLaptop); });
   })();
-  root.SpatialBridge = { FEATURES: FEATURES, EMBED: EMBED, init: init, load: load, state: state, available: available, isLive: isLive, needsHost: needsHost, show: show, hide: hide, leave: leave, release: release, appUrl: appUrl, current: function () { return current; }, hostWindow: hw };
+  root.SpatialBridge = { FEATURES: FEATURES, EMBED: EMBED, init: init, setReading: setReading, load: load, state: state, available: available, isLive: isLive, needsHost: needsHost, show: show, hide: hide, leave: leave, release: release, appUrl: appUrl, current: function () { return current; }, hostWindow: hw };
 })(window);
 
 /* Minest · Spatial Home V1.0 (Phase 1 + 2) — "The Room Is the Interface. Objects Are the Apps."
@@ -193042,7 +194198,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     '<canvas id="sh-gl" tabindex="0" aria-label="Santorini Atelier"></canvas><div id="sh-labels" aria-hidden="true"></div>' +
     '<div id="sh-top"><div class="sh-brand"><strong>Minest</strong><span id="sh-brandName">Santorini Atelier</span></div>' +
     '<div class="sh-seg" id="sh-modeSeg" role="tablist" aria-label="模式"><button type="button" data-mode="explore" role="tab">Explore</button><button type="button" data-mode="desk" role="tab">Desk</button></div>' +
-    '<button type="button" class="sh-ic" id="sh-packBtn" title="背包 · 布置">🎒</button><button type="button" class="sh-ic" id="sh-envBtn" title="切换环境">🌐</button><button type="button" class="sh-ic" id="sh-viewsBtn" title="窗外风景">🪟</button><button type="button" class="sh-ic" id="sh-sitBtn" title="坐下 / 起立（C）">🪑</button><button type="button" class="sh-ic" id="sh-viewBtn" title="第一 / 第三人称">👤</button><button type="button" class="sh-ic" id="sh-setBtn" title="设置">⚙</button><button type="button" class="sh-ic" id="sh-menuBtn" title="显示 / 收起按钮" aria-expanded="false">≡</button>' +
+    '<button type="button" class="sh-ic" id="sh-packBtn" title="背包 · 布置">🎒</button><button type="button" class="sh-ic" id="sh-envBtn" title="切换环境">🌐</button><button type="button" class="sh-ic" id="sh-viewsBtn" title="窗外风景">🪟</button><button type="button" class="sh-ic" id="sh-sitBtn" title="坐下 / 起立（C）">🪑</button><button type="button" class="sh-ic" id="sh-viewBtn" title="第一 / 第三人称">👤</button><button type="button" class="sh-ic" id="sh-setBtn" title="设置">⚙</button><button type="button" class="sh-ic" id="sh-dockBtn" title="显示 Dock" aria-label="显示 Dock" aria-controls="mn-main-dock" aria-pressed="false">Dock</button><button type="button" class="sh-ic" id="sh-readingBtn" title="全屏 · 纯净阅览" aria-label="全屏 · 纯净阅览">⛶</button><button type="button" class="sh-ic" id="sh-menuBtn" title="显示 / 收起按钮" aria-expanded="false">≡</button>' +
     (EMBED ? '<button type="button" class="sh-ic" id="sh-exitBtn" title="进入完整的 Minest">✕</button>' : '') + '</div>' +
     '<button type="button" id="sh-skip" hidden>跳过动画 ›</button><div id="sh-dock" role="toolbar" aria-label="功能入口"></div><div id="sh-hint"></div><div id="sh-stick" aria-hidden="true"><i></i></div>' +
     '<div id="sh-settings" hidden><h3>Spatial Home</h3>' +
@@ -193063,12 +194219,12 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   var body = document.createElement('div'); body.id = 'mn-sh'; body.hidden = true; body.innerHTML = MARKUP; document.body.appendChild(body);
   function made(tag, id, html) { var e = document.getElementById(id); if (!e) { e = document.createElement(tag); e.id = id; if (html) e.innerHTML = html; document.body.appendChild(e); } return e; }
   made('div', 'sh-host'); made('div', 'sh-veil');
-  var pillEl = made('button', 'sh-pill', '⌂ Home'); pillEl.type = 'button'; pillEl.title = '回到 Spatial Home'; pillEl.hidden = true;
+  var pillEl = made('button', 'sh-pill', '⌂'); pillEl.type = 'button'; pillEl.title = '回到 Spatial Home'; pillEl.hidden = true;
   var $ = function (id) { return document.getElementById('sh-' + id); };
   var canvas = $('gl');
 
   /* ------------------------------------------------------------ settings (kept) */
-  var S = { def: 'last', mode: 'explore', view: '1p', motion: null, preload: true, boot: null, pose: null, desk: null, medal: 'box', deskStyle: 'classic', audio: null, env: 'santorini', poses: {}, layouts: {}, tod: 'auto', wviews: {} };
+  var S = { def: 'last', mode: 'explore', dockVisible: null, mainDockVisible: null, view: '1p', motion: null, preload: true, boot: null, pose: null, desk: null, medal: 'box', deskStyle: 'classic', audio: null, env: 'santorini', poses: {}, layouts: {}, tod: 'auto', wviews: {} };
   try { var raw = JSON.parse(localStorage.getItem(KEY) || 'null'); if (raw && typeof raw === 'object') for (var k0 in S) if (raw[k0] !== undefined) S[k0] = raw[k0]; } catch (e) {}
   if (S.motion === null) S.motion = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   /* EC–6 Study Studio (2026-11-13): it becomes the current room once; the 🌐 switcher still offers every other room */
@@ -193237,6 +194393,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
   function activate(o) {
     if (busy || !o) return;
+    if (room.envId === 'victorian' && o.id === 'tsqPortal') { busy = true; o.houseOpening = true; setTimeout(function () { busy = false; o.houseOpening = false; if (window.MinestSpatialHome.house) window.MinestSpatialHome.house(); else if (window.MinestSpatialHome.home) window.MinestSpatialHome.home(); }, S.motion ? 0 : 750); return; }
     if (o.panel) {
       busy = true; walkTo = null; setHot(null); body.classList.add('busy'); $('settings').hidden = true;
       if (o.aim) try { o.aim(); } catch (e) {}   // a thing may fit its close-up to the room first (the Scenic Window: stand back, short of the furniture)
@@ -193327,6 +194484,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     return Promise.all([animK(o, 0, 0.5), flyHome(0.75)]).then(function () { busy = false; body.classList.remove('busy'); showHint(); });
   }
   function onLeave() {
+    if (mainDockReturn) { mainDockReturn = false; B.release(); body.hidden = false; paused = false; resize(); try { canvas.focus(); } catch (e) {} return; }
     var f = inFeature; if (!f) { B.hide(); return; }
     inFeature = null;
     veilFade(1, 0.2).then(function () {
@@ -193343,11 +194501,41 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     [].forEach.call($('modeSeg').children, function (b) { b.classList.toggle('on', b.dataset.mode === m); });
     $('viewBtn').style.display = m === 'explore' ? '' : 'none'; $('viewBtn').classList.toggle('on', S.view === '3p'); sitBtnShow();
     $('dock').classList.toggle('hide', m !== 'desk');
+    updateDock();
     if (m === 'desk') { DK.yaw = 0; DK.pitch = 0; }                               // Desk always starts facing the desk
     dirty = true; showHint();
     if (quick) { camAuto = true; return; }
     busy = true; flyHome(0.85).then(function () { busy = false; });
   }
+  var mainDockReturn = false;
+  function updateDock() {
+    var visible = S.mainDockVisible === true;
+    var root = document.documentElement;
+    root.classList.toggle('sh-main-dock-enabled', visible);
+    root.classList.toggle('sh-main-dock-disabled', S.mainDockVisible === false);
+    var main = document.querySelector('.mn-bdock');
+    if (main) main.id = 'mn-main-dock';
+    var b = $('dockBtn');
+    b.classList.toggle('on', visible);
+    b.setAttribute('aria-pressed', visible ? 'true' : 'false');
+    b.title = visible ? '隐藏 Dock · Settings / Pet Raising' : '显示 Dock · Settings / Pet Raising';
+    b.setAttribute('aria-label', visible ? '隐藏主 Dock' : '显示主 Dock');
+  }
+  $('dockBtn').addEventListener('click', function (e) {
+    e.stopPropagation(); S.mainDockVisible = S.mainDockVisible !== true;
+    updateDock(); save();
+    if (!EMBED && S.mainDockVisible) {
+      var url = new URL(B.appUrl(), location.href); url.searchParams.set('home', '1'); url.searchParams.set('clun', '0');
+      location.href = url.href;
+    }
+  });
+  // Use the original Dock and its original actions; Home returns to the same room.
+  window.addEventListener('click', function (e) {
+    var button = e.target.closest && e.target.closest('.mn-bdock .mn-bapp');
+    if (!EMBED || !button || button.hasAttribute('data-spatial-home-dock') || body.hidden || !S.mainDockVisible) return;
+    mainDockReturn = true; paused = true;
+    B.show({ id: 'MainDock', label: 'Minest', kind: 'host', base: true, test: function () { return true; }, isOpen: function () { return true; }, open: function () {} });
+  }, true);
   function setView(v) { if (busy) return; S.view = v; $('viewBtn').classList.toggle('on', v === '3p'); if (v !== '3p') AV.sitting = AV.wantSit = false; sitBtnShow(); dirty = true; busy = true; flyHome(0.5).then(function () { busy = false; }); }
 
   if ((navigator.maxTouchPoints || 0) > 0 && window.matchMedia && matchMedia('(pointer: coarse)').matches) body.classList.add('touch');
@@ -193755,7 +194943,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     var L = layout();
     if (!L.furnished) { L.extras = (L.extras || []).concat((d.items || []).filter(function (it) { return !(L.extras || []).some(function (x) { return x.uid === it.uid; }); })); L.furnished = 1; saveLayout(room.envId, L); }
     if (room.upgrade && (L.up | 0) < room.upgrade.v) { try { room.upgrade.fn(L); } catch (er) {} L.up = room.upgrade.v; saveLayout(room.envId, L); }   // the room's own refurnishing, once
-    buildExtras(); rebuildHits();
+    placeAll();
   });
   function move(dt) {
     if (mode !== 'explore' || busy) return;
@@ -193903,9 +195091,23 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       var m = BP.model(THREE, e), hb = m.hb, hit = new THREE.Mesh(new THREE.BoxGeometry(Math.max(0.05, hb[0]), Math.max(0.05, hb[1]), Math.max(0.05, hb[2])), new THREE.MeshBasicMaterial({ visible: false }));
       hit.position.set(0, m.hbY != null ? m.hbY : hb[1] / 2, m.hbZ || 0); m.group.add(hit);
       m.group.position.fromArray(e.p); m.group.rotation.y = e.ry || 0; scene.add(m.group);
+      if (room.envId === 'victorian' && e.kind === 'vic-armour') m.press = function () { var st = window.MinestStudySecret = window.MinestStudySecret || { open: false, progress: 0 }; st.reduced = !!S.motion; st.open = !st.open; return st.open ? '咔哒——书架正在转开。' : '机关书架正在合拢。'; };
       var x = { e: e, group: m.group, hit: hit, place: m.place, tick: m.tick, machine: m.machine, press: m.press }; hit.userData.extra = x; XS.push(x);
     });
   }
+  window.addEventListener('spatial:secret-enter', function () {
+    if (room.envId !== 'victorian' || body.hidden) return;
+    var st = window.MinestStudySecret; if (!st || !st.open || st.progress < 0.999) return;
+    if (!window.SpatialTSQ) { toast('时代广场暂时无法打开'); return; }
+    paused=true; body.hidden=true;
+    window.SpatialTSQ.open(function (r) {
+      paused=false; body.hidden=false; resize();
+      if (r) { var target=B.FEATURES[r.feature||'kanban'].targets[0]; mainDockReturn=true; paused=true;
+        if (B.show(target)) { try { if (r.after) r.after(B.hostWindow()); } catch (e) {} }
+        else { mainDockReturn=false; paused=false; }
+      }
+    });
+  });
   /* what is nearest along the ray wins: a piano in front of the window is the piano, not the window */
   function nearestAt(e) {
     var o = pick(e), od = o ? (ray.intersectObject(o.hit, false)[0] || {}).distance : Infinity;
@@ -194002,6 +195204,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     body.classList.toggle('sh-fold', on); var mb = $('menuBtn'); mb.classList.toggle('on', !on); mb.setAttribute('aria-expanded', on ? 'false' : 'true');
     clearTimeout(foldT); if (!on) foldT = setTimeout(function () { if (!$('settings').hidden || (BP && BP.isOpen && BP.isOpen())) return fold(false); fold(true); }, 12000);
   }
+  $('readingBtn').addEventListener('click', function (e) { e.stopPropagation(); B.setReading(true); });
   $('menuBtn').addEventListener('click', function (e) { e.stopPropagation(); fold(!body.classList.contains('sh-fold')); });
   ['top', 'dock'].forEach(function (id) { $(id).addEventListener('pointerdown', function (e) { if (e.target.closest('#sh-menuBtn')) return; if (!body.classList.contains('sh-fold')) fold(false); }); });
   fold(true);
@@ -194255,12 +195458,12 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     requestAnimationFrame(frame);
     var dt = Math.min(0.05, clock.getDelta());
     stepTweens(dt);
-    if (paused || document.hidden || body.hidden || window.SpatialRoom.hold) return;   // hold: Scenic World is fully immersive over the room (scenic-window.js)
+    if (paused || document.hidden || body.hidden || (BP && BP.isOpen && BP.isOpen()) || window.SpatialRoom.hold) return;   // hold: Scenic World is fully immersive over the room (scenic-window.js)
     T += dt; move(dt); strollStep(dt);
     if (camAuto) { autoPose(camera.position, camera.quaternion); if (room.shake && !S.motion) { var sh = room.shake(T); camera.position.y += sh.y; camera.rotateZ(sh.roll); } }
     avatar.visible = mode === 'explore' && S.view === '3p' && boom > 0.7;
     if (avatar.visible) { placeFigure(dt); poseNow(dt); }
-    XS.forEach(function (x) { if (x.tick) try { x.tick(T); } catch (e) {} });
+    XS.forEach(function (x) { if (x.tick) try { x.tick(T, performance.now()/1000); } catch (e) {} });
     if (window.SpatialViews) window.SpatialViews.tick(T, dt, room);
     if (edit && arrows) placeArrows();
     for (var di = 0; di < DTICK.length; di++) try { DTICK[di](T); } catch (e) {}
@@ -194323,7 +195526,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
   var PUB = {
     version: '1.0',
-    open: function () { var a = mount(); a.open(); return a; },
+    open: function () { document.documentElement.classList.remove('mn-mac-web'); var a = mount(); a.open(); return a; },
     close: function () { if (API) API.close(); },
     isOpen: function () { return !!(API && API.isOpen()); },
     api: function () { return API; },
@@ -194358,14 +195561,14 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   entries();
   /* 开屏：先在 Clun（劳特布龙嫩山谷里的那栋房子）门前，点房门进屋、上二楼进书房，再进房间（书房暂时接到圣托里尼）。
      Clun 是单独的页面，放在一个全屏 iframe 里；iOS 包里没有它的文件，走线上地址。?clun=0 或载入失败时直接进房间。 */
-  function clunSrc() {
-    var q = '?scene=valley&entry=1';
+  function clunSrc(inside) {
+    var q = '?scene=valley&entry=1' + (inside ? '&inside=1' : '');
     return location.protocol === 'file:' ? 'https://minest-app.vercel.app/spatial-home/clun/' + q : 'spatial-home/clun/index.html' + q;
   }
-  function clunFirst(done, force) {
+  function clunFirst(done, force, inside) {
     if (!force && /[?&]clun=0\b/.test(location.search)) { done(); return; }
     var f = document.createElement('iframe'), ready = false, opened = false, feature = null;
-    f.id = 'mn-clun-splash'; f.src = clunSrc(); f.title = 'Clun';
+    f.id = 'mn-clun-splash'; f.src = clunSrc(inside); f.title = 'Clun';
     f.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;max-width:none;max-height:none;margin:0;padding:0;border:0;z-index:2147483647;background:#cfe0ee;opacity:1';
     document.body.appendChild(f);
     try { if (f.showPopover) { f.setAttribute('popover', 'manual'); f.showPopover(); } } catch (e) {}   /* 放进顶层，盖过页面里所有浮层（迷你宠物、速览页等） */
@@ -194381,9 +195584,11 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       room(); clearTimeout(to); window.removeEventListener('message', on); window.removeEventListener('resize', fit); if (window.visualViewport) { visualViewport.removeEventListener('resize', fit); visualViewport.removeEventListener('scroll', fit); }
       setTimeout(function () { f.style.transition = 'opacity .7s ease'; f.style.opacity = '0'; setTimeout(function () { if (f.parentNode) f.parentNode.removeChild(f); }, 800); }, 250);
     }
+    f.addEventListener('minest:open-web', function () { feature = '@mac-web'; end(); });
     function on(e) {
       if (e.source !== f.contentWindow || !e.data || typeof e.data.clun !== 'string') return;
       if (e.data.clun === 'ready') { ready = true; clearTimeout(to); }
+      else if (e.data.clun === 'web') { feature = '@mac-web'; end(); }
       else if (e.data.clun === 'enter') { feature = typeof e.data.feature === 'string' ? e.data.feature : (typeof e.data.action === 'string' && /^(pack|env|views|set)$/.test(e.data.action) ? '@' + e.data.action : null); end(); }   /* 进房间后打开某个功能，或按房间顶栏的同一个按钮（@pack 背包、@env 环境、@views 窗外、@set 设置） */   /* Clun 里点了 ≡ 的某项、或书桌上的打字机 / 羽毛笔：进房间后打开它 */
     }
     window.addEventListener('message', on);
@@ -194398,13 +195603,18 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     try { PUB.close(); } catch (e) {}
     clunFirst(enterRoom, true);
   };
+  PUB.house = function () { if (document.getElementById('mn-clun-splash')) return; try { PUB.close(); } catch (e) {} clunFirst(enterRoom, true, true); };
   function enterRoom(feature) {
-    var a = PUB.open();
+    if (feature === '@mac-web') {
+      try { PUB.close(); if (window.SpatialBridge) SpatialBridge.release(); if (window.MinestStartControls) MinestStartControls.showBoardDock(); } catch (e) {}
+      return;
+    }
+    var a = PUB.open(), requestedRoom = new URLSearchParams(location.search).get('room'), targetRoom = requestedRoom && a.envs().some(function (e) { return e.id === requestedRoom; }) ? requestedRoom : a.state().env;
     var t1 = Date.now(), iv1 = setInterval(function () {                     /* 从 Clun 进来：书房暂时是圣托里尼那间；要打开的功能等房间换好再开 */
       try {
         var st = a.state();
-        if ((st.env === 'santorini' && !st.busy) || Date.now() - t1 > 5000) { clearInterval(iv1); if (feature) setTimeout(function () { try { if (feature.charAt(0) === '@') { var btn = document.getElementById('sh-' + feature.slice(1) + 'Btn'); if (btn) btn.click(); } else if (a.activate) a.activate(feature); } catch (e) {} }, 400); }
-        else if (!st.busy && st.env !== 'santorini') a.setEnv('santorini');
+        if ((st.env === targetRoom && !st.busy) || Date.now() - t1 > 5000) { clearInterval(iv1); if (feature) setTimeout(function () { try { if (feature.charAt(0) === '@') { var btn = document.getElementById('sh-' + feature.slice(1) + 'Btn'); if (btn) btn.click(); } else if (a.activate) a.activate(feature); } catch (e) {} }, 400); }
+        else if (!st.busy && st.env !== targetRoom) a.setEnv(targetRoom);
       } catch (e) { clearInterval(iv1); }
     }, 200);
     /* Liquid Routine's own iOS start screen (Day Flow) may open at the same launch: the room is the start screen, so it is put away */
@@ -194416,842 +195626,6 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   if (document.readyState === 'complete') setTimeout(boot, 300); else window.addEventListener('load', function () { setTimeout(boot, 300); }, { once: true });
 })();
 
-</script>
-<style id="mn70-css">
-/* Minest Duo 70 — added by tools/duo-70/build.py */
-
-/* ---------- 1. board | 3D Cover: the board's card for the Cover's front card */
-html.duo-cover .sf-slot[data-sf-view="board"] article[data-mn70-cur] {
-  box-shadow: 0 0 0 1.5px rgba(255,255,255,.82), 0 0 0 5px rgba(255,255,255,.14), 0 10px 26px -10px rgba(0,0,0,.55) !important;
-  animation: mn70-cur .46s cubic-bezier(.22,1,.36,1);   /* no fill, and `scale` not `transform`: a row being swiped keeps its inline transform */
-}
-html.duo-cover .theme-white .sf-slot[data-sf-view="board"] article[data-mn70-cur] {
-  box-shadow: 0 0 0 1.5px rgba(16,24,40,.72), 0 0 0 5px rgba(16,24,40,.10), 0 10px 26px -12px rgba(16,24,40,.35) !important;
-}
-@keyframes mn70-cur {
-  from { scale: .985; filter: brightness(1.28); }
-}
-@media (prefers-reduced-motion: reduce) {
-  html.duo-cover .sf-slot[data-sf-view="board"] article[data-mn70-cur] { animation: none; }
-}
-
-/* ---------- 2. motion and detail */
-html.mn70 {
-  --mn70-out: cubic-bezier(.22,1,.36,1);        /* settles without a bounce */
-  --mn70-spring: cubic-bezier(.34,1.36,.64,1);  /* a small overshoot, for things that pop in */
-  -webkit-tap-highlight-color: transparent;
-}
-html.mn70 button, html.mn70 [role="button"], html.mn70 a { touch-action: manipulation; }
-
-/* a card answers the finger: it sinks a little while pressed (the card's own transition carries it back).
-   Only :active is styled, so a card being dragged (inline transform) is left alone. */
-html.mn70 .mobile-board-view article.kanban-card:active { transform: scale(.975); filter: brightness(1.08); }
-html.mn70 .mobile-board-view .kanban-column-wrapper button:active { transform: scale(.9); }
-
-/* keyboard focus is visible everywhere, and only for the keyboard */
-html.mn70 :is(button, a, [role="button"], [tabindex]):focus-visible { outline: 2px solid rgba(110,231,183,.95); outline-offset: 2px; border-radius: 10px; }
-
-/* numbers that change do not shift their neighbours */
-html.mn70 .kanban-column-wrapper .font-mono, html.mn70 .sf-slot[data-sf-view="coverflow"] .font-mono { font-variant-numeric: tabular-nums; }
-/* titles break into even lines */
-html.mn70 .coverflow-card-item h3, html.mn70 .kanban-column-wrapper h3 { text-wrap: balance; }
-html.mn70 article.kanban-card h4 { text-wrap: pretty; }
-
-/* list scrollbar: a thin pill, no arrow buttons */
-html.mn70 .kanban-cards-scroll { scrollbar-width: thin; }
-html.mn70 .kanban-cards-scroll::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
-
-/* a board comes in list by list (once per board, see v70.js) */
-html.mn70-enter .mobile-board-view .kanban-column-wrapper { animation: mn70-rise .52s var(--mn70-out) both; }
-html.mn70-enter .mobile-board-view .kanban-column-wrapper:nth-child(2) { animation-delay: .05s; }
-html.mn70-enter .mobile-board-view .kanban-column-wrapper:nth-child(3) { animation-delay: .1s; }
-html.mn70-enter .mobile-board-view .kanban-column-wrapper:nth-child(4) { animation-delay: .15s; }
-html.mn70-enter .mobile-board-view .kanban-column-wrapper:nth-child(n+5) { animation-delay: .2s; }
-@keyframes mn70-rise { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: none; } }
-
-/* ---------- 3. board | 3D Cover split */
-/* the two panes arrive together instead of snapping in */
-html.mn70-split-in.duo-cover body #root main > .sf-slot[data-sf-view="coverflow"] { animation: mn70-pane-cover .56s var(--mn70-out) both; }
-html.mn70-split-in.duo-cover body #root main > .sf-slot[data-sf-view="board"] { animation: mn70-pane-board .56s var(--mn70-out) both; }
-@keyframes mn70-pane-cover { from { opacity: 0; transform: translateX(-22px) scale(.97); } to { opacity: 1; transform: none; } }
-@keyframes mn70-pane-board { from { opacity: .35; transform: translateX(22px); } to { opacity: 1; transform: none; } }
-html.mn70-split-in.duo-cover.duo-tall body #root main > .sf-slot[data-sf-view="coverflow"] { animation-name: mn70-pane-cover-tall; }
-html.mn70-split-in.duo-cover.duo-tall body #root main > .sf-slot[data-sf-view="board"] { animation-name: mn70-pane-board-tall; }
-@keyframes mn70-pane-cover-tall { from { opacity: 0; transform: translateY(-22px) scale(.97); } to { opacity: 1; transform: none; } }
-@keyframes mn70-pane-board-tall { from { opacity: .35; transform: translateY(22px); } to { opacity: 1; transform: none; } }
-
-/* the hinge line fades out towards its ends instead of running edge to edge as a hard rule */
-html.mn70.duo-cover:not(.duo-tall) body #root main > .sf-slot[data-sf-view="coverflow"] { border-right-color: transparent !important; border-image: linear-gradient(to bottom, transparent, rgba(255,255,255,.2) 18%, rgba(255,255,255,.2) 82%, transparent) 1 !important; }
-html.mn70.duo-cover.duo-tall body #root main > .sf-slot[data-sf-view="coverflow"] { border-bottom-color: transparent !important; border-image: linear-gradient(to right, transparent, rgba(255,255,255,.2) 18%, rgba(255,255,255,.2) 82%, transparent) 1 !important; }
-
-/* the Cover's position bar keeps clear of the pane's edges (its "1" and "18" were cut off) */
-html.mn70.duo-cover .sf-slot[data-sf-view="coverflow"] section > div:has(> input[type="range"]) { padding-inline: 22px; box-sizing: border-box; }
-
-/* ---------- 4. speed */
-/* nothing animates while the app is in the background */
-html.mn70-hidden *, html.mn70-hidden *::before, html.mn70-hidden *::after { animation-play-state: paused !important; }
-
-@media (prefers-reduced-motion: reduce) {
-  html.mn70-enter .mobile-board-view .kanban-column-wrapper,
-  html.mn70-split-in.duo-cover body #root main > .sf-slot { animation: none !important; }
-  html.mn70 .mobile-board-view article.kanban-card:active, html.mn70 .mobile-board-view .kanban-column-wrapper button:active { transform: none; }
-}
-
-/* ---------- 4b. changing view (board, 3D Cover, Photos, Pins): the new view fades up instead of snapping in.
-   v70.js sets mn70-view-in for 1 s when the view's name changes (not when the split opens or closes).
-   `scale`, not `transform`, and no fill: the pane's own transform is never overridden. */
-html.mn70-view-in:not(.duo-cover) body #root main > .sf-slot[data-sf-view] { animation: mn70-view-x .42s var(--mn70-out); }
-html.mn70-view-in:not(.duo-cover) body #root main > .sf-slot[data-sf-view="board"] { animation-name: mn70-view-board; }
-html.mn70-view-in:not(.duo-cover) body #root main > .sf-slot[data-sf-view="coverflow"] { animation-name: mn70-view-cover; animation-duration: .5s; }
-@keyframes mn70-view-x { from { opacity: 0; scale: .985; } }
-@keyframes mn70-view-board { from { opacity: 0; scale: .985; } }
-@keyframes mn70-view-cover { from { opacity: 0; scale: 1.035; } }
-@media (prefers-reduced-motion: reduce) {
-  html.mn70-view-in:not(.duo-cover) body #root main > .sf-slot[data-sf-view] { animation: none !important; }
-}
-
-/* ---------- 5. Views fan: a soft shade behind the open fan, so its labels read over the board's text */
-html.mn70 .miv-fan::before {
-  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .28s ease;
-  background: radial-gradient(120% 90% at 50% 100%, rgba(6,10,18,.62), rgba(6,10,18,.34) 45%, rgba(6,10,18,0) 78%);
-}
-html.mn70 .miv-fan.miv-fan-open::before { opacity: 1; }
-html.mn70 .theme-white .miv-fan::before, html.mn70 body.theme-white .miv-fan::before {
-  background: radial-gradient(120% 90% at 50% 100%, rgba(255,255,255,.7), rgba(255,255,255,.4) 45%, rgba(255,255,255,0) 78%);
-}
-
-/* ---------- 6. press feedback where a tap had none (the icon moves, never the tile: the dock sizes its tiles itself) */
-html.mn70 .mn-bdock .mn-bapp svg, html.mn70 .mn-bdock .mn-bapp img { transition: transform .26s var(--mn70-spring); }
-html.mn70 .mn-bdock .mn-bapp:active svg, html.mn70 .mn-bdock .mn-bapp:active img { transform: scale(.84); transition-duration: .08s; }
-html.mn70 #mn-sh .sh-ic { transition: transform .24s var(--mn70-spring), background-color .18s ease; }
-html.mn70 #mn-sh .sh-ic:active { transform: scale(.9); transition-duration: .08s; }
-@media (prefers-reduced-motion: reduce) {
-  html.mn70 .mn-bdock .mn-bapp:active svg, html.mn70 .mn-bdock .mn-bapp:active img, html.mn70 #mn-sh .sh-ic:active { transform: none; }
-}
-
-/* ---------- 8. a board card under a finger (v70.js marks it): `scale` only, so a swipe's own transform is untouched */
-html.mn70 .mobile-board-view article.kanban-card[data-mn70-press] { animation: mn70-press .12s ease-out forwards; }
-html.mn70 .mobile-board-view article.kanban-card[data-mn70-rel] { animation: mn70-release .22s var(--mn70-spring); }
-@keyframes mn70-press { to { scale: .975; } }
-@keyframes mn70-release { from { scale: .975; } }
-
-/* ---------- 9. pet screen: its ✕ stays in reach. The page hides it with the pet's own controls after 4 s without a
-   touch (opacity 0, no taps), which leaves the full-screen pet with no visible way out until something is tapped.
-   Here it only dims, and still takes the tap. */
-html.mn70 #minest-pet-raising-overlay .minest-pet-x.idle { opacity: .34; pointer-events: auto; }
-html.mn70 #minest-pet-raising-overlay .minest-pet-x.idle:active { opacity: 1; }
-</style>
-<script id="mn70-js">
-/* Minest Duo 70 — added by tools/duo-70/build.py. Everything here is additive: it listens to the app's own events
-   and marks its own attributes; no app state is written. */
-(function () {
-  'use strict';
-  if (window.MinestV70) return;
-  var R = document.documentElement;
-  R.classList.add('mn70');
-  var reduce = false;
-  try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
-
-  /* ------------------------------------------------------------------ 1. board | 3D Cover, both ways
-     The board already turns the Cover (minest:cf-goto). Here the Cover turns the board: the card in front of the
-     Cover is marked on the board, and scrolled into view when it is out of sight. */
-  var CUR = 'data-mn70-cur';
-  var curEl = null, syncT = null, boardTouchAt = 0, ownScroll = null;
-
-  function split() { return R.classList.contains('duo-cover'); }
-  function boardPane() { return document.querySelector('.sf-slot[data-sf-view="board"]'); }
-  function q(id) { return String(id).replace(/\\/g, '\\\\').replace(/"/g, '\\"'); }
-  function shown(el) { var r = el.getBoundingClientRect(); return r.width > 40 && r.height > 8; }
-
-  /* the top card of the stack a card sits in (the card itself when it is not in a stack) */
-  function stackTop(board, id) {
-    var cols = (board && board.columns) || [];
-    function has(list) { return (list || []).some(function (c) { return String(c.id) === String(id) || has(c.stack); }); }
-    for (var i = 0; i < cols.length; i++) {
-      var cards = cols[i].cards || [];
-      for (var j = 0; j < cards.length; j++) {
-        if (String(cards[j].id) === String(id)) return String(id);
-        if (has(cards[j].stack)) return String(cards[j].id);
-      }
-    }
-    return null;
-  }
-  /* the board's element for a card: its own row, else (a card inside a closed stack) the stack's top card */
-  function boardCard(id) {
-    var pane = boardPane(); if (!pane || id == null) return null;
-    var own = pane.querySelectorAll('article[data-card-id="' + q(id) + '"]');
-    for (var i = 0; i < own.length; i++) if (shown(own[i])) return own[i];
-    var top = null;
-    try { top = stackTop(window.MinestAI.board(), id); } catch (e) {}
-    if (top == null || top === String(id)) return null;
-    var a = pane.querySelectorAll('article[data-card-id="' + q(top) + '"]');
-    for (var k = 0; k < a.length; k++) if (shown(a[k])) return a[k];
-    return null;
-  }
-  function scroller(el) {
-    for (var p = el.parentElement; p && p !== document.body; p = p.parentElement) {
-      if (p.scrollHeight > p.clientHeight + 4 && /(auto|scroll)/.test(getComputedStyle(p).overflowY)) return p;
-    }
-    return null;
-  }
-  function mark(el) {
-    if (curEl === el) return false;
-    if (curEl) curEl.removeAttribute(CUR);
-    curEl = el;
-    if (el) el.setAttribute(CUR, '');
-    return true;
-  }
-  /* bring the card into the list's view; the board's own "top card turns the Cover" stays quiet until the scroll rests */
-  function reveal(el) {
-    var sc = scroller(el); if (!sc) return;
-    var a = el.getBoundingClientRect(), b = sc.getBoundingClientRect(), pad = 14;
-    if (a.top >= b.top + pad - 1 && a.bottom <= b.bottom - pad + 1) return;
-    var to = sc.scrollTop + (a.top - b.top) - Math.max(pad, (b.height - a.height) * 0.3);
-    to = Math.max(0, Math.min(sc.scrollHeight - sc.clientHeight, Math.round(to)));
-    if (Math.abs(to - sc.scrollTop) < 2) return;
-    ownScroll = sc; window.__mn70Quiet = Date.now() + 900;
-    try { sc.scrollTo({ top: to, behavior: reduce ? 'auto' : 'smooth' }); } catch (e) { sc.scrollTop = to; }
-  }
-  document.addEventListener('scroll', function (e) {
-    if (ownScroll && e.target === ownScroll) { if (window.__mn70Quiet > Date.now()) window.__mn70Quiet = Date.now() + 420; else ownScroll = null; }
-  }, true);
-  /* a finger (or wheel) on the board: the board leads, so it is marked but never scrolled under the finger */
-  function touched(e) { if (e.target && e.target.closest && e.target.closest('.sf-slot[data-sf-view="board"]')) { boardTouchAt = Date.now(); ownScroll = null; window.__mn70Quiet = 0; } }
-  ['touchstart', 'touchmove', 'wheel', 'pointerdown'].forEach(function (n) { document.addEventListener(n, touched, { passive: true, capture: true }); });
-
-  function sync() {
-    syncT = null;
-    if (!split()) { mark(null); return; }
-    var id = null;
-    try { id = window.MinestImageViews.state(window.MinestAI.board().id).selected; } catch (e) {}
-    var el = boardCard(id);
-    var moved = mark(el);
-    if (el && moved && Date.now() - boardTouchAt > 700) reveal(el);
-  }
-  function queue(ms) { clearTimeout(syncT); syncT = setTimeout(sync, ms == null ? 120 : ms); }
-  window.addEventListener('minest:image-selection', function () { if (split()) queue(); });
-  window.addEventListener('minest:cf-list', function () { if (split()) queue(260); });
-  /* the split opens or closes; a stack opens or closes (its rows appear) */
-  new MutationObserver(function () { if (split()) queue(520); else if (curEl) mark(null); }).observe(R, { attributes: true, attributeFilter: ['class'] });
-  document.addEventListener('click', function (e) { if (split() && e.target.closest && e.target.closest('.sf-slot[data-sf-view="board"]')) queue(380); }, true);
-
-  /* ------------------------------------------------------------------ 2. motion: things arrive once, then stay still */
-  function once(cls, ms) { R.classList.add(cls); setTimeout(function () { R.classList.remove(cls); }, ms); }
-  /* a board comes in list by list: on launch and each time another board is opened */
-  var boardId = null;
-  function boardEnter() {
-    var id = null;
-    try { id = window.MinestAI.board().id; } catch (e) {}
-    if (id == null || id === boardId) return;
-    var first = boardId === null; boardId = id;
-    if (!reduce && !split() && (first || !document.hidden)) once('mn70-enter', 900);
-    /* another board while the split is open: the Cover still held the last board's list and stayed empty until the
-       board was scrolled. The Duo script sends the visible list on a scroll, so it is told there was one; then the
-       mark is placed (a board's first Cover card raises no event the mark could follow). */
-    if (split() && !first) {
-      window.__mn70Quiet = Date.now() + 600;
-      document.dispatchEvent(new Event('scroll'));
-      queue(900);
-    }
-  }
-  /* the split opens: both panes arrive together */
-  var wasSplit = split();
-  new MutationObserver(function () {
-    var s = split();
-    if (s && !wasSplit && !reduce) once('mn70-split-in', 700);
-    if (s !== wasSplit) splitAt = Date.now();
-    wasSplit = s;
-  }).observe(R, { attributes: true, attributeFilter: ['class'] });
-  /* another view (board, 3D Cover) fades up instead of snapping in; not when the split opens or closes */
-  var viewName = null, splitAt = 0;
-  function viewEnter() {
-    var el = split() ? null : document.querySelector('#root main > .sf-slot[data-sf-view]');
-    var v = el && el.getAttribute('data-sf-view');
-    if (!v || v === viewName) return;
-    if (viewName && !reduce && !document.hidden && Date.now() - splitAt > 900) once('mn70-view-in', 1000);
-    viewName = v;
-  }
-
-  /* a board card sinks under the finger. `:active` does it for a mouse; a touch gets it here, because the board's own
-     touch handling keeps `:active` from showing. The mark is taken off every element that has it (a dragged card is
-     a copy that carries it), as soon as the finger moves, lifts, or has rested for half a second. */
-  var pressT = 0, pressX = 0, pressY = 0;
-  function pressOff(rel) {
-    clearTimeout(pressT); pressT = 0;
-    var all = document.querySelectorAll('[data-mn70-press]');
-    for (var i = 0; i < all.length; i++) {
-      all[i].removeAttribute('data-mn70-press');
-      if (rel && all[i].closest('.mobile-board-view')) relOn(all[i]);   /* the card itself, not a lifted copy */
-    }
-  }
-  function relOn(el) {
-    el.setAttribute('data-mn70-rel', '');
-    setTimeout(function () { el.removeAttribute('data-mn70-rel'); }, 240);
-  }
-  if (!reduce) {
-    document.addEventListener('touchstart', function (e) {
-      pressOff(false);
-      if (e.touches.length !== 1) return;
-      var a = e.target.closest && e.target.closest('.mobile-board-view article.kanban-card');
-      if (!a) return;
-      pressX = e.touches[0].clientX; pressY = e.touches[0].clientY;
-      a.setAttribute('data-mn70-press', '');
-      pressT = setTimeout(function () { pressOff(true); }, 500);
-    }, { passive: true, capture: true });
-    document.addEventListener('touchmove', function (e) {
-      if (!pressT) return;
-      var t = e.touches[0];
-      if (!t || Math.abs(t.clientX - pressX) > 6 || Math.abs(t.clientY - pressY) > 6) pressOff(false);
-    }, { passive: true, capture: true });
-    ['touchend', 'touchcancel'].forEach(function (n) {
-      document.addEventListener(n, function () {
-        if (!pressT) return;
-        clearTimeout(pressT); pressT = setTimeout(function () { pressOff(true); }, 90);
-      }, { passive: true, capture: true });
-    });
-  }
-
-  /* outer screen: the Mini Pet's default spot is on top of the Glance's "start studying" button. While the Glance
-     is showing, a pet that was never dragged rests in the free corner below the cards, and goes back after. */
-  function glance() {
-    var g = R.classList.contains('duo-outer') && document.querySelector('body > .duo-gl');
-    return !!g && !g.hidden;
-  }
-  function petPark() {
-    var pet = document.getElementById('minest-mini-pet-p0');
-    if (!pet || window.__miniPetHost) return;
-    var dragged = false;
-    try { dragged = !!localStorage.getItem('minest.miniPetP0.position'); } catch (e) {}
-    var parked = pet.hasAttribute('data-mn70-park');
-    if (dragged) { if (parked) pet.removeAttribute('data-mn70-park'); return; }
-    if (glance()) {
-      pet.setAttribute('data-mn70-park', '');
-      pet.style.left = Math.max(0, window.innerWidth - pet.offsetWidth + 10) + 'px';
-      pet.style.top = Math.max(0, window.innerHeight - pet.offsetHeight - 4) + 'px';
-    } else if (parked) {
-      pet.removeAttribute('data-mn70-park');
-      pet.style.left = '14px'; pet.style.top = '88px';
-    }
-  }
-  function petSoon() { setTimeout(petPark, 60); setTimeout(petPark, 700); }
-  window.addEventListener('resize', petSoon);
-  document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('.duo-gl, .duo-back')) petSoon(); }, true);
-  new MutationObserver(petSoon).observe(R, { attributes: true, attributeFilter: ['class'] });
-  setTimeout(petPark, 1500); setTimeout(petPark, 4000);
-
-  /* ------------------------------------------------------------------ 3. speed */
-  /* periodic housekeeping (the Sync Center's 4-second scan of all boards) runs between gestures, not during one:
-     it waits while a finger is down or the screen moved in the last 1.2 s, for at most 8 s */
-  var inputAt = 0, fingers = 0;
-  function input() { inputAt = Date.now(); }
-  ['touchmove', 'wheel', 'scroll', 'pointermove', 'keydown'].forEach(function (n) { document.addEventListener(n, input, { passive: true, capture: true }); });
-  document.addEventListener('touchstart', function (e) { fingers = e.touches.length; input(); }, { passive: true, capture: true });
-  ['touchend', 'touchcancel'].forEach(function (n) { document.addEventListener(n, function (e) { fingers = e.touches.length; input(); }, { passive: true, capture: true }); });
-  function idle(fn, since) {
-    since = since || Date.now();
-    var busy = fingers > 0 || Date.now() - inputAt < 1200;
-    if (busy && Date.now() - since < 8000) { setTimeout(function () { idle(fn, since); }, 400); return; }
-    if (window.requestIdleCallback && !busy) requestIdleCallback(function () { fn(); }, { timeout: 1500 }); else fn();
-  }
-  window.__mn70Idle = function (fn) {
-    if (fn.__mn70Waiting) return;   /* one pending run per job */
-    fn.__mn70Waiting = true;
-    idle(function () { fn.__mn70Waiting = false; fn(); }, 0);
-  };
-
-  /* the scan's version of a category (MinestSyncCore.version: parse, sort keys, hash; ~80 ms for the boards) depends
-     only on the data's JSON text. While that text is the same as at the last scan, the version is the one from then. */
-  var seen = {};
-  window.__mn70Ver = function (value, cat, version) {
-    var j;
-    try { j = JSON.stringify(value); } catch (e) {}
-    if (typeof j !== 'string') return version(value);
-    var m = seen[cat];
-    if (m && m.j === j) return m.v;
-    var v = version(value);
-    seen[cat] = { j: j, v: v };
-    return v;
-  };
-
-  /* in the background (another app, the screen off) no CSS animation runs */
-  function vis() { R.classList.toggle('mn70-hidden', document.hidden); }
-  document.addEventListener('visibilitychange', vis); vis();
-  /* pictures decode off the main thread, so a list of photo cards scrolls without a hitch */
-  function lazy(root) {
-    var im = root.querySelectorAll ? root.querySelectorAll('img:not([decoding])') : [];
-    for (var i = 0; i < im.length; i++) im[i].decoding = 'async';
-  }
-  var lazyQ = false;
-  new MutationObserver(function () {
-    viewEnter();
-    if (lazyQ) return; lazyQ = true;
-    setTimeout(function () {
-      lazyQ = false; lazy(document); boardEnter();
-      if (curEl && !curEl.isConnected && split()) queue(0);   /* the marked row was re-rendered */
-    }, 300);
-  }).observe(document.body, { childList: true, subtree: true });
-  lazy(document); boardEnter(); viewEnter();
-
-  /* Spatial Home's album. Its entry in the room's table of features (SpatialBridge.FEATURES.lists) opened the My World
-     overview only: the inventory wants a world to show and none was passed. Here My World opens as before and the
-     inventory (MinestInventory, the box of a world's lists) opens on top of it, for the board in use, or the first board
-     that has a list. Closing the inventory leaves My World; closing My World goes back to the room, as before.
-     No list anywhere: My World alone, as before. */
-  function albumWire(B) {
-    var F = B && B.FEATURES && B.FEATURES.lists, t = F && F.targets && F.targets[0];
-    if (!t || t.id !== 'MinestUniverse' || t.__mn70) return false;
-    var open0 = t.open, close0 = t.close, run = 0;
-    /* a list is a card that is not a section heading, as the inventory itself counts them */
-    function hasList(w, b) {
-      var K = w.MinestKnowledge;
-      return !!b && (b.columns || []).some(function (c) {
-        return (c.cards || []).some(function (k) { return k && k.id && !(K && K.isHeading && K.isHeading(k.id)); });
-      });
-    }
-    function world(w) {
-      var A = w.MinestAI, cur = null, all = [];
-      try { cur = A.board(); } catch (e) {}
-      try { all = A.boards() || []; } catch (e) {}
-      if (cur) cur = all.filter(function (b) { return b.id === cur.id; })[0] || cur;
-      if (hasList(w, cur)) return cur.id;
-      var b = all.filter(function (x) { return hasList(w, x); })[0];
-      return b ? b.id : null;
-    }
-    t.open = function (w) {
-      open0(w);
-      var mine = ++run, n = 0;
-      (function go() {
-        if (mine !== run) return;
-        var up = false;
-        try { up = w.MinestUniverse.isOpen() && !!w.document.querySelector('.uv'); } catch (e) {}
-        if (!up) { if (n++ < 40) w.setTimeout(go, 100); return; }
-        if (w.document.querySelector('.mn-invx')) return;   /* still open from last time: left as it is */
-        var bid = w.MinestInventory && world(w);
-        if (bid) try { w.MinestInventory.open({ t: 'world', bid: bid }); } catch (e) {}
-      })();
-    };
-    t.close = function (w) {
-      run++;
-      try { if (w.MinestInventory) w.MinestInventory.close(); } catch (e) {}
-      close0(w);
-    };
-    t.label = 'My World · 收藏箱';
-    t.entry = "window.MinestUniverse.open() → MinestInventory.open({ t: 'world', bid })";
-    t.__mn70 = true;
-    return true;
-  }
-  albumWire(window.SpatialBridge);
-
-  window.MinestV70 = {
-    version: '70.0',
-    _albumWire: albumWire,
-    /* tests */ _stackTop: stackTop, _idle: idle, _boardCard: boardCard, _sync: sync, current: function () { return curEl; }
-  };
-})();
-</script>
-<style id="mn-dock-pill-style">
-/* Minest · Pill Dock (2026-11-19, after the user's reference "GO Club" dock): one tall capsule of pale lavender glass —
-   a thin white rim, a soft inner light, a deep soft shadow; big solid-black icons with room round them; the app in use
-   sits in an inset glass lens, its icon at the bottom and its name running up the lens (read from bottom to top).
-   Docked at the bottom it is the same capsule lying down, the name beside the icon. Same look in light and dark mode
-   (the light page gets a slightly brighter glass). */
-html.mn-dock-pill .mn-bdock::before { display: none !important; }
-html.mn-dock-pill .mn-bdock {
-  --pd-glass: linear-gradient(180deg, rgba(206,201,255,.84) 0%, rgba(184,177,252,.80) 100%);
-  --pd-ink: #121212;
-  background: var(--pd-glass) !important;
-  border: 1.5px solid rgba(255,255,255,.72) !important;
-  border-radius: 999px !important;
-  -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
-  backdrop-filter: blur(24px) saturate(160%) !important;
-  box-shadow: inset 0 2px 3px rgba(255,255,255,.55), inset 0 -2px 6px rgba(120,110,220,.25),
-              0 14px 30px -10px rgba(22,12,90,.5), 0 3px 8px rgba(22,12,90,.16) !important;
-  padding: 5px !important;
-  gap: 4px !important;
-  align-items: center !important;
-  max-width: calc(100vw - 16px) !important;
-  overflow-x: auto !important;
-  scrollbar-width: none !important;
-}
-html.mn-dock-pill .mn-bdock::-webkit-scrollbar { display: none; }
-html.mn-dock-pill[data-mn-bd=bottom] .mn-bdock {
-  bottom: max(calc(env(safe-area-inset-bottom, 0px) + 8px), 12px) !important;
-}
-html.mn-dock-pill[data-mn-bd=left] .mn-bdock,
-html.mn-dock-pill[data-mn-bd=right] .mn-bdock {
-  padding: 6px 5px !important;
-  gap: 3px !important;
-  max-height: calc(100vh - 110px) !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-}
-html.mn-dock-pill.mnh-tw .mn-bdock {
-  --pd-glass: linear-gradient(180deg, rgba(222,218,255,.86) 0%, rgba(196,190,255,.82) 100%);
-}
-
-/* every app: a big solid-black icon, no frame */
-html.mn-dock-pill .mn-bapp {
-  width: 40px !important;
-  height: 40px !important;
-  min-width: 40px !important;
-  border-radius: 999px !important;
-  background: transparent !important;
-  border: 1.5px solid transparent !important;
-  box-shadow: none !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-  color: var(--pd-ink) !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 10px !important;
-  padding: 0 !important;
-  flex-shrink: 0 !important;
-  position: relative !important;
-  transition: background .34s cubic-bezier(.22,1,.36,1), border-color .3s ease, box-shadow .34s ease, padding .34s cubic-bezier(.22,1,.36,1), height .34s cubic-bezier(.22,1,.36,1), width .34s cubic-bezier(.22,1,.36,1) !important;
-}
-html.mn-dock-pill .mn-bapp::before { display: none !important; }
-html.mn-dock-pill .mn-bapp::after { display: none !important; }
-html.mn-dock-pill .mn-bapp svg { width: 21px !important; height: 21px !important; flex-shrink: 0 !important; stroke-width: 2.2 !important; }
-html.mn-dock-pill .mn-bapp img { width: 22px !important; height: 22px !important; flex-shrink: 0 !important; border-radius: 50% !important; }
-/* the utility keys (close, back, more) stay a size down */
-html.mn-dock-pill .mn-bapp.mn-pill-util svg { width: 17px !important; height: 17px !important; }
-html.mn-dock-pill .mn-bapp.mn-pill-util { width: 34px !important; height: 34px !important; min-width: 34px !important; }
-html.mn-dock-pill .mn-bapp.mn-pill-util { opacity: .72; }
-
-/* the app in use: an inset lens of slightly deeper glass */
-html.mn-dock-pill .mn-bapp.on,
-html.mn-dock-pill .mn-bapp.mn-pill-active {
-  background: linear-gradient(180deg, rgba(170,163,236,.62) 0%, rgba(186,180,246,.52) 100%) !important;
-  border: 1.5px solid rgba(255,255,255,.78) !important;
-  box-shadow: inset 0 2px 5px rgba(255,255,255,.40), inset 0 -2px 5px rgba(110,100,210,.22), 0 4px 10px -4px rgba(40,30,120,.35) !important;
-  color: var(--pd-ink) !important;
-}
-html.mn-dock-pill .mn-bapp.on::after,
-html.mn-dock-pill .mn-bapp.mn-pill-active::after {
-  content: attr(data-pill-label) !important;
-  display: inline-block !important;
-  position: static !important;
-  width: auto !important;
-  height: auto !important;
-  background: none !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  font: 600 13px/1 -apple-system, "SF Pro Text", "PingFang SC", system-ui, sans-serif !important;
-  white-space: nowrap !important;
-  color: inherit !important;
-  letter-spacing: .01em !important;
-}
-/* standing up: the lens is tall, icon below, the name running up above it */
-html.mn-dock-pill[data-mn-bd=left] .mn-bapp.on,
-html.mn-dock-pill[data-mn-bd=left] .mn-bapp.mn-pill-active,
-html.mn-dock-pill[data-mn-bd=right] .mn-bapp.on,
-html.mn-dock-pill[data-mn-bd=right] .mn-bapp.mn-pill-active {
-  height: auto !important;
-  min-height: 96px !important;
-  width: 40px !important;
-  flex-direction: column-reverse !important;
-  justify-content: center !important;
-  gap: 9px !important;
-  padding: 14px 0 12px !important;
-}
-html.mn-dock-pill[data-mn-bd=left] .mn-bapp.on::after,
-html.mn-dock-pill[data-mn-bd=left] .mn-bapp.mn-pill-active::after,
-html.mn-dock-pill[data-mn-bd=right] .mn-bapp.on::after,
-html.mn-dock-pill[data-mn-bd=right] .mn-bapp.mn-pill-active::after {
-  writing-mode: vertical-rl !important;
-  transform: rotate(180deg) !important;
-}
-/* lying down: the lens is wide, the name beside the icon */
-html.mn-dock-pill[data-mn-bd=bottom] .mn-bapp.on,
-html.mn-dock-pill[data-mn-bd=bottom] .mn-bapp.mn-pill-active {
-  width: auto !important;
-  padding: 0 14px 0 11px !important;
-}
-@media (prefers-reduced-motion: reduce) { html.mn-dock-pill .mn-bapp { transition: none !important; } }
-</style>
-<script id="mn-dock-pill-js">
-(function () {
-  var KEY = 'mn_dock_pill_v1';
-  var PILL_ICON = '<svg class="miv-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="7" width="19" height="10" rx="5"/><rect x="4.5" y="9" width="8" height="6" rx="3" fill="currentColor" stroke="none" opacity=".35"/><circle cx="16.5" cy="12" r="1.3" fill="currentColor" stroke="none"/></svg>';
-  function isOn() {
-    try { var v = localStorage.getItem(KEY); return v === null ? true : v === '1'; } catch (e) { return true; }
-  }
-  function apply(on) {
-    document.documentElement.classList.toggle('mn-dock-pill', !!on);
-    try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {}
-    syncLabels();
-    if (window.MinestChrome && window.MinestChrome.show) window.MinestChrome.show();
-  }
-  /* the name in the lens: the English part of "Spatial Home · 我的房间", a whole word or two, never cut mid-word */
-  function shortLabel(btn) {
-    var raw = (btn.getAttribute('aria-label') || btn.title || '').trim();
-    if (!raw) return 'App';
-    var clean = raw.split(/\s[·•|—:(]\s?|\s-\s/)[0].trim();
-    if (clean.length > 12) { var w = clean.split(/\s+/); clean = w[0].length <= 12 ? w[0] : w[0].slice(0, 12); }
-    return clean;
-  }
-  var UTIL = /^(close|back|more)\b|关闭|返回|更多/i;   // the dock's own keys never become "the app in use"
-  function isUtil(b) { return UTIL.test((b.getAttribute('aria-label') || b.title || '').trim()); }
-  function syncLabels() {
-    var dock = document.querySelector('.mn-bdock');
-    if (!dock) return;
-    var btns = Array.from(dock.querySelectorAll('.mn-bapp')).filter(function (b) {
-      return getComputedStyle(b).display !== 'none';
-    });
-    var apps = btns.filter(function (b) { return !isUtil(b); });
-    var hasOn = apps.some(function (b) { return b.classList.contains('on'); });
-    var hasActive = apps.some(function (b) { return b.classList.contains('mn-pill-active'); });
-    btns.forEach(function (b) {
-      var util = isUtil(b);
-      b.classList.toggle('mn-pill-util', util);
-      if (util) { b.classList.remove('mn-pill-active'); return; }
-      var lbl = shortLabel(b);
-      if (b.getAttribute('data-pill-label') !== lbl) b.setAttribute('data-pill-label', lbl);
-      if (!b.dataset.mnPillBound) {
-        b.dataset.mnPillBound = '1';
-        b.addEventListener('click', function () {
-          Array.from(dock.querySelectorAll('.mn-bapp')).forEach(function (x) { x.classList.remove('mn-pill-active'); });
-          b.classList.add('mn-pill-active');
-        }, true);
-      }
-      if (hasOn) b.classList.remove('mn-pill-active');
-    });
-    if (!hasOn && !hasActive && apps[0]) apps[0].classList.add('mn-pill-active');
-  }
-  function injectIntoLooksFan(fan) {
-    if (!fan || fan.querySelector('.mn-pill-fan-item')) return;
-    var items = fan.querySelectorAll('.miv-fan-item');
-    if (!items.length) return;
-    var last = items[items.length - 1];
-    var dir = fan.dataset.dir || 'up';
-    var lx = parseFloat(last.style.getPropertyValue('--x')) || 0;
-    var ly = parseFloat(last.style.getPropertyValue('--y')) || 0;
-    var lr = parseFloat(last.style.getPropertyValue('--r')) || 0;
-    var dx = parseFloat(last.style.getPropertyValue('--dx')) || 0;
-    var dy = parseFloat(last.style.getPropertyValue('--dy')) || 0;
-    var nx = dir === 'up' ? lx + 10 : lx;
-    var ny = dir === 'up' ? Math.max(36, ly - 58) : Math.min(innerHeight - 36, ly + 58);
-    var it = document.createElement('button');
-    it.type = 'button';
-    it.className = 'miv-fan-item mn-pill-fan-item';
-    it.setAttribute('role', 'menuitem');
-    it.title = 'Pill Dock · 液态玻璃胶囊 Dock';
-    it.style.setProperty('--x', nx + 'px');
-    it.style.setProperty('--y', ny + 'px');
-    it.style.setProperty('--r', (lr + 1.2) + 'deg');
-    it.style.setProperty('--dx', (dx - (nx - lx)) + 'px');
-    it.style.setProperty('--dy', (dy - (ny - ly)) + 'px');
-    it.style.setProperty('--d', (items.length * 38) + 'ms');
-    it.style.setProperty('--dc', '0ms');
-    it.innerHTML = '<span class="miv-fan-ic">' + PILL_ICON + '</span><span class="miv-fan-label">' + (isOn() ? '经典方块 Dock' : '胶囊玻璃 Dock') + '</span>';
-    function handleToggle(e) {
-      e.stopPropagation();
-      e.preventDefault();
-      apply(!isOn());
-      fan.remove();
-    }
-    it.addEventListener('click', handleToggle);
-    fan.appendChild(it);
-  }
-  window.MinestPillDock = { isOn: isOn, set: apply, toggle: function () { apply(!isOn()); } };
-  apply(isOn());
-  var raf = 0;
-  new MutationObserver(function (muts) {
-    for (var i = 0; i < muts.length; i++) {
-      for (var j = 0; j < muts[i].addedNodes.length; j++) {
-        var n = muts[i].addedNodes[j];
-        if (n && n.nodeType === 1 && n.classList && n.classList.contains('mn-looks-fan')) {
-          injectIntoLooksFan(n);
-        }
-      }
-    }
-    if (raf) return;
-    raf = requestAnimationFrame(function () { raf = 0; syncLabels(); });
-  }).observe(document.documentElement, { childList: true, subtree: true });
-})();
-</script>
-<style id="mn-btn-motion-css">
-/* Crisp Monochrome Geometric Micro-Interactions (inspired by Ramin Nasibov's 36-tile collection) */
-:root {
-  --mn-ease-silky: cubic-bezier(.22, 1, .36, 1);
-  --mn-ease-spring: cubic-bezier(.34, 1.56, .64, 1);
-}
-
-/* Tactile spring press using standalone CSS scale (never clashes with transform!) */
-button:not(.miv-fan-item):not([disabled]) {
-  transition: scale .28s var(--mn-ease-spring), opacity .2s ease;
-  -webkit-tap-highlight-color: transparent;
-}
-button:not(.miv-fan-item):not([disabled]):active {
-  scale: 0.94;
-  transition: scale .09s var(--mn-ease-silky);
-}
-
-/* 01 · BARS: Horizontal Track Scanner sheen on tap */
-button.mn-fx-scan {
-  position: relative;
-  overflow: hidden;
-}
-button.mn-fx-scan::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,.26) 50%, transparent 70%);
-  transform: translateX(-120%);
-  animation: mnFxScan .52s var(--mn-ease-silky) forwards;
-}
-@keyframes mnFxScan {
-  0%   { transform: translateX(-120%); opacity: .9; }
-  100% { transform: translateX(120%);  opacity: 0; }
-}
-
-/* 01 · BARS: Rotating Cross (+ / x / menu) */
-.mn-anim-cross svg, .mn-anim-cross > span:first-child {
-  animation: mnAnimCross .46s var(--mn-ease-spring);
-}
-@keyframes mnAnimCross {
-  0%   { transform: rotate(0deg) scale(1); }
-  45%  { transform: rotate(90deg) scale(0.84); }
-  100% { transform: rotate(90deg) scale(1); }
-}
-
-/* 01 · BARS: Equalizer / Audio Pulse */
-.mn-anim-bars svg {
-  animation: mnAnimBars .52s var(--mn-ease-spring);
-}
-@keyframes mnAnimBars {
-  0%   { transform: scaleY(1); }
-  25%  { transform: scaleY(0.72) scaleX(1.08); }
-  55%  { transform: scaleY(1.18) scaleX(0.94); }
-  80%  { transform: scaleY(0.92); }
-  100% { transform: scaleY(1); }
-}
-
-/* 02 · SQUARES: Rocking / Sliding Tile (Kanban / Boards / Cards) */
-.mn-anim-square svg {
-  animation: mnAnimSquare .48s var(--mn-ease-spring);
-}
-@keyframes mnAnimSquare {
-  0%   { transform: rotate(0deg) scale(1); }
-  30%  { transform: rotate(-10deg) scale(0.88); }
-  65%  { transform: rotate(6deg) scale(1.10); }
-  100% { transform: rotate(0deg) scale(1); }
-}
-
-/* 03 · ORBIT: Smooth Tapered Spin (Sync / Refresh / Looks / Sparkle) */
-.mn-anim-orbit svg {
-  animation: mnAnimOrbit .62s var(--mn-ease-silky);
-}
-@keyframes mnAnimOrbit {
-  0%   { transform: rotate(0deg) scale(1); }
-  35%  { transform: rotate(160deg) scale(1.14); }
-  100% { transform: rotate(360deg) scale(1); }
-}
-
-/* 04 · PROGRESS: Checkmark Pop + Draw-In */
-.mn-anim-check svg {
-  animation: mnAnimCheck .46s var(--mn-ease-spring);
-}
-@keyframes mnAnimCheck {
-  0%   { transform: scale(0.7); opacity: .6; }
-  55%  { transform: scale(1.22); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-/* 04 · PROGRESS: Directional Pill Glide (Next / Prev / 完整 App >) */
-.mn-anim-glide-r svg {
-  animation: mnAnimGlideR .42s var(--mn-ease-spring);
-}
-@keyframes mnAnimGlideR {
-  0%   { transform: translateX(0); }
-  45%  { transform: translateX(4px) scale(1.08); }
-  100% { transform: translateX(0); }
-}
-.mn-anim-glide-l svg {
-  animation: mnAnimGlideL .42s var(--mn-ease-spring);
-}
-@keyframes mnAnimGlideL {
-  0%   { transform: translateX(0); }
-  45%  { transform: translateX(-4px) scale(1.08); }
-  100% { transform: translateX(0); }
-}
-
-/* 06 · OBJECTS: Ringing Bell (top-pivot damped swing) */
-.mn-anim-bell svg {
-  transform-origin: 50% 15%;
-  animation: mnAnimBell .62s var(--mn-ease-silky);
-}
-@keyframes mnAnimBell {
-  0%   { transform: rotate(0deg); }
-  18%  { transform: rotate(16deg); }
-  38%  { transform: rotate(-14deg); }
-  58%  { transform: rotate(9deg); }
-  78%  { transform: rotate(-5deg); }
-  100% { transform: rotate(0deg); }
-}
-
-/* 06 · OBJECTS: Starburst Pop (Favorite / Star / Award) */
-.mn-anim-star svg {
-  animation: mnAnimStar .54s var(--mn-ease-spring);
-}
-@keyframes mnAnimStar {
-  0%   { transform: scale(1) rotate(0deg); }
-  35%  { transform: scale(1.28) rotate(24deg); }
-  70%  { transform: scale(0.92) rotate(-8deg); }
-  100% { transform: scale(1) rotate(0deg); }
-}
-
-/* Default Crisp Geometric Tap Pop for any icon button */
-.mn-anim-pop svg {
-  animation: mnAnimPop .42s var(--mn-ease-spring);
-}
-@keyframes mnAnimPop {
-  0%   { transform: scale(1); }
-  40%  { transform: scale(0.82); }
-  75%  { transform: scale(1.12); }
-  100% { transform: scale(1); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  button, button::after, button svg { animation: none !important; transition: none !important; }
-}
-</style>
-<script id="mn-btn-motion-js">
-(function () {
-  var ALL = ['mn-fx-scan','mn-anim-cross','mn-anim-bars','mn-anim-square','mn-anim-orbit','mn-anim-check','mn-anim-glide-r','mn-anim-glide-l','mn-anim-bell','mn-anim-star','mn-anim-pop'];
-  function pickAnim(btn) {
-    var txt = ((btn.getAttribute('aria-label') || '') + ' ' + (btn.title || '') + ' ' + (btn.textContent || '')).toLowerCase();
-    if (/bell|notif|remind|提醒|通知|闹钟/.test(txt)) return 'mn-anim-bell';
-    if (/star|fav|bookmark|award|badge|收藏|勋章/.test(txt)) return 'mn-anim-star';
-    if (/check|done|complete|学会|完成|✓|✔/.test(txt)) return 'mn-anim-check';
-    if (/sync|refresh|reload|looks|fx|light|dark|theme|外观|刷新|同步/.test(txt)) return 'mn-anim-orbit';
-    if (/audio|voice|speak|read|sound|mic|朗读|语音|听/.test(txt)) return 'mn-anim-bars';
-    if (/prev|back|left|上一|返回|‹|◀|←/.test(txt)) return 'mn-anim-glide-l';
-    if (/next|forward|right|完整 app|开始|下一|›|▶|→/.test(txt)) return 'mn-anim-glide-r';
-    if (/add|new|plus|close|menu|加|新建|\+|✕|×/.test(txt)) return 'mn-anim-cross';
-    if (/board|kanban|list|card|wallet|grid|看板|列表|闪卡|书桌/.test(txt)) return 'mn-anim-square';
-    return 'mn-anim-pop';
-  }
-  document.addEventListener('click', function (e) {
-    var btn = e.target && e.target.closest && e.target.closest('button');
-    if (!btn || btn.disabled || btn.classList.contains('miv-fan-item')) return;
-    var anim = pickAnim(btn);
-    ALL.forEach(function (c) { btn.classList.remove(c); });
-    void btn.offsetWidth;
-    btn.classList.add(anim);
-    // Add subtle horizontal scanner sweep to pill/solid buttons (skip tiny icon-only buttons < 56px)
-    if (btn.offsetWidth >= 56 && getComputedStyle(btn).position !== 'static' || btn.classList.contains('mn-bapp')) {
-      btn.classList.add('mn-fx-scan');
-    }
-    clearTimeout(btn._mnAnimT);
-    btn._mnAnimT = setTimeout(function () {
-      btn.classList.remove(anim);
-      btn.classList.remove('mn-fx-scan');
-    }, 680);
-  }, true);
-})();
 </script>
 </body>
 </html>

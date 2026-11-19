@@ -657,6 +657,59 @@
     return { group: g, hb: [0.66, 1.8, 0.5], place: 'floor' };
   };
 
+  // A complete bookcase swings on its concealed hinge; the armor is its hidden latch.
+  F['vic-secret-shelf'] = function (T) {
+    var g = new T.Group(), M = mats(T), state = root.MinestStudySecret = root.MinestStudySecret || { open: false, progress: 0 };
+    var wood = new T.MeshStandardMaterial({ color: new T.Color(0x3c2118).convertSRGBToLinear(), roughness: 0.43, metalness: 0.04 });
+    var trim = new T.MeshStandardMaterial({ color: new T.Color(0x643b27).convertSRGBToLinear(), roughness: 0.38, metalness: 0.05 });
+    // A central spindle lets the entire leaf reverse in its own bay instead of swinging into the next bay.
+    var pivot = new T.Group(); g.add(pivot);
+    var leaf = new T.Group(); pivot.add(leaf);
+    box(T, leaf, wood, 0, 1.36, -0.11, 1.44, 2.72, 0.12);
+    [-0.72, 0.72].forEach(function (x) { box(T, leaf, trim, x, 1.36, 0.02, 0.1, 2.72, 0.38); });
+    [0.12, 0.76, 1.40, 2.04, 2.68].forEach(function (y) { box(T, leaf, trim, 0, y, 0.02, 1.54, 0.08, 0.4); });
+    box(T, leaf, trim, 0, 2.79, 0.03, 1.64, 0.14, 0.44);
+    [0.08, 2.73].forEach(function (y) { box(T, leaf, M.gold, 0, y, 0.235, 1.44, 0.012, 0.012); });
+    var cols = [0x53201a, 0x202d3a, 0x334330, 0x6b4a2c];
+    [0.80, 1.44, 2.08].forEach(function (y, row) { for (var i = 0; i < 12; i++) {
+      var h = 0.40 + (i % 3) * 0.035, mat = new T.MeshStandardMaterial({ color: new T.Color(cols[(i + row) % cols.length]).convertSRGBToLinear(), roughness: 0.8 });
+      box(T, leaf, mat, -0.60 + i * 0.108, y + h / 2, 0.10, 0.09, h, 0.23);
+      box(T, leaf, M.gold, -0.60 + i * 0.108, y + 0.08, 0.219, 0.065, 0.008, 0.008);
+    } });
+    // The reverse carries the actual existing Times Square portal, including its live billboard and ticker.
+    var oldPortal = root.SpatialEntries && root.SpatialEntries.portal ? root.SpatialEntries.portal() : null;
+    if (oldPortal) { oldPortal.group.scale.setScalar(0.84); oldPortal.group.rotation.y = Math.PI; oldPortal.group.position.set(0,0.22,-0.25); leaf.add(oldPortal.group); }
+    // Full-depth jambs line the real opening; the reversing leaf sits inside, behind the outer lip.
+    box(T, g, wood, 0, 1.50, -0.68, 1.90, 3.0, 0.08);
+    [-1,1].forEach(function (side) {
+      box(T, g, wood, side*0.89, 1.50, -0.15, 0.12, 3.0, 1.10);
+      box(T, g, trim, side*0.94, 1.50, 0.18, 0.12, 3.06, 0.10);
+    });
+    box(T, g, wood, 0, 2.97, -0.15, 1.90, 0.10, 1.10);
+    box(T, g, wood, 0, 0.04, -0.15, 1.90, 0.08, 1.10);
+    box(T, g, trim, 0, 3.01, 0.18, 2.02, 0.12, 0.10);
+    box(T, g, trim, 0, 0.05, 0.18, 2.02, 0.10, 0.10);
+    [0.03,2.78].forEach(function (y) { var spindle = new T.Mesh(new T.CylinderGeometry(0.045,0.045,0.08,16),M.gold); spindle.position.set(0,y,0); g.add(spindle); });
+    var latch = box(T,g,M.gold,0.78,1.28,0.05,0.16,0.04,0.045);
+    var phase = state.open ? 1 : 0, last = null;
+    function smooth(x) { x = Math.max(0,Math.min(1,x)); return x*x*x*(x*(x*6-15)+10); }
+    return { group: g, hb: [1.86,3.0,0.8], place: 'wall',
+      tick: function (t, realTime) {
+        var now = typeof realTime === 'number' ? realTime : t;
+        var dt = last === null ? 0 : Math.max(0,now-last); last=now;
+        var target = state.open ? 1 : 0;
+        phase = state.reduced ? target : Math.max(0,Math.min(1,phase + Math.sign(target-phase)*dt/3.4));
+        var rotation = smooth((phase-0.20)/0.62), out = smooth((phase-0.08)/0.15)*(1-smooth((phase-0.84)/0.16));
+        pivot.position.z = 0.96*out; pivot.position.y = 0.018*smooth(phase/0.12)*(1-smooth((phase-0.90)/0.10));
+        pivot.rotation.y = Math.PI*rotation;
+        latch.position.x = 0.78+0.10*smooth(phase/0.08)*(1-smooth((phase-0.94)/0.06));
+        state.progress=phase; state.angle=pivot.rotation.y; state.moving=phase>0&&phase<1;
+        if (oldPortal) { oldPortal.group.visible = rotation>0.52; oldPortal.set(smooth((rotation-0.52)/0.48)); oldPortal.idle(t); }
+      },
+      press: function () { if (state.open && phase>=0.999) { root.dispatchEvent(new CustomEvent('spatial:secret-enter')); return ''; } return state.moving ? '机关正在转动，请稍候。' : '书架严丝合缝。'; }
+    };
+  };
+
   /* 4 · a library floor globe: an old map on the ball, a brass meridian at 23.5°, a carved mahogany horizon ring on four
      turned legs joined by a cross stretcher with a compass */
   F['vic-globe'] = function (T) {
@@ -868,12 +921,31 @@
       return on ? '吊灯点亮了 · 再按一下熄灭' : '吊灯熄灭了';
     } };
   };
+  /* 7 · the curtain pull: a brass rosette on the wall, a green silk cord and a gold tassel. A tap draws the study's curtains
+     back or across; the window listens for 'spatial:curtains' (kept in minest.study.curtains: 1 = open). */
+  F['vic-curtaincord'] = function (T) {
+    var g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var brassP = new T.MeshStandardMaterial({ color: L(0xe8bf62), roughness: 0.16, metalness: 1.0, envMapIntensity: 1.5 });
+    var silk = new T.MeshStandardMaterial({ color: L(0x1f5a3c), roughness: 0.55 }), gold = new T.MeshStandardMaterial({ color: L(0xc9a24a), roughness: 0.4, metalness: 0.5 });
+    var ros = new T.Mesh(new T.CylinderGeometry(0.05, 0.06, 0.03, 20), brassP); ros.rotation.x = Math.PI / 2; ros.position.z = 0.015; g.add(ros);
+    var cord = new T.Mesh(new T.CylinderGeometry(0.009, 0.009, 0.62, 8), silk); cord.position.set(0, -0.32, 0.045); g.add(cord);
+    var cap = new T.Mesh(new T.SphereGeometry(0.03, 12, 10), gold); cap.position.set(0, -0.66, 0.045); g.add(cap);
+    var tas = new T.Mesh(new T.ConeGeometry(0.036, 0.15, 14), silk); tas.rotation.x = Math.PI; tas.position.set(0, -0.76, 0.045); g.add(tas);
+    var fr = new T.Mesh(new T.CylinderGeometry(0.036, 0.04, 0.012, 14), gold); fr.position.set(0, -0.84, 0.045); g.add(fr);
+    var st = function () { try { return localStorage.getItem('minest.study.curtains') === '1'; } catch (e) { return false; } };
+    return { group: g, hb: [0.16, 0.95, 0.12], hbY: -0.42, place: 'floor', press: function () {
+      var on = !st(); try { localStorage.setItem('minest.study.curtains', on ? '1' : '0'); } catch (e) {}
+      root.dispatchEvent(new CustomEvent('spatial:curtains', { detail: { on: on } }));
+      return on ? '窗帘拉开了 · 再拉一下合上' : '窗帘拉上了';
+    } };
+  };
   [{ id: 'vic-piano', name: '三角钢琴', en: 'Concert grand piano', size: [1.56, 1.85, 2.9] },
    { id: 'vic-thinker', name: '思想者（大理石复刻）', en: 'The Thinker, marble replica', size: [0.62, 1.8, 0.62] },
    { id: 'vic-armour', name: '哥特式骑士盔甲', en: 'Gothic armour', size: [0.66, 1.8, 0.5] },
    { id: 'vic-globe', name: '古典落地地球仪', en: 'Library floor globe', size: [0.9, 1.04, 0.9] },
    { id: 'vic-clock', name: '落地摆钟', en: 'Longcase clock', size: [0.66, 2.55, 0.42] },
-   { id: 'vic-lightswitch', name: '吊灯开关', en: 'Chandelier switch', size: [0.14, 0.2, 0.08] }].forEach(function (c) {
+   { id: 'vic-lightswitch', name: '吊灯开关', en: 'Chandelier switch', size: [0.14, 0.2, 0.08] },
+   { id: 'vic-curtaincord', name: '窗帘拉绳', en: 'Curtain pull', size: [0.16, 0.95, 0.12] }].forEach(function (c) {
     if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.en, icon: '▣', place: 'floor', size: c.size, note: 'EC–6 维多利亚书房的陈设' }); });
 
   /* ───────── the outdoor office (Alpine Meadow, 2026-11-14): a round stone table, a stone chair, a stone bench, a MacBook

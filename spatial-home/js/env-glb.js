@@ -89,6 +89,29 @@
       if (keep.length !== idx.count) { g = m.geometry = g.clone(); g.setIndex(keep); }   // on its own copy: a model's rooms share one geometry (the study's four quadrants do) — cutting the shared one cut all four
     });
   }
+  /* Subtract a box from triangles, splitting boundary-crossing faces and interpolating UVs.
+     Unlike centroid cuts, this opens large wall panels as well as shelf boards. */
+  function carveNiches(model, boxes) {
+    model.updateMatrixWorld(true);
+    model.traverse(function (m) {
+      if (!m.isMesh || !m.geometry.attributes.position) return;
+      var src=m.geometry, attrs=Object.keys(src.attributes), pos=src.attributes.position, idx=src.index;
+      var bounds=new THREE.Box3().setFromObject(m);
+      var cuts=boxes.filter(function(q){return bounds.intersectsBox(new THREE.Box3(new THREE.Vector3(q[0],q[1],q[2]),new THREE.Vector3(q[3],q[4],q[5])));});
+      if (!cuts.length) return;
+      var out={}, groups=[], cursor=0, changed=false;
+      attrs.forEach(function(k){out[k]=[];});
+      function vertex(i){var a={};attrs.forEach(function(k){var at=src.attributes[k],v=[];for(var c=0;c<at.itemSize;c++){var v0=at.isInterleavedBufferAttribute?at.data.array[i*at.data.stride+at.offset+c]:at.array[i*at.itemSize+c];if(at.normalized){var ar=at.isInterleavedBufferAttribute?at.data.array:at.array;if(ar instanceof Int16Array)v0=Math.max(-1,v0/32767);else if(ar instanceof Uint16Array)v0/=65535;else if(ar instanceof Int8Array)v0=Math.max(-1,v0/127);else if(ar instanceof Uint8Array)v0/=255;}v.push(v0);}a[k]=v;});a.world=new THREE.Vector3().fromArray(a.position).applyMatrix4(m.matrixWorld).toArray();return a;}
+      function mix(a,b,t){var v={};attrs.concat(['world']).forEach(function(k){v[k]=a[k].map(function(x,c){return x+(b[k][c]-x)*t;});});return v;}
+      function partition(poly,axis,limit,sign){var inside=[],outside=[];for(var i=0;i<poly.length;i++){var a=poly[i],b=poly[(i+1)%poly.length],da=(a.world[axis]-limit)*sign,db=(b.world[axis]-limit)*sign,ia=da>=0,ib=db>=0;(ia?inside:outside).push(a);if(ia!==ib){var v=mix(a,b,da/(da-db));inside.push(v);outside.push(v);}}return [inside,outside];}
+      function subtract(poly,q){var planes=[[0,q[0],1],[0,q[3],-1],[1,q[1],1],[1,q[4],-1],[2,q[2],1],[2,q[5],-1]],rem=poly,kept=[];for(var j=0;j<6&&rem.length>=3;j++){var p=planes[j],s=partition(rem,p[0],p[1],p[2]);if(s[1].length>=3)kept.push(s[1]);rem=s[0];}if(rem.length>=3)changed=true;return kept;}
+      function emit(poly,mat){for(var j=1;j+1<poly.length;j++){[poly[0],poly[j],poly[j+1]].forEach(function(v){attrs.forEach(function(k){Array.prototype.push.apply(out[k],v[k]);});});var last=groups[groups.length-1];if(last&&last.materialIndex===mat)last.count+=3;else groups.push({start:cursor,count:3,materialIndex:mat});cursor+=3;}}
+      var count=idx?idx.count:pos.count;
+      for(var i=0;i+2<count;i+=3){var tri=[vertex(idx?idx.getX(i):i),vertex(idx?idx.getX(i+1):i+1),vertex(idx?idx.getX(i+2):i+2)],polys=[tri];cuts.forEach(function(q){var next=[];polys.forEach(function(p){var lo=[Infinity,Infinity,Infinity],hi=[-Infinity,-Infinity,-Infinity];p.forEach(function(v){for(var a=0;a<3;a++){lo[a]=Math.min(lo[a],v.world[a]);hi[a]=Math.max(hi[a],v.world[a]);}});if(hi[0]<=q[0]||lo[0]>=q[3]||hi[1]<=q[1]||lo[1]>=q[4]||hi[2]<=q[2]||lo[2]>=q[5])next.push(p);else Array.prototype.push.apply(next,subtract(p,q));});polys=next;});var sg=src.groups.find(function(gr){return i>=gr.start&&i<gr.start+gr.count;}),mat=sg?sg.materialIndex:0;polys.forEach(function(p){emit(p,mat);});}
+      if(!changed)return;
+      var dst=new THREE.BufferGeometry();attrs.forEach(function(k){dst.setAttribute(k,new THREE.Float32BufferAttribute(out[k],src.attributes[k].itemSize));});groups.forEach(function(g){dst.addGroup(g.start,g.count,g.materialIndex);});dst.computeBoundingBox();dst.computeBoundingSphere();m.geometry=dst;
+    });
+  }
   /* window glass out of a scan: inside each box, drop only the triangles whose texture is near-white (the blown-out
      glass and sheers); the frames and glazing bars, darker, stay — the view outside then shows through */
   function cutGlass(model, boxes, thr) {
@@ -651,9 +674,19 @@
     var _v = new THREE.Vector3(), _w = new THREE.Vector3();
     model.traverse(function (o) {
       if (!/^Books_\d+$/.test(o.name) || !o.parent) return;
-      o.getWorldPosition(_v); _w.copy(_v); _w.y -= DROP; o.parent.worldToLocal(_v); o.parent.worldToLocal(_w); o.position.add(_w.sub(_v));
+      o.getWorldPosition(_v); if (_v.x < -7.3 && VSTORE.some(function (r) { return _v.z > r[0] && _v.z < r[1]; })) { o.visible = false; return; }
+      if (_v.z < -11 && VNICHE.some(function (r) { return _v.x > r[0] && _v.x < r[1]; })) { o.visible = false; return; }
+      _w.copy(_v); _w.y -= DROP; o.parent.worldToLocal(_v); o.parent.worldToLocal(_w); o.position.add(_w.sub(_v));
     });
     model.updateMatrixWorld(true);
+    // Books are lowered onto their shelves above; trim them in their final pose as well.
+    model.traverse(function(o) { if (/^Books_\d+$/.test(o.name) && o.visible) carveNiches(o, VICT.niches); });
+    // Scanned book clusters have pivots outside their visible span. Clear by their final bounds.
+    model.traverse(function(o) {
+      if (!o.isMesh || !/Books_/.test(o.name + ' ' + (o.parent ? o.parent.name : ''))) return;
+      var b = new THREE.Box3().setFromObject(o);
+      if (b.min.x < -7.3 && [[-12.25,-9.85],[-7.65,-5.55]].some(function(z) { return b.max.z > z[0] && b.min.z < z[1]; })) o.visible=false;
+    });
     var seed = 20261113; function rnd() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
     function wallOf(x, z) { var dx = x - CX, dz = z - CZ; if (Math.abs(dx) >= Math.abs(dz)) return Math.abs(dx) > 7.0 ? (dx < 0 ? 'W' : 'E') : null; return Math.abs(dz) > 7.0 ? (dz < 0 ? 'N' : 'S') : null; }
     function along(w, x, z) { return (w === 'W' || w === 'E') ? z : x; }
@@ -779,6 +812,8 @@
      Shared: a walnut with the bookcases' grain and tone, a deep green velvet with a gold fringe. */
   var VW = { z: -8.9, w: 6.8, h: 4.5, x: 8.45, face: 7.62 };            // the window: centre z, glass width / height, glass plane x, the bookcases' face x
   var VDOOR = { z: -3.6, x: 8.3 };
+  var VNICHE = [[-6.7, -5.3], [5.3, 6.7]];
+  var VSTORE = [[-4.85, -2.55], [-12.2, -9.9], [-7.65, -5.55]];   // two bays of the north bookcases left bare for the viola and vases
   function vicMats() {
     if (vicMats.m) return vicMats.m;
     var c = document.createElement('canvas'); c.width = 256; c.height = 512; var x = c.getContext('2d');
@@ -804,17 +839,26 @@
   /* a raised panel on a face facing +z (a frame, a sunk field, a raised centre) */
   function vpanel(g, M, x, y, z, w, h) { bxv(g, M.woodD, x, y, z + 0.004, w, h, 0.008); bxv(g, M.wood, x, y, z + 0.012, w - 0.07, h - 0.07, 0.012); bxv(g, M.woodL, x, y, z + 0.02, w - 0.16, h - 0.16, 0.008); }
   /* curtains: a pleated velvet drape gathered at a tie-back, hung from the pelmet. side -1: its outer edge on the left */
-  function vdrape(g, M, xOuter, side, z, top, w0) {
-    var tie = 1.15, geo = new THREE.PlaneGeometry(1, top, 40, 24), P = geo.attributes.position;
-    for (var i = 0; i < P.count; i++) {
-      var u = P.getX(i) + 0.5, y = P.getY(i) + top / 2;
-      var wd = y < tie ? w0 * (0.42 + 0.3 * Math.pow((tie - y) / tie, 1.4)) : w0 * (0.42 + 0.58 * Math.pow((y - tie) / (top - tie), 0.8));
-      var fold = Math.sin(u * Math.PI * 13) * 0.055 * (0.55 + wd / w0 * 0.6) + (y < 0.06 ? 0.02 : 0);
-      P.setXYZ(i, xOuter - side * 0 + side * u * wd, y, z + fold + (1 - u) * 0.03);
+  function vdrape(g, M, xOuter, side, z, top, w0, w1) {
+    var tie = 1.15, geo = new THREE.PlaneGeometry(1, top, 40, 24), P = geo.attributes.position, U = [], Y = [], i;
+    for (i = 0; i < P.count; i++) { U.push(P.getX(i) + 0.5); Y.push(P.getY(i) + top / 2); }
+    var tb = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.022, 8, 20), M.fringe); tb.scale.set(1, 0.45, 1); tb.rotation.x = Math.PI / 2; g.add(tb);
+    var tas = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.16, 10), M.fringe); g.add(tas);
+    /* t = 0: drawn back and held at the tie-back; t = 1: drawn across the window */
+    function set(t) {
+      for (var i = 0; i < P.count; i++) {
+        var u = U[i], y = Y[i];
+        var wo = y < tie ? w0 * (0.42 + 0.3 * Math.pow((tie - y) / tie, 1.4)) : w0 * (0.42 + 0.58 * Math.pow((y - tie) / (top - tie), 0.8));
+        var wd = wo + (w1 - wo) * t, ff = 13 * (1 + (w1 / 1.05 - 1) * t);
+        var fold = Math.sin(u * Math.PI * ff) * 0.055 * (0.55 + wd / w0 * 0.6 * (1 - t) + 0.6 * t) + (y < 0.06 ? 0.02 : 0);
+        P.setXYZ(i, xOuter + side * u * wd, y, z + fold + (1 - u) * 0.03);
+      }
+      P.needsUpdate = true; geo.computeVertexNormals();
+      tb.position.set(xOuter + side * w0 * 0.2, tie, z + 0.05); tas.position.set(xOuter + side * w0 * 0.4, tie - 0.12, z + 0.09); tb.visible = tas.visible = t < 0.5;
     }
-    geo.computeVertexNormals(); var d = new THREE.Mesh(geo, M.velvet); d.castShadow = true; g.add(d);
-    var tb = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.022, 8, 20), M.fringe); tb.scale.set(1, 0.45, 1); tb.rotation.x = Math.PI / 2; tb.position.set(xOuter + side * w0 * 0.2, tie, z + 0.05); g.add(tb);
-    var tas = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.16, 10), M.fringe); tas.position.set(xOuter + side * w0 * 0.4, tie - 0.12, z + 0.09); g.add(tas);
+    var d = new THREE.Mesh(geo, M.velvet); d.castShadow = true; g.add(d);
+    set(0);
+    return { set: set };
   }
   /* the Scenic Window, built into the east bookcases: the glass sits back in a deep panelled reveal (soffit, jambs,
      threshold), French casements with glazing bars in front of it, a moulded architrave with plinth blocks and a corniced
@@ -850,8 +894,33 @@
     var PW = W + 2 * AW + 0.9, PZ = D + 0.24, PT = H + 0.62;
     bxv(g, M.velvet, 0, PT - 0.22, PZ, PW, 0.46, 0.05); bxv(g, M.fringe, 0, PT - 0.46, PZ + 0.01, PW, 0.05, 0.06); bxv(g, M.gilt, 0, PT + 0.02, PZ, PW + 0.04, 0.04, 0.07);
     [-1, 1].forEach(function (s) { bxv(g, M.velvet, s * PW / 2, PT - 0.22, PZ - 0.12, 0.04, 0.46, 0.24); });
-    [-1, 1].forEach(function (s) { vdrape(g, M, s * (PW / 2 - 0.02), -s, PZ - 0.08, PT - 0.2, 1.05); });
+    var dr = [-1, 1].map(function (s) { return vdrape(g, M, s * (PW / 2 - 0.02), -s, PZ - 0.08 + (s > 0 ? 0.03 : 0), PT - 0.2, 1.05, PW / 2 + 0.08); });
+    /* the curtains: drawn across by default, a brass-and-silk cord by the window (vic-curtaincord) draws them back */
+    var cur = 1, tgt = 1, run = 0;
+    try { if (localStorage.getItem('minest.study.curtains') === '1') cur = tgt = 0; } catch (e) {}
+    function drawn() { dr.forEach(function (d) { d.set(cur); }); }
+    function step() { cur += Math.sign(tgt - cur) * Math.min(Math.abs(tgt - cur), 0.03); drawn(); if (cur !== tgt) run = requestAnimationFrame(step); else run = 0; }
+    drawn();
+    root.addEventListener('spatial:curtains', function (e) { tgt = e.detail && e.detail.on ? 0 : 1; if (!run) run = requestAnimationFrame(step); });
     return { group: g, alone: true };
+  }
+  /* the study board, built into the wall: a shallow gilt-and-walnut frame with a damask panel, flush with the bookcases */
+  function dressVicBoard(o) {
+    var S = VIC_STYLE, g = new THREE.Group(), M = vicMats(S), dm = damask(S), W = 1.7, H = 1.15;
+    // One fitted cassette. Its face stays inside the original bookcase front plane.
+    bx(g, M.woodD || M.wood, 0, 0, -0.12, 2.14, 1.60, 0.24);
+    [-1,1].forEach(function(side) {
+      bx(g, M.wood || M.woodD, side*1.005, 0, -0.015, 0.13, 1.60, 0.05);
+      bx(g, M.wood || M.woodD, 0, side*0.735, -0.015, 2.14, 0.13, 0.05);
+    });
+    [[0, H / 2 + 0.06, W + 0.22, 0.12], [0, -H / 2 - 0.06, W + 0.22, 0.12]].forEach(function (q) { bx(g, M.woodL || M.wood, q[0], q[1], 0.01, q[2], q[3], 0.05); });
+    [-1, 1].forEach(function (s) { bx(g, M.woodL || M.wood, s * (W / 2 + 0.06), 0, 0.01, 0.12, H, 0.05); });
+    var silk = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.MeshStandardMaterial({ map: dm.clone(), roughness: 0.7 }));
+    silk.material.map.needsUpdate = true; silk.material.map.repeat.set(W / 0.22, H / 0.22); silk.position.z = 0.002; g.add(silk);
+    [[0, H / 2 - 0.01, W, 0.014], [0, -H / 2 + 0.01, W, 0.014]].forEach(function (q) { bx(g, M.gilt, q[0], q[1], 0.008, q[2], q[3], 0.01); });
+    [-1, 1].forEach(function (s) { bx(g, M.gilt, s * (W / 2 - 0.01), 0, 0.008, 0.014, H, 0.01); });
+    bx(g, M.gilt, 0, H / 2 + 0.06, 0.04, 0.62, 0.07, 0.012);
+    return { group: g };
   }
   /* the study door, which is also the portal: an arched doorway the portal's opening fits, in a panelled walnut surround
      flush with the bookcases (pilasters, an entablature, a keystone), the door itself closed, its handle the one new, bright thing */
@@ -893,7 +962,8 @@
       var key = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.022, 0.004), M.dark); key.position.set(0, -0.1, 0.0135); hg.add(key);
     });
     [0.35, 1.7].forEach(function (y) { bxv(hinge, M.woodD, 0.0, y, 0, 0.02, 0.12, 0.06); });
-    return { group: g, alone: true, hideAll: true };
+    o.houseDoor = { hinge: hinge };
+    return { group: g, alone: true, hideAll: true, tick: function () { hinge.rotation.y += ((o.houseOpening ? -1.65 : 0) - hinge.rotation.y) * 0.12; } };
   }
   /* the pale pilasters between the bookcases take the bookcases' walnut, and nothing is shelved over them */
   function vicPilasters(model) {
@@ -914,7 +984,7 @@
     model.traverse(function (o) { if (/Line002/.test(o.name)) o.visible = false; });   // the scan's four floor strips came through the carpet as black lines
     var pilSkip = { W: [], E: [], N: [], S: [] }; try { pilSkip = vicPilasters(model); } catch (e) {}
     try { mantelPainting(model, holder); } catch (e) { if (root.console) console.warn('Spatial Home: painting', e); }
-    try { fillShelves(model, holder, { skipE: [[VW.z - VW.w / 2 - 0.6, VW.z + VW.w / 2 + 0.6], [-4.7, -2.5]].concat(pilSkip.E), skip: pilSkip }); } catch (e) { if (root.console) console.warn('Spatial Home: shelves', e); }   // the empty shelves get books (not behind the Scenic Window or the cut)
+    try { fillShelves(model, holder, { skipE: [[VW.z - VW.w / 2 - 0.6, VW.z + VW.w / 2 + 0.6], [-4.7, -2.5]].concat(pilSkip.E), skip: { W: pilSkip.W.concat(VSTORE), E: pilSkip.E, S: pilSkip.S, N: (pilSkip.N || []).concat(VNICHE) } }); } catch (e) { if (root.console) console.warn('Spatial Home: shelves', e); }   // the empty shelves get books (not behind the Scenic Window or the cut)
     /* reflections: a small warm room rendered once into an environment map */
     var envTex = null;
     if (R && THREE.PMREMGenerator) {
@@ -1018,7 +1088,7 @@
           if (!holder.parent) return;                                   // the room was switched away while loading
           var m = gl.scene; capLoaded(m); m.position.fromArray(def.offset); m.rotation.y = def.ry || 0;
           m.traverse(function (o) { if (o.isMesh && o.material) { o.material.side = THREE.DoubleSide; o.receiveShadow = !!def.lit; if (o.material.map) o.material.map.anisotropy = 4; } });
-          holder.add(m); cut(m, def.cut); if (def.glass) cutGlass(m, def.glass, def.glassThr != null ? def.glassThr : 232);
+          holder.add(m); cut(m, def.cut); if (def.niches) carveNiches(m, def.niches); if (def.glass) cutGlass(m, def.glass, def.glassThr != null ? def.glassThr : 232);
           var furn = takeMovables(def, m);
           var R = solidsOf(m, 0, office); R.solids.forEach(function (s) { solids.push(s); });
           var SF = surfacesOf(m, def.walk); holder.add(SF.group); surfaces.push(SF.group);      // things can stand on the model now
@@ -1111,7 +1181,49 @@
     { uid: 9703, kind: 'vic-armour', title: '哥特式骑士盔甲', p: [7.5, -2.05], ry: -Math.PI / 2 },
     { uid: 9704, kind: 'vic-globe', title: '古典落地地球仪', p: [1.75, -6.75], ry: 0 },
     { uid: 9705, kind: 'vic-clock', title: '落地摆钟', p: [2.45, -12.72], ry: 0 },
-    { uid: 9706, kind: 'vic-lightswitch', title: '吊灯开关', p: [1.56, -11.985], y: 1.3, ry: 0 }];   // on the fireplace wall, right of the mantel
+    { uid: 9706, kind: 'vic-lightswitch', title: '吊灯开关', p: [1.56, -11.985], y: 1.3, ry: 0 },
+    { uid: 9707, kind: 'vic-curtaincord', title: '窗帘拉绳', p: [7.6, -4.95], y: 1.85, ry: -Math.PI / 2 }];   // on the fireplace wall, right of the mantel
+  /* v14: one armchair; the round tables and vases leave the floor; the viola stands in a bookcase bay; the board is built into the wall */
+  function vicUp7(L) {
+    var ex = L.extras = L.extras || [];
+    L.extras = ex = ex.filter(function (e) { return [9501, 9502, 9503, 9504, 9505, 9506, 9507].indexOf(e.uid) < 0; });
+    ex.forEach(function (e) { if (e.uid === 9508) { e.p = [-6.0, 1.12, -12.85]; e.ry = 0; } });
+    delete L.board;
+  }
+  // v15: one music table, a flush noticeboard, and a set of clear display bays.
+  function vicUp8(L) {
+    var placements = {
+      album: [-8.10, 1.005, -6.72], medals: [-8.10, 1.005, -5.54], carmodel: [-8.10, 1.005, -3.80],
+      ornament: [-8.10, 1.865, -6.72], projector: [-8.10, 1.865, -5.45], mochi: [-8.10, 1.865, -3.75],
+      bookstand: [-8.10, 2.735, -5.75], carkey: [-8.10, 2.735, -4.10], backpack: [-8.00, 0.135, -4.65],
+      gramophone: [-5.65, 0.725, -5.65], board: [-7.95, 1.85, -9.1]
+    };
+    Object.keys(placements).forEach(function (id) { L[id] = { p: placements[id], ry: Math.PI / 2, stashed: false }; });
+    L.projector16 = { p: [3.4, 0, -0.4], ry: 0, stashed: true };
+    var ex = L.extras = (L.extras || []).filter(function (e) { return e.uid !== 9504 && e.uid !== 9506; });
+    ex.push({ uid: 9504, kind: 'glb:victorian:Table_North', title: '红木留声机小桌', p: [-5.65, 0, -5.65], ry: 0 });
+  }
+  function vicUp9(L) {
+    L.gramophone = { p: [-5.65, 0.725, -5.65], ry: Math.PI / 2, stashed: false };
+    var ex = L.extras = L.extras || [];
+    ex.forEach(function (e) { if (e.uid === 9504) e.p = [-5.65, 0, -5.65]; });
+    if (!ex.some(function (e) { return e.uid === 9801; })) ex.push({ uid: 9801, kind: 'vic-secret-shelf', title: '红木书架', p: [7.98, 0, -0.65], ry: -Math.PI / 2 });
+  }
+  // v17: the reference-photo bays, and the armor beside the rotating bookcase.
+  function vicUp10(L) {
+    L.board = { p: [-7.95, 1.90, -11.05], ry: Math.PI / 2, stashed: false };
+    var places = { album: [1.005,-4.45], medals: [1.005,-3.65], carmodel: [1.005,-2.95], ornament: [1.865,-4.45], projector: [1.865,-3.65], mochi: [1.865,-2.95], bookstand: [2.735,-4.25], carkey: [2.735,-3.15], backpack: [0.135,-3.65] };
+    Object.keys(places).forEach(function (k) { L[k] = { p: [-8.10, places[k][0], places[k][1]], ry: Math.PI / 2, stashed: false }; });
+    (L.extras || []).forEach(function (e) {
+      if (e.uid === 9801) { e.p = [-7.98, 0, -6.60]; e.ry = Math.PI / 2; }
+      if (e.kind === 'vic-armour') { e.p = [-7.35, 0, -5.22]; e.ry = Math.PI / 2; }
+    });
+  }
+  // v18: place both working faces behind the surrounding casework, inside carved openings.
+  function vicUp11(L) {
+    L.board = { p: [-7.99, 1.90, -11.05], ry: Math.PI / 2, stashed: false };
+    (L.extras || []).forEach(function(e) { if(e.uid===9801) { e.p=[-8.22,0,-6.60];e.ry=Math.PI/2; } });
+  }
   function vicUp6(L) {
     var ex = L.extras = L.extras || [];
     VDECO.forEach(function (d) { if (ex.some(function (e) { return e.uid === d.uid; })) return; ex.push({ kind: d.kind, title: d.title, p: [d.p[0], d.y || 0, d.p[1]], ry: d.ry, uid: d.uid }); });
@@ -1131,19 +1243,20 @@
         if (L.scenicWindow) delete L.scenicWindow;
         L.extras = ex = ex.filter(function (e) { return e.uid !== 9509 && e.uid !== 9510; });   // the two small rugs go: one carpet covers the room now
       }
-  var VSTART = { pos: [-6.6, 1.45, -8.8], yaw: -1.47, pitch: -0.07 };
+  var VSTART = { pos: [5.152, 1.45, -6.457], yaw: 0.7561, pitch: -0.0189 };
   var VEXTRA = { 9601: { p: vdesk(0, 0), ry: VD.ry }, 9602: { p: vdesk(0, 1.0), ry: VD.ry + Math.PI },
 9502: { p: [-0.85, -3.65], ry: -1.15 }, 9503: { p: [-0.35, -4.95], ry: -1.3 },                // two armchairs in the left foreground
 9500: { p: [-3.2, -10.9], ry: -1.36 }, 9501: { p: [-1.8, -10.4], ry: -0.99 },   // the fireplace pair, in the left foreground facing the fire
     9504: { p: VNT, ry: 0 }, 9506: { p: VNT, ry: 0 } };                                         // the round tables; the pedestal desk
   var VICT = { realistic: true, id: 'victorian', name: 'EC–6 Victorian Study', finish: victorianFinish, glb: 'interiors-glb/assets/victorian_study.glb', h: 6.5, lit: true, showroom: true,
     offset: [0, -0.2, -5.1], walk: [-8.4, -13.5, 8.4, 3.4], easel: null, far: 600,
-    cut: [[7.6, 0.02, -4.6, 14, 3.3, -2.6], [7.5, 0.02, VW.z - VW.w / 2 - 0.3, 14, VW.h, VW.z + VW.w / 2 + 0.3]],   // the doorway; the window's opening, through the bookcases and the wall                          // the east bookcase where the study window goes (the Scenic Window stands in front of the bookcase)
-    start: VSTART, startV: 8, deskCam: (function () { var a = vdesk(0, 0.95), b = vdesk(0, -0.2); return { pos: [a[0], 1.5, a[1]], look: [b[0], 0.78, b[1]] }; })(),
-    dress: { board: dressBoardOf(VIC_STYLE), aquarium: dressAquariumOf(VIC_STYLE), scenicWindow: dressVicWindow, tsqPortal: dressVicDoor },
+    niches: [[-9.3, 0.03, -7.55, -7.55, 3.02, -5.65], [-9.3, 0.88, -12.20, -7.3, 2.70, -9.90]],
+    cut: [ [7.6, 0.02, -4.6, 14, 3.3, -2.6], [7.5, 0.02, VW.z - VW.w / 2 - 0.3, 14, VW.h, VW.z + VW.w / 2 + 0.3]],   // the doorway; the window's opening, through the bookcases and the wall                          // the east bookcase where the study window goes (the Scenic Window stands in front of the bookcase)
+    start: VSTART, startV: 10, deskCam: (function () { var a = vdesk(0, 0.95), b = vdesk(0, -0.2); return { pos: [a[0], 1.5, a[1]], look: [b[0], 0.78, b[1]] }; })(),
+    dress: { board: dressVicBoard, aquarium: dressAquariumOf(VIC_STYLE), scenicWindow: dressVicWindow, tsqPortal: dressVicDoor },
     /* v1: the round table makes way for the pedestal desk (and its chair); it goes to the west reading corner with its vase */
     /* v2 (after the user's reference): the desk turned to face the room, a buttoned leather chair behind it */
-    upgrade: { v: 13, fn: function (L) { VICT.upgrade3.fn(L); vicUp4(L); vicUp5(L); delete L.scenicWindow; delete L.tsqPortal; vicUp6(L); } },   // v11: the window built in, the portal is the study door
+    upgrade: { v: 19, fn: function (L) { if ((L.up | 0) < 14) { VICT.upgrade3.fn(L); vicUp4(L); vicUp5(L); delete L.scenicWindow; delete L.tsqPortal; vicUp6(L); vicUp7(L); } if ((L.up | 0) < 15) vicUp8(L); if ((L.up | 0) < 16) vicUp9(L); vicUp10(L); vicUp11(L); } },
     upgrade3: { fn: function (L) {
       var ex = L.extras = L.extras || [];
       /* v3: the west wall is the Scenic Window's now — its library ladder goes to the north wall, beside the fireplace,
@@ -1164,7 +1277,7 @@
     anchors: {
       'desk.left': vdA(0, DY, 0.08, 0), 'desk.right': vdA(0.42, DY, 0.18, 0.2), 'desk.quill': vdA(-0.4, DY, 0.24, -0.3),
       'desk.key': vdA(-0.32, DY, -0.3, 0), 'desk.mochi': vdA(0.68, DY, -0.3, 0.3), 'desk.book': vdA(0.3, DY, -0.3, 0),
-      'wall.left': { p: [-2.7, 1.62, -0.38], ry: 0.35 }, 'wall.right': vnA(0, VY, 0.6),
+      'wall.left': { p: [-7.93, 1.7, -5.1], ry: Math.PI / 2 }, 'wall.right': vnA(0, VY, 0.6),
       'cabinet.top': vnA(-0.5, VY, 0.15), 'cabinet.left': vnA(0.5, VY, 0.15), 'cabinet.right': vnA(0, VY, 0.6),
       'shelf.mid': vnA(-0.45, VY, -0.4), 'sill.left': vnA(0.45, VY, -0.4),
       'corner.window': { p: [4.2, 0, -1.6], ry: -Math.PI / 2 }, 'floor.pack': { p: [-1.1, 0, 0.5], ry: 0.45 }, 'floor.gramo': { p: [-3.6, 0, -4.2], ry: Math.PI / 2 },

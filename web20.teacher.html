@@ -34,7 +34,7 @@
     var board=null,roomOpen=true,activeCode='',boardUrl=boardSelect.value,selectedColumn=0,selectedCard=0;
     var contentColumn=document.getElementById('content-column'),contentCard=document.getElementById('content-card'),cardPicker=document.getElementById('card-picker'),cardTitle=document.getElementById('card-title'),cardPinyin=document.getElementById('card-pinyin'),cardAnswer=document.getElementById('card-answer'),cardExample=document.getElementById('card-example'),questionList=document.getElementById('question-list'),contentStatus=document.getElementById('content-status');
     var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);});};
-    function randomCode(){var chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',out='';for(var i=0;i<6;i++)out+=chars[Math.floor(Math.random()*chars.length)];return out;}
+    function randomCode(){var chars='0123456789',out='';for(var i=0;i<6;i++)out+=chars[Math.floor(Math.random()*chars.length)];return out;}
     function configKey(code){return 'minest-room-config-'+code;}
     function leaderboardKey(code){return 'minest-room-leaderboard-'+code;}
     function studentUrl(){var path=location.pathname.replace(/[^/]*$/,'')+'web20.0.html';return location.origin+(path||'/')+'?code='+encodeURIComponent(activeCode);}
@@ -66,7 +66,7 @@
     document.getElementById('copy-link').addEventListener('click',function(){copyText(studentUrl(),this);});document.getElementById('copy-hero').addEventListener('click',function(){copyText(studentUrl(),this);});document.getElementById('open-student').addEventListener('click',function(){window.open(studentUrl(),'_blank','noopener');});
     contentColumn.addEventListener('change',function(){selectedColumn=Number(contentColumn.value)||0;selectedCard=0;renderContent();});contentCard.addEventListener('change',function(){selectedCard=Number(contentCard.value)||0;renderContent();});document.getElementById('add-column').addEventListener('click',addColumn);document.getElementById('add-card').addEventListener('click',addCard);document.getElementById('save-card').addEventListener('click',saveCardEdits);document.getElementById('delete-card').addEventListener('click',deleteCard);document.getElementById('add-question').addEventListener('click',function(){editQuestion(-1);});document.getElementById('publish-content').addEventListener('click',function(){saveCardEdits();saveRoom();});
     codeInput.addEventListener('input',function(){setCode(codeInput.value);loadSavedRoom(activeCode);});
-    setCode(new URLSearchParams(location.search).get('code')||'CPA2G4');
+    setCode(new URLSearchParams(location.search).get('code')||randomCode());
     loadSavedRoom(activeCode);
     window.addEventListener('storage',function(e){if(e.key===null||e.key===leaderboardKey(activeCode))renderLeaderboard();if(e.key===null||e.key===configKey(activeCode)){loadSavedRoom(activeCode);if(e.key===configKey(activeCode))loadBoard();}});
     renderState();loadBoard();setInterval(renderLeaderboard,3000);

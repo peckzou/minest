@@ -815,5 +815,5 @@
     var style = opts && opts.medal === 'wall' ? 'wall' : 'box';
     return [backpack(), gramophone(), filmProjector(), tsqPortal(), holoDesk(), aquarium(), quill(), mochi(), carKey(), style === 'wall' ? medalBoard() : medalBox(), bookstand(), carModel()];
   }
-  root.SpatialEntries = { make: make, routineCard: routineCard, ringsDay: ringsDay };
+  root.SpatialEntries = { make: make, portal: tsqPortal, routineCard: routineCard, ringsDay: ringsDay };
 })(window);

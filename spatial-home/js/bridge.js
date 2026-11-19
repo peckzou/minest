@@ -129,10 +129,79 @@
     return new URL(web ? t.web : t.flat, location.href).href;
   }
 
+  var reading = false, fullButton, exitButton, controlsTimer = 0, readingFocus = null, nativeReading = false, watchedDocuments = [];
+  var readingSelectors = 'button,[role="button"],[role="toolbar"],header.iphone-topbar,.ios-bottom-tab-bar,.mn-bdock,#minest-mini-pet-p0,#cs-btn,#sh-top,#sh-labels,#sh-stick,#sh-hint,#sh-credit,#sh-pill,#sh-reading-enter,#sh-dock,#sh-settings,#sh-pack,#sh-edit,#sh-card,#sh-toast,#sh-skip';
+  function readingDocument(doc, on, outer) {
+    try {
+      var style = doc.getElementById('sh-reading-style');
+      if (!style) {
+        style = doc.createElement('style'); style.id = 'sh-reading-style';
+        style.textContent = readingSelectors.split(',').map(function (s) { return 'html.sh-reading ' + s; }).join(',') + '{visibility:hidden!important;pointer-events:none!important}' +
+          'html.sh-reading body .mn-bdock.mn-bdock,html.sh-reading body .mn-bdock.mn-bdock::before,html.sh-reading body .mn-bdock.mn-bdock::after{display:none!important;visibility:hidden!important;pointer-events:none!important}' +
+          (outer ? 'html.sh-reading #sh-reading-exit{display:block!important;visibility:visible!important;pointer-events:auto!important}' : '');
+        doc.head.appendChild(style);
+      }
+      doc.documentElement.classList.toggle('sh-reading', on);
+    } catch (e) {}
+  }
+  function syncReading() {
+    readingDocument(document, reading, true);
+    [hostFrame, pageFrame].forEach(function (f) { if (f) try { readingDocument(f.contentDocument, reading, false); } catch (e) {} });
+  }
+  function wakeControls() {
+    if (!pill || pill.hidden || reading) return;
+    pill.classList.remove('sh-control-idle'); fullButton.classList.remove('sh-control-idle');
+    clearTimeout(controlsTimer);
+    controlsTimer = setTimeout(function () {
+      pill.classList.add('sh-control-idle'); fullButton.classList.add('sh-control-idle');
+    }, 2400);
+  }
+  function watchActivity(doc) {
+    if (!doc || watchedDocuments.indexOf(doc) !== -1) return;
+    watchedDocuments.push(doc);
+    ['pointermove', 'pointerdown', 'touchstart', 'wheel', 'keydown', 'focusin'].forEach(function (event) {
+      doc.addEventListener(event, wakeControls, { capture: true, passive: true });
+    });
+    doc.addEventListener('keydown', function (e) { if (reading && e.key === 'Escape') { e.preventDefault(); setReading(false); } }, true);
+  }
+  function watchFrame(frame) {
+    frame.addEventListener('load', function () {
+      try { watchActivity(frame.contentDocument); } catch (e) {}
+      syncReading();
+    });
+  }
+  function setReading(on) {
+    on = !!on; if (reading === on) return;
+    reading = on;
+    if (on) readingFocus = document.activeElement;
+    exitButton.hidden = !on; syncReading();
+    if (on) {
+      clearTimeout(controlsTimer); exitButton.focus({ preventScroll: true });
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        try {
+          var request = document.documentElement.requestFullscreen();
+          if (request && request.then) request.then(function () { nativeReading = true; if (!reading && document.exitFullscreen) document.exitFullscreen().catch(function () {}); }).catch(function () {});
+        } catch (e) {}
+      }
+    } else {
+      if (nativeReading && document.fullscreenElement && document.exitFullscreen) { try { document.exitFullscreen().catch(function () {}); } catch (e) {} }
+      nativeReading = false; wakeControls();
+      if (readingFocus && readingFocus.isConnected) try { readingFocus.focus({ preventScroll: true }); } catch (e) {}
+    }
+  }
   function init(o) {
-    wrap = o.wrap; pill = o.pill; onLeave = o.onLeave; onShow = o.onShow;
-    pill.addEventListener('click', function (e) { e.stopPropagation(); leave('home'); });
-    pill.addEventListener('mouseenter', function () { pill.textContent = '⌂ Home'; });
+    wrap = o.wrap; pill = o.pill; pill.setAttribute('aria-label', '回到 Spatial Home'); onLeave = o.onLeave; onShow = o.onShow;
+    fullButton = document.createElement('button'); fullButton.id = 'sh-reading-enter'; fullButton.type = 'button';
+    fullButton.textContent = '⛶'; fullButton.title = '全屏 · 纯净阅览'; fullButton.setAttribute('aria-label', fullButton.title); fullButton.hidden = true;
+    exitButton = document.createElement('button'); exitButton.id = 'sh-reading-exit'; exitButton.type = 'button';
+    exitButton.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h5V4M9 9 3 3M20 9h-5V4M15 9l6-6M4 15h5v5M9 15l-6 6M20 15h-5v5M15 15l6 6"/></svg>'; exitButton.title = '退出全屏'; exitButton.setAttribute('aria-label', '退出全屏'); exitButton.hidden = true;
+    document.body.appendChild(fullButton); document.body.appendChild(exitButton);
+    fullButton.addEventListener('click', function (e) { e.stopPropagation(); setReading(true); });
+    exitButton.addEventListener('click', function (e) { e.stopPropagation(); setReading(false); });
+    document.addEventListener('fullscreenchange', function () { if (reading && nativeReading && !document.fullscreenElement) setReading(false); });
+    watchActivity(document);
+    pill.addEventListener('click', function (e) { e.stopPropagation(); setReading(false); leave('home'); });
+    pill.addEventListener('mouseenter', function () { pill.textContent = '⌂'; });
     pill.addEventListener('mouseleave', function () { if (pill.classList.contains('mini')) pill.textContent = '⌂'; });
   }
   /* load the app once (standalone only); resolve with its window (or null if it never comes up) */
@@ -143,7 +212,7 @@
       if (hostState === 'loading') return;
       hostState = 'loading';
       hostFrame = document.createElement('iframe'); hostFrame.className = 'sh-frame'; hostFrame.title = 'Minest'; hostFrame.setAttribute('allow', 'camera; microphone; fullscreen; autoplay; clipboard-write');
-      hostFrame.src = appUrl(); wrap.appendChild(hostFrame);
+      watchFrame(hostFrame); hostFrame.src = appUrl(); wrap.appendChild(hostFrame);
       var t0 = Date.now(), iv = setInterval(function () {
         var ok = hostReady();
         if (ok || Date.now() - t0 > 45000) {
@@ -199,13 +268,13 @@
       if (EMBED) wrap.classList.remove('on');
       else { hostFrame.classList.add('on'); wrap.classList.add('on'); try { hostFrame.focus(); w.focus(); } catch (e2) {} }
     } else {
-      if (!pageFrame) { pageFrame = document.createElement('iframe'); pageFrame.className = 'sh-frame'; pageFrame.setAttribute('allow', 'camera; microphone; fullscreen; autoplay; xr-spatial-tracking; accelerometer; gyroscope'); wrap.appendChild(pageFrame); }
+      if (!pageFrame) { pageFrame = document.createElement('iframe'); pageFrame.className = 'sh-frame'; pageFrame.setAttribute('allow', 'camera; microphone; fullscreen; autoplay; xr-spatial-tracking; accelerometer; gyroscope'); watchFrame(pageFrame); wrap.appendChild(pageFrame); }
       var abs = pageUrl(t);
       if (pageFrame.dataset.url !== abs) { pageFrame.dataset.url = abs; pageFrame.src = abs; }
       pageFrame.classList.add('on'); if (hostFrame) hostFrame.classList.remove('on'); wrap.classList.add('on');
     }
-    current = t; seenOpen = false; pill.hidden = false; pill.classList.remove('mini'); pill.textContent = '⌂ Home';
-    clearTimeout(pill._mini); pill._mini = setTimeout(function () { if (!pill.hidden) { pill.classList.add('mini'); pill.textContent = '⌂'; } }, 2500);
+    current = t; seenOpen = false; pill.hidden = false; pill.classList.remove('mini'); pill.textContent = '⌂';
+    clearTimeout(pill._mini); fullButton.hidden = false; wakeControls();
     if (onShow) onShow(t);
     clearInterval(poll);
     if (t.kind === 'host' && !t.base && !t.sticky) poll = setInterval(function () {          // the feature's own ✕ brings you home
@@ -216,7 +285,7 @@
   }
   function isLive(t) { if (t.kind !== 'host' || t.base) return false; try { var w = hw(); return !!(w && t.test(w) && t.isOpen(w)); } catch (e) { return false; } }
   function leave(why) { if (!current) return; clearInterval(poll); var t = current; current = null; if (onLeave) onLeave(t, why); }
-  function hide() { clearTimeout(pill._mini); pill.hidden = true; wrap.classList.remove('on'); if (hostFrame) hostFrame.classList.remove('on'); if (pageFrame) pageFrame.classList.remove('on'); }
+  function hide() { setReading(false); clearTimeout(controlsTimer); clearTimeout(pill._mini); pill.hidden = true; if (fullButton) fullButton.hidden = true; wrap.classList.remove('on'); if (hostFrame) hostFrame.classList.remove('on'); if (pageFrame) pageFrame.classList.remove('on'); }
   /* leave Spatial Home for the plain app (the board): what the room opened is put away the feature's own way */
   function release() { clearInterval(poll); current = null; closeOthers(null); hide(); }
 
@@ -241,5 +310,5 @@
     if (q) { if (document.readyState === 'complete') openHere(q); else root.addEventListener('load', function () { openHere(q); }); }
     root.addEventListener('message', function (e) { var m = e.data; if (m && typeof m.mnLaptop === 'string') openHere(m.mnLaptop); });
   })();
-  root.SpatialBridge = { FEATURES: FEATURES, EMBED: EMBED, init: init, load: load, state: state, available: available, isLive: isLive, needsHost: needsHost, show: show, hide: hide, leave: leave, release: release, appUrl: appUrl, current: function () { return current; }, hostWindow: hw };
+  root.SpatialBridge = { FEATURES: FEATURES, EMBED: EMBED, init: init, setReading: setReading, load: load, state: state, available: available, isLive: isLive, needsHost: needsHost, show: show, hide: hide, leave: leave, release: release, appUrl: appUrl, current: function () { return current; }, hostWindow: hw };
 })(window);

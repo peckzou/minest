@@ -42,6 +42,7 @@ canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
   "three/addons/": "./vendor/jsm/"
 } }
 </script>
+<script src="lifecycle.js"></script>
 <script type="module">
 import * as THREE from 'three';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
@@ -327,6 +328,8 @@ new FontLoader().load('./vendor/fonts/helvetiker_bold.typeface.json', f => {
   [...hello].forEach((c, i) => setTimeout(() => type(c), 500 + i * 380));
   requestAnimationFrame(frame);
 }, undefined, () => { const e = document.getElementById('err'); e.style.display = 'block'; e.textContent = '字体没有加载成功（需要联网）。请检查网络后刷新。'; });
+
+window.T3DLifecycle?.register(() => { renderer.setAnimationLoop(null); composer.passes.forEach(p => p.dispose?.()); composer.dispose(); scene.traverse(o => { o.geometry?.dispose(); const mats = Array.isArray(o.material) ? o.material : [o.material]; mats.forEach(m => m?.dispose()); }); renderer.dispose(); renderer.forceContextLoss(); });
 </script>
 <script src="fold.js"></script>
 <script src="picker.js"></script>

@@ -8,7 +8,7 @@
   var C = window.Clun = window.Clun || {};
   var D2R = Math.PI / 180;
   var PL = C.PLATE = {
-    img: 'art/delivery-plate.jpg', W: 2576, H: 1438,
+    img: 'art/delivery-plate-tree-v2.jpg', W: 2576, H: 1438,
     hfov: 60,                      /* 底图的水平视角（假定） */
     horizon: 0.65,                 /* 地平线在底图里的高度（从上往下的比例），由原房子的屋檐线和墙脚线汇聚估出 */
     door: [868, 1022],             /* 原房子门的底边 */
@@ -19,7 +19,7 @@
     mask: [[425, 1040], [425, 730], [488, 556], [494, 446], [582, 446], [582, 548], [962, 552], [965, 552], [1040, 552], [1044, 664], [1118, 730], [1162, 730],
       [1172, 780], [1210, 836], [1284, 924], [1284, 1044], [1142, 1044], [1142, 1012], [808, 1012], [808, 1046]],
     path: [[300, 990], [830, 990], [830, 1112], [300, 1112]],
-    ladders: [[[108, 662], [198, 744], [132, 1168], [22, 1118]], [[160, 784], [232, 784], [322, 1154], [222, 1168]]],   /* 原图树屋的两架木梯：抹掉，换成一条绳梯 */
+    ladders: [],   /* 原图树屋的两架木梯：抹掉，换成一条绳梯 */
     rope: [332, 808, 1152],                     /* 绳梯：挂在平台右端前沿（x, 平台底 y），下面地面 y */
     walkOut: [[262, 1110], [420, 1060], [600, 1035], [790, 1032], [880, 1060], [835, 1130], [870, 1200], [930, 1270], [985, 1340], [1045, 1420], [760, 1428], [520, 1390], [330, 1320], [255, 1210]],   /* 右边沿着小路栏杆的内侧（不站到栏杆外面） */   /* 屋外能走的范围：门前、左边草坪和石板路 */
     walkBank: [[1690, 1205], [1820, 1120], [2120, 1150], [2420, 1230], [2555, 1330], [2555, 1430], [1720, 1430], [1700, 1330]],   /* 小溪对岸：石桌那片草坡 */
@@ -383,14 +383,14 @@
       var R = PL.rope, base = onTerrain(R[0], R[2]), inv = cam.quat.clone().invert(), depth = -base.clone().sub(cam.pos).applyQuaternion(inv).z;
       function atDepth(px, py, dz) { return new THREE.Vector3((px / PL.W - 0.5) * Wn, -(py / PL.H - 0.5) * Hn, -1).multiplyScalar(depth + (dz || 0)).applyQuaternion(cam.quat).add(cam.pos); }
       var top = atDepth(R[0], R[1]), full = top.y - (base.y + 0.5);
-      var ropeM = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x5c4b34).convertSRGBToLinear(), roughness: 1 }), rungM = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x6b5136).convertSRGBToLinear(), roughness: 0.95 });   /* 照参考图：哑光深麻绳色、旧木色横档 */   /* 照参考图：哑光麻绳色、浅木色横档，不要太亮 */
+      var ropeM = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x8a6a3e).convertSRGBToLinear(), roughness: 1 }), rungM = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x9d7544).convertSRGBToLinear(), roughness: 0.95 });   /* 照参考图：哑光深麻绳色、旧木色横档 */   /* 照参考图：哑光麻绳色、浅木色横档，不要太亮 */
       var side = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quat); side.y = 0; side.normalize();
       var toCam = cam.pos.clone().sub(base); toCam.y = 0; toCam.normalize();
       var pivot = new THREE.Group(); pivot.position.copy(top); root.add(pivot);
-      var ropes = [-0.17, 0.17].map(function (o) { var geo = new THREE.CylinderGeometry(0.019, 0.019, 1, 6); geo.translate(0, -0.5, 0); var m = new THREE.Mesh(geo, ropeM); m.position.copy(side).multiplyScalar(o); pivot.add(m); return m; });
-      var NR = Math.max(9, Math.round(full / 0.24) + 1), rungs = []; for (var k = 0; k < NR; k++) { var d = full - (full - 0.12) * k / (NR - 1), rr = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.4, 0.045), rungM); rr.position.set(0, -d, 0); rr.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), side); rr.userData.d = d; pivot.add(rr); rungs.push(rr); }
-      var bar = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.56, 0.07), rungM); bar.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), side); bar.position.set(0, 0.04, 0); pivot.add(bar);   /* 平台下的木挂杆，绳子绕在上面打结 */
-      [-0.17, 0.17].forEach(function (o) { var kn = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), ropeM); kn.position.copy(side).multiplyScalar(o); kn.position.y = 0.02; pivot.add(kn); });
+      var ropes = [-0.2, 0.2].map(function (o) { var geo = new THREE.CylinderGeometry(0.03, 0.03, 1, 8); geo.translate(0, -0.5, 0); var m = new THREE.Mesh(geo, ropeM); m.position.copy(side).multiplyScalar(o); pivot.add(m); return m; });
+      var NR = Math.max(9, Math.round(full / 0.3) + 1), rungs = []; for (var k = 0; k < NR; k++) { var d = full - (full - 0.12) * k / (NR - 1), rr = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.44, 0.07), rungM); rr.position.set(0, -d, 0); rr.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), side); rr.userData.d = d; pivot.add(rr); rungs.push(rr); }
+      var bar = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.64, 0.11), rungM); bar.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), side); bar.position.set(0, 0.04, 0); pivot.add(bar);   /* 平台下的木挂杆，绳子绕在上面打结 */
+      [-0.2, 0.2].forEach(function (o) { var kn = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), ropeM); kn.position.copy(side).multiplyScalar(o); kn.position.y = 0.02; pivot.add(kn); });
       var roll = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.4, 14), ropeM); roll.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), side); roll.position.set(0, -0.05, 0); pivot.add(roll);
       C.Paint.toonTree(pivot);
       var st = { k: 0, want: 0, ang: 0 };
@@ -413,6 +413,8 @@
       };
     })();
 
+
+    /* 树屋支撑树干属于绘画底图，与周围树木统一受光和纹理；避免叠加异质的柱状模型。 */
     /* —— 接触阴影：房子脚下一块只接阴影的透明地面 —— */
     var ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.ShadowMaterial({ opacity: 0.32 }));
     ground.rotation.x = -Math.PI / 2; ground.position.copy(holder.position).add(new THREE.Vector3(0, -0.3, 0)); ground.receiveShadow = true; root.add(ground); disp.push(ground.geometry, ground.material);
@@ -480,6 +482,9 @@
       '<button class="ce-explore" hidden>进屋探索</button><button class="ce-out" hidden>‹ 回到门外</button>' +
       '<button class="ce-view" hidden>👤 第一人称</button><div class="ce-acts" hidden><span class="ce-ctx"></span><button class="ce-door2" hidden>🚪 开门</button><button class="ce-sit" hidden>🪑 坐下</button><button class="ce-read" hidden>📖 看书</button><button class="ce-wave">👋 挥手</button></div><div class="ce-stick" hidden><div class="ce-knob"></div></div><button class="ce-menu" hidden>≡</button><div class="ce-feats" hidden></div><div class="ce-bar" hidden><div class="ce-brand" style="visibility:hidden"></div><button class="ce-ic ce-x" data-a="pack" title="背包 · 布置">🎒</button><button class="ce-ic ce-x" data-a="env" title="切换环境">🌐</button><button class="ce-ic ce-x" data-a="views" title="窗外风景">🪟</button><button class="ce-ic ce-x" data-a="sit" title="坐下 / 起立">🪑</button><button class="ce-ic ce-x" data-a="view" title="第一 / 第三人称">👤</button><button class="ce-ic ce-x" data-a="set" title="设置">⚙</button><button class="ce-ic ce-fold on" data-a="menu" title="显示 / 收起按钮">≡</button><button class="ce-ic" data-a="exit" title="进入完整的 Minest">✕</button></div><div class="ce-help" hidden>拖动看四周 · 摇杆或 WASD 走动 · 楼梯可以上楼</div>';
     document.body.appendChild(ui);
+    var churchEl = document.createElement('button'); churchEl.className = 'ce-mac-web'; churchEl.type = 'button'; churchEl.setAttribute('aria-label', '教堂 · Mac 网页版看板'); churchEl.title = 'Mac Web · 看板'; churchEl.innerHTML = '<span>Mac Web ↗</span>'; ui.appendChild(churchEl);
+    churchEl.addEventListener('click', function (e) { e.stopPropagation(); if (window.parent !== window) { if (window.parent.MinestStartControls) window.parent.MinestStartControls.openWeb(true); else window.parent.postMessage({clun:'web'}, '*'); } else location.href = '../../web31.0.html?dock=1&from=clun'; });
+
     var css = document.createElement('style'); css.textContent =
       '.clun-entry .ce-door{position:fixed;z-index:20;transform:translate(-50%,-50%);pointer-events:auto;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px}' +
       '.clun-entry .ce-door[hidden],.clun-entry button[hidden]{display:none}' +
@@ -508,6 +513,7 @@
       '.clun-entry .ce-stick[hidden],.clun-entry .ce-help[hidden]{display:none}' +
       '.clun-entry .ce-knob{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:rgba(255,255,255,.75);box-shadow:0 2px 8px rgba(0,0,0,.25)}' +
       '.clun-entry .ce-help{position:fixed;z-index:40;left:50%;transform:translateX(-50%);top:calc(16px + env(safe-area-inset-top));font:500 12px/1 -apple-system,"PingFang SC",sans-serif;color:#fff;padding:7px 12px;border-radius:12px;background:rgba(30,36,30,.45);pointer-events:none;white-space:nowrap}';
+    css.textContent += '.clun-entry .ce-mac-web{position:fixed;z-index:35;padding:0;border:0;border-radius:12px;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;cursor:pointer;transform:none;min-width:44px;min-height:44px}.ce-mac-web span{position:absolute;bottom:-28px;left:50%;transform:translateX(-50%);white-space:nowrap;font:600 11px/1.2 -apple-system,sans-serif;letter-spacing:.05em;padding:7px 10px;border:1px solid #ffffff65;border-radius:20px;color:#fff;background:#1d2b4f99;backdrop-filter:blur(10px);opacity:0;transition:opacity .25s}.ce-mac-web:hover span,.ce-mac-web:focus-visible span{opacity:1}.ce-mac-web:focus-visible{outline:2px solid #fff;outline-offset:3px}';
     document.head.appendChild(css);
     var doorEl = ui.querySelector('.ce-door'), skipEl = ui.querySelector('.ce-skip'), goEl = ui.querySelector('.ce-go'), exEl = ui.querySelector('.ce-explore'), outEl = ui.querySelector('.ce-out'), stickEl = ui.querySelector('.ce-stick'), viewEl = ui.querySelector('.ce-view'), actsEl = ui.querySelector('.ce-acts'), sitEl = ui.querySelector('.ce-sit'), readEl = ui.querySelector('.ce-read'), waveEl = ui.querySelector('.ce-wave'), door2El = ui.querySelector('.ce-door2'), menuEl = ui.querySelector('.ce-menu'), featsEl = ui.querySelector('.ce-feats'), barEl = ui.querySelector('.ce-bar'), ctxEl = ui.querySelector('.ce-ctx'), knobEl = ui.querySelector('.ce-knob'), helpEl = ui.querySelector('.ce-help');
     doorEl.addEventListener('click', function () { enter(); });
@@ -831,6 +837,10 @@
     }
     function hitDoor(px, py) { return px > DOOR.x[0] && px < DOOR.x[1] && py > DOOR.y[0] && py < DOOR.y[1]; }
     function placeDoorHint(c, sz) {
+      var cr = renderer.domElement.getBoundingClientRect(), cx = (1585 - c.x) / c.w * sz.x, cy = (660 - c.y) / c.h * sz.y, cw = 205 / c.w * sz.x, ch = 255 / c.h * sz.y;
+      churchEl.hidden = !!walk || !!trans || cx + cw < 0 || cx > sz.x || cy + ch < 0 || cy > sz.y;
+      churchEl.style.left = (cr.left + cx) + 'px'; churchEl.style.top = (cr.top + cy) + 'px'; churchEl.style.width = cw + 'px'; churchEl.style.height = ch + 'px';
+
       if (walk || trans || !uiAwake()) { doorEl.hidden = true; return; }
       var x = (DOOR.c[0] - c.x) / c.w * sz.x, y = (DOOR.c[1] - c.y) / c.h * sz.y, rect = renderer.domElement.getBoundingClientRect();
       doorEl.hidden = x < 0 || x > sz.x || y < 0 || y > sz.y; doorEl.style.left = (rect.left + x) + 'px'; doorEl.style.top = (rect.top + y + 18) + 'px';
@@ -848,6 +858,7 @@
       if (OUT.on) { actsEl.hidden = !on && !OUT.act; barEl.hidden = !on; }
     }
     if (ENTRY) post('ready');
+    if (Q.get('inside') === '1') setTimeout(function () { startExplore(); }, 50);
 
     return {
       enter: enter, skipEntry: finish, walking: function () { return !!walk; },
@@ -864,7 +875,7 @@
       limits: function (a, zoom) { return { azMax: 0.5 * (1 - (zoom || 1)) + 0.0001 }; },
       place: function (camera, O) {
         var sz = renderer.getSize(new THREE.Vector2()), va = sz.x / Math.max(1, sz.y), now = performance.now() / 1000;
-        if (walkCamera(camera, sz, va, now)) return;
+        if (walkCamera(camera, sz, va, now)) { churchEl.hidden = true; return; }
         awakeUi(); TH.tick(Math.min(0.05, now - (TH.lastT || now))); TH.lastT = now;
         if (!walk && !OUT.on && !trans && Math.abs(EX.stick[0]) + Math.abs(EX.stick[1]) + (EX.keys.w || EX.keys.a || EX.keys.s || EX.keys.d ? 1 : 0) > 0.15) startOutdoorHere();   /* 开屏推摇杆：小人直接在屋外走起来 */
         if (OUT.on) outdoorStep(now);

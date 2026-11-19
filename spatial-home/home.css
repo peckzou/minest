@@ -244,3 +244,50 @@ html.mf-book #mn-sh #sh-edit.float { width: auto !important; }
 #mn-sh .sh-fmenu button i svg { width: 16px; height: 16px; }
 /* a long list of choices (the environment picker) scrolls inside its card instead of running off the screen */
 #mn-sh #sh-card { max-height: calc(100% - 52px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; }
+
+/* This switch controls Minest's original main Dock (Settings, Pet Raising and other apps). */
+#mn-sh #sh-dockBtn { width: auto; min-width: 44px; padding-inline: 8px; font-size: 12px; }
+html.sh-main-dock-enabled body .mn-bdock { display: flex !important; z-index: 2147483610 !important; opacity: 1 !important; visibility: visible !important; pointer-events: auto !important; }
+html.sh-main-dock-enabled[data-mn-bd="bottom"] body .mn-bdock { transform: translate(-50%,0) !important; }
+html.sh-main-dock-enabled[data-mn-bd="right"] body .mn-bdock,
+html.sh-main-dock-enabled[data-mn-bd="left"] body .mn-bdock { transform: translate(0,-50%) !important; }
+html.sh-main-dock-disabled body .mn-bdock { display: none !important; }
+
+/* Feature navigation appears while interacting and rests in the lower-right corner. */
+#sh-pill, #sh-pill.mini, #sh-pill.mini:hover, #sh-pill.mini:focus-visible {
+  left: auto !important; top: auto !important; right: calc(14px + env(safe-area-inset-right)) !important;
+  bottom: calc(16px + env(safe-area-inset-bottom)) !important; transform: none !important;
+  width: 44px; min-width: 44px; height: 44px; padding: 0; border-radius: 50%; font-size: 22px; line-height: 42px; text-align: center; text-indent: 0; opacity: .9;
+}
+#sh-reading-enter, #sh-reading-exit {
+  position: fixed; z-index: 2147483647; min-width: 44px; height: 44px; padding: 0 14px;
+  border: 1px solid rgba(255,255,255,.5); border-radius: 999px; color: #fff; background: rgba(29,43,79,.82);
+  font: 600 13px/1.3 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif; cursor: pointer;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); transition: opacity .25s;
+}
+#sh-reading-enter { right: calc(70px + env(safe-area-inset-right)); bottom: calc(16px + env(safe-area-inset-bottom)); font-size: 24px; }
+#sh-reading-exit { left: calc(12px + env(safe-area-inset-left)); top: auto; bottom: calc(16px + env(safe-area-inset-bottom)); width: 44px; padding: 0; border-radius: 50%; line-height: 0; }
+#sh-reading-exit { box-sizing: border-box; text-indent: 0; overflow: hidden; }
+#sh-reading-exit svg { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: 0; transform: translate(-50%,-50%); display: block; pointer-events: none; }
+#sh-reading-enter[hidden], #sh-reading-exit[hidden] { display: none !important; }
+#sh-pill.sh-control-idle, #sh-reading-enter.sh-control-idle { opacity: 0 !important; visibility: hidden; pointer-events: none !important; }
+#sh-reading-enter:focus-visible, #sh-reading-exit:focus-visible, #sh-pill:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+
+/* Backpack stays inside the viewport; controls do not shrink below a finger-sized target. */
+#mn-bp, #mn-bp * { box-sizing: border-box; }
+#mn-bp { max-width: calc(100dvw - 24px); max-height: calc(100dvh - 80px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+#mn-bp .flap, #mn-bp .tabs { flex-shrink: 0; }
+#mn-bp .flap { flex-wrap: wrap; gap: 8px; }
+#mn-bp .flap .plate { flex: 1; }
+#mn-bp .flap input { order: 3; flex: 1 0 100%; }
+#mn-bp button { min-height: 44px; touch-action: manipulation; }
+#mn-bp .flap button { min-width: 64px; flex: none; }
+#mn-bp .grid, #mn-bp .pv { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+#mn-bp .tabs { touch-action: pan-x; }
+#mn-bp .it img, #mn-bp .it i { pointer-events: none; }
+@media (max-width: 640px) { #mn-bp { left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); width: auto; max-width: none; } #mn-bp .pv { max-height: 42%; min-height: 0; } }
+
+#mn-bp .grid { grid-auto-rows: max-content !important; }
+#mn-bp .grid .it { height: 108px !important; min-height: 108px !important; min-width: 0; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+#mn-bp .it img, #mn-bp .it i { flex: none; }
+#mn-bp .it span { flex: none; line-height: 18px; }

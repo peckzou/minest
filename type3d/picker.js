@@ -111,7 +111,7 @@
   function step(d) {
     idx = (idx + d + ALL.length) % ALL.length; show(d); wake();
     clearTimeout(goT); pending = ALL[idx];
-    goT = setTimeout(function () { var it = pending, here = ALL[curIndex()]; if (it === here) return; location.href = urlOf(it); }, 650);
+    goT = setTimeout(function () { var it = pending, here = ALL[curIndex()]; if (it === here) return; if (window.T3DLifecycle) window.T3DLifecycle.leave(); location.href = urlOf(it); }, 650);
   }
   function wake() { if (!strip) return; strip.classList.remove('dim'); clearTimeout(dimT); dimT = setTimeout(function () { strip.classList.add('dim'); }, 4000); }
   function open() { if (!strip) build(); wake(); }
