@@ -29,6 +29,8 @@ What is new (`v70.js`, `v70.css`, and five anchored edits in `build.py`):
 - **Outer screen.** On the Glance the Mini Pet's default spot was on top of the "start studying" button; it now
   rests in the free corner below the cards, and goes back when the full app or the inner screen is shown. A
   pet the user has dragged is left where it is.
+- **Pet screen.** Its ✕ went fully invisible, and took no taps, once the pet had been left alone for 4 seconds,
+  so the full-screen pet showed no way out until something was touched. It now only dims and can be tapped.
 - **Speed.** The Sync Center's look at all boards every 4 seconds (a full re-serialise and hash, about 80 ms on
   the demo data) waits for a quiet moment instead of landing in the middle of a swipe, and no longer hashes data
   whose JSON is the same as at the last look (91 ms → 7 ms per look when nothing changed; a change is still seen
