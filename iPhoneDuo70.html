@@ -194423,14 +194423,13 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
 /* ---------- 1. board | 3D Cover: the board's card for the Cover's front card */
 html.duo-cover .sf-slot[data-sf-view="board"] article[data-mn70-cur] {
   box-shadow: 0 0 0 1.5px rgba(255,255,255,.82), 0 0 0 5px rgba(255,255,255,.14), 0 10px 26px -10px rgba(0,0,0,.55) !important;
-  animation: mn70-cur .46s cubic-bezier(.22,1,.36,1) both;
+  animation: mn70-cur .46s cubic-bezier(.22,1,.36,1);   /* no fill, and `scale` not `transform`: a row being swiped keeps its inline transform */
 }
 html.duo-cover .theme-white .sf-slot[data-sf-view="board"] article[data-mn70-cur] {
   box-shadow: 0 0 0 1.5px rgba(16,24,40,.72), 0 0 0 5px rgba(16,24,40,.10), 0 10px 26px -12px rgba(16,24,40,.35) !important;
 }
 @keyframes mn70-cur {
-  0% { transform: scale(.985); filter: brightness(1.28); }
-  100% { transform: none; filter: none; }
+  from { scale: .985; filter: brightness(1.28); }
 }
 @media (prefers-reduced-motion: reduce) {
   html.duo-cover .sf-slot[data-sf-view="board"] article[data-mn70-cur] { animation: none; }
@@ -194602,6 +194601,8 @@ html.mn70-hidden *, html.mn70-hidden *::before, html.mn70-hidden *::after { anim
     if (id == null || id === boardId) return;
     var first = boardId === null; boardId = id;
     if (!reduce && !split() && (first || !document.hidden)) once('mn70-enter', 900);
+    /* another board: its saved Cover card raises no minest:image-selection, so the mark is placed here */
+    if (split()) queue(260);
   }
   /* the split opens: both panes arrive together */
   var wasSplit = split();
@@ -194623,7 +194624,10 @@ html.mn70-hidden *, html.mn70-hidden *::before, html.mn70-hidden *::after { anim
   var lazyQ = false;
   new MutationObserver(function () {
     if (lazyQ) return; lazyQ = true;
-    setTimeout(function () { lazyQ = false; lazy(document); boardEnter(); }, 300);
+    setTimeout(function () {
+      lazyQ = false; lazy(document); boardEnter();
+      if (curEl && !curEl.isConnected && split()) queue(0);   /* the marked row was re-rendered */
+    }, 300);
   }).observe(document.body, { childList: true, subtree: true });
   lazy(document); boardEnter();
 
