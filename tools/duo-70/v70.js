@@ -128,6 +128,34 @@
     viewName = v;
   }
 
+  /* outer screen: the Mini Pet's default spot is on top of the Glance's "start studying" button. While the Glance
+     is showing, a pet that was never dragged rests in the free corner below the cards, and goes back after. */
+  function glance() {
+    var g = R.classList.contains('duo-outer') && document.querySelector('body > .duo-gl');
+    return !!g && !g.hidden;
+  }
+  function petPark() {
+    var pet = document.getElementById('minest-mini-pet-p0');
+    if (!pet || window.__miniPetHost) return;
+    var dragged = false;
+    try { dragged = !!localStorage.getItem('minest.miniPetP0.position'); } catch (e) {}
+    var parked = pet.hasAttribute('data-mn70-park');
+    if (dragged) { if (parked) pet.removeAttribute('data-mn70-park'); return; }
+    if (glance()) {
+      pet.setAttribute('data-mn70-park', '');
+      pet.style.left = Math.max(0, window.innerWidth - pet.offsetWidth + 10) + 'px';
+      pet.style.top = Math.max(0, window.innerHeight - pet.offsetHeight - 4) + 'px';
+    } else if (parked) {
+      pet.removeAttribute('data-mn70-park');
+      pet.style.left = '14px'; pet.style.top = '88px';
+    }
+  }
+  function petSoon() { setTimeout(petPark, 60); setTimeout(petPark, 700); }
+  window.addEventListener('resize', petSoon);
+  document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('.duo-gl, .duo-back')) petSoon(); }, true);
+  new MutationObserver(petSoon).observe(R, { attributes: true, attributeFilter: ['class'] });
+  setTimeout(petPark, 1500); setTimeout(petPark, 4000);
+
   /* ------------------------------------------------------------------ 3. speed */
   /* periodic housekeeping (the Sync Center's 4-second scan of all boards) runs between gestures, not during one:
      it waits while a finger is down or the screen moved in the last 1.2 s, for at most 8 s */
