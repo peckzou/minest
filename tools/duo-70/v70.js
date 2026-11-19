@@ -128,6 +128,45 @@
     viewName = v;
   }
 
+  /* a board card sinks under the finger. `:active` does it for a mouse; a touch gets it here, because the board's own
+     touch handling keeps `:active` from showing. The mark is taken off every element that has it (a dragged card is
+     a copy that carries it), as soon as the finger moves, lifts, or has rested for half a second. */
+  var pressT = 0, pressX = 0, pressY = 0;
+  function pressOff(rel) {
+    clearTimeout(pressT); pressT = 0;
+    var all = document.querySelectorAll('[data-mn70-press]');
+    for (var i = 0; i < all.length; i++) {
+      all[i].removeAttribute('data-mn70-press');
+      if (rel && all[i].closest('.mobile-board-view')) relOn(all[i]);   /* the card itself, not a lifted copy */
+    }
+  }
+  function relOn(el) {
+    el.setAttribute('data-mn70-rel', '');
+    setTimeout(function () { el.removeAttribute('data-mn70-rel'); }, 240);
+  }
+  if (!reduce) {
+    document.addEventListener('touchstart', function (e) {
+      pressOff(false);
+      if (e.touches.length !== 1) return;
+      var a = e.target.closest && e.target.closest('.mobile-board-view article.kanban-card');
+      if (!a) return;
+      pressX = e.touches[0].clientX; pressY = e.touches[0].clientY;
+      a.setAttribute('data-mn70-press', '');
+      pressT = setTimeout(function () { pressOff(true); }, 500);
+    }, { passive: true, capture: true });
+    document.addEventListener('touchmove', function (e) {
+      if (!pressT) return;
+      var t = e.touches[0];
+      if (!t || Math.abs(t.clientX - pressX) > 6 || Math.abs(t.clientY - pressY) > 6) pressOff(false);
+    }, { passive: true, capture: true });
+    ['touchend', 'touchcancel'].forEach(function (n) {
+      document.addEventListener(n, function () {
+        if (!pressT) return;
+        clearTimeout(pressT); pressT = setTimeout(function () { pressOff(true); }, 90);
+      }, { passive: true, capture: true });
+    });
+  }
+
   /* outer screen: the Mini Pet's default spot is on top of the Glance's "start studying" button. While the Glance
      is showing, a pet that was never dragged rests in the free corner below the cards, and goes back after. */
   function glance() {

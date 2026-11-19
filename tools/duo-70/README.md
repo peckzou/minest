@@ -20,7 +20,7 @@ What is new (`v70.js`, `v70.css`, and five anchored edits in `build.py`):
 - **Switching boards with the split open.** The Cover used to stay empty until the board was scrolled; it now
   shows the new board's list at once, with its card marked.
 - **Motion and detail.** Lists rise in one after another when a board opens; the two panes of the split arrive
-  together; cards and list buttons sink under the finger; the hinge line fades towards its ends; the Cover's
+  together; cards sink under the finger and list buttons when pressed; the hinge line fades towards its ends; the Cover's
   position bar keeps clear of the pane edges; thin list scrollbar; keyboard focus ring; even title wrapping;
   steady digits. All of it respects `prefers-reduced-motion`.
 - **Changing view.** Going between the board and the 3D Cover fades the new view up instead of snapping. The
