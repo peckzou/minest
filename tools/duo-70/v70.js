@@ -101,6 +101,8 @@
     if (id == null || id === boardId) return;
     var first = boardId === null; boardId = id;
     if (!reduce && !split() && (first || !document.hidden)) once('mn70-enter', 900);
+    /* another board: its saved Cover card raises no minest:image-selection, so the mark is placed here */
+    if (split()) queue(260);
   }
   /* the split opens: both panes arrive together */
   var wasSplit = split();
@@ -122,7 +124,10 @@
   var lazyQ = false;
   new MutationObserver(function () {
     if (lazyQ) return; lazyQ = true;
-    setTimeout(function () { lazyQ = false; lazy(document); boardEnter(); }, 300);
+    setTimeout(function () {
+      lazyQ = false; lazy(document); boardEnter();
+      if (curEl && !curEl.isConnected && split()) queue(0);   /* the marked row was re-rendered */
+    }, 300);
   }).observe(document.body, { childList: true, subtree: true });
   lazy(document); boardEnter();
 
