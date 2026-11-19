@@ -19,7 +19,7 @@
     return clean;
   }
   var UTIL = /^(close|back|more)\b|关闭|返回|更多/i;   // the dock's own keys never become "the app in use"
-  function isUtil(b) { return UTIL.test((b.getAttribute('aria-label') || b.title || '').trim()); }
+  function isUtil(b) { return b.classList.contains('mn-sys-key') || UTIL.test((b.getAttribute('aria-label') || b.title || '').trim()); }   // the system keys (tools/system-bar) too
   function syncLabels() {
     var dock = document.querySelector('.mn-bdock');
     if (!dock) return;

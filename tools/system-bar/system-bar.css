@@ -1,45 +1,86 @@
-/* Minest · System buttons — a small capsule lying in the bottom corner away from the Dock (left; right when the Dock is
-   on the left), where the exit from reading also appears; raised over the room's walking stick when that is shown */
-#mn-sysbar {
-  position: fixed; z-index: 2147483640; left: calc(12px + env(safe-area-inset-left)); bottom: calc(14px + env(safe-area-inset-bottom) + var(--mn-sys-lift, 0px));
-  display: flex; flex-direction: row; gap: 2px; padding: 4px; border-radius: 999px;
-  background: linear-gradient(180deg, rgba(43,58,75,.84), rgba(18,28,38,.9)); border: 1px solid rgba(255,255,255,.28);
-  -webkit-backdrop-filter: blur(22px) saturate(170%); backdrop-filter: blur(22px) saturate(170%);
-  box-shadow: inset 0 1px 1.5px rgba(255,255,255,.26), 0 12px 28px -8px rgba(0,0,0,.5);
-  color: rgba(236,240,246,.9);
+/* Minest · System buttons at the head of the Dock (see system-bar.js) */
+
+/* the Dock holds the system keys, so outside reading mode it stays on screen instead of sliding away when idle */
+html.mn-sysbar:not(.mn-sys-reading)[data-mn-bd=right] body .mn-bdock.mn-bdock,
+html.mn-sysbar:not(.mn-sys-reading)[data-mn-bd=left] body .mn-bdock.mn-bdock { transform: translate(0,-50%) !important; opacity: 1 !important; pointer-events: auto !important; visibility: visible !important; }
+html.mn-sysbar:not(.mn-sys-reading)[data-mn-bd=bottom] body .mn-bdock.mn-bdock { transform: translate(-50%,0) !important; opacity: 1 !important; pointer-events: auto !important; visibility: visible !important; }
+html.mn-sysbar.sh-main-dock-disabled:not(.mn-sys-reading) body .mn-bdock.mn-bdock { display: flex !important; }
+
+/* the system keys: a size down from the apps, never "the app in use" */
+.mn-bdock .mn-bapp.mn-sys-key { flex-shrink: 0; }
+html.mn-dock-pill .mn-bdock .mn-bapp.mn-sys-key { width: 34px !important; height: 34px !important; min-width: 34px !important; }
+html.mn-dock-pill .mn-bdock .mn-bapp.mn-sys-key svg { width: 18px !important; height: 18px !important; }
+.mn-bdock .mn-bapp.mn-sys-key.mn-pill-active, .mn-bdock .mn-bapp.mn-sys-key.on { background: transparent !important; border-color: transparent !important; box-shadow: none !important; }
+.mn-bdock .mn-bapp.mn-sys-key::after { display: none !important; }
+
+/* the hairline between the system keys and the tools */
+.mn-sys-sep { flex: none; align-self: center; width: 22px; height: 1.5px; margin: 3px 0; border-radius: 1px; background: currentColor; opacity: .22; }
+html[data-mn-bd=bottom] .mn-sys-sep { width: 1.5px; height: 22px; margin: 0 3px; }
+html.mn-dock-pill .mn-sys-sep { color: #121212; }
+
+/* "=" → "||": Apple's two bars; folding the tools turns them upright */
+.mn-eq { position: relative; display: block; width: 18px; height: 18px; pointer-events: none; }
+.mn-eq i { position: absolute; left: 50%; top: 50%; width: 16px; height: 2.2px; margin: -1.1px 0 0 -8px; border-radius: 2px; background: currentColor;
+  transition: transform .42s cubic-bezier(.22,1,.36,1); }
+.mn-eq i:first-child { transform: translateY(-3.6px); }
+.mn-eq i:last-child { transform: translateY(3.6px); }
+html.mn-sys-tools-off .mn-eq i:first-child { transform: translateX(-3.6px) rotate(90deg) scaleX(.82); }
+html.mn-sys-tools-off .mn-eq i:last-child { transform: translateX(3.6px) rotate(90deg) scaleX(.82); }
+
+/* the tools of the screen in use: the Dock's apps on the board, the room's tools in Spatial Home */
+html body .mn-bdock .mn-bapp.mn-ctx-key { display: none !important; }
+html[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-ctx-key[data-ctx=room] { display: inline-flex !important; }
+html.mn-sys-tools-off[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-ctx-key { display: none !important; }
+html[data-mn-ctx=room]:not(.mn-ctx-apps) .mn-bdock .mn-bapp:not(.mn-sys-key):not(.mn-ctx-key) { display: none !important; }
+html.mn-sysbar[data-mn-ctx=room] #sh-top > .sh-ic, html.mn-sysbar[data-mn-ctx=room] #sh-modeSeg { display: none !important; }   /* the room's own top bar gives way */
+/* "Dock" in the room: every Minest entry instead of the room's tools (the Dock key stays, pressed) */
+html.mn-ctx-apps[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-ctx-key[data-ctx=room]:not(.mn-ctx-dock) { display: none !important; }
+.mn-bdock .mn-ctx-key svg.px { width: 22px !important; height: 22px !important; image-rendering: pixelated; filter: drop-shadow(1px 1px 0 rgba(0,0,0,.35)); }
+
+/* Spatial Home and My World: the room's Minecraft look — a see-through hotbar of square, bevelled slots; green for the
+   one in use; white icons; monospace names */
+html[data-mn-ctx=room] body .mn-bdock.mn-bdock, html[data-mn-ctx=world] body .mn-bdock.mn-bdock {
+  border-radius: 0 !important; background: rgba(16,16,20,.42) !important; border: 2px solid rgba(0,0,0,.6) !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important; box-shadow: inset 2px 2px 0 rgba(255,255,255,.12), inset -2px -2px 0 rgba(0,0,0,.35) !important;
+  padding: 4px !important; gap: 4px !important;
 }
-html.mn-sys-right #mn-sysbar { left: auto; right: calc(12px + env(safe-area-inset-right)); }
-html.mn-sys-right #mn-sys-exit { left: auto; right: calc(16px + env(safe-area-inset-right)); }
-.mn-sys-key {
-  all: unset; box-sizing: border-box; cursor: pointer; width: 36px; height: 36px; border-radius: 50%;
-  display: grid; place-items: center; color: inherit; -webkit-tap-highlight-color: transparent;
-  transition: background .2s ease, transform .18s cubic-bezier(.22,1,.36,1);
+html[data-mn-ctx=room] body .mn-bdock .mn-bapp, html[data-mn-ctx=world] body .mn-bdock .mn-bapp {
+  width: 38px !important; height: 38px !important; min-width: 38px !important; border-radius: 0 !important; color: #fff !important;
+  border: 2px solid #111 !important; background: rgba(110,110,118,.55) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.38), inset -2px -2px 0 rgba(0,0,0,.42) !important; transition: none !important;
 }
-.mn-sys-key svg { width: 19px; height: 19px; display: block; pointer-events: none; }
-.mn-sys-key:hover { background: rgba(255,255,255,.12); }
-.mn-sys-key:active { transform: scale(.9); }
-.mn-sys-key:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
-#mn-sys-tools[aria-pressed="true"] { background: rgba(255,255,255,.16); }
-/* with the lavender pill Dock: the same glass and black icons */
-html.mn-dock-pill #mn-sysbar {
-  background: linear-gradient(180deg, rgba(206,201,255,.86), rgba(184,177,252,.82)); border: 1.5px solid rgba(255,255,255,.72);
-  box-shadow: inset 0 2px 3px rgba(255,255,255,.55), inset 0 -2px 6px rgba(120,110,220,.25), 0 14px 30px -10px rgba(22,12,90,.5);
-  color: #121212;
+html[data-mn-ctx=room] body .mn-bdock .mn-bapp:active, html[data-mn-ctx=world] body .mn-bdock .mn-bapp:active { box-shadow: inset -2px -2px 0 rgba(255,255,255,.3), inset 2px 2px 0 rgba(0,0,0,.45) !important; }
+html[data-mn-ctx=room] body .mn-bdock .mn-bapp svg, html[data-mn-ctx=world] body .mn-bdock .mn-bapp svg { width: 20px !important; height: 20px !important; stroke-linecap: square; stroke-linejoin: miter; filter: drop-shadow(1px 1px 0 rgba(0,0,0,.45)); }
+html[data-mn-ctx=room] body .mn-bdock .mn-bapp.on, html[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-pill-active,
+html[data-mn-ctx=world] body .mn-bdock .mn-bapp.on, html[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-pill-active,
+html.mn-ctx-apps body .mn-bdock .mn-bapp.mn-ctx-dock { background: rgba(70,140,70,.85) !important; }
+html[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-sys-key.mn-pill-active, html[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-sys-key.mn-pill-active { background: rgba(110,110,118,.55) !important; }
+html[data-mn-ctx=room] body .mn-bdock .mn-bapp.on::after, html[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-pill-active::after,
+html[data-mn-ctx=world] body .mn-bdock .mn-bapp.on::after, html[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-pill-active::after {
+  font: 700 12px/1 ui-monospace, Menlo, monospace !important; color: #fff !important; text-shadow: 1px 1px 0 #3f3f3f !important;
 }
-html.mn-dock-pill .mn-sys-key:hover { background: rgba(120,110,220,.18); }
-html.mn-dock-pill #mn-sys-tools[aria-pressed="true"] { background: rgba(170,163,236,.62); box-shadow: inset 0 1px 3px rgba(255,255,255,.4); }
+html[data-mn-ctx=room] .mn-sys-sep, html[data-mn-ctx=world] .mn-sys-sep { color: #fff; opacity: .35; border-radius: 0; }
+html[data-mn-ctx=room] .mn-eq i, html[data-mn-ctx=world] .mn-eq i { border-radius: 0; height: 2.6px; box-shadow: 1px 1px 0 rgba(0,0,0,.45); }
+/* tools folded away: only the system keys stay */
+html.mn-sys-tools-off .mn-bdock .mn-bapp:not(.mn-sys-key), html.mn-sys-tools-off .mn-bdock .mn-sys-sep { display: none !important; }
+
+/* nothing doubled: the Dock's own close / back and the older full-screen buttons give way */
+html.mn-sysbar .mn-bdock .mn-sys-btn.mn-sys-exit, html.mn-sysbar .mn-bdock .mn-sys-btn.mn-sys-back { display: none !important; }
+html.mn-sysbar #sh-reading-enter { display: none !important; }
 
 /* the exit from reading: alone, bottom-left */
 #mn-sys-exit {
-  position: fixed; z-index: 2147483647; left: calc(16px + env(safe-area-inset-left)); bottom: calc(16px + env(safe-area-inset-bottom));
-  width: 44px; height: 44px; display: none; color: #fff; background: rgba(20,24,32,.55); border: 1px solid rgba(255,255,255,.45);
+  all: unset; box-sizing: border-box; cursor: pointer; position: fixed; z-index: 2147483647;
+  left: calc(16px + env(safe-area-inset-left)); bottom: calc(16px + env(safe-area-inset-bottom));
+  width: 44px; height: 44px; border-radius: 50%; display: none; place-items: center; color: #fff;
+  background: rgba(20,24,32,.55); border: 1px solid rgba(255,255,255,.45);
   -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 6px 18px rgba(0,0,0,.35);
 }
-#mn-sys-exit svg { width: 22px; height: 22px; }
+#mn-sys-exit svg { width: 22px; height: 22px; display: block; pointer-events: none; }
+#mn-sys-exit:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 html.mn-sys-reading #mn-sys-exit { display: grid !important; visibility: visible !important; pointer-events: auto !important; }
 
 /* reading: every tool is hidden; only the exit stays */
-html.mn-sys-reading #mn-sysbar,
 html.mn-sys-reading body button:not(#mn-sys-exit),
 html.mn-sys-reading [role="button"], html.mn-sys-reading [role="toolbar"],
 html.mn-sys-reading header.iphone-topbar, html.mn-sys-reading .ios-bottom-tab-bar, html.mn-sys-reading #minest-mini-pet-p0, html.mn-sys-reading #cs-btn,
@@ -49,11 +90,4 @@ html.mn-sys-reading #sh-card, html.mn-sys-reading #sh-toast, html.mn-sys-reading
   visibility: hidden !important; pointer-events: none !important;
 }
 html.mn-sys-reading body .mn-bdock.mn-bdock, html.mn-sys-reading body .mn-bdock.mn-bdock::before, html.mn-sys-reading body .mn-bdock.mn-bdock::after { display: none !important; }
-
-/* tools folded away: the Dock and the room's tool clusters */
-html.mn-sys-tools-off body .mn-bdock.mn-bdock, html.mn-sys-tools-off #sh-top, html.mn-sys-tools-off #sh-dock, html.mn-sys-tools-off #sh-pill { display: none !important; }
-
-/* nothing doubled: the Dock's own ✕ / ‹ and the older full-screen buttons give way to these */
-html.mn-sysbar .mn-bdock .mn-sys-btn.mn-sys-exit, html.mn-sysbar .mn-bdock .mn-sys-btn.mn-sys-back { display: none !important; }
-html.mn-sysbar #sh-reading-enter { display: none !important; }
-@media (prefers-reduced-motion: reduce) { .mn-sys-key { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .mn-eq i { transition: none; } }
