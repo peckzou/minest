@@ -187534,6 +187534,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   function vicUp13(L) { L.board = { p: [-8.53, 1.90, -11.125], ry: Math.PI / 2, stashed: false }; }
   // v22: the sliding board (same place); its panels start EC–6 down, blackboards up
   function vicUp14(L) { L.board = { p: [-8.53, 1.90, -11.125], ry: Math.PI / 2, stashed: false }; }
+  // v23: the board's three levers, on the upright beside it (between bays B and C)
+  function vicUp15(L) { var ex = L.extras = L.extras || []; [['布告栏', 0, 1.42], ['黑板 1', 1, 1.17], ['黑板 2', 2, 0.92]].forEach(function (q) { var u = 9811 + q[1]; ex = L.extras = ex.filter(function (e) { return e.uid !== u; }); ex.push({ uid: u, kind: 'vic-board-lever-' + q[1], title: q[0] + ' 推拉杆', p: [-8.355, q[2], -9.155], ry: Math.PI / 2 }); }); }
   function vicUp6(L) {
     var ex = L.extras = L.extras || [];
     VDECO.forEach(function (d) { if (ex.some(function (e) { return e.uid === d.uid; })) return; ex.push({ kind: d.kind, title: d.title, p: [d.p[0], d.y || 0, d.p[1]], ry: d.ry, uid: d.uid }); });
@@ -187568,7 +187570,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     dress: { board: dressVicBoard, aquarium: dressAquariumOf(VIC_STYLE), scenicWindow: dressVicWindow, tsqPortal: dressVicDoor },
     /* v1: the round table makes way for the pedestal desk (and its chair); it goes to the west reading corner with its vase */
     /* v2 (after the user's reference): the desk turned to face the room, a buttoned leather chair behind it */
-    upgrade: { v: 22, fn: function (L) { if ((L.up | 0) < 14) { VICT.upgrade3.fn(L); vicUp4(L); vicUp5(L); delete L.scenicWindow; delete L.tsqPortal; vicUp6(L); vicUp7(L); } if ((L.up | 0) < 15) vicUp8(L); if ((L.up | 0) < 16) vicUp9(L); vicUp10(L); vicUp11(L); vicUp12(L); vicUp13(L); vicUp14(L); } },
+    upgrade: { v: 23, fn: function (L) { if ((L.up | 0) < 14) { VICT.upgrade3.fn(L); vicUp4(L); vicUp5(L); delete L.scenicWindow; delete L.tsqPortal; vicUp6(L); vicUp7(L); } if ((L.up | 0) < 15) vicUp8(L); if ((L.up | 0) < 16) vicUp9(L); vicUp10(L); vicUp11(L); vicUp12(L); vicUp13(L); vicUp14(L); vicUp15(L); } },
     upgrade3: { fn: function (L) {
       var ex = L.extras = L.extras || [];
       /* v3: the west wall is the Scenic Window's now — its library ladder goes to the north wall, beside the fireplace,
@@ -189498,6 +189500,36 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       press: function () { if (state.open && phase>=0.999) { root.dispatchEvent(new CustomEvent('spatial:secret-enter')); return ''; } return state.moving ? '机关正在转动，请稍候。' : '书架严丝合缝。'; }
     };
   };
+
+  /* the study board's levers (2026-11-19, after the user): one brass lever for each sliding panel — the EC–6 board,
+     blackboard 1, blackboard 2 — on the upright beside the board. Up = that panel is up; a tap throws the lever (a clack)
+     and sends the panel along its rails (MinestStudyBoard.slide, with its own sound). */
+  [['布告栏', 0], ['黑板 1', 1], ['黑板 2', 2]].forEach(function (q) {
+    F['vic-board-lever-' + q[1]] = function (T) {
+      var M = mats(T), g = new T.Group(), i = q[1];
+      var brass = new T.MeshStandardMaterial({ color: new T.Color(0xc9a24a).convertSRGBToLinear(), roughness: 0.28, metalness: 0.9 });
+      var dark = new T.MeshStandardMaterial({ color: new T.Color(0x2a1a10).convertSRGBToLinear(), roughness: 0.6 });
+      box(T, g, brass, 0, 0.11, 0.004, 0.11, 0.2, 0.008);                      // the escutcheon
+      box(T, g, dark, 0, 0.11, 0.009, 0.026, 0.14, 0.004);                      // its slot
+      var lab = document.createElement('canvas'); lab.width = 256; lab.height = 64; var x = lab.getContext('2d');
+      x.fillStyle = '#c9a24a'; x.fillRect(0, 0, 256, 64); x.fillStyle = '#2a1a10'; x.font = '600 34px "PingFang SC","Songti SC",serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(q[0], 128, 34);
+      var lt = new T.CanvasTexture(lab); lt.encoding = T.sRGBEncoding;
+      var plate = new T.Mesh(new T.PlaneGeometry(0.11, 0.028), new T.MeshStandardMaterial({ map: lt, roughness: 0.35, metalness: 0.6 })); plate.position.set(0, -0.012, 0.009); g.add(plate);
+      var arm = new T.Group(); arm.position.set(0, 0.11, 0.012); g.add(arm);
+      var stem = new T.Mesh(new T.CylinderGeometry(0.007, 0.007, 0.075, 10), brass); stem.position.y = 0.0375; arm.add(stem);
+      var knob = new T.Mesh(new T.SphereGeometry(0.016, 14, 10), new T.MeshStandardMaterial({ color: new T.Color(0x1d1410).convertSRGBToLinear(), roughness: 0.3 })); knob.position.y = 0.08; arm.add(knob);
+      var hub = new T.Mesh(new T.CylinderGeometry(0.014, 0.014, 0.012, 14), brass); hub.rotation.x = Math.PI / 2; arm.add(hub);
+      var ac = null, cur = null;
+      function clack() { try { ac = ac || new (root.AudioContext || root.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); var t0 = ac.currentTime, o = ac.createOscillator(), gg = ac.createGain();
+        o.type = 'square'; o.frequency.setValueAtTime(1400, t0); o.frequency.exponentialRampToValueAtTime(380, t0 + 0.05); gg.gain.setValueAtTime(0.0001, t0); gg.gain.exponentialRampToValueAtTime(0.08, t0 + 0.004); gg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.09);
+        o.connect(gg); gg.connect(ac.destination); o.start(); o.stop(t0 + 0.12); } catch (e) {} }
+      function up() { var b = root.MinestStudyBoard; return !!(b && b.up && b.up[i]); }
+      g.scale.setScalar(1.35);   // big enough to find and tap
+      return { group: g, hb: [0.18, 0.32, 0.1], place: 'wall',
+        tick: function () { var want = up() ? 0.55 : -0.55 + Math.PI; if (cur === null) cur = want; cur += (want - cur) * 0.25; arm.rotation.z = cur; },
+        press: function () { var b = root.MinestStudyBoard; if (!b || !b.slide) return '布告栏还没准备好。'; clack(); var u = b.slide(i); return q[0] + (u ? ' 推上去了' : ' 拉下来了'); } };
+    };
+  });
 
   /* 4 · a library floor globe: an old map on the ball, a brass meridian at 23.5°, a carved mahogany horizon ring on four
      turned legs joined by a cross stretcher with a compass */
@@ -195238,7 +195270,6 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     projector: { p: [0, 0.05, 0.165], kind: 'push', act: 'open', tip: '全息投影 · 开' },
     holoDesk: { p: [0.3, 0.722, 0.2], kind: 'mush', up: true, act: 'open', tip: '全息操作台 · 启动' },
     tsqPortal: { p: [0.62, 1.0, 0.17], kind: 'lever', act: 'tsq', tip: '拉下 · 去时代广场' },
-    typewriter: { p: [0.19, 0.05, 0.19], kind: 'push', act: 'open', tip: '打字机 · 开' },
     backpack: { p: [0, 0.3, 0.3], kind: 'clasp', act: 'open', tip: '打开背包' },
     aquarium: { p: [0.37, 0.42, 0.3], kind: 'toggle', act: 'light', tip: '水族缸的灯' }
   };

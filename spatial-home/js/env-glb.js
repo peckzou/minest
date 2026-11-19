@@ -1348,6 +1348,8 @@
   function vicUp13(L) { L.board = { p: [-8.53, 1.90, -11.125], ry: Math.PI / 2, stashed: false }; }
   // v22: the sliding board (same place); its panels start EC–6 down, blackboards up
   function vicUp14(L) { L.board = { p: [-8.53, 1.90, -11.125], ry: Math.PI / 2, stashed: false }; }
+  // v23: the board's three levers, on the upright beside it (between bays B and C)
+  function vicUp15(L) { var ex = L.extras = L.extras || []; [['布告栏', 0, 1.42], ['黑板 1', 1, 1.17], ['黑板 2', 2, 0.92]].forEach(function (q) { var u = 9811 + q[1]; ex = L.extras = ex.filter(function (e) { return e.uid !== u; }); ex.push({ uid: u, kind: 'vic-board-lever-' + q[1], title: q[0] + ' 推拉杆', p: [-8.355, q[2], -9.155], ry: Math.PI / 2 }); }); }
   function vicUp6(L) {
     var ex = L.extras = L.extras || [];
     VDECO.forEach(function (d) { if (ex.some(function (e) { return e.uid === d.uid; })) return; ex.push({ kind: d.kind, title: d.title, p: [d.p[0], d.y || 0, d.p[1]], ry: d.ry, uid: d.uid }); });
@@ -1382,7 +1384,7 @@
     dress: { board: dressVicBoard, aquarium: dressAquariumOf(VIC_STYLE), scenicWindow: dressVicWindow, tsqPortal: dressVicDoor },
     /* v1: the round table makes way for the pedestal desk (and its chair); it goes to the west reading corner with its vase */
     /* v2 (after the user's reference): the desk turned to face the room, a buttoned leather chair behind it */
-    upgrade: { v: 22, fn: function (L) { if ((L.up | 0) < 14) { VICT.upgrade3.fn(L); vicUp4(L); vicUp5(L); delete L.scenicWindow; delete L.tsqPortal; vicUp6(L); vicUp7(L); } if ((L.up | 0) < 15) vicUp8(L); if ((L.up | 0) < 16) vicUp9(L); vicUp10(L); vicUp11(L); vicUp12(L); vicUp13(L); vicUp14(L); } },
+    upgrade: { v: 23, fn: function (L) { if ((L.up | 0) < 14) { VICT.upgrade3.fn(L); vicUp4(L); vicUp5(L); delete L.scenicWindow; delete L.tsqPortal; vicUp6(L); vicUp7(L); } if ((L.up | 0) < 15) vicUp8(L); if ((L.up | 0) < 16) vicUp9(L); vicUp10(L); vicUp11(L); vicUp12(L); vicUp13(L); vicUp14(L); vicUp15(L); } },
     upgrade3: { fn: function (L) {
       var ex = L.extras = L.extras || [];
       /* v3: the west wall is the Scenic Window's now — its library ladder goes to the north wall, beside the fireplace,

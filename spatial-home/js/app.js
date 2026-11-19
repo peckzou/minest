@@ -589,7 +589,6 @@
     projector: { p: [0, 0.05, 0.165], kind: 'push', act: 'open', tip: '全息投影 · 开' },
     holoDesk: { p: [0.3, 0.722, 0.2], kind: 'mush', up: true, act: 'open', tip: '全息操作台 · 启动' },
     tsqPortal: { p: [0.62, 1.0, 0.17], kind: 'lever', act: 'tsq', tip: '拉下 · 去时代广场' },
-    typewriter: { p: [0.19, 0.05, 0.19], kind: 'push', act: 'open', tip: '打字机 · 开' },
     backpack: { p: [0, 0.3, 0.3], kind: 'clasp', act: 'open', tip: '打开背包' },
     aquarium: { p: [0.37, 0.42, 0.3], kind: 'toggle', act: 'light', tip: '水族缸的灯' }
   };

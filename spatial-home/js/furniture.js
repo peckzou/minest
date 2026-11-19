@@ -766,6 +766,36 @@
     };
   };
 
+  /* the study board's levers (2026-11-19, after the user): one brass lever for each sliding panel — the EC–6 board,
+     blackboard 1, blackboard 2 — on the upright beside the board. Up = that panel is up; a tap throws the lever (a clack)
+     and sends the panel along its rails (MinestStudyBoard.slide, with its own sound). */
+  [['布告栏', 0], ['黑板 1', 1], ['黑板 2', 2]].forEach(function (q) {
+    F['vic-board-lever-' + q[1]] = function (T) {
+      var M = mats(T), g = new T.Group(), i = q[1];
+      var brass = new T.MeshStandardMaterial({ color: new T.Color(0xc9a24a).convertSRGBToLinear(), roughness: 0.28, metalness: 0.9 });
+      var dark = new T.MeshStandardMaterial({ color: new T.Color(0x2a1a10).convertSRGBToLinear(), roughness: 0.6 });
+      box(T, g, brass, 0, 0.11, 0.004, 0.11, 0.2, 0.008);                      // the escutcheon
+      box(T, g, dark, 0, 0.11, 0.009, 0.026, 0.14, 0.004);                      // its slot
+      var lab = document.createElement('canvas'); lab.width = 256; lab.height = 64; var x = lab.getContext('2d');
+      x.fillStyle = '#c9a24a'; x.fillRect(0, 0, 256, 64); x.fillStyle = '#2a1a10'; x.font = '600 34px "PingFang SC","Songti SC",serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(q[0], 128, 34);
+      var lt = new T.CanvasTexture(lab); lt.encoding = T.sRGBEncoding;
+      var plate = new T.Mesh(new T.PlaneGeometry(0.11, 0.028), new T.MeshStandardMaterial({ map: lt, roughness: 0.35, metalness: 0.6 })); plate.position.set(0, -0.012, 0.009); g.add(plate);
+      var arm = new T.Group(); arm.position.set(0, 0.11, 0.012); g.add(arm);
+      var stem = new T.Mesh(new T.CylinderGeometry(0.007, 0.007, 0.075, 10), brass); stem.position.y = 0.0375; arm.add(stem);
+      var knob = new T.Mesh(new T.SphereGeometry(0.016, 14, 10), new T.MeshStandardMaterial({ color: new T.Color(0x1d1410).convertSRGBToLinear(), roughness: 0.3 })); knob.position.y = 0.08; arm.add(knob);
+      var hub = new T.Mesh(new T.CylinderGeometry(0.014, 0.014, 0.012, 14), brass); hub.rotation.x = Math.PI / 2; arm.add(hub);
+      var ac = null, cur = null;
+      function clack() { try { ac = ac || new (root.AudioContext || root.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); var t0 = ac.currentTime, o = ac.createOscillator(), gg = ac.createGain();
+        o.type = 'square'; o.frequency.setValueAtTime(1400, t0); o.frequency.exponentialRampToValueAtTime(380, t0 + 0.05); gg.gain.setValueAtTime(0.0001, t0); gg.gain.exponentialRampToValueAtTime(0.08, t0 + 0.004); gg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.09);
+        o.connect(gg); gg.connect(ac.destination); o.start(); o.stop(t0 + 0.12); } catch (e) {} }
+      function up() { var b = root.MinestStudyBoard; return !!(b && b.up && b.up[i]); }
+      g.scale.setScalar(1.35);   // big enough to find and tap
+      return { group: g, hb: [0.18, 0.32, 0.1], place: 'wall',
+        tick: function () { var want = up() ? 0.55 : -0.55 + Math.PI; if (cur === null) cur = want; cur += (want - cur) * 0.25; arm.rotation.z = cur; },
+        press: function () { var b = root.MinestStudyBoard; if (!b || !b.slide) return '布告栏还没准备好。'; clack(); var u = b.slide(i); return q[0] + (u ? ' 推上去了' : ' 拉下来了'); } };
+    };
+  });
+
   /* 4 · a library floor globe: an old map on the ball, a brass meridian at 23.5°, a carved mahogany horizon ring on four
      turned legs joined by a cross stretcher with a compass */
   F['vic-globe'] = function (T) {
