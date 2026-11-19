@@ -50,6 +50,11 @@ JS_OPEN, JS_CLOSE = '<script id="mn70-js">\n', '\n</script>\n'
 
 def build():
     html = SRC.read_text(encoding='utf-8')
+    if JS_OPEN.strip() in html:   # iphone.html carries Duo 70 itself now (apply.py): only the title differs
+        name, old, new = EDITS[0]
+        if html.count(old) != 1:
+            raise SystemExit('duo-70: edit "%s" matches %d times in %s (expected 1)' % (name, html.count(old), SRC.name))
+        return html.replace(old, new)
     for name, old, new in EDITS:
         n = html.count(old)
         if n != 1:

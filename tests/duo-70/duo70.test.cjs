@@ -2,7 +2,7 @@
 const fs = require('fs'), path = require('path'), vm = require('vm'), assert = require('assert');
 const root = path.join(__dirname, '..', '..');
 const read = (f) => fs.readFileSync(path.join(root, f), 'utf8');
-const src = read('iphone.html'), out = read('iPhoneDuo70.html');
+const src0 = read('iphone.html'), src = src0, out = read('iPhoneDuo70.html');
 const css = read('tools/duo-70/v70.css').replace(/^\n+|\n+$/g, ''), js = read('tools/duo-70/v70.js').replace(/^\n+|\n+$/g, '');
 
 // 1. the block sits just before </body> and holds exactly the two source files
@@ -11,13 +11,19 @@ const at = out.lastIndexOf(block);
 assert(at > 0 && out.slice(at + block.length).startsWith('</body>'), 'v70 block is before </body>');
 
 // 2. without the block and the five edits the page is iphone.html, byte for byte
-let back = out.slice(0, at) + out.slice(at + block.length);
-back = back.replace('<title>Minest Duo 70.0 · iPhone Fold</title>', '<title>Minest Duo 53.85 · iPhone Fold</title>')
+const unedit = (h) => { const i = h.lastIndexOf(block); if (i > 0) h = h.slice(0, i) + h.slice(i + block.length); return h.replace('<title>Minest Duo 70.0 · iPhone Fold</title>', '<title>Minest Duo 53.85 · iPhone Fold</title>')
   .replace('  if (window.__mn70Quiet > Date.now()) return;   /* duo-70 */\n', '')
   .replace("    var ls = a.closest('.kanban-cards-scroll'), lr = ls && ls.getBoundingClientRect(); if (lr && (r.bottom < lr.top + 30 || r.top > lr.bottom)) return;   /* duo-70 */\n", '')
   .replace('if(!document.hidden)(window.__mn70Idle||function(f){f();})(scan);', 'if(!document.hidden)scan();')
-  .replace('var v=(window.__mn70Ver||C.version)(s.value,c,C.version);', 'var v=C.version(s.value);');
-assert.strictEqual(back, src, 'iPhoneDuo70.html = iphone.html + edits + v70 block');
+  .replace('var v=(window.__mn70Ver||C.version)(s.value,c,C.version);', 'var v=C.version(s.value);'); };
+// iphone.html may carry Duo 70 itself (tools/duo-70/apply.py): both sides are compared without it
+assert.strictEqual(unedit(out), unedit(src), 'iPhoneDuo70.html = iphone.html + edits + v70 block');
+// 2b. the pages people open carry the same block (apply.py)
+['iphone.html', 'index.html', 'ios/Minest/Minest/iphone.html', 'ios/Minest/Minest/iphone18.0.html'].forEach((f) => {
+  const h = read(f), i = h.lastIndexOf(block);
+  assert(i > 0 && h.slice(i + block.length).startsWith('</body>'), f + ' carries the Duo 70 block');
+  assert(h.includes('window.__mn70Quiet') && h.includes('window.__mn70Idle') && h.includes('window.__mn70Ver'), f + ' carries the Duo 70 edits');
+});
 
 // 3. a card inside a closed stack is shown on the board by the stack's top card
 const el = { classList: { add() {}, remove() {}, toggle() {}, contains: () => false } };
