@@ -50,12 +50,14 @@ assert.strictEqual(calls, 3, 'categories are remembered apart');
 // Spatial Home's album: My World opens as before, then the inventory on top for a board that has a list
 {
   const log = [];
-  const boards = [{ id: 'empty', columns: [{ cards: [] }] }, { id: 'full', columns: [{ cards: [{ id: 'l1' }] }] }];
+  const boards = [{ id: 'empty', columns: [{ cards: [] }] }, { id: 'heads', columns: [{ cards: [{ id: 'h1' }] }] },
+    { id: 'full', columns: [{ cards: [{ id: 'h2' }, { id: 'l1' }] }] }];
   const mk = (cur, uv, invOpen) => ({
     setTimeout: (f) => { f(); return 0; },
     document: { querySelector: (q) => (q === '.mn-invx' ? (invOpen ? {} : null) : uv ? {} : null) },
     MinestAI: { board: () => ({ id: cur }), boards: () => boards },
     MinestUniverse: { isOpen: () => uv },
+    MinestKnowledge: { isHeading: (id) => id[0] === 'h' },
     MinestInventory: { open: (n) => log.push('inv ' + n.t + ' ' + n.bid), close: () => log.push('inv close') },
   });
   const target = { id: 'MinestUniverse', open: () => log.push('uv open'), close: () => log.push('uv close') };
@@ -66,6 +68,8 @@ assert.strictEqual(calls, 3, 'categories are remembered apart');
   assert.deepStrictEqual(log.splice(0), ['uv open', 'inv world full'], 'the board in use');
   target.open(mk('empty', true));
   assert.deepStrictEqual(log.splice(0), ['uv open', 'inv world full'], 'else the first board with a list');
+  target.open(mk('heads', true));
+  assert.deepStrictEqual(log.splice(0), ['uv open', 'inv world full'], 'a board of section headings only has no list');
   target.open(mk('full', false));
   assert.deepStrictEqual(log.splice(0), ['uv open'], 'My World did not come up: no inventory');
   target.open(mk('full', true, true));

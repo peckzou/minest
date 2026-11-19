@@ -194802,16 +194802,20 @@ html.mn70 #minest-pet-raising-overlay .minest-pet-x.idle:active { opacity: 1; }
     var F = B && B.FEATURES && B.FEATURES.lists, t = F && F.targets && F.targets[0];
     if (!t || t.id !== 'MinestUniverse' || t.__mn70) return false;
     var open0 = t.open, close0 = t.close, run = 0;
-    function hasList(b) {
-      return !!b && (b.columns || []).some(function (c) { return (c.cards || []).length > 0; });
+    /* a list is a card that is not a section heading, as the inventory itself counts them */
+    function hasList(w, b) {
+      var K = w.MinestKnowledge;
+      return !!b && (b.columns || []).some(function (c) {
+        return (c.cards || []).some(function (k) { return k && k.id && !(K && K.isHeading && K.isHeading(k.id)); });
+      });
     }
     function world(w) {
       var A = w.MinestAI, cur = null, all = [];
       try { cur = A.board(); } catch (e) {}
       try { all = A.boards() || []; } catch (e) {}
       if (cur) cur = all.filter(function (b) { return b.id === cur.id; })[0] || cur;
-      if (hasList(cur)) return cur.id;
-      var b = all.filter(hasList)[0];
+      if (hasList(w, cur)) return cur.id;
+      var b = all.filter(function (x) { return hasList(w, x); })[0];
       return b ? b.id : null;
     }
     t.open = function (w) {
