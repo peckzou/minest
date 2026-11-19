@@ -115,8 +115,18 @@
   new MutationObserver(function () {
     var s = split();
     if (s && !wasSplit && !reduce) once('mn70-split-in', 700);
+    if (s !== wasSplit) splitAt = Date.now();
     wasSplit = s;
   }).observe(R, { attributes: true, attributeFilter: ['class'] });
+  /* another view (board, 3D Cover) fades up instead of snapping in; not when the split opens or closes */
+  var viewName = null, splitAt = 0;
+  function viewEnter() {
+    var el = split() ? null : document.querySelector('#root main > .sf-slot[data-sf-view]');
+    var v = el && el.getAttribute('data-sf-view');
+    if (!v || v === viewName) return;
+    if (viewName && !reduce && !document.hidden && Date.now() - splitAt > 900) once('mn70-view-in', 1000);
+    viewName = v;
+  }
 
   /* ------------------------------------------------------------------ 3. speed */
   /* periodic housekeeping (the Sync Center's 4-second scan of all boards) runs between gestures, not during one:
@@ -148,13 +158,14 @@
   }
   var lazyQ = false;
   new MutationObserver(function () {
+    viewEnter();
     if (lazyQ) return; lazyQ = true;
     setTimeout(function () {
       lazyQ = false; lazy(document); boardEnter();
       if (curEl && !curEl.isConnected && split()) queue(0);   /* the marked row was re-rendered */
     }, 300);
   }).observe(document.body, { childList: true, subtree: true });
-  lazy(document); boardEnter();
+  lazy(document); boardEnter(); viewEnter();
 
   window.MinestV70 = {
     version: '70.0',

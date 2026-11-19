@@ -194498,6 +194498,19 @@ html.mn70-hidden *, html.mn70-hidden *::before, html.mn70-hidden *::after { anim
   html.mn70 .mobile-board-view article.kanban-card:active, html.mn70 .mobile-board-view .kanban-column-wrapper button:active { transform: none; }
 }
 
+/* ---------- 4b. changing view (board, 3D Cover, Photos, Pins): the new view fades up instead of snapping in.
+   v70.js sets mn70-view-in for 1 s when the view's name changes (not when the split opens or closes).
+   `scale`, not `transform`, and no fill: the pane's own transform is never overridden. */
+html.mn70-view-in:not(.duo-cover) body #root main > .sf-slot[data-sf-view] { animation: mn70-view-x .42s var(--mn70-out); }
+html.mn70-view-in:not(.duo-cover) body #root main > .sf-slot[data-sf-view="board"] { animation-name: mn70-view-board; }
+html.mn70-view-in:not(.duo-cover) body #root main > .sf-slot[data-sf-view="coverflow"] { animation-name: mn70-view-cover; animation-duration: .5s; }
+@keyframes mn70-view-x { from { opacity: 0; scale: .985; } }
+@keyframes mn70-view-board { from { opacity: 0; scale: .985; } }
+@keyframes mn70-view-cover { from { opacity: 0; scale: 1.035; } }
+@media (prefers-reduced-motion: reduce) {
+  html.mn70-view-in:not(.duo-cover) body #root main > .sf-slot[data-sf-view] { animation: none !important; }
+}
+
 /* ---------- 5. Views fan: a soft shade behind the open fan, so its labels read over the board's text */
 html.mn70 .miv-fan::before {
   content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .28s ease;
@@ -194635,8 +194648,18 @@ html.mn70 #mn-sh .sh-ic:active { transform: scale(.9); transition-duration: .08s
   new MutationObserver(function () {
     var s = split();
     if (s && !wasSplit && !reduce) once('mn70-split-in', 700);
+    if (s !== wasSplit) splitAt = Date.now();
     wasSplit = s;
   }).observe(R, { attributes: true, attributeFilter: ['class'] });
+  /* another view (board, 3D Cover) fades up instead of snapping in; not when the split opens or closes */
+  var viewName = null, splitAt = 0;
+  function viewEnter() {
+    var el = split() ? null : document.querySelector('#root main > .sf-slot[data-sf-view]');
+    var v = el && el.getAttribute('data-sf-view');
+    if (!v || v === viewName) return;
+    if (viewName && !reduce && !document.hidden && Date.now() - splitAt > 900) once('mn70-view-in', 1000);
+    viewName = v;
+  }
 
   /* ------------------------------------------------------------------ 3. speed */
   /* periodic housekeeping (the Sync Center's 4-second scan of all boards) runs between gestures, not during one:
@@ -194668,13 +194691,14 @@ html.mn70 #mn-sh .sh-ic:active { transform: scale(.9); transition-duration: .08s
   }
   var lazyQ = false;
   new MutationObserver(function () {
+    viewEnter();
     if (lazyQ) return; lazyQ = true;
     setTimeout(function () {
       lazyQ = false; lazy(document); boardEnter();
       if (curEl && !curEl.isConnected && split()) queue(0);   /* the marked row was re-rendered */
     }, 300);
   }).observe(document.body, { childList: true, subtree: true });
-  lazy(document); boardEnter();
+  lazy(document); boardEnter(); viewEnter();
 
   window.MinestV70 = {
     version: '70.0',

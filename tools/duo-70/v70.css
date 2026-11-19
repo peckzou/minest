@@ -77,6 +77,19 @@ html.mn70-hidden *, html.mn70-hidden *::before, html.mn70-hidden *::after { anim
   html.mn70 .mobile-board-view article.kanban-card:active, html.mn70 .mobile-board-view .kanban-column-wrapper button:active { transform: none; }
 }
 
+/* ---------- 4b. changing view (board, 3D Cover, Photos, Pins): the new view fades up instead of snapping in.
+   v70.js sets mn70-view-in for 1 s when the view's name changes (not when the split opens or closes).
+   `scale`, not `transform`, and no fill: the pane's own transform is never overridden. */
+html.mn70-view-in:not(.duo-cover) body #root main > .sf-slot[data-sf-view] { animation: mn70-view-x .42s var(--mn70-out); }
+html.mn70-view-in:not(.duo-cover) body #root main > .sf-slot[data-sf-view="board"] { animation-name: mn70-view-board; }
+html.mn70-view-in:not(.duo-cover) body #root main > .sf-slot[data-sf-view="coverflow"] { animation-name: mn70-view-cover; animation-duration: .5s; }
+@keyframes mn70-view-x { from { opacity: 0; scale: .985; } }
+@keyframes mn70-view-board { from { opacity: 0; scale: .985; } }
+@keyframes mn70-view-cover { from { opacity: 0; scale: 1.035; } }
+@media (prefers-reduced-motion: reduce) {
+  html.mn70-view-in:not(.duo-cover) body #root main > .sf-slot[data-sf-view] { animation: none !important; }
+}
+
 /* ---------- 5. Views fan: a soft shade behind the open fan, so its labels read over the board's text */
 html.mn70 .miv-fan::before {
   content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .28s ease;
