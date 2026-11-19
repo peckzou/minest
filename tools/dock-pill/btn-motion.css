@@ -1,0 +1,145 @@
+/* Crisp Monochrome Geometric Micro-Interactions (inspired by Ramin Nasibov's 36-tile collection) */
+:root {
+  --mn-ease-silky: cubic-bezier(.22, 1, .36, 1);
+  --mn-ease-spring: cubic-bezier(.34, 1.56, .64, 1);
+}
+
+/* Tactile spring press using standalone CSS scale (never clashes with transform!) */
+button:not(.miv-fan-item):not([disabled]) {
+  transition: scale .28s var(--mn-ease-spring), opacity .2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+button:not(.miv-fan-item):not([disabled]):active {
+  scale: 0.94;
+  transition: scale .09s var(--mn-ease-silky);
+}
+
+/* 01 · BARS: Horizontal Track Scanner sheen on tap */
+button.mn-fx-scan {
+  position: relative;
+  overflow: hidden;
+}
+button.mn-fx-scan::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,.26) 50%, transparent 70%);
+  transform: translateX(-120%);
+  animation: mnFxScan .52s var(--mn-ease-silky) forwards;
+}
+@keyframes mnFxScan {
+  0%   { transform: translateX(-120%); opacity: .9; }
+  100% { transform: translateX(120%);  opacity: 0; }
+}
+
+/* 01 · BARS: Rotating Cross (+ / x / menu) */
+.mn-anim-cross svg, .mn-anim-cross > span:first-child {
+  animation: mnAnimCross .46s var(--mn-ease-spring);
+}
+@keyframes mnAnimCross {
+  0%   { transform: rotate(0deg) scale(1); }
+  45%  { transform: rotate(90deg) scale(0.84); }
+  100% { transform: rotate(90deg) scale(1); }
+}
+
+/* 01 · BARS: Equalizer / Audio Pulse */
+.mn-anim-bars svg {
+  animation: mnAnimBars .52s var(--mn-ease-spring);
+}
+@keyframes mnAnimBars {
+  0%   { transform: scaleY(1); }
+  25%  { transform: scaleY(0.72) scaleX(1.08); }
+  55%  { transform: scaleY(1.18) scaleX(0.94); }
+  80%  { transform: scaleY(0.92); }
+  100% { transform: scaleY(1); }
+}
+
+/* 02 · SQUARES: Rocking / Sliding Tile (Kanban / Boards / Cards) */
+.mn-anim-square svg {
+  animation: mnAnimSquare .48s var(--mn-ease-spring);
+}
+@keyframes mnAnimSquare {
+  0%   { transform: rotate(0deg) scale(1); }
+  30%  { transform: rotate(-10deg) scale(0.88); }
+  65%  { transform: rotate(6deg) scale(1.10); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+/* 03 · ORBIT: Smooth Tapered Spin (Sync / Refresh / Looks / Sparkle) */
+.mn-anim-orbit svg {
+  animation: mnAnimOrbit .62s var(--mn-ease-silky);
+}
+@keyframes mnAnimOrbit {
+  0%   { transform: rotate(0deg) scale(1); }
+  35%  { transform: rotate(160deg) scale(1.14); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+/* 04 · PROGRESS: Checkmark Pop + Draw-In */
+.mn-anim-check svg {
+  animation: mnAnimCheck .46s var(--mn-ease-spring);
+}
+@keyframes mnAnimCheck {
+  0%   { transform: scale(0.7); opacity: .6; }
+  55%  { transform: scale(1.22); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* 04 · PROGRESS: Directional Pill Glide (Next / Prev / 完整 App >) */
+.mn-anim-glide-r svg {
+  animation: mnAnimGlideR .42s var(--mn-ease-spring);
+}
+@keyframes mnAnimGlideR {
+  0%   { transform: translateX(0); }
+  45%  { transform: translateX(4px) scale(1.08); }
+  100% { transform: translateX(0); }
+}
+.mn-anim-glide-l svg {
+  animation: mnAnimGlideL .42s var(--mn-ease-spring);
+}
+@keyframes mnAnimGlideL {
+  0%   { transform: translateX(0); }
+  45%  { transform: translateX(-4px) scale(1.08); }
+  100% { transform: translateX(0); }
+}
+
+/* 06 · OBJECTS: Ringing Bell (top-pivot damped swing) */
+.mn-anim-bell svg {
+  transform-origin: 50% 15%;
+  animation: mnAnimBell .62s var(--mn-ease-silky);
+}
+@keyframes mnAnimBell {
+  0%   { transform: rotate(0deg); }
+  18%  { transform: rotate(16deg); }
+  38%  { transform: rotate(-14deg); }
+  58%  { transform: rotate(9deg); }
+  78%  { transform: rotate(-5deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* 06 · OBJECTS: Starburst Pop (Favorite / Star / Award) */
+.mn-anim-star svg {
+  animation: mnAnimStar .54s var(--mn-ease-spring);
+}
+@keyframes mnAnimStar {
+  0%   { transform: scale(1) rotate(0deg); }
+  35%  { transform: scale(1.28) rotate(24deg); }
+  70%  { transform: scale(0.92) rotate(-8deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+/* Default Crisp Geometric Tap Pop for any icon button */
+.mn-anim-pop svg {
+  animation: mnAnimPop .42s var(--mn-ease-spring);
+}
+@keyframes mnAnimPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(0.82); }
+  75%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button, button::after, button svg { animation: none !important; transition: none !important; }
+}

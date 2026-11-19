@@ -7,8 +7,9 @@ const css = read('tools/duo-70/v70.css').replace(/^\n+|\n+$/g, ''), js = read('t
 
 // 1. the block sits just before </body> and holds exactly the two source files
 const block = '<style id="mn70-css">\n' + css + '\n</style>\n<script id="mn70-js">\n' + js + '\n</script>\n';
+const tail = (h, i) => h.slice(i + block.length).replace(/^<style id="mn-dock-pill-style">[\s\S]*?<\/script>\n<style id="mn-btn-motion-css">[\s\S]*?<script id="mn-btn-motion-js">[\s\S]*?<\/script>\n/, '');   // tools/dock-pill/apply.py may follow
 const at = out.lastIndexOf(block);
-assert(at > 0 && out.slice(at + block.length).startsWith('</body>'), 'v70 block is before </body>');
+assert(at > 0 && tail(out, at).startsWith('</body>'), 'v70 block is before </body>');
 
 // 2. without the block and the five edits the page is iphone.html, byte for byte
 const unedit = (h) => { const i = h.lastIndexOf(block); if (i > 0) h = h.slice(0, i) + h.slice(i + block.length); return h.replace('<title>Minest Duo 70.0 · iPhone Fold</title>', '<title>Minest Duo 53.85 · iPhone Fold</title>')
@@ -21,7 +22,7 @@ assert.strictEqual(unedit(out), unedit(src), 'iPhoneDuo70.html = iphone.html + e
 // 2b. the pages people open carry the same block (apply.py)
 ['iphone.html', 'index.html', 'ios/Minest/Minest/iphone.html', 'ios/Minest/Minest/iphone18.0.html'].forEach((f) => {
   const h = read(f), i = h.lastIndexOf(block);
-  assert(i > 0 && h.slice(i + block.length).startsWith('</body>'), f + ' carries the Duo 70 block');
+  assert(i > 0 && tail(h, i).startsWith('</body>'), f + ' carries the Duo 70 block');
   assert(h.includes('window.__mn70Quiet') && h.includes('window.__mn70Idle') && h.includes('window.__mn70Ver'), f + ' carries the Duo 70 edits');
 });
 
