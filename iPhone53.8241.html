@@ -187939,20 +187939,70 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     box(T, g, trim, 0, 0.05, 0.18, 2.02, 0.10, 0.10);
     [0.03,2.78].forEach(function (y) { var spindle = new T.Mesh(new T.CylinderGeometry(0.045,0.045,0.08,16),M.gold); spindle.position.set(0,y,0); g.add(spindle); });
     var latch = box(T,g,M.gold,0.78,1.28,0.05,0.16,0.04,0.045);
-    var phase = state.open ? 1 : 0, last = null;
+    var phase = state.open ? 1 : 0, last = null, prev = phase;
     function smooth(x) { x = Math.max(0,Math.min(1,x)); return x*x*x*(x*(x*6-15)+10); }
+    function clamp01(x) { return Math.max(0, Math.min(1, x)); }
+    function bump(x, a, b) { return Math.sin(Math.PI * clamp01((x - a) / (b - a))); }   // 0 → 1 → 0 between a and b
+    /* the mechanism, made visible (2026-11-19): a hairline of warm light round the leaf when the latch gives, light from
+       the passage behind spilling out in shafts while it turns, a little dust in the light, the leaf overshooting and
+       settling, the portal on its back coming up with a pulse — and its sounds (synthesised: latch, stone, clunk) */
+    function glow(c) { return new T.MeshBasicMaterial({ color: c, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false }); }
+    var seamM = glow(0xffc66b), seam = new T.Group(); g.add(seam);
+    [[-0.80, 1.50, 0.025, 2.84], [0.80, 1.50, 0.025, 2.84], [0, 2.90, 1.62, 0.025], [0, 0.10, 1.62, 0.025]].forEach(function (q) { var m = new T.Mesh(new T.PlaneGeometry(q[2], q[3]), seamM); m.position.set(q[0], q[1], 0.17); seam.add(m); });
+    var backL = new T.PointLight(0xffb45a, 0, 4.5, 2); backL.position.set(0, 1.5, -0.45); g.add(backL);
+    var beamTex = (function () { var c = document.createElement('canvas'); c.width = 64; c.height = 256; var x = c.getContext('2d'), gr = x.createLinearGradient(0, 0, 64, 0);
+      gr.addColorStop(0, 'rgba(255,200,120,0)'); gr.addColorStop(0.5, 'rgba(255,214,150,1)'); gr.addColorStop(1, 'rgba(255,200,120,0)'); x.fillStyle = gr; x.fillRect(0, 0, 64, 256);
+      var fade = x.createLinearGradient(0, 0, 0, 256); fade.addColorStop(0, 'rgba(0,0,0,1)'); fade.addColorStop(0.15, 'rgba(0,0,0,0)'); fade.addColorStop(0.85, 'rgba(0,0,0,0)'); fade.addColorStop(1, 'rgba(0,0,0,1)');
+      x.globalCompositeOperation = 'destination-out'; x.fillStyle = fade; x.fillRect(0, 0, 64, 256); return new T.CanvasTexture(c); })();
+    var rayM = new T.MeshBasicMaterial({ map: beamTex, color: 0xffd9a0, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, toneMapped: false }), rays = new T.Group();
+    rays.position.set(0, 1.45, 0.25); g.add(rays);
+    [[-0.55, -0.5], [0, 0], [0.55, 0.5]].forEach(function (q) { var m = new T.Mesh(new T.PlaneGeometry(0.55, 2.7), rayM); m.position.set(q[0], 0, 0.45); m.rotation.y = q[1]; m.rotation.x = -0.12; rays.add(m); });
+    var N = 90, dp = new Float32Array(N * 3), dv = [], dustG = new T.BufferGeometry();
+    function seed(i, fresh) { dp[i * 3] = (Math.random() * 2 - 1) * 0.8; dp[i * 3 + 1] = 0.2 + Math.random() * 2.6; dp[i * 3 + 2] = fresh ? Math.random() * 1.1 : 0.05; dv[i] = [(Math.random() - 0.5) * 0.06, 0.02 + Math.random() * 0.05, 0.08 + Math.random() * 0.18]; }
+    for (var di = 0; di < N; di++) seed(di, true);
+    dustG.setAttribute('position', new T.BufferAttribute(dp, 3));
+    var dustM = new T.PointsMaterial({ color: 0xffe3b0, size: 0.022, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false }), dust = new T.Points(dustG, dustM); dust.frustumCulled = false; g.add(dust);
+    /* its sounds, made in the browser (nothing recorded); quiet, and only once the page may play sound */
+    var AC = null;
+    function ac() { if (state.sound === false) return null; try { AC = AC || new (root.AudioContext || root.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); return AC; } catch (e) { return null; } }
+    function noise(a, len) { var b = a.createBuffer(1, Math.floor(a.sampleRate * len), a.sampleRate), d = b.getChannelData(0), l = 0; for (var i = 0; i < d.length; i++) { l = (l + 0.04 * (Math.random() * 2 - 1)) / 1.04; d[i] = l * 3.2; } var s = a.createBufferSource(); s.buffer = b; return s; }
+    function env(a, peak, at, hold, rel) { var g2 = a.createGain(), t0 = a.currentTime; g2.gain.setValueAtTime(0.0001, t0); g2.gain.exponentialRampToValueAtTime(peak, t0 + at); g2.gain.setValueAtTime(peak, t0 + at + hold); g2.gain.exponentialRampToValueAtTime(0.0001, t0 + at + hold + rel); g2.connect(a.destination); return g2; }
+    function click() { var a = ac(); if (!a) return; var o = a.createOscillator(); o.type = 'square'; o.frequency.setValueAtTime(1900, a.currentTime); o.frequency.exponentialRampToValueAtTime(700, a.currentTime + 0.05); o.connect(env(a, 0.05, 0.002, 0.01, 0.06)); o.start(); o.stop(a.currentTime + 0.1);
+      var n = noise(a, 0.08), f = a.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 2600; n.connect(f); f.connect(env(a, 0.12, 0.002, 0.01, 0.05)); n.start(); }
+    function grind(len) { var a = ac(); if (!a) return; var n = noise(a, len + 0.3), f = a.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 220; var lfo = a.createOscillator(), lg = a.createGain(); lfo.frequency.value = 11; lg.gain.value = 90; lfo.connect(lg); lg.connect(f.frequency);
+      n.connect(f); f.connect(env(a, 0.22, 0.25, len - 0.6, 0.45)); n.start(); lfo.start(); lfo.stop(a.currentTime + len + 0.3); }
+    function clunk() { var a = ac(); if (!a) return; var o = a.createOscillator(); o.frequency.setValueAtTime(95, a.currentTime); o.frequency.exponentialRampToValueAtTime(42, a.currentTime + 0.35); o.connect(env(a, 0.3, 0.004, 0.02, 0.45)); o.start(); o.stop(a.currentTime + 0.55);
+      var n = noise(a, 0.2), f = a.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 400; n.connect(f); f.connect(env(a, 0.18, 0.003, 0.02, 0.15)); n.start(); }
+    function buzz(k) { try { if (root.MinestNative && root.MinestNative.haptic) root.MinestNative.haptic(k); } catch (e) {} }
     g.scale.x = 0.86;   // v20: one bay wide (1.73 m between the uprights of the west bookcases)
     return { group: g, hb: [1.6,3.0,0.8], place: 'wall',
       tick: function (t, realTime) {
         var now = typeof realTime === 'number' ? realTime : t;
         var dt = last === null ? 0 : Math.max(0,now-last); last=now;
         var target = state.open ? 1 : 0;
-        phase = state.reduced ? target : Math.max(0,Math.min(1,phase + Math.sign(target-phase)*dt/3.4));
-        var rotation = smooth((phase-0.20)/0.62), out = smooth((phase-0.08)/0.15)*(1-smooth((phase-0.84)/0.16));
-        pivot.position.z = 0.96*out; pivot.position.y = 0.018*smooth(phase/0.12)*(1-smooth((phase-0.90)/0.10));
+        prev = phase;
+        phase = state.reduced ? target : Math.max(0,Math.min(1,phase + Math.sign(target-phase)*dt/4.2));
+        var up = phase > prev, down = phase < prev;
+        /* the beats: latch (0.02) · out (0.10–0.24) · turn (0.24–0.80, overshoot and settle to 0.90) · back home (0.86–0.98) */
+        if ((up && prev < 0.02 && phase >= 0.02) || (down && prev > 0.98 && phase <= 0.98)) { click(); buzz('light'); }
+        if ((up && prev < 0.22 && phase >= 0.22) || (down && prev > 0.86 && phase <= 0.86)) grind(2.5);
+        if ((up && prev < 0.90 && phase >= 0.90) || (down && prev > 0.10 && phase <= 0.10)) { clunk(); buzz('heavy'); }
+        var turn = smooth((phase-0.24)/0.56), rotation = turn + 0.045*bump(phase, 0.78, 0.93);   // a few degrees past half a turn, and back
+        var out = smooth((phase-0.10)/0.14)*(1-smooth((phase-0.86)/0.12));
+        var jolt = -0.025*bump(phase, 0.01, 0.07) + 0.04*bump(phase, 0.22, 0.30);   // the latch gives; the leaf overruns as it comes out
+        pivot.position.z = 0.96*out + jolt; pivot.position.y = 0.018*smooth(phase/0.12)*(1-smooth((phase-0.90)/0.10));
         pivot.rotation.y = Math.PI*rotation;
+        var moving = phase > 0 && phase < 1, shake = moving ? (0.004*bump(phase, 0.20, 0.82) + 0.006*bump(phase, 0.88, 0.96)) * Math.sin(now*57) : 0;
+        leaf.position.x = shake; leaf.rotation.z = shake * 0.4;
         latch.position.x = 0.78+0.10*smooth(phase/0.08)*(1-smooth((phase-0.94)/0.06));
-        state.progress=phase; state.angle=pivot.rotation.y; state.moving=phase>0&&phase<1;
+        /* light: the seam, the passage behind, the shafts, the dust, a pulse when it is home */
+        seamM.opacity = 0.9*smooth(phase/0.05)*(1-smooth((phase-0.22)/0.12)) + 0.5*bump(phase, 0.86, 0.99);
+        var spill = Math.sin(Math.PI*clamp01(turn));
+        backL.intensity = 2.4*spill + 1.2*bump(phase, 0.02, 0.2) + 1.8*bump(phase, 0.9, 1.0);
+        rayM.opacity = 0.42*spill; rays.visible = rayM.opacity > 0.005;
+        var dl = bump(phase, 0.08, 0.95); dustM.opacity = 0.75*dl; dust.visible = dl > 0.01;
+        if (dust.visible) { for (var i = 0; i < N; i++) { dp[i*3] += dv[i][0]*dt; dp[i*3+1] += dv[i][1]*dt*(0.5+0.5*Math.sin(now+i)); dp[i*3+2] += dv[i][2]*dt; if (dp[i*3+2] > 1.3 || dp[i*3+1] > 3) seed(i, false); } dustG.attributes.position.needsUpdate = true; }
+        state.progress=phase; state.angle=pivot.rotation.y; state.moving=moving;
         if (oldPortal) { oldPortal.group.visible = rotation>0.52; oldPortal.set(smooth((rotation-0.52)/0.48)); oldPortal.idle(t); }
       },
       press: function () { if (state.open && phase>=0.999) { root.dispatchEvent(new CustomEvent('spatial:secret-enter')); return ''; } return state.moving ? '机关正在转动，请稍候。' : '书架严丝合缝。'; }
