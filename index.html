@@ -196284,6 +196284,233 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
   window.MinestSystemBar = { page: setPage, reading: setReading, tools: setTools, state: function () { return { reading: reading, tools: !R.classList.contains('mn-sys-tools-off'), ctx: ctx }; } };
 })();
 </script>
+<script id="mn-vocab3d-js">
+/* Minest · 3D 词卡作业 · 教师端 (2026-11-20, the user: an isolated 3D dynamic-card page for students' vocabulary,
+   word lists assigned from the teacher side).
+   A word list (a teaching word set, or lists of the board in view) becomes an assignment: a code and a link to the
+   student page (vocab3d.html?code=CODE, /vocab). Students study the words as 3D cards; the teacher sees each student's
+   progress live, can close the assignment (students may still look; nothing more is recorded) or delete it.
+   Data: Firebase Realtime Database /minest-live/{CODE} (the same place Minest Live keeps a class game; an
+   assignment's code starts with V): host = { kind: 'vocab3d', title, board, state: live | ended, created }, players/{pid}.
+   Entry points: "3D 词卡" on each list in Word Lists (the Live teacher panel) and in 教师端 · 词表管理; MinestVocab3D.assign(board, o).
+   window.MinestVocab3D = { assign, manage, pack } */
+(function () {
+  'use strict';
+  if (window.MinestVocab3D) return;
+  var DB = 'https://minest-33761-default-rtdb.firebaseio.com/minest-live/';
+  var SITE = /vercel\.app$/.test(location.hostname) ? location.origin : 'https://minest-app.vercel.app';
+  var MINE = 'minest.vocab3d.mine.v1';
+
+  function db(path, method, body) {
+    return fetch(DB + path + '.json', { method: method || 'GET', headers: body ? { 'Content-Type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('网络错误（' + r.status + '）'); return r.json(); });
+  }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function str(v, n) { v = v == null ? '' : String(v).replace(/<[^>]*>/g, ' ').replace(/[#*_>`]/g, '').replace(/\s+/g, ' ').trim(); return v.length > n ? v.slice(0, n - 1) + '…' : v; }
+  function newCode() { var a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', o = 'V'; for (var i = 0; i < 5; i++) o += a[Math.floor(Math.random() * a.length)]; return o; }
+  function mine() { try { return JSON.parse(localStorage.getItem(MINE) || '[]') || []; } catch (e) { return []; } }
+  function saveMine(m) { try { localStorage.setItem(MINE, JSON.stringify(m.slice(0, 60))); } catch (e) {} }
+  function link(code) { return SITE + '/vocab?code=' + code; }
+  function ago(t) { if (!t) return '—'; var s = Math.max(0, (Date.now() - t) / 1000); return s < 60 ? '刚刚' : s < 3600 ? Math.floor(s / 60) + ' 分钟前' : s < 86400 ? Math.floor(s / 3600) + ' 小时前' : new Date(t).toLocaleDateString(); }
+
+  /* a card, as the student page needs it: words, meaning, sound, examples, roots — and a picture only when it is on the web
+     (a picture kept on this device cannot reach a student's) */
+  function imgOf(c) {
+    var u = '';
+    try { if (window.MinestImageViews && MinestImageViews.image) { var im = MinestImageViews.image(c) || {}; u = im.thumb || im.full || ''; } } catch (e) {}
+    if (!u) u = c.image || c.img || (c.cover && (c.cover.url || c.cover.src)) || '';
+    return /^https?:\/\//.test(u) ? u : '';
+  }
+  function pack(c) {
+    var o = { id: String(c.id), title: str(c.title, 90) }, d = c.definitions || {};
+    if (c.titleZh) o.titleZh = str(c.titleZh, 90);
+    var pyLike = function (v) { return /[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]/i.test(String(v || '')); };   // a pinyin back is the sound, not the meaning
+    var pr = c.pron; pr = typeof pr === 'string' ? pr : pr && (pr.ipa || pr.phonetic || pr.us || pr.text) || c.phonetic || c.py || c.pinyin || '';
+    if (!pr && /[\u3400-\u9fff]/.test(c.title || '')) { try { pr = window.MinestTeachingAssets && MinestTeachingAssets.pinyin ? MinestTeachingAssets.pinyin(c.title) : ''; } catch (e) {} if (/[\u3400-\u9fff]/.test(pr || '')) pr = ''; }
+    if (!pr && pyLike(c.desc || c.back)) pr = c.desc || c.back;
+    if (pr) o.pron = str(pr, 60);
+    var mean = [c.meaning, c.en, c.back, c.desc, c.description].filter(function (v) { return v && String(v).trim() && !pyLike(v); })[0] || '';
+    if (mean) o.meaning = str(mean, 300);
+    if (d.en || c.definitionEn) o.defEn = str(d.en || c.definitionEn, 300);
+    if (d.zh || c.definitionZh) o.defZh = str(d.zh || c.definitionZh, 200);
+    var ex = (Array.isArray(c.examples) ? c.examples : []).map(function (e) { return typeof e === 'string' ? e : e && e.text; }).filter(Boolean).slice(0, 3).map(function (e) { return str(e, 220); });
+    if (ex.length) o.examples = ex;
+    var rel = (Array.isArray(c.relatedWords) ? c.relatedWords : []).map(function (r) { return typeof r === 'string' ? r : r && (r.word || r.text); }).filter(Boolean).slice(0, 6).map(function (r) { return str(r, 40); });
+    if (rel.length) o.related = rel;
+    var ety = c.etymology || c.roots || c.wordRoot || c.origin; if (ety) o.ety = str(ety, 200);
+    if (c.hint) o.hint = str(c.hint, 160);
+    var im = imgOf(c); if (im) o.img = im;
+    return o;
+  }
+  function packBoard(b, ids, title) {
+    var cols = (b.columns || []).filter(function (c) { return !ids || ids.indexOf(c.id) >= 0; }).map(function (c) {
+      var cards = (c.cards || []).filter(function (k) { return k && k.title && !k.teachingArchived; }).map(pack);
+      return { id: String(c.id), title: str(c.title || '词表', 60), color: c.color || '', cards: cards };
+    }).filter(function (c) { return c.cards.length; });
+    return { id: String(b.id || 'board'), title: str(title || b.title || '3D 词卡', 80), columns: cols };
+  }
+
+  /* ---------------- the look ---------------- */
+  var css = document.createElement('style');
+  css.textContent = [
+    '#v3t{position:fixed;inset:0;z-index:2147483300;display:grid;place-items:center;padding:16px;background:rgba(6,9,18,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);font-family:-apple-system,"SF Pro Text","PingFang SC",system-ui,sans-serif;color:#e8eefb}',
+    '#v3t .v3-m{width:min(560px,100%);max-height:min(88vh,860px);overflow:auto;border-radius:24px;background:linear-gradient(180deg,rgba(30,34,46,.96),rgba(16,19,28,.97));border:1px solid rgba(255,255,255,.1);box-shadow:0 30px 80px -20px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.08);padding:20px 20px 18px}',
+    '#v3t h2{margin:0;font:700 19px/1.2 inherit;letter-spacing:.01em}#v3t .v3-sub{margin:4px 0 0;color:#93a0b8;font-size:13px}',
+    '#v3t .v3-hd{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}#v3t .v3-hd>div{flex:1}',
+    '#v3t .v3-x{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.08);color:#cfd8ea;font-size:15px;cursor:pointer}',
+    '#v3t label.v3-f{display:block;margin:0 0 14px;font-size:12.5px;color:#93a0b8;font-weight:600}#v3t input[type=text]{display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:11px 13px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#fff;font:500 15px inherit;outline:none}',
+    '#v3t .v3-lists{display:flex;flex-direction:column;gap:6px;margin:6px 0 14px;max-height:240px;overflow:auto}',
+    '#v3t .v3-l{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);cursor:pointer;font-size:14px}#v3t .v3-l input{accent-color:#7dd3fc;width:17px;height:17px}#v3t .v3-l small{margin-left:auto;color:#8190a8}',
+    '#v3t .v3-b{border:0;border-radius:13px;padding:11px 16px;font:650 14px inherit;cursor:pointer;background:rgba(255,255,255,.09);color:#e8eefb}#v3t .v3-b.pri{background:linear-gradient(180deg,#7dd3fc,#38bdf8);color:#04203a}#v3t .v3-b.warn{color:#fca5a5}#v3t .v3-b[disabled]{opacity:.5}',
+    '#v3t .v3-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}#v3t .v3-msg{min-height:18px;margin:8px 0 0;font-size:13px;color:#fca5a5}',
+    '#v3t .v3-code{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-radius:18px;background:radial-gradient(120% 120% at 0 0,rgba(125,211,252,.18),rgba(255,255,255,.03));border:1px solid rgba(125,211,252,.25);margin-bottom:12px}',
+    '#v3t .v3-code b{font:800 34px/1 ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.14em;color:#fff}#v3t .v3-code span{display:block;font-size:12px;color:#93a0b8;margin-bottom:6px}',
+    '#v3t .v3-link{display:flex;gap:8px;align-items:center;margin-bottom:16px}#v3t .v3-link code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:10px 12px;border-radius:11px;background:rgba(255,255,255,.05);font:12.5px ui-monospace,Menlo,monospace;color:#bae6fd}',
+    '#v3t table{width:100%;border-collapse:collapse;font-size:13.5px}#v3t th{text-align:left;color:#8190a8;font-weight:600;font-size:12px;padding:6px 6px;border-bottom:1px solid rgba(255,255,255,.08)}#v3t td{padding:9px 6px;border-bottom:1px solid rgba(255,255,255,.05)}',
+    '#v3t .v3-bar{height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;min-width:70px}#v3t .v3-bar i{display:block;height:100%;background:linear-gradient(90deg,#38bdf8,#a7f3d0)}',
+    '#v3t .v3-none{padding:18px;text-align:center;color:#8190a8;font-size:13.5px;border:1px dashed rgba(255,255,255,.12);border-radius:14px}',
+    '#v3t .v3-mine{display:flex;flex-direction:column;gap:6px}#v3t .v3-mine button{display:flex;align-items:center;gap:10px;text-align:left;padding:11px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.04);color:#e8eefb;font:500 14px inherit;cursor:pointer}#v3t .v3-mine b{font:700 13px ui-monospace,Menlo,monospace;color:#7dd3fc}#v3t .v3-mine small{margin-left:auto;color:#8190a8}',
+    '#v3t h3{margin:18px 0 8px;font:650 14px inherit;color:#cbd5e1}',
+    '#v3t .v3-views{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:6px 0 16px}#v3t .v3-views label{position:relative;display:flex;flex-direction:column;gap:3px;padding:12px 12px 12px 36px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);cursor:pointer}',
+    '#v3t .v3-views input{position:absolute;left:12px;top:14px;accent-color:#7dd3fc}#v3t .v3-views b{font-size:14px}#v3t .v3-views small{font-size:11.5px;color:#8190a8}#v3t .v3-views label:has(input:checked){border-color:rgba(125,211,252,.55);background:rgba(125,211,252,.1)}',
+    '.v3-entry{white-space:nowrap}'
+  ].join('');
+  document.head.appendChild(css);
+
+  var M = null, poll = 0;
+  function shut() { clearInterval(poll); poll = 0; if (M) { M.remove(); M = null; } document.removeEventListener('keydown', onKey, true); }
+  function onKey(e) { if (e.key === 'Escape' && M) { e.stopPropagation(); shut(); } }
+  function modal(html) {
+    shut(); M = document.createElement('div'); M.id = 'v3t'; M.innerHTML = '<div class="v3-m" role="dialog" aria-modal="true">' + html + '</div>';
+    M.addEventListener('click', function (e) { if (e.target === M) shut(); });
+    ['pointerdown', 'touchstart', 'keydown', 'wheel'].forEach(function (t) { M.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
+    document.body.appendChild(M); document.addEventListener('keydown', onKey, true);
+    var x = M.querySelector('.v3-x'); if (x) x.onclick = shut;
+    return M;
+  }
+  function hd(title, sub) { return '<div class="v3-hd"><div><h2>' + title + '</h2>' + (sub ? '<p class="v3-sub">' + sub + '</p>' : '') + '</div><button type="button" class="v3-x" aria-label="关闭">✕</button></div>'; }
+
+  /* ---------------- assign ---------------- */
+  function assign(board, o) {
+    o = o || {}; if (!board || !(board.columns || []).length) { alert('没有可以布置的词表。'); return; }
+    var cols = board.columns.filter(function (c) { return !c.teachingListArchived && (c.cards || []).some(function (k) { return k && k.title && !k.teachingArchived; }); });
+    var pre = o.listIds || (cols.length === 1 ? [cols[0].id] : []);
+    var title = o.title || (pre.length === 1 ? (cols.filter(function (c) { return c.id === pre[0]; })[0] || {}).title : board.title) || '3D 词卡';
+    var m = modal(hd('布置给学生', '学生用课堂码打开一个只有这些词的学习页（3D 词卡或 Knowledge Drive），你在这里看到每个人的进度。') +
+      '<label class="v3-f">作业标题<input type="text" data-t maxlength="80" value="' + esc(title) + '"></label>' +
+      '<div style="font-size:12.5px;color:#93a0b8;font-weight:600">选择词表</div><div class="v3-lists">' +
+      cols.map(function (c) { var n = (c.cards || []).filter(function (k) { return k && k.title && !k.teachingArchived; }).length;
+        return '<label class="v3-l"><input type="checkbox" value="' + esc(c.id) + '"' + (pre.indexOf(c.id) >= 0 ? ' checked' : '') + '>' + esc(c.title || '词表') + '<small>' + n + ' 个词</small></label>'; }).join('') +
+      '</div><div style="font-size:12.5px;color:#93a0b8;font-weight:600">呈现方式</div><div class="v3-views">' +
+      '<label><input type="radio" name="v3view" value="cards"' + (o.view === 'drive' ? '' : ' checked') + '><b>🧊 3D 词卡</b><small>九种 3D 动态卡片 · 爆炸学习卡</small></label>' +
+      '<label><input type="radio" name="v3view" value="drive"' + (o.view === 'drive' ? ' checked' : '') + '><b>🚗 Knowledge Drive</b><small>坐车沿路看词，每个词表一条路</small></label>' +
+      '<label><input type="radio" name="v3view" value="type"' + (o.view === 'type' ? ' checked' : '') + '><b>⌨️ 3D Type</b><small>拼音打字：跟打 + 四关闯关</small></label>' +
+      '</div><div class="v3-row"><button type="button" class="v3-b pri" data-go>生成课堂码</button><button type="button" class="v3-b" data-mine>我布置的作业</button></div><p class="v3-msg" data-msg></p>');
+    m.querySelector('[data-mine]').onclick = manage;
+    m.querySelector('[data-go]').onclick = function () {
+      var btn = this, msg = m.querySelector('[data-msg]'), ids = [].map.call(m.querySelectorAll('.v3-lists input:checked'), function (i) { return i.value; });
+      if (!ids.length) { msg.textContent = '至少选一个词表。'; return; }
+      var t = m.querySelector('[data-t]').value.trim() || '3D 词卡', pb = packBoard(board, ids, t), n = pb.columns.reduce(function (s, c) { return s + c.cards.length; }, 0);
+      if (!n) { msg.textContent = '选中的词表里没有词。'; return; }
+      if (n > 400) { msg.textContent = '一次最多布置 400 个词（现在 ' + n + ' 个），请少选几个词表。'; return; }
+      btn.disabled = true; msg.textContent = '';
+      (function tryCode(k) {
+        var code = newCode();
+        return db(code).then(function (cur) {
+          if (cur && k < 5) return tryCode(k + 1);
+          if (cur) throw new Error('课堂码冲突，请再试一次。');
+          var vw = (m.querySelector('input[name=v3view]:checked') || {}).value; vw = vw === 'drive' || vw === 'type' ? vw : 'cards';
+          var host = { kind: 'vocab3d', v: 1, view: vw, title: t, board: pb, state: 'live', created: { '.sv': 'timestamp' }, words: n };
+          return db(code + '/host', 'PUT', host).then(function () {
+            var all = mine().filter(function (x) { return x.code !== code; }); all.unshift({ code: code, title: t, at: Date.now(), words: n, view: vw }); saveMine(all);
+            roster(code);
+          });
+        });
+      })(0).catch(function (e) { btn.disabled = false; msg.textContent = '没有布置成功：' + (e.message || e); });
+    };
+  }
+
+  /* ---------------- one assignment: code, link, students ---------------- */
+  function roster(code) {
+    var m = modal('<div data-head></div><div class="v3-code"><div><span>课堂码</span><b>' + esc(code) + '</b></div><button type="button" class="v3-b" data-copy-code>复制</button></div>' +
+      '<div class="v3-link"><code>' + esc(link(code)) + '</code><button type="button" class="v3-b pri" data-copy>复制链接</button></div>' +
+      '<div data-body><div class="v3-none">正在读取…</div></div>' +
+      '<div class="v3-row" style="margin-top:16px"><button type="button" class="v3-b" data-open-page>打开学生页</button><button type="button" class="v3-b" data-toggle></button><button type="button" class="v3-b warn" data-del>删除作业</button><button type="button" class="v3-b" data-mine style="margin-left:auto">全部作业</button></div><p class="v3-msg" data-msg></p>');
+    var host = null, msg = m.querySelector('[data-msg]');
+    function copy(t, b) { var done = function () { var o = b.textContent; b.textContent = '已复制 ✓'; setTimeout(function () { b.textContent = o; }, 1400); };
+      try { navigator.clipboard.writeText(t).then(done, function () { prompt('复制这段：', t); }); } catch (e) { prompt('复制这段：', t); } }
+    m.querySelector('[data-copy]').onclick = function () { copy(link(code), this); };
+    m.querySelector('[data-copy-code]').onclick = function () { copy(code, this); };
+    m.querySelector('[data-open-page]').onclick = function () { window.open(link(code) + '&preview=1', '_blank'); };
+    m.querySelector('[data-mine]').onclick = manage;
+    m.querySelector('[data-toggle]').onclick = function () {
+      if (!host) return; var b = this; b.disabled = true;
+      db(code + '/host', 'PATCH', { state: host.state === 'ended' ? 'live' : 'ended' }).then(function (v) { host.state = v.state; paint(); }).catch(function (e) { msg.textContent = e.message; }).then(function () { b.disabled = false; });
+    };
+    m.querySelector('[data-del]').onclick = function () {
+      if (!confirm('删除这个作业和所有学生的进度？删除后学生的链接也打不开了，无法恢复。')) return;
+      db(code, 'DELETE').then(function () { saveMine(mine().filter(function (x) { return x.code !== code; })); manage(); }).catch(function (e) { msg.textContent = '没有删除成功：' + e.message; });
+    };
+    var players = {};
+    function paint() {
+      if (!M || M !== m) return;
+      m.querySelector('[data-head]').innerHTML = hd(esc(host ? host.title : code), host ? (host.view === 'drive' ? '🚗 Knowledge Drive · ' : host.view === 'type' ? '⌨️ 3D Type · ' : '🧊 3D 词卡 · ') + (host.words || 0) + ' 个词 · 布置于 ' + new Date(host.created).toLocaleString() + (host.state !== 'ended' ? ' · <span style="color:#86efac">开放中</span>' : ' · <span style="color:#fca5a5">已结束</span>') : '');
+      var x = m.querySelector('.v3-x'); if (x) x.onclick = shut;
+      m.querySelector('[data-toggle]').textContent = host && host.state !== 'ended' ? '结束作业' : '重新开放';
+      var rows = Object.keys(players || {}).map(function (k) { return players[k]; }).filter(function (p) { return p && p.name; }).sort(function (a, b) { return (b.known || 0) - (a.known || 0) || (b.seen || 0) - (a.seen || 0); });
+      var tot = host && host.words || 1;
+      m.querySelector('[data-body]').innerHTML = '<h3>学生进度 · ' + rows.length + ' 人</h3>' + (rows.length ? '<table><tr><th>学生</th><th>看过</th><th>会了</th><th style="width:26%"></th>' + (host.view === 'type' ? '<th>闯关</th><th>字/分</th>' : '') + '<th>最近</th></tr>' + rows.map(function (p) {
+        var k = Math.min(tot, p.known || 0), s = Math.min(tot, p.seen || 0);
+        return '<tr><td>' + esc(p.name) + '</td><td>' + s + '/' + tot + '</td><td>' + k + '</td><td><div class="v3-bar"><i style="width:' + Math.round(k / tot * 100) + '%"></i></div></td>' + (host.view === 'type' ? '<td>' + typeCell(p.type) + '</td><td>' + (p.type && p.type.best ? p.type.best.cpm : '—') + '</td>' : '') + '<td style="color:#8190a8">' + ago(p.at) + '</td></tr>';
+      }).join('') + '</table>' : '<div class="v3-none">还没有学生加入。把课堂码或链接发给学生。</div>');
+    }
+    function load() {
+      return db(code).then(function (d) {
+        if (!d || !d.host) { m.querySelector('[data-body]').innerHTML = '<div class="v3-none">这个作业已经不存在了。</div>'; clearInterval(poll); return; }
+        host = d.host; players = d.players || {}; paint();
+      }).catch(function (e) { msg.textContent = '读取失败：' + e.message; });
+    }
+    load(); poll = setInterval(function () { if (!document.hidden) load(); }, 4000);
+  }
+
+  function typeCell(t) {   // 3D Type: the highest level with a star, and its stars
+    if (!t || !t.lv) return '—'; var top = 0; Object.keys(t.lv).forEach(function (n) { if (t.lv[n] > 0 && +n > top) top = +n; });
+    return top ? '第 ' + top + ' 关 ' + '★★★'.slice(0, t.lv[top]) : '—';
+  }
+
+  /* ---------------- every assignment made on this device ---------------- */
+  function manage() {
+    var all = mine();
+    var m = modal(hd('我布置的作业', '在这台设备上布置的作业；点开看学生进度。') + (all.length ? '<div class="v3-mine">' + all.map(function (x) {
+      return '<button type="button" data-code="' + esc(x.code) + '"><b>' + esc(x.code) + '</b>' + esc(x.title) + '<small>' + (x.words || 0) + ' 词 · ' + new Date(x.at).toLocaleDateString() + '</small></button>';
+    }).join('') + '</div>' : '<div class="v3-none">还没有布置过 3D 词卡作业。在词表旁点「3D 词卡」开始。</div>'));
+    [].forEach.call(m.querySelectorAll('[data-code]'), function (b) { b.onclick = function () { roster(b.getAttribute('data-code')); }; });
+  }
+
+  /* ---------------- the entries: a "3D 词卡" button on each word list ---------------- */
+  function sets() { try { return window.MinestTeachingSets && MinestTeachingSets.read ? MinestTeachingSets.read() : null; } catch (e) { return null; } }
+  function entryBtn(cls, id) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = cls + ' v3-entry'; b.textContent = '🎓 布置给学生'; b.title = '把这个词表布置给学生：3D 词卡或 Knowledge Drive';
+    b.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); var s = sets(); if (s) assign(s, { listIds: [id] }); }, true);
+    return b;
+  }
+  function decorate() {
+    if (window.isStudentMode && window.isStudentMode()) return;
+    [].forEach.call(document.querySelectorAll('.tl-row[data-set-row]'), function (r) {
+      if (r.querySelector('.v3-entry')) return; var id = r.getAttribute('data-set-row'), ed = r.querySelector('[data-set-edit]');
+      var b = entryBtn(ed ? ed.className : 'mlv-btn alt', id); if (ed && ed.parentNode) ed.parentNode.insertBefore(b, ed.nextSibling); else r.appendChild(b);
+    });
+    [].forEach.call(document.querySelectorAll('.teacher-list-card'), function (c) {
+      if (c.querySelector('.v3-entry')) return; var sel = c.querySelector('[data-tm-select]'); if (!sel) return;
+      var b = entryBtn('teacher-btn teacher-btn-alt', sel.getAttribute('data-tm-select')); sel.parentNode.insertBefore(b, sel.nextSibling);
+    });
+  }
+  var q = 0;
+  new MutationObserver(function () { if (q) return; q = requestAnimationFrame(function () { q = 0; decorate(); }); }).observe(document.documentElement, { childList: true, subtree: true });
+
+  window.MinestVocab3D = { assign: assign, manage: manage, pack: pack, roster: roster };
+})();
+</script>
 <script id="mn-cover-modes-js">
 /* Minest 3D Cover display modes: 3D / Wall / Fan / Helix / Stack / Spiral / Orbit / Sphere / Wave — High-End 3D Physics & Motion */
 (function () {
@@ -196298,8 +196525,28 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
     ['spiral', 'Spiral'],
     ['orbit', 'Orbit'],
     ['sphere', 'Sphere'],
-    ['wave', 'Wave']
+    ['wave', 'Wave'],
+    ['ring', 'Ring']
   ];
+  /* the fluid gradients' palettes: base, then three light blobs */
+  var FLUID = [
+    ['#f0613a', '#ffb347', '#ff7a59', '#ffd36e'],   // Ember
+    ['#6d4bff', '#ff8ad8', '#4fa8ff', '#c08bff'],   // Lilac
+    ['#2bb673', '#e8f05a', '#3fb8ff', '#9be15d'],   // Meadow
+    ['#ff4f81', '#ffb0c8', '#ff9a3c', '#c86bff'],   // Sunset
+    ['#1f7cff', '#62e4ff', '#7b5cff', '#36d6b5'],   // Lagoon
+    ['#e8b100', '#ff6b3d', '#ffe48a', '#ff9ac1'],   // Saffron
+    ['#8a2be2', '#ff5fa2', '#3a3aff', '#ffa1f5'],   // Nebula
+    ['#00a69c', '#b8ff7a', '#2a7bff', '#5ef0d0']    // Mint
+  ];
+  var RING = { view: 'in', persp: 860, rim: 160, disp: 25, flow: 20 };
+  try { var rg0 = JSON.parse(localStorage.getItem('minest.coverRing') || 'null'); if (rg0) for (var rk in RING) if (rg0[rk] != null) RING[rk] = rg0[rk]; } catch (e) {}
+  function ringSave() { try { localStorage.setItem('minest.coverRing', JSON.stringify(RING)); } catch (e) {} }
+  function ringApply(box) {   // the rim's width and the gradients' flow are CSS
+    box.style.setProperty('--cm-rim', RING.rim + 'px');
+    box.style.setProperty('--cm-flow', RING.flow > 0 ? (4 + (100 - RING.flow) * 0.56).toFixed(1) + 's' : '1s');
+    box.classList.toggle('rg-still', !RING.flow); box.classList.toggle('rg-out', RING.view !== 'in');
+  }
   var shape = 'port'; try { shape = localStorage.getItem('minest.coverShape') === 'land' ? 'land' : 'port'; } catch (e) {}
   var KEY = 'minest.coverMode', mode = 'flow', playing = false, speed = 1, fanT = 0, ov = null, bar = null, eng = null, sig = '';
   try { mode = localStorage.getItem(KEY) || 'flow'; speed = parseFloat(localStorage.getItem('minest.coverSpeed')) || 1; } catch (e) {}
@@ -196314,6 +196561,7 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
     spiral: '<path d="M12 12.5a1.5 1.5 0 1 1 1.6-1.5 3 3 0 0 1-3 3.3 4.5 4.5 0 0 1-4.6-4.6A6 6 0 0 1 12 3.8a7.6 7.6 0 0 1 7.8 7.8A9 9 0 0 1 11 20.5"/>',
     orbit: '<ellipse cx="12" cy="12" rx="9.5" ry="4.2"/><rect x="9.5" y="7" width="5" height="7" rx="1"/><circle cx="20" cy="13.6" r="1.1" fill="currentColor" stroke="none"/>',
     sphere: '<circle cx="12" cy="12" r="8.5"/><ellipse cx="12" cy="12" rx="3.6" ry="8.5"/><path d="M3.6 12h16.8"/>',
+    ring: '<path d="M3.5 7l3.2 1.3v8.4L3.5 18z"/><rect x="9" y="7.5" width="6" height="9.5" rx="1.2"/><path d="M20.5 7l-3.2 1.3v8.4l3.2 1.3z"/><path d="M4 21c4.6-1.6 11.4-1.6 16 0" opacity=".6"/>',
     wave: '<path d="M2.5 12c2.4-5 4.8-5 7.1 0s4.8 5 7.2 0 3.4-3.3 4.7-2"/><circle cx="9.6" cy="12" r="1" fill="currentColor" stroke="none"/>',
     play: '<path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="none"/>', pause: '<rect x="7" y="5.5" width="3.4" height="13" rx="1" fill="currentColor" stroke="none"/><rect x="13.6" y="5.5" width="3.4" height="13" rx="1" fill="currentColor" stroke="none"/>',
     port: '<rect x="7.5" y="3.5" width="9" height="17" rx="2"/>', land: '<rect x="3.5" y="7.5" width="17" height="9" rx="2"/>',
@@ -196321,7 +196569,7 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
     assign: '<path d="M2.5 9.5L12 5l9.5 4.5L12 14z"/><path d="M6.5 11.5v4.2c1.4 1.5 3.3 2.3 5.5 2.3s4.1-.8 5.5-2.3v-4.2M21.5 9.5v5"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>', lab: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>'
   };
-  var MZH = { flow: '3D 封面', wall: '卡片墙', fan: '扇形', helix: '螺旋', stack: '叠放', spiral: '旋涡', orbit: '轨道', sphere: '球体', wave: '波浪' };
+  var MZH = { flow: '3D 封面', wall: '卡片墙', fan: '扇形', helix: '螺旋', stack: '叠放', spiral: '旋涡', orbit: '轨道', sphere: '球体', wave: '波浪', ring: '环形' };
   function ico(k) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICO[k] || '') + '</svg>'; }
   function flashName(host, txt) { var n = host.querySelector('.cm-mname'); if (!n) { n = document.createElement('div'); n.className = 'cm-mname'; host.appendChild(n); } n.textContent = txt; n.classList.remove('show'); void n.offsetWidth; n.classList.add('show'); clearTimeout(n._t); n._t = setTimeout(function () { n.classList.remove('show'); }, 1300); }
   var calm = false; try { calm = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
@@ -196398,6 +196646,31 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
     '.cm-fn{width:178px;height:178px;margin:-89px 0 0 -89px;border-radius:32px;box-shadow:0 18px 42px rgba(15,23,42,.26)}.cm-fn .tt,.cm-hx .tt{font-size:17px}' +
     '.cm-orb{width:172px;height:220px;margin:-110px 0 0 -86px;border-radius:22px;box-shadow:0 18px 40px rgba(15,23,42,.26)}.cm-orb .tt{font-size:16px}' +
     '.cm-sph{width:152px;height:192px;margin:-96px 0 0 -76px;border-radius:20px;box-shadow:0 16px 36px rgba(15,23,42,.24)}.cm-sph .tt{font-size:15px}' +
+    /* the Depth Ring: fluid-gradient cards, a rim of glass, the word under it */
+    '.cm-rg{width:200px;height:290px;margin:-145px 0 0 -100px;border-radius:20px;overflow:hidden;background:var(--c0);box-shadow:0 30px 60px -18px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.22)}' +
+    '#cm-ov.land .cm-rg{width:290px;height:200px;margin:-100px 0 0 -145px}' +
+    '.cm-rg .fl{position:absolute;inset:-40%;background:radial-gradient(38% 38% at 30% 30%,var(--c1),transparent 70%),radial-gradient(42% 42% at 72% 38%,var(--c2),transparent 72%),radial-gradient(48% 48% at 44% 76%,var(--c3),transparent 72%),var(--c0);filter:blur(16px) saturate(135%);animation:cmflow var(--cm-flow,30s) linear infinite;animation-delay:var(--cm-d,0s)}' +
+    '.cm-rg .fl::after{content:"";position:absolute;inset:18%;background:radial-gradient(40% 40% at 60% 60%,var(--c2),transparent 70%),radial-gradient(36% 36% at 30% 70%,var(--c1),transparent 70%);opacity:.75;animation:cmflow2 calc(var(--cm-flow,30s) * 1.6) ease-in-out infinite alternate}' +
+    '@keyframes cmflow{0%{transform:rotate(0) scale(1.05)}50%{transform:rotate(180deg) scale(1.22)}100%{transform:rotate(360deg) scale(1.05)}}@keyframes cmflow2{0%{transform:translate(-8%,6%) rotate(0)}100%{transform:translate(8%,-6%) rotate(-140deg)}}' +
+    '#cm-ov.rg-still .cm-rg .fl,#cm-ov.rg-still .cm-rg .fl::after{animation-play-state:paused}' +
+    '.cm-rg .im{position:absolute;inset:0;background:center/cover no-repeat}.cm-rg .rt{position:absolute;left:14px;right:14px;bottom:14px;font:750 17px/1.2 -apple-system,"SF Pro Display","PingFang SC",system-ui,sans-serif;color:#fff;text-shadow:0 1px 10px rgba(0,0,0,.45);letter-spacing:-.01em}' +
+    '.cm-rg.act{box-shadow:0 36px 70px -20px rgba(0,0,0,.6),inset 0 0 0 1.5px rgba(255,255,255,.55)}' +
+    '#cm-ov.ring{background:radial-gradient(120% 90% at 50% 40%,#fafafb,#eceef2 70%,#e2e5ea)!important}body.theme-dark #cm-ov.ring{background:radial-gradient(120% 90% at 50% 40%,#151821,#0b0d13 75%)!important}' +
+    '#cm-ov .cm-rim{position:absolute;inset:0;pointer-events:none;z-index:900}#cm-ov .cm-rim i{position:absolute;top:0;bottom:0;width:var(--cm-rim,160px);-webkit-backdrop-filter:blur(9px) saturate(150%);backdrop-filter:blur(9px) saturate(150%)}' +
+    '#cm-ov .cm-rim .l{left:0;background:linear-gradient(90deg,rgba(255,255,255,.34),rgba(255,255,255,.06));border-right:1px solid rgba(255,255,255,.55);-webkit-mask:linear-gradient(90deg,#000 55%,transparent);mask:linear-gradient(90deg,#000 55%,transparent)}' +
+    '#cm-ov .cm-rim .r{right:0;background:linear-gradient(270deg,rgba(255,255,255,.34),rgba(255,255,255,.06));border-left:1px solid rgba(255,255,255,.55);-webkit-mask:linear-gradient(270deg,#000 55%,transparent);mask:linear-gradient(270deg,#000 55%,transparent)}' +
+    '#cm-ov.rg-out .cm-rim i{width:calc(var(--cm-rim,160px) * .5);opacity:.6}' +
+    '#cm-ov .cm-rcap{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 118px);transform:translateX(-50%);z-index:950;text-align:center;pointer-events:none;color:#1f2430}body.theme-dark #cm-ov .cm-rcap{color:#eef2f8}' +
+    '#cm-ov .cm-rcap b{display:block;font:700 17px/1.2 -apple-system,"SF Pro Display","PingFang SC",system-ui,sans-serif}#cm-ov .cm-rcap span{font:500 11px ui-monospace,"SF Mono",Menlo,monospace;opacity:.5;letter-spacing:.08em}' +
+    'html.mn-dock-v #cm-ov .cm-rcap{bottom:calc(env(safe-area-inset-bottom,0px) + 44px)}' +
+    '#cm-ov .cm-rgset{position:absolute;z-index:1450;right:calc(env(safe-area-inset-right,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 104px);width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(18,20,28,.6);color:#e8eef8;display:grid;place-items:center;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);cursor:pointer}' +
+    '#cm-ov .cm-rgset svg{width:18px;height:18px}#cm-ov .cm-rgset.on{background:rgba(125,211,252,.35)}html.mn-dock-v #cm-ov .cm-rgset{bottom:calc(env(safe-area-inset-bottom,0px) + 20px)}' +
+    '#cm-ov .cm-rgp{position:absolute;z-index:1460;right:calc(env(safe-area-inset-right,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 150px);width:min(300px,calc(100vw - 32px));padding:12px 14px 6px;border-radius:18px;background:rgba(18,20,26,.86);border:1px solid rgba(255,255,255,.1);color:#e8eef8;font:500 12px -apple-system,"PingFang SC",system-ui,sans-serif;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:0 24px 50px -16px rgba(0,0,0,.6)}' +
+    '#cm-ov .cm-rgp[hidden]{display:none}html.mn-dock-v #cm-ov .cm-rgp{bottom:calc(env(safe-area-inset-bottom,0px) + 66px)}' +
+    '#cm-ov .cm-rgp .seg{display:flex;gap:4px;padding:3px;border-radius:11px;background:rgba(255,255,255,.06);margin-bottom:6px}#cm-ov .cm-rgp .seg button{flex:1;border:0;border-radius:8px;padding:7px 0;background:none;color:#a5b0c2;font:600 12px inherit;cursor:pointer}#cm-ov .cm-rgp .seg button.on{background:rgba(255,255,255,.16);color:#fff}' +
+    '#cm-ov .cm-rgp .ds{margin:4px 2px 8px;color:#8b97ab;font-size:11.5px;line-height:1.45}' +
+    '#cm-ov .cm-rgp label{display:grid;grid-template-columns:96px 1fr 50px;align-items:center;gap:8px;margin:0 0 8px}#cm-ov .cm-rgp label span{color:#b4bfd0;font-size:11.5px}#cm-ov .cm-rgp input{width:100%;accent-color:#e8eef8;display:block!important;margin:0}#cm-ov .cm-rgp b{font:600 11px ui-monospace,Menlo,monospace;color:#cbd5e1;text-align:right}' +
+    'html.mn-sys-reading #cm-ov .cm-rgset,html.mn-sys-reading #cm-ov .cm-rgp{display:none!important}' +
     '.cm-wav{width:176px;height:224px;margin:-112px 0 0 -88px;border-radius:22px;box-shadow:0 18px 40px rgba(15,23,42,.25)}.cm-wav .tt{font-size:16px}' +
     '.cm-hx{backdrop-filter:none;-webkit-backdrop-filter:none;width:320px;height:212px;margin:-106px 0 0 -160px;border-radius:20px;box-shadow:0 20px 46px rgba(0,0,0,.28);backface-visibility:hidden;transition:box-shadow .25s ease}' +
     '.cm-c.act{box-shadow:0 30px 64px rgba(14,165,233,.34),0 20px 48px rgba(0,0,0,.38)}' +
@@ -196498,10 +196771,10 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
     var grx = 0, gry = 0, grz = 0, cgx = 0, cgy = 0, cgz = 0, gbar = null;
     var baseSc = 1, BW = 800, BH = 600, zoom = 1, aside = 0, asideT = 0, asideSide = -1, hand = [], ptrs = {}, pinch = null, lp = null, handEl = null;
     var AX = 1, PT = !box.classList.contains('land'), SX = 46, SY = -52, stepClock = 0, lastCur = null;
-    var minCount = { spiral: 22, helix: 12, stack: 10, fan: 9, orbit: 12, sphere: 18, wave: 13 }[m] || N;
+    var minCount = { spiral: 22, helix: 12, stack: 10, fan: 9, orbit: 12, sphere: 18, wave: 13, ring: 16 }[m] || N;
     var count = m === 'wall' ? Math.max(Math.ceil(Math.max(N, 20) / 5) + (Math.ceil(Math.max(N, 20) / 5) % 2), 4) * 5 : Math.max(N, minCount);
     var cards = [], time = 0, idle = 0, drag = false, vel = 0, t = 0, sel = 0, selF = 0, selV = 0, off = { x: 0, y: 0 }, ov2 = { x: 0, y: 0 }, sph = { rx: 0.18, ry: 0, vx: 0, vy: 0 }, goal = null, moved = 0, last = performance.now(), par = { x: 0, y: 0, tx: 0, ty: 0 }, hovIdx = -1, dead = false;
-    var cls = { flow: 'cm-orb', spiral: 'cm-sp', wall: 'cm-wl', helix: 'cm-hx', stack: 'cm-hx', fan: 'cm-fn', orbit: 'cm-orb', sphere: 'cm-sph', wave: 'cm-wav' }[m];
+    var cls = { flow: 'cm-orb', spiral: 'cm-sp', wall: 'cm-wl', helix: 'cm-hx', stack: 'cm-hx', fan: 'cm-fn', orbit: 'cm-orb', sphere: 'cm-sph', wave: 'cm-wav', ring: 'cm-rg' }[m];
     for (var i = 0; i < count; i++) {
       var it = list[i % N], el = document.createElement('div');
       el.className = 'cm-c ' + cls;
@@ -196512,7 +196785,13 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
       el.style.borderColor = col + '77';
       el.innerHTML = (it.src ? '<div class="im" data-bg="' + String(it.src).replace(/"/g, '%22') + '"></div>' : '') + '<div class="cm-bd"></div><div class="cm-ini"></div><div class="sh"></div><div class="tt"></div><div class="cm-st"></div>';
       el.style.setProperty('--cm-col', col);
-      if (m === 'fan') {
+      if (m === 'ring') {
+        el.removeAttribute('style'); el.className = 'cm-c cm-rg';
+        var pal = FLUID[(i % N + Math.floor(i / N) * 3) % FLUID.length];   // each card its own palette (neighbours never the same)
+        ['--c0', '--c1', '--c2', '--c3'].forEach(function (v, q) { el.style.setProperty(v, pal[q]); });
+        el.innerHTML = '<div class="fl"></div>' + (it.src ? '<div class="im" data-bg="' + String(it.src).replace(/"/g, '%22') + '"></div>' : '') + '<div class="rt"></div>';
+        el.querySelector('.rt').textContent = it.title;
+      } else if (m === 'fan') {
         el.removeAttribute('style'); el.className = 'cm-c cm-fc';
         el.style.setProperty('--cm-col', col);
         el.innerHTML = '<div class="fa"></div><div class="sh"></div><div class="fn"></div><div class="fs"></div>';
@@ -196538,7 +196817,9 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
       })(i);
       tilt.appendChild(el); cards.push(el);
     }
-    if (m === 'spiral' || m === 'helix' || m === 'stack' || m === 'orbit' || m === 'sphere' || m === 'wave') tilt.style.transformStyle = 'flat';
+    if (m === 'spiral' || m === 'helix' || m === 'stack' || m === 'orbit' || m === 'sphere' || m === 'wave' || m === 'ring') tilt.style.transformStyle = 'flat';
+    var rgCap = null, rgRim = null;
+    if (m === 'ring') ringUI();
     if (m === 'sphere') tilt.style.perspective = 'none';   // the globe is drawn flat (see render)
     var head = null, pills = null, groups = [];
     if (m === 'fan') {
@@ -196577,6 +196858,27 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
       sv.appendChild(hxPath);
       fr.insertBefore(sv, tilt);
     }
+    function ringUI() {
+      rgRim = document.createElement('div'); rgRim.className = 'cm-rim'; rgRim.innerHTML = '<i class="l"></i><i class="r"></i>'; box.appendChild(rgRim);
+      rgCap = document.createElement('div'); rgCap.className = 'cm-rcap'; box.appendChild(rgCap);
+      var bt = document.createElement('button'); bt.type = 'button'; bt.className = 'cm-rgset'; bt.title = '环形 · 设置'; bt.setAttribute('aria-label', '环形 · 设置');
+      bt.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>';
+      var pn = document.createElement('div'); pn.className = 'cm-rgp'; pn.hidden = true; box.appendChild(pn); box.appendChild(bt);
+      var F = [['persp', '透视 Perspective', 420, 1600, 'px'], ['rim', '玻璃边 Glass rim', 0, 260, 'px'], ['disp', '色散 Dispersion', 0, 100, '%'], ['flow', '流动 Flow', 0, 100, '%']];
+      pn.innerHTML = '<div class="seg"><button data-v="in">环里 Inside</button><button data-v="out">环外 Outside</button></div><p class="ds"></p>' +
+        F.map(function (f) { return '<label><span>' + f[1] + '</span><input type="range" min="' + f[2] + '" max="' + f[3] + '" data-f="' + f[0] + '"><b></b></label>'; }).join('');
+      function paintP() {
+        [].forEach.call(pn.querySelectorAll('[data-v]'), function (b) { b.classList.toggle('on', b.getAttribute('data-v') === RING.view); });
+        pn.querySelector('.ds').textContent = RING.view === 'in' ? '你站在环里：边上的卡片靠近、变大，在玻璃边下弯过来。' : '从环外看：最前面的一张最近，两边绕到后面去。';
+        F.forEach(function (f) { var inp = pn.querySelector('[data-f="' + f[0] + '"]'); inp.value = RING[f[0]]; inp.nextElementSibling.textContent = RING[f[0]] + f[4]; });
+        ringApply(box);
+      }
+      [].forEach.call(pn.querySelectorAll('[data-v]'), function (b) { b.onclick = function (e) { e.stopPropagation(); RING.view = b.getAttribute('data-v'); ringSave(); paintP(); }; });
+      [].forEach.call(pn.querySelectorAll('input'), function (inp) { inp.oninput = function () { RING[inp.getAttribute('data-f')] = +inp.value; ringSave(); paintP(); }; });
+      ['pointerdown', 'click', 'wheel', 'touchstart'].forEach(function (t) { pn.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: t !== 'wheel' }); bt.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
+      bt.addEventListener('click', function () { pn.hidden = !pn.hidden; bt.classList.toggle('on', !pn.hidden); });
+      paintP();
+    }
     function fit() {
       var w = box.clientWidth || 390, h = box.clientHeight || 700; AX = clamp(w / Math.max(1, h), 1, 1.9);
       if (m === 'fan') box.classList.toggle('wide', w >= 600 && w / h > 1.05);
@@ -196585,6 +196887,7 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
         : m === 'sphere' ? Math.min((h - 96) / 640, w / 700)
         : m === 'orbit' ? Math.min((h - 220) / 390, w / (640 * AX))
         : m === 'wave' ? Math.min((h - 220) / 400, w / (720 * AX))
+        : m === 'ring' ? Math.min((h - 150) / 520, w / 760)
         : Math.min(w / 720, h / 740);
       if (box.parentNode && box.parentNode.id === 'cm-holo') sc *= 0.86;   // projected: a little smaller, so the console shows below
       baseSc = sc; BW = w; BH = h; applyFr();
@@ -196804,6 +197107,32 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
           el.classList.toggle('act', ad < 0.45);
         });
         updateDet(sel, 'WAVE');
+      } else if (m === 'ring') {
+        /* 9. Depth Ring (2026-11-20, the user's reference: cards on a ring, fluid gradients) — Inside: you stand in the
+           ring, the cards at the edges come near, grow and bend round you under a rim of glass; Outside: the ring seen
+           from without, the front card nearest. Each card is projected here (flat), its bend is its own perspective. */
+        var inside = RING.view === 'in', Rn = Math.min(M, inside ? 20 : 13), R = inside ? 560 : 600, Pp = RING.persp, dsp = RING.disp / 100, bestD = 99, bestK = 0;
+        cards.forEach(function (el, i) {
+          var d = ((i - selF) % M + M + M / 2) % M - M / 2;
+          var a = d / Rn * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
+          var lim = inside ? 1.32 : 1.62;
+          if (Math.abs(a) > lim) { el.style.opacity = 0; el.style.pointerEvents = 'none'; return; }
+          var z = inside ? R * ca - R * 0.62 : R * (1 - ca) - 40;   // + farther, − nearer
+          var k = Pp / Math.max(120, Pp + z), x = R * sa * k * (inside ? 1.02 : 0.92);
+          var ry = (inside ? -1 : 1) * a * 57.3 * (inside ? 0.92 : 0.78), edge = Math.abs(sa);
+          var fade = inside ? clamp((lim - Math.abs(a)) / 0.28, 0, 1) : clamp((lim - Math.abs(a)) / 0.5, 0, 1) * (0.45 + 0.55 * clamp(ca + 0.2, 0, 1));
+          var flt = Math.sin(time * 1.6 + i * 0.8) * 3;
+          el.style.opacity = fade.toFixed(3);
+          el.style.pointerEvents = fade < 0.3 ? 'none' : '';
+          el.style.transform = 'translate3d(' + (360 + x + par.x * 10).toFixed(1) + 'px,' + (300 + flt - par.y * 8).toFixed(1) + 'px,0) perspective(' + (Pp * 0.9).toFixed(0) + 'px) rotateY(' + ry.toFixed(2) + 'deg) scale(' + (k * 0.92 + (hovIdx === i ? 0.03 : 0)).toFixed(3) + ')';
+          el.style.zIndex = Math.round(1000 - z);
+          /* dispersion: the light splits at the edges of the ring (a colour fringe), stronger the more the card turns */
+          var fk = Math.round(dsp * edge * 9 * 2) / 2;
+          if (el._fk !== fk) { el._fk = fk; el.style.filter = fk > 0.4 ? 'drop-shadow(' + fk + 'px 0 0 rgba(255,60,140,.42)) drop-shadow(' + (-fk) + 'px 0 0 rgba(60,180,255,.42))' : ''; }
+          var ad = Math.abs(d); if (ad < bestD) { bestD = ad; bestK = i; }
+          el.classList.toggle('act', ad < 0.45);
+        });
+        if (rgCap) { var ci = +cards[bestK].dataset.i, ck = ci + ':' + N; if (rgCap._k !== ck) { rgCap._k = ck; rgCap.innerHTML = '<b></b><span>' + String(ci + 1).padStart(2, '0') + ' / ' + String(N).padStart(2, '0') + '</span>'; rgCap.firstChild.textContent = list[ci].title; } }
       } else if (m === 'fan') {
         /* the hand: the chosen card lifted, flat and a little larger; the others tipped back and away, each a little turned */
         var wide = box.classList.contains('wide'), cx = wide ? 236 : 360, cy = wide ? 372 : 318;
@@ -196981,7 +197310,7 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
         } else if (m === 'spiral') {
           if (goal !== null) { t += (goal - t) * Math.min(1, dt * 9); if (Math.abs(goal - t) < .003) { t = goal; goal = null; } }
           else { vel *= Math.pow(.08, dt); t += vel * dt * 60; if (Math.abs(vel) < .004) t += (Math.round(t) - t) * Math.min(1, dt * 9); }
-        } else if (m === 'helix' || m === 'stack' || m === 'orbit' || m === 'wave') {
+        } else if (m === 'helix' || m === 'stack' || m === 'orbit' || m === 'wave' || m === 'ring') {
           if (goal !== null) { sel += (goal - sel) * Math.min(1, dt * 9); if (Math.abs(goal - sel) < .003) { sel = goal; goal = null; } }
           else { vel *= Math.pow(.06, dt); sel += vel * dt * 60; if (Math.abs(vel) < .004) sel += (Math.round(sel) - sel) * Math.min(1, dt * 9); }
         }
@@ -196990,8 +197319,8 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
           off.x += ov2.x; off.y += ov2.y; ov2.x *= Math.pow(.16, dt); ov2.y *= Math.pow(.16, dt);
         }
         if (m === 'fan') { selV += (sel - selF) * 260 * dt; selV *= Math.exp(-20 * dt); selF += selV * dt; }
-        else if (m === 'helix' || m === 'stack' || m === 'orbit' || m === 'wave') { selV += (sel - selF) * 210 * dt; selV *= Math.exp(-18 * dt); selF += selV * dt; }
-      } else if (m === 'fan' || m === 'helix' || m === 'stack' || m === 'orbit' || m === 'wave') {
+        else if (m === 'helix' || m === 'stack' || m === 'orbit' || m === 'wave' || m === 'ring') { selV += (sel - selF) * 210 * dt; selV *= Math.exp(-18 * dt); selF += selV * dt; }
+      } else if (m === 'fan' || m === 'helix' || m === 'stack' || m === 'orbit' || m === 'wave' || m === 'ring') {
         selF += (sel - selF) * Math.min(1, dt * 18); selV = 0;
       }
       tilt.style.transform = ''; render(); cull(); handRender(dt); groupLean(dt);
@@ -197041,6 +197370,7 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
       else if (m === 'helix') { var hs = (-dx + dy) / 72; sel += hs; vel = hs; }
       else if (m === 'stack') { var ss = (-dx + dy * .6) / 60; sel += ss; vel = ss; }
       else if (m === 'orbit' || m === 'wave') { var os = -dx / 68; sel += os; vel = os; }
+      else if (m === 'ring') { var rs0 = RING.view === 'in' ? dx / 74 : -dx / 74; sel += rs0; vel = rs0; }
       else sel = clamp(sel - dx / 70, 0, count - 1);
     }
     function up(e) {
@@ -198390,233 +198720,6 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
     return out;
   }
   window.MinestExplode = { open: open, close: close, isOpen: function () { return !!cur; }, facts: facts, parts: parts, breakdown: breakdown };
-})();
-</script>
-<script id="mn-vocab3d-js">
-/* Minest · 3D 词卡作业 · 教师端 (2026-11-20, the user: an isolated 3D dynamic-card page for students' vocabulary,
-   word lists assigned from the teacher side).
-   A word list (a teaching word set, or lists of the board in view) becomes an assignment: a code and a link to the
-   student page (vocab3d.html?code=CODE, /vocab). Students study the words as 3D cards; the teacher sees each student's
-   progress live, can close the assignment (students may still look; nothing more is recorded) or delete it.
-   Data: Firebase Realtime Database /minest-live/{CODE} (the same place Minest Live keeps a class game; an
-   assignment's code starts with V): host = { kind: 'vocab3d', title, board, state: live | ended, created }, players/{pid}.
-   Entry points: "3D 词卡" on each list in Word Lists (the Live teacher panel) and in 教师端 · 词表管理; MinestVocab3D.assign(board, o).
-   window.MinestVocab3D = { assign, manage, pack } */
-(function () {
-  'use strict';
-  if (window.MinestVocab3D) return;
-  var DB = 'https://minest-33761-default-rtdb.firebaseio.com/minest-live/';
-  var SITE = /vercel\.app$/.test(location.hostname) ? location.origin : 'https://minest-app.vercel.app';
-  var MINE = 'minest.vocab3d.mine.v1';
-
-  function db(path, method, body) {
-    return fetch(DB + path + '.json', { method: method || 'GET', headers: body ? { 'Content-Type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' })
-      .then(function (r) { if (!r.ok) throw new Error('网络错误（' + r.status + '）'); return r.json(); });
-  }
-  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function str(v, n) { v = v == null ? '' : String(v).replace(/<[^>]*>/g, ' ').replace(/[#*_>`]/g, '').replace(/\s+/g, ' ').trim(); return v.length > n ? v.slice(0, n - 1) + '…' : v; }
-  function newCode() { var a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', o = 'V'; for (var i = 0; i < 5; i++) o += a[Math.floor(Math.random() * a.length)]; return o; }
-  function mine() { try { return JSON.parse(localStorage.getItem(MINE) || '[]') || []; } catch (e) { return []; } }
-  function saveMine(m) { try { localStorage.setItem(MINE, JSON.stringify(m.slice(0, 60))); } catch (e) {} }
-  function link(code) { return SITE + '/vocab?code=' + code; }
-  function ago(t) { if (!t) return '—'; var s = Math.max(0, (Date.now() - t) / 1000); return s < 60 ? '刚刚' : s < 3600 ? Math.floor(s / 60) + ' 分钟前' : s < 86400 ? Math.floor(s / 3600) + ' 小时前' : new Date(t).toLocaleDateString(); }
-
-  /* a card, as the student page needs it: words, meaning, sound, examples, roots — and a picture only when it is on the web
-     (a picture kept on this device cannot reach a student's) */
-  function imgOf(c) {
-    var u = '';
-    try { if (window.MinestImageViews && MinestImageViews.image) { var im = MinestImageViews.image(c) || {}; u = im.thumb || im.full || ''; } } catch (e) {}
-    if (!u) u = c.image || c.img || (c.cover && (c.cover.url || c.cover.src)) || '';
-    return /^https?:\/\//.test(u) ? u : '';
-  }
-  function pack(c) {
-    var o = { id: String(c.id), title: str(c.title, 90) }, d = c.definitions || {};
-    if (c.titleZh) o.titleZh = str(c.titleZh, 90);
-    var pyLike = function (v) { return /[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]/i.test(String(v || '')); };   // a pinyin back is the sound, not the meaning
-    var pr = c.pron; pr = typeof pr === 'string' ? pr : pr && (pr.ipa || pr.phonetic || pr.us || pr.text) || c.phonetic || c.py || c.pinyin || '';
-    if (!pr && /[\u3400-\u9fff]/.test(c.title || '')) { try { pr = window.MinestTeachingAssets && MinestTeachingAssets.pinyin ? MinestTeachingAssets.pinyin(c.title) : ''; } catch (e) {} if (/[\u3400-\u9fff]/.test(pr || '')) pr = ''; }
-    if (!pr && pyLike(c.desc || c.back)) pr = c.desc || c.back;
-    if (pr) o.pron = str(pr, 60);
-    var mean = [c.meaning, c.en, c.back, c.desc, c.description].filter(function (v) { return v && String(v).trim() && !pyLike(v); })[0] || '';
-    if (mean) o.meaning = str(mean, 300);
-    if (d.en || c.definitionEn) o.defEn = str(d.en || c.definitionEn, 300);
-    if (d.zh || c.definitionZh) o.defZh = str(d.zh || c.definitionZh, 200);
-    var ex = (Array.isArray(c.examples) ? c.examples : []).map(function (e) { return typeof e === 'string' ? e : e && e.text; }).filter(Boolean).slice(0, 3).map(function (e) { return str(e, 220); });
-    if (ex.length) o.examples = ex;
-    var rel = (Array.isArray(c.relatedWords) ? c.relatedWords : []).map(function (r) { return typeof r === 'string' ? r : r && (r.word || r.text); }).filter(Boolean).slice(0, 6).map(function (r) { return str(r, 40); });
-    if (rel.length) o.related = rel;
-    var ety = c.etymology || c.roots || c.wordRoot || c.origin; if (ety) o.ety = str(ety, 200);
-    if (c.hint) o.hint = str(c.hint, 160);
-    var im = imgOf(c); if (im) o.img = im;
-    return o;
-  }
-  function packBoard(b, ids, title) {
-    var cols = (b.columns || []).filter(function (c) { return !ids || ids.indexOf(c.id) >= 0; }).map(function (c) {
-      var cards = (c.cards || []).filter(function (k) { return k && k.title && !k.teachingArchived; }).map(pack);
-      return { id: String(c.id), title: str(c.title || '词表', 60), color: c.color || '', cards: cards };
-    }).filter(function (c) { return c.cards.length; });
-    return { id: String(b.id || 'board'), title: str(title || b.title || '3D 词卡', 80), columns: cols };
-  }
-
-  /* ---------------- the look ---------------- */
-  var css = document.createElement('style');
-  css.textContent = [
-    '#v3t{position:fixed;inset:0;z-index:2147483300;display:grid;place-items:center;padding:16px;background:rgba(6,9,18,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);font-family:-apple-system,"SF Pro Text","PingFang SC",system-ui,sans-serif;color:#e8eefb}',
-    '#v3t .v3-m{width:min(560px,100%);max-height:min(88vh,860px);overflow:auto;border-radius:24px;background:linear-gradient(180deg,rgba(30,34,46,.96),rgba(16,19,28,.97));border:1px solid rgba(255,255,255,.1);box-shadow:0 30px 80px -20px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.08);padding:20px 20px 18px}',
-    '#v3t h2{margin:0;font:700 19px/1.2 inherit;letter-spacing:.01em}#v3t .v3-sub{margin:4px 0 0;color:#93a0b8;font-size:13px}',
-    '#v3t .v3-hd{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}#v3t .v3-hd>div{flex:1}',
-    '#v3t .v3-x{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.08);color:#cfd8ea;font-size:15px;cursor:pointer}',
-    '#v3t label.v3-f{display:block;margin:0 0 14px;font-size:12.5px;color:#93a0b8;font-weight:600}#v3t input[type=text]{display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:11px 13px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#fff;font:500 15px inherit;outline:none}',
-    '#v3t .v3-lists{display:flex;flex-direction:column;gap:6px;margin:6px 0 14px;max-height:240px;overflow:auto}',
-    '#v3t .v3-l{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);cursor:pointer;font-size:14px}#v3t .v3-l input{accent-color:#7dd3fc;width:17px;height:17px}#v3t .v3-l small{margin-left:auto;color:#8190a8}',
-    '#v3t .v3-b{border:0;border-radius:13px;padding:11px 16px;font:650 14px inherit;cursor:pointer;background:rgba(255,255,255,.09);color:#e8eefb}#v3t .v3-b.pri{background:linear-gradient(180deg,#7dd3fc,#38bdf8);color:#04203a}#v3t .v3-b.warn{color:#fca5a5}#v3t .v3-b[disabled]{opacity:.5}',
-    '#v3t .v3-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}#v3t .v3-msg{min-height:18px;margin:8px 0 0;font-size:13px;color:#fca5a5}',
-    '#v3t .v3-code{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-radius:18px;background:radial-gradient(120% 120% at 0 0,rgba(125,211,252,.18),rgba(255,255,255,.03));border:1px solid rgba(125,211,252,.25);margin-bottom:12px}',
-    '#v3t .v3-code b{font:800 34px/1 ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.14em;color:#fff}#v3t .v3-code span{display:block;font-size:12px;color:#93a0b8;margin-bottom:6px}',
-    '#v3t .v3-link{display:flex;gap:8px;align-items:center;margin-bottom:16px}#v3t .v3-link code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:10px 12px;border-radius:11px;background:rgba(255,255,255,.05);font:12.5px ui-monospace,Menlo,monospace;color:#bae6fd}',
-    '#v3t table{width:100%;border-collapse:collapse;font-size:13.5px}#v3t th{text-align:left;color:#8190a8;font-weight:600;font-size:12px;padding:6px 6px;border-bottom:1px solid rgba(255,255,255,.08)}#v3t td{padding:9px 6px;border-bottom:1px solid rgba(255,255,255,.05)}',
-    '#v3t .v3-bar{height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;min-width:70px}#v3t .v3-bar i{display:block;height:100%;background:linear-gradient(90deg,#38bdf8,#a7f3d0)}',
-    '#v3t .v3-none{padding:18px;text-align:center;color:#8190a8;font-size:13.5px;border:1px dashed rgba(255,255,255,.12);border-radius:14px}',
-    '#v3t .v3-mine{display:flex;flex-direction:column;gap:6px}#v3t .v3-mine button{display:flex;align-items:center;gap:10px;text-align:left;padding:11px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.04);color:#e8eefb;font:500 14px inherit;cursor:pointer}#v3t .v3-mine b{font:700 13px ui-monospace,Menlo,monospace;color:#7dd3fc}#v3t .v3-mine small{margin-left:auto;color:#8190a8}',
-    '#v3t h3{margin:18px 0 8px;font:650 14px inherit;color:#cbd5e1}',
-    '#v3t .v3-views{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:6px 0 16px}#v3t .v3-views label{position:relative;display:flex;flex-direction:column;gap:3px;padding:12px 12px 12px 36px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);cursor:pointer}',
-    '#v3t .v3-views input{position:absolute;left:12px;top:14px;accent-color:#7dd3fc}#v3t .v3-views b{font-size:14px}#v3t .v3-views small{font-size:11.5px;color:#8190a8}#v3t .v3-views label:has(input:checked){border-color:rgba(125,211,252,.55);background:rgba(125,211,252,.1)}',
-    '.v3-entry{white-space:nowrap}'
-  ].join('');
-  document.head.appendChild(css);
-
-  var M = null, poll = 0;
-  function shut() { clearInterval(poll); poll = 0; if (M) { M.remove(); M = null; } document.removeEventListener('keydown', onKey, true); }
-  function onKey(e) { if (e.key === 'Escape' && M) { e.stopPropagation(); shut(); } }
-  function modal(html) {
-    shut(); M = document.createElement('div'); M.id = 'v3t'; M.innerHTML = '<div class="v3-m" role="dialog" aria-modal="true">' + html + '</div>';
-    M.addEventListener('click', function (e) { if (e.target === M) shut(); });
-    ['pointerdown', 'touchstart', 'keydown', 'wheel'].forEach(function (t) { M.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
-    document.body.appendChild(M); document.addEventListener('keydown', onKey, true);
-    var x = M.querySelector('.v3-x'); if (x) x.onclick = shut;
-    return M;
-  }
-  function hd(title, sub) { return '<div class="v3-hd"><div><h2>' + title + '</h2>' + (sub ? '<p class="v3-sub">' + sub + '</p>' : '') + '</div><button type="button" class="v3-x" aria-label="关闭">✕</button></div>'; }
-
-  /* ---------------- assign ---------------- */
-  function assign(board, o) {
-    o = o || {}; if (!board || !(board.columns || []).length) { alert('没有可以布置的词表。'); return; }
-    var cols = board.columns.filter(function (c) { return !c.teachingListArchived && (c.cards || []).some(function (k) { return k && k.title && !k.teachingArchived; }); });
-    var pre = o.listIds || (cols.length === 1 ? [cols[0].id] : []);
-    var title = o.title || (pre.length === 1 ? (cols.filter(function (c) { return c.id === pre[0]; })[0] || {}).title : board.title) || '3D 词卡';
-    var m = modal(hd('布置给学生', '学生用课堂码打开一个只有这些词的学习页（3D 词卡或 Knowledge Drive），你在这里看到每个人的进度。') +
-      '<label class="v3-f">作业标题<input type="text" data-t maxlength="80" value="' + esc(title) + '"></label>' +
-      '<div style="font-size:12.5px;color:#93a0b8;font-weight:600">选择词表</div><div class="v3-lists">' +
-      cols.map(function (c) { var n = (c.cards || []).filter(function (k) { return k && k.title && !k.teachingArchived; }).length;
-        return '<label class="v3-l"><input type="checkbox" value="' + esc(c.id) + '"' + (pre.indexOf(c.id) >= 0 ? ' checked' : '') + '>' + esc(c.title || '词表') + '<small>' + n + ' 个词</small></label>'; }).join('') +
-      '</div><div style="font-size:12.5px;color:#93a0b8;font-weight:600">呈现方式</div><div class="v3-views">' +
-      '<label><input type="radio" name="v3view" value="cards"' + (o.view === 'drive' ? '' : ' checked') + '><b>🧊 3D 词卡</b><small>九种 3D 动态卡片 · 爆炸学习卡</small></label>' +
-      '<label><input type="radio" name="v3view" value="drive"' + (o.view === 'drive' ? ' checked' : '') + '><b>🚗 Knowledge Drive</b><small>坐车沿路看词，每个词表一条路</small></label>' +
-      '<label><input type="radio" name="v3view" value="type"' + (o.view === 'type' ? ' checked' : '') + '><b>⌨️ 3D Type</b><small>拼音打字：跟打 + 四关闯关</small></label>' +
-      '</div><div class="v3-row"><button type="button" class="v3-b pri" data-go>生成课堂码</button><button type="button" class="v3-b" data-mine>我布置的作业</button></div><p class="v3-msg" data-msg></p>');
-    m.querySelector('[data-mine]').onclick = manage;
-    m.querySelector('[data-go]').onclick = function () {
-      var btn = this, msg = m.querySelector('[data-msg]'), ids = [].map.call(m.querySelectorAll('.v3-lists input:checked'), function (i) { return i.value; });
-      if (!ids.length) { msg.textContent = '至少选一个词表。'; return; }
-      var t = m.querySelector('[data-t]').value.trim() || '3D 词卡', pb = packBoard(board, ids, t), n = pb.columns.reduce(function (s, c) { return s + c.cards.length; }, 0);
-      if (!n) { msg.textContent = '选中的词表里没有词。'; return; }
-      if (n > 400) { msg.textContent = '一次最多布置 400 个词（现在 ' + n + ' 个），请少选几个词表。'; return; }
-      btn.disabled = true; msg.textContent = '';
-      (function tryCode(k) {
-        var code = newCode();
-        return db(code).then(function (cur) {
-          if (cur && k < 5) return tryCode(k + 1);
-          if (cur) throw new Error('课堂码冲突，请再试一次。');
-          var vw = (m.querySelector('input[name=v3view]:checked') || {}).value; vw = vw === 'drive' || vw === 'type' ? vw : 'cards';
-          var host = { kind: 'vocab3d', v: 1, view: vw, title: t, board: pb, state: 'live', created: { '.sv': 'timestamp' }, words: n };
-          return db(code + '/host', 'PUT', host).then(function () {
-            var all = mine().filter(function (x) { return x.code !== code; }); all.unshift({ code: code, title: t, at: Date.now(), words: n, view: vw }); saveMine(all);
-            roster(code);
-          });
-        });
-      })(0).catch(function (e) { btn.disabled = false; msg.textContent = '没有布置成功：' + (e.message || e); });
-    };
-  }
-
-  /* ---------------- one assignment: code, link, students ---------------- */
-  function roster(code) {
-    var m = modal('<div data-head></div><div class="v3-code"><div><span>课堂码</span><b>' + esc(code) + '</b></div><button type="button" class="v3-b" data-copy-code>复制</button></div>' +
-      '<div class="v3-link"><code>' + esc(link(code)) + '</code><button type="button" class="v3-b pri" data-copy>复制链接</button></div>' +
-      '<div data-body><div class="v3-none">正在读取…</div></div>' +
-      '<div class="v3-row" style="margin-top:16px"><button type="button" class="v3-b" data-open-page>打开学生页</button><button type="button" class="v3-b" data-toggle></button><button type="button" class="v3-b warn" data-del>删除作业</button><button type="button" class="v3-b" data-mine style="margin-left:auto">全部作业</button></div><p class="v3-msg" data-msg></p>');
-    var host = null, msg = m.querySelector('[data-msg]');
-    function copy(t, b) { var done = function () { var o = b.textContent; b.textContent = '已复制 ✓'; setTimeout(function () { b.textContent = o; }, 1400); };
-      try { navigator.clipboard.writeText(t).then(done, function () { prompt('复制这段：', t); }); } catch (e) { prompt('复制这段：', t); } }
-    m.querySelector('[data-copy]').onclick = function () { copy(link(code), this); };
-    m.querySelector('[data-copy-code]').onclick = function () { copy(code, this); };
-    m.querySelector('[data-open-page]').onclick = function () { window.open(link(code) + '&preview=1', '_blank'); };
-    m.querySelector('[data-mine]').onclick = manage;
-    m.querySelector('[data-toggle]').onclick = function () {
-      if (!host) return; var b = this; b.disabled = true;
-      db(code + '/host', 'PATCH', { state: host.state === 'ended' ? 'live' : 'ended' }).then(function (v) { host.state = v.state; paint(); }).catch(function (e) { msg.textContent = e.message; }).then(function () { b.disabled = false; });
-    };
-    m.querySelector('[data-del]').onclick = function () {
-      if (!confirm('删除这个作业和所有学生的进度？删除后学生的链接也打不开了，无法恢复。')) return;
-      db(code, 'DELETE').then(function () { saveMine(mine().filter(function (x) { return x.code !== code; })); manage(); }).catch(function (e) { msg.textContent = '没有删除成功：' + e.message; });
-    };
-    var players = {};
-    function paint() {
-      if (!M || M !== m) return;
-      m.querySelector('[data-head]').innerHTML = hd(esc(host ? host.title : code), host ? (host.view === 'drive' ? '🚗 Knowledge Drive · ' : host.view === 'type' ? '⌨️ 3D Type · ' : '🧊 3D 词卡 · ') + (host.words || 0) + ' 个词 · 布置于 ' + new Date(host.created).toLocaleString() + (host.state !== 'ended' ? ' · <span style="color:#86efac">开放中</span>' : ' · <span style="color:#fca5a5">已结束</span>') : '');
-      var x = m.querySelector('.v3-x'); if (x) x.onclick = shut;
-      m.querySelector('[data-toggle]').textContent = host && host.state !== 'ended' ? '结束作业' : '重新开放';
-      var rows = Object.keys(players || {}).map(function (k) { return players[k]; }).filter(function (p) { return p && p.name; }).sort(function (a, b) { return (b.known || 0) - (a.known || 0) || (b.seen || 0) - (a.seen || 0); });
-      var tot = host && host.words || 1;
-      m.querySelector('[data-body]').innerHTML = '<h3>学生进度 · ' + rows.length + ' 人</h3>' + (rows.length ? '<table><tr><th>学生</th><th>看过</th><th>会了</th><th style="width:26%"></th>' + (host.view === 'type' ? '<th>闯关</th><th>字/分</th>' : '') + '<th>最近</th></tr>' + rows.map(function (p) {
-        var k = Math.min(tot, p.known || 0), s = Math.min(tot, p.seen || 0);
-        return '<tr><td>' + esc(p.name) + '</td><td>' + s + '/' + tot + '</td><td>' + k + '</td><td><div class="v3-bar"><i style="width:' + Math.round(k / tot * 100) + '%"></i></div></td>' + (host.view === 'type' ? '<td>' + typeCell(p.type) + '</td><td>' + (p.type && p.type.best ? p.type.best.cpm : '—') + '</td>' : '') + '<td style="color:#8190a8">' + ago(p.at) + '</td></tr>';
-      }).join('') + '</table>' : '<div class="v3-none">还没有学生加入。把课堂码或链接发给学生。</div>');
-    }
-    function load() {
-      return db(code).then(function (d) {
-        if (!d || !d.host) { m.querySelector('[data-body]').innerHTML = '<div class="v3-none">这个作业已经不存在了。</div>'; clearInterval(poll); return; }
-        host = d.host; players = d.players || {}; paint();
-      }).catch(function (e) { msg.textContent = '读取失败：' + e.message; });
-    }
-    load(); poll = setInterval(function () { if (!document.hidden) load(); }, 4000);
-  }
-
-  function typeCell(t) {   // 3D Type: the highest level with a star, and its stars
-    if (!t || !t.lv) return '—'; var top = 0; Object.keys(t.lv).forEach(function (n) { if (t.lv[n] > 0 && +n > top) top = +n; });
-    return top ? '第 ' + top + ' 关 ' + '★★★'.slice(0, t.lv[top]) : '—';
-  }
-
-  /* ---------------- every assignment made on this device ---------------- */
-  function manage() {
-    var all = mine();
-    var m = modal(hd('我布置的作业', '在这台设备上布置的作业；点开看学生进度。') + (all.length ? '<div class="v3-mine">' + all.map(function (x) {
-      return '<button type="button" data-code="' + esc(x.code) + '"><b>' + esc(x.code) + '</b>' + esc(x.title) + '<small>' + (x.words || 0) + ' 词 · ' + new Date(x.at).toLocaleDateString() + '</small></button>';
-    }).join('') + '</div>' : '<div class="v3-none">还没有布置过 3D 词卡作业。在词表旁点「3D 词卡」开始。</div>'));
-    [].forEach.call(m.querySelectorAll('[data-code]'), function (b) { b.onclick = function () { roster(b.getAttribute('data-code')); }; });
-  }
-
-  /* ---------------- the entries: a "3D 词卡" button on each word list ---------------- */
-  function sets() { try { return window.MinestTeachingSets && MinestTeachingSets.read ? MinestTeachingSets.read() : null; } catch (e) { return null; } }
-  function entryBtn(cls, id) {
-    var b = document.createElement('button'); b.type = 'button'; b.className = cls + ' v3-entry'; b.textContent = '🎓 布置给学生'; b.title = '把这个词表布置给学生：3D 词卡或 Knowledge Drive';
-    b.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); var s = sets(); if (s) assign(s, { listIds: [id] }); }, true);
-    return b;
-  }
-  function decorate() {
-    if (window.isStudentMode && window.isStudentMode()) return;
-    [].forEach.call(document.querySelectorAll('.tl-row[data-set-row]'), function (r) {
-      if (r.querySelector('.v3-entry')) return; var id = r.getAttribute('data-set-row'), ed = r.querySelector('[data-set-edit]');
-      var b = entryBtn(ed ? ed.className : 'mlv-btn alt', id); if (ed && ed.parentNode) ed.parentNode.insertBefore(b, ed.nextSibling); else r.appendChild(b);
-    });
-    [].forEach.call(document.querySelectorAll('.teacher-list-card'), function (c) {
-      if (c.querySelector('.v3-entry')) return; var sel = c.querySelector('[data-tm-select]'); if (!sel) return;
-      var b = entryBtn('teacher-btn teacher-btn-alt', sel.getAttribute('data-tm-select')); sel.parentNode.insertBefore(b, sel.nextSibling);
-    });
-  }
-  var q = 0;
-  new MutationObserver(function () { if (q) return; q = requestAnimationFrame(function () { q = 0; decorate(); }); }).observe(document.documentElement, { childList: true, subtree: true });
-
-  window.MinestVocab3D = { assign: assign, manage: manage, pack: pack, roster: roster };
 })();
 </script>
 </body>
