@@ -341,7 +341,7 @@
     return out;
   }
   D.build = function (keep) {
-    var prevEx = D.ex, prevT = D.exT; D.mats = {}; D.clear();
+    var prevEx = D.ex, prevT = D.exT, wasGame = D.game && D.game.on; D.mats = {}; D.clear(); D.game = { on: false }; D.slotMeshes = null;
     D.it = D.item(); var it = D.it, lv = L().dis.level; D.lv = lv;
     if (!it) { HL.empty({ morph: '还没有可拆的构词 · Nothing to take apart yet', chunk: '还没有可分意群的短语 · No phrases yet', sent: '还没有例句 · No example sentences yet' }[lv] || '', '在 Minest 的爆炸学习卡里点「✦ AI 拆解」，或给卡片补全例句后会出现在这里'); return; }
     HL.empty('');
@@ -380,6 +380,7 @@
     bb.uv(nl - 1, atlas.alloc(HL.labelDraw(lv === 'sent' ? u.str(it.title, 24) : it.title, sub + (b.ai ? ' · AI' : ''), '#6fe3ff', { size: 34 })));
     bb.commit();
     D.ex = keep ? prevEx : 0; D.exT = keep ? prevT : 0; D.iso = -1;
+    if (wasGame && D.pieces.length > 1) D.startGame();
   };
   var _p = V();
   /* exploded: morphemes / groups move apart on a shallow arc round you; a sentence's groups become arcs of their own,
@@ -407,15 +408,18 @@
     var bb = D.labels, cs = [];
     for (var j = 0; j < D.pieces.length; j++) {
       var p = D.pieces[j], m = p.mesh, a = HL.appear(j, 0.05);
-      D.expPos(p, t, _d); _d.lerp(p.home, 1 - e).add(p.off);
+      var GM = D.game.on;
+      if (GM) { _d.copy(p.placed ? p.slot : p.scatter); if (D.game.done) _d.y += Math.sin((t - D.game.doneAt) * 6 + j * 0.6) * 0.04 * Math.max(0, 1 - (t - D.game.doneAt) / 2.5); }
+      else { D.expPos(p, t, _d); _d.lerp(p.home, 1 - e).add(p.off); }
       var sc = 1, op = 1;
       if (D.iso >= 0) { if (D.iso === j) { _d.copy(ISO); sc = 2.0; } else { _d.z -= 0.9; op = 0.22; } }
       if (a <= 0) continue;
       if (!p.dragging) { p.cur.lerp(_d, a < 1 ? damp(dt, 4) : k); m.position.copy(p.cur); }
       if (m.userData.plane) { var tw = p.base * sc * a; m.scale.set(lerp(m.scale.x, tw, k) || 0.001, lerp(m.scale.y, tw / m.userData.aspect, k) || 0.001, 1); m.quaternion.copy(HL.camera.quaternion); }
       else { var ns = lerp(m.scale.x, p.base * sc * a, k); m.scale.setScalar(Math.max(ns, 0.001)); m.rotation.y = D.iso === j ? Math.sin(t * 0.7) * 0.4 : e * Math.sin(t * 0.6 + j) * (rd ? 0.08 : 0.25) - (D.lv !== 'morph' ? e * Math.atan2(m.position.x, 3.5) : 0); m.rotation.x = e * Math.sin(t * 0.5 + j * 2) * (rd ? 0.03 : 0.1); }
-      if (!m.userData.plane) m.material = D.iso >= 0 && D.iso !== j ? dmat('dim', '#2a5a7a') : D.iso === j ? dmat('hi', '#ffffff') : dmat('g' + j, p.color);
-      var la = (D.iso < 0 ? e : (D.iso === j ? 1 : 0)) * a * op;
+      if (!m.userData.plane) m.material = D.game.on && D.game.done ? dmat('hi', '#ffffff') : D.iso >= 0 && D.iso !== j ? dmat('dim', '#2a5a7a') : D.iso === j ? dmat('hi', '#ffffff') : dmat('g' + j, p.color);
+      if (D.game.on && !p.placed && !p.dragging && !m.userData.plane) m.rotation.z = lerp(m.rotation.z, p.tilt, k); else if (!m.userData.plane) m.rotation.z = lerp(m.rotation.z, 0, k);
+      var la = D.game.on ? a * (p.placed && !D.game.done ? 0.55 : 1) : (D.iso < 0 ? e : (D.iso === j ? 1 : 0)) * a * op;
       _p.copy(m.position); _p.y -= p.size * D.s * (D.iso === j ? 1.5 : 0.8) + 0.08;
       var lw = (HL.narrow ? 0.95 : 0.9) * (D.iso === j ? 1.3 : 1);
       bb.set(j, _p, la > 0.02 ? lw : 0, la > 0.02 ? lw * 72 / 256 : 0); bb.tint(j, 1, 1, 1, la);
@@ -426,7 +430,8 @@
       if (cs[c]) { _p.copy(cs[c]).multiplyScalar(1 / cs[c].n); _p.y += 0.34; }
       var w = HL.narrow ? 0.72 : 0.66; bb.set(idx, _p, show > 0.02 ? w : 0, show > 0.02 ? w * 72 / 256 : 0); bb.tint(idx, 1, 1, 1, show);
     }
-    var ta = (1 - e) * HL.appear(D.pieces.length, 0.05) * (D.iso < 0 ? 1 : 0), tw2 = HL.narrow ? 1.6 : 1.8;
+    if (D.game.on && D.slotMeshes) { var dragged = D.pieces.filter(function (q) { return q.dragging; })[0]; D.slotMeshes.forEach(function (sm, si) { var near = false; if (dragged) { var a1 = HL.screenOf(dragged.mesh.position), b1 = HL.screenOf(D.pieces[si].slot); near = Math.hypot(a1.x - b1.x, a1.y - b1.y) < Math.max(44, (D.pieces[si].w * D.s + 0.12) * b1.ppu * 0.6); } sm.material.opacity = near ? 1 : 0.5 + 0.15 * Math.sin(t * 3 + si); sm.material.color.set(near ? '#ffffff' : '#6fe3ff'); }); }
+    var ta = D.game.on ? 0 : (1 - e) * HL.appear(D.pieces.length, 0.05) * (D.iso < 0 ? 1 : 0), tw2 = HL.narrow ? 1.6 : 1.8;
     _p.set(0, HL.CENTER.y + 0.75, 0.3); bb.set(D.titleLab, _p, ta > 0.02 ? tw2 : 0, ta > 0.02 ? tw2 * 72 / 256 : 0); bb.tint(D.titleLab, 1, 1, 1, ta);
     bb.commit();
   };
@@ -440,16 +445,72 @@
     return best;
   };
   D.tap = function (h) {
+    if (D.game.on) { if (h) HL.info('“' + h.p.seg.text + '” · ' + h.p.seg.sub); return; }
     if (!h) { if (D.iso >= 0) { D.iso = -1; HL.info(''); } else HL.detail.close(); return; }
     if (D.exT < 0.5) { D.exT = 1; HL.refreshTools(); return; }
     if (D.iso === h.j) { D.iso = -1; HL.info(''); return; }
     D.iso = h.j; var sg = h.p.seg;
     HL.info('“' + sg.text + '” · ' + sg.sub + (D.lv === 'sent' && sg.gtext ? ' · 意群 ' + (sg.group + 1) + '：' + sg.gtext + (sg.gzh ? '（' + sg.gzh + '）' : '') : ''));
   };
-  D.dragStart = function (h, x, y) { var p = h.p; p.dragging = true; p.drag = HL.dragPlane(p.mesh.position.clone(), x, y); };
-  D.dragMove = function (h, x, y) { var q = h.p.drag.to(x, y); if (q) { h.p.mesh.position.copy(q); h.p.cur.copy(q); } };
+
+  /* ── 🧩 拼装 — the breakdown as an assembly game (2026-11-19, the user): the pieces fly apart and shuffle above, the
+     slots wait in reading order below (dashed outlines); each piece carries its meaning; drag a piece into its slot — the
+     right one locks in, a wrong one springs back ("不是这里"). All in: the whole lights up, with the time and the misses. ── */
+  D.game = { on: false };
+  var _beep = null;
+  function chime(ok) {   // a short synthesised tone (no files): up for right, down for wrong
+    try { _beep = _beep || new (window.AudioContext || window.webkitAudioContext)(); var a = _beep, o = a.createOscillator(), g = a.createGain(), t0 = a.currentTime;
+      o.type = 'sine'; o.frequency.setValueAtTime(ok ? 660 : 220, t0); o.frequency.exponentialRampToValueAtTime(ok ? 990 : 150, t0 + 0.12);
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.08, t0 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.22);
+      o.connect(g); g.connect(a.destination); o.start(); o.stop(t0 + 0.25); } catch (e) {}
+  }
+  D.startGame = function () {
+    if (!D.pieces.length) return;
+    var G = D.game = { on: true, t0: HL.now, misses: 0, done: false, doneAt: 0 }, C = HL.CENTER, n = D.pieces.length, maxW = HL.narrow ? 2.8 : 3.9;
+    /* shuffled places above the slots, never in their own order */
+    var order = D.pieces.map(function (p, j) { return j; });
+    for (var tries = 0; tries < 8; tries++) { order.sort(function () { return Math.random() - 0.5; }); if (n < 2 || order.some(function (x, j) { return x !== j; })) break; }
+    var cols = Math.min(n, HL.narrow ? 3 : 5), rows = Math.ceil(n / cols);
+    D.pieces.forEach(function (p, j) {
+      var k = order.indexOf(j), c = k % cols, r = Math.floor(k / cols);
+      p.scatter = V((c - (cols - 1) / 2) * (maxW / Math.max(1, cols - 0.4)) + (Math.random() - 0.5) * 0.15, C.y + 0.7 + (rows - 1 - r) * 0.42 + (Math.random() - 0.5) * 0.1, 0.55 + Math.random() * 0.2);
+      p.placed = false; p.tilt = (Math.random() - 0.5) * 0.5; p.off.set(0, 0, 0);
+    });
+    /* the slots: a dashed outline where each piece belongs (reading order) */
+    D.slotMeshes = D.pieces.map(function (p) {
+      var w = p.w * D.s + 0.12, h = p.size * D.s * 1.35, geo = D.bag.add(new T.EdgesGeometry(new T.PlaneGeometry(w, h)));
+      var mat = D.bag.add(new T.LineDashedMaterial({ color: 0x6fe3ff, dashSize: 0.05, gapSize: 0.035, transparent: true, opacity: 0.65 }));
+      var m = new T.LineSegments(geo, mat); m.computeLineDistances(); m.position.copy(p.home); m.position.y -= 0.45; D.root.add(m); return m;
+    });
+    D.pieces.forEach(function (p) { p.slot = p.home.clone(); p.slot.y -= 0.45; });
+    D.iso = -1; HL.info('把碎片拖进下面的空槽，按它们本来的顺序拼起来');
+    HL.refreshTools();
+  };
+  D.stopGame = function () {
+    D.game = { on: false }; (D.slotMeshes || []).forEach(function (m) { if (m.parent) m.parent.remove(m); }); D.slotMeshes = null;
+    D.pieces.forEach(function (p) { p.placed = false; p.off.set(0, 0, 0); }); HL.info(''); HL.refreshTools();
+  };
+  function gameDrop(p) {
+    /* measured on the screen: the piece floats in front of the slots, so in space they never quite meet */
+    var G = D.game, best = -1, bd = 1e9, sp = HL.screenOf(p.mesh.position), lim = 0;
+    D.pieces.forEach(function (q, j) { if (q.placed) return; var ss = HL.screenOf(q.slot), d = Math.hypot(ss.x - sp.x, ss.y - sp.y); if (d < bd) { bd = d; best = j; lim = Math.max(44, (q.w * D.s + 0.12) * ss.ppu * 0.6); } });
+    if (best < 0 || bd > lim) { p.scatter.copy(p.mesh.position); return; }   // let go in the open: it stays there
+    var want = D.pieces[best];
+    if (want === p || (want.seg.text === p.seg.text && !want.placed)) {
+      if (want !== p) { var tmp = want.slot; want.slot = p.slot; p.slot = tmp; }   // the same text twice: either fits
+      p.placed = true; p.cur.copy(p.mesh.position); chime(true);
+      if (D.slotMeshes) D.slotMeshes[D.pieces.indexOf(p)].visible = false;
+      if (D.pieces.every(function (q) { return q.placed; })) {
+        G.done = true; G.doneAt = HL.now; var secs = Math.round(HL.now - G.t0);
+        HL.toast('✓ 拼好了！' + secs + ' 秒 · 放错 ' + G.misses + ' 次', 3200); HL.info('“' + (D.it ? D.it.title : '') + '” 拼好了 · 点「▸ 下一个」继续'); HL.refreshTools();
+      }
+    } else { G.misses++; chime(false); HL.info('不是这里 · “' + p.seg.text + '” 的意思是：' + p.seg.sub); }
+  }
+  D.dragStart = function (h, x, y) { var p = h.p; if (D.game.on && p.placed) return; p.dragging = true; p.drag = HL.dragPlane(p.mesh.position.clone(), x, y); };
+  D.dragMove = function (h, x, y) { if (!h.p.dragging) return; var q = h.p.drag.to(x, y); if (q) { h.p.mesh.position.copy(q); h.p.cur.copy(q); } };
   D.dragEnd = function (h) {
     var p = h.p, _d = V(); p.dragging = false;
+    if (D.game.on) { if (!p.placed) gameDrop(p); return; }
     if (D.iso === h.j) return;
     D.expPos(p, HL.now, _d); _d.lerp(p.home, 1 - ease(D.ex)); p.off.copy(p.mesh.position).sub(_d);
   };
@@ -471,6 +532,13 @@
     box.appendChild(sel);
     ui.chip(box, '▸', false, function () { D.setWord(cs[(i0 + 1) % cs.length].uid); });
     ui.sep(box);
+    if (D.game.on) {
+      ui.chip(box, '🧩 拼装中 · 退出', true, function () { D.stopGame(); });
+      ui.chip(box, '↻ 重来', false, function () { D.startGame(); });
+      ui.chip(box, '▸ 下一个', D.game.done, function () { D.setWord(cs[(i0 + 1) % cs.length].uid); D.startGame(); });
+      return;
+    }
+    ui.chip(box, '🧩 拼装 Game', false, function () { if (D.pieces.length > 1) D.startGame(); else HL.toast('这一条只有一块，换一个再拼', 1800); }, '打乱碎片，拖进空槽拼回去');
     ui.chip(box, D.exT > 0.5 ? '🧩 合起 Assemble' : '✦ 拆开 Explode', false, function () {
       D.exT = D.exT > 0.5 ? 0 : 1; D.iso = -1; HL.info('');
       if (!D.exT) D.pieces.forEach(function (p) { p.off.set(0, 0, 0); });
