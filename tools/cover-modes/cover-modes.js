@@ -29,7 +29,7 @@
 
   var css = document.createElement('style');
   css.textContent =
-    '#cm-bar{position:absolute;top:44px;left:50%;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:2px;max-width:96vw;overflow-x:auto;scrollbar-width:none;padding:4px 6px;border-radius:99px;background:rgba(15,18,26,.8);border:1px solid rgba(255,255,255,.18);box-shadow:0 12px 32px rgba(0,0,0,.3);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}' +
+    '#cm-bar{position:absolute;top:44px;left:50%;transform:translateX(-50%);z-index:2100;display:flex;align-items:center;gap:2px;max-width:96vw;overflow-x:auto;scrollbar-width:none;padding:4px 6px;border-radius:99px;background:rgba(15,18,26,.8);border:1px solid rgba(255,255,255,.18);box-shadow:0 12px 32px rgba(0,0,0,.3);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}' +
     '#cm-bar::-webkit-scrollbar{display:none}' +
     '#cm-bar button{border:0;border-radius:99px;padding:6px 10px;background:none;color:#cbd5e1;font:600 11.5px -apple-system,system-ui,sans-serif;cursor:pointer;white-space:nowrap;flex:none;transition:background .18s ease,color .18s ease,transform .15s ease}' +
     '#cm-bar button:hover{color:#fff}' +
@@ -580,7 +580,7 @@
     return { destroy: function () { dead = true; cancelAnimationFrame(rafId); box.removeEventListener('pointermove', hoverMove); box.removeEventListener('pointerdown', down); box.removeEventListener('pointermove', move); box.removeEventListener('pointerup', up); box.removeEventListener('pointercancel', up); box.removeEventListener('wheel', wheel); document.removeEventListener('keydown', key); fr.remove(); det.remove(); if (head) head.remove(); if (pills) pills.remove(); box.classList.remove('wide'); }, fit: fit };
   }
 
-  function setMode(m) { mode = m; document.body.classList.toggle('cm-on', m !== 'flow'); try { localStorage.setItem(KEY, m); } catch (e) {} sync(true); }
+  function setMode(m) { if (window.MinestExplode && MinestExplode.isOpen()) MinestExplode.close(true); mode = m; document.body.classList.toggle('cm-on', m !== 'flow'); try { localStorage.setItem(KEY, m); } catch (e) {} sync(true); }
   /* the card in front, tapped: it comes apart into its layers (explode.js); 打开原卡 opens it in Minest as before */
   var lastList = [];
   function nextCard() { try { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); } catch (e) {} }
@@ -646,27 +646,153 @@
     '#cm-holo #cm-ov{pointer-events:auto;background:transparent!important}' +
     '#cm-holo #cm-ov::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(55% 42% at 50% var(--cm-hy,40%),rgba(60,190,255,.14),transparent 72%),radial-gradient(ellipse 80% 75% at 50% 45%,transparent 40%,rgba(2,8,16,.5) 100%)}' +
     '#cm-holo #cm-ov:not(.wide) #cm-det{display:none!important}' +
-    '#cm-holo .cm-c,#cm-holo .cm-c.wi,#cm-holo .cm-fc{background:linear-gradient(160deg,rgba(90,210,255,.16),rgba(40,140,220,.07) 60%,rgba(120,230,255,.12))!important;border:1px solid rgba(130,230,255,.75)!important;border-radius:14px!important;box-shadow:0 0 16px rgba(80,200,255,.38),inset 0 0 22px rgba(80,200,255,.16)!important;color:#c9f6ff!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}' +
-    '#cm-holo .cm-c.act{border-color:#d6fbff!important;box-shadow:0 0 0 1px rgba(214,251,255,.5),0 0 34px rgba(90,215,255,.7),inset 0 0 30px rgba(90,215,255,.25)!important}' +
-    '#cm-holo .cm-c *{color:#c9f6ff!important;text-shadow:0 0 8px rgba(110,230,255,.85)!important}' +
+    'html[data-card-style=\"default\"] #cm-holo .cm-c,html[data-card-style=\"default\"] #cm-holo .cm-c.wi,html[data-card-style=\"default\"] #cm-holo .cm-fc{background:linear-gradient(160deg,rgba(90,210,255,.16),rgba(40,140,220,.07) 60%,rgba(120,230,255,.12))!important;border:1px solid rgba(130,230,255,.75)!important;border-radius:14px!important;box-shadow:0 0 16px rgba(80,200,255,.38),inset 0 0 22px rgba(80,200,255,.16)!important;color:#c9f6ff!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}' +
+    'html[data-card-style=\"default\"] #cm-holo .cm-c.act{border-color:#d6fbff!important;box-shadow:0 0 0 1px rgba(214,251,255,.5),0 0 34px rgba(90,215,255,.7),inset 0 0 30px rgba(90,215,255,.25)!important}' +
+    'html[data-card-style=\"default\"] #cm-holo .cm-c *{color:#c9f6ff!important;text-shadow:0 0 8px rgba(110,230,255,.85)!important}' +
     '#cm-holo .cm-c .cm-st,#cm-holo .cm-fc .fs,#cm-holo .cm-c .ws{color:#7fdcff!important}' +
     '#cm-holo .cm-c .cm-bd{background:rgba(160,240,255,.9)!important;height:2px}#cm-holo .cm-c .cm-ini{color:#8fe6ff!important;opacity:.12}' +
-    '#cm-holo .cm-c .im,#cm-holo .cm-c .art,#cm-holo .cm-fc .fa{filter:grayscale(1) sepia(1) hue-rotate(155deg) saturate(2.4) brightness(1.05) contrast(1.15);opacity:.78;mix-blend-mode:screen}' +
+    'html[data-card-style=\"default\"] #cm-holo .cm-c .im,html[data-card-style=\"default\"] #cm-holo .cm-c .art,html[data-card-style=\"default\"] #cm-holo .cm-fc .fa{filter:grayscale(1) sepia(1) hue-rotate(155deg) saturate(2.4) brightness(1.05) contrast(1.15);opacity:.78;mix-blend-mode:screen}' +
     '#cm-holo .cm-c.hasim .tt{background:linear-gradient(180deg,transparent,rgba(0,40,70,.55))!important}' +
-    '#cm-holo .cm-c::before{display:none!important}' +
-    '#cm-holo .cm-c::after{content:""!important;position:absolute!important;inset:0!important;z-index:9!important;pointer-events:none!important;border-radius:inherit!important;mix-blend-mode:normal!important;filter:none!important;opacity:1!important;box-shadow:none!important;' +
+    'html[data-card-style=\"default\"] #cm-holo .cm-c::before{display:none!important}' +
+    'html[data-card-style=\"default\"] #cm-holo .cm-c::after{content:""!important;position:absolute!important;inset:0!important;z-index:9!important;pointer-events:none!important;border-radius:inherit!important;mix-blend-mode:normal!important;filter:none!important;opacity:1!important;box-shadow:none!important;' +
       'background:repeating-linear-gradient(0deg,rgba(170,245,255,.09) 0 1px,transparent 1px 3px),linear-gradient(180deg,transparent calc(var(--cm-sweep,40%) - 8%),rgba(180,245,255,.22) var(--cm-sweep,40%),transparent calc(var(--cm-sweep,40%) + 6%))!important}' +
     '#cm-holo #cm-det,#cm-holo #cm-ov.fan #cm-det{background:rgba(10,40,60,.55)!important;border:1px solid rgba(130,230,255,.55)!important;box-shadow:0 0 24px rgba(80,200,255,.3)!important;color:#c9f6ff}' +
     '#cm-holo #cm-det b,#cm-holo #cm-det p,#cm-holo #cm-det em,#cm-holo #cm-det .go{color:#c9f6ff!important;text-shadow:0 0 8px rgba(110,230,255,.6)}#cm-holo #cm-det span{color:#7fdcff!important}' +
     '#cm-holo #cm-head{color:#c9f6ff!important;text-shadow:0 0 12px rgba(110,230,255,.7)}#cm-holo #cm-pills{background:rgba(10,40,60,.5)!important;border:1px solid rgba(130,230,255,.35)}#cm-holo #cm-pills button{color:#9fe6ff!important}#cm-holo #cm-pills button.on{background:rgba(160,240,255,.9)!important;color:#03202e!important}' +
     '#cm-hbeam{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}' +
-    '#cm-hbar{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;transform:translateX(-50%);z-index:60;pointer-events:auto;display:flex;align-items:center;gap:2px;max-width:94%;overflow-x:auto;scrollbar-width:none;padding:4px;border-radius:99px;background:rgba(6,30,46,.6);border:1px solid rgba(130,230,255,.45);box-shadow:0 0 22px rgba(80,200,255,.25),inset 0 0 14px rgba(80,200,255,.12);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}' +
+    '#cm-holo .cm-free .cm-c:not(.act){box-shadow:0 0 8px rgba(80,200,255,.3),inset 0 0 14px rgba(80,200,255,.12)!important}#cm-holo .cm-free .cm-c.act{box-shadow:0 0 0 1px rgba(214,251,255,.6),0 0 40px rgba(90,215,255,.8),0 24px 50px rgba(0,0,0,.45)!important}' +
+    '#cm-hbar{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;transform:translateX(-50%);z-index:2100;pointer-events:auto;display:flex;align-items:center;gap:2px;max-width:94%;overflow-x:auto;scrollbar-width:none;padding:4px;border-radius:99px;background:rgba(6,30,46,.6);border:1px solid rgba(130,230,255,.45);box-shadow:0 0 22px rgba(80,200,255,.25),inset 0 0 14px rgba(80,200,255,.12);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}' +
     '#cm-hbar::-webkit-scrollbar{display:none}#cm-hbar button{flex:none;border:0;border-radius:99px;padding:6px 11px;background:none;color:#9fe6ff;font:600 11.5px ui-monospace,Menlo,monospace;letter-spacing:.06em;cursor:pointer;white-space:nowrap;text-shadow:0 0 6px rgba(110,230,255,.6)}' +
     '#cm-hbar button.on{background:rgba(160,240,255,.92);color:#03202e;text-shadow:none;box-shadow:0 0 14px rgba(140,235,255,.7)}#cm-hbar .sep{width:1px;height:18px;background:rgba(130,230,255,.35);margin:0 4px;flex:none}' +
     '#cm-hbar .x{width:30px;padding:6px 0;font-size:14px}';
   document.head.appendChild(hcss);
-  var holoEl = null, heng = null, hmode = 'orbit', hlist = null, hraf = 0;
-  try { hmode = localStorage.getItem('minest.holoMode') || 'orbit'; } catch (e) {}
+
+  /* a tap read from the finger itself (in Spatial Home the room takes the touches, so 'click' may never come) */
+  function tapOn(el, fn) {
+    var d = null;
+    el.addEventListener('pointerdown', function (e) { d = { x: e.clientX, y: e.clientY }; e.stopPropagation(); });
+    el.addEventListener('pointerup', function (e) { if (!d) return; var m = Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y); d = null; e.stopPropagation(); if (m <= 12) fn(e); });
+    el.addEventListener('click', function (e) { e.stopPropagation(); });
+  }
+
+  /* ===== ✋ 操控 — the cards as things in the air (2026-11-19, the user: "like Iron Man: hold a card, make it bigger or
+     smaller, push a pile of cards aside"). One finger picks a card up and carries it (let go and it glides on); two
+     fingers on a card scale and turn it (the wheel scales it too); a finger drawn across empty space sweeps the cards
+     in its way aside; two fingers on empty space zoom the whole field; a double tap opens the card as an Exploded
+     Learning Card. Flat 2D transforms; a moving card leans with its speed. ===== */
+  function FreeDeck(box, list, opt) {
+    var N = Math.min(list.length, 28), cards = [], W = 0, H = 0, world = 1, ptrs = {}, sweep = null, wpinch = null, dead = false, last = performance.now(), lastTap = { i: -1, t: 0 }, order = [];
+    var CW = shape === 'port' ? 190 : 260, CH = shape === 'port' ? 258 : 176;
+    var layer = document.createElement('div'); layer.className = 'cm-free'; box.appendChild(layer);
+    function size() { W = box.clientWidth || 800; H = box.clientHeight || 600; }
+    size();
+    function pileAt(c, k) { c.tx = (Math.random() - 0.5) * 60; c.ty = (Math.random() - 0.5) * 40 + 20; c.tr = (Math.random() - 0.5) * 12; c.ts = 0.86; c.glide = k * 0.035; }
+    for (var i = 0; i < N; i++) {
+      var it = list[i], el = document.createElement('div'), col = /^#[0-9a-f]{6}$/i.test(it.color) ? it.color : '#4fc8ff';
+      el.className = 'cm-c cm-fc' + (it.src ? ' hasim' : '');
+      el.style.cssText = 'width:' + CW + 'px;height:' + CH + 'px;margin:' + (-CH / 2) + 'px 0 0 ' + (-CW / 2) + 'px;left:50%;top:50%;touch-action:none';
+      el.style.setProperty('--cm-col', col);
+      el.innerHTML = '<div class="fa"' + (it.src ? ' data-bg="' + String(it.src).replace(/"/g, '%22') + '"' : ' style="background-image:linear-gradient(140deg,' + col + ',' + col + '55)"') + '>' + (it.src ? '' : '<b></b>') + '</div><div class="sh"></div><div class="fn"></div><div class="fs"></div>';
+      if (!it.src) el.querySelector('.fa b').textContent = (String(it.title).trim().charAt(0) || '').toUpperCase();
+      el.querySelector('.fn').textContent = it.title; el.querySelector('.fs').textContent = it.sub;
+      var bgn = el.querySelector('[data-bg]'); if (bgn) bgn.style.backgroundImage = 'url("' + bgn.getAttribute('data-bg') + '")';
+      layer.appendChild(el);
+      var c = { el: el, it: it, i: i, x: 0, y: H * 0.6, r: 0, s: 0.6, vx: 0, vy: 0, vr: 0, tx: 0, ty: 0, tr: 0, ts: 1, held: false, glide: 0 };
+      pileAt(c, i); el._c = c; cards.push(c); order.push(i);
+    }
+    function front(c) { order.splice(order.indexOf(c.i), 1); order.push(c.i); order.forEach(function (k, z) { cards[k].el.style.zIndex = 10 + z; }); }
+    order.forEach(function (k, z) { cards[k].el.style.zIndex = 10 + z; });
+    function tidy() { cards.forEach(function (c, k) { pileAt(c, (N - k) * 0.4); c.tx = c.tx; c.vx = c.vy = 0; c.mode = 'to'; }); }
+    function spread() {
+      var cols = Math.max(2, Math.round(Math.sqrt(N * (W / H)))), rows = Math.ceil(N / cols), gx = Math.min(CW * 1.15, (W * 0.92) / cols), gy = Math.min(CH * 1.12, (H * 0.74) / rows), sc = Math.min(1, gx / (CW * 1.1), gy / (CH * 1.08));
+      cards.forEach(function (c, k) { var cx = k % cols, cy = Math.floor(k / cols); c.tx = (cx - (cols - 1) / 2) * gx; c.ty = (cy - (rows - 1) / 2) * gy + 20; c.tr = (Math.random() - 0.5) * 3; c.ts = sc; c.mode = 'to'; c.glide = k * 0.02; });
+    }
+    cards.forEach(function (c) { c.mode = 'to'; });
+    function cardAt(t) { var e = t && t.closest ? t.closest('.cm-c') : null; return e && e._c ? e._c : null; }
+    function onDown(e) {
+      if (e.target.closest('#cm-hbar') || e.target.closest('#xl')) return;
+      e.preventDefault(); try { box.setPointerCapture(e.pointerId); } catch (x) {}
+      var c = cardAt(e.target), p = { id: e.pointerId, x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, t: performance.now(), c: c };
+      ptrs[e.pointerId] = p;
+      var onCard = c ? Object.keys(ptrs).map(function (k) { return ptrs[k]; }).filter(function (q) { return q.c === c; }) : [];
+      if (c) {
+        front(c); c.held = true; c.mode = 'free'; c.vx = c.vy = c.vr = 0;
+        if (onCard.length === 2) { var a = onCard[0], b = onCard[1]; c.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, ang: Math.atan2(b.y - a.y, b.x - a.x), s: c.s, r: c.r }; }
+        try { if (window.MinestNative && MinestNative.haptic) MinestNative.haptic('light'); } catch (x) {}
+      } else {
+        var empties = Object.keys(ptrs).map(function (k) { return ptrs[k]; }).filter(function (q) { return !q.c; });
+        if (empties.length === 2) { sweep = null; var a2 = empties[0], b2 = empties[1]; wpinch = { d: Math.hypot(a2.x - b2.x, a2.y - b2.y) || 1, w: world }; }
+        else sweep = { x: e.clientX, y: e.clientY };
+      }
+    }
+    function onMove(e) {
+      var p = ptrs[e.pointerId]; if (!p) return;
+      var dx = e.clientX - p.x, dy = e.clientY - p.y, now = performance.now(), dt = Math.max(1, now - (p.tm || p.t)); p.x = e.clientX; p.y = e.clientY; p.tm = now;
+      var c = p.c;
+      if (c) {
+        var onCard = Object.keys(ptrs).map(function (k) { return ptrs[k]; }).filter(function (q) { return q.c === c; });
+        if (onCard.length >= 2 && c.pinch) {
+          var a = onCard[0], b = onCard[1], d = Math.hypot(a.x - b.x, a.y - b.y) || 1, ang = Math.atan2(b.y - a.y, b.x - a.x);
+          c.s = clamp(c.pinch.s * d / c.pinch.d, 0.45, 3.2); c.r = c.pinch.r + (ang - c.pinch.ang) * 57.3;
+          c.x += dx / 2 / world; c.y += dy / 2 / world;
+        } else { c.x += dx / world; c.y += dy / world; c.vx = dx / dt * 16 / world; c.vy = dy / dt * 16 / world; c.vr = dx * 0.012; }
+      } else if (wpinch) {
+        var es = Object.keys(ptrs).map(function (k) { return ptrs[k]; }).filter(function (q) { return !q.c; });
+        if (es.length >= 2) world = clamp(wpinch.w * (Math.hypot(es[0].x - es[1].x, es[0].y - es[1].y) || 1) / wpinch.d, 0.5, 2.2);
+      } else if (sweep) {
+        /* the sweep: every card near the finger's path is pushed along with it, those nearest the most */
+        var r = box.getBoundingClientRect(), fx = (e.clientX - r.left - W / 2) / world, fy = (e.clientY - r.top - H / 2) / world, R = 170 / world;
+        cards.forEach(function (q) { if (q.held) return; var ddx = q.x - fx, ddy = q.y - fy, dist = Math.hypot(ddx, ddy); if (dist < R) { var k = 1 - dist / R; q.mode = 'free'; q.x += dx / world * k * 1.1; q.y += dy / world * k * 1.1; q.vx = dx / dt * 16 / world * k; q.vy = dy / dt * 16 / world * k; q.vr = (dx - dy) * 0.006 * k; } });
+      }
+    }
+    function onUp(e) {
+      var p = ptrs[e.pointerId]; if (!p) return; delete ptrs[e.pointerId];
+      var c = p.c, moved = Math.abs(p.x - p.x0) + Math.abs(p.y - p.y0), quick = performance.now() - p.t < 320;
+      if (c) {
+        var still = Object.keys(ptrs).some(function (k) { return ptrs[k].c === c; });
+        if (!still) { c.held = false; c.pinch = null; }
+        if (moved < 10 && quick) {
+          var now = performance.now();
+          if (lastTap.i === c.i && now - lastTap.t < 340) { lastTap = { i: -1, t: 0 }; if (opt.onOpen) opt.onOpen(c.it); }
+          else { lastTap = { i: c.i, t: now }; c.mode = 'to'; c.tx = c.x; c.ty = c.y; c.ts = Math.max(c.s, 1.25); c.tr = 0; }   // a tap lifts it straight and a little larger
+        }
+      }
+      if (!Object.keys(ptrs).some(function (k) { return !ptrs[k].c; })) { sweep = null; wpinch = null; }
+    }
+    function onWheel(e) {
+      e.preventDefault(); var c = cardAt(e.target), k = Math.exp(-(e.deltaY || 0) * 0.0015);
+      if (c) { front(c); c.mode = 'free'; c.s = clamp(c.s * k, 0.45, 3.2); } else world = clamp(world * k, 0.5, 2.2);
+    }
+    box.addEventListener('pointerdown', onDown); box.addEventListener('pointermove', onMove); box.addEventListener('pointerup', onUp); box.addEventListener('pointercancel', onUp);
+    box.addEventListener('wheel', onWheel, { passive: false });
+    var onR = function () { size(); }; addEventListener('resize', onR);
+    function tick(now) {
+      if (dead) return; requestAnimationFrame(tick);
+      var dt = Math.min(0.05, (now - last) / 1000); last = now; if (document.hidden) return;
+      var lx = W / 2 / world, ly = H / 2 / world;
+      cards.forEach(function (c) {
+        if (c.mode === 'to') {
+          if (c.glide > 0) { c.glide -= dt; return; }
+          var k = Math.min(1, dt * 7); c.x += (c.tx - c.x) * k; c.y += (c.ty - c.y) * k; c.r += (c.tr - c.r) * k; c.s += (c.ts - c.s) * k;
+        } else if (!c.held) {
+          c.x += c.vx * dt * 60; c.y += c.vy * dt * 60; c.r += c.vr * dt * 60;
+          var f = Math.exp(-3.2 * dt); c.vx *= f; c.vy *= f; c.vr *= f;
+          /* the edges give a soft push back, so a card thrown away stays in reach */
+          var mx = lx - CW * c.s * 0.25, my = ly - CH * c.s * 0.25;
+          if (c.x > mx) { c.x = mx; c.vx = -Math.abs(c.vx) * 0.4; } if (c.x < -mx) { c.x = -mx; c.vx = Math.abs(c.vx) * 0.4; }
+          if (c.y > my) { c.y = my; c.vy = -Math.abs(c.vy) * 0.4; } if (c.y < -my + 40) { c.y = -my + 40; c.vy = Math.abs(c.vy) * 0.4; }
+        }
+        var lean = c.held || Math.abs(c.vx) + Math.abs(c.vy) > 0.4, rx = clamp(-c.vy * 2.2, -22, 22), ry = clamp(c.vx * 2.2, -22, 22);
+        c.el.style.transform = 'translate(' + (c.x * world).toFixed(1) + 'px,' + (c.y * world).toFixed(1) + 'px)' + (lean ? ' perspective(900px) rotateX(' + rx.toFixed(1) + 'deg) rotateY(' + ry.toFixed(1) + 'deg)' : '') + ' rotate(' + c.r.toFixed(2) + 'deg) scale(' + (c.s * world * (c.held ? 1.06 : 1)).toFixed(3) + ')';
+        c.el.classList.toggle('act', c.held);
+      });
+    }
+    requestAnimationFrame(tick);
+    return { destroy: function () { dead = true; removeEventListener('resize', onR); box.removeEventListener('pointerdown', onDown); box.removeEventListener('pointermove', onMove); box.removeEventListener('pointerup', onUp); box.removeEventListener('pointercancel', onUp); box.removeEventListener('wheel', onWheel); layer.remove(); },
+      tidy: tidy, spread: spread, fit: size };
+  }
+  var holoEl = null, heng = null, hmode = 'free', hlist = null, hraf = 0;
+  try { hmode = localStorage.getItem('minest.holoMode') || 'free'; } catch (e) {}
   function holo(container, opt) {
     opt = opt || {}; holoClose(true);
     var root = document.createElement('div'); root.id = 'cm-holo'; container.appendChild(root); holoEl = root;
@@ -676,20 +802,26 @@
       '<polygon id="cmhp" fill="url(#cmhb)"/><ellipse id="cmhe" fill="url(#cmhg)"/><ellipse id="cmhr" fill="none" stroke="#8fe9ff" stroke-opacity=".5" stroke-width="1.2" stroke-dasharray="3 6"/>';
     root.appendChild(sv);
     var bar = document.createElement('div'); bar.id = 'cm-hbar'; root.appendChild(bar);
-    var HM = [['flow', '3D']].concat(MODES.filter(function (x) { return x[0] !== 'flow'; }));
-    HM.forEach(function (x) { var b = document.createElement('button'); b.type = 'button'; b.textContent = x[1]; b.dataset.m = x[0]; b.onclick = function (e) { e.stopPropagation(); hmode = x[0]; try { localStorage.setItem('minest.holoMode', hmode); } catch (er) {} build(); }; bar.appendChild(b); });
+    var HM = [['free', '✋ 操控'], ['flow', '3D']].concat(MODES.filter(function (x) { return x[0] !== 'flow'; }));
+    HM.forEach(function (x) { var b = document.createElement('button'); b.type = 'button'; b.textContent = x[1]; b.dataset.m = x[0]; tapOn(b, function () { hmode = x[0]; try { localStorage.setItem('minest.holoMode', hmode); } catch (er) {} build(); }); bar.appendChild(b); });
+    var tdy = document.createElement('button'); tdy.type = 'button'; tdy.className = 'fo'; tdy.textContent = '收拢'; tapOn(tdy, function () { if (heng && heng.tidy) heng.tidy(); }); bar.appendChild(tdy);
+    var spr = document.createElement('button'); spr.type = 'button'; spr.className = 'fo'; spr.textContent = '铺开'; tapOn(spr, function () { if (heng && heng.spread) heng.spread(); }); bar.appendChild(spr);
     var sep = document.createElement('i'); sep.className = 'sep'; bar.appendChild(sep);
     var shp = document.createElement('button'); shp.type = 'button'; bar.appendChild(shp);
-    var paint = function () { shp.textContent = shape === 'port' ? '竖卡' : '横卡'; [].forEach.call(bar.querySelectorAll('[data-m]'), function (b) { b.classList.toggle('on', b.dataset.m === hmode); }); };
-    shp.onclick = function (e) { e.stopPropagation(); shape = shape === 'port' ? 'land' : 'port'; try { localStorage.setItem('minest.coverShape', shape); } catch (er) {} build(); };
-    if (opt.onLab) { var lab = document.createElement('button'); lab.type = 'button'; lab.textContent = '◈ 文字实验室'; lab.onclick = function (e) { e.stopPropagation(); holoClose(); opt.onLab(); }; bar.appendChild(lab); }
-    var x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = '✕'; x.title = '关闭全息卡片'; x.onclick = function (e) { e.stopPropagation(); holoClose(); if (opt.onClose) opt.onClose(); }; bar.appendChild(x);
+    var paint = function () { shp.textContent = shape === 'port' ? '竖卡' : '横卡'; [].forEach.call(bar.querySelectorAll('[data-m]'), function (b) { b.classList.toggle('on', b.dataset.m === hmode); }); [].forEach.call(bar.querySelectorAll('.fo'), function (b) { b.style.display = hmode === 'free' ? '' : 'none'; }); };
+    tapOn(shp, function () { shape = shape === 'port' ? 'land' : 'port'; try { localStorage.setItem('minest.coverShape', shape); } catch (er) {} build(); });
+    var sty = document.createElement('button'); sty.type = 'button'; sty.textContent = '风格'; tapOn(sty, function () { if (window.MinestCardStyles) MinestCardStyles.open(); }); bar.appendChild(sty);
+    if (opt.onLab) { var lab = document.createElement('button'); lab.type = 'button'; lab.textContent = '◈ 文字实验室'; tapOn(lab, function () { holoClose(); opt.onLab(); }); bar.appendChild(lab); }
+    var x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = '✕'; x.title = '关闭全息卡片'; tapOn(x, function () { holoClose(); if (opt.onClose) opt.onClose(); }); bar.appendChild(x);
     ['pointerdown', 'touchstart', 'wheel', 'keydown', 'click'].forEach(function (t) { root.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
     var ov = null;
     function build() {
+      if (window.MinestExplode && MinestExplode.isOpen()) MinestExplode.close(true);
       if (heng) { heng.destroy(); heng = null; } if (ov) ov.remove();
       ov = document.createElement('div'); ov.id = 'cm-ov'; ov.className = hmode + ' ' + shape; root.insertBefore(ov, bar);
       var all = items(true); hlist = all.length > 48 ? all.slice(0, 48) : all;
+      var openX = function (it) { if (window.MinestExplode) MinestExplode.open(it, hlist, { container: root, holo: true, onNext: null, onOpenCard: function (x) { holoClose(); if (opt.onPick) opt.onPick(x); } }); };
+      if (hmode === 'free') { heng = hlist.length ? FreeDeck(ov, hlist, { onOpen: openX }) : null; paint(); return; }
       var saved = mode; mode = hmode;   // the window (CAP) follows the mode in view
       heng = hlist.length ? Engine(ov, hlist, hmode, function (it) {
         if (window.MinestExplode) { MinestExplode.open(it, hlist, { container: root, holo: true, onNext: nextCard, onOpenCard: function (x) { holoClose(); if (opt.onPick) opt.onPick(x); } }); return; }
@@ -709,9 +841,9 @@
       if (fr) fr.style.top = cy.toFixed(1) + 'px';
       root.style.setProperty('--cm-hy', (cy / H * 100).toFixed(1) + '%');
       var top = cy + H * 0.1, half = Math.min(W * 0.3, 420), cx = W / 2, nar = 12;
-      poly.setAttribute('points', (a.x - nar) + ',' + a.y + ' ' + (a.x + nar) + ',' + a.y + ' ' + (cx + half) + ',' + top + ' ' + (cx - half) + ',' + top);
+      poly.setAttribute('points', '');   // no beam cone: it stood in front of the cards (the user)
       glow.setAttribute('cx', a.x); glow.setAttribute('cy', a.y); glow.setAttribute('rx', 60); glow.setAttribute('ry', 16);
-      ring.setAttribute('cx', cx); ring.setAttribute('cy', Math.min(H * 0.86, cy + H * 0.3)); ring.setAttribute('rx', half * 0.9); ring.setAttribute('ry', 26); ring.setAttribute('transform', 'rotate(' + (((now - t0) / 60) % 360 * 0) + ')');
+      ring.setAttribute('rx', 0); ring.setAttribute('cx', cx); ring.setAttribute('cy', Math.min(H * 0.86, cy + H * 0.3)); ring.setAttribute('rx', half * 0.9); ring.setAttribute('ry', 26); ring.setAttribute('transform', 'rotate(' + (((now - t0) / 60) % 360 * 0) + ')');
       ring.setAttribute('stroke-dashoffset', String(-((now - t0) / 40) % 9));
       root.style.setProperty('--cm-sweep', (((now - t0) / 2600) % 1 * 140 - 20).toFixed(1) + '%');
     }

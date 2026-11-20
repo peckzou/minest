@@ -181556,7 +181556,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
           onClose: function () { res(null); }
         });
       }); },
-      set: function (k) { kk = k; var e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; beam.material.opacity = 0.07 + 0.25 * e; proj.scale.setScalar(1 + 0.35 * e); light.intensity = 0.5 + 1.5 * e; },
+      /* opened, the console's own cone and rings fade: the projected cards take their place (the cone stood in the way) */
+      set: function (k) { kk = k; var e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; beam.material.opacity = 0.07 * (1 - e); proj.visible = e < 0.6; proj.scale.setScalar(1 + 0.35 * e); dm.visible = e < 0.6; light.intensity = 0.5 + 1.5 * e; },
       idle: function (t) {
         rings[0].rotation.z = t * 0.6; rings[1].rotation.z = -t * 0.9; rings[2].rotation.z = t * 0.35; core.rotation.y = t * 0.8; core.rotation.x = t * 0.3;
         panes.forEach(function (p, k) { p.position.y = 0.05 + (k === 1 ? 0.12 : 0) + Math.sin(t * 1.4 + k * 2) * 0.012; p.material.opacity = 0.75 + 0.15 * Math.sin(t * 9 + k) * Math.sin(t * 2.1); });

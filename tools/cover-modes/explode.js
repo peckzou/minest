@@ -50,7 +50,7 @@
   /* ---------------- the look ---------------- */
   var css = document.createElement('style');
   css.textContent = [
-    '#xl{position:absolute;inset:0;z-index:2000;overflow:hidden;font-family:-apple-system,"SF Pro Display","PingFang SC",system-ui,sans-serif;color:#eaf2ff;touch-action:none;user-select:none;-webkit-user-select:none}',
+    '#xl{position:absolute;inset:0;z-index:2000;overflow:hidden;pointer-events:auto;font-family:-apple-system,"SF Pro Display","PingFang SC",system-ui,sans-serif;color:#eaf2ff;touch-action:none;user-select:none;-webkit-user-select:none}',
     '#xl .xl-bg{position:absolute;inset:0;background:radial-gradient(70% 60% at 50% 45%,rgba(26,44,120,.9),rgba(5,8,26,.97) 78%);opacity:0;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}',
     '#xl.holo .xl-bg{background:radial-gradient(70% 60% at 50% 45%,rgba(20,90,140,.35),rgba(2,10,20,.55) 75%)}',
     '#xl .xl-stage{position:absolute;left:50%;top:47%;width:0;height:0;perspective:1600px;transform-style:preserve-3d}',
@@ -89,6 +89,7 @@
     '#xl .xl-res.wait{opacity:.55}',
     '#xl .xl-bar{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 96px);transform:translateX(-50%);display:flex;gap:8px;align-items:center;z-index:5;opacity:0}',
     'html.mn-dock-v #xl .xl-bar{bottom:calc(env(safe-area-inset-bottom,0px) + 22px)}#xl.holo .xl-bar{bottom:calc(env(safe-area-inset-bottom,0px) + 22px)}',
+    '#xl .xl-x{position:absolute;z-index:6;right:calc(env(safe-area-inset-right,0px) + 18px);top:calc(env(safe-area-inset-top,0px) + 64px);width:40px;height:40px;border-radius:50%;border:1px solid rgba(160,210,255,.7);background:rgba(20,40,110,.6);color:#fff;font-size:17px;cursor:pointer;box-shadow:0 0 14px rgba(90,150,255,.45)}',
     '#xl .xl-hint{font:500 12px/1 -apple-system,"SF Pro Display","PingFang SC",system-ui,sans-serif;color:#a9bfe8;margin-right:4px;white-space:nowrap}',
     '#xl .xl-title{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 18px);transform:translateX(-50%);font:700 13px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;color:#9fc3ff;text-transform:uppercase;opacity:0;white-space:nowrap}'
   ].join('\n');
@@ -134,19 +135,18 @@
     var host = opt.container || document.body, f = facts(it && it.raw, it), L = layersOf(f, list, it);
     var el = document.createElement('div'); el.id = 'xl'; if (opt.holo) el.className = 'holo';
     el.innerHTML = '<div class="xl-bg"></div><div class="xl-title">Exploded Learning Card · ' + esc(f.title) + '</div><div class="xl-stage"></div>' +
-      '<div class="xl-bar"><span class="xl-hint">点任意一层放大</span>' + (opt.onOpenCard ? '<button type="button" class="xl-btn" data-a="card">打开原卡</button>' : '') + '<button type="button" class="xl-btn" data-a="close">Close</button></div>';
+      '<button type="button" class="xl-x" data-a="close" aria-label="关闭">✕</button><div class="xl-bar"><span class="xl-hint">点任意一层放大</span>' + (opt.onOpenCard ? '<button type="button" class="xl-btn" data-a="card">打开原卡</button>' : '') + '<button type="button" class="xl-btn" data-a="close">Close</button></div>';
     host.appendChild(el);
     ['pointerdown', 'touchstart', 'wheel', 'keydown'].forEach(function (t) { el.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
     var stage = el.querySelector('.xl-stage'), bg = el.querySelector('.xl-bg'), bar = el.querySelector('.xl-bar'), ttl = el.querySelector('.xl-title');
     var cards = L.map(function (l, i) {
       var c = document.createElement('div'); c.className = 'xl-c'; c.innerHTML = '<div class="xl-h"><i>' + l.n + '</i>' + esc(l.t) + '</div>' + l.html; stage.appendChild(c);
-      c.addEventListener('click', function (e) {
-        var t = e.target;
-        if (t.closest('[data-say]')) { e.stopPropagation(); say(f.head || f.title); return; }
-        if (t.closest('[data-next]')) { e.stopPropagation(); if (opt.onNext) { close(false, opt.onNext); } return; }
-        var o = t.closest('[data-opt]'); if (o && l.q && !o.disabled) { e.stopPropagation(); answer(l, o); return; }
+      c._tap = function (t) {
+        if (t.closest('[data-say]')) { say(f.head || f.title); return; }
+        if (t.closest('[data-next]')) { if (opt.onNext) { close(false, opt.onNext); } return; }
+        var o = t.closest('[data-opt]'); if (o && l.q && !o.disabled) { answer(l, o); return; }
         focus = focus === i ? -1 : i;
-      });
+      };
       return { el: c, s: { x: 0, y: 0, z: -i * 2, ry: 0, rx: 0, sc: 0.96, o: 0 }, t: null };
     });
     var res = L.filter(function (l) { return l.k === 'result'; })[0];
@@ -193,9 +193,18 @@
       if (phase === 'close' && bo < 0.02 && settled) { dead = true; window.removeEventListener('resize', onR); el.remove(); var cb = cur && cur.after; cur = null; if (cb) cb(); }
     }
     requestAnimationFrame(frame);
-    bar.addEventListener('click', function (e) { var a = e.target.closest('[data-a]'); if (!a) return; e.stopPropagation();
-      if (a.getAttribute('data-a') === 'close') close(); else if (opt.onOpenCard) { close(true); opt.onOpenCard(it); } });
-    el.addEventListener('click', function (e) { if (e.target === el || e.target === bg || e.target === stage) { if (focus >= 0) focus = -1; } });
+    /* taps are read from the finger going down and up — not 'click': in Spatial Home the room takes the touches, so on a
+       phone a click never came and Close did nothing */
+    var down = null;
+    el.addEventListener('pointerdown', function (e) { down = { x: e.clientX, y: e.clientY }; }, true);
+    el.addEventListener('pointerup', function (e) {
+      if (!down) return; var moved = Math.abs(e.clientX - down.x) + Math.abs(e.clientY - down.y); down = null; if (moved > 12) return;
+      var t = e.target, a = t.closest && t.closest('[data-a]');
+      if (a) { if (a.getAttribute('data-a') === 'close') close(); else if (opt.onOpenCard) { close(true); opt.onOpenCard(it); } return; }
+      var c = t.closest && t.closest('.xl-c'); if (c && c._tap) { c._tap(t); return; }
+      if (focus >= 0) focus = -1;
+    }, true);
+    el.addEventListener('click', function (e) { e.stopPropagation(); }, true);
     cur = { el: el, setPhase: function (p) { phase = p; }, kill: function () { dead = true; window.removeEventListener('resize', onR); el.remove(); }, focusOff: function () { focus = -1; }, hasFocus: function () { return focus >= 0; } };
     try { if (window.MinestNative && MinestNative.haptic) MinestNative.haptic('medium'); } catch (e) {}
     return cur;
