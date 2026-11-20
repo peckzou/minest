@@ -44,7 +44,7 @@
   /* ════════════════════════ 1 · 悬浮面板 Floating Panels ════════════════════════ */
   var P = { id: 'panels', zh: '悬浮面板', en: 'PANELS', panels: [], sel: null, bag: new Bag(), root: null };
   var SRC = [['all', '全部'], ['words', '单词'], ['charts', 'Anchor'], ['knowledge', '知识'], ['works', '作品']];
-  var ARR = [['grid', '网格 Grid'], ['arc', '弧形 Arc'], ['stack', '叠放 Stack'], ['free', '自由 Free']];
+  var ARR = [['dome', '半球 Dome'], ['grid', '网格 Grid'], ['arc', '弧形 Arc'], ['stack', '叠放 Stack'], ['free', '自由 Free']];
   function srcList(src) { var c = HL.content; return src === 'words' ? c.words : src === 'charts' ? c.charts : src === 'knowledge' ? c.knowledge : src === 'works' ? c.works : c.all; }
   P.ordered = function () {
     var lp = L().panels, idx = {}; lp.order.forEach(function (x, i) { idx[x] = i; });
@@ -57,10 +57,26 @@
   P.pages = function () { return Math.max(1, Math.ceil(P.ordered().length / P.per())); };
   P.slots = function (n) {
     var arr = L().panels.arrange, out = [], N = HL.narrow, C = HL.CENTER, i;
+    if (arr === 'dome') {
+      /* a hemisphere round you (2026-11-19, the user): the panels on the inside of a sphere whose centre is your eye —
+         a wide band at eye level, smaller bands above and below tipped towards you, each panel facing the centre */
+      var Rd = N ? 3.2 : 4.4, cz2 = 0.5 + Rd, bands = n <= 5 ? [0] : n <= 12 ? [0.24, -0.06] : [0.42, 0.16, -0.12, -0.38].slice(0, n > 22 ? 4 : 3);
+      var w = bands.map(function (ph) { return Math.cos(ph); }), wsum = w.reduce(function (a, b) { return a + b; }, 0), counts = w.map(function (x) { return Math.max(1, Math.round(n * x / wsum)); });
+      var diff = n - counts.reduce(function (a, b) { return a + b; }, 0), mid = bands.length > 1 ? 1 : 0; counts[mid] += diff;
+      var sd = Math.min(1, 2.9 / (bands.length * 0.78)), k0 = 0;
+      bands.forEach(function (ph, b) {
+        var cnt = counts[b], step = Math.min(1.08 * sd / (Rd * Math.cos(ph)), (N ? 2.0 : 2.5) / Math.max(1, cnt - 1));
+        for (var q = 0; q < cnt && k0 < n; q++, k0++) {
+          var th = (q - (cnt - 1) / 2) * step;
+          out.push({ p: V(Rd * Math.sin(th) * Math.cos(ph), C.y + Rd * Math.sin(ph) * 0.9, cz2 - Rd * Math.cos(th) * Math.cos(ph)), ry: -th, rx: ph * 0.9, s: sd, cz: cz2, th: th });
+        }
+      });
+      return out;
+    }
     if (arr === 'arc') {
       var rows = n > 14 ? 3 : n > 6 ? 2 : 1, per = Math.ceil(n / rows), R = N ? 3.0 : 4.6, step = 1.1 / R, cz = 0.5 + R, s = Math.min(1, 2.6 / (rows * 0.74));
       for (i = 0; i < n; i++) { var r = Math.floor(i / per), k = i % per, cnt = r === rows - 1 ? n - r * per : per, th = (k - (cnt - 1) / 2) * step * s;
-        out.push({ p: V(R * Math.sin(th), C.y + ((rows - 1) / 2 - r) * 0.74 * s, cz - R * Math.cos(th)), ry: -th, rx: 0, s: s }); }
+        out.push({ p: V(R * Math.sin(th), C.y + ((rows - 1) / 2 - r) * 0.74 * s, cz - R * Math.cos(th)), ry: -th, rx: 0, s: s, cz: cz, th: th }); }
       return out;
     }
     if (arr === 'stack') {
@@ -106,6 +122,8 @@
     var old = {}; if (keep) P.panels.forEach(function (pn) { old[pn.it.uid] = { p: pn.g.position.clone(), r: pn.g.rotation.y, s: pn.g.scale.x }; });
     var selUid = P.sel && P.sel.it.uid;
     P.clear();
+    if (P.wallOn()) { P.buildWall(); P.sel = null; return; }
+    P.wall = null;
     var lp = L().panels, all = P.ordered(), per = P.per(), pages = Math.max(1, Math.ceil(all.length / per));
     lp.page = clamp(lp.page, 0, pages - 1);
     var items = all.slice(lp.page * per, lp.page * per + per);
@@ -118,9 +136,9 @@
       HL.empty(msg[0], msg[1]);
     } else HL.empty('');
   };
-  P.retarget = function () { var s = P.slots(P.panels.length); P.panels.forEach(function (pn, i) { pn.slot = s[i]; pn.i = i; }); };
+  P.retarget = function () { if (P.wall) return; var s = P.slots(P.panels.length); P.panels.forEach(function (pn, i) { pn.slot = s[i]; pn.i = i; }); };
   P.clear = function () { if (P.root) HL.contentRoot.remove(P.root); P.root = null; P.panels = []; P.bag.free(); };
-  P.enter = function () { P.build(false); };
+  P.enter = function () { P.scr.x = P.scr.y = P.scr.vx = P.scr.vy = 0; P.build(false); };
   P.exit = function () { P.clear(); P.sel = null; };
   P.onContent = function () { P.build(true); HL.refreshTools(); };
   P.onFont = function () { if (P.panels.some(function (pn) { return pn.it.kind === 'work'; })) P.build(true); };
@@ -131,15 +149,93 @@
   P.select = function (pn) {
     P.sel = pn; P.panels.forEach(function (q) { q.mat.uniforms.uSel.value = q === pn ? 1 : 0; });
   };
+
+  /* ── the endless wall (2026-11-19, the user: pull the wall, and cards come in from every side) ──
+     On the dome the whole source is laid out as a large grid that wraps round on itself; only a window of it is on
+     the hemisphere (one more column and row than you see, so cards slide in at the edges). Panels leaving one side
+     come round to the other carrying the next cards. Fewer cards than fill the view: the plain dome. */
+  P.wallOn = function () { return L().panels.arrange === 'dome' && P.ordered().length > P.wallDims().cv * P.wallDims().rv; };
+  P.wallDims = function () { var N = HL.narrow; return { cv: N ? 4 : 6, rv: 3, R: N ? 3.2 : 4.4, st: N ? 0.36 : 0.27, sp: 0.29, s: N ? 0.82 : 0.92 }; };
+  function mod(a, n) { return ((a % n) + n) % n; }
+  P.buildWall = function () {
+    var all = P.ordered(), N = all.length, d = P.wallDims();
+    var rows = Math.max(d.rv + 1, Math.round(Math.sqrt(N / 2.2))), cols = Math.ceil(N / rows);
+    P.wall = { all: all, N: N, rows: rows, cols: cols, d: d };
+    P.root = new T.Group(); HL.contentRoot.add(P.root);
+    var pool = [];
+    for (var j = 0; j <= d.rv; j++) for (var i = 0; i <= d.cv; i++) {
+      var pn = P.makePanel(all[(j * cols + i) % N], pool.length); pn.wi = i; pn.wj = j; pn.bound = null; P.root.add(pn.g); pool.push(pn);
+    }
+    P.panels = pool; HL.empty('');
+  };
+  function bindPanel(pn, it) {
+    if (pn.bound === it.uid) return; pn.bound = it.uid; pn.it = it;
+    var cv = it.kind === 'work' ? workCanvas(it) : HL.cardCanvas(it, 640, 400), x = pn.cv.getContext('2d');
+    x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, pn.cv.width, pn.cv.height); x.drawImage(cv, 0, 0, pn.cv.width, pn.cv.height); pn.tex.needsUpdate = true;
+    if (pn.solid) { pn.g.remove(pn.solid); pn.solid = null; }
+  }
+  P.updateWall = function (dt, t) {
+    var W = P.wall, d = W.d, C = HL.CENTER, cz = 0.5 + d.R, k = damp(dt, P.scr.held ? 18 : 8), rd = reduce();
+    if (!P.scr.held) { var f = Math.exp(-dt * 3.5); P.scr.x += P.scr.vx * dt * 30; P.scr.y += P.scr.vy * dt * 30; P.scr.vx *= f; P.scr.vy *= f;
+      if (Math.abs(P.scr.vx) < 0.002) P.scr.x += (Math.round(P.scr.x) - P.scr.x) * damp(dt, 4);   // settle on a whole column / row
+      if (Math.abs(P.scr.vy) < 0.002) P.scr.y += (Math.round(P.scr.y) - P.scr.y) * damp(dt, 4); }
+    var ox = -P.scr.x, oy = -P.scr.y, bc = Math.floor(ox), fx = ox - bc, br = Math.floor(oy), fy = oy - br;
+    P.panels.forEach(function (pn, n) {
+      var i = pn.wi, j = pn.wj, gc = mod(bc + i, W.cols), gr = mod(br + j, W.rows), idx = mod(gr * W.cols + gc, W.N);
+      bindPanel(pn, W.all[idx]);
+      var th = (i - fx - d.cv / 2) * d.st, ph = ((d.rv - 1) / 2 - (j - fy)) * d.sp;
+      var edge = Math.min(1, Math.max(0, (d.cv / 2 + 0.55 - Math.abs(i - fx - d.cv / 2)) / 0.6), Math.max(0, ((d.rv - 1) / 2 + 0.75 - Math.abs((d.rv - 1) / 2 - (j - fy))) / 0.6));
+      var g = pn.g, a = HL.appear(n, 0.03), tx = d.R * Math.sin(th) * Math.cos(ph), ty = C.y + d.R * Math.sin(ph) * 0.9 + (rd ? 0 : Math.sin(t * 0.8 + n * 1.7) * 0.015), tz = cz - d.R * Math.cos(th) * Math.cos(ph) + (P.sel === pn ? 0.12 : 0);
+      if (!pn.dragging) { g.position.x = lerp(g.position.x, tx, k); g.position.y = lerp(g.position.y, ty, k); g.position.z = lerp(g.position.z, tz, k); }
+      g.rotation.y = lerp(g.rotation.y, -th, k); g.rotation.x = lerp(g.rotation.x, ph * 0.9, k);
+      var sc = d.s * a * (P.sel === pn ? 1.06 : 1); g.scale.set(lerp(g.scale.x, sc, k) || 0.001, lerp(g.scale.y, sc, k) || 0.001, 1);
+      pn.mat.uniforms.uOpacity.value = (0.25 + 0.75 * a) * edge; pn.mesh.visible = edge > 0.02;
+    });
+  };
+  /* pulling the wall (2026-11-19, the user: dragging should pull the wall of cards, the holo table must not turn): on
+     the dome / arc it turns round you, elsewhere it slides; it glides on and springs back past its ends */
+  P.scr = { x: 0, y: 0, vx: 0, vy: 0, held: false };
+  P.range = function () {
+    var arr = L().panels.arrange, sl = P.panels.map(function (pn) { return pn.slot; }).filter(Boolean);
+    if (!sl.length) return { x: 0, y: 0 };
+    if (arr === 'dome' || arr === 'arc') { var mth = Math.max.apply(null, sl.map(function (q) { return Math.abs(q.th || 0); })); return { x: Math.max(0.25, mth + 0.15), y: 0.9 }; }
+    var mx = Math.max.apply(null, sl.map(function (q) { return Math.abs(q.p.x); })), my = Math.max.apply(null, sl.map(function (q) { return Math.abs(q.p.y - HL.CENTER.y); }));
+    return { x: Math.max(0.6, mx), y: Math.max(0.5, my) };
+  };
+  P.emptyDrag = function (dx, dy) {
+    if (P.wall) { var cw = (HL.narrow ? 150 : 190); P.scr.x += dx / cw; P.scr.y -= dy / 170; P.scr.vx = dx / cw; P.scr.vy = -dy / 170; P.scr.held = true; return true; }
+    var arr = L().panels.arrange, curved = arr === 'dome' || arr === 'arc', rg = P.range(), sx = curved ? 0.0042 : 0.006, sy = 0.006;
+    var over = function (v, lim) { return Math.abs(v) > lim ? 0.35 : 1; };   // resistance past the ends
+    P.scr.x += dx * sx * over(P.scr.x, rg.x); P.scr.y -= dy * sy * over(P.scr.y, rg.y); P.scr.vx = dx * sx; P.scr.vy = -dy * sy; P.scr.held = true;
+    return true;
+  };
+  P.emptyDragEnd = function () { P.scr.held = false; };
+  function scrolled(sl, out) {
+    var a = P.scr.x, arr = L().panels.arrange;
+    if ((arr === 'dome' || arr === 'arc') && sl.cz != null) {
+      var x = sl.p.x, zr = sl.p.z - sl.cz, c = Math.cos(a), s2 = Math.sin(a);
+      out.p.set(x * c - zr * s2, sl.p.y + P.scr.y, sl.cz + zr * c + x * s2); out.ry = sl.ry - a; return out;
+    }
+    out.p.set(sl.p.x + a, sl.p.y + P.scr.y, sl.p.z); out.ry = sl.ry; return out;
+  }
+  var _sl = { p: V(), ry: 0 };
   P.update = function (dt, t) {
+    if (P.wall) { P.updateWall(dt, t); return; }
     var k = damp(dt, 6), rd = reduce(), lp = L().panels;
+    if (!P.scr.held) {   // glide on, then spring back inside the range
+      var rg = P.range(), f = Math.exp(-dt * 4);
+      P.scr.x += P.scr.vx * dt * 30; P.scr.y += P.scr.vy * dt * 30; P.scr.vx *= f; P.scr.vy *= f;
+      if (Math.abs(P.scr.x) > rg.x) P.scr.x += (Math.sign(P.scr.x) * rg.x - P.scr.x) * damp(dt, 8);
+      if (Math.abs(P.scr.y) > rg.y) P.scr.y += (Math.sign(P.scr.y) * rg.y - P.scr.y) * damp(dt, 8);
+    }
     for (var i = 0; i < P.panels.length; i++) {
       var pn = P.panels[i], g = pn.g, a = pn.born === -1 ? 1 : HL.appear(i, 0.06), sl = pn.slot; if (!sl) continue;
+      var sp = scrolled(sl, _sl), kk = P.scr.held ? damp(dt, 18) : k;
       if (!pn.dragging && a > 0) {
-        var ty = sl.p.y + (rd ? 0 : Math.sin(t * 0.8 + i * 1.7) * 0.02), tz = sl.p.z + (P.sel === pn ? 0.12 : 0);
-        g.position.x = lerp(g.position.x, sl.p.x, k); g.position.y = lerp(g.position.y, ty, k); g.position.z = lerp(g.position.z, tz, k);
+        var ty = sp.p.y + (rd ? 0 : Math.sin(t * 0.8 + i * 1.7) * 0.02), tz = sp.p.z + (P.sel === pn ? 0.12 : 0);
+        g.position.x = lerp(g.position.x, sp.p.x, kk); g.position.y = lerp(g.position.y, ty, kk); g.position.z = lerp(g.position.z, tz, kk);
       }
-      var rot = sl.ry + (lp.rot[pn.it.uid] || 0);
+      var rot = sp.ry + (lp.rot[pn.it.uid] || 0);
       g.rotation.y = lerp(g.rotation.y, rot, k); g.rotation.x = lerp(g.rotation.x, sl.rx, k);
       var s = sl.s * a * (P.sel === pn ? 1.06 : 1);
       g.scale.set(lerp(g.scale.x, s, k * 1.4) || 0.001, lerp(g.scale.y, s * (a * a), k * 1.4) || 0.001, 1);
@@ -156,6 +252,7 @@
   P.dragMove = function (h, x, y) { var p = h.pn.drag.to(x, y); if (p) h.pn.g.position.copy(p); };
   P.dragEnd = function (h) {
     var pn = h.pn, lp = L().panels; pn.dragging = false;
+    if (P.wall) return;
     if (lp.arrange === 'free') { var q = pn.g.position; lp.free[pn.it.uid] = [+q.x.toFixed(3), +q.y.toFixed(3), +q.z.toFixed(3)]; pn.slot = { p: q.clone(), ry: 0, rx: 0, s: pn.slot.s }; HL.save(); return; }
     var slots = P.slots(P.panels.length), best = pn.i, bd = Infinity;
     slots.forEach(function (s, j) { var d = s.p.distanceTo(pn.g.position); if (d < bd) { bd = d; best = j; } });
@@ -181,7 +278,7 @@
     SRC.forEach(function (s) { var n = srcList(s[0]).length; ui.chip(box, s[1] + ' ' + n, lp.src === s[0], function () { lp.src = s[0]; lp.page = 0; HL.detail.close(); P.build(false); HL.save(); HL.refreshTools(); }); });
     ui.sep(box); ui.lab(box, '排序');
     ARR.forEach(function (a) { ui.chip(box, a[1], lp.arrange === a[0], function () { lp.arrange = a[0]; P.retarget(); HL.save(); HL.refreshTools(); }, a[0] === 'free' ? '拖到哪里就停在哪里' : '重新排列 · Re-arrange'); });
-    var pages = P.pages();
+    var pages = P.wall ? 1 : P.pages();
     if (pages > 1) {
       ui.sep(box);
       ui.chip(box, '◂', false, function () { lp.page = (lp.page - 1 + pages) % pages; HL.detail.close(); P.build(false); HL.save(); HL.refreshTools(); }).disabled = false;
@@ -199,38 +296,30 @@
   };
   HL.register(P);
 
-  /* ════════════════════════ 2 · 字母拆解 Typography Disassembly ════════════════════════ */
-  var D = { id: 'dis', zh: '字母拆解', en: 'LETTERS', bag: new Bag(), pieces: [], ex: 0, exT: 0, iso: -1, root: null, phase: 0 };
-  var VOW = 'aeiouAEIOU';
-  var CH_COL = ['#6fe3ff', '#ffd27a', '#b58cff', '#7dffb0', '#ff8fb1', '#9fc4ff'];
-  /* approximate English syllables (rule based; labelled as an estimate in the UI) */
-  function syllables(word) {
-    var w = word.toLowerCase(), n = w.length, i, k;
-    if (!/^[a-z]+$/.test(w) || n <= 3) return [[0, n]];
-    function isV(j) { return 'aeiou'.indexOf(w[j]) >= 0 || (w[j] === 'y' && j > 0 && 'aeiou'.indexOf(w[j - 1]) < 0); }
-    var G = [];
-    for (i = 0; i < n;) { if (isV(i)) { var j = i; while (j < n && isV(j)) j++; G.push([i, j]); i = j; } else i++; }
-    if (G.length > 1) { var lg = G[G.length - 1]; if (lg[0] === n - 1 && w[n - 1] === 'e' && !(w[n - 2] === 'l' && !isV(n - 3))) G.pop(); }
-    if (G.length > 1) { var lg2 = G[G.length - 1]; if (lg2[0] === n - 2 && /e[sd]$/.test(w) && !/[td]ed$|[sxz]es$|[cs]hes$/.test(w)) G.pop(); }
-    if (G.length <= 1) return [[0, n]];
-    var DIG = ['ch', 'sh', 'th', 'ph', 'wh', 'ck', 'ng', 'qu'], BL = ['bl', 'br', 'cl', 'cr', 'dr', 'fl', 'fr', 'gl', 'gr', 'pl', 'pr', 'sc', 'sk', 'sl', 'sm', 'sn', 'sp', 'st', 'sw', 'tr', 'tw', 'th', 'ch', 'sh', 'ph', 'wh'];
-    var cuts = [];
-    for (k = 0; k < G.length - 1; k++) {
-      var a = G[k][1], b = G[k + 1][0], C = w.slice(a, b), cut;
-      if (k === G.length - 2 && G[k + 1][0] === n - 1 && w[n - 1] === 'e' && w[n - 2] === 'l' && C.length >= 2) cut = b - 2;      // consonant-le
-      else if (C.length <= 1) cut = a;
-      else if (C.length === 2 && DIG.indexOf(C) >= 0) cut = (C === 'ck' || C === 'ng') ? b : a;
-      else { cut = a + 1; if (C.length >= 3 && BL.indexOf(C.slice(-2)) >= 0) cut = b - 2; }
-      cuts.push(cut);
-    }
-    var out = [], s = 0; cuts.forEach(function (c) { if (c > s && c < n) { out.push([s, c]); s = c; } }); out.push([s, n]);
-    return out;
+  /* ════════════════════════ 2 · 构词拆解 Word Breakdown (was 字母拆解) ════════════════════════
+     2026-11-19, the user: splitting into letters means nothing — split by roots, by sense groups, and take sentences
+     apart into words. Three levels, each from the card's own breakdown (HL item .bd, sent by the parent: the card's
+     parts from the AI fill, the AI breakdown kept on the device, or conservative rules), never invented here:
+       词根 morph  — prefix / root / suffix in their colours, each with its meaning
+       意群 chunk  — a phrase in sense groups
+       句子 sent   — the example sentence: its sense groups as arcs, each word a piece (content words bright, function
+                     words dim), the word's gloss under it when the AI breakdown gave one */
+  var D = { id: 'dis', zh: '构词拆解', en: 'WORD PARTS', bag: new Bag(), pieces: [], ex: 0, exT: 0, iso: -1, root: null, phase: 0 };
+  var KCOL = { pre: '#ffd27a', root: '#6fe3ff', suf: '#7dffb0' }, KZH = { pre: '前缀', root: '词根', suf: '后缀' }, GCOL = ['#6fe3ff', '#ffd27a', '#b58cff', '#7dffb0', '#ff8fb1', '#9fc4ff', '#ffb27a', '#8fffe8'];
+  function wordPlane(str, color, bag) {   // a glowing word on a plane, for text the 3D font lacks (Chinese, accents)
+    var s = HL.texPR(), W = 512, H = 160, cv = document.createElement('canvas'); cv.width = W * s; cv.height = H * s; var x = cv.getContext('2d'); x.scale(s, s);
+    var sz = 96; x.font = '800 ' + sz + 'px ' + HL.FONT; while (sz > 30 && x.measureText(str).width > W - 20) { sz -= 6; x.font = '800 ' + sz + 'px ' + HL.FONT; }
+    x.textAlign = 'center'; x.textBaseline = 'middle'; x.shadowColor = color; x.shadowBlur = 18; x.fillStyle = '#eafaff'; x.fillText(str, W / 2, H / 2 + 4); x.shadowBlur = 0; x.fillText(str, W / 2, H / 2 + 4);
+    var tex = bag.add(HL.canvasTex(cv)), mat = bag.add(new T.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, color: new T.Color(color) }));
+    var m = new T.Mesh(PLANE, mat); m.userData.plane = true; m.userData.aspect = W / H; return m;
   }
-  D.syllables = syllables;
+  function levels(it) { var b = it && it.bd || {}; return { morph: !!(b.morph && b.morph.length > 1), chunk: !!(b.chunks && b.chunks.length > 1), sent: !!(b.sentence && b.sentence.chunks && b.sentence.chunks.length) }; }
   D.candidates = function () {
-    var c = HL.content, out = [], seen = {};
-    function ok(it) { var t = (it.title || '').trim(); return t && t.length <= 18 && /[A-Za-zÀ-ɏ぀-ヿ一-鿿]/.test(t) && t.split(/\s+/).length <= 2; }
-    c.words.concat(c.works, c.charts, c.knowledge).forEach(function (it) { if (ok(it) && !seen[it.uid]) { seen[it.uid] = 1; out.push(it); } });
+    var c = HL.content, out = [], seen = {}, lv = L().dis.level;
+    c.words.concat(c.works, c.charts, c.knowledge).forEach(function (it) {
+      if (seen[it.uid] || !(it.title || '').trim()) return; var ok = levels(it);
+      if (lv === 'morph' ? ok.morph || ok.chunk : lv === 'chunk' ? ok.chunk || ok.morph : ok.sent) { seen[it.uid] = 1; out.push(it); }
+    });
     return out;
   };
   D.item = function () { var cs = D.candidates(), w = L().dis.word; for (var i = 0; i < cs.length; i++) if (cs[i].uid === w) return cs[i]; return cs[0] || null; };
@@ -243,139 +332,110 @@
   D.resize = function () { if (D._narrow !== undefined && D._narrow !== HL.narrow) D.build(true); D._narrow = HL.narrow; };
   D.mats = {};
   function dmat(key, color) { if (!D.mats[key]) D.mats[key] = D.bag.add(HL.solidMat(color)); return D.mats[key]; }
-  /* a polyline curve for stroke tubes */
-  class PolyCurve extends T.Curve {
-    constructor(pts) { super(); this.pts = pts; var L0 = [0]; for (var i = 1; i < pts.length; i++) L0.push(L0[i - 1] + pts[i].distanceTo(pts[i - 1])); this.L = L0; this.total = L0[L0.length - 1] || 1; }
-    getPoint(t, target) {
-      target = target || new T.Vector3(); var d = t * this.total, L0 = this.L, i = 1;
-      while (i < L0.length - 1 && L0[i] < d) i++;
-      var seg = (L0[i] - L0[i - 1]) || 1; return target.copy(this.pts[i - 1]).lerp(this.pts[i], clamp((d - L0[i - 1]) / seg, 0, 1));
-    }
+  /* the segments for the level in view: [{ text, sub (label), color, group }] */
+  function segments(it, lv) {
+    var b = it.bd || {}, out = [];
+    if (lv === 'sent' && b.sentence) { b.sentence.chunks.forEach(function (c, g) { c.words.forEach(function (w) { out.push({ text: w.w, sub: w.zh ? w.zh + (w.pos ? ' · ' + w.pos : '') : (w.fn ? '功能词' : '实词'), color: w.fn ? '#7f9fbf' : GCOL[g % GCOL.length], group: g, gzh: c.zh, gtext: c.text, fn: w.fn }); }); }); return out; }
+    if ((lv === 'chunk' || !(b.morph && b.morph.length)) && b.chunks && b.chunks.length > 1) { b.chunks.forEach(function (c, g) { out.push({ text: c.text, sub: c.zh || ('意群 ' + (g + 1)), color: GCOL[g % GCOL.length], group: g }); }); return out; }
+    if (b.morph && b.morph.length) { b.morph.forEach(function (m, g) { out.push({ text: m.p, sub: (m.m || '') + ' · ' + (b.form && m.k === 'root' ? '原形' : KZH[m.k] || ''), color: KCOL[m.k] || '#6fe3ff', group: g, k: m.k }); }); return out; }
+    return out;
   }
   D.build = function (keep) {
     var prevEx = D.ex, prevT = D.exT; D.mats = {}; D.clear();
-    D.it = D.item(); var it = D.it;
-    if (!it) { HL.empty('还没有可拆解的单词 · No words to take apart yet', '单词表里的单词和 3D Type 作品会出现在这里'); return; }
+    D.it = D.item(); var it = D.it, lv = L().dis.level; D.lv = lv;
+    if (!it) { HL.empty({ morph: '还没有可拆的构词 · Nothing to take apart yet', chunk: '还没有可分意群的短语 · No phrases yet', sent: '还没有例句 · No example sentences yet' }[lv] || '', '在 Minest 的爆炸学习卡里点「✦ AI 拆解」，或给卡片补全例句后会出现在这里'); return; }
     HL.empty('');
     D.root = new T.Group(); HL.contentRoot.add(D.root);
-    var word = it.title.trim().slice(0, 18), chars = Array.from(word), level = L().dis.level;
-    if (level === 'strokes' && !HL.strokes) level = 'letters';
-    D.level = level; D.word = word;
-    var syl = syllables(word), chunkOf = []; syl.forEach(function (s, j) { for (var i = s[0]; i < s[1]; i++) chunkOf[i] = j; });
-    D.syl = syl;
-    var sz = 0.5, font = HL.font, res = font ? font.data.resolution : 1000, adv = [], W = 0;
-    chars.forEach(function (ch) { var a = ch === ' ' ? sz * 0.35 : (font && font.data.glyphs[ch] ? font.data.glyphs[ch].ha * sz / res : sz * 0.72); adv.push(a); W += a + sz * 0.04; });
-    var maxW = HL.narrow ? 3.1 : 4.6, s = Math.min(1.25, maxW / Math.max(W, 0.01)); D.s = s;
-    var pen = -W * s / 2, C = HL.CENTER, homes = [];
-    chars.forEach(function (ch, i) { homes.push(V(pen + adv[i] * s / 2, C.y, 0.3)); pen += (adv[i] + sz * 0.04) * s; });
-    // pieces
-    var pieces = [], li = 0;
-    chars.forEach(function (ch, i) {
-      if (ch === ' ') return;
-      var vowel = VOW.indexOf(ch) >= 0, chunk = chunkOf[i] || 0, idx = li++;
-      var color = level === 'chunks' ? CH_COL[chunk % CH_COL.length] : vowel ? '#ffd27a' : '#6fe3ff';
-      if (level === 'strokes') {
-        var g = HL.strokes.strokeGlyph(ch);
-        if (g) {
-          var capH = sz * 0.72 * s, gw = g.w * capH, n = g.strokes.length;
-          g.strokes.forEach(function (st, k) {
-            var pts = st.map(function (p) { return V(homes[i].x - gw / 2 + p[0] * capH, homes[i].y - capH / 2 + p[1] * capH, homes[i].z); });
-            var cen = V(); pts.forEach(function (p) { cen.add(p); }); cen.multiplyScalar(1 / pts.length);
-            var local = pts.map(function (p) { return p.clone().sub(cen); });
-            var geo = D.bag.add(new T.TubeGeometry(new PolyCurve(local.length > 1 ? local : [local[0], local[0].clone().add(V(0.001))]), Math.max(8, local.length * 3), 0.03 * s + 0.008, 6, false));
-            var col = CH_COL[k % CH_COL.length], m = new T.Mesh(geo, dmat('s' + k, col));
-            var out = cen.clone().sub(homes[i]); out.z = 0; if (out.lengthSq() < 1e-4) out.set(0, 1, 0); out.normalize();
-            pieces.push({ mesh: m, home: cen, out: out, ch: ch, i: i, li: idx, stroke: k, nStrokes: n, color: col, size: capH, matKey: 's' + k });
-          });
-          return;
-        }
-      }
-      var geo = text3D(ch, sz * s, 0.14 * s), m;
-      if (geo) { D.bag.add(geo); m = new T.Mesh(geo, dmat(level === 'chunks' ? 'c' + (chunk % CH_COL.length) : vowel ? 'v' : 'c', color)); }
-      else { m = glyphPlane(ch, color, D.bag); m.scale.setScalar(sz * 1.3 * s); m.userData.plane = true; }
-      pieces.push({ mesh: m, home: homes[i], ch: ch, i: i, li: idx, vowel: vowel, chunk: chunk, color: color, size: sz * s, matKey: level === 'chunks' ? 'c' + (chunk % CH_COL.length) : vowel ? 'v' : 'c' });
+    var segs = segments(it, lv); D.segs = segs;
+    var nG = segs.reduce(function (m, x) { return Math.max(m, x.group + 1); }, 0); D.nG = nG;
+    var sz = lv === 'sent' ? 0.3 : 0.42, gapW = sz * 0.42, maxW = HL.narrow ? 2.8 : 3.8, C = HL.CENTER;
+    /* the pieces, each a whole segment in 3D letters (or a glowing plane when the font lacks a character) */
+    var pieces = segs.map(function (sg, j) {
+      var shown = lv === 'morph' ? String(sg.text).replace(/^-|-$/g, '') || sg.text : sg.text;   // the hyphen stays in the label, not in the letters
+      var geo = text3D(shown, sz, 0.12), m, w;
+      if (geo) { D.bag.add(geo); w = geo.boundingBox.max.x - geo.boundingBox.min.x; m = new T.Mesh(geo, dmat('g' + j, sg.color)); }
+      else { m = wordPlane(shown, sg.color, D.bag); w = sz * 1.4 * m.userData.aspect * 0.5; m.scale.set(w, w / m.userData.aspect, 1); }
+      return { mesh: m, w: w, seg: sg, j: j, color: sg.color, size: sz };
     });
-    D.nLetters = li;
-    pieces.forEach(function (p, j) { p.j = j; p.cur = HL.EMIT.clone(); p.off = V(); p.mesh.position.copy(p.cur); p.baseScale = p.mesh.scale.x; p.mesh.scale.setScalar(0.001); D.root.add(p.mesh); });
+    /* assembled: the word / phrase / sentence read as one line (a sentence wraps by sense group) */
+    var lines = [[]], lw = 0, LW = [];
+    pieces.forEach(function (p, j) { var add = p.w + (lines[lines.length - 1].length ? gapW * (lv === 'morph' ? 0.15 : 1) : 0); if (lv === 'sent' && lw + add > maxW * 1.25 && lines[lines.length - 1].length && (j === 0 || p.seg.group !== pieces[j - 1].seg.group)) { LW.push(lw); lines.push([]); lw = 0; add = p.w; } lines[lines.length - 1].push(p); lw += add; });
+    LW.push(lw);
+    var widest = Math.max.apply(null, LW), s = Math.min(1, maxW / Math.max(widest, 0.01)); D.s = s;
+    lines.forEach(function (ln, r) {
+      var pen = -LW[r] * s / 2, y = C.y + ((lines.length - 1) / 2 - r) * sz * 1.9 * s;
+      ln.forEach(function (p, q) { if (q) pen += gapW * (lv === 'morph' ? 0.15 : 1) * s; p.home = V(pen + p.w * s / 2, y, 0.3); pen += p.w * s; });
+    });
+    pieces.forEach(function (p) { p.cur = HL.EMIT.clone(); p.off = V(); p.mesh.position.copy(p.cur); p.baseScale = p.mesh.scale.x; p.baseScaleY = p.mesh.scale.y; p.mesh.scale.multiplyScalar(0.001); if (!p.mesh.userData.plane) p.mesh.scale.setScalar(s * 0.001); D.root.add(p.mesh); p.base = p.mesh.userData.plane ? p.baseScale * s : s; });
     if (keep) pieces.forEach(function (p) { p.cur.copy(p.home); });
     D.pieces = pieces;
-    // labels: per piece + per chunk + title
-    var nl = pieces.length + syl.length + 1, atlas = D.atlas = HL.Atlas(256, 72, 1024);
-    D.bag.add(atlas);
+    /* labels: one per piece (its meaning / role), one per sense group (sentence), and a title line */
+    var nl = pieces.length + nG + 1, atlas = D.atlas = HL.Atlas(256, 72, 1024); D.bag.add(atlas);
     var bb = D.labels = HL.Billboards(nl, atlas); D.bag.add(bb); D.root.add(bb.mesh);
-    pieces.forEach(function (p, j) {
-      var sub = level === 'strokes' ? '第 ' + (p.stroke + 1) + ' 笔' : (p.vowel ? '元音 vowel' : /[A-Za-z]/.test(p.ch) ? '辅音 consonant' : '字 char');
-      bb.uv(j, atlas.alloc(HL.labelDraw(level === 'strokes' ? p.ch.toUpperCase() + ' · ' + (p.stroke + 1) : p.ch, sub, p.color)));
-    });
-    D.chunkLab = pieces.length;
-    syl.forEach(function (sy, j) { bb.uv(pieces.length + j, atlas.alloc(HL.labelDraw(word.slice(sy[0], sy[1]), '音节 ' + (j + 1) + '/' + syl.length, CH_COL[j % CH_COL.length], { plate: true }))); });
+    pieces.forEach(function (p, j) { bb.uv(j, atlas.alloc(HL.labelDraw(p.seg.text, p.seg.sub, p.color))); });
+    D.groupLab = pieces.length;
+    for (var g = 0; g < nG; g++) { var first = pieces.filter(function (p) { return p.seg.group === g; })[0], gz = first && first.seg.gzh; bb.uv(pieces.length + g, atlas.alloc(HL.labelDraw(lv === 'sent' ? '意群 ' + (g + 1) : '', gz || (first ? u.str(first.seg.gtext || '', 30) : ''), GCOL[g % GCOL.length], { plate: true }))); }
     D.titleLab = nl - 1;
-    var preview = syl.length > 1 ? syl.map(function (sy) { return word.slice(sy[0], sy[1]); }).join(' · ') : word;
-    bb.uv(nl - 1, atlas.alloc(HL.labelDraw(preview, (it.text ? u.str(it.text, 34) : (HL.KIND[it.kind] || [''])[0]), '#6fe3ff', { size: 34 })));
+    var b = it.bd || {}, sub = lv === 'morph' ? (b.origin || (b.form ? '词形变化 · 原形 + 词尾' : '按真实词根词缀拆分')) : lv === 'chunk' ? '按意群切分' : '句子按意群分组 · 逐词拆开';
+    bb.uv(nl - 1, atlas.alloc(HL.labelDraw(lv === 'sent' ? u.str(it.title, 24) : it.title, sub + (b.ai ? ' · AI' : ''), '#6fe3ff', { size: 34 })));
     bb.commit();
     D.ex = keep ? prevEx : 0; D.exT = keep ? prevT : 0; D.iso = -1;
-    // hit spheres for picking (screen space)
   };
   var _p = V();
+  /* exploded: morphemes / groups move apart on a shallow arc round you; a sentence's groups become arcs of their own,
+     stacked, the words inside a group spaced out */
   D.expPos = function (p, t, out) {
-    var C = HL.CENTER, n = D.pieces.length;
-    if (D.level === 'strokes') { var sp = 0.32 + 0.1 * (p.stroke % 2); out.copy(p.home).addScaledVector(p.out, sp); out.z += (p.stroke % 2 ? 0.35 : -0.15) + Math.sin(t * 0.8 + p.j) * 0.05; out.x *= 1.25; return out; }
-    if (D.level === 'chunks') {
-      var m = D.syl.length, j = p.chunk, sy = D.syl[j], gap = 0.55 * D.s, total = 0, starts = [];
-      D.syl.forEach(function (q) { starts.push(total); total += (D.homeW(q)) * 1.18 + gap; }); total -= gap;
-      var scale = Math.min(1, (HL.narrow ? 3.3 : 4.9) / Math.max(total, 0.01)); D.chunkScale = scale;
-      var x0 = (-total / 2 + starts[j]) * scale, inChunk = (p.home.x - D.pieces.filter(function (q) { return q.chunk === j; })[0].home.x) * 1.18 * scale;
-      var firstW = D.pieces.filter(function (q) { return q.chunk === j; })[0].size * 0.36;
-      out.set(x0 + inChunk + firstW, C.y + Math.sin(t * 0.9 + j * 1.3) * 0.06 * (reduce() ? 0 : 1) + (j % 2 ? 0.12 : -0.12), 0.5 + Math.cos(j * 1.7) * 0.25);
-      return out;
+    var C = HL.CENTER, n = D.pieces.length, lv = D.lv, s = D.s, rd = reduce() ? 0 : 1;
+    if (lv === 'sent') {
+      var g = p.seg.group, nG = D.nG, inG = D.pieces.filter(function (q) { return q.seg.group === g; }), k = inG.indexOf(p), m = inG.length;
+      var R = HL.narrow ? 2.6 : 3.6, row = g, rows = nG, y = C.y + ((rows - 1) / 2 - row) * 0.62 * Math.min(1, 4 / rows);
+      var span = Math.min(1.4, 0.36 * m), th = (k - (m - 1) / 2) * (span / Math.max(1, m - 1)) + (g % 2 ? 0.08 : -0.08);
+      return out.set(R * Math.sin(th), y + Math.sin(t * 0.8 + p.j) * 0.03 * rd, 0.5 + R - R * Math.cos(th) - R * 0.9 + (g % 2 ? 0.15 : 0));
     }
-    var R = clamp(0.24 * n, 1.0, HL.narrow ? 1.45 : 2.1), th = p.j / n * Math.PI * 2 + D.phase;
-    return out.set(R * Math.sin(th), C.y + 0.28 * Math.sin(th * 2 + 0.6) , 0.15 + R * 0.6 * Math.cos(th));
+    /* morphemes / groups move apart along the line they were read on: each keeps its width, with clear space between,
+       bowed gently towards you */
+    var spread = 0.22 + 0.06 * Math.min(4, n), x = p.home.x * 1.12 + (p.j - (n - 1) / 2) * spread;
+    return out.set(x, C.y + Math.sin(t * 0.9 + p.j * 1.3) * 0.05 * rd + (p.j % 2 ? 0.12 : -0.06), 0.45 + Math.abs(x) * 0.18);
   };
-  D.homeW = function (sy) { var ps = D.pieces.filter(function (q) { return q.i >= sy[0] && q.i < sy[1]; }); if (!ps.length) return 0.3; return ps[ps.length - 1].home.x - ps[0].home.x + ps[0].size * 0.72; };
-  var _d = V(), ISO = V();
+  var ISO = V();
   D.update = function (dt, t) {
     if (!D.pieces.length) return;
     var rd = reduce(), sp = rd ? 6 : 1.6;
     D.ex += clamp(D.exT - D.ex, -sp * dt, sp * dt);
-    var e = ease(D.ex), k = damp(dt, 7);
-    if (!rd && D.iso < 0) D.phase += dt * 0.22 * e;
+    var e = ease(D.ex), k = damp(dt, 7), _d = V();
     ISO.set(0, HL.CENTER.y + 0.2, HL.narrow ? 1.2 : 1.5);
     var bb = D.labels, cs = [];
     for (var j = 0; j < D.pieces.length; j++) {
       var p = D.pieces[j], m = p.mesh, a = HL.appear(j, 0.05);
       D.expPos(p, t, _d); _d.lerp(p.home, 1 - e).add(p.off);
       var sc = 1, op = 1;
-      if (D.iso >= 0) { if (D.iso === j) { _d.copy(ISO); sc = 2.3; } else { _d.z -= 0.9; op = 0.22; } }
+      if (D.iso >= 0) { if (D.iso === j) { _d.copy(ISO); sc = 2.0; } else { _d.z -= 0.9; op = 0.22; } }
       if (a <= 0) continue;
       if (!p.dragging) { p.cur.lerp(_d, a < 1 ? damp(dt, 4) : k); m.position.copy(p.cur); }
-      var target = p.baseScale * sc * a; var ns = lerp(m.scale.x, target, k); m.scale.setScalar(Math.max(ns, 0.001));
-      if (m.userData.plane) m.quaternion.copy(HL.camera.quaternion);
-      else { m.rotation.y = D.iso === j ? Math.sin(t * 0.7) * 0.5 : e * Math.sin(t * 0.8 + j) * (rd ? 0.15 : 0.55); m.rotation.x = e * Math.sin(t * 0.6 + j * 2) * (rd ? 0.05 : 0.2); }
-      m.material = D.iso >= 0 && D.iso !== j ? dmat('dim', '#2a5a7a') : D.iso === j ? dmat('hi', '#ffffff') : dmat(p.matKey, p.color);
-      // label under each piece (exploded only)
+      if (m.userData.plane) { var tw = p.base * sc * a; m.scale.set(lerp(m.scale.x, tw, k) || 0.001, lerp(m.scale.y, tw / m.userData.aspect, k) || 0.001, 1); m.quaternion.copy(HL.camera.quaternion); }
+      else { var ns = lerp(m.scale.x, p.base * sc * a, k); m.scale.setScalar(Math.max(ns, 0.001)); m.rotation.y = D.iso === j ? Math.sin(t * 0.7) * 0.4 : e * Math.sin(t * 0.6 + j) * (rd ? 0.08 : 0.25) - (D.lv !== 'morph' ? e * Math.atan2(m.position.x, 3.5) : 0); m.rotation.x = e * Math.sin(t * 0.5 + j * 2) * (rd ? 0.03 : 0.1); }
+      if (!m.userData.plane) m.material = D.iso >= 0 && D.iso !== j ? dmat('dim', '#2a5a7a') : D.iso === j ? dmat('hi', '#ffffff') : dmat('g' + j, p.color);
       var la = (D.iso < 0 ? e : (D.iso === j ? 1 : 0)) * a * op;
-      _p.copy(m.position); _p.y -= p.size * (D.iso === j ? 1.6 : 0.78) + 0.05;
-      var lw = (HL.narrow ? 0.62 : 0.55) * (D.iso === j ? 1.4 : 1);
+      _p.copy(m.position); _p.y -= p.size * D.s * (D.iso === j ? 1.5 : 0.8) + 0.08;
+      var lw = (HL.narrow ? 0.95 : 0.9) * (D.iso === j ? 1.3 : 1);
       bb.set(j, _p, la > 0.02 ? lw : 0, la > 0.02 ? lw * 72 / 256 : 0); bb.tint(j, 1, 1, 1, la);
-      cs[p.chunk] = cs[p.chunk] || V(); if (!cs[p.chunk].n) cs[p.chunk].n = 0; cs[p.chunk].add(m.position); cs[p.chunk].n++;
+      var gi = p.seg.group; cs[gi] = cs[gi] || V(); if (!cs[gi].n) cs[gi].n = 0; cs[gi].add(m.position); cs[gi].n++;
     }
-    // chunk labels: chunks level only, above each syllable group
-    for (var c = 0; c < D.syl.length; c++) {
-      var show = D.level === 'chunks' && D.iso < 0 && cs[c] ? e : 0, idx = D.chunkLab + c;
-      if (cs[c]) { _p.copy(cs[c]).multiplyScalar(1 / cs[c].n); _p.y += 0.5 * D.s + 0.12; }
-      var w = HL.narrow ? 0.7 : 0.62; bb.set(idx, _p, show > 0.02 ? w : 0, show > 0.02 ? w * 72 / 256 : 0); bb.tint(idx, 1, 1, 1, show);
+    for (var c = 0; c < D.nG; c++) {
+      var show = D.lv === 'sent' && D.iso < 0 && cs[c] ? e : 0, idx = D.groupLab + c;
+      if (cs[c]) { _p.copy(cs[c]).multiplyScalar(1 / cs[c].n); _p.y += 0.34; }
+      var w = HL.narrow ? 0.72 : 0.66; bb.set(idx, _p, show > 0.02 ? w : 0, show > 0.02 ? w * 72 / 256 : 0); bb.tint(idx, 1, 1, 1, show);
     }
-    var ta = (1 - e) * HL.appear(D.pieces.length, 0.05) * (D.iso < 0 ? 1 : 0), tw = HL.narrow ? 1.5 : 1.7;
-    _p.set(0, HL.CENTER.y + 0.55 * D.s + 0.45, 0.3); bb.set(D.titleLab, _p, ta > 0.02 ? tw : 0, ta > 0.02 ? tw * 72 / 256 : 0); bb.tint(D.titleLab, 1, 1, 1, ta);
+    var ta = (1 - e) * HL.appear(D.pieces.length, 0.05) * (D.iso < 0 ? 1 : 0), tw2 = HL.narrow ? 1.6 : 1.8;
+    _p.set(0, HL.CENTER.y + 0.75, 0.3); bb.set(D.titleLab, _p, ta > 0.02 ? tw2 : 0, ta > 0.02 ? tw2 * 72 / 256 : 0); bb.tint(D.titleLab, 1, 1, 1, ta);
     bb.commit();
   };
   D.pick = function (x, y) {
     var best = null, bd = Infinity;
     D.pieces.forEach(function (p, j) {
-      var s = HL.screenOf(p.mesh.position); if (s.behind) return;
-      var r = Math.max(26, p.size * p.mesh.scale.x / (p.baseScale || 1) * s.ppu * 0.6), d = Math.hypot(s.x - x, s.y - y);
-      if (d < r && s.depth + d * 0.001 < bd) { bd = s.depth + d * 0.001; best = { p: p, j: j, drag: true }; }
+      var sc = HL.screenOf(p.mesh.position); if (sc.behind) return;
+      var r = Math.max(28, p.w * D.s * sc.ppu * 0.55), d = Math.hypot(sc.x - x, sc.y - y);
+      if (d < r && sc.depth + d * 0.001 < bd) { bd = sc.depth + d * 0.001; best = { p: p, j: j, drag: true }; }
     });
     return best;
   };
@@ -383,25 +443,26 @@
     if (!h) { if (D.iso >= 0) { D.iso = -1; HL.info(''); } else HL.detail.close(); return; }
     if (D.exT < 0.5) { D.exT = 1; HL.refreshTools(); return; }
     if (D.iso === h.j) { D.iso = -1; HL.info(''); return; }
-    D.iso = h.j; var p = h.p;
-    if (D.level === 'strokes') HL.info('“' + p.ch.toUpperCase() + '” 第 ' + (p.stroke + 1) + ' 笔 / 共 ' + p.nStrokes + ' 笔 · stroke ' + (p.stroke + 1) + ' of ' + p.nStrokes + ' (大写笔顺 capital form)');
-    else {
-      var sy = D.syl[p.chunk] || [0, D.word.length];
-      HL.info('第 ' + (p.li + 1) + ' 个字母 · “' + p.ch + '” · ' + (p.vowel ? '元音 vowel' : /[A-Za-z]/.test(p.ch) ? '辅音 consonant' : '字符') + (D.syl.length > 1 ? ' · 音节 ' + (p.chunk + 1) + '/' + D.syl.length + ' “' + D.word.slice(sy[0], sy[1]) + '”' : ''));
-    }
+    D.iso = h.j; var sg = h.p.seg;
+    HL.info('“' + sg.text + '” · ' + sg.sub + (D.lv === 'sent' && sg.gtext ? ' · 意群 ' + (sg.group + 1) + '：' + sg.gtext + (sg.gzh ? '（' + sg.gzh + '）' : '') : ''));
   };
   D.dragStart = function (h, x, y) { var p = h.p; p.dragging = true; p.drag = HL.dragPlane(p.mesh.position.clone(), x, y); };
   D.dragMove = function (h, x, y) { var q = h.p.drag.to(x, y); if (q) { h.p.mesh.position.copy(q); h.p.cur.copy(q); } };
   D.dragEnd = function (h) {
-    var p = h.p; p.dragging = false;
+    var p = h.p, _d = V(); p.dragging = false;
     if (D.iso === h.j) return;
     D.expPos(p, HL.now, _d); _d.lerp(p.home, 1 - ease(D.ex)); p.off.copy(p.mesh.position).sub(_d);
   };
   D.setWord = function (uid) { L().dis.word = uid; HL.save(); D.build(false); D.exT = 0; HL.refreshTools(); };
   D.tools = function (box) {
     var ui = HL.ui, cs = D.candidates(), cur = D.it;
+    [['morph', '词根 Roots'], ['chunk', '意群 Chunks'], ['sent', '句子 Sentence']].forEach(function (lv) {
+      ui.chip(box, lv[1], L().dis.level === lv[0], function () { L().dis.level = lv[0]; HL.save(); D.build(false); D.exT = 1; HL.refreshTools(); },
+        lv[0] === 'morph' ? '前缀 · 词根 · 后缀及含义' : lv[0] === 'chunk' ? '短语按意群切分' : '例句按意群分组，逐词拆开');
+    });
     if (!cs.length) return;
-    var sel = document.createElement('select'); sel.setAttribute('aria-label', '选择单词 Choose a word');
+    ui.sep(box);
+    var sel = document.createElement('select'); sel.setAttribute('aria-label', '选择词条 Choose an entry');
     var groups = {}; cs.forEach(function (it) { var g = it.groupTitle || ''; (groups[g] = groups[g] || []).push(it); });
     Object.keys(groups).forEach(function (g) { var og = document.createElement('optgroup'); og.label = g; groups[g].forEach(function (it) { var o = document.createElement('option'); o.value = it.uid; o.textContent = it.title; if (cur && it.uid === cur.uid) o.selected = true; og.appendChild(o); }); sel.appendChild(og); });
     sel.onchange = function () { D.setWord(sel.value); };
@@ -410,18 +471,12 @@
     box.appendChild(sel);
     ui.chip(box, '▸', false, function () { D.setWord(cs[(i0 + 1) % cs.length].uid); });
     ui.sep(box);
-    [['chunks', '音节 Syllables'], ['letters', '字母 Letters'], ['strokes', '笔画 Strokes']].forEach(function (lv) {
-      var b = ui.chip(box, lv[1], D.level === lv[0], function () { L().dis.level = lv[0]; HL.save(); D.build(true); D.exT = 1; HL.refreshTools(); },
-        lv[0] === 'chunks' ? '音节为自动估计 · syllables are estimated by rule' : lv[0] === 'strokes' ? '大写字母的笔画 · strokes of the capital letters' : '');
-      if (lv[0] === 'strokes' && !HL.strokes) b.disabled = true;
-    });
-    ui.sep(box);
-    ui.chip(box, D.exT > 0.5 ? '🧩 重组 Assemble' : '✦ 拆解 Explode', false, function () {
+    ui.chip(box, D.exT > 0.5 ? '🧩 合起 Assemble' : '✦ 拆开 Explode', false, function () {
       D.exT = D.exT > 0.5 ? 0 : 1; D.iso = -1; HL.info('');
       if (!D.exT) D.pieces.forEach(function (p) { p.off.set(0, 0, 0); });
       HL.refreshTools();
     });
-    ui.chip(box, 'ⓘ 词条', false, function () { if (D.it) HL.detail.open(D.it, { sub: D.syl && D.syl.length > 1 ? '音节（自动估计）: ' + D.syl.map(function (s) { return D.word.slice(s[0], s[1]); }).join(' · ') : '' }); });
+    ui.chip(box, 'ⓘ 词条', false, function () { if (D.it) HL.detail.open(D.it, {}); });
   };
   HL.register(D);
 

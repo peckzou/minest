@@ -31,9 +31,9 @@
   /* ───────────────────────── layout (persisted) ───────────────────────── */
   var LS_KEY = 'minest.holoLab.v1';
   function defLayout() {
-    return { v: 1, mode: 'panels', settings: { bright: 1, scan: true, reduce: OS_REDUCE },
-      panels: { src: 'all', arrange: 'grid', order: [], free: {}, rot: {}, page: 0 },
-      dis: { word: null, level: 'letters' }, rings: { assign: {}, page: 0 }, stars: {} };
+    return { v: 1, v2: 1, mode: 'panels', settings: { bright: 1, scan: true, reduce: OS_REDUCE },
+      panels: { src: 'all', arrange: 'dome', order: [], free: {}, rot: {}, page: 0 },
+      dis: { word: null, level: 'morph' }, rings: { assign: {}, page: 0 }, stars: {} };
   }
   function cleanLayout(L) {
     var d = defLayout(); if (!L || typeof L !== 'object') return d;
@@ -44,12 +44,13 @@
     if (typeof s.reduce === 'boolean') d.settings.reduce = s.reduce;
     var p = L.panels || {};
     if (/^(all|words|charts|knowledge|works)$/.test(p.src)) d.panels.src = p.src;
-    if (/^(grid|arc|stack|free)$/.test(p.arrange)) d.panels.arrange = p.arrange;
+    if (/^(dome|grid|arc|stack|free)$/.test(p.arrange)) d.panels.arrange = p.arrange;
+    if (!L.v2 && p.arrange === 'grid') d.panels.arrange = 'dome';   // 2026-11-19: the hemisphere is the new default (once)
     d.panels.order = arr(p.order).filter(function (x) { return typeof x === 'string'; }).slice(0, 2000);
     if (p.free && typeof p.free === 'object') Object.keys(p.free).slice(0, 400).forEach(function (k) { var v = p.free[k]; if (Array.isArray(v) && v.length === 3 && v.every(isFinite)) d.panels.free[k] = v.map(Number); });
     if (p.rot && typeof p.rot === 'object') Object.keys(p.rot).slice(0, 400).forEach(function (k) { if (isFinite(p.rot[k])) d.panels.rot[k] = Number(p.rot[k]); });
     d.panels.page = Math.max(0, p.page | 0);
-    var ds = L.dis || {}; if (typeof ds.word === 'string') d.dis.word = ds.word; if (/^(chunks|letters|strokes)$/.test(ds.level)) d.dis.level = ds.level;
+    var ds = L.dis || {}; if (typeof ds.word === 'string') d.dis.word = ds.word; if (/^(morph|chunk|sent)$/.test(ds.level)) d.dis.level = ds.level;   // letters / strokes / syllables are gone (the user: letters mean nothing)
     var r = L.rings || {}; if (r.assign && typeof r.assign === 'object') Object.keys(r.assign).slice(0, 2000).forEach(function (k) { if (typeof r.assign[k] === 'string') d.rings.assign[k] = r.assign[k]; });
     d.rings.page = Math.max(0, r.page | 0);
     return d;
@@ -515,6 +516,16 @@
   /* ───────────────────────── content ───────────────────────── */
   var LOOK = { neon: '#ff5a2a', argon: '#7d6bff', helium: '#ffb38e', xenon: '#c9d6ff' };
   HL.LOOK = LOOK;
+  /* the breakdown the parent sends (morphemes, sense groups, sentence), size-limited and typed */
+  function cleanBd(b) {
+    if (!b || typeof b !== 'object') return null;
+    var o = { ai: !!b.ai, form: !!b.form, head: str(b.head, 40), origin: str(b.origin, 140) };
+    o.morph = arr(b.morph).slice(0, 6).map(function (m) { return { p: str(m && m.p, 24), m: str(m && m.m, 32), k: /^(pre|root|suf)$/.test(m && m.k) ? m.k : 'root' }; }).filter(function (m) { return m.p; });
+    o.chunks = arr(b.chunks).slice(0, 8).map(function (c) { return { text: str(c && c.text, 60), zh: str(c && c.zh, 40) }; }).filter(function (c) { return c.text; });
+    var s = b.sentence; if (s && typeof s === 'object') o.sentence = { text: str(s.text, 240), chunks: arr(s.chunks).slice(0, 8).map(function (c) { return { text: str(c && c.text, 80), zh: str(c && c.zh, 40),
+      words: arr(c && c.words).slice(0, 10).map(function (w) { return { w: str(w && w.w, 24), zh: str(w && w.zh, 20), pos: str(w && w.pos, 10), fn: !!(w && w.fn) }; }).filter(function (w) { return w.w; }) }; }).filter(function (c) { return c.words.length; }) };
+    return o;
+  }
   function normalize(d, isSample) {
     d = d && typeof d === 'object' ? d : {};
     var out = { lists: [], charts: [], knowledge: [], works: [], words: [], all: [], isSample: !!isSample || !!d.demo, byUid: {} };
@@ -525,20 +536,20 @@
       arr(l.items).slice(0, 400).forEach(function (it, ii) {
         if (!it || typeof it !== 'object' || !(it.title || it.text)) return;
         var o = { kind: src === 'gptstudy' ? 'word' : 'card', id: String(it.id != null ? it.id : key + ':' + ii), title: str(it.title, 120), text: str(it.text, 1200),
-          learned: !!it.learned, tags: arr(it.tags).map(function (t) { return str(t, 24); }).filter(Boolean).slice(0, 8), group: 'l:' + key, groupTitle: L.title };
+          bd: cleanBd(it.bd), learned: !!it.learned, tags: arr(it.tags).map(function (t) { return str(t, 24); }).filter(Boolean).slice(0, 8), group: 'l:' + key, groupTitle: L.title };
         L.items.push(o);
       });
       out.lists.push(L);
     });
     arr(d.charts).slice(0, 200).forEach(function (c, i) {
       if (!c || typeof c !== 'object') return;
-      out.charts.push({ kind: 'chart', id: String(c.id != null ? c.id : 'chart' + i), title: str(c.title, 120), text: str(c.text, 1200), sub: str(c.sub) || 'other', subName: str(c.subName, 30) || 'Anchor Chart',
+      out.charts.push({ kind: 'chart', bd: cleanBd(c.bd), id: String(c.id != null ? c.id : 'chart' + i), title: str(c.title, 120), text: str(c.text, 1200), sub: str(c.sub) || 'other', subName: str(c.subName, 30) || 'Anchor Chart',
         ink: hexOk(c.ink) || '#6fe3ff', today: !!c.today, mastered: !!c.mastered, learned: !!c.mastered, tags: arr(c.tags).map(function (t) { return str(t, 24); }).filter(Boolean), group: 's:' + (str(c.sub) || 'other'), groupTitle: str(c.subName, 30) || 'Anchor Chart' });
     });
     arr(d.knowledge).slice(0, 300).forEach(function (k, i) {
       if (!k || typeof k !== 'object' || !(k.title || k.text)) return;
       var b = str(k.board, 40);
-      out.knowledge.push({ kind: 'knowledge', id: String(k.id != null ? k.id : 'k' + i), title: str(k.title, 120), text: str(k.text, 1200), tags: arr(k.tags).map(function (t) { return str(t, 24); }).filter(Boolean).slice(0, 8), parents: arr(k.parents).map(function (x) { return String(x); }).slice(0, 12), group: 'k:' + (b || '知识'), groupTitle: b || '知识 Knowledge' });
+      out.knowledge.push({ kind: 'knowledge', bd: cleanBd(k.bd), id: String(k.id != null ? k.id : 'k' + i), title: str(k.title, 120), text: str(k.text, 1200), tags: arr(k.tags).map(function (t) { return str(t, 24); }).filter(Boolean).slice(0, 8), parents: arr(k.parents).map(function (x) { return String(x); }).slice(0, 12), group: 'k:' + (b || '知识'), groupTitle: b || '知识 Knowledge' });
     });
     arr(d.works).slice(0, 80).forEach(function (w, i) {
       if (!w || typeof w !== 'object' || !w.word) return;

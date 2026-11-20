@@ -15,17 +15,21 @@
 
   /* ---------------- 构词: common roots and affixes (meanings in Chinese) ---------------- */
   var PRE = [['contra', '反对'], ['counter', '反、对抗'], ['extra', '超出'], ['inter', '在…之间'], ['intra', '在内'], ['trans', '跨越'], ['super', '在上、超'], ['ultra', '极端'], ['under', '在下、不足'], ['over', '过度、在上'], ['anti', '反对'], ['auto', '自己'], ['semi', '半'], ['fore', '预先'], ['mis', '错误'], ['non', '非'], ['post', '在后'], ['pre', '在前、预先'], ['pro', '向前、支持'], ['sub', '在下'], ['sur', '在上、超'], ['tele', '远'], ['para', '旁、类似'], ['circum', '环绕'], ['dis', '不、分开'], ['com', '共同'], ['con', '共同'], ['col', '共同'], ['cor', '共同'], ['ab', '离开'], ['ac', '朝向（ad-）'], ['ad', '朝向'], ['af', '朝向（ad-）'], ['ag', '朝向（ad-）'], ['al', '朝向（ad-）'], ['ap', '朝向（ad-）'], ['as', '朝向（ad-）'], ['at', '朝向（ad-）'], ['de', '向下、去除'], ['ex', '向外'], ['en', '使…'], ['em', '使…'], ['il', '不、向内'], ['im', '不、向内'], ['in', '不、向内'], ['ir', '不'], ['ob', '逆、对'], ['per', '贯穿'], ['re', '再、回'], ['un', '不'], ['bi', '二'], ['tri', '三'], ['uni', '一'], ['co', '共同']];
-  var SUF = [['ically', '副词'], ['ated', '-ate 使… + -ed 过去分词'], ['ized', '-ize 使…化 + -ed'], ['ating', '-ate 使… + -ing'], ['ation', '名词：行为、状态'], ['ition', '名词：行为、状态'], ['ative', '形容词：有…倾向'], ['ement', '名词：结果、状态'], ['ness', '名词：性质'], ['ment', '名词：结果、行为'], ['tion', '名词：行为、状态'], ['sion', '名词：行为、状态'], ['ible', '形容词：能…的'], ['able', '形容词：能…的'], ['ance', '名词：状态'], ['ence', '名词：状态'], ['ious', '形容词：充满…的'], ['eous', '形容词：具有…的'], ['ous', '形容词：充满…的'], ['ship', '名词：身份、关系'], ['hood', '名词：身份、时期'], ['less', '形容词：没有…的'], ['ful', '形容词：充满…的'], ['ive', '形容词：有…性质的'], ['ical', '形容词：…的'], ['ic', '形容词：…的'], ['ism', '名词：主义、行为'], ['ist', '名词：…的人'], ['ity', '名词：性质'], ['ize', '动词：使…化'], ['ise', '动词：使…化'], ['ify', '动词：使…'], ['ate', '动词：使…'], ['ant', '形容词 / 名词：…的（人）'], ['ent', '形容词 / 名词：…的（人）'], ['ary', '形容词 / 名词：与…有关'], ['ory', '形容词 / 名词：与…有关'], ['ure', '名词：行为、结果'], ['al', '形容词：…的'], ['er', '名词：…的人 / 比较级'], ['or', '名词：…的人、物'], ['ly', '副词'], ['ing', '动名词 / 现在分词'], ['ed', '过去式 / 过去分词'], ['ward', '方向'], ['y', '形容词：有…的'], ['es', '复数'], ['s', '复数']];
-  var ROOT = [['struct', '建造'], ['struc', '建造'], ['script', '写'], ['scrib', '写'], ['spect', '看'], ['spec', '看'], ['dict', '说'], ['duct', '引导'], ['duc', '引导'], ['ject', '投、掷'], ['tract', '拉'], ['port', '携带'], ['rupt', '断裂'], ['vert', '转'], ['vers', '转'], ['vis', '看'], ['vid', '看'], ['voc', '声音、喊'], ['vok', '喊'], ['ven', '来'], ['vent', '来'], ['mit', '送'], ['miss', '送'], ['mot', '动'], ['mov', '动'], ['mob', '动'], ['pend', '悬挂'], ['pens', '悬挂、付'], ['pos', '放置'], ['pon', '放置'], ['cept', '拿、取'], ['cap', '拿、取'], ['ceive', '拿、取'], ['cede', '走'], ['ced', '走'], ['cess', '走'], ['ceed', '走'], ['cred', '相信'], ['chron', '时间'], ['graph', '写、画'], ['gram', '写、记录'], ['phon', '声音'], ['phone', '声音'], ['morph', '形态'], ['log', '言、学'], ['logy', '学科'], ['bio', '生命'], ['geo', '地'], ['aud', '听'], ['bene', '好'], ['fact', '做'], ['fect', '做'], ['fac', '做'], ['fer', '携带'], ['form', '形状'], ['jud', '判断'], ['nat', '出生'], ['path', '感情、疾病'], ['ped', '脚'], ['sens', '感觉'], ['sent', '感觉'], ['sect', '切'], ['tend', '伸展'], ['tens', '伸展'], ['terr', '土地'], ['cent', '唱（cantus）/ 百'], ['cant', '唱'], ['don', '给'], ['dom', '统治'], ['fin', '结束'], ['flex', '弯曲'], ['fort', '强'], ['grat', '感激、愉悦'], ['lect', '选、读'], ['leg', '读、法'], ['loc', '地方'], ['lum', '光'], ['man', '手'], ['mem', '记忆'], ['ment', '心智'], ['min', '小'], ['mon', '提醒'], ['mor', '死 / 习俗'], ['mut', '变'], ['nov', '新'], ['pel', '推'], ['puls', '推'], ['ple', '满'], ['quer', '问、寻'], ['quest', '问、寻'], ['rect', '直'], ['rog', '问'], ['sign', '标记'], ['sist', '站立'], ['stat', '站立'], ['tain', '保持'], ['ten', '保持'], ['tort', '扭'], ['band', '捆绑'], ['venture', '冒险（来）'], ['ven', '来'], ['wrath', '古英语 wrāþ，愤怒']];
+  var SUF = [['ically', '副词'], ['ated', '-ate 使… + -ed 过去分词'], ['ized', '-ize 使…化 + -ed'], ['ating', '-ate 使… + -ing'], ['ation', '名词：行为、状态'], ['ition', '名词：行为、状态'], ['ative', '形容词：有…倾向'], ['ement', '名词：结果、状态'], ['ness', '名词：性质'], ['ment', '名词：结果、行为'], ['tion', '名词：行为、状态'], ['sion', '名词：行为、状态'], ['ible', '形容词：能…的'], ['able', '形容词：能…的'], ['ance', '名词：状态'], ['ence', '名词：状态'], ['ious', '形容词：充满…的'], ['eous', '形容词：具有…的'], ['ous', '形容词：充满…的'], ['ship', '名词：身份、关系'], ['hood', '名词：身份、时期'], ['less', '形容词：没有…的'], ['ful', '形容词：充满…的'], ['ive', '形容词：有…性质的'], ['ical', '形容词：…的'], ['ic', '形容词：…的'], ['ism', '名词：主义、行为'], ['ist', '名词：…的人'], ['ity', '名词：性质'], ['ize', '动词：使…化'], ['ise', '动词：使…化'], ['ify', '动词：使…'], ['ate', '动词：使…'], ['ant', '形容词 / 名词：…的（人）'], ['ent', '形容词 / 名词：…的（人）'], ['ary', '形容词 / 名词：与…有关'], ['ory', '形容词 / 名词：与…有关'], ['ure', '名词：行为、结果'], ['al', '形容词：…的'], ['er', '名词：…的人 / 比较级'], ['or', '名词：…的人、物'], ['ly', '副词'], ['ing', '动名词 / 现在分词'], ['ed', '过去式 / 过去分词'], ['eme', '名词：语言单位'], ['ward', '方向'], ['y', '形容词：有…的'], ['es', '复数'], ['s', '复数']];
+  var ROOT = [['struct', '建造'], ['struc', '建造'], ['press', '压'], ['pres', '压'], ['jec', '投、掷'], ['dic', '说'], ['scrip', '写'], ['mis', '送'],  ['script', '写'], ['scrib', '写'], ['spect', '看'], ['spec', '看'], ['dict', '说'], ['duct', '引导'], ['duc', '引导'], ['ject', '投、掷'], ['tract', '拉'], ['port', '携带'], ['rupt', '断裂'], ['vert', '转'], ['vers', '转'], ['vis', '看'], ['vid', '看'], ['voc', '声音、喊'], ['vok', '喊'], ['ven', '来'], ['vent', '来'], ['mit', '送'], ['miss', '送'], ['mot', '动'], ['mov', '动'], ['mob', '动'], ['pend', '悬挂'], ['pens', '悬挂、付'], ['pos', '放置'], ['pon', '放置'], ['cept', '拿、取'], ['cap', '拿、取'], ['ceive', '拿、取'], ['cede', '走'], ['ced', '走'], ['cess', '走'], ['ceed', '走'], ['cred', '相信'], ['chron', '时间'], ['graph', '写、画'], ['gram', '写、记录'], ['phon', '声音'], ['phone', '声音'], ['morph', '形态'], ['log', '言、学'], ['logy', '学科'], ['bio', '生命'], ['geo', '地'], ['aud', '听'], ['bene', '好'], ['fact', '做'], ['fect', '做'], ['fac', '做'], ['fer', '携带'], ['form', '形状'], ['jud', '判断'], ['nat', '出生'], ['path', '感情、疾病'], ['ped', '脚'], ['sens', '感觉'], ['sent', '感觉'], ['sect', '切'], ['tend', '伸展'], ['terr', '土地'], ['cent', '唱（cantus）/ 百'], ['cant', '唱'], ['don', '给'], ['dom', '统治'], ['fin', '结束'], ['flex', '弯曲'], ['fort', '强'], ['grat', '感激、愉悦'], ['lect', '选、读'], ['leg', '读、法'], ['loc', '地方'], ['lum', '光'], ['man', '手'], ['mem', '记忆'], ['ment', '心智'], ['min', '小'], ['mon', '提醒'], ['mor', '死 / 习俗'], ['mut', '变'], ['nov', '新'], ['pel', '推'], ['puls', '推'], ['ple', '满'], ['quer', '问、寻'], ['quest', '问、寻'], ['rect', '直'], ['rog', '问'], ['sign', '标记'], ['sist', '站立'], ['stat', '站立'], ['tain', '保持'], ['tort', '扭'], ['band', '捆绑'], ['venture', '冒险（来）'], ['ven', '来'], ['wrath', '古英语 wrāþ，愤怒']];
   function parts(word) {
     var w = String(word || '').toLowerCase().replace(/[^a-z]/g, ''); if (w.length < 5) return null;
     var out = [], rest = w, i, pre = null, sufs = [];
     for (i = 0; i < PRE.length; i++) if (rest.indexOf(PRE[i][0]) === 0 && rest.length - PRE[i][0].length >= 4) { pre = PRE[i]; rest = rest.slice(pre[0].length); break; }
+    var INF1 = { s: 1, es: 1, ed: 1, ing: 1 }, hadInf = false;
     for (var round = 0; round < 2; round++) {
-      var hit = null; for (i = 0; i < SUF.length; i++) { var s = SUF[i][0]; if (rest.length - s.length >= 3 && rest.slice(-s.length) === s) { hit = SUF[i]; break; } }
-      if (!hit) break; sufs.unshift(hit); rest = rest.slice(0, -hit[0].length);
+      var hit = null; for (i = 0; i < SUF.length; i++) { var s = SUF[i][0]; if (rest.length - s.length >= 3 && rest.slice(-s.length) === s && !(hadInf && INF1[s]) && !(round && INF1[s])) { hit = SUF[i]; break; } }
+      if (hit && hit[0] === 'es' && !/(ss|x|z|ch|sh)$/.test(rest.slice(0, -2))) hit = ['s', '复数'];   // tenses = tense + -s
+      if (!hit) break; if (INF1[hit[0]]) hadInf = true; sufs.unshift(hit); rest = rest.slice(0, -hit[0].length);   // one word ending only (tenses ≠ ten + -s + -es)
     }
-    var root = null; for (i = 0; i < ROOT.length; i++) if (ROOT[i][0].length >= 3 && rest.indexOf(ROOT[i][0]) === 0) { root = ROOT[i]; break; }   // only a root that starts the stem
+    /* only a root that starts the stem; a three-letter root only under a prefix (on its own it is too often a false
+       match: tense is not ten 'hold') */
+    var root = null; for (i = 0; i < ROOT.length; i++) if ((ROOT[i][0].length >= 4 || pre) && ROOT[i][0].length >= 3 && rest.indexOf(ROOT[i][0]) === 0) { root = ROOT[i]; break; }
     if (pre && !root) { rest = pre[0] + rest; pre = null; }   // no known root under it: the prefix is not split off either (too often wrong)
     /* an inflection only (-ed / -ing / -s) on a stem with no known root is not a breakdown — it is the base word and
        its form: embedded → embed + -ed (a doubled last consonant is undone) */
@@ -43,11 +47,12 @@
 
   var FUNC = /^(a|an|the|of|to|in|on|at|for|with|from|by|about|into|onto|through|over|under|between|among|during|before|after|and|or|but|so|because|if|when|while|that|which|who|whom|whose|where|is|are|was|were|be|been|being|am|do|does|did|it|its|this|these|those|as|than|not|no|can|could|will|would|should|may|might|must|has|have|had|their|his|her|our|your|my)$/i;
   var BREAK = /^(of|to|in|on|at|for|with|from|by|about|into|onto|through|over|under|between|among|during|before|after|and|or|but|so|because|if|when|while|that|which|who|whom|whose|where|than|as)$/i;
-  function chunks(text) {
+  function chunks(text, minLen) {
+    var ml = minLen || 2;
     var toks = String(text || '').match(/[A-Za-z][A-Za-z'’-]*|[0-9]+|[,;:.!?()—–]/g) || [], out = [], curr = [];
     toks.forEach(function (t, i) {
       if (/^[,;:.!?()—–]$/.test(t)) { if (curr.length) out.push(curr); curr = []; return; }
-      if (BREAK.test(t) && curr.length >= 2) { out.push(curr); curr = []; }
+      if (BREAK.test(t) && curr.length >= ml) { out.push(curr); curr = []; }
       curr.push(t);
     });
     if (curr.length) out.push(curr);
@@ -75,7 +80,9 @@
   function familyParts(id) {
     try { var b = window.MinestAI && MinestAI.board(), L = window.MinestLearningData; if (!b || !L) return null;
       var col = (b.columns || []).filter(function (c) { return (c.cards || []).some(function (k) { return k.id === id; }); })[0]; if (!col) return null;
-      var d = L.load(b, col.id), fam = d && (d.families || []).filter(function (x) { return x.cardId === id; })[0]; return fam && fam.parts && fam.parts.length > 1 ? fam.parts : null; } catch (e) { return null; }
+      var mk = b.id + '|' + col.id, mm = familyParts.memo || (familyParts.memo = {}), d;
+      if (mm[mk] && Date.now() - mm[mk].t < 5000) d = mm[mk].d; else { d = L.load(b, col.id); mm[mk] = { t: Date.now(), d: d }; }
+      var fam = d && (d.families || []).filter(function (x) { return x.cardId === id; })[0]; return fam && fam.parts && fam.parts.length > 1 ? fam.parts : null; } catch (e) { return null; }
   }
   function morphMeaning(p) {
     var q = String(p).toLowerCase().replace(/[^a-z]/g, ''), i;
@@ -94,7 +101,7 @@
     else if (f.parts && f.parts.form) h += '<div class="xl-sec">词形</div><div class="xl-parts">' + box(f.parts.base, '原形') + f.parts.sufs.map(function (x) { return '<b>+</b>' + box(x.p, x.m, 'suf'); }).join('') + '</div>';
     else if (f.parts) h += '<div class="xl-sec">构词 <i>常见词根词缀</i></div><div class="xl-parts">' + f.parts.map(function (p) { return box(p.p, p.m, p.k); }).join('<b>+</b>') + '</div>';
     /* 意群 of the title */
-    var tg = d && d.chunks && d.chunks.length ? d.chunks : (f.title.split(/\s+/).length > 2 ? chunks(f.title).map(function (g) { return { text: g.join(' ') }; }) : []);
+    var tg = d && d.chunks && d.chunks.length ? d.chunks : (f.title.split(/\s+/).length > 2 ? chunks(f.title, 1).map(function (g) { return { text: g.join(' ') }; }) : []);
     if (tg.length > 1) h += '<div class="xl-sec">意群</div><div class="xl-chunks">' + tg.map(function (c) { return '<span><u>' + esc(c.text) + '</u>' + (c.zh ? '<small>' + esc(c.zh) + '</small>' : '') + '</span>'; }).join('<b>/</b>') + '</div>';
     /* 句子拆词 */
     var sd = d && d.sentence && d.sentence.chunks && d.sentence.chunks.length ? d.sentence : null;
@@ -311,5 +318,23 @@
     try { var u = new SpeechSynthesisUtterance(String(w)); u.lang = 'en-US'; u.rate = 0.9; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {}
   }
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && cur) { e.stopPropagation(); if (cur.hasFocus()) cur.focusOff(); else close(); } }, true);
-  window.MinestExplode = { open: open, close: close, isOpen: function () { return !!cur; }, facts: facts, parts: parts };
+  /* the same breakdown as data (for the Holo Lab's 构词拆解): morphemes, the title's sense groups, the sentence by sense
+     group and word — from the card's own parts, the AI breakdown kept on this device, or the conservative rules */
+  function breakdown(card) {
+    var f = facts(card || {}, { title: card && card.title }), id = card && card.id, ai = aiGet(id), d = ai && ai.d, out = { ai: !!d, head: f.head };
+    var fam = familyParts(id);
+    if (d && d.morph && d.morph.length) out.morph = d.morph.map(function (m) { return { p: String(m.part || ''), m: String(m.meaning || ''), k: m.type === 'prefix' ? 'pre' : m.type === 'suffix' ? 'suf' : 'root' }; });
+    else if (fam) out.morph = fam.map(function (x) { var q = String(x); return { p: q, m: morphMeaning(q), k: /-$/.test(q) ? 'pre' : /^-/.test(q) ? 'suf' : 'root' }; });
+    else if (f.parts && f.parts.form) out.morph = [{ p: f.parts.base, m: '原形', k: 'root' }].concat(f.parts.sufs.map(function (x) { return { p: x.p, m: x.m, k: 'suf' }; })), out.form = true;
+    else if (f.parts) out.morph = f.parts.map(function (x) { return { p: x.p, m: x.m, k: x.k }; });
+    if (d && d.origin) out.origin = String(d.origin);
+    var tc = d && d.chunks && d.chunks.length ? d.chunks : (f.title.split(/\s+/).length > 2 ? chunks(f.title, 1).map(function (g) { return { text: g.join(' ') }; }) : []);
+    if (tc.length > 1) out.chunks = tc.map(function (c) { return { text: String(c.text || ''), zh: String(c.zh || '') }; });
+    var sd = d && d.sentence && d.sentence.chunks && d.sentence.chunks.length ? d.sentence : null;
+    if (sd || f.sent) out.sentence = { text: sd ? String(sd.text || f.sent) : f.sent, chunks: (sd ? sd.chunks : chunks(f.sent).map(function (g) { return { text: g.join(' '), words: g.map(function (w) { return { w: w }; }) }; })).slice(0, 8).map(function (c) {
+      var ws = (c.words && c.words.length ? c.words : String(c.text || '').split(/\s+/).map(function (w) { return { w: w }; })).slice(0, 10);
+      return { text: String(c.text || ''), zh: String(c.zh || ''), words: ws.map(function (w) { return { w: String(w.w || ''), zh: String(w.zh || ''), pos: String(w.pos || ''), fn: FUNC.test(w.w || '') }; }) }; }) };
+    return out;
+  }
+  window.MinestExplode = { open: open, close: close, isOpen: function () { return !!cur; }, facts: facts, parts: parts, breakdown: breakdown };
 })();

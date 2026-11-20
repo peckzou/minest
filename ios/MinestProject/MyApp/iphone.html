@@ -180819,6 +180819,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   function clip(s, n) { s = plain(s); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
   var FIELD = {};                                                       // card id → the field its text came from (for edits)
   function textOf(k) { var f = k.meaning ? 'meaning' : k.titleZh ? 'titleZh' : k.desc ? 'desc' : 'meaning'; FIELD[k.id] = f; return clip(k[f] || '', 220); }
+  /* 构词拆解 data for the Lab: morphemes, sense groups, the sentence by group and word (tools/cover-modes/explode.js) */
+  function bdOf(k) { try { return root.MinestExplode && root.MinestExplode.breakdown ? root.MinestExplode.breakdown(k) : null; } catch (e) { return null; } }
   function tagsOf(k) { return (k.labels || k.tags || []).map(function (t) { return typeof t === 'string' ? t : (t && (t.name || t.label || t.title)) || ''; }).filter(Boolean).slice(0, 6); }
   var SUBS = [['ela', /language\s*arts|\bela\b|英语语言|reading|writing/i, 'Language Arts', '#2f6fd6'], ['math', /math/i, 'Math', '#d9463e'], ['sci', /science|科学/i, 'Science', '#2f9a5a'], ['ss', /social\s*studies|社会|history|geograph/i, 'Social Studies', '#b8862b']];
   function subOf(title) { for (var i = 0; i < SUBS.length; i++) if (SUBS[i][1].test(title || '')) return SUBS[i]; return ['other', null, 'Other', '#8a5ad0']; }
@@ -180830,7 +180832,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     var seen = {}, addList = function (b, c) {
       var key = 'b:' + b.id + ':' + c.id; if (seen[key] || out.lists.length >= 10) return; seen[key] = 1;
       var rec = gs && gs.lists && gs.lists[key], items = (c.cards || []).filter(function (k) { return k && k.title; }).slice(0, 80).map(function (k) {
-        return { id: k.id, title: clip(k.title, 60), text: textOf(k), learned: !!(rec && rec.cards && rec.cards[k.id] && rec.cards[k.id].learned), tags: tagsOf(k) }; });
+        return { id: k.id, bd: bdOf(k), title: clip(k.title, 60), text: textOf(k), learned: !!(rec && rec.cards && rec.cards[k.id] && rec.cards[k.id].learned), tags: tagsOf(k) }; });
       if (items.length) out.lists.push({ key: key, title: clip((c.title || '') + (b.title ? ' · ' + b.title : ''), 60), source: rec ? 'gptstudy' : 'kanban', items: items });
     };
     try { var ws = E && E.wordState(); if (ws && ws.L) addList(ws.L.b, ws.L.c); } catch (e) {}
@@ -180843,7 +180845,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     if (cb) (cb.columns || []).forEach(function (c) {
       var sub = subOf(c.title);
       (c.cards || []).forEach(function (k) { if (!k || !k.title || out.charts.length >= 120) return;
-        out.charts.push({ id: k.id, sub: sub[0], subName: sub[2], ink: sub[3], title: clip(k.title, 80), text: textOf(k), today: !!picked[k.id],
+        out.charts.push({ id: k.id, bd: bdOf(k), sub: sub[0], subName: sub[2], ink: sub[3], title: clip(k.title, 80), text: textOf(k), today: !!picked[k.id],
           mastered: !!(S && (S.mastered || []).some(function (m) { return m.id === k.id && !m.undone; })) }); });
     });
     out.charts.sort(function (a, b) { return (b.today ? 1 : 0) - (a.today ? 1 : 0); });
@@ -180854,7 +180856,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     kb.sort(function (a, b) { return (/knowledge|知识/i.test(b.title || '') ? 1 : 0) - (/knowledge|知识/i.test(a.title || '') ? 1 : 0); });
     kb.forEach(function (b) { (b.columns || []).forEach(function (c) { (c.cards || []).forEach(function (k) { if (!k || !k.title || out.knowledge.length >= 150) return;
       var par = []; try { par = (K && K.parentOf && K.parentOf(k.id)) || []; if (!Array.isArray(par)) par = par ? [par] : []; } catch (e) {}
-      out.knowledge.push({ id: k.id, title: clip(k.title, 80), text: textOf(k), tags: tagsOf(k).concat([plain(c.title)]).filter(Boolean), board: clip(b.title, 40), parents: par.slice(0, 6) }); }); }); });
+      out.knowledge.push({ id: k.id, bd: bdOf(k), title: clip(k.title, 80), text: textOf(k), tags: tagsOf(k).concat([plain(c.title)]).filter(Boolean), board: clip(b.title, 40), parents: par.slice(0, 6) }); }); }); });
     /* 3D Type works */
     try { var BP = root.MinestBackpack; if (BP && BP.works) out.works = BP.works().slice(-60).reverse().map(function (it) { return { id: it.id, word: clip(it.word, 40), mode: it.mode || 'neon', look: (it.look && it.look.gas) || it.gas || 'neon' }; }); } catch (e) {}
     out.layout = loadLayout();

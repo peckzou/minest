@@ -45,6 +45,7 @@
     '#cm-ov .cm-hand{position:absolute;inset:0;z-index:1500;pointer-events:none}#cm-ov .cm-hand .cm-c{left:0;top:0;pointer-events:auto;touch-action:none;cursor:grab}' +
     '#cm-ov .cm-hand .cm-c.cm-held{box-shadow:0 30px 60px rgba(0,0,0,.45),0 0 0 1.5px rgba(255,255,255,.7),0 0 34px rgba(120,190,255,.55)!important}' +
     '#cm-ov .cm-hback{display:none;position:absolute;right:calc(env(safe-area-inset-right,0px) + 18px);bottom:calc(env(safe-area-inset-bottom,0px) + 100px);pointer-events:auto;border:1px solid rgba(255,255,255,.3);border-radius:99px;padding:8px 14px;background:rgba(20,24,34,.72);color:#fff;font:600 12.5px -apple-system,system-ui,sans-serif;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}' +
+    '#cm-ov .cm-hctl{position:absolute;left:0;top:0;width:144px;display:flex;gap:4px;justify-content:center;pointer-events:auto}#cm-ov .cm-hctl button{flex:none;min-width:34px;height:32px;padding:0 10px;border-radius:99px;border:1px solid rgba(255,255,255,.35);background:rgba(20,24,34,.78);color:#fff;font:600 13px -apple-system,system-ui,sans-serif;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}' +
     '#cm-ov .cm-hand.has .cm-hback{display:block}html.mn-dock-v #cm-ov .cm-hback{bottom:calc(env(safe-area-inset-bottom,0px) + 22px)}' +
     '#cm-bar .sty{margin-left:2px;padding:6px 12px;background:linear-gradient(120deg,rgba(255,255,255,.18),rgba(255,255,255,.06));color:#fff;border:1px solid rgba(255,255,255,.22)}' +
     '#cm-bar input{width:60px;margin:0 6px 0 4px;accent-color:#38bdf8;align-self:center;flex:none}' +
@@ -502,6 +503,7 @@
       var hp = {}, lastT = { el: null, t: 0 };
       handEl.addEventListener('pointerdown', function (e) {
         e.stopPropagation(); if (e.target.closest('.cm-hback')) { hp[e.pointerId] = { back: 1, x: e.clientX, y: e.clientY }; return; }
+        var hb = e.target.closest('.cm-hctl button'); if (hb) { hp[e.pointerId] = { btn: hb, x: e.clientX, y: e.clientY }; return; }
         var el = e.target.closest('.cm-c'); if (!el || !el._hand) return; var it = el._hand;
         hp[e.pointerId] = { it: it, x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, t: performance.now() };
         try { handEl.setPointerCapture(e.pointerId); } catch (x) {}
@@ -510,7 +512,7 @@
         hand.splice(hand.indexOf(it), 1); hand.push(it);   // to the front
       });
       handEl.addEventListener('pointermove', function (e) {
-        var q = hp[e.pointerId]; if (!q || q.back) return; e.stopPropagation(); var it = q.it, dx = e.clientX - q.x, dy = e.clientY - q.y; q.x = e.clientX; q.y = e.clientY;
+        var q = hp[e.pointerId]; if (!q || q.back || q.btn) return; e.stopPropagation(); var it = q.it, dx = e.clientX - q.x, dy = e.clientY - q.y; q.x = e.clientX; q.y = e.clientY;
         var on = Object.keys(hp).map(function (k) { return hp[k]; }).filter(function (z) { return z.it === it; });
         if (on.length >= 2 && it.pin) { var a = on[0], b = on[1]; it.ts = clamp(it.pin.s * (Math.hypot(a.x - b.x, a.y - b.y) || 1) / it.pin.d, 0.5, 4); it.r = it.pin.r + (Math.atan2(b.y - a.y, b.x - a.x) - it.pin.ang) * 57.3; it.x += dx / 2; it.y += dy / 2; }
         else { it.x += dx; it.y += dy; }
@@ -518,7 +520,8 @@
       var endH = function (e) {
         var q = hp[e.pointerId]; if (!q) return; delete hp[e.pointerId]; e.stopPropagation();
         if (q.back) { if (Math.abs(e.clientX - q.x) + Math.abs(e.clientY - q.y) < 12) putAllBack(); return; }
-        var it = q.it; if (!Object.keys(hp).some(function (k) { return hp[k].it === it; })) it.pin = null;
+        if (q.btn) { if (Math.abs(e.clientX - q.x) + Math.abs(e.clientY - q.y) < 12) { var hi = q.btn.parentNode._it, a = q.btn.getAttribute('data-h'); if (hi) { if (a === 'minus') hi.ts = clamp(hi.ts / 1.25, 0.5, 4); else if (a === 'plus') hi.ts = clamp(hi.ts * 1.25, 0.5, 4); else putBack(hi); } } return; }
+        var it = q.it; if (!Object.keys(hp).some(function (k) { return hp[k].it === it; })) { it.pin = null; if (Math.abs(q.x - q.x0) + Math.abs(q.y - q.y0) >= 10 && dropBack(it)) return; }
         if (Math.abs(q.x - q.x0) + Math.abs(q.y - q.y0) < 10 && performance.now() - q.t < 320) {
           var now = performance.now();
           if (lastT.el === it.el && now - lastT.t < 330) { lastT = { el: null, t: 0 }; putBack(it); }   // double tap: back into the layout
@@ -536,11 +539,18 @@
       el._held = true; el.classList.add('cm-held'); handEl.appendChild(el);
       var it = { el: el, x: r.left - br.left + r.width / 2, y: r.top - br.top + r.height / 2, s: s0, s0: Math.max(1, s0), ts: Math.max(1, s0) * 1.22, r: 0, ptr: pid, px: x, py: y };
       el._hand = it; hand.push(it);
+      var ctl = document.createElement('div'); ctl.className = 'cm-hctl'; ctl.innerHTML = '<button type="button" data-h="minus" aria-label="缩小">−</button><button type="button" data-h="plus" aria-label="放大">＋</button><button type="button" data-h="back">↩ 放回</button>'; ctl._it = it; handEl.appendChild(ctl); it.ctl = ctl;
       asideSide = it.x > BW / 2 ? -1 : 1; asideT = 1;   // the rest goes small, to the other side
       try { if (window.MinestNative && MinestNative.haptic) MinestNative.haptic('medium'); } catch (e) {}
+      return it;
+    }
+    /* dropped onto the shrunk stage, a card goes back into the layout */
+    function dropBack(it) {
+      if (aside < 0.5) return false; var r = fr.getBoundingClientRect(), br = box.getBoundingClientRect(), x = it.x + br.left, y = it.y + br.top;
+      if (x > r.left && x < r.right && y > r.top && y < r.bottom) { putBack(it); return true; } return false;
     }
     function putBack(it) {
-      hand.splice(hand.indexOf(it), 1); it.el._held = false; it.el._hand = null; it.el.classList.remove('cm-held'); tilt.appendChild(it.el);
+      if (hand.indexOf(it) < 0) return; hand.splice(hand.indexOf(it), 1); it.el._held = false; it.el._hand = null; it.el.classList.remove('cm-held'); tilt.appendChild(it.el); if (it.ctl) it.ctl.remove();
       if (!hand.length) asideT = 0;
     }
     function putAllBack() { hand.slice().forEach(putBack); asideT = 0; }
@@ -552,6 +562,7 @@
         if (it.ptr == null) { var hx = Math.max(50, Math.min(BW - 50, it.x)), hy = Math.max(70, Math.min(BH - 70, it.y)); it.x += (hx - it.x) * Math.min(1, dt * 10); it.y += (hy - it.y) * Math.min(1, dt * 10); }   // let go off screen: it drifts back into view
         var el = it.el, st = el.style; st.display = ''; st.opacity = '1'; st.filter = ''; st.zIndex = String(3000 + z); st.pointerEvents = 'auto';
         st.transform = 'translate(' + it.x.toFixed(1) + 'px,' + it.y.toFixed(1) + 'px) rotate(' + it.r.toFixed(2) + 'deg) scale(' + it.s.toFixed(3) + ')' + (it.ptr != null ? ' translateY(-6px)' : '');
+        if (it.ctl) { var hh2 = (el.offsetHeight || 200) / 2 * it.s; it.ctl.style.transform = 'translate(' + (it.x - 72).toFixed(1) + 'px,' + Math.min(BH - 52, it.y + hh2 + 12).toFixed(1) + 'px)'; it.ctl.style.zIndex = String(3100 + z); }
       });
     }
 
@@ -608,8 +619,13 @@
     box.addEventListener('pointerdown', down); box.addEventListener('pointermove', move); box.addEventListener('pointerup', up); box.addEventListener('pointercancel', up);
     function down(e) {
       if (e.target.closest('#cm-bar') || e.target.closest('#cm-pills') || e.target.closest('.cm-hand') || e.target.closest('#xl')) return;
-      ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+      var ce0 = e.target.closest && e.target.closest('.cm-c');
+      ptrs[e.pointerId] = { x: e.clientX, y: e.clientY, card: ce0 && !ce0._held ? ce0 : null };
       var ids = Object.keys(ptrs);
+      if (ids.length === 2 && ptrs[ids[0]].card && ptrs[ids[0]].card === ptrs[ids[1]].card) {   // two fingers on one card: take it out, and they scale it
+        var pa = ptrs[ids[0]], pb = ptrs[ids[1]], it2 = pickUp(pa.card, null, (pa.x + pb.x) / 2, (pa.y + pb.y) / 2);
+        pinch = { item: it2, d: Math.hypot(pa.x - pb.x, pa.y - pb.y) || 1, s: it2.ts }; drag = false; clearTimeout(lp); lp = null; return;
+      }
       if (ids.length === 2) {   // two fingers: pinch the whole mode open or closed
         var a = ptrs[ids[0]], b = ptrs[ids[1]]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: zoom }; drag = false; clearTimeout(lp); lp = null; return;
       }
@@ -620,7 +636,9 @@
     }
     function move(e) {
       if (ptrs[e.pointerId]) { ptrs[e.pointerId].x = e.clientX; ptrs[e.pointerId].y = e.clientY; }
-      if (pinch) { var ids = Object.keys(ptrs); if (ids.length >= 2) { var a = ptrs[ids[0]], b = ptrs[ids[1]]; zoom = clamp(pinch.z * (Math.hypot(a.x - b.x, a.y - b.y) || 1) / pinch.d, 0.55, 3.4); applyFr(); } return; }
+      if (pinch) { var ids = Object.keys(ptrs); if (ids.length >= 2) { var a = ptrs[ids[0]], b = ptrs[ids[1]], dd = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+        if (pinch.item) { var br0 = box.getBoundingClientRect(); pinch.item.ts = clamp(pinch.s * dd / pinch.d, 0.5, 4); pinch.item.x = (a.x + b.x) / 2 - br0.left; pinch.item.y = (a.y + b.y) / 2 - br0.top; }
+        else { zoom = clamp(pinch.z * dd / pinch.d, 0.55, 3.4); applyFr(); } } return; }
       var hh = handOf(e.pointerId); if (hh) { hh.x += e.clientX - hh.px; hh.y += e.clientY - hh.py; hh.px = e.clientX; hh.py = e.clientY; return; }
       if (!drag) return;
       var dx = e.clientX - px, dy = e.clientY - py; px = e.clientX; py = e.clientY; moved += Math.abs(dx) + Math.abs(dy);
@@ -635,7 +653,7 @@
     function up(e) {
       delete ptrs[e.pointerId]; clearTimeout(lp); lp = null;
       if (pinch) { if (Object.keys(ptrs).length < 2) { pinch = null; drag = false; } return; }
-      var hh = handOf(e.pointerId); if (hh) { hh.ptr = null; hh.ts = hh.s0 * 1.08; return; }   // let go: it stays where you put it
+      var hh = handOf(e.pointerId); if (hh) { hh.ptr = null; if (!dropBack(hh)) hh.ts = Math.max(hh.ts, hh.s0 * 1.08); return; }   // let go: it stays where you put it (or goes back, dropped on the stage)
       if (!drag) return; drag = false;
       if (aside > 0.5 && moved < 6) { asideT = 0; return; }   // a tap on the shrunk stage brings it back
       if (m === 'fan') sel = Math.round(sel);
