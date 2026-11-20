@@ -15,7 +15,7 @@
   }
   document.addEventListener('click', function (e) {
     var btn = e.target && e.target.closest && e.target.closest('button');
-    if (!btn || btn.disabled || btn.classList.contains('miv-fan-item')) return;
+    if (!btn || btn.disabled || btn.classList.contains('miv-fan-item') || btn.closest('.mn-bdock')) return;   // the Dock draws its own (system-bar.js)
     var anim = pickAnim(btn);
     ALL.forEach(function (c) { btn.classList.remove(c); });
     void btn.offsetWidth;

@@ -42,30 +42,134 @@
     b.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); if (Date.now() - done < 700) return; fire(); }, true);   // keyboard, or a click with no pointer before it
     return b;
   }
-  /* the press, drawn with the Web Animations API (the page may pause CSS transitions): the key sinks under the finger,
-     springs back with a ring of light; each system key then shows what it did */
-  function anim(el, kf, o) { try { return el.animate(kf, o); } catch (e) { return null; } }
-  function pressFx(b, ph) {
-    if (ph === 'down') { b.__sink = anim(b, [{ transform: 'scale(1)' }, { transform: 'scale(.84)' }], { duration: 110, easing: 'ease-out', fill: 'forwards' }); return; }
-    if (b.__sink) { try { b.__sink.cancel(); } catch (e) {} b.__sink = null; }
-    anim(b, [{ transform: 'scale(.84)' }, { transform: 'scale(1.1)', offset: .55 }, { transform: 'scale(1)' }], { duration: ph === 'cancel' ? 220 : 380, easing: 'cubic-bezier(.3,1.4,.5,1)' });
-    if (ph === 'cancel') return;
-    var r = document.createElement('i'); r.className = 'mn-sk-ring'; b.appendChild(r);
-    var a = anim(r, [{ transform: 'scale(.4)', opacity: .55 }, { transform: 'scale(1.5)', opacity: 0 }], { duration: 480, easing: 'cubic-bezier(.2,.7,.3,1)' });
-    if (a) a.onfinish = function () { r.remove(); }; else setTimeout(function () { r.remove(); }, 500);
-    var sv = b.querySelector('svg'); if (!sv) return;
-    if (b.classList.contains('mn-sk-close')) anim(sv, [{ transform: 'rotate(0)' }, { transform: 'rotate(90deg)' }], { duration: 360, easing: 'cubic-bezier(.3,1.3,.5,1)' });
-    else if (b.classList.contains('mn-sk-back')) anim(sv, [{ transform: 'translateX(0)' }, { transform: 'translateX(-5px)', offset: .4 }, { transform: 'translateX(0)' }], { duration: 380, easing: 'ease-out' });
-    else if (b.classList.contains('mn-sk-full')) anim(sv, [{ transform: 'scale(1)' }, { transform: 'scale(1.28)', offset: .45 }, { transform: 'scale(1)' }], { duration: 380, easing: 'ease-out' });
+  /* ---- micro-motion (2026-11-20, the user: every key's own little animation; the ring stayed on screen — Web
+     Animations could stay pending forever here, so every motion is drawn per frame, and a timer always lands it) ---- */
+  function tween(dur, fn, done, delay) {
+    var t0 = 0, over = false;
+    function land() { if (over) return; over = true; try { fn(1); } catch (e) {} if (done) try { done(); } catch (e) {} }
+    function step() { if (over) return; var k = Math.min(1, (performance.now() - t0) / dur); if (k >= 1) { land(); return; } try { fn(k); } catch (e) {} requestAnimationFrame(step); }
+    setTimeout(function () { t0 = performance.now(); try { fn(0); } catch (e) {} requestAnimationFrame(step); setTimeout(land, dur + 160); }, delay || 0);
   }
+  var EZ = {
+    out: function (k) { return 1 - Math.pow(1 - k, 3); },
+    inn: function (k) { return k * k * k; },
+    io: function (k) { return k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; },
+    spring: function (k) { return 1 - Math.exp(-6.5 * k) * Math.cos(10.5 * k); },
+    bell: function (k) { return Math.sin(Math.PI * k); },
+    shake: function (k) { return Math.sin(k * Math.PI * 5) * (1 - k); }
+  };
+  function tf(el, v) { if (el) el.style.transform = v || ''; }
+  /* the key under the finger: sinks, then springs back */
+  function sink(b) { if (b.__down) return; b.__down = 1; var s0 = b.__sc || 1; tween(110, function (k) { b.__sc = s0 + (0.84 - s0) * EZ.out(k); tf(b, 'scale(' + b.__sc.toFixed(3) + ')'); }); }
+  function rise(b) { b.__down = 0; var s0 = b.__sc || .84; tween(460, function (k) { b.__sc = s0 + (1 - s0) * EZ.spring(k); tf(b, 'scale(' + b.__sc.toFixed(3) + ')'); }, function () { b.__sc = 1; tf(b, ''); }); }
+  /* a soft bloom of light behind the icon, always gone at the end */
+  function bloom(b) {
+    var r = document.createElement('i'); r.className = 'mn-sk-ring'; b.appendChild(r);
+    tween(420, function (k) { var e = EZ.out(k); r.style.transform = 'scale(' + (0.5 + e * 0.8).toFixed(3) + ')'; r.style.opacity = (0.5 * (1 - k)).toFixed(3); }, function () { r.remove(); });
+  }
+  function sparks(b, n) {
+    var r = b.getBoundingClientRect();
+    for (var i = 0; i < n; i++) (function (i) {
+      var s = document.createElement('i'); s.className = 'mn-sk-spark'; b.appendChild(s);
+      var a = (-120 + i * (240 / Math.max(1, n - 1))) * Math.PI / 180, d = r.width * (0.45 + (i % 2) * 0.15);
+      tween(520, function (k) { var e = EZ.out(k); s.style.transform = 'translate(' + (Math.cos(a) * d * e).toFixed(1) + 'px,' + (Math.sin(a) * d * e).toFixed(1) + 'px) scale(' + (1 - k * 0.6).toFixed(2) + ')'; s.style.opacity = (k < .2 ? k * 5 : 1 - (k - .2) / .8).toFixed(2); }, function () { s.remove(); }, i * 30);
+    })(i);
+  }
+  /* each key's own motion, on its icon */
+  function iconFx(b) {
+    var sv = b.querySelector('svg'), c = b.className, l = (b.getAttribute('aria-label') || '').toLowerCase();
+    if (/mn-sk-tools/.test(c)) return;   // "=" morphs itself (eqMorph)
+    if (!sv) return;
+    sv.style.transformOrigin = '50% 50%';
+    var done = function () { tf(sv, ''); };
+    if (/mn-sk-close/.test(c) || /close|关闭/.test(l)) return tween(480, function (k) { tf(sv, 'rotate(' + (EZ.spring(k) * 90).toFixed(1) + 'deg) scale(' + (1 - EZ.bell(k) * .18).toFixed(3) + ')'); }, done);
+    if (/mn-sk-back/.test(c) || /back|返回/.test(l)) {
+      var g = sv.cloneNode(true); g.classList.add('mn-sk-ghost'); b.appendChild(g);
+      tween(420, function (k) { g.style.transform = 'translateX(' + (-10 * EZ.out(k)).toFixed(1) + 'px)'; g.style.opacity = (0.55 * (1 - k)).toFixed(2); }, function () { g.remove(); });
+      return tween(460, function (k) { tf(sv, 'translateX(' + (-6 * EZ.bell(Math.min(1, k * 1.6)) + (k > .62 ? 2 * EZ.shake((k - .62) / .38) : 0)).toFixed(2) + 'px)'); }, done);
+    }
+    if (/mn-sk-full/.test(c)) return tween(520, function (k) { var e = k < .35 ? EZ.out(k / .35) * .32 : .32 * (1 - EZ.spring((k - .35) / .65)); tf(sv, 'scale(' + (1 + e).toFixed(3) + ')'); }, done);
+    if (/spatial home|我的房间/.test(l)) return tween(520, function (k) { var y = k < .45 ? -6 * EZ.bell(k / .45 / 2 + 0) : 0, q = k >= .45 ? EZ.bell((k - .45) / .55) * .16 * (1 - (k - .45) / .55 * .5) : 0; tf(sv, 'translateY(' + y.toFixed(2) + 'px) scale(' + (1 + q).toFixed(3) + ',' + (1 - q).toFixed(3) + ')'); }, done);
+    if (/my world|世界/.test(l)) return tween(700, function (k) { tf(sv, 'rotate(' + (EZ.io(k) * 360).toFixed(1) + 'deg)'); }, done);
+    if (/views|视图/.test(l)) return tween(520, function (k) { tf(sv, 'translateY(' + (-5 * EZ.bell(Math.min(1, k * 1.5)) + (k > .66 ? 1.5 * EZ.shake((k - .66) / .34) : 0)).toFixed(2) + 'px)'); }, done);
+    if (/arcade|游戏/.test(l)) return tween(560, function (k) { tf(sv, 'rotate(' + (14 * EZ.shake(k)).toFixed(2) + 'deg)'); }, done);
+    if (/routine|liquid/.test(l)) return tween(560, function (k) { var q = EZ.shake(k) * .22; tf(sv, 'scale(' + (1 - q).toFixed(3) + ',' + (1 + q).toFixed(3) + ')'); }, done);
+    if (/hermes|打字/.test(l)) return tween(460, function (k) { tf(sv, 'translateY(' + (2.5 * Math.abs(Math.sin(k * Math.PI * 3)) * (1 - k * .4)).toFixed(2) + 'px)'); }, done);
+    if (/looks|外观/.test(l)) { sparks(b, 5); return tween(560, function (k) { tf(sv, 'rotate(' + (-26 * EZ.bell(Math.min(1, k * 1.4)) + (k > .7 ? 6 * EZ.shake((k - .7) / .3) : 0)).toFixed(1) + 'deg)'); }, done); }
+    if (/more|更多/.test(l)) { var dots = sv.children; [].forEach.call(dots, function (d, i) { d.style.transformBox = 'fill-box'; d.style.transformOrigin = 'center'; tween(420, function (k) { d.style.transform = 'translateY(' + (-3.5 * EZ.bell(k)).toFixed(2) + 'px)'; }, function () { d.style.transform = ''; }, i * 70); }); return; }
+    if (/dock|全部入口/.test(l)) return tween(460, function (k) { tf(sv, 'rotate(' + (EZ.spring(k) * 90).toFixed(1) + 'deg)'); }, done);
+    if (/mn-page-key/.test(c)) return tween(420, function (k) { tf(sv, 'scale(' + (1 + EZ.bell(k) * .22).toFixed(3) + ')'); }, done);
+    return tween(420, function (k) { tf(sv, 'scale(' + (1 + EZ.bell(k) * .18).toFixed(3) + ')'); }, done);
+  }
+  function pressFx(b, ph) {
+    if (ph === 'down') { sink(b); return; }
+    rise(b); if (ph === 'cancel') return;
+    bloom(b); iconFx(b);
+  }
+  /* "=": the two bars turn into "||" (and back) with a liquid squeeze, the second a beat behind */
+  var EQ = { on: [[0, -3.6, 0, 1], [0, 3.6, 0, 1]], off: [[-3.6, 0, 90, .82], [3.6, 0, 90, .82]] };
+  function eqMorph(on) {
+    var bars = toolsKey.querySelectorAll('.mn-eq i'), from = on ? EQ.off : EQ.on, to = on ? EQ.on : EQ.off;
+    [].forEach.call(bars, function (bar, i) {
+      var f = from[i], t = to[i];
+      tween(620, function (k) {
+        var e = EZ.io(Math.min(1, k * 1.25)), sp = EZ.spring(k), sq = EZ.bell(Math.min(1, k * 1.25)) * .38;
+        var x = f[0] + (t[0] - f[0]) * e, y = f[1] + (t[1] - f[1]) * e, r = f[2] + (t[2] - f[2]) * sp, sx = (f[3] + (t[3] - f[3]) * e) * (1 - sq);
+        bar.style.transform = 'translate(' + x.toFixed(2) + 'px,' + y.toFixed(2) + 'px) rotate(' + r.toFixed(1) + 'deg) scaleX(' + sx.toFixed(3) + ')';
+      }, function () { bar.style.transform = ''; }, i * 70);
+    });
+  }
+  /* "=": the tools fold into the key, the Dock closing round them — and come out of it one by one */
+  var toolsBusy = false;
+  function shownTools(d) { var out = [], past = false; [].forEach.call(d.children, function (c) { if (c === sep) { past = true; return; } if (past && getComputedStyle(c).display !== 'none') { if (c.classList.contains('mn-page')) [].forEach.call(c.children, function (k) { if (getComputedStyle(k).display !== 'none') out.push(k); }); else out.push(c); } }); return out; }
+  function dockSize(d, from, done) {
+    var v = R.classList.contains('mn-dock-v'), P = v ? 'height' : 'width', to = v ? d.getBoundingClientRect().height : d.getBoundingClientRect().width;
+    if (Math.abs(to - from) < 2) { if (done) done(); return; }
+    d.classList.add('mn-dock-anim');
+    tween(560, function (k) { d.style.setProperty(P, (from + (to - from) * EZ.spring(k)).toFixed(1) + 'px', 'important'); }, function () { d.style.removeProperty(P); d.classList.remove('mn-dock-anim'); if (done) done(); });
+  }
+  function toggleTools() {
+    var d = dock(), on = R.classList.contains('mn-sys-tools-off');
+    if (!d || toolsBusy) { setTools(on); return; }
+    toolsBusy = true; eqMorph(on);
+    var v = R.classList.contains('mn-dock-v'), r0 = d.getBoundingClientRect(), from = v ? r0.height : r0.width, kr = toolsKey.getBoundingClientRect(), kx = kr.left + kr.width / 2, ky = kr.top + kr.height / 2;
+    if (!on) {
+      var apps = shownTools(d), n = apps.length;
+      apps.forEach(function (a, i) {
+        var r = a.getBoundingClientRect(), dx = kx - (r.left + r.width / 2), dy = ky - (r.top + r.height / 2);
+        tween(240, function (k) { var e = EZ.inn(k); a.style.transform = 'translate(' + (dx * e).toFixed(1) + 'px,' + (dy * e).toFixed(1) + 'px) scale(' + (1 - .65 * e).toFixed(3) + ')'; a.style.opacity = (1 - e).toFixed(3); }, null, (n - 1 - i) * 16);
+      });
+      setTimeout(function () {
+        apps.forEach(function (a) { a.style.transform = ''; a.style.opacity = ''; });
+        setTools(false); fit(); dockSize(d, from, function () { toolsBusy = false; });
+      }, 240 + n * 16 + 20);
+    } else {
+      setTools(true); fit();
+      var apps2 = shownTools(d);
+      apps2.forEach(function (a) { a.style.opacity = '0'; });
+      dockSize(d, from);
+      requestAnimationFrame(function () {
+        apps2.forEach(function (a, i) {
+          var r = a.getBoundingClientRect(), dx = kx - (r.left + r.width / 2), dy = ky - (r.top + r.height / 2);
+          tween(520, function (k) { var e = EZ.spring(k), o = Math.min(1, k * 3); a.style.transform = 'translate(' + (dx * (1 - e)).toFixed(1) + 'px,' + (dy * (1 - e)).toFixed(1) + 'px) scale(' + (.35 + .65 * e).toFixed(3) + ')'; a.style.opacity = o.toFixed(3); }, function () { a.style.transform = ''; a.style.opacity = ''; if (i === apps2.length - 1) toolsBusy = false; }, i * 28);
+        });
+        if (!apps2.length) toolsBusy = false;
+      });
+      setTimeout(function () { toolsBusy = false; }, 1600);
+    }
+  }
+  /* every other key in the Dock (apps, the room's tools, the page's keys) gets the same press and its own motion */
+  document.addEventListener('pointerdown', function (e) { var b = e.target.closest && e.target.closest('.mn-bdock .mn-bapp'); if (!b || b.classList.contains('mn-sys-key')) return; b.__pd = { x: e.clientX, y: e.clientY, t: Date.now() }; sink(b); }, true);
+  document.addEventListener('pointerup', function (e) { var b = e.target.closest && e.target.closest('.mn-bdock .mn-bapp'); [].forEach.call(document.querySelectorAll('.mn-bdock .mn-bapp'), function (x) { if (x.__down && x !== b && !x.classList.contains('mn-sys-key')) { x.__pd = null; pressFx(x, 'cancel'); } }); if (!b || b.classList.contains('mn-sys-key') || !b.__pd) return; var d = b.__pd; b.__pd = null; pressFx(b, Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 28 ? 'cancel' : 'up'); }, true);
+  document.addEventListener('pointercancel', function () { [].forEach.call(document.querySelectorAll('.mn-bdock .mn-bapp'), function (x) { if (x.__down && !x.classList.contains('mn-sys-key')) { x.__pd = null; pressFx(x, 'cancel'); } }); }, true);
   /* nothing to go back to / close: the key shakes its head, and says so */
   function nothing(b, txt) {
-    anim(b, [{ transform: 'translateX(0)' }, { transform: 'translateX(-4px)' }, { transform: 'translateX(4px)' }, { transform: 'translateX(-3px)' }, { transform: 'translateX(2px)' }, { transform: 'translateX(0)' }], { duration: 380, easing: 'ease-out' });
+    var sv = b.querySelector('svg'); tween(420, function (k) { tf(sv, 'translateX(' + (5 * EZ.shake(k)).toFixed(2) + 'px)'); }, function () { tf(sv, ''); });
     var t = document.getElementById('mn-sk-toast'); if (!t) { t = document.createElement('div'); t.id = 'mn-sk-toast'; document.body.appendChild(t); }
     t.textContent = txt; var r = b.getBoundingClientRect(), v = R.classList.contains('mn-dock-v');
     t.style.left = (v ? r.left - 12 : r.left + r.width / 2) + 'px'; t.style.top = (v ? r.top + r.height / 2 : r.top - 12) + 'px'; t.className = v ? 'v' : '';
-    if (t.__a) try { t.__a.cancel(); } catch (e) {}
-    t.__a = anim(t, [{ opacity: 0, translate: '0 6px' }, { opacity: 1, translate: '0 0', offset: .12 }, { opacity: 1, translate: '0 0', offset: .8 }, { opacity: 0, translate: '0 -2px' }], { duration: 1500, easing: 'ease-out', fill: 'forwards' });
+    var id = (t.__id || 0) + 1; t.__id = id;
+    tween(1500, function (k) { if (t.__id !== id) return; var o = k < .12 ? k / .12 : k < .8 ? 1 : 1 - (k - .8) / .2, y = k < .12 ? 6 * (1 - EZ.out(k / .12)) : k > .8 ? -2 * (k - .8) / .2 : 0; t.style.opacity = o.toFixed(3); t.style.translate = '0 ' + y.toFixed(1) + 'px'; }, function () { if (t.__id === id) t.style.opacity = '0'; });
   }
   /* did a step back / a close change anything on screen? (the page's own Esc handlers say nothing back) */
   function snap() { var b = document.body; return location.href + '|' + b.className + '|' + R.className.replace(/\bmn-(dock-[hv]|sys-\S+)\b/g, '') + '|' + b.childElementCount + '|' + document.querySelectorAll('[role=dialog],[class*=modal],[class*=overlay],[class*=popover],[class*=sheet]').length; }
@@ -130,7 +234,7 @@
     key('mn-sk-back', '系统 · 返回', svg(ICON.back), back),
     key('mn-sk-full', '全屏 · 阅览模式', svg(ICON.full), function () { setReading(true); })
   ];
-  var toolsKey = key('mn-sk-tools', '收起工具', '<span class="mn-eq" aria-hidden="true"><i></i><i></i></span>', function () { setTools(R.classList.contains('mn-sys-tools-off')); });
+  var toolsKey = key('mn-sk-tools', '收起工具', '<span class="mn-eq" aria-hidden="true"><i></i><i></i></span>', function () { toggleTools(); });
   sysKeys.push(toolsKey);
   var sep = document.createElement('span'); sep.className = 'mn-sys-sep'; sep.setAttribute('aria-hidden', 'true');
   var exitKey = document.createElement('button'); exitKey.type = 'button'; exitKey.id = 'mn-sys-exit'; exitKey.setAttribute('aria-label', '退出全屏'); exitKey.title = '退出全屏';

@@ -136,11 +136,19 @@ html[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-bapp.on, html[data-mn-ctx=room
 html[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-bapp.on, html[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-bapp.mn-pill-active {
   background: rgba(110,110,118,.55) !important; border: 2px solid #111 !important; box-shadow: inset 2px 2px 0 rgba(255,255,255,.38), inset -2px -2px 0 rgba(0,0,0,.42) !important; }
 
-/* the press: a ring of light from the key (drawn by system-bar.js), and the little note when there is nothing to do */
-.mn-bdock .mn-bapp.mn-sys-key { position: relative; overflow: visible; }
-.mn-sk-ring { position: absolute; inset: -2px; border-radius: 50%; pointer-events: none; border: 1.5px solid rgba(255,255,255,.7); box-shadow: 0 0 12px rgba(160,210,255,.55); opacity: 0; }
-html[data-mn-ctx=room] .mn-sk-ring, html[data-mn-ctx=world] .mn-sk-ring { border-radius: 0; }
+/* the press (drawn per frame by system-bar.js): a soft bloom, sparks, a ghost of the icon; and the note when there is nothing to do */
+.mn-bdock .mn-bapp { position: relative; overflow: visible; }
+.mn-sk-ring { position: absolute; inset: 0; border-radius: 50%; pointer-events: none; opacity: 0; background: radial-gradient(circle, rgba(190,225,255,.55), rgba(190,225,255,0) 70%); }
+html[data-mn-ctx=room] .mn-sk-ring, html[data-mn-ctx=world] .mn-sk-ring { border-radius: 0; background: rgba(255,255,255,.28); }
+.mn-sk-spark { position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px; border-radius: 50%; pointer-events: none; opacity: 0; background: #fff; box-shadow: 0 0 6px rgba(190,225,255,.9); }
+.mn-bdock .mn-bapp svg.mn-sk-ghost { position: absolute; left: 50%; top: 50%; margin: 0 !important; translate: -50% -50%; pointer-events: none; opacity: 0; }
+.mn-eq i { transition: none !important; }
+.mn-bdock.mn-dock-anim { overflow: hidden !important; }
+.mn-bdock.mn-dock-anim > * { flex-shrink: 0 !important; }
 #mn-sk-toast { position: fixed; z-index: 2147483646; transform: translate(-50%, -100%); padding: 6px 12px; border-radius: 10px; pointer-events: none; opacity: 0; white-space: nowrap;
   background: rgba(20,22,30,.86); color: #f1f5f9; font: 600 12px -apple-system, system-ui, sans-serif; letter-spacing: .03em; border: 1px solid rgba(255,255,255,.12);
   -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 10px 24px -8px rgba(0,0,0,.5); }
 #mn-sk-toast.v { transform: translate(-100%, -50%); }
+/* the keys' motion is drawn per frame: no CSS easing on transform / opacity to lag behind it */
+html body .mn-bdock .mn-bapp { transition-property: background-color, color, border-color, box-shadow !important; }
+html body .mn-bdock .mn-bapp svg, html body .mn-bdock .mn-bapp svg * { transition: none !important; }
