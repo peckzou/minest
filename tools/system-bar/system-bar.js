@@ -188,6 +188,33 @@
     left.addEventListener('click', function (e) { e.stopImmediatePropagation(); e.preventDefault(); try { localStorage.setItem(TOP, '1'); } catch (er) {} bottom.click(); sides(); }, true);
     [].forEach.call(items, function (b) { if (b !== left) b.addEventListener('click', function () { try { localStorage.setItem(TOP, '0'); } catch (er) {} setTimeout(sides, 0); }, true); });
   }
+  /* Octo can be hidden (2026-11-20, the user): "隐藏" in its quick ring; the Dock's long-press menu shows / hides it */
+  var OCTO = 'minest.octoHidden';
+  function octoHidden() { try { return localStorage.getItem(OCTO) === '1'; } catch (e) { return false; } }
+  function setOcto(hide) { R.classList.toggle('mn-octo-off', !!hide); try { localStorage.setItem(OCTO, hide ? '1' : '0'); } catch (e) {} haptic(); }
+  setOcto(octoHidden());
+  function octoRing(m) {
+    if (m.__mnOcto) return; m.__mnOcto = 1;
+    var c = window.__miniPetCtl, ctr = c && c.center ? c.center() : null; if (!ctr) return;
+    var n = m.querySelectorAll('button').length, right = ctr.x < innerWidth / 2, a = (-84 + n * 28) * Math.PI / 180, Rr = 118;
+    var x = Math.max(32, Math.min(innerWidth - 32, ctr.x + (right ? 1 : -1) * Math.cos(a) * Rr)), y = Math.max(40, Math.min(innerHeight - 40, ctr.y + Math.sin(a) * Rr));
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'mn-glass mn-octo-hide'; b.setAttribute('aria-label', '隐藏 Octo');
+    b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c6 0 9.5 7 9.5 7a17 17 0 0 1-2.6 3.4M6.4 6.4C3.9 8.2 2.5 12 2.5 12s3.5 7 9.5 7a9.6 9.6 0 0 0 5.6-1.8"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg><i>隐藏</i>';
+    b.style.left = x + 'px'; b.style.top = y + 'px'; b.style.setProperty('--fx', (ctr.x - x) + 'px'); b.style.setProperty('--fy', (ctr.y - y) + 'px'); b.style.setProperty('--dl', (n * 35) + 'ms');
+    b.addEventListener('click', function (e) { e.stopPropagation(); m.classList.remove('open'); setTimeout(function () { m.remove(); }, 0); setOcto(true); });
+    m.appendChild(b);
+  }
+  function octoMenu(m) {
+    if (m.__mnOcto) return; m.__mnOcto = 1;
+    var h0 = m.offsetHeight, h = document.createElement('h6'); h.textContent = 'Octo'; h.style.marginTop = '10px';
+    var hid = octoHidden(), b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'menuitemcheckbox'); b.setAttribute('aria-checked', String(!hid));
+    b.innerHTML = '<i>' + (hid ? '' : '✓') + '</i>显示 Octo';
+    b.addEventListener('click', function (e) { e.stopPropagation(); setOcto(!octoHidden()); m.remove(); });
+    m.appendChild(h); m.appendChild(b);
+    var grow = m.offsetHeight - h0, r = m.getBoundingClientRect();   // a menu over the Dock grows upward, never onto it
+    if (R.getAttribute('data-mn-bd') === 'bottom' && !R.classList.contains('mn-dock-top')) m.style.top = Math.max(8, r.top - grow) + 'px';
+    else if (r.bottom > innerHeight - 8) m.style.top = Math.max(8, innerHeight - 8 - m.offsetHeight) + 'px';
+  }
   function context() {
     var c = inRoom() ? 'room' : inWorld() ? 'world' : 'board';
     if (c === 'room') { modeLabel(roomKeys[0]); pixelIcons(); var fl = study() ? 'room' : 'off'; slideKeys.forEach(function (k) { if (k.dataset.ctx !== fl) k.dataset.ctx = fl; }); } else if (!pageEl && R.classList.contains('mn-ctx-apps')) { R.classList.remove('mn-ctx-apps'); dockAll.setAttribute('aria-pressed', 'false'); }
@@ -199,7 +226,7 @@
   var queued = false;
   new MutationObserver(function () {
     if (queued) return; queued = true;
-    requestAnimationFrame(function () { queued = false; var d = dock(); if (d && (d.firstElementChild !== sysKeys[0] || sep.parentNode !== d || roomKeys[0].parentNode !== d || (pageEl && pageEl.parentNode !== d))) mount(); context(); sides(); fit(); var m = document.querySelector('.mn-bd-menu'); if (m) menu(m); if (reading) syncFrames(); });
+    requestAnimationFrame(function () { queued = false; var d = dock(); if (d && (d.firstElementChild !== sysKeys[0] || sep.parentNode !== d || roomKeys[0].parentNode !== d || (pageEl && pageEl.parentNode !== d))) mount(); context(); sides(); fit(); var m = document.querySelector('.mn-bd-menu'); if (m) { menu(m); octoMenu(m); } var pr = document.querySelector('.mpet-menu'); if (pr) octoRing(pr); if (reading) syncFrames(); });
   }).observe(document.body || R, { childList: true, subtree: true });
   new MutationObserver(function () { sides(); fit(); }).observe(R, { attributes: true, attributeFilter: ['data-mn-bd'] });
   window.addEventListener('resize', function () { fit(); });
