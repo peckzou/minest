@@ -196542,6 +196542,288 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
   window.MinestSystemBar = { page: setPage, reading: setReading, tools: setTools, state: function () { return { reading: reading, tools: !R.classList.contains('mn-sys-tools-off'), ctx: ctx }; } };
 })();
 </script>
+<script id="mn-vocab3d-js">
+/* Minest · 3D 词卡作业 · 教师端 (2026-11-20, the user: an isolated 3D dynamic-card page for students' vocabulary,
+   word lists assigned from the teacher side).
+   A word list (a teaching word set, or lists of the board in view) becomes an assignment: a code and a link to the
+   student page (vocab3d.html?code=CODE, /vocab). Students study the words as 3D cards; the teacher sees each student's
+   progress live, can close the assignment (students may still look; nothing more is recorded) or delete it.
+   Data: Firebase Realtime Database /minest-live/{CODE} (the same place Minest Live keeps a class game; an
+   assignment's code starts with V): host = { kind: 'vocab3d', title, board, state: live | ended, created }, players/{pid}.
+   Entry points: "3D 词卡" on each list in Word Lists (the Live teacher panel) and in 教师端 · 词表管理; MinestVocab3D.assign(board, o).
+   window.MinestVocab3D = { assign, manage, pack } */
+(function () {
+  'use strict';
+  if (window.MinestVocab3D) return;
+  var DB = 'https://minest-33761-default-rtdb.firebaseio.com/minest-live/';
+  var SITE = /vercel\.app$/.test(location.hostname) ? location.origin : 'https://minest-app.vercel.app';
+  var MINE = 'minest.vocab3d.mine.v1';
+
+  function db(path, method, body) {
+    return fetch(DB + path + '.json', { method: method || 'GET', headers: body ? { 'Content-Type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('网络错误（' + r.status + '）'); return r.json(); });
+  }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function str(v, n) { v = v == null ? '' : String(v).replace(/<[^>]*>/g, ' ').replace(/[#*_>`]/g, '').replace(/\s+/g, ' ').trim(); return v.length > n ? v.slice(0, n - 1) + '…' : v; }
+  function newCode() { var o = String(1 + Math.floor(Math.random() * 9)); for (var i = 0; i < 5; i++) o += Math.floor(Math.random() * 10); return o; }   // six digits, like a Live game's
+  function mine() { try { return JSON.parse(localStorage.getItem(MINE) || '[]') || []; } catch (e) { return []; } }
+  function saveMine(m) { try { localStorage.setItem(MINE, JSON.stringify(m.slice(0, 60))); } catch (e) {} }
+  function link(code) { return SITE + '/iphone?play=' + code; }   // the one student entry: Live's join (the code opens this assignment)
+  function page(code) { return (/^https?:$/.test(location.protocol) ? location.origin : SITE) + '/vocab3d.html?code=' + code; }
+  function ago(t) { if (!t) return '—'; var s = Math.max(0, (Date.now() - t) / 1000); return s < 60 ? '刚刚' : s < 3600 ? Math.floor(s / 60) + ' 分钟前' : s < 86400 ? Math.floor(s / 3600) + ' 小时前' : new Date(t).toLocaleDateString(); }
+
+  /* a card, as the student page needs it: words, meaning, sound, examples, roots — and a picture only when it is on the web
+     (a picture kept on this device cannot reach a student's) */
+  function imgOf(c) {
+    var u = '';
+    try { if (window.MinestImageViews && MinestImageViews.image) { var im = MinestImageViews.image(c) || {}; u = im.thumb || im.full || ''; } } catch (e) {}
+    if (!u) u = c.image || c.img || (c.cover && (c.cover.url || c.cover.src)) || '';
+    return /^https?:\/\//.test(u) ? u : '';
+  }
+  function pack(c) {
+    var o = { id: String(c.id), title: str(c.title, 90) }, d = c.definitions || {};
+    if (c.titleZh) o.titleZh = str(c.titleZh, 90);
+    var pyLike = function (v) { return /[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]/i.test(String(v || '')); };   // a pinyin back is the sound, not the meaning
+    var pr = c.pron; pr = typeof pr === 'string' ? pr : pr && (pr.ipa || pr.phonetic || pr.us || pr.text) || c.phonetic || c.py || c.pinyin || '';
+    if (!pr && /[\u3400-\u9fff]/.test(c.title || '')) { try { pr = window.MinestTeachingAssets && MinestTeachingAssets.pinyin ? MinestTeachingAssets.pinyin(c.title) : ''; } catch (e) {} if (/[\u3400-\u9fff]/.test(pr || '')) pr = ''; }
+    if (!pr && pyLike(c.desc || c.back)) pr = c.desc || c.back;
+    if (pr) o.pron = str(pr, 60);
+    var mean = [c.meaning, c.en, c.back, c.desc, c.description].filter(function (v) { return v && String(v).trim() && !pyLike(v); })[0] || '';
+    if (mean) o.meaning = str(mean, 300);
+    if (d.en || c.definitionEn) o.defEn = str(d.en || c.definitionEn, 300);
+    if (d.zh || c.definitionZh) o.defZh = str(d.zh || c.definitionZh, 200);
+    var ex = (Array.isArray(c.examples) ? c.examples : []).map(function (e) { return typeof e === 'string' ? e : e && e.text; }).filter(Boolean).slice(0, 3).map(function (e) { return str(e, 220); });
+    if (ex.length) o.examples = ex;
+    var rel = (Array.isArray(c.relatedWords) ? c.relatedWords : []).map(function (r) { return typeof r === 'string' ? r : r && (r.word || r.text); }).filter(Boolean).slice(0, 6).map(function (r) { return str(r, 40); });
+    if (rel.length) o.related = rel;
+    var ety = c.etymology || c.roots || c.wordRoot || c.origin; if (ety) o.ety = str(ety, 200);
+    if (c.hint) o.hint = str(c.hint, 160);
+    var im = imgOf(c); if (im) o.img = im;
+    return o;
+  }
+  function packBoard(b, ids, title) {
+    var cols = (b.columns || []).filter(function (c) { return !ids || ids.indexOf(c.id) >= 0; }).map(function (c) {
+      var cards = (c.cards || []).filter(function (k) { return k && k.title && !k.teachingArchived; }).map(pack);
+      return { id: String(c.id), title: str(c.title || '词表', 60), color: c.color || '', cards: cards };
+    }).filter(function (c) { return c.cards.length; });
+    return { id: String(b.id || 'board'), title: str(title || b.title || '3D 词卡', 80), columns: cols };
+  }
+
+  /* ---------------- the look ---------------- */
+  var css = document.createElement('style');
+  /* the look: Minest Live's (Blooket-like) — a purple room, white chunky cards, Titan One titles, buttons that press down */
+  var PAL = ['#0bc2cf', '#ff9f1c', '#3d8bfd', '#7b2ff7', '#00a69c', '#e8505b', '#ff4f7b', '#a46bff', '#c98a1c', '#ff7a59', '#4b11b8', '#22b35e', '#ff4f7b'];   // a colour per mode (the students' level map uses the same)
+  var INK = '#2f2a3d', MUTE = '#7a7090', PURP = '#7b2ff7', DEEP = '#4b11b8', TEAL = '#0bc2cf', GOLD = '#ffcc00';
+  var TITLE = '"Titan One","Lilita One",Nunito,system-ui,sans-serif', BODY = 'Nunito,"Nunito Sans",ui-rounded,system-ui,sans-serif';
+  var BTN = 'border:0;border-radius:14px;font-family:' + TITLE + ';font-weight:400;letter-spacing:.02em;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.18);box-shadow:inset 0 -6px 0 rgba(0,0,0,.22),0 4px 10px rgba(40,0,90,.2);padding:11px 18px 15px;cursor:pointer';
+  if (!document.getElementById('mlv-toon-font')) { var fl = document.createElement('link'); fl.id = 'mlv-toon-font'; fl.rel = 'stylesheet'; fl.href = 'https://fonts.googleapis.com/css2?family=Titan+One&family=Nunito:wght@600;700;800;900&display=swap'; document.head.appendChild(fl); }
+  css.textContent = [
+    '#v3t{position:fixed;inset:0;z-index:2147483300;display:grid;place-items:center;padding:16px;background:repeating-linear-gradient(135deg,rgba(255,255,255,.045) 0 26px,transparent 26px 52px),linear-gradient(160deg,rgba(106,34,238,.92),rgba(123,47,247,.92) 45%,rgba(155,77,255,.92));font-family:' + BODY + ';font-weight:700;color:' + INK + '}',
+    '#v3t .v3-m{width:min(600px,100%);max-height:min(90vh,880px);overflow:auto;border-radius:22px;background:#fff;box-shadow:inset 0 -7px 0 rgba(0,0,0,.09),0 14px 34px rgba(40,0,90,.35);padding:22px 22px 18px}',
+    '#v3t h2{margin:0;font:400 24px/1.15 ' + TITLE + ';color:' + PURP + ';letter-spacing:.02em}#v3t .v3-sub{margin:6px 0 0;color:' + MUTE + ';font-size:14px;font-weight:700}',
+    '#v3t .v3-hd{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}#v3t .v3-hd>div{flex:1}',
+    '#v3t .v3-x{flex:none;width:38px;height:38px;border-radius:12px;border:0;background:#f1ebff;color:' + PURP + ';font:400 17px ' + TITLE + ';box-shadow:inset 0 -4px 0 rgba(0,0,0,.1);cursor:pointer}',
+    '#v3t label.v3-f{display:block;margin:0 0 14px;font-size:13px;color:' + MUTE + ';font-weight:800}#v3t input[type=text]{display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:11px 13px;border-radius:12px;border:3px solid #e4d9ff;background:#fff;color:' + INK + ';font:800 16px ' + BODY + ';outline:none}#v3t input[type=text]:focus{border-color:#9b4dff}',
+    '#v3t .v3-lists{display:flex;flex-direction:column;gap:8px;margin:8px 0 16px;max-height:240px;overflow:auto;padding:2px}',
+    '#v3t .v3-l{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:14px;background:#f6f2ff;box-shadow:inset 0 -4px 0 rgba(0,0,0,.06);cursor:pointer;font-size:15px;font-weight:800}#v3t .v3-l input{accent-color:' + PURP + ';width:19px;height:19px}#v3t .v3-l small{margin-left:auto;color:' + MUTE + '}',
+    '#v3t .v3-b{' + BTN + ';background:' + TEAL + ';font-size:15px}#v3t .v3-b:active{transform:translateY(3px);box-shadow:inset 0 -2px 0 rgba(0,0,0,.22)}#v3t .v3-b.pri{background:' + GOLD + ';color:' + INK + ';text-shadow:none}#v3t .v3-b.solo{background:#ff4f7b}#v3t .v3-b.warn{background:#fff;color:#e8505b;text-shadow:none;box-shadow:inset 0 -5px 0 rgba(0,0,0,.1),0 3px 8px rgba(40,0,90,.15)}#v3t .v3-b[disabled]{opacity:.5}',
+    '#v3t .v3-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}#v3t .v3-msg{min-height:18px;margin:10px 0 0;font-size:14px;color:#e8505b}',
+    '#v3t .v3-code{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-radius:18px;background:' + PURP + ';color:#fff;box-shadow:inset 0 -6px 0 rgba(0,0,0,.2);margin-bottom:12px}',
+    '#v3t .v3-code b{font:400 44px/1 ' + TITLE + ';letter-spacing:.12em;color:#fff;text-shadow:0 4px 0 rgba(0,0,0,.25)}#v3t .v3-code span{display:block;font-size:13px;color:rgba(255,255,255,.8);margin-bottom:6px}',
+    '#v3t .v3-code .v3-b{background:#fff;color:' + PURP + ';text-shadow:none}',
+    '#v3t .v3-link{display:flex;gap:8px;align-items:center;margin-bottom:6px}#v3t .v3-link code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:11px 12px;border-radius:12px;background:#f6f2ff;font:800 13px ' + BODY + ';color:' + PURP + '}',
+    '#v3t .v3-hint{margin:0 0 14px;color:' + MUTE + ';font-size:13px}#v3t .v3-hint b{color:' + INK + '}',
+    '#v3t table{width:100%;border-collapse:separate;border-spacing:0 6px;font-size:14.5px}#v3t th{text-align:left;color:' + MUTE + ';font-weight:800;font-size:12.5px;padding:2px 8px}#v3t td{padding:10px 8px;background:#f6f2ff}#v3t td:first-child{border-radius:12px 0 0 12px;font-weight:900}#v3t td:last-child{border-radius:0 12px 12px 0}',
+    '#v3t .v3-bar{height:10px;border-radius:5px;background:#e4d9ff;overflow:hidden;min-width:70px}#v3t .v3-bar i{display:block;height:100%;background:' + TEAL + ';border-radius:5px}',
+    '#v3t .v3-none{padding:20px;text-align:center;color:' + MUTE + ';font-size:14.5px;border:3px dashed #e4d9ff;border-radius:16px}',
+    '#v3t .v3-mine{display:flex;flex-direction:column;gap:8px}#v3t .v3-mine button{display:flex;align-items:center;gap:10px;text-align:left;padding:12px 14px;border-radius:14px;border:0;background:#f6f2ff;box-shadow:inset 0 -4px 0 rgba(0,0,0,.06);color:' + INK + ';font:800 15px ' + BODY + ';cursor:pointer}#v3t .v3-mine b{font:400 16px ' + TITLE + ';color:' + PURP + ';letter-spacing:.06em}#v3t .v3-mine small{margin-left:auto;color:' + MUTE + '}',
+    '#v3t h3{margin:18px 0 6px;font:400 18px ' + TITLE + ';color:' + INK + ';letter-spacing:.02em}',
+    '#v3t .v3-views{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:8px 0 18px}#v3t .v3-views label{position:relative;display:flex;flex-direction:column;gap:4px;padding:13px 12px 13px 38px;border-radius:16px;background:#f6f2ff;box-shadow:inset 0 -5px 0 rgba(0,0,0,.07);cursor:pointer}',
+    '#v3t .v3-views input{position:absolute;left:13px;top:15px;accent-color:' + PURP + ';width:17px;height:17px}#v3t .v3-views b{font:400 16px ' + TITLE + ';letter-spacing:.02em}#v3t .v3-views small{font-size:12px;color:' + MUTE + '}#v3t .v3-views label:has(input:checked){background:' + PURP + ';color:#fff}#v3t .v3-views label:has(input:checked) small{color:rgba(255,255,255,.85)}',
+    '#v3t .v3-sw{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:4px 0 6px}#v3t .v3-sw button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 8px 14px;border:0;border-radius:16px;background:#c9c2d8;color:#fff;cursor:pointer;box-shadow:inset 0 -6px 0 rgba(0,0,0,.14);font-family:' + BODY + '}',
+    '#v3t .v3-sw button span{font-size:26px;filter:grayscale(1);opacity:.7}#v3t .v3-sw button b{font:400 15px ' + TITLE + ';letter-spacing:.02em}#v3t .v3-sw button i{font-style:normal;font:400 13px ' + TITLE + ';padding:2px 12px 4px;border-radius:9px;background:rgba(0,0,0,.18)}',
+    '#v3t .v3-sw button.on{background:#22b35e;box-shadow:inset 0 -6px 0 rgba(0,0,0,.22)}#v3t .v3-sw button.on span{filter:none;opacity:1}#v3t .v3-sw button.on i{background:' + GOLD + ';color:' + INK + '}#v3t .v3-sw button:active{transform:translateY(3px)}',
+    '#v3t .v3-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:9px;margin:8px 0 16px}#v3t .v3-tg{grid-column:1/-1;margin:6px 0 -2px;font:400 14px ' + TITLE + ';color:' + MUTE + ';letter-spacing:.03em}',
+    '#v3t .v3-tile{display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px 8px 14px;border:0;border-radius:18px;background:#c9c2d8;color:#fff;cursor:pointer;text-align:center;box-shadow:inset 0 -6px 0 rgba(0,0,0,.14);font-family:' + BODY + ';font-weight:800}',
+    '#v3t .v3-tile .ic{font-size:36px;line-height:1.1;filter:grayscale(1);opacity:.6}#v3t .v3-tile b{font:400 16px ' + TITLE + ';letter-spacing:.02em}#v3t .v3-tile small{font-size:11.5px;line-height:1.35;opacity:.92}',
+    '#v3t .v3-tile.on{box-shadow:inset 0 -6px 0 rgba(0,0,0,.22),0 6px 14px rgba(40,0,90,.22)}#v3t .v3-tile.on .ic{filter:drop-shadow(0 3px 0 rgba(0,0,0,.15));opacity:1}#v3t .v3-tile.on b{text-shadow:0 2px 0 rgba(0,0,0,.18)}',
+    PAL.map(function (c, i) { return '#v3t .v3-tile.on.c' + i + '{background:' + c + '}'; }).join('') + '#v3t .v3-tile:active{transform:translateY(3px)}#v3t .v3-tile[disabled]{opacity:.7}',
+    '#v3t .v3-tile{padding:12px 6px 11px}#v3t .v3-tile .ic{font-size:30px}#v3t .v3-tile b{font-size:14px}#v3t .v3-tile small{font-size:11px}',
+    '#v3-solo{position:fixed;inset:0;z-index:2147483400;background:' + DEEP + '}#v3-solo iframe{position:absolute;left:0;right:0;bottom:0;top:calc(env(safe-area-inset-top,0px) + 52px);width:100%;height:calc(100% - env(safe-area-inset-top,0px) - 52px);border:0;background:#000}',
+    '#v3-solo .v3s-bar{position:absolute;left:0;right:0;top:0;height:calc(env(safe-area-inset-top,0px) + 52px);padding:env(safe-area-inset-top,0px) 10px 0 18px;box-sizing:border-box;display:flex;align-items:center;gap:12px;background:' + DEEP + ';color:#fff;font-family:' + BODY + ';font-weight:800;box-shadow:0 4px 0 rgba(0,0,0,.18);white-space:nowrap}#v3-solo .v3s-bar button{margin-left:auto}',
+    '#v3-solo .v3s-bar b{font:400 16px ' + TITLE + ';letter-spacing:.02em}#v3-solo .v3s-bar span{font-size:12.5px;opacity:.85}#v3-solo .v3s-bar button{width:36px;height:36px;border:0;border-radius:11px;background:#fff;color:' + PURP + ';font:400 16px ' + TITLE + ';box-shadow:inset 0 -4px 0 rgba(0,0,0,.12);cursor:pointer}',
+    '.v3-entry{white-space:nowrap}'
+  ].join('');
+  document.head.appendChild(css);
+
+  var MODES = [['cards', '🧊', '3D 词卡', '十种 3D 动态卡片 · 爆炸学习卡', '3D 卡片'],
+    ['drive', '🚗', 'Knowledge Drive', '坐车沿路看词', '动态呈现'], ['train', '🚆', 'Knowledge Train', '车窗外一路看词', '动态呈现'],
+    ['metro', '🚇', 'Knowledge Metro', '每个词一站', '动态呈现'], ['tower', '🏙', 'Skyscraper', '坐电梯逛大楼', '动态呈现'],
+    ['roadtrip', '🛣', 'Road Trip', '名路自驾', '动态呈现'], ['rack', '🎠', 'Rotating Rack', '旋转展架挑词', '动态呈现'],
+    ['library', '📚', 'Library', '书架上抽书', '动态呈现'], ['museum', '🏛', 'Museum', '逛博物馆', '动态呈现'],
+    ['city', '🌆', 'Knowledge City', '逛街看词', '动态呈现'], ['galaxy', '🌌', 'Galaxy', '开飞船登星球', '动态呈现'],
+    ['balloon', '🎈', 'Balloon', '热气球飘过词', '动态呈现'], ['type', '⌨️', '3D Type', '拼音打字：跟打 + 闯关', '打字']];
+  function tiles(on) {   // the modes as level-map tiles, grouped
+    var out = '', g = '';
+    MODES.forEach(function (x, i) { if (x[4] !== g) { g = x[4]; out += '<div class="v3-tg">' + g + '</div>'; } out += tile(x, i, on(x[0], i)); });
+    return out;
+  }
+  function modesOf(h) { if (h && h.modes) return h.modes; var o = {}; o[h && (h.view === 'drive' || h.view === 'type') ? h.view : 'cards'] = true; return o; }
+  /* a game mode as a tile of the students' level map: lit = on, grey = off (2026-11-20, the user) */
+  function tile(x, i, on) { return '<button type="button" class="v3-tile c' + i + (on ? ' on' : '') + '" data-mode="' + x[0] + '" aria-pressed="' + !!on + '"><span class="ic">' + x[1] + '</span><b>' + x[2] + '</b><small>' + x[3] + '</small></button>'; }
+  var M = null, poll = 0;
+  function shut() { clearInterval(poll); poll = 0; if (M) { M.remove(); M = null; } document.removeEventListener('keydown', onKey, true); }
+  function onKey(e) { if (e.key === 'Escape' && M) { e.stopPropagation(); shut(); } }
+  function modal(html) {
+    shut(); M = document.createElement('div'); M.id = 'v3t'; M.innerHTML = '<div class="v3-m" role="dialog" aria-modal="true">' + html + '</div>';
+    M.addEventListener('click', function (e) { if (e.target === M) shut(); });
+    ['pointerdown', 'touchstart', 'keydown', 'wheel'].forEach(function (t) { M.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
+    document.body.appendChild(M); document.addEventListener('keydown', onKey, true);
+    var x = M.querySelector('.v3-x'); if (x) x.onclick = shut;
+    return M;
+  }
+  function hd(title, sub) { return '<div class="v3-hd"><div><h2>' + title + '</h2>' + (sub ? '<p class="v3-sub">' + sub + '</p>' : '') + '</div><button type="button" class="v3-x" aria-label="关闭">✕</button></div>'; }
+
+  /* ---------------- assign ---------------- */
+  function assign(board, o) {
+    o = o || {}; if (!board || !(board.columns || []).length) { alert('没有可以布置的词表。'); return; }
+    var cols = board.columns.filter(function (c) { return !c.teachingListArchived && (c.cards || []).some(function (k) { return k && k.title && !k.teachingArchived; }); });
+    var pre = o.listIds || (cols.length === 1 ? [cols[0].id] : []);
+    var title = o.title || (pre.length === 1 ? (cols.filter(function (c) { return c.id === pre[0]; })[0] || {}).title : board.title) || '3D 词卡';
+    var m = modal(hd('布置给学生', '学生在 /iphone?play 输入课堂码，在关卡地图里玩你开放的游戏模式；你在这里随时开关模式、看每个人的进度。') +
+      '<label class="v3-f">作业标题<input type="text" data-t maxlength="80" value="' + esc(title) + '"></label>' +
+      '<div style="font-size:12.5px;color:#93a0b8;font-weight:600">选择词表</div><div class="v3-lists">' +
+      cols.map(function (c) { var n = (c.cards || []).filter(function (k) { return k && k.title && !k.teachingArchived; }).length;
+        return '<label class="v3-l"><input type="checkbox" value="' + esc(c.id) + '"' + (pre.indexOf(c.id) >= 0 ? ' checked' : '') + '>' + esc(c.title || '词表') + '<small>' + n + ' 个词</small></label>'; }).join('') +
+      '</div><div style="font-size:13px;color:#7a7090;font-weight:800">游戏模式 · 点亮即开（之后在课堂码界面也能随时点）</div><div class="v3-tiles" data-pick>' +
+      tiles(function (k, i) { return i === 0; }) +
+      '</div><div class="v3-row"><button type="button" class="v3-b pri" data-go>生成课堂码</button><button type="button" class="v3-b" data-mine>我布置的作业</button></div><p class="v3-msg" data-msg></p>');
+    m.querySelector('[data-mine]').onclick = manage;
+    [].forEach.call(m.querySelectorAll('[data-pick] [data-mode]'), function (b) { b.onclick = function () { b.classList.toggle('on'); b.setAttribute('aria-pressed', b.classList.contains('on')); }; });
+    m.querySelector('[data-go]').onclick = function () {
+      var btn = this, msg = m.querySelector('[data-msg]'), ids = [].map.call(m.querySelectorAll('.v3-lists input:checked'), function (i) { return i.value; });
+      if (!ids.length) { msg.textContent = '至少选一个词表。'; return; }
+      var t = m.querySelector('[data-t]').value.trim() || '3D 词卡', pb = packBoard(board, ids, t), n = pb.columns.reduce(function (s, c) { return s + c.cards.length; }, 0);
+      if (!n) { msg.textContent = '选中的词表里没有词。'; return; }
+      if (!m.querySelector('[data-pick] [data-mode].on')) { msg.textContent = '至少点亮一个游戏模式。'; return; }
+      if (n > 400) { msg.textContent = '一次最多布置 400 个词（现在 ' + n + ' 个），请少选几个词表。'; return; }
+      btn.disabled = true; msg.textContent = '';
+      (function tryCode(k) {
+        var code = newCode();
+        return db(code).then(function (cur) {
+          if (cur && k < 5) return tryCode(k + 1);
+          if (cur) throw new Error('课堂码冲突，请再试一次。');
+          var md = {}; [].forEach.call(m.querySelectorAll('[data-pick] [data-mode]'), function (x) { md[x.getAttribute('data-mode')] = x.classList.contains('on'); });
+          var vw = MODES.filter(function (x) { return md[x[0]]; }).map(function (x) { return x[0]; })[0] || 'cards';
+          var host = { kind: 'vocab3d', v: 2, view: vw, modes: md, title: t, board: pb, state: 'live', created: { '.sv': 'timestamp' }, words: n };
+          return db(code + '/host', 'PUT', host).then(function () {
+            var all = mine().filter(function (x) { return x.code !== code; }); all.unshift({ code: code, title: t, at: Date.now(), words: n, modes: md }); saveMine(all);
+            roster(code);
+          });
+        });
+      })(0).catch(function (e) { btn.disabled = false; msg.textContent = '没有布置成功：' + (e.message || e); });
+    };
+  }
+
+  /* ---------------- one assignment: code, link, students ---------------- */
+  function roster(code) {
+    var m = modal('<div data-head></div><div class="v3-code"><div><span>课堂码</span><b>' + esc(code) + '</b></div><button type="button" class="v3-b" data-copy-code>复制</button></div>' +
+      '<div class="v3-link"><code>' + esc(link(code)) + '</code><button type="button" class="v3-b pri" data-copy>复制链接</button></div><p class="v3-hint">学生打开 <b>' + esc(SITE.replace(/^https?:\/\//, '')) + '/iphone?play</b>，输入课堂码和名字就能进入。</p>' +
+      '<h3>游戏模式 · 点亮即开</h3><div class="v3-tiles" data-sw></div>' +
+      '<div data-body><div class="v3-none">正在读取…</div></div>' +
+      '<div class="v3-row" style="margin-top:16px"><button type="button" class="v3-b solo" data-open-page>🕹 Solo 试玩</button><button type="button" class="v3-b" data-toggle></button><button type="button" class="v3-b warn" data-del>删除作业</button><button type="button" class="v3-b" data-mine style="margin-left:auto">全部作业</button></div><p class="v3-msg" data-msg></p>');
+    var host = null, msg = m.querySelector('[data-msg]');
+    function copy(t, b) { var done = function () { var o = b.textContent; b.textContent = '已复制 ✓'; setTimeout(function () { b.textContent = o; }, 1400); };
+      try { navigator.clipboard.writeText(t).then(done, function () { prompt('复制这段：', t); }); } catch (e) { prompt('复制这段：', t); } }
+    m.querySelector('[data-copy]').onclick = function () { copy(link(code), this); };
+    m.querySelector('[data-copy-code]').onclick = function () { copy(code, this); };
+    m.querySelector('[data-open-page]').onclick = function () { solo(code); };
+    m.querySelector('[data-mine]').onclick = manage;
+    m.querySelector('[data-toggle]').onclick = function () {
+      if (!host) return; var b = this; b.disabled = true;
+      db(code + '/host', 'PATCH', { state: host.state === 'ended' ? 'live' : 'ended' }).then(function (v) { host.state = v.state; paint(); }).catch(function (e) { msg.textContent = e.message; }).then(function () { b.disabled = false; });
+    };
+    m.querySelector('[data-del]').onclick = function () {
+      if (!confirm('删除这个作业和所有学生的进度？删除后学生的链接也打不开了，无法恢复。')) return;
+      db(code, 'DELETE').then(function () { saveMine(mine().filter(function (x) { return x.code !== code; })); manage(); }).catch(function (e) { msg.textContent = '没有删除成功：' + e.message; });
+    };
+    var players = {};
+    function paint() {
+      if (!M || M !== m) return;
+      m.querySelector('[data-head]').innerHTML = hd(esc(host ? host.title : code), host ? MODES.filter(function (x) { return modesOf(host)[x[0]]; }).map(function (x) { return x[1]; }).join(' ') + ' · ' + (host.words || 0) + ' 个词 · 布置于 ' + new Date(host.created).toLocaleString() + (host.state !== 'ended' ? ' · <span style="color:#86efac">开放中</span>' : ' · <span style="color:#fca5a5">已结束</span>') : '');
+      var x = m.querySelector('.v3-x'); if (x) x.onclick = shut;
+      m.querySelector('[data-toggle]').textContent = host && host.state !== 'ended' ? '结束作业' : '重新开放';
+      var md = modesOf(host), sw = m.querySelector('[data-sw]');
+      sw.innerHTML = tiles(function (k) { return !!md[k]; });
+      [].forEach.call(sw.querySelectorAll('[data-mode]'), function (b) { b.onclick = function () {
+        var nx = {}; MODES.forEach(function (x) { nx[x[0]] = !!md[x[0]]; }); nx[b.getAttribute('data-mode')] = !nx[b.getAttribute('data-mode')];
+        if (!MODES.some(function (x) { return nx[x[0]]; })) { msg.textContent = '至少点亮一个游戏模式。'; return; }
+        b.disabled = true; db(code + '/host', 'PATCH', { modes: nx }).then(function () { host.modes = nx; msg.textContent = ''; paint(); }).catch(function (e) { b.disabled = false; msg.textContent = '没有改成：' + e.message; });
+      }; });
+      var rows = Object.keys(players || {}).map(function (k) { return players[k]; }).filter(function (p) { return p && p.name; }).sort(function (a, b) { return (b.known || 0) - (a.known || 0) || (b.seen || 0) - (a.seen || 0); });
+      var tot = host && host.words || 1;
+      m.querySelector('[data-body]').innerHTML = '<h3>学生进度 · ' + rows.length + ' 人</h3>' + (rows.length ? '<table><tr><th>学生</th><th>看过</th><th>会了</th><th style="width:26%"></th>' + (modesOf(host).type ? '<th>闯关</th><th>字/分</th>' : '') + '<th>最近</th></tr>' + rows.map(function (p) {
+        var k = Math.min(tot, p.known || 0), s = Math.min(tot, p.seen || 0);
+        return '<tr><td>' + esc(p.name) + '</td><td>' + s + '/' + tot + '</td><td>' + k + '</td><td><div class="v3-bar"><i style="width:' + Math.round(k / tot * 100) + '%"></i></div></td>' + (modesOf(host).type ? '<td>' + typeCell(p.type) + '</td><td>' + (p.type && p.type.best ? p.type.best.cpm : '—') + '</td>' : '') + '<td style="color:#8190a8">' + ago(p.at) + '</td></tr>';
+      }).join('') + '</table>' : '<div class="v3-none">还没有学生加入。把课堂码或链接发给学生。</div>');
+    }
+    function load() {
+      return db(code).then(function (d) {
+        if (!d || !d.host) { m.querySelector('[data-body]').innerHTML = '<div class="v3-none">这个作业已经不存在了。</div>'; clearInterval(poll); return; }
+        host = d.host; players = d.players || {}; paint();
+      }).catch(function (e) { msg.textContent = '读取失败：' + e.message; });
+    }
+    load(); poll = setInterval(function () { if (!document.hidden) load(); }, 4000);
+  }
+
+  function typeCell(t) {   // 3D Type: the highest level with a star, and its stars
+    if (!t || !t.lv) return '—'; var top = 0; Object.keys(t.lv).forEach(function (n) { if (t.lv[n] > 0 && +n > top) top = +n; });
+    return top ? '第 ' + top + ' 关 ' + '★★★'.slice(0, t.lv[top]) : '—';
+  }
+
+  /* Solo: what the students see, here, full screen (?preview: nothing goes into the progress) */
+  function solo(code) {
+    var o = document.createElement('div'); o.id = 'v3-solo';
+    o.innerHTML = '<iframe title="Solo" allow="autoplay; fullscreen"></iframe><div class="v3s-bar"><b>🕹 Solo · 学生看到的样子</b><span>预览不计入进度</span><button type="button" aria-label="结束 Solo">✕</button></div>';
+    o.querySelector('iframe').src = page(code) + '&preview=1';
+    o.querySelector('button').onclick = function () { o.remove(); };
+    ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(function (t) { o.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
+    document.body.appendChild(o);
+  }
+
+  /* ---------------- every assignment made on this device ---------------- */
+  function manage() {
+    var all = mine();
+    var m = modal(hd('我布置的作业', '在这台设备上布置的作业；点开看学生进度。') + (all.length ? '<div class="v3-mine">' + all.map(function (x) {
+      return '<button type="button" data-code="' + esc(x.code) + '"><b>' + esc(x.code) + '</b>' + (x.modes ? MODES.filter(function (q) { return x.modes[q[0]]; }).map(function (q) { return q[1]; }).join('') + ' ' : '') + esc(x.title) + '<small>' + (x.words || 0) + ' 词 · ' + new Date(x.at).toLocaleDateString() + '</small></button>';
+    }).join('') + '</div>' : '<div class="v3-none">还没有布置过 3D 词卡作业。在词表旁点「3D 词卡」开始。</div>'));
+    [].forEach.call(m.querySelectorAll('[data-code]'), function (b) { b.onclick = function () { roster(b.getAttribute('data-code')); }; });
+  }
+
+  /* ---------------- the entries: a "3D 词卡" button on each word list ---------------- */
+  function sets() { try { return window.MinestTeachingSets && MinestTeachingSets.read ? MinestTeachingSets.read() : null; } catch (e) { return null; } }
+  function entryBtn(cls, id) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = cls + ' v3-entry'; b.textContent = '🎓 布置给学生'; b.title = '把这个词表布置给学生：3D 词卡或 Knowledge Drive';
+    b.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); var s = sets(); if (s) assign(s, { listIds: [id] }); }, true);
+    return b;
+  }
+  function decorate() {
+    if (window.isStudentMode && window.isStudentMode()) return;
+    [].forEach.call(document.querySelectorAll('.tl-row[data-set-row]'), function (r) {
+      if (r.querySelector('.v3-entry')) return; var id = r.getAttribute('data-set-row'), ed = r.querySelector('[data-set-edit]');
+      var b = entryBtn(ed ? ed.className : 'mlv-btn alt', id); if (ed && ed.parentNode) ed.parentNode.insertBefore(b, ed.nextSibling); else r.appendChild(b);
+    });
+    [].forEach.call(document.querySelectorAll('.teacher-list-card'), function (c) {
+      if (c.querySelector('.v3-entry')) return; var sel = c.querySelector('[data-tm-select]'); if (!sel) return;
+      var b = entryBtn('teacher-btn teacher-btn-alt', sel.getAttribute('data-tm-select')); sel.parentNode.insertBefore(b, sel.nextSibling);
+    });
+  }
+  var q = 0;
+  new MutationObserver(function () { if (q) return; q = requestAnimationFrame(function () { q = 0; decorate(); }); }).observe(document.documentElement, { childList: true, subtree: true });
+
+  window.MinestVocab3D = { assign: assign, manage: manage, pack: pack, roster: roster };
+})();
+</script>
 <script id="mn-cover-modes-js">
 /* Minest 3D Cover display modes: 3D / Wall / Fan / Helix / Stack / Spiral / Orbit / Sphere / Wave — High-End 3D Physics & Motion */
 (function () {
@@ -196598,6 +196880,7 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
     port: '<rect x="7.5" y="3.5" width="9" height="17" rx="2"/>', land: '<rect x="3.5" y="7.5" width="17" height="9" rx="2"/>',
     style: '<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.6-.9 1.2-1.8-.5-1-.1-2.2 1.2-2.2H17a3.5 3.5 0 0 0 3.5-3.5c0-5.3-3.8-9.5-8.5-9.5z"/><circle cx="7.8" cy="11" r="1.1" fill="currentColor" stroke="none"/><circle cx="10.5" cy="7.4" r="1.1" fill="currentColor" stroke="none"/><circle cx="14.8" cy="7.6" r="1.1" fill="currentColor" stroke="none"/>',
     assign: '<path d="M2.5 9.5L12 5l9.5 4.5L12 14z"/><path d="M6.5 11.5v4.2c1.4 1.5 3.3 2.3 5.5 2.3s4.1-.8 5.5-2.3v-4.2M21.5 9.5v5"/>',
+    holo: '<path d="M12 3l7 4v6c0 3.6-3 6.4-7 8-4-1.6-7-4.4-7-8V7z" opacity=".55"/><path d="M8.5 12.5l2.4 2.4 4.6-5.2"/><path d="M4 21h16"/>', lfx: '<path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 16v4M16.5 18h4"/>', cfx: '<rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M8.5 9h7M8.5 12.5h5" stroke-dasharray="1.4 1.6"/><circle cx="16.5" cy="16.5" r="1" fill="currentColor"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>', lab: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>'
   };
   var MZH = { flow: '3D 封面', wall: '卡片墙', fan: '扇形', helix: '螺旋', stack: '叠放', spiral: '旋涡', orbit: '轨道', sphere: '球体', wave: '波浪', ring: '环形' };
@@ -196623,7 +196906,8 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
     '#cm-bar button:hover{color:#fff}' +
     '#cm-bar button.on{background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.1));color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 2px 8px rgba(0,0,0,.25)}' +
     '#cm-bar .sep,#cm-hbar .sep{width:1px;height:16px;margin:0 4px;background:rgba(255,255,255,.14);flex:none}' +
-    '#cm-bar .pl.on{color:#7dd3fc}' +
+    '#cm-kflash{position:fixed;z-index:2147483646;transform:translate(-50%,-100%);padding:6px 12px;border-radius:10px;background:rgba(14,16,22,.82);color:#f1f5f9;font:600 12.5px -apple-system,system-ui,sans-serif;pointer-events:none;opacity:0;white-space:nowrap}' +
+    '#cm-bar .pl.on{color:#7dd3fc}#cm-bar .hl-k.on,#cm-bar .lfx-k.on,#cm-bar .cfx-k.on{color:#7dd3fc;background:rgba(125,211,252,.16)}' +
     '.cm-mname{position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%) translateY(-4px);padding:4px 10px;border-radius:8px;background:rgba(14,16,22,.7);color:#f1f5f9;font:600 11.5px -apple-system,system-ui,sans-serif;letter-spacing:.04em;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease}' +
     '.cm-mname.show{opacity:1;transform:translateX(-50%) translateY(0)}#cm-bar,#cm-hbar{overflow:visible}' +
     /* the other shape for each mode (each class is drawn in its own shape by default) */
@@ -197195,6 +197479,7 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
           var sc = (a < 1 ? 1.32 - a * .32 : Math.max(0.76, 1 - (a - 1) * 0.06)) + (hovIdx === i ? 0.05 : 0);
           el.style.transform = 'translate3d(' + (360 + d * 96 + s * k * 68).toFixed(1) + 'px,' + (288 + a * a * 5.5 + k * 8 + flt).toFixed(1) + 'px,' + (-a * 46).toFixed(1) + 'px) rotateY(' + rotY.toFixed(2) + 'deg) rotateZ(' + rotZ.toFixed(2) + 'deg) scale(' + sc.toFixed(3) + ')';
           el.style.zIndex = Math.round(1000 - a * 10);
+          el.classList.toggle('act', a < 0.45);
         });
         updateDet(sel, 'COVER');
       }
@@ -197455,7 +197740,7 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
     return { destroy: function () { dead = true; cancelAnimationFrame(rafId); box.removeEventListener('pointermove', hoverMove); box.removeEventListener('pointerdown', down); box.removeEventListener('pointermove', move); box.removeEventListener('pointerup', up); box.removeEventListener('pointercancel', up); box.removeEventListener('wheel', wheel); document.removeEventListener('keydown', key); fr.remove(); det.remove(); if (head) head.remove(); if (pills) pills.remove(); if (handEl) handEl.remove(); if (gbar) gbar.remove(); clearTimeout(lp); box.classList.remove('wide'); }, fit: fit };
   }
 
-  function setMode(m) { if (window.MinestExplode && MinestExplode.isOpen()) MinestExplode.close(true); mode = m; document.body.classList.toggle('cm-on', m !== 'flow'); try { localStorage.setItem(KEY, m); } catch (e) {} sync(true); }
+  function setMode(m) { if (window.MinestExplode && MinestExplode.isOpen()) MinestExplode.close(true); mode = m; document.body.classList.toggle('cm-on', m !== 'flow' || !!window.__cmStandalone); try { localStorage.setItem(KEY, m); } catch (e) {} sync(true); }
   /* the card in front, tapped: it comes apart into its layers (explode.js); 打开原卡 opens it in Minest as before */
   var lastList = [];
   function nextCard() { try { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); } catch (e) {} }
@@ -197481,14 +197766,28 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
     var pl = k('pl', '自动播放', function () { playing = !playing; paint(); if (pickEl) pickPaint(); });
     var shp = k('shp', '竖卡 / 横卡', function () { shape = shape === 'port' ? 'land' : 'port'; try { localStorage.setItem('minest.coverShape', shape); } catch (x) {} paint(); sync(true); });
     k('sty', '卡片风格', function () { pickClose(); if (window.MinestCardStyles) MinestCardStyles.open(); }).innerHTML = ico('style');
+    var hk = k('holo', '全息 · 叠加全息投影', function () { setHolo(!HOLO); flashKey('全息 ' + (HOLO ? '开' : '关')); }); hk.innerHTML = ico('holo');
     /* a teacher hands these cards to the students: the 3D 词卡 page (tools/vocab3d) */
     if (window.MinestVocab3D && !(window.isStudentMode && window.isStudentMode())) k('asg', '布置给学生 · 3D 词卡', function () { pickClose(); var b = null; try { b = MinestAI.board(); } catch (e) {} if (b) MinestVocab3D.assign(b); }).innerHTML = ico('assign');
     function paint() {
       if (mk.dataset.m !== mode) { mk.dataset.m = mode; mk.innerHTML = ico(mode); var l = '模式 · ' + (MZH[mode] || mode); mk.title = l; mk.setAttribute('aria-label', l); }
       var pk = playing ? 'pause' : 'play'; if (pl.dataset.k !== pk) { pl.dataset.k = pk; pl.innerHTML = ico(pk); pl.title = playing ? '暂停' : '自动播放'; } pl.classList.toggle('on', playing);
+      hk.classList.toggle('on', HOLO);
       if (shp.dataset.k !== shape) { shp.dataset.k = shape; shp.innerHTML = ico(shape); shp.title = shape === 'port' ? '竖卡 · 点按换横卡' : '横卡 · 点按换竖卡'; }
     }
     g._paint = paint; paint(); return g;
+  }
+  function paintBarKeys() {
+    var b = document.getElementById('cm-bar'); if (!b) return;
+    var h = b.querySelector('.hl-k'), l = b.querySelector('.lfx-k'), c = b.querySelector('.cfx-k');
+    var fx = !!(window.FBFX && window.FBFX.mode !== 'none'); document.documentElement.classList.toggle('fx-on', fx); stageBg();
+    if (h) h.classList.toggle('on', HOLO); if (l) l.classList.toggle('on', fx); if (c) c.classList.toggle('on', !!(window.__cmCardFx && window.__cmCardFx.on()));
+  }
+  function flashKey(t) {   // a word above the Dock, for a moment
+    var d = document.querySelector('.mn-bdock'), n = document.getElementById('cm-kflash'); if (!d) return;
+    if (!n) { n = document.createElement('div'); n.id = 'cm-kflash'; document.body.appendChild(n); }
+    var r = d.getBoundingClientRect(); n.textContent = t; n.style.left = (r.left + r.width / 2) + 'px'; n.style.top = (r.top - 12) + 'px'; n.style.opacity = '1';
+    clearTimeout(n._t); n._t = setTimeout(function () { n.style.opacity = '0'; }, 1300);
   }
   var pickEl = null;
   var pcss = document.createElement('style');
@@ -197527,7 +197826,7 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
   document.addEventListener('keydown', function (e) { if (pickEl && e.key === 'Escape') { e.stopPropagation(); pickClose(); } }, true);
   function sync(force) {
     var slot = document.querySelector('.sf-slot[data-sf-view="coverflow"]'), on = slot && /(?:^|\s)mode-coverflow(?:\s|$)/.test(document.body.className) && slot.offsetWidth > 0;
-    document.body.classList.toggle('cm-on', !!on && mode !== 'flow');
+    document.body.classList.toggle('cm-on', !!on && (mode !== 'flow' || !!window.__cmStandalone));
     var SB = window.MinestSystemBar && MinestSystemBar.page ? MinestSystemBar : null;
     if (!on) { if (eng) { eng.destroy(); eng = null; } if (ov) { ov.remove(); ov = null; } if (bar) { if (bar._dock && SB) SB.page(null); bar.remove(); bar = null; } pickClose(); sig = ''; return; }
     if (SB && (!bar || !bar._dock || bar._slot !== slot)) { if (bar) bar.remove(); bar = dockKeys(); bar._slot = slot; SB.page(bar); }
@@ -197549,11 +197848,18 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
       var paintShp = function () { shp.innerHTML = ico(shape); shp.title = shape === 'port' ? '竖卡 · 点按换横卡' : '横卡 · 点按换竖卡'; };
       paintShp(); shp.onclick = function (e) { e.stopPropagation(); shape = shape === 'port' ? 'land' : 'port'; try { localStorage.setItem('minest.coverShape', shape); } catch (x) {} paintShp(); sync(true); };
       bar.appendChild(pl); bar.appendChild(rg); bar.appendChild(shp); bar.appendChild(sty);
+      var hb = document.createElement('button'); hb.className = 'hl-k'; hb.innerHTML = ico('holo'); hb.title = '全息 · 叠加全息投影';
+      hb.onclick = function (e) { e.stopPropagation(); setHolo(!HOLO); flashName(bar, '全息 ' + (HOLO ? '开' : '关')); }; bar.appendChild(hb);
+      if (window.FBFX) { var lb = document.createElement('button'); lb.className = 'lfx-k'; lb.innerHTML = ico('lfx'); lb.title = 'Light FX';
+        lb.onclick = function (e) { e.stopPropagation(); var M = ['none', 'lasers', 'firework', 'spotlight', 'neon'], nx = M[(M.indexOf(window.FBFX.mode) + 1) % M.length]; window.FBFX.setMode(nx); flashName(bar, 'Light FX · ' + ({ none: '关', lasers: '激光', firework: '烟花', spotlight: '聚光灯', neon: '霓虹' })[nx]); paintBarKeys(); }; bar.appendChild(lb); }
+      if (window.__cmCardFx) { var cb = document.createElement('button'); cb.className = 'cfx-k'; cb.innerHTML = ico('cfx'); cb.title = 'Card FX';
+        cb.onclick = function (e) { e.stopPropagation(); flashName(bar, 'Card FX · ' + window.__cmCardFx.next()); paintBarKeys(); }; bar.appendChild(cb); }
+      paintBarKeys();
       slot.appendChild(bar);
     }
     [].forEach.call(bar.querySelectorAll('button[data-m]'), function (b) { b.classList.toggle('on', b.dataset.m === mode); });
     if (bar._paint) bar._paint();
-    if (mode === 'flow') { if (eng) { eng.destroy(); eng = null; } if (ov) { ov.remove(); ov = null; } sig = ''; return; }
+    if (mode === 'flow' && !window.__cmStandalone) { if (eng) { eng.destroy(); eng = null; } if (ov) { ov.remove(); ov = null; } holoOv(null); sig = ''; return; }   // in Minest the 3D Cover is its own (the students' page draws it here)
     var all = items(), list = windowed(all), s = mode + '|' + shape + '|' + all.length + '|' + list.map(function (x) { return x.id + x.src; }).join(',');
     if (!force && eng && ov && ov.parentNode === slot && s === sig) return;
     if (eng) eng.destroy();
@@ -197561,7 +197867,43 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
     ov = document.createElement('div'); ov.id = 'cm-ov'; ov.className = mode + ' ' + shape; slot.insertBefore(ov, bar.parentNode === slot ? bar : slot.querySelector('#xl')); sig = s;
     lastList = list;
     eng = list.length ? Engine(ov, list, mode, pick) : null;
+    stageBg(); holoOv(ov);
   }
+  /* 全息 (2026-11-20, the user): the holo projection's look laid over the mode in view — cyan light cards, scan lines,
+     the particles — on the board too, not only from Spatial Home's console */
+  var HOLO = false; try { HOLO = localStorage.getItem('minest.coverHolo') === '1'; } catch (e) {}
+  var hov = null, hovFx = null, hovT = 0;
+  function holoOv(o) {
+    if (hovFx && (!o || o !== hov || !HOLO)) { hovFx.destroy(); hovFx = null; clearInterval(hovT); }
+    if (o) o.classList.toggle('hl', HOLO);
+    hov = o;
+    if (o && HOLO && !hovFx) {
+      hovFx = HoloFX(o); setTimeout(function () { if (hovFx) hovFx.form(); }, 160);
+      var aim = function () { if (!hovFx || !hov) return; var W = hov.clientWidth, H = hov.clientHeight; hovFx.aim({ x: W / 2, y: H * 0.98 }, { x: W / 2, y: H * 0.45 }); };
+      aim(); hovT = setInterval(aim, 1000);
+    }
+  }
+  function setHolo(on) { HOLO = !!on; try { localStorage.setItem('minest.coverHolo', HOLO ? '1' : '0'); } catch (e) {} holoOv(ov); if (bar && bar._paint) bar._paint(); paintBarKeys(); }
+  /* the stage's background (the card-style panel's palette): a preset or your own colour; '' = the mode's own */
+  var BG = ''; try { BG = localStorage.getItem('minest.coverBg') || ''; } catch (e) {}
+  var BGS = {
+    night: 'radial-gradient(120% 90% at 50% 38%,#1b2133,#0a0d16 72%)', studio: 'radial-gradient(120% 90% at 50% 40%,#ffffff,#eef0f4 70%,#e1e4ea)',
+    purple: 'repeating-linear-gradient(135deg,rgba(255,255,255,.045) 0 26px,transparent 26px 52px),linear-gradient(160deg,#6a22ee,#7b2ff7 45%,#9b4dff)',
+    aurora: 'radial-gradient(80% 60% at 20% 20%,rgba(52,211,153,.45),transparent 60%),radial-gradient(70% 60% at 85% 30%,rgba(56,189,248,.45),transparent 60%),linear-gradient(160deg,#071a2b,#0b2a3a 50%,#120b2e)',
+    sunset: 'linear-gradient(170deg,#2a1a4a 0%,#7a2f6b 40%,#e2685a 75%,#f6b26b 100%)', ocean: 'radial-gradient(120% 90% at 50% 30%,#1c6ea4,#0a3a66 55%,#06213d)',
+    forest: 'radial-gradient(120% 90% at 50% 35%,#2f6b4a,#173d2b 60%,#0c2219)', rose: 'radial-gradient(120% 90% at 50% 40%,#ffe3ec,#ffc6d9 60%,#f5a3bf)'
+  };
+  function stageBg() {
+    var o = document.getElementById('cm-ov'); if (!o) return;
+    var v = BGS[BG] || (/^#[0-9a-f]{6}$/i.test(BG) ? 'radial-gradient(120% 90% at 50% 38%,' + BG + ',' + shade(BG, -0.45) + ')' : '');
+    if (document.documentElement.classList.contains('fx-on')) v = '';   // Light FX: its room light shows through
+    if (v) o.style.setProperty('background', v, 'important'); else o.style.removeProperty('background');
+    o.classList.toggle('bg-light', BG === 'studio' || BG === 'rose' || (/^#/.test(BG) && lum(BG) > 0.6));
+  }
+  function shade(h, k) { var n = parseInt(h.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(function (v) { return Math.round(k < 0 ? v * (1 + k) : v + (255 - v) * k); }); return '#' + c.map(function (v) { return ('0' + v.toString(16)).slice(-2); }).join(''); }
+  function lum(h) { var n = parseInt(h.slice(1), 16); return ((n >> 16) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114) / 255; }
+  function setBg(v) { BG = v || ''; try { localStorage.setItem('minest.coverBg', BG); } catch (e) {} stageBg(); }
+  window.addEventListener('minest:cover-bg', function (e) { setBg(e.detail); });
   /* a big board: only a window of cards round the one in view is built (every card animated each frame, each with
      its picture and the card style's layers, was too much for a phone) */
   var CAP = { sphere: 30, spiral: 40, wall: 50 }, lastPickId = null;
@@ -197604,6 +197946,11 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
     '#cm-hbar button.on{background:rgba(160,240,255,.22);color:#e8fdff;box-shadow:inset 0 1px 0 rgba(200,250,255,.35),0 0 12px rgba(140,235,255,.35)}' +
     '';
   document.head.appendChild(hcss);
+  var hcss2 = document.createElement('style');
+  hcss2.textContent = hcss.textContent.replace(/#cm-holo #cm-ov(?![\w-])/g, '#cm-ov.hl').replace(/#cm-holo /g, '#cm-ov.hl ') +
+    '#cm-ov.hl{background:radial-gradient(70% 60% at 50% 45%,rgba(20,90,140,.45),rgba(2,10,20,.92) 75%)!important}#cm-ov.hl .cm-hfx{position:absolute;inset:0;pointer-events:none;z-index:1300}' +
+    '#cm-ov.hl::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1290;background:repeating-linear-gradient(180deg,rgba(140,230,255,.06) 0 1px,transparent 1px 4px)}';
+  document.head.appendChild(hcss2);
 
   /* a tap read from the finger itself (in Spatial Home the room takes the touches, so 'click' may never come) */
   function tapOn(el, fn) {
@@ -197855,7 +198202,7 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
     if (holoEl) { var e0 = holoEl; holoEl = null; e0.remove(); }
   }
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && holoEl) { if (holoEl._close) holoEl._close(); } });
-  window.MinestCoverModes = { holo: holo, holoClose: holoClose,  play: function (v) { playing = v === undefined ? !playing : !!v; if (bar && bar._paint) { bar._paint(); return; } var b = bar && bar.querySelector('.pl'); if (b) { b.innerHTML = ico(playing ? 'pause' : 'play'); b.classList.toggle('on', playing); bar.classList.toggle('playing', playing); } }, speed: function (v) { speed = v; }, set: setMode, get: function () { return mode; } };
+  window.MinestCoverModes = { holo: holo, holoClose: holoClose, bg: function (v) { if (v === undefined) return BG; setBg(v); }, bgs: function () { return Object.keys(BGS); }, holoOn: function (v) { if (v === undefined) return HOLO; setHolo(v); },  play: function (v) { playing = v === undefined ? !playing : !!v; if (bar && bar._paint) { bar._paint(); return; } var b = bar && bar.querySelector('.pl'); if (b) { b.innerHTML = ico(playing ? 'pause' : 'play'); b.classList.toggle('on', playing); bar.classList.toggle('playing', playing); } }, speed: function (v) { speed = v; }, set: setMode, get: function () { return mode; } };
 })();
 </script>
 <script id="mn-card-styles-js">
@@ -198001,6 +198348,13 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
     '#cs-head h3{margin:0;font:800 18px/1.2 -apple-system,system-ui,sans-serif;letter-spacing:-.02em;flex:1}',
     '#cs-shuf{border:0;border-radius:999px;padding:7px 13px;background:rgba(14,165,233,.14);color:#0284c7;font:600 12px/1 -apple-system,system-ui,sans-serif;cursor:pointer;transition:transform .15s ease}',
     '#cs-shuf:active{transform:scale(.95)}',
+    '#cs-head .cs-ic{width:40px;height:40px;padding:0!important;border-radius:12px!important;display:grid;place-items:center;margin-left:6px}#cs-head .cs-ic svg{width:21px;height:21px;display:block}#cs-head .cs-ic.on{background:rgba(125,211,252,.25)!important;color:#7dd3fc!important}',
+    '#cs-bg{border:0;background:rgba(255,255,255,.08);color:#e6e8ee;cursor:pointer;border:1px solid rgba(255,255,255,.12)}',
+    '#cs-note{min-height:0;height:0;overflow:visible;position:relative}#cs-note::before{content:none}#cs-note{font:600 13px -apple-system,"PingFang SC",system-ui,sans-serif;color:#7dd3fc;opacity:0;transform:translateY(-4px);transition:opacity .2s,transform .2s}#cs-note.show{opacity:1;transform:none;height:auto;margin:4px 0 12px}',
+    '#cs-bgp{margin:0 0 14px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}#cs-bgp b{display:block;font:700 13px -apple-system,"PingFang SC",system-ui,sans-serif;color:#cbd5e1;margin-bottom:8px}',
+    '#cs-bgp .sw{display:flex;flex-wrap:wrap;gap:10px}#cs-bgp .sw>*{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:none;cursor:pointer;color:#cbd5e1;font:600 11px -apple-system,"PingFang SC",system-ui,sans-serif;padding:0}',
+    '#cs-bgp .sw i{width:42px;height:42px;border-radius:12px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}#cs-bgp .sw .on i{box-shadow:0 0 0 2px #0f1117,0 0 0 4px #7dd3fc}#cs-bgp .sw .on span{color:#7dd3fc}',
+    '#cs-bgp input[type=color]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}',
     'body.theme-dark #cs-shuf{background:rgba(56,189,248,.18);color:#7dd3fc}',
     '#cs-close{width:32px;height:32px;border-radius:50%;border:0;background:rgba(100,116,139,.18);color:inherit;font:700 17px/1 sans-serif;cursor:pointer}',
     '#cs-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}',
@@ -198284,6 +198638,7 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
     for (var i = 0; i < nodes.length; i++) colorizeCard(nodes[i], i, force);
   }
 
+  var csShuf = 0;
   function shuffleColors() {
     seedSalt = Math.floor(Math.random() * 100000);
     colorizeAll(true);
@@ -198321,14 +198676,34 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
     modal.id = 'cs-modal';
     modal.innerHTML =
       '<div id="cs-panel" role="dialog" aria-label="选择卡片风格">' +
-        '<div id="cs-head"><h3>卡片风格<small>' + STYLES.length + ' 种材质 · 倾斜手机或移动鼠标，光会跟着走</small></h3><button id="cs-shuf" type="button">随机换色</button><button id="cs-close" type="button" aria-label="Close">×</button></div>' +
+        '<div id="cs-head"><h3>卡片风格<small>' + STYLES.length + ' 种材质 · 倾斜手机或移动鼠标，光会跟着走</small></h3><button id="cs-bg" class="cs-ic" type="button" title="换背景色" aria-label="换背景色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="M3.5 15l4.5-4 4 3.5 3-2.5 5.5 4.5"/><circle cx="15.5" cy="9" r="1.6"/></svg></button><button id="cs-shuf" class="cs-ic" type="button" title="随机换色：每点一次，卡片换一组新颜色" aria-label="随机换色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1.2" fill="currentColor"/><circle cx="15" cy="15" r="1.2" fill="currentColor"/><circle cx="15" cy="9" r="1.2" fill="currentColor"/><circle cx="9" cy="15" r="1.2" fill="currentColor"/></svg></button><button id="cs-close" type="button" aria-label="Close">×</button></div><div id="cs-note" aria-live="polite"></div><div id="cs-bgp" hidden></div>' +
         '<div id="cs-top"><div id="cs-stage"><div class="cs-prev" id="cs-hero"><span class="cs-pt">Learning Loop</span><span class="cs-pl">Learning Map</span></div></div><div id="cs-info"><b></b><i></i><p></p></div></div>' +
         '<div id="cs-tabs"></div>' +
         '<div id="cs-grid"></div>' +
       '</div>';
     modal.onclick = function (e) { if (e.target === modal) closeModal(); };
     modal.querySelector('#cs-close').onclick = closeModal;
-    modal.querySelector('#cs-shuf').onclick = function () { shuffleColors(); };
+    /* 随机换色: a one-off (not a switch) — the die spins and says what happened (2026-11-20, the user: no feedback) */
+    modal.querySelector('#cs-shuf').onclick = function () {
+      shuffleColors(); var b = this, n = 0, t0 = performance.now(); csShuf = (csShuf || 0) + 1;
+      (function spin() { var k = Math.min(1, (performance.now() - t0) / 520), e = 1 - Math.pow(1 - k, 3); b.firstChild.style.transform = 'rotate(' + (e * 360).toFixed(1) + 'deg) scale(' + (1 + Math.sin(k * Math.PI) * 0.18).toFixed(3) + ')'; if (k < 1) requestAnimationFrame(spin); else b.firstChild.style.transform = ''; })();
+      setTimeout(function () { b.firstChild.style.transform = ''; }, 700);
+      note('🎲 已换一组新颜色（第 ' + csShuf + ' 组）· 再点一次换下一组');
+    };
+    /* the stage's background: presets or your own colour (the 3D Cover modes paint it) */
+    var BGP = [['', '跟随模式', 'linear-gradient(135deg,#e5e7eb 0 50%,#1f2937 50%)'], ['night', '深夜', '#0f1320'], ['studio', '浅色影棚', '#f2f3f6'], ['purple', 'Blooket 紫', '#7b2ff7'],
+      ['aurora', '极光', 'linear-gradient(135deg,#34d399,#38bdf8 55%,#120b2e)'], ['sunset', '日落', 'linear-gradient(170deg,#7a2f6b,#e2685a 60%,#f6b26b)'], ['ocean', '海洋', '#1c6ea4'], ['forest', '森林', '#2f6b4a'], ['rose', '玫瑰', '#ffc6d9']];
+    var bgp = modal.querySelector('#cs-bgp');
+    function paintBg() {
+      var cur = window.MinestCoverModes && MinestCoverModes.bg ? MinestCoverModes.bg() : '';
+      bgp.innerHTML = '<b>3D 舞台背景</b><div class="sw">' + BGP.map(function (x) { return '<button type="button" data-bg="' + x[0] + '" class="' + (cur === x[0] ? 'on' : '') + '" title="' + x[1] + '"><i style="background:' + x[2] + '"></i><span>' + x[1] + '</span></button>'; }).join('') +
+        '<label class="' + (/^#/.test(cur) ? 'on' : '') + '" title="自选颜色"><i style="background:' + (/^#/.test(cur) ? cur : 'conic-gradient(#f87171,#fbbf24,#34d399,#38bdf8,#a78bfa,#f87171)') + '"></i><span>自选</span><input type="color" value="' + (/^#/.test(cur) ? cur : '#3a2a6a') + '"></label></div>';
+      [].forEach.call(bgp.querySelectorAll('[data-bg]'), function (b) { b.onclick = function () { setBg(b.getAttribute('data-bg'), b.title); }; });
+      var ci = bgp.querySelector('input[type=color]'); ci.oninput = function () { setBg(ci.value, '自选 ' + ci.value); };
+    }
+    function setBg(v, name) { try { window.dispatchEvent(new CustomEvent('minest:cover-bg', { detail: v })); } catch (e) {} paintBg(); note('🖼 背景：' + name); }
+    modal.querySelector('#cs-bg').onclick = function () { bgp.hidden = !bgp.hidden; this.classList.toggle('on', !bgp.hidden); if (!bgp.hidden) paintBg(); };
+    function note(t) { var n = modal.querySelector('#cs-note'); n.textContent = t; n.classList.add('show'); clearTimeout(n._t); n._t = setTimeout(function () { n.classList.remove('show'); }, 2200); }
 
     var grid = modal.querySelector('#cs-grid');
     STYLES.forEach(function (s, idx) {
@@ -198762,288 +199137,6 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
     return out;
   }
   window.MinestExplode = { open: open, close: close, isOpen: function () { return !!cur; }, facts: facts, parts: parts, breakdown: breakdown };
-})();
-</script>
-<script id="mn-vocab3d-js">
-/* Minest · 3D 词卡作业 · 教师端 (2026-11-20, the user: an isolated 3D dynamic-card page for students' vocabulary,
-   word lists assigned from the teacher side).
-   A word list (a teaching word set, or lists of the board in view) becomes an assignment: a code and a link to the
-   student page (vocab3d.html?code=CODE, /vocab). Students study the words as 3D cards; the teacher sees each student's
-   progress live, can close the assignment (students may still look; nothing more is recorded) or delete it.
-   Data: Firebase Realtime Database /minest-live/{CODE} (the same place Minest Live keeps a class game; an
-   assignment's code starts with V): host = { kind: 'vocab3d', title, board, state: live | ended, created }, players/{pid}.
-   Entry points: "3D 词卡" on each list in Word Lists (the Live teacher panel) and in 教师端 · 词表管理; MinestVocab3D.assign(board, o).
-   window.MinestVocab3D = { assign, manage, pack } */
-(function () {
-  'use strict';
-  if (window.MinestVocab3D) return;
-  var DB = 'https://minest-33761-default-rtdb.firebaseio.com/minest-live/';
-  var SITE = /vercel\.app$/.test(location.hostname) ? location.origin : 'https://minest-app.vercel.app';
-  var MINE = 'minest.vocab3d.mine.v1';
-
-  function db(path, method, body) {
-    return fetch(DB + path + '.json', { method: method || 'GET', headers: body ? { 'Content-Type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' })
-      .then(function (r) { if (!r.ok) throw new Error('网络错误（' + r.status + '）'); return r.json(); });
-  }
-  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function str(v, n) { v = v == null ? '' : String(v).replace(/<[^>]*>/g, ' ').replace(/[#*_>`]/g, '').replace(/\s+/g, ' ').trim(); return v.length > n ? v.slice(0, n - 1) + '…' : v; }
-  function newCode() { var o = String(1 + Math.floor(Math.random() * 9)); for (var i = 0; i < 5; i++) o += Math.floor(Math.random() * 10); return o; }   // six digits, like a Live game's
-  function mine() { try { return JSON.parse(localStorage.getItem(MINE) || '[]') || []; } catch (e) { return []; } }
-  function saveMine(m) { try { localStorage.setItem(MINE, JSON.stringify(m.slice(0, 60))); } catch (e) {} }
-  function link(code) { return SITE + '/iphone?play=' + code; }   // the one student entry: Live's join (the code opens this assignment)
-  function page(code) { return (/^https?:$/.test(location.protocol) ? location.origin : SITE) + '/vocab3d.html?code=' + code; }
-  function ago(t) { if (!t) return '—'; var s = Math.max(0, (Date.now() - t) / 1000); return s < 60 ? '刚刚' : s < 3600 ? Math.floor(s / 60) + ' 分钟前' : s < 86400 ? Math.floor(s / 3600) + ' 小时前' : new Date(t).toLocaleDateString(); }
-
-  /* a card, as the student page needs it: words, meaning, sound, examples, roots — and a picture only when it is on the web
-     (a picture kept on this device cannot reach a student's) */
-  function imgOf(c) {
-    var u = '';
-    try { if (window.MinestImageViews && MinestImageViews.image) { var im = MinestImageViews.image(c) || {}; u = im.thumb || im.full || ''; } } catch (e) {}
-    if (!u) u = c.image || c.img || (c.cover && (c.cover.url || c.cover.src)) || '';
-    return /^https?:\/\//.test(u) ? u : '';
-  }
-  function pack(c) {
-    var o = { id: String(c.id), title: str(c.title, 90) }, d = c.definitions || {};
-    if (c.titleZh) o.titleZh = str(c.titleZh, 90);
-    var pyLike = function (v) { return /[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]/i.test(String(v || '')); };   // a pinyin back is the sound, not the meaning
-    var pr = c.pron; pr = typeof pr === 'string' ? pr : pr && (pr.ipa || pr.phonetic || pr.us || pr.text) || c.phonetic || c.py || c.pinyin || '';
-    if (!pr && /[\u3400-\u9fff]/.test(c.title || '')) { try { pr = window.MinestTeachingAssets && MinestTeachingAssets.pinyin ? MinestTeachingAssets.pinyin(c.title) : ''; } catch (e) {} if (/[\u3400-\u9fff]/.test(pr || '')) pr = ''; }
-    if (!pr && pyLike(c.desc || c.back)) pr = c.desc || c.back;
-    if (pr) o.pron = str(pr, 60);
-    var mean = [c.meaning, c.en, c.back, c.desc, c.description].filter(function (v) { return v && String(v).trim() && !pyLike(v); })[0] || '';
-    if (mean) o.meaning = str(mean, 300);
-    if (d.en || c.definitionEn) o.defEn = str(d.en || c.definitionEn, 300);
-    if (d.zh || c.definitionZh) o.defZh = str(d.zh || c.definitionZh, 200);
-    var ex = (Array.isArray(c.examples) ? c.examples : []).map(function (e) { return typeof e === 'string' ? e : e && e.text; }).filter(Boolean).slice(0, 3).map(function (e) { return str(e, 220); });
-    if (ex.length) o.examples = ex;
-    var rel = (Array.isArray(c.relatedWords) ? c.relatedWords : []).map(function (r) { return typeof r === 'string' ? r : r && (r.word || r.text); }).filter(Boolean).slice(0, 6).map(function (r) { return str(r, 40); });
-    if (rel.length) o.related = rel;
-    var ety = c.etymology || c.roots || c.wordRoot || c.origin; if (ety) o.ety = str(ety, 200);
-    if (c.hint) o.hint = str(c.hint, 160);
-    var im = imgOf(c); if (im) o.img = im;
-    return o;
-  }
-  function packBoard(b, ids, title) {
-    var cols = (b.columns || []).filter(function (c) { return !ids || ids.indexOf(c.id) >= 0; }).map(function (c) {
-      var cards = (c.cards || []).filter(function (k) { return k && k.title && !k.teachingArchived; }).map(pack);
-      return { id: String(c.id), title: str(c.title || '词表', 60), color: c.color || '', cards: cards };
-    }).filter(function (c) { return c.cards.length; });
-    return { id: String(b.id || 'board'), title: str(title || b.title || '3D 词卡', 80), columns: cols };
-  }
-
-  /* ---------------- the look ---------------- */
-  var css = document.createElement('style');
-  /* the look: Minest Live's (Blooket-like) — a purple room, white chunky cards, Titan One titles, buttons that press down */
-  var PAL = ['#0bc2cf', '#ff9f1c', '#3d8bfd', '#7b2ff7', '#00a69c', '#e8505b', '#ff4f7b', '#a46bff', '#c98a1c', '#ff7a59', '#4b11b8', '#22b35e', '#ff4f7b'];   // a colour per mode (the students' level map uses the same)
-  var INK = '#2f2a3d', MUTE = '#7a7090', PURP = '#7b2ff7', DEEP = '#4b11b8', TEAL = '#0bc2cf', GOLD = '#ffcc00';
-  var TITLE = '"Titan One","Lilita One",Nunito,system-ui,sans-serif', BODY = 'Nunito,"Nunito Sans",ui-rounded,system-ui,sans-serif';
-  var BTN = 'border:0;border-radius:14px;font-family:' + TITLE + ';font-weight:400;letter-spacing:.02em;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.18);box-shadow:inset 0 -6px 0 rgba(0,0,0,.22),0 4px 10px rgba(40,0,90,.2);padding:11px 18px 15px;cursor:pointer';
-  if (!document.getElementById('mlv-toon-font')) { var fl = document.createElement('link'); fl.id = 'mlv-toon-font'; fl.rel = 'stylesheet'; fl.href = 'https://fonts.googleapis.com/css2?family=Titan+One&family=Nunito:wght@600;700;800;900&display=swap'; document.head.appendChild(fl); }
-  css.textContent = [
-    '#v3t{position:fixed;inset:0;z-index:2147483300;display:grid;place-items:center;padding:16px;background:repeating-linear-gradient(135deg,rgba(255,255,255,.045) 0 26px,transparent 26px 52px),linear-gradient(160deg,rgba(106,34,238,.92),rgba(123,47,247,.92) 45%,rgba(155,77,255,.92));font-family:' + BODY + ';font-weight:700;color:' + INK + '}',
-    '#v3t .v3-m{width:min(600px,100%);max-height:min(90vh,880px);overflow:auto;border-radius:22px;background:#fff;box-shadow:inset 0 -7px 0 rgba(0,0,0,.09),0 14px 34px rgba(40,0,90,.35);padding:22px 22px 18px}',
-    '#v3t h2{margin:0;font:400 24px/1.15 ' + TITLE + ';color:' + PURP + ';letter-spacing:.02em}#v3t .v3-sub{margin:6px 0 0;color:' + MUTE + ';font-size:14px;font-weight:700}',
-    '#v3t .v3-hd{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}#v3t .v3-hd>div{flex:1}',
-    '#v3t .v3-x{flex:none;width:38px;height:38px;border-radius:12px;border:0;background:#f1ebff;color:' + PURP + ';font:400 17px ' + TITLE + ';box-shadow:inset 0 -4px 0 rgba(0,0,0,.1);cursor:pointer}',
-    '#v3t label.v3-f{display:block;margin:0 0 14px;font-size:13px;color:' + MUTE + ';font-weight:800}#v3t input[type=text]{display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:11px 13px;border-radius:12px;border:3px solid #e4d9ff;background:#fff;color:' + INK + ';font:800 16px ' + BODY + ';outline:none}#v3t input[type=text]:focus{border-color:#9b4dff}',
-    '#v3t .v3-lists{display:flex;flex-direction:column;gap:8px;margin:8px 0 16px;max-height:240px;overflow:auto;padding:2px}',
-    '#v3t .v3-l{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:14px;background:#f6f2ff;box-shadow:inset 0 -4px 0 rgba(0,0,0,.06);cursor:pointer;font-size:15px;font-weight:800}#v3t .v3-l input{accent-color:' + PURP + ';width:19px;height:19px}#v3t .v3-l small{margin-left:auto;color:' + MUTE + '}',
-    '#v3t .v3-b{' + BTN + ';background:' + TEAL + ';font-size:15px}#v3t .v3-b:active{transform:translateY(3px);box-shadow:inset 0 -2px 0 rgba(0,0,0,.22)}#v3t .v3-b.pri{background:' + GOLD + ';color:' + INK + ';text-shadow:none}#v3t .v3-b.solo{background:#ff4f7b}#v3t .v3-b.warn{background:#fff;color:#e8505b;text-shadow:none;box-shadow:inset 0 -5px 0 rgba(0,0,0,.1),0 3px 8px rgba(40,0,90,.15)}#v3t .v3-b[disabled]{opacity:.5}',
-    '#v3t .v3-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}#v3t .v3-msg{min-height:18px;margin:10px 0 0;font-size:14px;color:#e8505b}',
-    '#v3t .v3-code{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-radius:18px;background:' + PURP + ';color:#fff;box-shadow:inset 0 -6px 0 rgba(0,0,0,.2);margin-bottom:12px}',
-    '#v3t .v3-code b{font:400 44px/1 ' + TITLE + ';letter-spacing:.12em;color:#fff;text-shadow:0 4px 0 rgba(0,0,0,.25)}#v3t .v3-code span{display:block;font-size:13px;color:rgba(255,255,255,.8);margin-bottom:6px}',
-    '#v3t .v3-code .v3-b{background:#fff;color:' + PURP + ';text-shadow:none}',
-    '#v3t .v3-link{display:flex;gap:8px;align-items:center;margin-bottom:6px}#v3t .v3-link code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:11px 12px;border-radius:12px;background:#f6f2ff;font:800 13px ' + BODY + ';color:' + PURP + '}',
-    '#v3t .v3-hint{margin:0 0 14px;color:' + MUTE + ';font-size:13px}#v3t .v3-hint b{color:' + INK + '}',
-    '#v3t table{width:100%;border-collapse:separate;border-spacing:0 6px;font-size:14.5px}#v3t th{text-align:left;color:' + MUTE + ';font-weight:800;font-size:12.5px;padding:2px 8px}#v3t td{padding:10px 8px;background:#f6f2ff}#v3t td:first-child{border-radius:12px 0 0 12px;font-weight:900}#v3t td:last-child{border-radius:0 12px 12px 0}',
-    '#v3t .v3-bar{height:10px;border-radius:5px;background:#e4d9ff;overflow:hidden;min-width:70px}#v3t .v3-bar i{display:block;height:100%;background:' + TEAL + ';border-radius:5px}',
-    '#v3t .v3-none{padding:20px;text-align:center;color:' + MUTE + ';font-size:14.5px;border:3px dashed #e4d9ff;border-radius:16px}',
-    '#v3t .v3-mine{display:flex;flex-direction:column;gap:8px}#v3t .v3-mine button{display:flex;align-items:center;gap:10px;text-align:left;padding:12px 14px;border-radius:14px;border:0;background:#f6f2ff;box-shadow:inset 0 -4px 0 rgba(0,0,0,.06);color:' + INK + ';font:800 15px ' + BODY + ';cursor:pointer}#v3t .v3-mine b{font:400 16px ' + TITLE + ';color:' + PURP + ';letter-spacing:.06em}#v3t .v3-mine small{margin-left:auto;color:' + MUTE + '}',
-    '#v3t h3{margin:18px 0 6px;font:400 18px ' + TITLE + ';color:' + INK + ';letter-spacing:.02em}',
-    '#v3t .v3-views{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:8px 0 18px}#v3t .v3-views label{position:relative;display:flex;flex-direction:column;gap:4px;padding:13px 12px 13px 38px;border-radius:16px;background:#f6f2ff;box-shadow:inset 0 -5px 0 rgba(0,0,0,.07);cursor:pointer}',
-    '#v3t .v3-views input{position:absolute;left:13px;top:15px;accent-color:' + PURP + ';width:17px;height:17px}#v3t .v3-views b{font:400 16px ' + TITLE + ';letter-spacing:.02em}#v3t .v3-views small{font-size:12px;color:' + MUTE + '}#v3t .v3-views label:has(input:checked){background:' + PURP + ';color:#fff}#v3t .v3-views label:has(input:checked) small{color:rgba(255,255,255,.85)}',
-    '#v3t .v3-sw{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:4px 0 6px}#v3t .v3-sw button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 8px 14px;border:0;border-radius:16px;background:#c9c2d8;color:#fff;cursor:pointer;box-shadow:inset 0 -6px 0 rgba(0,0,0,.14);font-family:' + BODY + '}',
-    '#v3t .v3-sw button span{font-size:26px;filter:grayscale(1);opacity:.7}#v3t .v3-sw button b{font:400 15px ' + TITLE + ';letter-spacing:.02em}#v3t .v3-sw button i{font-style:normal;font:400 13px ' + TITLE + ';padding:2px 12px 4px;border-radius:9px;background:rgba(0,0,0,.18)}',
-    '#v3t .v3-sw button.on{background:#22b35e;box-shadow:inset 0 -6px 0 rgba(0,0,0,.22)}#v3t .v3-sw button.on span{filter:none;opacity:1}#v3t .v3-sw button.on i{background:' + GOLD + ';color:' + INK + '}#v3t .v3-sw button:active{transform:translateY(3px)}',
-    '#v3t .v3-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:9px;margin:8px 0 16px}#v3t .v3-tg{grid-column:1/-1;margin:6px 0 -2px;font:400 14px ' + TITLE + ';color:' + MUTE + ';letter-spacing:.03em}',
-    '#v3t .v3-tile{display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px 8px 14px;border:0;border-radius:18px;background:#c9c2d8;color:#fff;cursor:pointer;text-align:center;box-shadow:inset 0 -6px 0 rgba(0,0,0,.14);font-family:' + BODY + ';font-weight:800}',
-    '#v3t .v3-tile .ic{font-size:36px;line-height:1.1;filter:grayscale(1);opacity:.6}#v3t .v3-tile b{font:400 16px ' + TITLE + ';letter-spacing:.02em}#v3t .v3-tile small{font-size:11.5px;line-height:1.35;opacity:.92}',
-    '#v3t .v3-tile.on{box-shadow:inset 0 -6px 0 rgba(0,0,0,.22),0 6px 14px rgba(40,0,90,.22)}#v3t .v3-tile.on .ic{filter:drop-shadow(0 3px 0 rgba(0,0,0,.15));opacity:1}#v3t .v3-tile.on b{text-shadow:0 2px 0 rgba(0,0,0,.18)}',
-    PAL.map(function (c, i) { return '#v3t .v3-tile.on.c' + i + '{background:' + c + '}'; }).join('') + '#v3t .v3-tile:active{transform:translateY(3px)}#v3t .v3-tile[disabled]{opacity:.7}',
-    '#v3t .v3-tile{padding:12px 6px 11px}#v3t .v3-tile .ic{font-size:30px}#v3t .v3-tile b{font-size:14px}#v3t .v3-tile small{font-size:11px}',
-    '#v3-solo{position:fixed;inset:0;z-index:2147483400;background:' + DEEP + '}#v3-solo iframe{position:absolute;left:0;right:0;bottom:0;top:calc(env(safe-area-inset-top,0px) + 52px);width:100%;height:calc(100% - env(safe-area-inset-top,0px) - 52px);border:0;background:#000}',
-    '#v3-solo .v3s-bar{position:absolute;left:0;right:0;top:0;height:calc(env(safe-area-inset-top,0px) + 52px);padding:env(safe-area-inset-top,0px) 10px 0 18px;box-sizing:border-box;display:flex;align-items:center;gap:12px;background:' + DEEP + ';color:#fff;font-family:' + BODY + ';font-weight:800;box-shadow:0 4px 0 rgba(0,0,0,.18);white-space:nowrap}#v3-solo .v3s-bar button{margin-left:auto}',
-    '#v3-solo .v3s-bar b{font:400 16px ' + TITLE + ';letter-spacing:.02em}#v3-solo .v3s-bar span{font-size:12.5px;opacity:.85}#v3-solo .v3s-bar button{width:36px;height:36px;border:0;border-radius:11px;background:#fff;color:' + PURP + ';font:400 16px ' + TITLE + ';box-shadow:inset 0 -4px 0 rgba(0,0,0,.12);cursor:pointer}',
-    '.v3-entry{white-space:nowrap}'
-  ].join('');
-  document.head.appendChild(css);
-
-  var MODES = [['cards', '🧊', '3D 词卡', '十种 3D 动态卡片 · 爆炸学习卡', '3D 卡片'],
-    ['drive', '🚗', 'Knowledge Drive', '坐车沿路看词', '动态呈现'], ['train', '🚆', 'Knowledge Train', '车窗外一路看词', '动态呈现'],
-    ['metro', '🚇', 'Knowledge Metro', '每个词一站', '动态呈现'], ['tower', '🏙', 'Skyscraper', '坐电梯逛大楼', '动态呈现'],
-    ['roadtrip', '🛣', 'Road Trip', '名路自驾', '动态呈现'], ['rack', '🎠', 'Rotating Rack', '旋转展架挑词', '动态呈现'],
-    ['library', '📚', 'Library', '书架上抽书', '动态呈现'], ['museum', '🏛', 'Museum', '逛博物馆', '动态呈现'],
-    ['city', '🌆', 'Knowledge City', '逛街看词', '动态呈现'], ['galaxy', '🌌', 'Galaxy', '开飞船登星球', '动态呈现'],
-    ['balloon', '🎈', 'Balloon', '热气球飘过词', '动态呈现'], ['type', '⌨️', '3D Type', '拼音打字：跟打 + 闯关', '打字']];
-  function tiles(on) {   // the modes as level-map tiles, grouped
-    var out = '', g = '';
-    MODES.forEach(function (x, i) { if (x[4] !== g) { g = x[4]; out += '<div class="v3-tg">' + g + '</div>'; } out += tile(x, i, on(x[0], i)); });
-    return out;
-  }
-  function modesOf(h) { if (h && h.modes) return h.modes; var o = {}; o[h && (h.view === 'drive' || h.view === 'type') ? h.view : 'cards'] = true; return o; }
-  /* a game mode as a tile of the students' level map: lit = on, grey = off (2026-11-20, the user) */
-  function tile(x, i, on) { return '<button type="button" class="v3-tile c' + i + (on ? ' on' : '') + '" data-mode="' + x[0] + '" aria-pressed="' + !!on + '"><span class="ic">' + x[1] + '</span><b>' + x[2] + '</b><small>' + x[3] + '</small></button>'; }
-  var M = null, poll = 0;
-  function shut() { clearInterval(poll); poll = 0; if (M) { M.remove(); M = null; } document.removeEventListener('keydown', onKey, true); }
-  function onKey(e) { if (e.key === 'Escape' && M) { e.stopPropagation(); shut(); } }
-  function modal(html) {
-    shut(); M = document.createElement('div'); M.id = 'v3t'; M.innerHTML = '<div class="v3-m" role="dialog" aria-modal="true">' + html + '</div>';
-    M.addEventListener('click', function (e) { if (e.target === M) shut(); });
-    ['pointerdown', 'touchstart', 'keydown', 'wheel'].forEach(function (t) { M.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
-    document.body.appendChild(M); document.addEventListener('keydown', onKey, true);
-    var x = M.querySelector('.v3-x'); if (x) x.onclick = shut;
-    return M;
-  }
-  function hd(title, sub) { return '<div class="v3-hd"><div><h2>' + title + '</h2>' + (sub ? '<p class="v3-sub">' + sub + '</p>' : '') + '</div><button type="button" class="v3-x" aria-label="关闭">✕</button></div>'; }
-
-  /* ---------------- assign ---------------- */
-  function assign(board, o) {
-    o = o || {}; if (!board || !(board.columns || []).length) { alert('没有可以布置的词表。'); return; }
-    var cols = board.columns.filter(function (c) { return !c.teachingListArchived && (c.cards || []).some(function (k) { return k && k.title && !k.teachingArchived; }); });
-    var pre = o.listIds || (cols.length === 1 ? [cols[0].id] : []);
-    var title = o.title || (pre.length === 1 ? (cols.filter(function (c) { return c.id === pre[0]; })[0] || {}).title : board.title) || '3D 词卡';
-    var m = modal(hd('布置给学生', '学生在 /iphone?play 输入课堂码，在关卡地图里玩你开放的游戏模式；你在这里随时开关模式、看每个人的进度。') +
-      '<label class="v3-f">作业标题<input type="text" data-t maxlength="80" value="' + esc(title) + '"></label>' +
-      '<div style="font-size:12.5px;color:#93a0b8;font-weight:600">选择词表</div><div class="v3-lists">' +
-      cols.map(function (c) { var n = (c.cards || []).filter(function (k) { return k && k.title && !k.teachingArchived; }).length;
-        return '<label class="v3-l"><input type="checkbox" value="' + esc(c.id) + '"' + (pre.indexOf(c.id) >= 0 ? ' checked' : '') + '>' + esc(c.title || '词表') + '<small>' + n + ' 个词</small></label>'; }).join('') +
-      '</div><div style="font-size:13px;color:#7a7090;font-weight:800">游戏模式 · 点亮即开（之后在课堂码界面也能随时点）</div><div class="v3-tiles" data-pick>' +
-      tiles(function (k, i) { return i === 0; }) +
-      '</div><div class="v3-row"><button type="button" class="v3-b pri" data-go>生成课堂码</button><button type="button" class="v3-b" data-mine>我布置的作业</button></div><p class="v3-msg" data-msg></p>');
-    m.querySelector('[data-mine]').onclick = manage;
-    [].forEach.call(m.querySelectorAll('[data-pick] [data-mode]'), function (b) { b.onclick = function () { b.classList.toggle('on'); b.setAttribute('aria-pressed', b.classList.contains('on')); }; });
-    m.querySelector('[data-go]').onclick = function () {
-      var btn = this, msg = m.querySelector('[data-msg]'), ids = [].map.call(m.querySelectorAll('.v3-lists input:checked'), function (i) { return i.value; });
-      if (!ids.length) { msg.textContent = '至少选一个词表。'; return; }
-      var t = m.querySelector('[data-t]').value.trim() || '3D 词卡', pb = packBoard(board, ids, t), n = pb.columns.reduce(function (s, c) { return s + c.cards.length; }, 0);
-      if (!n) { msg.textContent = '选中的词表里没有词。'; return; }
-      if (!m.querySelector('[data-pick] [data-mode].on')) { msg.textContent = '至少点亮一个游戏模式。'; return; }
-      if (n > 400) { msg.textContent = '一次最多布置 400 个词（现在 ' + n + ' 个），请少选几个词表。'; return; }
-      btn.disabled = true; msg.textContent = '';
-      (function tryCode(k) {
-        var code = newCode();
-        return db(code).then(function (cur) {
-          if (cur && k < 5) return tryCode(k + 1);
-          if (cur) throw new Error('课堂码冲突，请再试一次。');
-          var md = {}; [].forEach.call(m.querySelectorAll('[data-pick] [data-mode]'), function (x) { md[x.getAttribute('data-mode')] = x.classList.contains('on'); });
-          var vw = MODES.filter(function (x) { return md[x[0]]; }).map(function (x) { return x[0]; })[0] || 'cards';
-          var host = { kind: 'vocab3d', v: 2, view: vw, modes: md, title: t, board: pb, state: 'live', created: { '.sv': 'timestamp' }, words: n };
-          return db(code + '/host', 'PUT', host).then(function () {
-            var all = mine().filter(function (x) { return x.code !== code; }); all.unshift({ code: code, title: t, at: Date.now(), words: n, modes: md }); saveMine(all);
-            roster(code);
-          });
-        });
-      })(0).catch(function (e) { btn.disabled = false; msg.textContent = '没有布置成功：' + (e.message || e); });
-    };
-  }
-
-  /* ---------------- one assignment: code, link, students ---------------- */
-  function roster(code) {
-    var m = modal('<div data-head></div><div class="v3-code"><div><span>课堂码</span><b>' + esc(code) + '</b></div><button type="button" class="v3-b" data-copy-code>复制</button></div>' +
-      '<div class="v3-link"><code>' + esc(link(code)) + '</code><button type="button" class="v3-b pri" data-copy>复制链接</button></div><p class="v3-hint">学生打开 <b>' + esc(SITE.replace(/^https?:\/\//, '')) + '/iphone?play</b>，输入课堂码和名字就能进入。</p>' +
-      '<h3>游戏模式 · 点亮即开</h3><div class="v3-tiles" data-sw></div>' +
-      '<div data-body><div class="v3-none">正在读取…</div></div>' +
-      '<div class="v3-row" style="margin-top:16px"><button type="button" class="v3-b solo" data-open-page>🕹 Solo 试玩</button><button type="button" class="v3-b" data-toggle></button><button type="button" class="v3-b warn" data-del>删除作业</button><button type="button" class="v3-b" data-mine style="margin-left:auto">全部作业</button></div><p class="v3-msg" data-msg></p>');
-    var host = null, msg = m.querySelector('[data-msg]');
-    function copy(t, b) { var done = function () { var o = b.textContent; b.textContent = '已复制 ✓'; setTimeout(function () { b.textContent = o; }, 1400); };
-      try { navigator.clipboard.writeText(t).then(done, function () { prompt('复制这段：', t); }); } catch (e) { prompt('复制这段：', t); } }
-    m.querySelector('[data-copy]').onclick = function () { copy(link(code), this); };
-    m.querySelector('[data-copy-code]').onclick = function () { copy(code, this); };
-    m.querySelector('[data-open-page]').onclick = function () { solo(code); };
-    m.querySelector('[data-mine]').onclick = manage;
-    m.querySelector('[data-toggle]').onclick = function () {
-      if (!host) return; var b = this; b.disabled = true;
-      db(code + '/host', 'PATCH', { state: host.state === 'ended' ? 'live' : 'ended' }).then(function (v) { host.state = v.state; paint(); }).catch(function (e) { msg.textContent = e.message; }).then(function () { b.disabled = false; });
-    };
-    m.querySelector('[data-del]').onclick = function () {
-      if (!confirm('删除这个作业和所有学生的进度？删除后学生的链接也打不开了，无法恢复。')) return;
-      db(code, 'DELETE').then(function () { saveMine(mine().filter(function (x) { return x.code !== code; })); manage(); }).catch(function (e) { msg.textContent = '没有删除成功：' + e.message; });
-    };
-    var players = {};
-    function paint() {
-      if (!M || M !== m) return;
-      m.querySelector('[data-head]').innerHTML = hd(esc(host ? host.title : code), host ? MODES.filter(function (x) { return modesOf(host)[x[0]]; }).map(function (x) { return x[1]; }).join(' ') + ' · ' + (host.words || 0) + ' 个词 · 布置于 ' + new Date(host.created).toLocaleString() + (host.state !== 'ended' ? ' · <span style="color:#86efac">开放中</span>' : ' · <span style="color:#fca5a5">已结束</span>') : '');
-      var x = m.querySelector('.v3-x'); if (x) x.onclick = shut;
-      m.querySelector('[data-toggle]').textContent = host && host.state !== 'ended' ? '结束作业' : '重新开放';
-      var md = modesOf(host), sw = m.querySelector('[data-sw]');
-      sw.innerHTML = tiles(function (k) { return !!md[k]; });
-      [].forEach.call(sw.querySelectorAll('[data-mode]'), function (b) { b.onclick = function () {
-        var nx = {}; MODES.forEach(function (x) { nx[x[0]] = !!md[x[0]]; }); nx[b.getAttribute('data-mode')] = !nx[b.getAttribute('data-mode')];
-        if (!MODES.some(function (x) { return nx[x[0]]; })) { msg.textContent = '至少点亮一个游戏模式。'; return; }
-        b.disabled = true; db(code + '/host', 'PATCH', { modes: nx }).then(function () { host.modes = nx; msg.textContent = ''; paint(); }).catch(function (e) { b.disabled = false; msg.textContent = '没有改成：' + e.message; });
-      }; });
-      var rows = Object.keys(players || {}).map(function (k) { return players[k]; }).filter(function (p) { return p && p.name; }).sort(function (a, b) { return (b.known || 0) - (a.known || 0) || (b.seen || 0) - (a.seen || 0); });
-      var tot = host && host.words || 1;
-      m.querySelector('[data-body]').innerHTML = '<h3>学生进度 · ' + rows.length + ' 人</h3>' + (rows.length ? '<table><tr><th>学生</th><th>看过</th><th>会了</th><th style="width:26%"></th>' + (modesOf(host).type ? '<th>闯关</th><th>字/分</th>' : '') + '<th>最近</th></tr>' + rows.map(function (p) {
-        var k = Math.min(tot, p.known || 0), s = Math.min(tot, p.seen || 0);
-        return '<tr><td>' + esc(p.name) + '</td><td>' + s + '/' + tot + '</td><td>' + k + '</td><td><div class="v3-bar"><i style="width:' + Math.round(k / tot * 100) + '%"></i></div></td>' + (modesOf(host).type ? '<td>' + typeCell(p.type) + '</td><td>' + (p.type && p.type.best ? p.type.best.cpm : '—') + '</td>' : '') + '<td style="color:#8190a8">' + ago(p.at) + '</td></tr>';
-      }).join('') + '</table>' : '<div class="v3-none">还没有学生加入。把课堂码或链接发给学生。</div>');
-    }
-    function load() {
-      return db(code).then(function (d) {
-        if (!d || !d.host) { m.querySelector('[data-body]').innerHTML = '<div class="v3-none">这个作业已经不存在了。</div>'; clearInterval(poll); return; }
-        host = d.host; players = d.players || {}; paint();
-      }).catch(function (e) { msg.textContent = '读取失败：' + e.message; });
-    }
-    load(); poll = setInterval(function () { if (!document.hidden) load(); }, 4000);
-  }
-
-  function typeCell(t) {   // 3D Type: the highest level with a star, and its stars
-    if (!t || !t.lv) return '—'; var top = 0; Object.keys(t.lv).forEach(function (n) { if (t.lv[n] > 0 && +n > top) top = +n; });
-    return top ? '第 ' + top + ' 关 ' + '★★★'.slice(0, t.lv[top]) : '—';
-  }
-
-  /* Solo: what the students see, here, full screen (?preview: nothing goes into the progress) */
-  function solo(code) {
-    var o = document.createElement('div'); o.id = 'v3-solo';
-    o.innerHTML = '<iframe title="Solo" allow="autoplay; fullscreen"></iframe><div class="v3s-bar"><b>🕹 Solo · 学生看到的样子</b><span>预览不计入进度</span><button type="button" aria-label="结束 Solo">✕</button></div>';
-    o.querySelector('iframe').src = page(code) + '&preview=1';
-    o.querySelector('button').onclick = function () { o.remove(); };
-    ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(function (t) { o.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
-    document.body.appendChild(o);
-  }
-
-  /* ---------------- every assignment made on this device ---------------- */
-  function manage() {
-    var all = mine();
-    var m = modal(hd('我布置的作业', '在这台设备上布置的作业；点开看学生进度。') + (all.length ? '<div class="v3-mine">' + all.map(function (x) {
-      return '<button type="button" data-code="' + esc(x.code) + '"><b>' + esc(x.code) + '</b>' + (x.modes ? MODES.filter(function (q) { return x.modes[q[0]]; }).map(function (q) { return q[1]; }).join('') + ' ' : '') + esc(x.title) + '<small>' + (x.words || 0) + ' 词 · ' + new Date(x.at).toLocaleDateString() + '</small></button>';
-    }).join('') + '</div>' : '<div class="v3-none">还没有布置过 3D 词卡作业。在词表旁点「3D 词卡」开始。</div>'));
-    [].forEach.call(m.querySelectorAll('[data-code]'), function (b) { b.onclick = function () { roster(b.getAttribute('data-code')); }; });
-  }
-
-  /* ---------------- the entries: a "3D 词卡" button on each word list ---------------- */
-  function sets() { try { return window.MinestTeachingSets && MinestTeachingSets.read ? MinestTeachingSets.read() : null; } catch (e) { return null; } }
-  function entryBtn(cls, id) {
-    var b = document.createElement('button'); b.type = 'button'; b.className = cls + ' v3-entry'; b.textContent = '🎓 布置给学生'; b.title = '把这个词表布置给学生：3D 词卡或 Knowledge Drive';
-    b.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); var s = sets(); if (s) assign(s, { listIds: [id] }); }, true);
-    return b;
-  }
-  function decorate() {
-    if (window.isStudentMode && window.isStudentMode()) return;
-    [].forEach.call(document.querySelectorAll('.tl-row[data-set-row]'), function (r) {
-      if (r.querySelector('.v3-entry')) return; var id = r.getAttribute('data-set-row'), ed = r.querySelector('[data-set-edit]');
-      var b = entryBtn(ed ? ed.className : 'mlv-btn alt', id); if (ed && ed.parentNode) ed.parentNode.insertBefore(b, ed.nextSibling); else r.appendChild(b);
-    });
-    [].forEach.call(document.querySelectorAll('.teacher-list-card'), function (c) {
-      if (c.querySelector('.v3-entry')) return; var sel = c.querySelector('[data-tm-select]'); if (!sel) return;
-      var b = entryBtn('teacher-btn teacher-btn-alt', sel.getAttribute('data-tm-select')); sel.parentNode.insertBefore(b, sel.nextSibling);
-    });
-  }
-  var q = 0;
-  new MutationObserver(function () { if (q) return; q = requestAnimationFrame(function () { q = 0; decorate(); }); }).observe(document.documentElement, { childList: true, subtree: true });
-
-  window.MinestVocab3D = { assign: assign, manage: manage, pack: pack, roster: roster };
 })();
 </script>
 </body>

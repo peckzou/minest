@@ -140,6 +140,13 @@
     '#cs-head h3{margin:0;font:800 18px/1.2 -apple-system,system-ui,sans-serif;letter-spacing:-.02em;flex:1}',
     '#cs-shuf{border:0;border-radius:999px;padding:7px 13px;background:rgba(14,165,233,.14);color:#0284c7;font:600 12px/1 -apple-system,system-ui,sans-serif;cursor:pointer;transition:transform .15s ease}',
     '#cs-shuf:active{transform:scale(.95)}',
+    '#cs-head .cs-ic{width:40px;height:40px;padding:0!important;border-radius:12px!important;display:grid;place-items:center;margin-left:6px}#cs-head .cs-ic svg{width:21px;height:21px;display:block}#cs-head .cs-ic.on{background:rgba(125,211,252,.25)!important;color:#7dd3fc!important}',
+    '#cs-bg{border:0;background:rgba(255,255,255,.08);color:#e6e8ee;cursor:pointer;border:1px solid rgba(255,255,255,.12)}',
+    '#cs-note{min-height:0;height:0;overflow:visible;position:relative}#cs-note::before{content:none}#cs-note{font:600 13px -apple-system,"PingFang SC",system-ui,sans-serif;color:#7dd3fc;opacity:0;transform:translateY(-4px);transition:opacity .2s,transform .2s}#cs-note.show{opacity:1;transform:none;height:auto;margin:4px 0 12px}',
+    '#cs-bgp{margin:0 0 14px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}#cs-bgp b{display:block;font:700 13px -apple-system,"PingFang SC",system-ui,sans-serif;color:#cbd5e1;margin-bottom:8px}',
+    '#cs-bgp .sw{display:flex;flex-wrap:wrap;gap:10px}#cs-bgp .sw>*{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:none;cursor:pointer;color:#cbd5e1;font:600 11px -apple-system,"PingFang SC",system-ui,sans-serif;padding:0}',
+    '#cs-bgp .sw i{width:42px;height:42px;border-radius:12px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}#cs-bgp .sw .on i{box-shadow:0 0 0 2px #0f1117,0 0 0 4px #7dd3fc}#cs-bgp .sw .on span{color:#7dd3fc}',
+    '#cs-bgp input[type=color]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}',
     'body.theme-dark #cs-shuf{background:rgba(56,189,248,.18);color:#7dd3fc}',
     '#cs-close{width:32px;height:32px;border-radius:50%;border:0;background:rgba(100,116,139,.18);color:inherit;font:700 17px/1 sans-serif;cursor:pointer}',
     '#cs-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}',
@@ -423,6 +430,7 @@
     for (var i = 0; i < nodes.length; i++) colorizeCard(nodes[i], i, force);
   }
 
+  var csShuf = 0;
   function shuffleColors() {
     seedSalt = Math.floor(Math.random() * 100000);
     colorizeAll(true);
@@ -460,14 +468,34 @@
     modal.id = 'cs-modal';
     modal.innerHTML =
       '<div id="cs-panel" role="dialog" aria-label="选择卡片风格">' +
-        '<div id="cs-head"><h3>卡片风格<small>' + STYLES.length + ' 种材质 · 倾斜手机或移动鼠标，光会跟着走</small></h3><button id="cs-shuf" type="button">随机换色</button><button id="cs-close" type="button" aria-label="Close">×</button></div>' +
+        '<div id="cs-head"><h3>卡片风格<small>' + STYLES.length + ' 种材质 · 倾斜手机或移动鼠标，光会跟着走</small></h3><button id="cs-bg" class="cs-ic" type="button" title="换背景色" aria-label="换背景色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="M3.5 15l4.5-4 4 3.5 3-2.5 5.5 4.5"/><circle cx="15.5" cy="9" r="1.6"/></svg></button><button id="cs-shuf" class="cs-ic" type="button" title="随机换色：每点一次，卡片换一组新颜色" aria-label="随机换色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1.2" fill="currentColor"/><circle cx="15" cy="15" r="1.2" fill="currentColor"/><circle cx="15" cy="9" r="1.2" fill="currentColor"/><circle cx="9" cy="15" r="1.2" fill="currentColor"/></svg></button><button id="cs-close" type="button" aria-label="Close">×</button></div><div id="cs-note" aria-live="polite"></div><div id="cs-bgp" hidden></div>' +
         '<div id="cs-top"><div id="cs-stage"><div class="cs-prev" id="cs-hero"><span class="cs-pt">Learning Loop</span><span class="cs-pl">Learning Map</span></div></div><div id="cs-info"><b></b><i></i><p></p></div></div>' +
         '<div id="cs-tabs"></div>' +
         '<div id="cs-grid"></div>' +
       '</div>';
     modal.onclick = function (e) { if (e.target === modal) closeModal(); };
     modal.querySelector('#cs-close').onclick = closeModal;
-    modal.querySelector('#cs-shuf').onclick = function () { shuffleColors(); };
+    /* 随机换色: a one-off (not a switch) — the die spins and says what happened (2026-11-20, the user: no feedback) */
+    modal.querySelector('#cs-shuf').onclick = function () {
+      shuffleColors(); var b = this, n = 0, t0 = performance.now(); csShuf = (csShuf || 0) + 1;
+      (function spin() { var k = Math.min(1, (performance.now() - t0) / 520), e = 1 - Math.pow(1 - k, 3); b.firstChild.style.transform = 'rotate(' + (e * 360).toFixed(1) + 'deg) scale(' + (1 + Math.sin(k * Math.PI) * 0.18).toFixed(3) + ')'; if (k < 1) requestAnimationFrame(spin); else b.firstChild.style.transform = ''; })();
+      setTimeout(function () { b.firstChild.style.transform = ''; }, 700);
+      note('🎲 已换一组新颜色（第 ' + csShuf + ' 组）· 再点一次换下一组');
+    };
+    /* the stage's background: presets or your own colour (the 3D Cover modes paint it) */
+    var BGP = [['', '跟随模式', 'linear-gradient(135deg,#e5e7eb 0 50%,#1f2937 50%)'], ['night', '深夜', '#0f1320'], ['studio', '浅色影棚', '#f2f3f6'], ['purple', 'Blooket 紫', '#7b2ff7'],
+      ['aurora', '极光', 'linear-gradient(135deg,#34d399,#38bdf8 55%,#120b2e)'], ['sunset', '日落', 'linear-gradient(170deg,#7a2f6b,#e2685a 60%,#f6b26b)'], ['ocean', '海洋', '#1c6ea4'], ['forest', '森林', '#2f6b4a'], ['rose', '玫瑰', '#ffc6d9']];
+    var bgp = modal.querySelector('#cs-bgp');
+    function paintBg() {
+      var cur = window.MinestCoverModes && MinestCoverModes.bg ? MinestCoverModes.bg() : '';
+      bgp.innerHTML = '<b>3D 舞台背景</b><div class="sw">' + BGP.map(function (x) { return '<button type="button" data-bg="' + x[0] + '" class="' + (cur === x[0] ? 'on' : '') + '" title="' + x[1] + '"><i style="background:' + x[2] + '"></i><span>' + x[1] + '</span></button>'; }).join('') +
+        '<label class="' + (/^#/.test(cur) ? 'on' : '') + '" title="自选颜色"><i style="background:' + (/^#/.test(cur) ? cur : 'conic-gradient(#f87171,#fbbf24,#34d399,#38bdf8,#a78bfa,#f87171)') + '"></i><span>自选</span><input type="color" value="' + (/^#/.test(cur) ? cur : '#3a2a6a') + '"></label></div>';
+      [].forEach.call(bgp.querySelectorAll('[data-bg]'), function (b) { b.onclick = function () { setBg(b.getAttribute('data-bg'), b.title); }; });
+      var ci = bgp.querySelector('input[type=color]'); ci.oninput = function () { setBg(ci.value, '自选 ' + ci.value); };
+    }
+    function setBg(v, name) { try { window.dispatchEvent(new CustomEvent('minest:cover-bg', { detail: v })); } catch (e) {} paintBg(); note('🖼 背景：' + name); }
+    modal.querySelector('#cs-bg').onclick = function () { bgp.hidden = !bgp.hidden; this.classList.toggle('on', !bgp.hidden); if (!bgp.hidden) paintBg(); };
+    function note(t) { var n = modal.querySelector('#cs-note'); n.textContent = t; n.classList.add('show'); clearTimeout(n._t); n._t = setTimeout(function () { n.classList.remove('show'); }, 2200); }
 
     var grid = modal.querySelector('#cs-grid');
     STYLES.forEach(function (s, idx) {

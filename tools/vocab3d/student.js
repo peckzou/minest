@@ -163,7 +163,7 @@
       if (window.V3Type) window.V3Type.start({ cards: CARDS, code: code, mark: function (c, v) { var k0 = key(c.id); if ((K[k0] || 0) < v) { K[k0] = v; save(); } }, extra: function (o) { EXTRA = o; synced = ''; save(); } });
       paintPill(); save(); return;
     }
-    try { if (!window.MinestCoverModes.get() || window.MinestCoverModes.get() === 'flow') window.MinestCoverModes.set('wall'); } catch (e) {}
+    try { if (!window.MinestCoverModes.get()) window.MinestCoverModes.set('flow'); } catch (e) {}
     try { window.dispatchEvent(new Event('minest:image-assets')); } catch (e) {}
     wrapExplode(); paintPill(); save();
   }

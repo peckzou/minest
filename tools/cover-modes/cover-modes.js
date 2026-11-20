@@ -53,6 +53,7 @@
     port: '<rect x="7.5" y="3.5" width="9" height="17" rx="2"/>', land: '<rect x="3.5" y="7.5" width="17" height="9" rx="2"/>',
     style: '<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.6-.9 1.2-1.8-.5-1-.1-2.2 1.2-2.2H17a3.5 3.5 0 0 0 3.5-3.5c0-5.3-3.8-9.5-8.5-9.5z"/><circle cx="7.8" cy="11" r="1.1" fill="currentColor" stroke="none"/><circle cx="10.5" cy="7.4" r="1.1" fill="currentColor" stroke="none"/><circle cx="14.8" cy="7.6" r="1.1" fill="currentColor" stroke="none"/>',
     assign: '<path d="M2.5 9.5L12 5l9.5 4.5L12 14z"/><path d="M6.5 11.5v4.2c1.4 1.5 3.3 2.3 5.5 2.3s4.1-.8 5.5-2.3v-4.2M21.5 9.5v5"/>',
+    holo: '<path d="M12 3l7 4v6c0 3.6-3 6.4-7 8-4-1.6-7-4.4-7-8V7z" opacity=".55"/><path d="M8.5 12.5l2.4 2.4 4.6-5.2"/><path d="M4 21h16"/>', lfx: '<path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 16v4M16.5 18h4"/>', cfx: '<rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M8.5 9h7M8.5 12.5h5" stroke-dasharray="1.4 1.6"/><circle cx="16.5" cy="16.5" r="1" fill="currentColor"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>', lab: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>'
   };
   var MZH = { flow: '3D 封面', wall: '卡片墙', fan: '扇形', helix: '螺旋', stack: '叠放', spiral: '旋涡', orbit: '轨道', sphere: '球体', wave: '波浪', ring: '环形' };
@@ -78,7 +79,8 @@
     '#cm-bar button:hover{color:#fff}' +
     '#cm-bar button.on{background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.1));color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 2px 8px rgba(0,0,0,.25)}' +
     '#cm-bar .sep,#cm-hbar .sep{width:1px;height:16px;margin:0 4px;background:rgba(255,255,255,.14);flex:none}' +
-    '#cm-bar .pl.on{color:#7dd3fc}' +
+    '#cm-kflash{position:fixed;z-index:2147483646;transform:translate(-50%,-100%);padding:6px 12px;border-radius:10px;background:rgba(14,16,22,.82);color:#f1f5f9;font:600 12.5px -apple-system,system-ui,sans-serif;pointer-events:none;opacity:0;white-space:nowrap}' +
+    '#cm-bar .pl.on{color:#7dd3fc}#cm-bar .hl-k.on,#cm-bar .lfx-k.on,#cm-bar .cfx-k.on{color:#7dd3fc;background:rgba(125,211,252,.16)}' +
     '.cm-mname{position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%) translateY(-4px);padding:4px 10px;border-radius:8px;background:rgba(14,16,22,.7);color:#f1f5f9;font:600 11.5px -apple-system,system-ui,sans-serif;letter-spacing:.04em;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease}' +
     '.cm-mname.show{opacity:1;transform:translateX(-50%) translateY(0)}#cm-bar,#cm-hbar{overflow:visible}' +
     /* the other shape for each mode (each class is drawn in its own shape by default) */
@@ -650,6 +652,7 @@
           var sc = (a < 1 ? 1.32 - a * .32 : Math.max(0.76, 1 - (a - 1) * 0.06)) + (hovIdx === i ? 0.05 : 0);
           el.style.transform = 'translate3d(' + (360 + d * 96 + s * k * 68).toFixed(1) + 'px,' + (288 + a * a * 5.5 + k * 8 + flt).toFixed(1) + 'px,' + (-a * 46).toFixed(1) + 'px) rotateY(' + rotY.toFixed(2) + 'deg) rotateZ(' + rotZ.toFixed(2) + 'deg) scale(' + sc.toFixed(3) + ')';
           el.style.zIndex = Math.round(1000 - a * 10);
+          el.classList.toggle('act', a < 0.45);
         });
         updateDet(sel, 'COVER');
       }
@@ -910,7 +913,7 @@
     return { destroy: function () { dead = true; cancelAnimationFrame(rafId); box.removeEventListener('pointermove', hoverMove); box.removeEventListener('pointerdown', down); box.removeEventListener('pointermove', move); box.removeEventListener('pointerup', up); box.removeEventListener('pointercancel', up); box.removeEventListener('wheel', wheel); document.removeEventListener('keydown', key); fr.remove(); det.remove(); if (head) head.remove(); if (pills) pills.remove(); if (handEl) handEl.remove(); if (gbar) gbar.remove(); clearTimeout(lp); box.classList.remove('wide'); }, fit: fit };
   }
 
-  function setMode(m) { if (window.MinestExplode && MinestExplode.isOpen()) MinestExplode.close(true); mode = m; document.body.classList.toggle('cm-on', m !== 'flow'); try { localStorage.setItem(KEY, m); } catch (e) {} sync(true); }
+  function setMode(m) { if (window.MinestExplode && MinestExplode.isOpen()) MinestExplode.close(true); mode = m; document.body.classList.toggle('cm-on', m !== 'flow' || !!window.__cmStandalone); try { localStorage.setItem(KEY, m); } catch (e) {} sync(true); }
   /* the card in front, tapped: it comes apart into its layers (explode.js); 打开原卡 opens it in Minest as before */
   var lastList = [];
   function nextCard() { try { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); } catch (e) {} }
@@ -936,14 +939,28 @@
     var pl = k('pl', '自动播放', function () { playing = !playing; paint(); if (pickEl) pickPaint(); });
     var shp = k('shp', '竖卡 / 横卡', function () { shape = shape === 'port' ? 'land' : 'port'; try { localStorage.setItem('minest.coverShape', shape); } catch (x) {} paint(); sync(true); });
     k('sty', '卡片风格', function () { pickClose(); if (window.MinestCardStyles) MinestCardStyles.open(); }).innerHTML = ico('style');
+    var hk = k('holo', '全息 · 叠加全息投影', function () { setHolo(!HOLO); flashKey('全息 ' + (HOLO ? '开' : '关')); }); hk.innerHTML = ico('holo');
     /* a teacher hands these cards to the students: the 3D 词卡 page (tools/vocab3d) */
     if (window.MinestVocab3D && !(window.isStudentMode && window.isStudentMode())) k('asg', '布置给学生 · 3D 词卡', function () { pickClose(); var b = null; try { b = MinestAI.board(); } catch (e) {} if (b) MinestVocab3D.assign(b); }).innerHTML = ico('assign');
     function paint() {
       if (mk.dataset.m !== mode) { mk.dataset.m = mode; mk.innerHTML = ico(mode); var l = '模式 · ' + (MZH[mode] || mode); mk.title = l; mk.setAttribute('aria-label', l); }
       var pk = playing ? 'pause' : 'play'; if (pl.dataset.k !== pk) { pl.dataset.k = pk; pl.innerHTML = ico(pk); pl.title = playing ? '暂停' : '自动播放'; } pl.classList.toggle('on', playing);
+      hk.classList.toggle('on', HOLO);
       if (shp.dataset.k !== shape) { shp.dataset.k = shape; shp.innerHTML = ico(shape); shp.title = shape === 'port' ? '竖卡 · 点按换横卡' : '横卡 · 点按换竖卡'; }
     }
     g._paint = paint; paint(); return g;
+  }
+  function paintBarKeys() {
+    var b = document.getElementById('cm-bar'); if (!b) return;
+    var h = b.querySelector('.hl-k'), l = b.querySelector('.lfx-k'), c = b.querySelector('.cfx-k');
+    var fx = !!(window.FBFX && window.FBFX.mode !== 'none'); document.documentElement.classList.toggle('fx-on', fx); stageBg();
+    if (h) h.classList.toggle('on', HOLO); if (l) l.classList.toggle('on', fx); if (c) c.classList.toggle('on', !!(window.__cmCardFx && window.__cmCardFx.on()));
+  }
+  function flashKey(t) {   // a word above the Dock, for a moment
+    var d = document.querySelector('.mn-bdock'), n = document.getElementById('cm-kflash'); if (!d) return;
+    if (!n) { n = document.createElement('div'); n.id = 'cm-kflash'; document.body.appendChild(n); }
+    var r = d.getBoundingClientRect(); n.textContent = t; n.style.left = (r.left + r.width / 2) + 'px'; n.style.top = (r.top - 12) + 'px'; n.style.opacity = '1';
+    clearTimeout(n._t); n._t = setTimeout(function () { n.style.opacity = '0'; }, 1300);
   }
   var pickEl = null;
   var pcss = document.createElement('style');
@@ -982,7 +999,7 @@
   document.addEventListener('keydown', function (e) { if (pickEl && e.key === 'Escape') { e.stopPropagation(); pickClose(); } }, true);
   function sync(force) {
     var slot = document.querySelector('.sf-slot[data-sf-view="coverflow"]'), on = slot && /(?:^|\s)mode-coverflow(?:\s|$)/.test(document.body.className) && slot.offsetWidth > 0;
-    document.body.classList.toggle('cm-on', !!on && mode !== 'flow');
+    document.body.classList.toggle('cm-on', !!on && (mode !== 'flow' || !!window.__cmStandalone));
     var SB = window.MinestSystemBar && MinestSystemBar.page ? MinestSystemBar : null;
     if (!on) { if (eng) { eng.destroy(); eng = null; } if (ov) { ov.remove(); ov = null; } if (bar) { if (bar._dock && SB) SB.page(null); bar.remove(); bar = null; } pickClose(); sig = ''; return; }
     if (SB && (!bar || !bar._dock || bar._slot !== slot)) { if (bar) bar.remove(); bar = dockKeys(); bar._slot = slot; SB.page(bar); }
@@ -1004,11 +1021,18 @@
       var paintShp = function () { shp.innerHTML = ico(shape); shp.title = shape === 'port' ? '竖卡 · 点按换横卡' : '横卡 · 点按换竖卡'; };
       paintShp(); shp.onclick = function (e) { e.stopPropagation(); shape = shape === 'port' ? 'land' : 'port'; try { localStorage.setItem('minest.coverShape', shape); } catch (x) {} paintShp(); sync(true); };
       bar.appendChild(pl); bar.appendChild(rg); bar.appendChild(shp); bar.appendChild(sty);
+      var hb = document.createElement('button'); hb.className = 'hl-k'; hb.innerHTML = ico('holo'); hb.title = '全息 · 叠加全息投影';
+      hb.onclick = function (e) { e.stopPropagation(); setHolo(!HOLO); flashName(bar, '全息 ' + (HOLO ? '开' : '关')); }; bar.appendChild(hb);
+      if (window.FBFX) { var lb = document.createElement('button'); lb.className = 'lfx-k'; lb.innerHTML = ico('lfx'); lb.title = 'Light FX';
+        lb.onclick = function (e) { e.stopPropagation(); var M = ['none', 'lasers', 'firework', 'spotlight', 'neon'], nx = M[(M.indexOf(window.FBFX.mode) + 1) % M.length]; window.FBFX.setMode(nx); flashName(bar, 'Light FX · ' + ({ none: '关', lasers: '激光', firework: '烟花', spotlight: '聚光灯', neon: '霓虹' })[nx]); paintBarKeys(); }; bar.appendChild(lb); }
+      if (window.__cmCardFx) { var cb = document.createElement('button'); cb.className = 'cfx-k'; cb.innerHTML = ico('cfx'); cb.title = 'Card FX';
+        cb.onclick = function (e) { e.stopPropagation(); flashName(bar, 'Card FX · ' + window.__cmCardFx.next()); paintBarKeys(); }; bar.appendChild(cb); }
+      paintBarKeys();
       slot.appendChild(bar);
     }
     [].forEach.call(bar.querySelectorAll('button[data-m]'), function (b) { b.classList.toggle('on', b.dataset.m === mode); });
     if (bar._paint) bar._paint();
-    if (mode === 'flow') { if (eng) { eng.destroy(); eng = null; } if (ov) { ov.remove(); ov = null; } sig = ''; return; }
+    if (mode === 'flow' && !window.__cmStandalone) { if (eng) { eng.destroy(); eng = null; } if (ov) { ov.remove(); ov = null; } holoOv(null); sig = ''; return; }   // in Minest the 3D Cover is its own (the students' page draws it here)
     var all = items(), list = windowed(all), s = mode + '|' + shape + '|' + all.length + '|' + list.map(function (x) { return x.id + x.src; }).join(',');
     if (!force && eng && ov && ov.parentNode === slot && s === sig) return;
     if (eng) eng.destroy();
@@ -1016,7 +1040,43 @@
     ov = document.createElement('div'); ov.id = 'cm-ov'; ov.className = mode + ' ' + shape; slot.insertBefore(ov, bar.parentNode === slot ? bar : slot.querySelector('#xl')); sig = s;
     lastList = list;
     eng = list.length ? Engine(ov, list, mode, pick) : null;
+    stageBg(); holoOv(ov);
   }
+  /* 全息 (2026-11-20, the user): the holo projection's look laid over the mode in view — cyan light cards, scan lines,
+     the particles — on the board too, not only from Spatial Home's console */
+  var HOLO = false; try { HOLO = localStorage.getItem('minest.coverHolo') === '1'; } catch (e) {}
+  var hov = null, hovFx = null, hovT = 0;
+  function holoOv(o) {
+    if (hovFx && (!o || o !== hov || !HOLO)) { hovFx.destroy(); hovFx = null; clearInterval(hovT); }
+    if (o) o.classList.toggle('hl', HOLO);
+    hov = o;
+    if (o && HOLO && !hovFx) {
+      hovFx = HoloFX(o); setTimeout(function () { if (hovFx) hovFx.form(); }, 160);
+      var aim = function () { if (!hovFx || !hov) return; var W = hov.clientWidth, H = hov.clientHeight; hovFx.aim({ x: W / 2, y: H * 0.98 }, { x: W / 2, y: H * 0.45 }); };
+      aim(); hovT = setInterval(aim, 1000);
+    }
+  }
+  function setHolo(on) { HOLO = !!on; try { localStorage.setItem('minest.coverHolo', HOLO ? '1' : '0'); } catch (e) {} holoOv(ov); if (bar && bar._paint) bar._paint(); paintBarKeys(); }
+  /* the stage's background (the card-style panel's palette): a preset or your own colour; '' = the mode's own */
+  var BG = ''; try { BG = localStorage.getItem('minest.coverBg') || ''; } catch (e) {}
+  var BGS = {
+    night: 'radial-gradient(120% 90% at 50% 38%,#1b2133,#0a0d16 72%)', studio: 'radial-gradient(120% 90% at 50% 40%,#ffffff,#eef0f4 70%,#e1e4ea)',
+    purple: 'repeating-linear-gradient(135deg,rgba(255,255,255,.045) 0 26px,transparent 26px 52px),linear-gradient(160deg,#6a22ee,#7b2ff7 45%,#9b4dff)',
+    aurora: 'radial-gradient(80% 60% at 20% 20%,rgba(52,211,153,.45),transparent 60%),radial-gradient(70% 60% at 85% 30%,rgba(56,189,248,.45),transparent 60%),linear-gradient(160deg,#071a2b,#0b2a3a 50%,#120b2e)',
+    sunset: 'linear-gradient(170deg,#2a1a4a 0%,#7a2f6b 40%,#e2685a 75%,#f6b26b 100%)', ocean: 'radial-gradient(120% 90% at 50% 30%,#1c6ea4,#0a3a66 55%,#06213d)',
+    forest: 'radial-gradient(120% 90% at 50% 35%,#2f6b4a,#173d2b 60%,#0c2219)', rose: 'radial-gradient(120% 90% at 50% 40%,#ffe3ec,#ffc6d9 60%,#f5a3bf)'
+  };
+  function stageBg() {
+    var o = document.getElementById('cm-ov'); if (!o) return;
+    var v = BGS[BG] || (/^#[0-9a-f]{6}$/i.test(BG) ? 'radial-gradient(120% 90% at 50% 38%,' + BG + ',' + shade(BG, -0.45) + ')' : '');
+    if (document.documentElement.classList.contains('fx-on')) v = '';   // Light FX: its room light shows through
+    if (v) o.style.setProperty('background', v, 'important'); else o.style.removeProperty('background');
+    o.classList.toggle('bg-light', BG === 'studio' || BG === 'rose' || (/^#/.test(BG) && lum(BG) > 0.6));
+  }
+  function shade(h, k) { var n = parseInt(h.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(function (v) { return Math.round(k < 0 ? v * (1 + k) : v + (255 - v) * k); }); return '#' + c.map(function (v) { return ('0' + v.toString(16)).slice(-2); }).join(''); }
+  function lum(h) { var n = parseInt(h.slice(1), 16); return ((n >> 16) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114) / 255; }
+  function setBg(v) { BG = v || ''; try { localStorage.setItem('minest.coverBg', BG); } catch (e) {} stageBg(); }
+  window.addEventListener('minest:cover-bg', function (e) { setBg(e.detail); });
   /* a big board: only a window of cards round the one in view is built (every card animated each frame, each with
      its picture and the card style's layers, was too much for a phone) */
   var CAP = { sphere: 30, spiral: 40, wall: 50 }, lastPickId = null;
@@ -1059,6 +1119,11 @@
     '#cm-hbar button.on{background:rgba(160,240,255,.22);color:#e8fdff;box-shadow:inset 0 1px 0 rgba(200,250,255,.35),0 0 12px rgba(140,235,255,.35)}' +
     '';
   document.head.appendChild(hcss);
+  var hcss2 = document.createElement('style');
+  hcss2.textContent = hcss.textContent.replace(/#cm-holo #cm-ov(?![\w-])/g, '#cm-ov.hl').replace(/#cm-holo /g, '#cm-ov.hl ') +
+    '#cm-ov.hl{background:radial-gradient(70% 60% at 50% 45%,rgba(20,90,140,.45),rgba(2,10,20,.92) 75%)!important}#cm-ov.hl .cm-hfx{position:absolute;inset:0;pointer-events:none;z-index:1300}' +
+    '#cm-ov.hl::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1290;background:repeating-linear-gradient(180deg,rgba(140,230,255,.06) 0 1px,transparent 1px 4px)}';
+  document.head.appendChild(hcss2);
 
   /* a tap read from the finger itself (in Spatial Home the room takes the touches, so 'click' may never come) */
   function tapOn(el, fn) {
@@ -1310,5 +1375,5 @@
     if (holoEl) { var e0 = holoEl; holoEl = null; e0.remove(); }
   }
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && holoEl) { if (holoEl._close) holoEl._close(); } });
-  window.MinestCoverModes = { holo: holo, holoClose: holoClose,  play: function (v) { playing = v === undefined ? !playing : !!v; if (bar && bar._paint) { bar._paint(); return; } var b = bar && bar.querySelector('.pl'); if (b) { b.innerHTML = ico(playing ? 'pause' : 'play'); b.classList.toggle('on', playing); bar.classList.toggle('playing', playing); } }, speed: function (v) { speed = v; }, set: setMode, get: function () { return mode; } };
+  window.MinestCoverModes = { holo: holo, holoClose: holoClose, bg: function (v) { if (v === undefined) return BG; setBg(v); }, bgs: function () { return Object.keys(BGS); }, holoOn: function (v) { if (v === undefined) return HOLO; setHolo(v); },  play: function (v) { playing = v === undefined ? !playing : !!v; if (bar && bar._paint) { bar._paint(); return; } var b = bar && bar.querySelector('.pl'); if (b) { b.innerHTML = ico(playing ? 'pause' : 'play'); b.classList.toggle('on', playing); bar.classList.toggle('playing', playing); } }, speed: function (v) { speed = v; }, set: setMode, get: function () { return mode; } };
 })();

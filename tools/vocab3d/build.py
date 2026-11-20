@@ -22,7 +22,10 @@ def read(p):
 
 def student():
     page = (HERE / 'student.html').read_text(encoding='utf-8')
-    for k, v in [('{{CSS}}', (HERE / 'student.css').read_text(encoding='utf-8')), ('{{CARD_STYLES}}', read(CM / 'card-styles.js')),
+    # Light FX: Minest's own room-light script (FBFX), as it is in iphone.html
+    src = (ROOT / 'iphone.html').read_text(encoding='utf-8'); mk = src.index('Screen effects for 3D Cover Flow'); a = src.rindex('<script>', 0, mk) + len('<script>'); b = src.index('</script>', mk)
+    fbfx = src[a:b]
+    for k, v in [('{{CARDFX}}', read(HERE / 'cardfx.js')), ('{{FBFX}}', fbfx), ('{{CSS}}', (HERE / 'student.css').read_text(encoding='utf-8')), ('{{CARD_STYLES}}', read(CM / 'card-styles.js')),
                  ('{{COVER}}', read(CM / 'cover-modes.js')), ('{{EXPLODE}}', read(CM / 'explode.js')), ('{{STUDENT}}', read(HERE / 'student.js'))]:
         page = page.replace(k, v)
     (ROOT / 'vocab3d.html').write_text(page, encoding='utf-8')

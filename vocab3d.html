@@ -12,8 +12,8 @@
 html, body { margin: 0; height: 100%; overflow: hidden; background: #070b16; color: #e8eefb; font-family: -apple-system, "SF Pro Text", "PingFang SC", system-ui, sans-serif; -webkit-text-size-adjust: 100%; overscroll-behavior: none; }
 body { position: fixed; inset: 0; }
 .sf-slot[data-sf-view="coverflow"] { position: absolute; inset: 0; overflow: hidden; }
-/* the original 3D Cover (flow) lives in Minest itself — here every other mode */
-#cm-bar button[data-m="flow"], #cm-pick button[data-m="flow"] { display: none !important; }
+/* 3D Cover here is drawn by the modes' engine (Minest's own lives in its board): the cards stand on a reflection */
+#cm-ov.flow .cm-orb { -webkit-box-reflect: below 8px linear-gradient(transparent 58%, rgba(255,255,255,.26)); }
 /* nothing that leads out of the words: no AI call, no "open the card", no style chip */
 #xl .xl-ai, #xl [data-a="card"], #cs-btn { display: none !important; }
 /* no Dock here: the controls sit lower */
@@ -146,16 +146,45 @@ body.v3-xl #v3-home, body.vt-playing #v3-home { display: none; }
 
 /* notes sit top left, small, under the title — never over the cards in the middle (2026-11-20, the user) */
 #v3-banner { left: calc(env(safe-area-inset-left, 0px) + 14px) !important; right: auto !important; top: calc(env(safe-area-inset-top, 0px) + 46px) !important; transform: none !important; max-width: min(360px, 60vw) !important; white-space: normal !important; font-size: 12.5px !important; padding: 6px 12px 8px !important; }
+
+/* Light FX: the room's light effects (FBFX); its own floating key gives way to the mode bar's */
+.fbfx-btn { display: none !important; }
+/* Card FX */
+#cm-ov .cm-c > .cfx { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 40; display: none; }
+html.cfx-ink #cm-ov .cm-c > .cfx, html.cfx-liq #cm-ov .cm-c > .cfx { display: block; }
+html.cfx-ink #cm-ov .cm-c > .cfx { background: radial-gradient(circle, rgba(255,255,255,.5) .7px, transparent 1.3px) 0 0 / 6px 6px, radial-gradient(circle, rgba(170,200,255,.35) .7px, transparent 1.3px) 3px 3px / 6px 6px, linear-gradient(160deg, rgba(30,34,52,.94), rgba(14,16,26,.96)); animation: cfxink 2.8s linear infinite; transition: opacity .35s ease; }
+html.cfx-ink #cm-ov .cm-c.act > .cfx, html.cfx-ink #cm-ov .cm-c:hover > .cfx { opacity: 0; }
+@keyframes cfxink { to { background-position: 18px 12px, 21px 15px, 0 0; } }
+html.cfx-liq #cm-ov .cm-c > .cfx { background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.38) 45%, rgba(190,230,255,.18) 52%, transparent 66%) 0 0 / 260% 100%, radial-gradient(120% 60% at 50% 0%, rgba(255,255,255,.28), transparent 60%); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.55), inset 0 -18px 30px rgba(120,190,255,.18); animation: cfxliq 3.6s ease-in-out infinite; }
+@keyframes cfxliq { 0% { background-position: 120% 0, 0 0; } 100% { background-position: -120% 0, 0 0; } }
+/* Light FX on: the room's light shows through the stage (as in Minest, the effect is behind the cards, they stay lit) */
+html.fx-on #cm-ov, html.fx-on #cm-ov.hl { background: transparent !important; }
 </style>
 </head>
 <body class="mode-coverflow theme-dark">
-<div class="sf-slot" data-sf-view="coverflow"></div>
+<div class="sf-slot perspective-stage" data-sf-view="coverflow"></div>
 <div id="v3-top"><i>◈</i><b id="v3-ttl"></b></div>
 <div id="v3-banner" hidden></div>
 <button type="button" id="v3-pill" aria-label="我的进度和词表"><i id="v3-ring"></i><span><b id="v3-n">0 / 0</b><small id="v3-seen">看过 0</small></span></button>
 <div id="v3-mark" hidden><button type="button" data-again>再看看</button><button type="button" data-known>我会了</button></div>
 <div id="v3-sheet" hidden></div>
 <div id="v3-join" hidden></div>
+<script>window.__cmStandalone = 1;</script>
+<script>/* Card FX on the students' 3D 词卡 page (Minest's own card modes live in its board): off → 隐形墨水 (the words hide
+   under drifting ink, the card in front or under the pointer shows its word — a self-test) → 液态玻璃 (a liquid
+   sheen runs over the glass). window.__cmCardFx = { next(), on() } — the mode bar's Card FX key cycles it. */
+(function () {
+  var M = ['off', 'ink', 'liq'], NAME = { off: '关', ink: '隐形墨水', liq: '液态玻璃' }, cur = 'off';
+  try { cur = localStorage.getItem('minest.vocab3d.cardfx') || 'off'; if (M.indexOf(cur) < 0) cur = 'off'; } catch (e) {}
+  function apply() {
+    document.documentElement.classList.toggle('cfx-ink', cur === 'ink'); document.documentElement.classList.toggle('cfx-liq', cur === 'liq');
+    [].forEach.call(document.querySelectorAll('#cm-ov .cm-c'), function (c) { if (cur !== 'off' && !c.querySelector(':scope > .cfx')) { var i = document.createElement('i'); i.className = 'cfx'; c.appendChild(i); } });
+  }
+  new MutationObserver(function () { if (cur !== 'off') apply(); }).observe(document.documentElement, { childList: true, subtree: true });
+  window.__cmCardFx = { next: function () { cur = M[(M.indexOf(cur) + 1) % M.length]; try { localStorage.setItem('minest.vocab3d.cardfx', cur); } catch (e) {} apply(); return NAME[cur]; }, on: function () { return cur !== 'off'; } };
+  if (document.readyState !== 'loading') apply(); else document.addEventListener('DOMContentLoaded', apply);
+})();
+</script>
 <script>/* Minest 15 Bespoke Tactile Card Styles — Appearance, Typography, Focus States, Multi-Layer SVGs & Colorful Palettes */
 (function () {
   'use strict';
@@ -298,6 +327,13 @@ body.v3-xl #v3-home, body.vt-playing #v3-home { display: none; }
     '#cs-head h3{margin:0;font:800 18px/1.2 -apple-system,system-ui,sans-serif;letter-spacing:-.02em;flex:1}',
     '#cs-shuf{border:0;border-radius:999px;padding:7px 13px;background:rgba(14,165,233,.14);color:#0284c7;font:600 12px/1 -apple-system,system-ui,sans-serif;cursor:pointer;transition:transform .15s ease}',
     '#cs-shuf:active{transform:scale(.95)}',
+    '#cs-head .cs-ic{width:40px;height:40px;padding:0!important;border-radius:12px!important;display:grid;place-items:center;margin-left:6px}#cs-head .cs-ic svg{width:21px;height:21px;display:block}#cs-head .cs-ic.on{background:rgba(125,211,252,.25)!important;color:#7dd3fc!important}',
+    '#cs-bg{border:0;background:rgba(255,255,255,.08);color:#e6e8ee;cursor:pointer;border:1px solid rgba(255,255,255,.12)}',
+    '#cs-note{min-height:0;height:0;overflow:visible;position:relative}#cs-note::before{content:none}#cs-note{font:600 13px -apple-system,"PingFang SC",system-ui,sans-serif;color:#7dd3fc;opacity:0;transform:translateY(-4px);transition:opacity .2s,transform .2s}#cs-note.show{opacity:1;transform:none;height:auto;margin:4px 0 12px}',
+    '#cs-bgp{margin:0 0 14px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}#cs-bgp b{display:block;font:700 13px -apple-system,"PingFang SC",system-ui,sans-serif;color:#cbd5e1;margin-bottom:8px}',
+    '#cs-bgp .sw{display:flex;flex-wrap:wrap;gap:10px}#cs-bgp .sw>*{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:none;cursor:pointer;color:#cbd5e1;font:600 11px -apple-system,"PingFang SC",system-ui,sans-serif;padding:0}',
+    '#cs-bgp .sw i{width:42px;height:42px;border-radius:12px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}#cs-bgp .sw .on i{box-shadow:0 0 0 2px #0f1117,0 0 0 4px #7dd3fc}#cs-bgp .sw .on span{color:#7dd3fc}',
+    '#cs-bgp input[type=color]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}',
     'body.theme-dark #cs-shuf{background:rgba(56,189,248,.18);color:#7dd3fc}',
     '#cs-close{width:32px;height:32px;border-radius:50%;border:0;background:rgba(100,116,139,.18);color:inherit;font:700 17px/1 sans-serif;cursor:pointer}',
     '#cs-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}',
@@ -581,6 +617,7 @@ body.v3-xl #v3-home, body.vt-playing #v3-home { display: none; }
     for (var i = 0; i < nodes.length; i++) colorizeCard(nodes[i], i, force);
   }
 
+  var csShuf = 0;
   function shuffleColors() {
     seedSalt = Math.floor(Math.random() * 100000);
     colorizeAll(true);
@@ -618,14 +655,34 @@ body.v3-xl #v3-home, body.vt-playing #v3-home { display: none; }
     modal.id = 'cs-modal';
     modal.innerHTML =
       '<div id="cs-panel" role="dialog" aria-label="选择卡片风格">' +
-        '<div id="cs-head"><h3>卡片风格<small>' + STYLES.length + ' 种材质 · 倾斜手机或移动鼠标，光会跟着走</small></h3><button id="cs-shuf" type="button">随机换色</button><button id="cs-close" type="button" aria-label="Close">×</button></div>' +
+        '<div id="cs-head"><h3>卡片风格<small>' + STYLES.length + ' 种材质 · 倾斜手机或移动鼠标，光会跟着走</small></h3><button id="cs-bg" class="cs-ic" type="button" title="换背景色" aria-label="换背景色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="M3.5 15l4.5-4 4 3.5 3-2.5 5.5 4.5"/><circle cx="15.5" cy="9" r="1.6"/></svg></button><button id="cs-shuf" class="cs-ic" type="button" title="随机换色：每点一次，卡片换一组新颜色" aria-label="随机换色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1.2" fill="currentColor"/><circle cx="15" cy="15" r="1.2" fill="currentColor"/><circle cx="15" cy="9" r="1.2" fill="currentColor"/><circle cx="9" cy="15" r="1.2" fill="currentColor"/></svg></button><button id="cs-close" type="button" aria-label="Close">×</button></div><div id="cs-note" aria-live="polite"></div><div id="cs-bgp" hidden></div>' +
         '<div id="cs-top"><div id="cs-stage"><div class="cs-prev" id="cs-hero"><span class="cs-pt">Learning Loop</span><span class="cs-pl">Learning Map</span></div></div><div id="cs-info"><b></b><i></i><p></p></div></div>' +
         '<div id="cs-tabs"></div>' +
         '<div id="cs-grid"></div>' +
       '</div>';
     modal.onclick = function (e) { if (e.target === modal) closeModal(); };
     modal.querySelector('#cs-close').onclick = closeModal;
-    modal.querySelector('#cs-shuf').onclick = function () { shuffleColors(); };
+    /* 随机换色: a one-off (not a switch) — the die spins and says what happened (2026-11-20, the user: no feedback) */
+    modal.querySelector('#cs-shuf').onclick = function () {
+      shuffleColors(); var b = this, n = 0, t0 = performance.now(); csShuf = (csShuf || 0) + 1;
+      (function spin() { var k = Math.min(1, (performance.now() - t0) / 520), e = 1 - Math.pow(1 - k, 3); b.firstChild.style.transform = 'rotate(' + (e * 360).toFixed(1) + 'deg) scale(' + (1 + Math.sin(k * Math.PI) * 0.18).toFixed(3) + ')'; if (k < 1) requestAnimationFrame(spin); else b.firstChild.style.transform = ''; })();
+      setTimeout(function () { b.firstChild.style.transform = ''; }, 700);
+      note('🎲 已换一组新颜色（第 ' + csShuf + ' 组）· 再点一次换下一组');
+    };
+    /* the stage's background: presets or your own colour (the 3D Cover modes paint it) */
+    var BGP = [['', '跟随模式', 'linear-gradient(135deg,#e5e7eb 0 50%,#1f2937 50%)'], ['night', '深夜', '#0f1320'], ['studio', '浅色影棚', '#f2f3f6'], ['purple', 'Blooket 紫', '#7b2ff7'],
+      ['aurora', '极光', 'linear-gradient(135deg,#34d399,#38bdf8 55%,#120b2e)'], ['sunset', '日落', 'linear-gradient(170deg,#7a2f6b,#e2685a 60%,#f6b26b)'], ['ocean', '海洋', '#1c6ea4'], ['forest', '森林', '#2f6b4a'], ['rose', '玫瑰', '#ffc6d9']];
+    var bgp = modal.querySelector('#cs-bgp');
+    function paintBg() {
+      var cur = window.MinestCoverModes && MinestCoverModes.bg ? MinestCoverModes.bg() : '';
+      bgp.innerHTML = '<b>3D 舞台背景</b><div class="sw">' + BGP.map(function (x) { return '<button type="button" data-bg="' + x[0] + '" class="' + (cur === x[0] ? 'on' : '') + '" title="' + x[1] + '"><i style="background:' + x[2] + '"></i><span>' + x[1] + '</span></button>'; }).join('') +
+        '<label class="' + (/^#/.test(cur) ? 'on' : '') + '" title="自选颜色"><i style="background:' + (/^#/.test(cur) ? cur : 'conic-gradient(#f87171,#fbbf24,#34d399,#38bdf8,#a78bfa,#f87171)') + '"></i><span>自选</span><input type="color" value="' + (/^#/.test(cur) ? cur : '#3a2a6a') + '"></label></div>';
+      [].forEach.call(bgp.querySelectorAll('[data-bg]'), function (b) { b.onclick = function () { setBg(b.getAttribute('data-bg'), b.title); }; });
+      var ci = bgp.querySelector('input[type=color]'); ci.oninput = function () { setBg(ci.value, '自选 ' + ci.value); };
+    }
+    function setBg(v, name) { try { window.dispatchEvent(new CustomEvent('minest:cover-bg', { detail: v })); } catch (e) {} paintBg(); note('🖼 背景：' + name); }
+    modal.querySelector('#cs-bg').onclick = function () { bgp.hidden = !bgp.hidden; this.classList.toggle('on', !bgp.hidden); if (!bgp.hidden) paintBg(); };
+    function note(t) { var n = modal.querySelector('#cs-note'); n.textContent = t; n.classList.add('show'); clearTimeout(n._t); n._t = setTimeout(function () { n.classList.remove('show'); }, 2200); }
 
     var grid = modal.querySelector('#cs-grid');
     STYLES.forEach(function (s, idx) {
@@ -774,6 +831,7 @@ body.v3-xl #v3-home, body.vt-playing #v3-home { display: none; }
     port: '<rect x="7.5" y="3.5" width="9" height="17" rx="2"/>', land: '<rect x="3.5" y="7.5" width="17" height="9" rx="2"/>',
     style: '<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.6-.9 1.2-1.8-.5-1-.1-2.2 1.2-2.2H17a3.5 3.5 0 0 0 3.5-3.5c0-5.3-3.8-9.5-8.5-9.5z"/><circle cx="7.8" cy="11" r="1.1" fill="currentColor" stroke="none"/><circle cx="10.5" cy="7.4" r="1.1" fill="currentColor" stroke="none"/><circle cx="14.8" cy="7.6" r="1.1" fill="currentColor" stroke="none"/>',
     assign: '<path d="M2.5 9.5L12 5l9.5 4.5L12 14z"/><path d="M6.5 11.5v4.2c1.4 1.5 3.3 2.3 5.5 2.3s4.1-.8 5.5-2.3v-4.2M21.5 9.5v5"/>',
+    holo: '<path d="M12 3l7 4v6c0 3.6-3 6.4-7 8-4-1.6-7-4.4-7-8V7z" opacity=".55"/><path d="M8.5 12.5l2.4 2.4 4.6-5.2"/><path d="M4 21h16"/>', lfx: '<path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 16v4M16.5 18h4"/>', cfx: '<rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M8.5 9h7M8.5 12.5h5" stroke-dasharray="1.4 1.6"/><circle cx="16.5" cy="16.5" r="1" fill="currentColor"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>', lab: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>'
   };
   var MZH = { flow: '3D 封面', wall: '卡片墙', fan: '扇形', helix: '螺旋', stack: '叠放', spiral: '旋涡', orbit: '轨道', sphere: '球体', wave: '波浪', ring: '环形' };
@@ -799,7 +857,8 @@ body.v3-xl #v3-home, body.vt-playing #v3-home { display: none; }
     '#cm-bar button:hover{color:#fff}' +
     '#cm-bar button.on{background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.1));color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 2px 8px rgba(0,0,0,.25)}' +
     '#cm-bar .sep,#cm-hbar .sep{width:1px;height:16px;margin:0 4px;background:rgba(255,255,255,.14);flex:none}' +
-    '#cm-bar .pl.on{color:#7dd3fc}' +
+    '#cm-kflash{position:fixed;z-index:2147483646;transform:translate(-50%,-100%);padding:6px 12px;border-radius:10px;background:rgba(14,16,22,.82);color:#f1f5f9;font:600 12.5px -apple-system,system-ui,sans-serif;pointer-events:none;opacity:0;white-space:nowrap}' +
+    '#cm-bar .pl.on{color:#7dd3fc}#cm-bar .hl-k.on,#cm-bar .lfx-k.on,#cm-bar .cfx-k.on{color:#7dd3fc;background:rgba(125,211,252,.16)}' +
     '.cm-mname{position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%) translateY(-4px);padding:4px 10px;border-radius:8px;background:rgba(14,16,22,.7);color:#f1f5f9;font:600 11.5px -apple-system,system-ui,sans-serif;letter-spacing:.04em;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease}' +
     '.cm-mname.show{opacity:1;transform:translateX(-50%) translateY(0)}#cm-bar,#cm-hbar{overflow:visible}' +
     /* the other shape for each mode (each class is drawn in its own shape by default) */
@@ -1371,6 +1430,7 @@ body.v3-xl #v3-home, body.vt-playing #v3-home { display: none; }
           var sc = (a < 1 ? 1.32 - a * .32 : Math.max(0.76, 1 - (a - 1) * 0.06)) + (hovIdx === i ? 0.05 : 0);
           el.style.transform = 'translate3d(' + (360 + d * 96 + s * k * 68).toFixed(1) + 'px,' + (288 + a * a * 5.5 + k * 8 + flt).toFixed(1) + 'px,' + (-a * 46).toFixed(1) + 'px) rotateY(' + rotY.toFixed(2) + 'deg) rotateZ(' + rotZ.toFixed(2) + 'deg) scale(' + sc.toFixed(3) + ')';
           el.style.zIndex = Math.round(1000 - a * 10);
+          el.classList.toggle('act', a < 0.45);
         });
         updateDet(sel, 'COVER');
       }
@@ -1631,7 +1691,7 @@ body.v3-xl #v3-home, body.vt-playing #v3-home { display: none; }
     return { destroy: function () { dead = true; cancelAnimationFrame(rafId); box.removeEventListener('pointermove', hoverMove); box.removeEventListener('pointerdown', down); box.removeEventListener('pointermove', move); box.removeEventListener('pointerup', up); box.removeEventListener('pointercancel', up); box.removeEventListener('wheel', wheel); document.removeEventListener('keydown', key); fr.remove(); det.remove(); if (head) head.remove(); if (pills) pills.remove(); if (handEl) handEl.remove(); if (gbar) gbar.remove(); clearTimeout(lp); box.classList.remove('wide'); }, fit: fit };
   }
 
-  function setMode(m) { if (window.MinestExplode && MinestExplode.isOpen()) MinestExplode.close(true); mode = m; document.body.classList.toggle('cm-on', m !== 'flow'); try { localStorage.setItem(KEY, m); } catch (e) {} sync(true); }
+  function setMode(m) { if (window.MinestExplode && MinestExplode.isOpen()) MinestExplode.close(true); mode = m; document.body.classList.toggle('cm-on', m !== 'flow' || !!window.__cmStandalone); try { localStorage.setItem(KEY, m); } catch (e) {} sync(true); }
   /* the card in front, tapped: it comes apart into its layers (explode.js); 打开原卡 opens it in Minest as before */
   var lastList = [];
   function nextCard() { try { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); } catch (e) {} }
@@ -1657,14 +1717,28 @@ body.v3-xl #v3-home, body.vt-playing #v3-home { display: none; }
     var pl = k('pl', '自动播放', function () { playing = !playing; paint(); if (pickEl) pickPaint(); });
     var shp = k('shp', '竖卡 / 横卡', function () { shape = shape === 'port' ? 'land' : 'port'; try { localStorage.setItem('minest.coverShape', shape); } catch (x) {} paint(); sync(true); });
     k('sty', '卡片风格', function () { pickClose(); if (window.MinestCardStyles) MinestCardStyles.open(); }).innerHTML = ico('style');
+    var hk = k('holo', '全息 · 叠加全息投影', function () { setHolo(!HOLO); flashKey('全息 ' + (HOLO ? '开' : '关')); }); hk.innerHTML = ico('holo');
     /* a teacher hands these cards to the students: the 3D 词卡 page (tools/vocab3d) */
     if (window.MinestVocab3D && !(window.isStudentMode && window.isStudentMode())) k('asg', '布置给学生 · 3D 词卡', function () { pickClose(); var b = null; try { b = MinestAI.board(); } catch (e) {} if (b) MinestVocab3D.assign(b); }).innerHTML = ico('assign');
     function paint() {
       if (mk.dataset.m !== mode) { mk.dataset.m = mode; mk.innerHTML = ico(mode); var l = '模式 · ' + (MZH[mode] || mode); mk.title = l; mk.setAttribute('aria-label', l); }
       var pk = playing ? 'pause' : 'play'; if (pl.dataset.k !== pk) { pl.dataset.k = pk; pl.innerHTML = ico(pk); pl.title = playing ? '暂停' : '自动播放'; } pl.classList.toggle('on', playing);
+      hk.classList.toggle('on', HOLO);
       if (shp.dataset.k !== shape) { shp.dataset.k = shape; shp.innerHTML = ico(shape); shp.title = shape === 'port' ? '竖卡 · 点按换横卡' : '横卡 · 点按换竖卡'; }
     }
     g._paint = paint; paint(); return g;
+  }
+  function paintBarKeys() {
+    var b = document.getElementById('cm-bar'); if (!b) return;
+    var h = b.querySelector('.hl-k'), l = b.querySelector('.lfx-k'), c = b.querySelector('.cfx-k');
+    var fx = !!(window.FBFX && window.FBFX.mode !== 'none'); document.documentElement.classList.toggle('fx-on', fx); stageBg();
+    if (h) h.classList.toggle('on', HOLO); if (l) l.classList.toggle('on', fx); if (c) c.classList.toggle('on', !!(window.__cmCardFx && window.__cmCardFx.on()));
+  }
+  function flashKey(t) {   // a word above the Dock, for a moment
+    var d = document.querySelector('.mn-bdock'), n = document.getElementById('cm-kflash'); if (!d) return;
+    if (!n) { n = document.createElement('div'); n.id = 'cm-kflash'; document.body.appendChild(n); }
+    var r = d.getBoundingClientRect(); n.textContent = t; n.style.left = (r.left + r.width / 2) + 'px'; n.style.top = (r.top - 12) + 'px'; n.style.opacity = '1';
+    clearTimeout(n._t); n._t = setTimeout(function () { n.style.opacity = '0'; }, 1300);
   }
   var pickEl = null;
   var pcss = document.createElement('style');
@@ -1703,7 +1777,7 @@ body.v3-xl #v3-home, body.vt-playing #v3-home { display: none; }
   document.addEventListener('keydown', function (e) { if (pickEl && e.key === 'Escape') { e.stopPropagation(); pickClose(); } }, true);
   function sync(force) {
     var slot = document.querySelector('.sf-slot[data-sf-view="coverflow"]'), on = slot && /(?:^|\s)mode-coverflow(?:\s|$)/.test(document.body.className) && slot.offsetWidth > 0;
-    document.body.classList.toggle('cm-on', !!on && mode !== 'flow');
+    document.body.classList.toggle('cm-on', !!on && (mode !== 'flow' || !!window.__cmStandalone));
     var SB = window.MinestSystemBar && MinestSystemBar.page ? MinestSystemBar : null;
     if (!on) { if (eng) { eng.destroy(); eng = null; } if (ov) { ov.remove(); ov = null; } if (bar) { if (bar._dock && SB) SB.page(null); bar.remove(); bar = null; } pickClose(); sig = ''; return; }
     if (SB && (!bar || !bar._dock || bar._slot !== slot)) { if (bar) bar.remove(); bar = dockKeys(); bar._slot = slot; SB.page(bar); }
@@ -1725,11 +1799,18 @@ body.v3-xl #v3-home, body.vt-playing #v3-home { display: none; }
       var paintShp = function () { shp.innerHTML = ico(shape); shp.title = shape === 'port' ? '竖卡 · 点按换横卡' : '横卡 · 点按换竖卡'; };
       paintShp(); shp.onclick = function (e) { e.stopPropagation(); shape = shape === 'port' ? 'land' : 'port'; try { localStorage.setItem('minest.coverShape', shape); } catch (x) {} paintShp(); sync(true); };
       bar.appendChild(pl); bar.appendChild(rg); bar.appendChild(shp); bar.appendChild(sty);
+      var hb = document.createElement('button'); hb.className = 'hl-k'; hb.innerHTML = ico('holo'); hb.title = '全息 · 叠加全息投影';
+      hb.onclick = function (e) { e.stopPropagation(); setHolo(!HOLO); flashName(bar, '全息 ' + (HOLO ? '开' : '关')); }; bar.appendChild(hb);
+      if (window.FBFX) { var lb = document.createElement('button'); lb.className = 'lfx-k'; lb.innerHTML = ico('lfx'); lb.title = 'Light FX';
+        lb.onclick = function (e) { e.stopPropagation(); var M = ['none', 'lasers', 'firework', 'spotlight', 'neon'], nx = M[(M.indexOf(window.FBFX.mode) + 1) % M.length]; window.FBFX.setMode(nx); flashName(bar, 'Light FX · ' + ({ none: '关', lasers: '激光', firework: '烟花', spotlight: '聚光灯', neon: '霓虹' })[nx]); paintBarKeys(); }; bar.appendChild(lb); }
+      if (window.__cmCardFx) { var cb = document.createElement('button'); cb.className = 'cfx-k'; cb.innerHTML = ico('cfx'); cb.title = 'Card FX';
+        cb.onclick = function (e) { e.stopPropagation(); flashName(bar, 'Card FX · ' + window.__cmCardFx.next()); paintBarKeys(); }; bar.appendChild(cb); }
+      paintBarKeys();
       slot.appendChild(bar);
     }
     [].forEach.call(bar.querySelectorAll('button[data-m]'), function (b) { b.classList.toggle('on', b.dataset.m === mode); });
     if (bar._paint) bar._paint();
-    if (mode === 'flow') { if (eng) { eng.destroy(); eng = null; } if (ov) { ov.remove(); ov = null; } sig = ''; return; }
+    if (mode === 'flow' && !window.__cmStandalone) { if (eng) { eng.destroy(); eng = null; } if (ov) { ov.remove(); ov = null; } holoOv(null); sig = ''; return; }   // in Minest the 3D Cover is its own (the students' page draws it here)
     var all = items(), list = windowed(all), s = mode + '|' + shape + '|' + all.length + '|' + list.map(function (x) { return x.id + x.src; }).join(',');
     if (!force && eng && ov && ov.parentNode === slot && s === sig) return;
     if (eng) eng.destroy();
@@ -1737,7 +1818,43 @@ body.v3-xl #v3-home, body.vt-playing #v3-home { display: none; }
     ov = document.createElement('div'); ov.id = 'cm-ov'; ov.className = mode + ' ' + shape; slot.insertBefore(ov, bar.parentNode === slot ? bar : slot.querySelector('#xl')); sig = s;
     lastList = list;
     eng = list.length ? Engine(ov, list, mode, pick) : null;
+    stageBg(); holoOv(ov);
   }
+  /* 全息 (2026-11-20, the user): the holo projection's look laid over the mode in view — cyan light cards, scan lines,
+     the particles — on the board too, not only from Spatial Home's console */
+  var HOLO = false; try { HOLO = localStorage.getItem('minest.coverHolo') === '1'; } catch (e) {}
+  var hov = null, hovFx = null, hovT = 0;
+  function holoOv(o) {
+    if (hovFx && (!o || o !== hov || !HOLO)) { hovFx.destroy(); hovFx = null; clearInterval(hovT); }
+    if (o) o.classList.toggle('hl', HOLO);
+    hov = o;
+    if (o && HOLO && !hovFx) {
+      hovFx = HoloFX(o); setTimeout(function () { if (hovFx) hovFx.form(); }, 160);
+      var aim = function () { if (!hovFx || !hov) return; var W = hov.clientWidth, H = hov.clientHeight; hovFx.aim({ x: W / 2, y: H * 0.98 }, { x: W / 2, y: H * 0.45 }); };
+      aim(); hovT = setInterval(aim, 1000);
+    }
+  }
+  function setHolo(on) { HOLO = !!on; try { localStorage.setItem('minest.coverHolo', HOLO ? '1' : '0'); } catch (e) {} holoOv(ov); if (bar && bar._paint) bar._paint(); paintBarKeys(); }
+  /* the stage's background (the card-style panel's palette): a preset or your own colour; '' = the mode's own */
+  var BG = ''; try { BG = localStorage.getItem('minest.coverBg') || ''; } catch (e) {}
+  var BGS = {
+    night: 'radial-gradient(120% 90% at 50% 38%,#1b2133,#0a0d16 72%)', studio: 'radial-gradient(120% 90% at 50% 40%,#ffffff,#eef0f4 70%,#e1e4ea)',
+    purple: 'repeating-linear-gradient(135deg,rgba(255,255,255,.045) 0 26px,transparent 26px 52px),linear-gradient(160deg,#6a22ee,#7b2ff7 45%,#9b4dff)',
+    aurora: 'radial-gradient(80% 60% at 20% 20%,rgba(52,211,153,.45),transparent 60%),radial-gradient(70% 60% at 85% 30%,rgba(56,189,248,.45),transparent 60%),linear-gradient(160deg,#071a2b,#0b2a3a 50%,#120b2e)',
+    sunset: 'linear-gradient(170deg,#2a1a4a 0%,#7a2f6b 40%,#e2685a 75%,#f6b26b 100%)', ocean: 'radial-gradient(120% 90% at 50% 30%,#1c6ea4,#0a3a66 55%,#06213d)',
+    forest: 'radial-gradient(120% 90% at 50% 35%,#2f6b4a,#173d2b 60%,#0c2219)', rose: 'radial-gradient(120% 90% at 50% 40%,#ffe3ec,#ffc6d9 60%,#f5a3bf)'
+  };
+  function stageBg() {
+    var o = document.getElementById('cm-ov'); if (!o) return;
+    var v = BGS[BG] || (/^#[0-9a-f]{6}$/i.test(BG) ? 'radial-gradient(120% 90% at 50% 38%,' + BG + ',' + shade(BG, -0.45) + ')' : '');
+    if (document.documentElement.classList.contains('fx-on')) v = '';   // Light FX: its room light shows through
+    if (v) o.style.setProperty('background', v, 'important'); else o.style.removeProperty('background');
+    o.classList.toggle('bg-light', BG === 'studio' || BG === 'rose' || (/^#/.test(BG) && lum(BG) > 0.6));
+  }
+  function shade(h, k) { var n = parseInt(h.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(function (v) { return Math.round(k < 0 ? v * (1 + k) : v + (255 - v) * k); }); return '#' + c.map(function (v) { return ('0' + v.toString(16)).slice(-2); }).join(''); }
+  function lum(h) { var n = parseInt(h.slice(1), 16); return ((n >> 16) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114) / 255; }
+  function setBg(v) { BG = v || ''; try { localStorage.setItem('minest.coverBg', BG); } catch (e) {} stageBg(); }
+  window.addEventListener('minest:cover-bg', function (e) { setBg(e.detail); });
   /* a big board: only a window of cards round the one in view is built (every card animated each frame, each with
      its picture and the card style's layers, was too much for a phone) */
   var CAP = { sphere: 30, spiral: 40, wall: 50 }, lastPickId = null;
@@ -1780,6 +1897,11 @@ body.v3-xl #v3-home, body.vt-playing #v3-home { display: none; }
     '#cm-hbar button.on{background:rgba(160,240,255,.22);color:#e8fdff;box-shadow:inset 0 1px 0 rgba(200,250,255,.35),0 0 12px rgba(140,235,255,.35)}' +
     '';
   document.head.appendChild(hcss);
+  var hcss2 = document.createElement('style');
+  hcss2.textContent = hcss.textContent.replace(/#cm-holo #cm-ov(?![\w-])/g, '#cm-ov.hl').replace(/#cm-holo /g, '#cm-ov.hl ') +
+    '#cm-ov.hl{background:radial-gradient(70% 60% at 50% 45%,rgba(20,90,140,.45),rgba(2,10,20,.92) 75%)!important}#cm-ov.hl .cm-hfx{position:absolute;inset:0;pointer-events:none;z-index:1300}' +
+    '#cm-ov.hl::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1290;background:repeating-linear-gradient(180deg,rgba(140,230,255,.06) 0 1px,transparent 1px 4px)}';
+  document.head.appendChild(hcss2);
 
   /* a tap read from the finger itself (in Spatial Home the room takes the touches, so 'click' may never come) */
   function tapOn(el, fn) {
@@ -2031,7 +2153,7 @@ body.v3-xl #v3-home, body.vt-playing #v3-home { display: none; }
     if (holoEl) { var e0 = holoEl; holoEl = null; e0.remove(); }
   }
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && holoEl) { if (holoEl._close) holoEl._close(); } });
-  window.MinestCoverModes = { holo: holo, holoClose: holoClose,  play: function (v) { playing = v === undefined ? !playing : !!v; if (bar && bar._paint) { bar._paint(); return; } var b = bar && bar.querySelector('.pl'); if (b) { b.innerHTML = ico(playing ? 'pause' : 'play'); b.classList.toggle('on', playing); bar.classList.toggle('playing', playing); } }, speed: function (v) { speed = v; }, set: setMode, get: function () { return mode; } };
+  window.MinestCoverModes = { holo: holo, holoClose: holoClose, bg: function (v) { if (v === undefined) return BG; setBg(v); }, bgs: function () { return Object.keys(BGS); }, holoOn: function (v) { if (v === undefined) return HOLO; setHolo(v); },  play: function (v) { playing = v === undefined ? !playing : !!v; if (bar && bar._paint) { bar._paint(); return; } var b = bar && bar.querySelector('.pl'); if (b) { b.innerHTML = ico(playing ? 'pause' : 'play'); b.classList.toggle('on', playing); bar.classList.toggle('playing', playing); } }, speed: function (v) { speed = v; }, set: setMode, get: function () { return mode; } };
 })();
 </script>
 <script>/* Minest · Exploded Learning Card (2026-11-19). Tap the card in front in a 3D Cover mode (or in the holo console's
@@ -2375,6 +2497,2862 @@ body.v3-xl #v3-home, body.vt-playing #v3-home { display: none; }
   window.MinestExplode = { open: open, close: close, isOpen: function () { return !!cur; }, facts: facts, parts: parts, breakdown: breakdown };
 })();
 </script>
+<script>
+/* =========================================================================
+   Screen effects for 3D Cover Flow, after iMessage (web 17.5 / iPhone 11.2) + Invisible Ink card mode
+   - Ambient light modes (button cycles 无 → lasers → firework → spotlight):
+       lasers    — a disco source throwing sweeping laser fans; drag the source
+       firework  — rockets burst over the dimmed screen; click empty space to launch one
+       spotlight — the room goes dark but for one stage spot; drag its edge (double-click the edge: back to the card)
+   - Light on glass: every visible card catches the light (hot spot, rim, refracted band)
+   - Opening effects: every time 3D Cover Flow opens, one at random —
+       balloons, confetti, celebration, love
+   Self-contained: one fixed canvas over the whole interface, pointer-events off
+   except for the light-source handle and the mode button.
+   ========================================================================= */
+(function () {
+  'use strict';
+  if (window.FBFX) return;
+
+  var MODES = ['none', 'lasers', 'firework', 'spotlight', 'neon'];
+  var INTROS = ['balloons', 'confetti', 'celebration', 'love'];
+  var LABEL = { none: 'Light FX', lasers: 'lasers', firework: 'firework', spotlight: 'spotlight', neon: 'neon' };
+  var GLYPH = { none: '✦', lasers: '⟡', firework: '✺', spotlight: '◎', neon: '◈' };
+
+  // 40.9 NEON — every card becomes a 3D light box glowing from inside. The colour is a
+  // real noble-gas discharge, picked from the right-hand column of the periodic table.
+  var NEON = [
+    { s: 'He', n: 2,  name: 'Helium',  c: '#ff9f6e', c2: '#ffd6bd' },
+    { s: 'Ne', n: 10, name: 'Neon',    c: '#ff3a1a', c2: '#ff9a6b' },
+    { s: 'Ar', n: 18, name: 'Argon',   c: '#9a6bff', c2: '#d8c6ff' },
+    { s: 'Kr', n: 36, name: 'Krypton', c: '#c9c3ff', c2: '#f4f2ff' },
+    { s: 'Xe', n: 54, name: 'Xenon',   c: '#3d8bff', c2: '#a9cdff' },
+    { s: 'Rn', n: 86, name: 'Radon',   c: '#ff1f4f', c2: '#ff9bb0' }
+  ];
+  var neonIdx = 0, neonBtn = null, neonHideT = 0, neonCtl = null, neonPaint = false, neonTick = 0;
+  // 40.9b: per-card neon. mode 'all' = one gas for every card, 'random' = each card its own
+  // (a new shuffle per tap); `ov` holds the cards you set one by one (they win over both).
+  var neonCards = { mode: 'all', seed: 1, ov: {} };
+  try { var ncs = JSON.parse(localStorage.getItem('fbfx_neon_cards_v1') || 'null'); if (ncs && ncs.ov) neonCards = ncs; } catch (e) {}
+  function neonSave() { try { localStorage.setItem('fbfx_neon_cards_v1', JSON.stringify(neonCards)); } catch (e) {} }
+  function neonHash(str) { var x = 2166136261; for (var i = 0; i < str.length; i++) { x ^= str.charCodeAt(i); x = Math.imul(x, 16777619); } return x >>> 0; }
+  function neonGasIdx(id) {
+    if (neonCards.ov[id] != null) return neonCards.ov[id];
+    if (neonCards.mode === 'random') return neonHash(id + ':' + neonCards.seed) % NEON.length;
+    return -1;   // follows the shared gas
+  }
+  function neonPaintCards() {
+    var on = stageOn && mode === 'neon';
+    var els = document.querySelectorAll('.perspective-stage [data-card-id], .board-swimlane-scroll article.kanban-card[data-card-id], .fb-board-stage article.kanban-card[data-card-id]');
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i], gi = on ? neonGasIdx(el.getAttribute('data-card-id')) : -1;
+      if (gi >= 0) {
+        var gas = NEON[gi];
+        if (el.__neonGas !== gas.s) { el.style.setProperty('--neon', gas.c); el.style.setProperty('--neon2', gas.c2); el.__neonGas = gas.s; }
+      } else if (el.__neonGas) {
+        el.style.removeProperty('--neon'); el.style.removeProperty('--neon2'); el.__neonGas = null;
+      }
+    }
+  }
+  function neonTickStart(on) {
+    // cards come and go as the deck moves: keep their colours on them
+    if (on && !neonTick) neonTick = setInterval(neonPaintCards, 180);
+    if (!on && neonTick) { clearInterval(neonTick); neonTick = 0; }
+    neonPaintCards();
+  }
+  function neonFlash(el) {
+    if (!el) return;
+    el.classList.remove('fbfx-neon-strike'); void el.offsetWidth; el.classList.add('fbfx-neon-strike');
+    setTimeout(function () { el.classList.remove('fbfx-neon-strike'); }, 650);
+  }
+  function neonHaptic(s) { try { if (window.MinestNative && window.MinestNative.haptic) window.MinestNative.haptic(s || 'selection'); else if (navigator.vibrate) navigator.vibrate(8); } catch (e) {} }
+  // single-card mode: a tap on a card gives that card the next gas (after Rn it follows the
+  // shared colour again); the tap does not flip or open the card
+  var neonCardFrom = function (t) { return t && t.closest ? t.closest('.perspective-stage [data-card-id], article.kanban-card[data-card-id]') : null; };
+  var neonPainting = function () { return neonPaint && stageOn && mode === 'neon'; };
+  var paintDown = null, lastPaintAt = 0;
+  var paintCard = function (el) {
+    var id = el.getAttribute('data-card-id'), cur = neonGasIdx(id);
+    var nxt = cur < 0 ? (neonIdx + 1) % NEON.length : cur + 1;
+    if (nxt >= NEON.length) delete neonCards.ov[id]; else neonCards.ov[id] = nxt;
+    lastPaintAt = Date.now();
+    neonSave(); neonPaintCards(); neonFlash(el); neonHaptic();
+  };
+  // 40.9c: the tap is read from pointer events — on the iPhone the Cover Flow handles touches
+  // itself and swallows the click, so waiting for a click never fired. Swipes still browse.
+  window.addEventListener('pointerdown', function (e) {
+    if (!neonPainting()) return;
+    var el = neonCardFrom(e.target);
+    if (!el) { paintDown = null; return; }
+    paintDown = { id: el.getAttribute('data-card-id'), x: e.clientX, y: e.clientY, t: Date.now(), pid: e.pointerId };
+    e.stopImmediatePropagation();
+  }, true);
+  window.addEventListener('pointerup', function (e) {
+    if (!neonPainting() || !paintDown || e.pointerId !== paintDown.pid) return;
+    var d = paintDown; paintDown = null;
+    var el = neonCardFrom(e.target) || document.querySelector('[data-card-id="' + d.id + '"]');
+    e.stopImmediatePropagation();
+    if (!el || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 12 || Date.now() - d.t > 650) return;   // that was a swipe
+    paintCard(el);
+  }, true);
+  ['mousedown', 'mouseup'].forEach(function (type) {
+    window.addEventListener(type, function (e) {
+      if (neonPainting() && neonCardFrom(e.target)) { e.preventDefault(); e.stopImmediatePropagation(); }
+    }, true);
+  });
+  window.addEventListener('click', function (e) {
+    if (!neonPainting()) return;
+    var el = neonCardFrom(e.target);
+    if (!el) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    if (Date.now() - lastPaintAt > 500) paintCard(el);   // a click without pointer events (old browsers)
+  }, true);
+  try { var nsv = parseInt(localStorage.getItem('fbfx_neon_gas') || '0', 10); if (nsv >= 0 && nsv < NEON.length) neonIdx = nsv; } catch (e) {}
+  function neonApply(ignite) {
+    var root = document.documentElement, on = stageOn && mode === 'neon', gas = NEON[neonIdx];
+    root.classList.toggle('fbfx-neon', on);
+    if (on) {
+      root.style.setProperty('--neon', gas.c);
+      root.style.setProperty('--neon2', gas.c2);
+      root.setAttribute('data-neon', gas.s.toLowerCase());
+      if (ignite) {
+        // a neon tube strikes: a few flickers before it holds
+        root.classList.remove('fbfx-neon-ignite'); void root.offsetWidth; root.classList.add('fbfx-neon-ignite');
+        clearTimeout(neonApply.t); neonApply.t = setTimeout(function () { root.classList.remove('fbfx-neon-ignite'); }, 700);
+      }
+    } else {
+      root.classList.remove('fbfx-neon-ignite');
+      root.removeAttribute('data-neon');
+    }
+    neonTickStart(on);
+    neonRenderBtn();
+  }
+  function neonRenderBtn() {
+    var on = stageOn && mode === 'neon';
+    if (!on) { if (neonCtl) neonCtl.classList.remove('show'); neonPaint = false; window.__fbfxNeonPainting = false; document.documentElement.classList.remove('fbfx-neon-painting'); return; }
+    var host = hostEl();
+    if (!neonCtl || !host.contains(neonCtl)) {
+      if (neonCtl && neonCtl.parentNode) neonCtl.parentNode.removeChild(neonCtl);
+      neonCtl = document.createElement('div');
+      neonCtl.className = 'fbfx-neon-ctl' + (HOST_SHELL ? ' in-shell' : '');
+      neonBtn = document.createElement('button');
+      neonBtn.type = 'button';
+      neonBtn.className = 'fbfx-neon-btn';
+      // the tile: every card in one gas, the next one per tap
+      neonBtn.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        neonIdx = neonCards.mode === 'all' && !Object.keys(neonCards.ov).length ? (neonIdx + 1) % NEON.length : neonIdx;
+        neonCards = { mode: 'all', seed: neonCards.seed, ov: {} };
+        neonSave();
+        try { localStorage.setItem('fbfx_neon_gas', String(neonIdx)); } catch (err) {}
+        neonHaptic();
+        neonApply(true);
+        neonShow();
+      });
+      var rnd = document.createElement('button');
+      rnd.type = 'button'; rnd.className = 'fbfx-neon-pill nb-random';
+      rnd.innerHTML = '<span aria-hidden="true">⚄</span>Random';
+      rnd.setAttribute('aria-label', 'Every card its own random neon colour');
+      rnd.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        neonCards = { mode: 'random', seed: (Date.now() % 100000) + 1, ov: {} };
+        neonSave(); neonPaintCards(); neonHaptic('medium');
+        var root = document.documentElement;
+        root.classList.remove('fbfx-neon-ignite'); void root.offsetWidth; root.classList.add('fbfx-neon-ignite');
+        setTimeout(function () { root.classList.remove('fbfx-neon-ignite'); }, 700);
+        neonRenderBtn(); neonShow();
+      });
+      // (40.9: no single-card button — double-tap a card to recolour it)
+      neonCtl.appendChild(neonBtn); neonCtl.appendChild(rnd);
+      host.appendChild(neonCtl);
+    }
+    var gas = NEON[neonIdx];
+    var mixed = neonCards.mode === 'random' || Object.keys(neonCards.ov).length > 0;
+    neonBtn.innerHTML = '<span class="nb-n">' + gas.n + '</span><span class="nb-s">' + gas.s + '</span><span class="nb-name">' + (mixed ? 'All · ' : '') + gas.name + '</span>';
+    neonBtn.setAttribute('aria-label', 'Neon colour for every card: ' + gas.name + ' — tap for the next gas');
+    neonCtl.querySelector('.nb-random').classList.toggle('on', neonCards.mode === 'random');
+
+    // top-right of the stage
+    syncOrigin();
+    var st = stageEl(), sr = st && lrect(st.getBoundingClientRect());
+    // just under the top bar, clear of the cards
+    var bar = document.querySelector('.iphone-topbar, header.iphone-topbar');
+    var br = bar && bar.getBoundingClientRect().height ? lrect(bar.getBoundingClientRect()) : null;
+    var top = br ? br.bottom + 8 : (sr ? sr.top + 8 : 58);
+    neonCtl.style.top = Math.round(top) + 'px';
+    neonCtl.style.left = Math.round((sr ? Math.min(sr.right, W) : W) - 64 - 12) + 'px';
+  }
+  // the tile shows for a few seconds, then gets out of the way; a tap brings it back
+  function neonShow() {
+    if (!(stageOn && mode === 'neon')) return;
+    neonRenderBtn();
+    if (!neonCtl) return;
+    neonCtl.classList.add('show');
+    clearTimeout(neonHideT);
+    neonHideT = setTimeout(neonHide, 3200);   // always out of the way again (single-card mode stays on)
+  }
+  function neonHide() { clearTimeout(neonHideT); if (neonCtl) neonCtl.classList.remove('show'); }
+  // a tap on empty space shows the controls, or hides them if they are up
+  window.addEventListener('pointerdown', function (e) {
+    if (!(stageOn && mode === 'neon')) return;
+    if (neonCtl && neonCtl.contains(e.target)) return;
+    var onCard = e.target && e.target.closest && e.target.closest('[data-card-id], article.kanban-card');
+    if (onCard) return;
+    if (neonCtl && neonCtl.classList.contains('show')) neonHide(); else neonShow();
+  }, true);
+  var LS_KEY = 'focusboard_fx_mode_v1';
+  var TAU = Math.PI * 2;
+
+  // Where the effects live: the whole window (web), or inside the phone's screen (iPhone build).
+  // Everything is computed in the layer's own coordinates: local = (client - origin) / scale.
+  var HOST_SHELL = true;    // iPhone build: effects live inside the phone screen
+  var MOBILE = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  var OX = 0, OY = 0, SC = 1;
+  function syncOrigin() {
+    if (!layer) return;
+    var r = layer.getBoundingClientRect();
+    OX = r.left; OY = r.top; SC = layer.offsetWidth ? r.width / layer.offsetWidth : 1;
+    if (!SC || !isFinite(SC)) SC = 1;
+  }
+  function lx(x) { return (x - OX) / SC; }
+  function ly(y) { return (y - OY) / SC; }
+  function lrect(r) { var L = lx(r.left), T = ly(r.top), w = r.width / SC, h = r.height / SC; return { left: L, top: T, right: L + w, bottom: T + h, width: w, height: h }; }
+  function elAt(px, py) { return document.elementFromPoint(OX + px * SC, OY + py * SC); }
+  function hostEl() {
+    if (!HOST_SHELL) return document.body;
+    var m = document.querySelector('main');
+    return (m && m.parentElement) || document.body;
+  }
+  function inLayer(px, py) { return px >= 0 && py >= 0 && px <= W && py <= H; }
+
+  var mode = 'none';
+  // every visit starts with no screen effect (the last one is not brought back)
+
+  var layer = null, cv = null, ctx = null, handle = null, btn = null;
+  var W = 0, H = 0, DPR = 1;
+  var raf = 0, lastT = 0, clock = 0;
+  var stageOn = false, lastIntro = '';
+  // 18.0: the effects also run on the web Board. The stage is then the board's lists area and the
+  // "front card" is the card you are looking at (under the pointer, or the last one pointed at).
+  // Each stage keeps its own light mode; the opening effects stay with the Cover Flow.
+  var BOARD_STAGE = true;   // iPhone 11.9: the board has its light effects too
+  var stageKind = null, modeByKind = { cover: 'none', board: 'none' }, boardFocus = null;
+  function stageEl() {
+    if (stageKind === 'cover') return document.querySelector('.perspective-stage');
+    if (stageKind === 'board') return document.querySelector('.fb-board-stage');
+    return null;
+  }
+  // the board stays readable under the effects: its room is lighter than the Cover Flow's
+  function roomA(a, k) { return stageKind === 'board' ? a * (k || 0.72) : a; }
+  // a light mode on the board is a reading mode: the page hides its "new card" controls
+  function syncReadMode() { document.documentElement.classList.toggle('fbfx-board-fx', stageKind === 'board' && stageOn && mode !== 'none'); }
+  function cardSel() { return stageKind === 'board' ? 'article.kanban-card[data-card-id]' : CARD_SEL; }
+  var intro = null;          // { kind, t, dur, parts, extra }
+  var modeT = 0;             // seconds since the ambient mode was switched on
+  var hintUntil = 0;
+
+  // draggable light sources (CSS px)
+  var src = { x: 0, y: 0, vx: 0, vy: 0, drag: false, placed: false };
+  var spot = { x: 0, y: 0, vx: 0, vy: 0, drag: false, placed: false };
+  var fw = { rockets: [], sparks: [], flashes: [], glows: [], smoke: [], next: 0 };
+
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function rnd(a, b) { return a + Math.random() * (b - a); }
+  function pick(arr) { return arr[(Math.random() * arr.length) | 0]; }
+  function easeOutBack(x) { var c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); }
+  function smooth(x) { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); }
+  // light (white) theme: additive light vanishes on white, so a few things are drawn differently
+  var lightT = -1, lightOn = false;
+  function isLight() { if (clock - lightT > 0.5 || lightT < 0) { lightT = clock; lightOn = !!(document.body && document.body.classList.contains('theme-white')); } return lightOn; }
+
+  // ---------------------------------------------------------------- DOM
+  function injectCSS() {
+    if (document.getElementById('fbfx-css')) return;
+    var st = document.createElement('style');
+    st.id = 'fbfx-css';
+    st.textContent = [
+      '.fbfx-layer{position:fixed;inset:0;z-index:45;pointer-events:none;contain:strict;}',
+      '.fbfx-layer.in-shell{position:absolute;border-radius:inherit;overflow:hidden;}',
+      '.fbfx-btn.in-shell{position:absolute;}',
+      '.fbfx-layer canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}',
+      '.fbfx-handle{position:absolute;width:60px;height:60px;margin:-30px 0 0 -30px;border-radius:50%;pointer-events:auto;touch-action:none;cursor:grab;display:none;-webkit-tap-highlight-color:transparent;}',
+      '.fbfx-handle.dragging{cursor:grabbing;}',
+      '.fbfx-lit{position:absolute;inset:0;border-radius:inherit;pointer-events:none;mix-blend-mode:screen;z-index:6;opacity:0;}',
+      '.ink-mode .coverflow-card-reflection{opacity:0 !important;transition:opacity .3s;}',
+      '.fbfx-probe{position:absolute;width:0;height:0;pointer-events:none;visibility:hidden;}',
+      '.fbfx-rim{position:absolute;inset:0;border-radius:inherit;padding:1.5px;pointer-events:none;opacity:0;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;}',
+      '.fbfx-grab, .fbfx-grab *{cursor:grab !important;}',
+      '.fbfx-grabbing, .fbfx-grabbing *{cursor:grabbing !important;}',
+      '.fbfx-pool{position:absolute;left:0;top:0;width:0;height:0;border-radius:50%;pointer-events:none;opacity:0;transition:opacity .35s;-webkit-backdrop-filter:saturate(.4) brightness(1.08);backdrop-filter:saturate(.4) brightness(1.08);-webkit-mask:radial-gradient(circle,#000 70%,transparent 100%);mask:radial-gradient(circle,#000 70%,transparent 100%);}',
+      '.fbfx-btn{position:fixed;z-index:46;display:none;align-items:center;gap:6px;height:32px;padding:0 14px;border-radius:999px;font:600 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.5px;cursor:pointer;user-select:none;-webkit-user-select:none;',
+      'color:rgba(255,255,255,.85);background:rgba(15,23,42,.65);border:1px solid rgba(255,255,255,.16);border-top-color:rgba(255,255,255,.3);',
+      '-webkit-backdrop-filter:blur(14px) saturate(180%);backdrop-filter:blur(14px) saturate(180%);box-shadow:0 4px 16px rgba(0,0,0,.28);transition:background .2s,color .2s,box-shadow .2s,transform .2s cubic-bezier(.16,1,.3,1);}',
+      '.fbfx-btn:hover{background:rgba(255,255,255,.14);color:#fff;transform:translateY(-1px);}',
+      '.fbfx-btn .fbfx-glyph{font-size:14px;line-height:1;}',
+      '.fbfx-btn.on{color:#fff;}',
+      '.fbfx-btn.on.lasers{background:rgba(168,85,247,.24);border-color:rgba(216,180,254,.5);box-shadow:0 0 18px rgba(168,85,247,.38),inset 0 1px 0 rgba(255,255,255,.35);}',
+      '.fbfx-btn.on.firework{background:rgba(245,158,11,.22);border-color:rgba(252,211,77,.5);box-shadow:0 0 18px rgba(245,158,11,.36),inset 0 1px 0 rgba(255,255,255,.35);}',
+      '.fbfx-btn.on.spotlight{background:rgba(255,244,214,.18);border-color:rgba(255,244,214,.55);box-shadow:0 0 18px rgba(255,236,190,.34),inset 0 1px 0 rgba(255,255,255,.35);}',
+      '.fbfx-btn.light{color:#0f172a;background:rgba(255,255,255,.75);border-color:rgba(15,23,42,.12);box-shadow:0 4px 14px rgba(0,0,0,.08);}',
+      '.fbfx-btn.light.on{color:#0f172a;}'
+    ].join('');
+    document.head.appendChild(st);
+  }
+
+  var layerRO = null;
+  function ensureDOM() {
+    if (!document.body) return;
+    injectCSS();
+    var host = hostEl();
+    if (!layer || !host.contains(layer)) {
+      if (layer && layer.parentNode) layer.parentNode.removeChild(layer);
+      layer = document.createElement('div');
+      layer.className = 'fbfx-layer';
+      layer.setAttribute('aria-hidden', 'true');
+      cv = document.createElement('canvas');
+      ctx = cv.getContext('2d');
+      handle = document.createElement('div');
+      handle.className = 'fbfx-handle';
+      handle.title = 'Drag Light';
+      layer.appendChild(cv);
+      layer.appendChild(handle);
+      if (HOST_SHELL) layer.classList.add('in-shell');
+      host.appendChild(layer);
+      bindHandle();
+      resize(true);
+      // the phone screen changes size without a window resize (rotation, full-screen view)
+      // (the work runs a frame later: resizing inside the observer's own callback loops it)
+      // (40.8: one observer only — the old layer's observer was never disconnected)
+      if (layerRO) { try { layerRO.disconnect(); } catch (e) {} layerRO = null; }
+      if (window.ResizeObserver) { try { layerRO = new ResizeObserver(function () { requestAnimationFrame(function () { resize(false); placeBtn(); kick(); }); }); layerRO.observe(layer); } catch (e) {} }
+    }
+    if (!btn || !host.contains(btn)) {
+      if (btn && btn.parentNode) btn.parentNode.removeChild(btn);
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'fbfx-btn';
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (e.shiftKey || e.altKey) { playIntro(); return; }       // shift/option-click: replay an opening effect
+        setMode(MODES[(MODES.indexOf(mode) + 1) % MODES.length]);
+      });
+      if (HOST_SHELL) btn.classList.add('in-shell');
+      host.appendChild(btn);
+      renderBtn();
+    }
+  }
+
+  function renderBtn() {
+    if (!btn) return;
+    // in a dark room the button is always the dark one, whatever the theme
+    btn.className = 'fbfx-btn' + (HOST_SHELL ? ' in-shell' : '') + (mode !== 'none' ? ' on ' + mode : '') + (mode === 'none' && document.querySelector('.theme-white') ? ' light' : '');
+    btn.innerHTML = '<span class="fbfx-glyph">' + GLYPH[mode] + '</span><span>' + LABEL[mode] + '</span>';
+    btn.title = 'Light FX: ' + (mode === 'none' ? 'off' : LABEL[mode]) + ' — click to cycle (off ➔ lasers ➔ firework ➔ spotlight) · Shift+click: replay an opening effect';
+    btn.setAttribute('aria-label', 'Screen effect: ' + mode);
+  }
+
+  // Sits just left of the card-mode button (or top-right of the stage).
+  function placeBtn() {
+    if (!btn) return;
+    btn.style.display = stageOn ? 'inline-flex' : 'none';
+    if (!stageOn) return;
+    syncOrigin();
+    var ref = document.querySelector('.card-mode-btn');
+    var bw = btn.offsetWidth || 96;
+    if (stageKind === 'board' && !(ref && ref.getBoundingClientRect().width)) {
+      btn.style.left = Math.round(W - bw - 16) + 'px'; btn.style.top = Math.round(H - 32 - 18) + 'px';
+      return;
+    }
+    var r = ref && ref.getBoundingClientRect();
+    if (r && r.width) r = lrect(r);
+    if (r && r.width) {
+      btn.style.left = Math.round(r.left - 8 - bw) + 'px';
+      btn.style.top = Math.round(r.top) + 'px';
+    } else {
+      var st = stageEl();
+      var sr = st && lrect(st.getBoundingClientRect());
+      btn.style.left = Math.round((sr ? sr.right : W) - bw - 18) + 'px';
+      btn.style.top = Math.round((sr ? sr.top : 80) + 14) + 'px';
+    }
+  }
+
+  function resize(first) {
+    if (!cv) return;
+    var nw = HOST_SHELL ? (layer.offsetWidth || innerWidth) : innerWidth, nh = HOST_SHELL ? (layer.offsetHeight || innerHeight) : innerHeight;
+    if (!first && nw === W && nh === H) return;
+    if (!first && W && H) {
+      // keep the light sources where they were, proportionally
+      src.x *= nw / W; src.y *= nh / H; spot.x *= nw / W; spot.y *= nh / H;
+    }
+    W = nw; H = nh;
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+    if (first) resetSources();
+  }
+
+  function resetSources() {
+    src.x = W * 0.5; src.y = H * 0.2; src.vx = src.vy = 0; src.placed = false;
+    spot.x = W * 0.5; spot.y = H * 0.5; spot.vx = spot.vy = 0; spot.placed = false;
+  }
+
+  // ---------------------------------------------------------------- dragging
+  function bindHandle() {
+    var id = null, ox = 0, oy = 0, hist = [], lastTap = 0;
+    handle.addEventListener('pointerdown', function (e) {
+      if (id !== null) return;
+      var o = src;
+      var now = performance.now();
+      if (now - lastTap < 320) { src.placed = false; src.vx = src.vy = 0; lastTap = 0; e.preventDefault(); e.stopPropagation(); return; }   // double tap: back onto the card
+      lastTap = now;
+      id = e.pointerId;
+      try { handle.setPointerCapture(id); } catch (err) {}
+      o.drag = true; o.placed = true; o.vx = o.vy = 0;
+      ox = o.x - e.clientX; oy = o.y - e.clientY;
+      hist = [{ t: now, x: e.clientX, y: e.clientY }];
+      handle.classList.add('dragging');
+      hintUntil = 0;
+      e.preventDefault(); e.stopPropagation();
+      kick();
+    });
+    handle.addEventListener('pointermove', function (e) {
+      if (e.pointerId !== id) return;
+      var o = src;
+      o.x = clamp(e.clientX + ox, 0, W); o.y = clamp(e.clientY + oy, 0, H);
+      var now = performance.now();
+      hist.push({ t: now, x: e.clientX, y: e.clientY });
+      while (hist.length > 2 && now - hist[0].t > 100) hist.shift();
+      placeHandle();
+      e.preventDefault(); e.stopPropagation();
+    });
+    var up = function (e) {
+      if (e.pointerId !== id) return;
+      id = null;
+      var o = src;
+      o.drag = false;
+      handle.classList.remove('dragging');
+      // let it go with the finger's speed: it glides on and bounces off the edges
+      var now = performance.now(), a = hist[0], b = hist[hist.length - 1];
+      if (a && b && b.t > a.t && now - b.t < 60) {
+        var s = 1000 / Math.max(16, b.t - a.t);
+        o.vx = clamp((b.x - a.x) * s, -2600, 2600); o.vy = clamp((b.y - a.y) * s, -2600, 2600);
+      }
+      e.stopPropagation();
+      kick();
+    };
+    handle.addEventListener('pointerup', up);
+    handle.addEventListener('pointercancel', up);
+    handle.addEventListener('click', function (e) { e.stopPropagation(); });
+  }
+
+  function glide(o, dt) {
+    if (o.drag) return;
+    if (!o.vx && !o.vy) return;
+    o.x += o.vx * dt; o.y += o.vy * dt;
+    var k = Math.exp(-dt / 0.32);
+    o.vx *= k; o.vy *= k;
+    if (o.x < 0) { o.x = 0; o.vx = -o.vx * 0.55; } else if (o.x > W) { o.x = W; o.vx = -o.vx * 0.55; }
+    if (o.y < 0) { o.y = 0; o.vy = -o.vy * 0.55; } else if (o.y > H) { o.y = H; o.vy = -o.vy * 0.55; }
+    if (Math.abs(o.vx) < 4 && Math.abs(o.vy) < 4) o.vx = o.vy = 0;
+  }
+
+  function placeHandle() {
+    if (!handle) return;
+    var show = false;   // 16.8: the rig is grabbed through the capture listeners (laserGrab)
+    handle.style.display = show ? 'block' : 'none';
+    if (!show) return;
+    var o = src;
+    handle.style.transform = 'translate(' + o.x.toFixed(1) + 'px,' + o.y.toFixed(1) + 'px)';
+    handle.style.left = '0'; handle.style.top = '0';
+  }
+
+  // ---------------------------------------------------------------- the "message": the front card
+  // In iMessage everything happens around the message bubble; here that is the front card.
+  // It stays lit above the dark room, and lasers / fireworks play behind its glass.
+  var CARD_SEL = '[data-card-id]';
+  var fc = { t: -1, r: null, el: null, shapeT: -1, shape: null };
+  function frontRect() {
+    if (clock - fc.t < 0.1) return fc.r;
+    fc.t = clock; fc.r = null; fc.el = null;
+    if (stageKind === 'board') {
+      // the card being looked at: it stays lit above the dark room
+      var fe = boardFocus && boardFocus.isConnected && !boardFocus.classList.contains('is-dragging-card') ? boardFocus : null;
+      var fr0 = fe && lrect(fe.getBoundingClientRect());
+      if (fr0 && (fr0.right < 0 || fr0.left > W || fr0.bottom < 0 || fr0.top > H)) fr0 = null;
+      fc.r = fr0 && fr0.width > 30 ? fr0 : null;
+      fc.el = fc.r ? fe : null;
+      return fc.r;
+    }
+    var st = stageEl();
+    if (!st) return null;
+    var its = st.querySelectorAll(cardSel()), best = null, ba = 0, bel = null;
+    for (var i = 0; i < its.length; i++) {
+      var r = lrect(its[i].getBoundingClientRect()), a = r.width * r.height;
+      if (a > ba) { ba = a; best = r; bel = its[i]; }
+    }
+    fc.r = best && best.width > 30 ? best : null;
+    fc.el = fc.r ? bel : null;
+    return fc.r;
+  }
+  // The front card's true outline on screen: it is a 3D pane, so its bounding box is not its
+  // shape. Four invisible probes sit on the face's corners; the browser projects them for us.
+  function frontShape() {
+    if (clock === fc.shapeT) return fc.shape;
+    fc.shapeT = clock; fc.shape = null;
+    if (!frontRect() || !fc.el) return null;
+    var face = fc.el.querySelector('.face-front') || fc.el, pr = face.__fbProbe;
+    if (!pr || pr[0].parentNode !== face) {
+      pr = [];
+      var pos = [['0', '0'], ['100%', '0'], ['100%', '100%'], ['0', '100%']];
+      for (var i = 0; i < 4; i++) {
+        var d = document.createElement('i');
+        d.className = 'fbfx-probe'; d.style.left = pos[i][0]; d.style.top = pos[i][1];
+        face.appendChild(d); pr.push(d);
+      }
+      face.__fbProbe = pr;
+      face.__fbRad = parseFloat(getComputedStyle(face).borderTopLeftRadius) || 36;
+    }
+    var q = [];
+    for (var k = 0; k < 4; k++) { var rr = pr[k].getBoundingClientRect(); q.push([lx(rr.left), ly(rr.top)]); }
+    var top = Math.hypot(q[1][0] - q[0][0], q[1][1] - q[0][1]), side = Math.hypot(q[3][0] - q[0][0], q[3][1] - q[0][1]);
+    if (!(top > 4 && side > 4)) return null;
+    fc.shape = { q: q, rad: Math.min(face.__fbRad * top / (face.offsetWidth || top), top / 2, side / 2) };
+    return fc.shape;
+  }
+  // trace the front card's outline (rounded corners on the projected quad); dx shifts it
+  function frontPath(c, dx) {
+    dx = dx || 0;
+    var sh = frontShape();
+    if (!sh) { var r = frontRect(); if (!r) return false; rrect(c, r.left + dx, r.top, r.width, r.height, Math.min(36, r.width * 0.1)); return true; }
+    var Q = sh.q;
+    c.beginPath();
+    c.moveTo((Q[0][0] + Q[1][0]) / 2 + dx, (Q[0][1] + Q[1][1]) / 2);
+    for (var i = 1; i <= 4; i++) { var a = Q[i % 4], b = Q[(i + 1) % 4]; c.arcTo(a[0] + dx, a[1], b[0] + dx, b[1], sh.rad); }
+    c.closePath();
+    return true;
+  }
+  function rrect(c, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+  // punch the front card out of what is drawn so far; amount < 1 leaves some of it,
+  // as light seen through glass
+  // (exactly the card's own outline — no blur spilling past its edge, which left a dark ring)
+  function liftFront(c, soft, amount) {
+    c.save();
+    c.globalCompositeOperation = 'destination-out';
+    c.globalAlpha = amount == null ? 1 : amount;
+    c.fillStyle = '#000';
+    if (frontPath(c)) c.fill();
+    c.restore();
+  }
+  // what is seen through the front pane sits in the same dark room: a light veil over the card
+  function veilFront(c, a) {
+    c.save();
+    c.globalCompositeOperation = 'source-over';
+    c.fillStyle = 'rgba(0,0,0,' + a + ')';
+    if (frontPath(c)) c.fill();
+    c.restore();
+  }
+  function hsl2rgb(h, s, l) {
+    h = ((h % 360) + 360) % 360 / 360; s /= 100; l /= 100;
+    var q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+    function f(t) { t = (t + 1) % 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < 0.5 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; }
+    return [Math.round(f(h + 1 / 3) * 255), Math.round(f(h) * 255), Math.round(f(h - 1 / 3) * 255)];
+  }
+
+
+  // ---------------------------------------------------------------- sound (synthesized, Web Audio)
+  // lasers: a soft kick + a filtered "pew" on every beat the beams pulse to (120 BPM), a hat between;
+  // firework: a hiss on launch, a deep boom and a scatter of crackle for every burst;
+  // spotlight: the heavy clunk of a stage lamp switching on, then a faint lamp hum that whirs a
+  // little while the beam is dragged. Follows the app's mute switch (SoundEngine.muted).
+  var AU = { ctx: null, bus: null, noise: null, beat: -1, hum: null, sx: null, sy: null };
+  function audioOK() { var se = window.SoundEngine; return !(se && se.muted) && !document.hidden; }
+  function actx() {
+    if (!audioOK()) return null;
+    if (!AU.ctx) {
+      var se = window.SoundEngine, AC = window.AudioContext || window.webkitAudioContext;
+      try { if (se && se.init) se.init(); } catch (e) {}
+      AU.ctx = (se && se.ctx) || (AC ? new AC() : null);
+      if (!AU.ctx) return null;
+      var comp = AU.ctx.createDynamicsCompressor();
+      comp.threshold.value = -16; comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.2;
+      AU.bus = AU.ctx.createGain(); AU.bus.gain.value = 0.85;
+      AU.bus.connect(comp); comp.connect(AU.ctx.destination);
+      var n = AU.ctx.sampleRate, buf = AU.ctx.createBuffer(1, n, n), d = buf.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      AU.noise = buf;
+    }
+    if (AU.ctx.state === 'suspended') { try { AU.ctx.resume(); } catch (e) {} }
+    return AU.ctx.state === 'closed' ? null : AU.ctx;
+  }
+  function outAt(c, pan) {
+    var g = c.createGain();
+    if (c.createStereoPanner) { var p = c.createStereoPanner(); p.pan.value = clamp(pan || 0, -1, 1) * 0.6; g.connect(p); p.connect(AU.bus); }
+    else g.connect(AU.bus);
+    return g;
+  }
+  function gainEnv(g, t, a, atk, dec) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(a, t + atk); g.gain.exponentialRampToValueAtTime(0.0001, t + atk + dec); }
+  function tone(c, out, type, t, f0, f1, dur, a, atk) {
+    var o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(f0, t); if (f1 && f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    gainEnv(g, t, a, atk || 0.004, dur); o.connect(g); g.connect(out); o.start(t); o.stop(t + dur + (atk || 0.004) + 0.02);
+  }
+  function hiss(c, out, t, type, f0, f1, q, dur, a, atk) {
+    var s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    s.buffer = AU.noise; s.loop = true;
+    f.type = type; f.Q.value = q || 0.7; f.frequency.setValueAtTime(f0, t); if (f1 && f1 !== f0) f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    gainEnv(g, t, a, atk || 0.004, dur); s.connect(f); f.connect(g); g.connect(out);
+    s.start(t, Math.random() * 0.8); s.stop(t + dur + (atk || 0.004) + 0.02);
+  }
+  function panOf(x) { return W ? (x / W) * 2 - 1 : 0; }
+  // lasers
+  function sfxLaserBeat(n) {
+    var c = actx(); if (!c) return;
+    var t = c.currentTime + 0.004, out = outAt(c, 0);
+    tone(c, out, 'sine', t, 118, 44, 0.2, 0.24, 0.004);                               // soft kick
+    var notes = [880, 1175, 988, 1319], f0 = notes[n % 4] * (n % 8 < 4 ? 1 : 0.84);
+    var lp = c.createBiquadFilter(), g = c.createGain();
+    lp.type = 'lowpass'; lp.Q.value = 9; lp.frequency.setValueAtTime(5200, t); lp.frequency.exponentialRampToValueAtTime(520, t + 0.17);
+    gainEnv(g, t, 0.05, 0.003, 0.18); lp.connect(g); g.connect(outAt(c, n % 2 ? 0.35 : -0.35));
+    ['sawtooth', 'square'].forEach(function (ty, k) {                                     // the "pew"
+      var o = c.createOscillator(); o.type = ty;
+      o.frequency.setValueAtTime(f0 * (k ? 1.006 : 1), t); o.frequency.exponentialRampToValueAtTime(f0 * 0.24, t + 0.17);
+      o.connect(lp); o.start(t); o.stop(t + 0.22);
+    });
+    hiss(c, out, t + 0.25, 'highpass', 7200, 7200, 0.7, 0.035, 0.028, 0.002);          // off-beat hat
+  }
+  // fireworks
+  function sfxLaunch(x) {
+    var c = actx(); if (!c) return;
+    var t = c.currentTime + 0.005, out = outAt(c, panOf(x));
+    hiss(c, out, t, 'bandpass', 900, 3400, 3, 0.62, 0.035, 0.08);
+  }
+  function sfxBoom(x, big) {
+    var c = actx(); if (!c) return;
+    var t = c.currentTime + 0.01, out = outAt(c, panOf(x)), k = big ? 1 : 0.8;
+    tone(c, out, 'sine', t, 92, 36, 0.85, 0.5 * k, 0.01);                             // the thump
+    hiss(c, out, t, 'lowpass', 2000, 160, 0.8, 1.35, 0.4 * k, 0.006);                 // the blast
+    for (var i = 0, n = big ? 24 : 15; i < n; i++)                                     // the crackle
+      hiss(c, out, t + 0.22 + Math.pow(Math.random(), 0.8) * 1.25, 'highpass', rnd(2600, 6200), 0, 0.7, rnd(0.01, 0.028), rnd(0.03, 0.085), 0.001);
+  }
+  // spotlight
+  function sfxSpotOn() {
+    var c = actx(); if (!c) return;
+    var t = c.currentTime + 0.01, out = outAt(c, 0);
+    hiss(c, out, t, 'lowpass', 1400, 260, 0.9, 0.09, 0.34, 0.002);                    // the relay clunk
+    tone(c, out, 'sine', t, 74, 48, 0.28, 0.34, 0.003);
+    tone(c, out, 'sine', t + 0.05, 3150, 3100, 0.12, 0.012, 0.004);                    // the filament
+    humStart(t + 0.12);
+  }
+  function humStart(t) {
+    var c = actx(); if (!c || AU.hum) return;
+    var g = c.createGain(), lp = c.createBiquadFilter(), wg = c.createGain(), wf = c.createBiquadFilter(), ns = c.createBufferSource();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.011, t + 0.6);
+    lp.type = 'lowpass'; lp.frequency.value = 420; lp.connect(g); g.connect(AU.bus);
+    var os = [[100, 'sine'], [150, 'triangle'], [200.6, 'sine']].map(function (p) { var o = c.createOscillator(); o.type = p[1]; o.frequency.value = p[0]; o.connect(lp); o.start(t); return o; });
+    // the servo whir while the beam moves
+    ns.buffer = AU.noise; ns.loop = true; wf.type = 'bandpass'; wf.Q.value = 6; wf.frequency.value = 640;
+    wg.gain.value = 0; ns.connect(wf); wf.connect(wg); wg.connect(AU.bus); ns.start(t);
+    AU.hum = { g: g, os: os, ns: ns, wg: wg, wf: wf };
+  }
+  function humStop() {
+    var h = AU.hum; if (!h || !AU.ctx) return;
+    AU.hum = null;
+    var t = AU.ctx.currentTime;
+    try {
+      h.g.gain.cancelScheduledValues(t); h.g.gain.setTargetAtTime(0.0001, t, 0.08);
+      h.wg.gain.cancelScheduledValues(t); h.wg.gain.setTargetAtTime(0, t, 0.05);
+      h.os.forEach(function (o) { o.stop(t + 0.5); }); h.ns.stop(t + 0.5);
+    } catch (e) {}
+  }
+  function audioMode(m) {
+    AU.beat = -1; AU.sx = AU.sy = null;
+    if (m !== 'spotlight') humStop();
+    if (m === 'spotlight' && stageOn) sfxSpotOn();
+  }
+  function audioTick(dt) {
+    if (!audioOK()) { humStop(); return; }
+    if (mode === 'lasers') {
+      var b = Math.floor(clock * 2);                           // the beams' own beat (laserEnv)
+      if (b !== AU.beat) { var first = AU.beat < 0; AU.beat = b; if (!first) sfxLaserBeat(b); }
+    } else if (mode === 'spotlight') {
+      if (!AU.hum) humStart(AU.ctx ? AU.ctx.currentTime : 0);
+      if (AU.hum && AU.ctx) {
+        var v = AU.sx == null ? 0 : Math.hypot(spot.x - AU.sx, spot.y - AU.sy) / Math.max(dt, 1e-3);
+        AU.sx = spot.x; AU.sy = spot.y;
+        var w = clamp(v / 1400, 0, 1), t = AU.ctx.currentTime;
+        AU.hum.wg.gain.setTargetAtTime(0.02 * w, t, 0.06);
+        AU.hum.wf.frequency.setTargetAtTime(520 + 520 * w, t, 0.08);
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------- ambient: lasers
+  // iMessage Lasers: the room goes black and a club rig fires from behind the message —
+  // four fans of beams radiating all round, opening and closing, sweeping and slowly turning,
+  // strobing on a 120 bpm beat. One colour at a time, changing on its own every few beats;
+  // smoke billows round the rig and every beam glows in it.
+  var LASER_SET = [120, 190, 320, 55, 275, 0];   // green, cyan, magenta, yellow, violet, red
+  var LASER_HOLD = 1.5, LASER_XF = 0.3;          // seconds per colour, cross-fade
+  var beams = [];            // this frame's beams, for lighting the glass
+  var laserBeat = 1, laserHue = 320;
+  var bloom = null, bctx = null, BS = 0.2;   // small glow buffer, blown up = soft haze
+  function ensureBloom() {
+    var bw = Math.max(1, Math.ceil(W * BS)), bh = Math.max(1, Math.ceil(H * BS));
+    if (!bloom) { bloom = document.createElement('canvas'); bctx = bloom.getContext('2d'); }
+    if (bloom.width !== bw || bloom.height !== bh) { bloom.width = bw; bloom.height = bh; }
+    bctx.setTransform(1, 0, 0, 1, 0, 0);
+    bctx.globalCompositeOperation = 'source-over';
+    bctx.globalAlpha = 1;
+    bctx.clearRect(0, 0, bw, bh);
+    bctx.setTransform(BS, 0, 0, BS, 0, 0);
+  }
+  // tileable smoke: a few octaves of smooth value noise in the alpha channel
+  var smokeCv = null, smokePat = null;
+  function smoke() {
+    if (smokeCv) return smokePat;
+    var N = 128;
+    smokeCv = document.createElement('canvas'); smokeCv.width = smokeCv.height = N;
+    var nc = smokeCv.getContext('2d'), img = nc.createImageData(N, N), d = img.data;
+    var oct = [[4, 0.46], [8, 0.28], [16, 0.16], [32, 0.1]], grids = [];
+    for (var o = 0; o < oct.length; o++) {
+      var n = oct[o][0], g = new Float32Array(n * n);
+      for (var i = 0; i < n * n; i++) g[i] = Math.random();
+      grids.push(g);
+    }
+    for (var y = 0; y < N; y++) for (var x = 0; x < N; x++) {
+      var v = 0;
+      for (var q = 0; q < oct.length; q++) {
+        var n2 = oct[q][0], gx = x / N * n2, gy = y / N * n2, x0 = Math.floor(gx), y0 = Math.floor(gy);
+        var fx = gx - x0, fy = gy - y0, x1 = (x0 + 1) % n2, y1 = (y0 + 1) % n2, gg = grids[q];
+        fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
+        var a = gg[y0 * n2 + x0] + (gg[y0 * n2 + x1] - gg[y0 * n2 + x0]) * fx;
+        var b = gg[y1 * n2 + x0] + (gg[y1 * n2 + x1] - gg[y1 * n2 + x0]) * fx;
+        v += (a + (b - a) * fy) * oct[q][1];
+      }
+      var k = (y * N + x) * 4;
+      d[k] = d[k + 1] = d[k + 2] = 255;
+      d[k + 3] = Math.round(255 * clamp(0.28 + 0.9 * Math.pow(v, 1.4), 0, 1));
+    }
+    nc.putImageData(img, 0, 0);
+    smokePat = bctx.createPattern(smokeCv, 'repeat');
+    return smokePat;
+  }
+  // thin the glow buffer out into drifting smoke
+  function smokeBloom(t, sx, sy) {
+    var pat = smoke();
+    bctx.save();
+    bctx.setTransform(1, 0, 0, 1, 0, 0);
+    bctx.globalCompositeOperation = 'destination-in';
+    bctx.translate(-((t * sx) % 128 + 128) % 128, -((t * sy) % 128 + 128) % 128);
+    bctx.fillStyle = pat;
+    bctx.fillRect(0, 0, bloom.width + 128, bloom.height + 128);
+    bctx.restore();
+  }
+  function blitBloom(c) {
+    c.save();
+    c.setTransform(DPR, 0, 0, DPR, 0, 0);
+    c.globalCompositeOperation = 'lighter';
+    c.imageSmoothingEnabled = true;
+    try { c.imageSmoothingQuality = 'high'; } catch (e) {}
+    c.drawImage(bloom, 0, 0, bloom.width / BS, bloom.height / BS);
+    c.restore();
+  }
+  function laserEnv(t) { var ph = (t * 2) % 1; return 0.6 + 0.4 * Math.exp(-ph * 7); }   // sharp hit, slow decay
+  function laserColour(t) {
+    var n = Math.floor(t / LASER_HOLD), u = t - n * LASER_HOLD;
+    var h1 = LASER_SET[n % LASER_SET.length], h2 = LASER_SET[(n + 1) % LASER_SET.length];
+    var k = smooth((u - (LASER_HOLD - LASER_XF)) / LASER_XF);
+    var dh = ((h2 - h1 + 540) % 360) - 180;
+    return (h1 + dh * k + 360) % 360;
+  }
+  // this frame's light: single beams and light sheets (a fan of light between two beams —
+  // what a laser sweeping fast through smoke draws)
+  var sheets = [];
+  function buildBeams(t, sx, sy) {
+    beams.length = 0; sheets.length = 0;
+    laserHue = laserColour(t);
+    var hue = laserHue, rgb = hsl2rgb(hue, 100, 60);
+    // aim across the screen from wherever the rig is: from a corner or an edge it throws one
+    // wide fan over the room (as in iMessage); from the middle it throws all round
+    var cx = W / 2 - sx, cy = H * 0.55 - sy, off = Math.hypot(cx, cy) / (0.5 * Math.min(W, H));
+    var aim = Math.atan2(cy, cx), wide = clamp(1.3 - off * 0.45, 0.6, 1.2), round = off < 0.35;
+    function beam(a, w, k) { beams.push({ a: a, w: w, k: k, hue: hue, rgb: rgb }); }
+    function fl(n) { return 0.88 + 0.12 * Math.sin(t * 43 + n * 3.7); }
+    for (var s = 0; s < 2; s++) {
+      var c0 = round ? t * 0.3 + s * Math.PI : aim + (s ? 0.78 : -0.78) * wide + 0.24 * Math.sin(t * (0.55 + s * 0.17) + s * 2.2);
+      var half = 0.07 + 0.13 * (0.5 + 0.5 * Math.sin(t * (0.9 + s * 0.3) + s * 1.7));   // the sheet opens and closes
+      sheets.push({ a1: c0 - half, a2: c0 + half, k: 0.82 + 0.18 * Math.sin(t * 0.8 + s * 2) });
+      beam(c0 - half, 2.8, fl(s * 2)); beam(c0 + half, 2.8, fl(s * 2 + 1));
+    }
+    var c1 = round ? -t * 0.22 + Math.PI / 2 : aim + 0.55 * wide * Math.sin(t * 0.47 + 1);
+    for (var b = 0; b < 3; b++) beam(c1 + (b - 1) * (0.11 + 0.05 * Math.sin(t * 1.3)), 2, fl(10 + b));
+    // two long faint ones reaching far out to the sides
+    for (var e = 0; e < 2; e++) beam(aim + (e ? 1 : -1) * (1.08 * wide + 0.12 * Math.sin(t * 0.7 + e)) + (round ? t * 0.2 : 0), 1.1, 0.5 * fl(20 + e));
+  }
+  function wedge(c, sx, sy, a1, a2, L) {
+    c.beginPath();
+    c.moveTo(sx, sy);
+    c.lineTo(sx + Math.cos(a1) * L, sy + Math.sin(a1) * L);
+    c.lineTo(sx + Math.cos(a2) * L, sy + Math.sin(a2) * L);
+    c.closePath();
+  }
+  // ---------------------------------------------------------------- liquid glass (lasers)
+  // After Apple Music's player: a pane of liquid glass shows the room behind it blurred and
+  // magnified (not one flat colour), bends it harder at the rim with red/blue fringes, is lit
+  // by a sharp edge highlight toward the light, and has depth from an inner shadow.
+  // Smoky glass in the dark theme (light added to it), milky frosted glass in the white theme.
+  var gA = null, gAc = null, gB = null, gBc = null, gR = null, gRc = null, gU = null, gUc = null;
+  function mkCv(cvs, w, h) {
+    if (!cvs) cvs = document.createElement('canvas');
+    if (cvs.width !== w || cvs.height !== h) { cvs.width = w; cvs.height = h; }
+    return cvs;
+  }
+  // the room as it is right now, blurred (two downsamples, blown back up = a soft backdrop blur),
+  // plus a red- and a blue-tinted copy for the rim's colour fringes
+  function snapRoom() {
+    var aw = Math.max(1, Math.ceil(W / 4)), ah = Math.max(1, Math.ceil(H / 4));
+    var bw = Math.max(1, Math.ceil(W / 11)), bh = Math.max(1, Math.ceil(H / 11));
+    gA = mkCv(gA, aw, ah); gAc = gAc || gA.getContext('2d');
+    gB = mkCv(gB, bw, bh); gBc = gBc || gB.getContext('2d');
+    gAc.globalCompositeOperation = 'copy'; gAc.imageSmoothingEnabled = true; gAc.drawImage(cv, 0, 0, aw, ah);
+    gBc.globalCompositeOperation = 'copy'; gBc.imageSmoothingEnabled = true; gBc.drawImage(gA, 0, 0, bw, bh);
+    function tint(cvs, cx2, col) {
+      cvs = mkCv(cvs, bw, bh); cx2 = cx2 || cvs.getContext('2d');
+      cx2.globalCompositeOperation = 'copy'; cx2.drawImage(gB, 0, 0);
+      cx2.globalCompositeOperation = 'color'; cx2.fillStyle = col; cx2.fillRect(0, 0, bw, bh);
+      cx2.globalCompositeOperation = 'destination-in'; cx2.drawImage(gB, 0, 0);
+      return [cvs, cx2];
+    }
+    var rr = tint(gR, gRc, 'rgb(255,40,70)'); gR = rr[0]; gRc = rr[1];
+    var uu = tint(gU, gUc, 'rgb(40,120,255)'); gU = uu[0]; gUc = uu[1];
+  }
+  // draw the blurred room magnified about (cx, cy), as a lens would show it
+  function roomLens(c, img, cx, cy, mag, alpha) {
+    if (!img || alpha <= 0) return;
+    c.globalAlpha = alpha;
+    c.drawImage(img, cx - cx * mag, cy - cy * mag, W * mag, H * mag);
+    c.globalAlpha = 1;
+  }
+  function lensPattern(c, img, cx, cy, mag) {
+    var p = c.createPattern(img, 'no-repeat');
+    if (!p || !p.setTransform || !window.DOMMatrix) return null;
+    p.setTransform(new DOMMatrix([W * mag / img.width, 0, 0, H * mag / img.height, cx - cx * mag, cy - cy * mag]));
+    return p;
+  }
+  // a card's outline on screen from probes on its face's corners (cached per frame)
+  function shapeOf(el) {
+    if (el.__fbShapeT === clock) return el.__fbShape;
+    el.__fbShapeT = clock; el.__fbShape = null;
+    var face = el.querySelector('.face-front') || el, pr = face.__fbProbe;
+    if (!pr || pr[0].parentNode !== face) {
+      pr = [];
+      var pos = [['0', '0'], ['100%', '0'], ['100%', '100%'], ['0', '100%']];
+      for (var i = 0; i < 4; i++) {
+        var d = document.createElement('i');
+        d.className = 'fbfx-probe'; d.style.left = pos[i][0]; d.style.top = pos[i][1];
+        face.appendChild(d); pr.push(d);
+      }
+      face.__fbProbe = pr;
+      face.__fbRad = parseFloat(getComputedStyle(face).borderTopLeftRadius) || 36;
+    }
+    var q = [];
+    for (var k = 0; k < 4; k++) { var rr = pr[k].getBoundingClientRect(); q.push([lx(rr.left), ly(rr.top)]); }
+    var top = Math.hypot(q[1][0] - q[0][0], q[1][1] - q[0][1]), side = Math.hypot(q[3][0] - q[0][0], q[3][1] - q[0][1]);
+    if (!(top > 4 && side > 4)) return null;
+    var cx = (q[0][0] + q[1][0] + q[2][0] + q[3][0]) / 4, cy = (q[0][1] + q[1][1] + q[2][1] + q[3][1]) / 4;
+    el.__fbShape = { q: q, cx: cx, cy: cy, size: Math.min(top, side), span: Math.max(top, side), rad: Math.min(face.__fbRad * top / (face.offsetWidth || top), top / 2, side / 2) };
+    return el.__fbShape;
+  }
+  // append a rounded quad (scaled by s about its centre) to the current path
+  function traceShape(c, sh, s) {
+    var Q = sh.q, cx = sh.cx, cy = sh.cy, rad = sh.rad * s;
+    function P(i) { var p = Q[(i + 4) % 4]; return [cx + (p[0] - cx) * s, cy + (p[1] - cy) * s]; }
+    var a0 = P(0), a1 = P(1);
+    c.moveTo((a0[0] + a1[0]) / 2, (a0[1] + a1[1]) / 2);
+    for (var i = 1; i <= 4; i++) { var a = P(i), b = P(i + 1); c.arcTo(a[0], a[1], b[0], b[1], rad); }
+    c.closePath();
+  }
+  // a thin pane of liquid glass, after Apple Music's player: inside, a few large soft colour
+  // fields drift and melt into each other (drawn from the light's colour: the light itself, two
+  // neighbouring hues and a deep complement where the light doesn't reach), over a faint blurred
+  // view of the room behind; the edge is only a hairline highlight with a whisper of refraction.
+  function liquidPane(c, sh, k, lightX, lightY, rgb, hue) {
+    var lightTheme = isLight(), cx = sh.cx, cy = sh.cy, size = sh.size, col = rgb.join(',');
+    var ang = Math.atan2(lightY - cy, lightX - cx), ux = Math.cos(ang), uy = Math.sin(ang), t = clock;
+    // (the fill covers the whole pane: a board card is a long strip, not a near-square cover card)
+    var ext = Math.max(size, sh.span || size), bx = cx - ext * 2, by = cy - ext * 2, bs = ext * 4;
+    c.save();
+    c.beginPath(); traceShape(c, sh, 1); c.clip();
+    c.imageSmoothingEnabled = true;
+    try { c.imageSmoothingQuality = 'high'; } catch (e) {}
+    // 1. the glass body: a light cool smoke, or milk
+    c.globalCompositeOperation = 'source-over';
+    c.fillStyle = lightTheme ? 'rgba(255,255,255,' + (0.1 * k).toFixed(3) + ')' : 'rgba(14,18,30,' + (0.2 * k).toFixed(3) + ')';
+    c.fillRect(bx, by, bs, bs);
+    // 2. the room behind, blurred and a little magnified — so the fields sit where the light is
+    c.globalCompositeOperation = lightTheme ? 'source-over' : 'lighter';
+    roomLens(c, gB, cx, cy, 1.1, (lightTheme ? 0.28 : 0.4) * k);
+    // 3. the colour fields
+    c.globalCompositeOperation = 'source-over';
+    var fields = [
+      // [angle from the light direction, distance, radius, hue shift, sat, light (dark theme), light (white theme), alpha]
+      [0, 0.42, 0.85, 0, 95, 58, 72, 0.46],
+      [1.75 + 0.35 * Math.sin(t * 0.31), 0.38, 0.72, 38, 90, 52, 78, 0.36],
+      [-1.9 + 0.35 * Math.sin(t * 0.27 + 1.3), 0.4, 0.72, -42, 85, 48, 76, 0.34],
+      [Math.PI + 0.3 * Math.sin(t * 0.22 + 2), 0.5, 0.9, 180, 55, 20, 84, 0.42]
+    ];
+    for (var i = 0; i < fields.length; i++) {
+      var F = fields[i], a = ang + F[0], d = F[1] * size * (1 + 0.08 * Math.sin(t * 0.4 + i * 1.7));
+      var fx = cx + Math.cos(a) * d, fy = cy + Math.sin(a) * d, fr2 = F[2] * size;
+      var fc = hsl2rgb(hue + F[3], F[4], lightTheme ? F[6] : F[5]).join(','), fa = F[7] * k * (lightTheme ? 0.85 : 1);
+      var g = c.createRadialGradient(fx, fy, 0, fx, fy, fr2);
+      g.addColorStop(0, 'rgba(' + fc + ',' + fa.toFixed(3) + ')');
+      g.addColorStop(0.55, 'rgba(' + fc + ',' + (fa * 0.45).toFixed(3) + ')');
+      g.addColorStop(1, 'rgba(' + fc + ',0)');
+      c.fillStyle = g; c.fillRect(bx, by, bs, bs);
+    }
+    // the middle stays clear for what is written on the card
+    c.globalCompositeOperation = 'destination-out';
+    var cl = c.createRadialGradient(cx, cy, 0, cx, cy, size * 0.5);
+    cl.addColorStop(0, 'rgba(0,0,0,' + (0.32 * k).toFixed(3) + ')');
+    cl.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = cl; c.fillRect(bx, by, bs, bs);
+    // 4. thin glass: a whisper of the room bent at the very edge, red just outside blue
+    var pR = lensPattern(c, gR, cx, cy, 1.3), pB = lensPattern(c, gU, cx, cy, 1.2);
+    c.globalCompositeOperation = lightTheme ? 'source-over' : 'lighter';
+    c.lineWidth = 3;
+    if (pR) { c.globalAlpha = 0.32 * k; c.strokeStyle = pR; c.beginPath(); traceShape(c, sh, 1); c.stroke(); }
+    if (pB) { c.globalAlpha = 0.32 * k; c.strokeStyle = pB; c.beginPath(); traceShape(c, sh, 1 - 3 / size); c.stroke(); }
+    c.globalAlpha = 1;
+    // 5. a hint of depth: a narrow, soft inner shadow
+    c.globalCompositeOperation = 'source-over';
+    c.beginPath();
+    // (the frame must be larger than the pane on every side: evenodd would fill a long strip's ends solid)
+    c.rect(cx - ext * 3, cy - ext * 3, ext * 6, ext * 6);
+    traceShape(c, sh, 1);
+    c.shadowColor = lightTheme ? 'rgba(40,50,70,' + (0.16 * k).toFixed(3) + ')' : 'rgba(0,0,0,' + (0.32 * k).toFixed(3) + ')';
+    c.shadowBlur = size * 0.035 * DPR;
+    c.fillStyle = '#000';
+    c.fill('evenodd');
+    c.shadowColor = 'transparent'; c.shadowBlur = 0;
+    // 6. a soft sheen on the side facing the light
+    var sg = c.createLinearGradient(cx + ux * size * 0.55, cy + uy * size * 0.55, cx, cy);
+    sg.addColorStop(0, 'rgba(255,255,255,' + ((lightTheme ? 0.18 : 0.1) * k).toFixed(3) + ')');
+    sg.addColorStop(1, 'rgba(255,255,255,0)');
+    c.fillStyle = sg; c.fillRect(bx, by, bs, bs);
+    c.restore();
+    // 7. the edge: one hairline of light, brightest where the rim faces the light
+    c.save();
+    c.globalCompositeOperation = 'source-over';
+    if (c.createConicGradient) {
+      var hg = c.createConicGradient(ang - Math.PI * 0.55, cx, cy);
+      hg.addColorStop(0, 'rgba(255,255,255,' + (0.14 * k).toFixed(3) + ')');
+      hg.addColorStop(0.18, 'rgba(' + col + ',' + (0.5 * k).toFixed(3) + ')');
+      hg.addColorStop(0.275, 'rgba(255,255,255,' + (0.9 * k).toFixed(3) + ')');
+      hg.addColorStop(0.37, 'rgba(' + col + ',' + (0.5 * k).toFixed(3) + ')');
+      hg.addColorStop(0.55, 'rgba(255,255,255,' + (0.14 * k).toFixed(3) + ')');
+      hg.addColorStop(0.775, 'rgba(255,255,255,' + (0.3 * k).toFixed(3) + ')');
+      hg.addColorStop(1, 'rgba(255,255,255,' + (0.14 * k).toFixed(3) + ')');
+      c.strokeStyle = hg;
+    } else c.strokeStyle = 'rgba(255,255,255,' + (0.45 * k).toFixed(3) + ')';
+    c.lineWidth = 1.1;
+    c.beginPath(); traceShape(c, sh, 1 - 0.6 / size); c.stroke();
+    c.restore();
+  }
+  // every visible pane in the laser room: the front one fully, the others a little less
+  function liquidPanes(c, fr) {
+    var st = stageEl();
+    if (!st) return;
+    var its = st.querySelectorAll(cardSel()), list = [];
+    for (var i = 0; i < its.length; i++) {
+      var sh = shapeOf(its[i]);
+      if (sh && sh.cx > -sh.size && sh.cx < W + sh.size) list.push({ el: its[i], sh: sh, a: sh.size });
+    }
+    list.sort(function (a, b) { return b.a - a.a; });
+    list = list.slice(0, MOBILE ? 3 : 5);   // phones: the three nearest panes
+    var rgb = hsl2rgb(laserHue, 100, 66);
+    for (var j = list.length - 1; j >= 0; j--) {
+      var front = j === 0;
+      liquidPane(c, list[j].sh, front ? 1 : 0.45, src.x, src.y, rgb, laserHue);
+    }
+  }
+
+  // (on the board the rig is always in front: never hidden behind a card, always grabbable)
+  function srcBehindCard(fr) { return stageKind !== 'board' && fr && src.x > fr.left && src.x < fr.right && src.y > fr.top && src.y < fr.bottom; }
+  function drawLasers(c, dt) {
+    var t = clock, fr = frontRect();
+    // one rig, one big point of light, hung just above the card until it is dragged elsewhere
+    if (!src.placed && !src.drag && stageKind === 'board') {
+      // the board: the rig hangs over the board, in the gap between the header and the lists
+      var sr0 = stageEl() && lrect(stageEl().getBoundingClientRect());
+      var hd = document.querySelector('header'), hb = hd ? lrect(hd.getBoundingClientRect()).bottom : 0;
+      // (below the top bar: while an effect runs, the bar stays above the dark room)
+      src.x = W * 0.5; src.y = sr0 ? Math.max(30, sr0.top - 14, hb + 16) : Math.max(60, hb + 16);
+    } else if (!src.placed && !src.drag && fr) { src.x = fr.left + fr.width / 2; src.y = Math.max(30, fr.top - 44); }
+    var env = laserBeat = laserEnv(t);
+    var sx = src.x, sy = src.y;
+    buildBeams(t, sx, sy);
+    var L = Math.hypot(W, H) * 1.35, D = Math.hypot(W, H), behind = srcBehindCard(fr), hue = laserHue, i, bm, ex, ey, g, sh;
+
+    // 1. the room: dark, washed all over with the laser's colour, strongest round the rig
+    c.fillStyle = 'rgba(0,0,0,' + roomA(0.86) + ')';
+    c.fillRect(0, 0, W, H);
+    c.save();
+    c.globalCompositeOperation = 'destination-out';
+    for (i = 0; i < (isLight() ? 0 : sheets.length); i++) {
+      sh = sheets[i];
+      g = c.createRadialGradient(sx, sy, 0, sx, sy, D);
+      g.addColorStop(0, 'rgba(0,0,0,' + (0.4 * env * sh.k).toFixed(3) + ')');
+      g.addColorStop(0.5, 'rgba(0,0,0,' + (0.18 * env * sh.k).toFixed(3) + ')');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = g; wedge(c, sx, sy, sh.a1, sh.a2, L); c.fill();
+    }
+    c.restore();
+    liftFront(c, 16);
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    var wash = c.createRadialGradient(sx, sy, 0, sx, sy, D);
+    wash.addColorStop(0, 'hsla(' + hue + ',100%,50%,' + (0.4 * env).toFixed(3) + ')');
+    wash.addColorStop(0.22, 'hsla(' + hue + ',100%,45%,' + (0.2 * env).toFixed(3) + ')');
+    wash.addColorStop(0.6, 'hsla(' + hue + ',100%,40%,' + (0.1 * env).toFixed(3) + ')');
+    wash.addColorStop(1, 'hsla(' + hue + ',100%,40%,0.04)');
+    c.fillStyle = wash; c.fillRect(0, 0, W, H);
+    // 2. the light sheets, brightest near the rig
+    for (i = 0; i < sheets.length; i++) {
+      sh = sheets[i];
+      g = c.createRadialGradient(sx, sy, 0, sx, sy, D);
+      g.addColorStop(0, 'hsla(' + hue + ',100%,66%,' + (0.66 * env * sh.k).toFixed(3) + ')');
+      g.addColorStop(0.2, 'hsla(' + hue + ',100%,58%,' + (0.44 * env * sh.k).toFixed(3) + ')');
+      g.addColorStop(0.5, 'hsla(' + hue + ',100%,52%,' + (0.28 * env * sh.k).toFixed(3) + ')');
+      g.addColorStop(0.85, 'hsla(' + hue + ',100%,48%,' + (0.13 * env * sh.k).toFixed(3) + ')');
+      g.addColorStop(1, 'hsla(' + hue + ',100%,45%,0)');
+      c.fillStyle = g; wedge(c, sx, sy, sh.a1, sh.a2, L); c.fill();
+    }
+    c.restore();
+
+    // 3. volumetric glow: beams and sheets soft in a small buffer, smoke round the rig, blown up
+    ensureBloom();
+    bctx.globalCompositeOperation = 'lighter';
+    bctx.lineCap = 'round';
+    for (i = 0; i < beams.length; i++) {
+      bm = beams[i]; ex = sx + Math.cos(bm.a) * L; ey = sy + Math.sin(bm.a) * L;
+      var wk = bm.w / 2.8;
+      for (var w = 0; w < 2; w++) {
+        var a0 = [0.12, 0.24][w] * env * bm.k * wk;
+        g = bctx.createLinearGradient(sx, sy, ex, ey);
+        g.addColorStop(0, 'hsla(' + hue + ',100%,60%,' + (a0 * 0.5).toFixed(3) + ')');
+        g.addColorStop(0.08, 'hsla(' + hue + ',100%,60%,' + a0.toFixed(3) + ')');
+        g.addColorStop(0.5, 'hsla(' + hue + ',100%,55%,' + (a0 * 0.55).toFixed(3) + ')');
+        g.addColorStop(1, 'hsla(' + hue + ',100%,50%,0)');
+        bctx.strokeStyle = g; bctx.lineWidth = [80, 30][w] * (0.6 + 0.4 * wk);
+        bctx.beginPath(); bctx.moveTo(sx, sy); bctx.lineTo(ex, ey); bctx.stroke();
+      }
+    }
+    for (i = 0; i < sheets.length; i++) {
+      sh = sheets[i];
+      g = bctx.createRadialGradient(sx, sy, 0, sx, sy, D);
+      g.addColorStop(0, 'hsla(' + hue + ',100%,60%,' + (0.3 * env * sh.k).toFixed(3) + ')');
+      g.addColorStop(0.5, 'hsla(' + hue + ',100%,52%,' + (0.08 * env * sh.k).toFixed(3) + ')');
+      g.addColorStop(1, 'hsla(' + hue + ',100%,50%,0)');
+      bctx.fillStyle = g; wedge(bctx, sx, sy, sh.a1 - 0.05, sh.a2 + 0.05, L); bctx.fill();
+    }
+    var sR = clamp(Math.min(W, H) * 0.36, 150, 400);
+    for (var pf = 0; pf < 8; pf++) {
+      var pa = t * (0.1 + pf * 0.018) * (pf % 2 ? 1 : -1) + pf * 0.8;
+      var pd = sR * (0.3 + 0.28 * (0.5 + 0.5 * Math.sin(t * 0.37 + pf * 1.3)));
+      var ppx = sx + Math.cos(pa) * pd, ppy = sy + Math.sin(pa) * pd * 0.78;
+      var pr = sR * (0.5 + 0.22 * Math.sin(t * 0.45 + pf * 2.1));
+      var pg = bctx.createRadialGradient(ppx, ppy, 0, ppx, ppy, pr);
+      pg.addColorStop(0, 'hsla(' + hue + ',100%,62%,' + (0.2 * (0.7 + 0.3 * env)).toFixed(3) + ')');
+      pg.addColorStop(0.55, 'hsla(' + hue + ',100%,55%,' + (0.08 * (0.7 + 0.3 * env)).toFixed(3) + ')');
+      pg.addColorStop(1, 'hsla(' + hue + ',100%,50%,0)');
+      bctx.fillStyle = pg; bctx.beginPath(); bctx.arc(ppx, ppy, pr, 0, TAU); bctx.fill();
+    }
+    smokeBloom(t, 9, -4);
+    blitBloom(c);
+
+    // 4. the beams: a soft coloured sheath and a bright core
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    c.lineCap = 'round';
+    for (i = 0; i < beams.length; i++) {
+      bm = beams[i]; ex = sx + Math.cos(bm.a) * L; ey = sy + Math.sin(bm.a) * L;
+      var k = env * bm.k;
+      g = c.createLinearGradient(sx, sy, ex, ey);
+      g.addColorStop(0, 'hsla(' + hue + ',100%,62%,' + (0.24 * k).toFixed(3) + ')');
+      g.addColorStop(0.08, 'hsla(' + hue + ',100%,60%,' + (0.42 * k).toFixed(3) + ')');
+      g.addColorStop(0.6, 'hsla(' + hue + ',100%,55%,' + (0.16 * k).toFixed(3) + ')');
+      g.addColorStop(1, 'hsla(' + hue + ',100%,50%,0)');
+      c.strokeStyle = g; c.lineWidth = bm.w * 2.6;
+      c.beginPath(); c.moveTo(sx, sy); c.lineTo(ex, ey); c.stroke();
+      g = c.createLinearGradient(sx, sy, ex, ey);
+      g.addColorStop(0, 'hsla(' + hue + ',100%,90%,' + (0.9 * k).toFixed(3) + ')');
+      g.addColorStop(0.6, 'hsla(' + hue + ',100%,72%,' + (0.4 * k).toFixed(3) + ')');
+      g.addColorStop(1, 'hsla(' + hue + ',100%,62%,0)');
+      c.strokeStyle = g; c.lineWidth = bm.w * 0.55;
+      c.beginPath(); c.moveTo(sx, sy); c.lineTo(ex, ey); c.stroke();
+    }
+    c.restore();
+
+    // the room is complete: keep a blurred copy of it for the glass to show
+    snapRoom();
+
+    if (fr) {
+      // 5. light spilling round the card from behind: a coloured halo just outside its edge
+      if (behind) {
+        c.save();
+        c.globalCompositeOperation = 'lighter';
+        c.shadowColor = 'hsla(' + hue + ',100%,62%,' + (0.75 * env).toFixed(3) + ')';
+        c.shadowBlur = 44 * DPR;
+        c.shadowOffsetX = 10000 * DPR;
+        c.fillStyle = '#000';
+        if (frontPath(c, -10000)) c.fill();
+        c.restore();
+      }
+      // 6. through the glass: what is behind the card dimmed to what glass lets through, and the
+      // beams bent sideways by the slab with their colours split (refraction, dispersion)
+      liftFront(c, 0, 1);
+    }
+    // 6. liquid glass: every pane shows the room behind it blurred, bent at its rim, edge-lit
+    liquidPanes(c, fr);
+    if (fr) {
+      // and the beams themselves, faintly, bent sideways by the slab with their colours split
+      c.save();
+      frontPath(c);
+      c.clip();
+      c.globalCompositeOperation = 'lighter';
+      c.lineCap = 'round';
+      for (i = 0; i < beams.length; i++) {
+        bm = beams[i];
+        var nx = -Math.sin(bm.a), ny = Math.cos(bm.a), shift = 8 * Math.sin(bm.a * 2 + 0.6);
+        var kk = env * bm.k * 0.45;
+        var chans = [[shift + 2.4, '255,70,95', 0.22, 1.2], [shift, bm.rgb.join(','), 0.42, bm.w * 0.8], [shift - 2.4, '70,140,255', 0.22, 1.2]];
+        for (var ch = 0; ch < 3; ch++) {
+          var ox = nx * chans[ch][0], oy = ny * chans[ch][0];
+          c.strokeStyle = 'rgba(' + chans[ch][1] + ',' + (chans[ch][2] * kk).toFixed(3) + ')';
+          c.lineWidth = chans[ch][3];
+          c.beginPath(); c.moveTo(sx + ox, sy + oy); c.lineTo(sx + ox + Math.cos(bm.a) * L, sy + oy + Math.sin(bm.a) * L); c.stroke();
+        }
+      }
+      if (behind) {
+        var gl = c.createRadialGradient(sx, sy, 0, sx, sy, Math.min(fr.width, fr.height) * 0.5);
+        gl.addColorStop(0, 'rgba(255,255,255,' + (0.3 * env).toFixed(3) + ')');
+        gl.addColorStop(0.25, 'hsla(' + hue + ',100%,70%,' + (0.14 * env).toFixed(3) + ')');
+        gl.addColorStop(1, 'hsla(' + hue + ',100%,60%,0)');
+        c.fillStyle = gl; c.fillRect(fr.left, fr.top, fr.width, fr.height);
+      }
+      c.restore();
+    }
+
+    // 7. the rig: one big point of light, saturated round a white-hot heart
+    var orbR = orbRadius();
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    var big = c.createRadialGradient(sx, sy, 0, sx, sy, orbR * 12);
+    big.addColorStop(0, 'hsla(' + hue + ',100%,80%,' + (0.7 * env).toFixed(3) + ')');
+    big.addColorStop(0.12, 'hsla(' + hue + ',100%,62%,' + (0.45 * env).toFixed(3) + ')');
+    big.addColorStop(0.4, 'hsla(' + hue + ',100%,52%,' + (0.12 * env).toFixed(3) + ')');
+    big.addColorStop(1, 'hsla(' + hue + ',100%,50%,0)');
+    c.fillStyle = big; c.beginPath(); c.arc(sx, sy, orbR * 12, 0, TAU); c.fill();
+    var mid = c.createRadialGradient(sx, sy, 0, sx, sy, orbR * 3.4);
+    mid.addColorStop(0, 'rgba(255,255,255,0.95)');
+    mid.addColorStop(0.3, 'hsla(' + hue + ',100%,82%,' + (0.8 * env).toFixed(3) + ')');
+    mid.addColorStop(1, 'hsla(' + hue + ',100%,60%,0)');
+    c.fillStyle = mid; c.beginPath(); c.arc(sx, sy, orbR * 3.4, 0, TAU); c.fill();
+    c.restore();
+    var core = c.createRadialGradient(sx, sy, 0, sx, sy, orbR);
+    core.addColorStop(0, 'rgba(255,255,255,1)');
+    core.addColorStop(0.55, 'hsla(' + hue + ',80%,94%,0.95)');
+    core.addColorStop(1, 'hsla(' + hue + ',100%,80%,0)');
+    c.fillStyle = core; c.beginPath(); c.arc(sx, sy, orbR, 0, TAU); c.fill();
+  }
+  function orbRadius() { return clamp(Math.min(W, H) * 0.022, 10, 20); }
+  // grab the rig: by the light spilling round the card when it is behind it, else by the rig itself
+  function laserGrab(px, py) {
+    if (mode !== 'lasers' || !stageOn) return false;
+    var fr = frontRect();
+    if (stageKind === 'board') {
+      if (Math.hypot(px - src.x, py - src.y) > Math.max(40, orbRadius() * 2.6)) return false;
+    } else if (fr && px > fr.left && px < fr.right && py > fr.top && py < fr.bottom) return false;
+    else if (srcBehindCard(fr)) {
+      var gx = Math.max(fr.left - px, 0, px - fr.right), gy = Math.max(fr.top - py, 0, py - fr.bottom);
+      if (Math.hypot(gx, gy) > 44) return false;
+    } else if (Math.hypot(px - src.x, py - src.y) > Math.max(40, orbRadius() * 2.6)) return false;
+    var el = elAt(px, py);
+    if (el && el.closest && el.closest('button, a, input, textarea, select, [role="button"], header, .fbfx-btn')) return false;
+    return true;
+  }
+
+  // ---------------------------------------------------------------- ambient: spotlight
+  // iMessage Spotlight: the room goes black, a stage spot sweeps the screen, then settles on
+  // the message. The lamp hangs in front of the screen above its top edge; its beam is seen
+  // crossing the hazy air. Drag the pool's edge to move it; double-click the edge: back to the card.
+  function spotR() {
+    var fr = frontRect();
+    // 16.9: a local pool — it lights part of the card, not all of it
+    // (on the board the pool takes in the whole card being read: board cards are small strips)
+    if (stageKind === 'board') return fr ? clamp(fr.width * 0.58, 90, 190) : clamp(Math.min(W, H) * 0.16, 90, 170);
+    return fr ? clamp(Math.min(fr.width, fr.height) * 0.3, 80, 170) : clamp(Math.min(W, H) * 0.16, 80, 170);
+  }
+  // the lamp hangs off-screen beyond the top-right corner, as in iMessage; the beam slants in
+  // grab the shaft and swing it: the lamp turns about the pool (double-click the shaft: back to default)
+  var lampAim = { lamp: true, x: 0, y: 0, ang: 0, dist: 0, drag: false, placed: false, vx: 0, vy: 0 };
+  function spotLamp() {
+    if (lampAim.placed) return { x: lampAim.x, y: lampAim.y };
+    return { x: W * 1.06, y: -H * 0.5 };
+  }
+  // the follow-spot: press anywhere in the dark room (not on a card or a control) and the pool
+  // follows your finger with an operator's lag; double-click the room: back onto the card
+  var FOLLOW = { follow: true, drag: false, placed: false, vx: 0, vy: 0 };
+  function inRoom(px, py) {
+    if (mode !== 'spotlight' || !stageOn) return false;
+    var el = elAt(px, py);
+    if (!el || !el.closest) return false;
+    if (el.closest('[data-card-id], .coverflow-card-item, button, a, input, textarea, select, [role="button"], [contenteditable], header, .fbfx-btn, .card-mode-btn')) return false;
+    return !!el.closest('main');
+  }
+  // is (px, py) on the visible shaft, between the lamp and the pool?
+  function inBeam(px, py) {
+    if (mode !== 'spotlight' || !stageOn) return false;
+    var P = spotLamp(), R = spotR(), dx = spot.x - P.x, dy = spot.y - P.y, d = Math.hypot(dx, dy);
+    if (d < R * 2) return false;
+    var ux = dx / d, uy = dy / d, t = (px - P.x) * ux + (py - P.y) * uy;
+    if (t <= 0 || t > d - R * 1.12) return false;
+    var perp = Math.abs((px - P.x) * -uy + (py - P.y) * ux);
+    if (perp > Math.max(18, t / d * R * 1.45 * 0.75)) return false;
+    var fr = frontRect();
+    if (fr && px > fr.left && px < fr.right && py > fr.top && py < fr.bottom) return false;
+    var el = elAt(px, py);
+    if (el && el.closest && el.closest('button, a, input, textarea, select, [role="button"], .fbfx-btn')) return false;
+    return true;
+  }
+  var motes = [];
+  var COOL_BEAM = '205,218,232', COOL_POOL = '236,242,250';
+  function drawSpotBeam(c, P, x, y, R, dt) {
+    var dx = x - P.x, dy = y - P.y, d = Math.hypot(dx, dy);
+    if (d <= R * 1.6) return;
+    var th = Math.atan2(dy, dx), nx = -Math.sin(th), ny = Math.cos(th);
+    // a broad, very soft shaft of cool light. Its cross-section is one smooth gaussian (a conic
+    // gradient about the lamp — no layered cones, so no steps or rings); past the pool it fades out
+    ensureBloom();
+    var half = Math.asin(Math.min(0.99, R * 1.45 / d)), far = d + R * 2;
+    bctx.globalCompositeOperation = 'source-over';
+    if (bctx.createConicGradient) {
+      var cg = bctx.createConicGradient(th - Math.PI, P.x, P.y), hw = half / TAU;
+      cg.addColorStop(0, 'rgba(' + COOL_BEAM + ',0)');
+      for (var gi = -8; gi <= 8; gi++) {
+        var u = gi / 8;
+        cg.addColorStop(0.5 + hw * u, 'rgba(' + COOL_BEAM + ',' + (0.27 * Math.exp(-u * u * 3.4)).toFixed(4) + ')');
+      }
+      cg.addColorStop(1, 'rgba(' + COOL_BEAM + ',0)');
+      bctx.fillStyle = cg;
+      bctx.beginPath();
+      bctx.moveTo(P.x, P.y);
+      bctx.lineTo(P.x + Math.cos(th - half * 1.05) * far, P.y + Math.sin(th - half * 1.05) * far);
+      bctx.lineTo(P.x + Math.cos(th + half * 1.05) * far, P.y + Math.sin(th + half * 1.05) * far);
+      bctx.closePath();
+      bctx.fill();
+    } else {
+      // no conic gradients: a soft fan of thin wedges does the same job
+      for (var fi = -10; fi <= 10; fi++) {
+        var u2 = fi / 10, a0 = th + half * u2, a1 = th + half * (u2 + 0.1);
+        bctx.fillStyle = 'rgba(' + COOL_BEAM + ',' + (0.27 * Math.exp(-Math.pow(u2 + 0.05, 2) * 3.4)).toFixed(4) + ')';
+        bctx.beginPath(); bctx.moveTo(P.x, P.y);
+        bctx.lineTo(P.x + Math.cos(a0) * far, P.y + Math.sin(a0) * far);
+        bctx.lineTo(P.x + Math.cos(a1) * far, P.y + Math.sin(a1) * far);
+        bctx.closePath(); bctx.fill();
+      }
+    }
+    // fade the shaft out beyond the pool
+    var ux = Math.cos(th), uy = Math.sin(th);
+    var fe = bctx.createLinearGradient(x + ux * R * 0.2, y + uy * R * 0.2, x + ux * R * 1.3, y + uy * R * 1.3);
+    fe.addColorStop(0, 'rgba(0,0,0,0)'); fe.addColorStop(1, 'rgba(0,0,0,1)');
+    bctx.globalCompositeOperation = 'destination-out';
+    bctx.fillStyle = fe;
+    bctx.fillRect(-W, -H, W * 3, H * 3);
+    bctx.globalCompositeOperation = 'lighter';
+    blitBloom(c);
+    poolLift(c, x, y, R, 0.3);
+    // dust: fine, crisp specks drifting through the shaft
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    while (motes.length < 44) motes.push({ u: Math.random(), v: rnd(-1, 1), du: rnd(-0.01, 0.01), dv: rnd(-0.05, 0.05), s: rnd(0.45, 1.05), ph: rnd(0, TAU) });
+    for (var i = 0; i < motes.length; i++) {
+      var m = motes[i];
+      m.u += m.du * dt; m.v += m.dv * dt + Math.sin(clock * 0.6 + m.ph) * 0.015 * dt; m.ph += dt * 1.8;
+      if (m.u < 0.05) m.u = 1; else if (m.u > 1) m.u = 0.05;
+      if (m.v < -1) m.v = 1; else if (m.v > 1) m.v = -1;
+      var half = 30 + (R * 1.1 - 30) * m.u;
+      var mx = P.x + dx * m.u + nx * m.v * half, my = P.y + dy * m.u + ny * m.v * half;
+      if (my < 0 || mx > W || mx < 0) continue;
+      var edge = 1 - m.v * m.v, tw = 0.55 + 0.45 * Math.abs(Math.sin(m.ph));
+      var a = edge * tw * 0.7;
+      if (a < 0.04) continue;
+      c.fillStyle = 'rgba(240,246,255,' + a.toFixed(3) + ')';
+      c.beginPath(); c.arc(mx, my, m.s, 0, TAU); c.fill();
+    }
+    c.restore();
+  }
+  // ease the glare on the card, but only where the pool falls on it (the rest of the card stays dark)
+  // (a soft radial mask within the card's outline — a hard circle here drew a ring round the pool)
+  function poolLift(c, x, y, R, amount) {
+    c.save();
+    if (!frontPath(c)) { c.restore(); return; }
+    c.clip();
+    c.globalCompositeOperation = 'destination-out';
+    var g = c.createRadialGradient(x, y, 0, x, y, R * 0.95);
+    g.addColorStop(0, 'rgba(0,0,0,' + amount + ')');
+    g.addColorStop(0.6, 'rgba(0,0,0,' + (amount * 0.8).toFixed(3) + ')');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = g;
+    c.beginPath(); c.arc(x, y, R * 0.95, 0, TAU); c.fill();
+    c.restore();
+  }
+  function drawSpotlight(c, dt) {
+    var t = modeT;
+    var fr = frontRect();
+    if (spot.placed && spot.tgt && !spot.drag) {
+      var kf = 1 - Math.exp(-dt * 8);
+      spot.x += (spot.tgt.x - spot.x) * kf; spot.y += (spot.tgt.y - spot.y) * kf;
+    }
+    if (!spot.placed && !spot.drag) {
+      var tx, ty, k;
+      if (t < 2.1 || !fr) {
+        // the sweep: side to side across the room
+        tx = W * (0.5 + 0.38 * Math.sin(t * 2.3 - 1.2)); ty = H * (0.42 + 0.16 * Math.sin(t * 3.4));
+        k = 1 - Math.exp(-dt * 7);
+      } else {
+        tx = fr.left + fr.width / 2; ty = fr.top + fr.height / 2;
+        k = 1 - Math.exp(-dt * 4.5);
+      }
+      spot.x += (tx - spot.x) * k; spot.y += (ty - spot.y) * k;
+    }
+    var R = spotR(), x = spot.x, y = spot.y, lamp = spotLamp();
+    // the room: a deep grey, not a void
+    c.fillStyle = 'rgba(14,14,17,' + roomA(0.9, 0.8) + ')';
+    c.fillRect(0, 0, W, H);
+    // the pool: an even disc with a short soft edge
+    c.save();
+    c.globalCompositeOperation = 'destination-out';
+    var hole = c.createRadialGradient(x, y, 0, x, y, R * 1.04);
+    hole.addColorStop(0, 'rgba(0,0,0,1)');
+    hole.addColorStop(0.78, 'rgba(0,0,0,1)');
+    hole.addColorStop(0.88, 'rgba(0,0,0,0.75)');
+    hole.addColorStop(0.95, 'rgba(0,0,0,0.3)');
+    hole.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = hole; c.beginPath(); c.arc(x, y, R * 1.04, 0, TAU); c.fill();
+    c.restore();
+    // the light in the pool: bright, cool, nearly white
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    var lit = c.createRadialGradient(x, y, 0, x, y, R * 1.02);
+    // (a board's own wallpaper shows in the pool: only a little haze, so the card stays readable)
+    var hz = stageKind === 'board' ? 0.35 : 1;
+    lit.addColorStop(0, 'rgba(' + COOL_POOL + ',' + (0.34 * hz).toFixed(3) + ')');
+    lit.addColorStop(0.7, 'rgba(' + COOL_POOL + ',' + (0.32 * hz).toFixed(3) + ')');
+    lit.addColorStop(0.84, 'rgba(' + COOL_POOL + ',' + (0.26 * hz).toFixed(3) + ')');
+    lit.addColorStop(0.93, 'rgba(' + COOL_POOL + ',' + (0.08 * hz).toFixed(3) + ')');
+    lit.addColorStop(1, 'rgba(' + COOL_POOL + ',0)');
+    c.fillStyle = lit; c.beginPath(); c.arc(x, y, R * 1.02, 0, TAU); c.fill();
+    c.restore();
+    poolLift(c, x, y, R, 0.12);  // just enough to keep the card's face readable in the glare
+    placePool(x, y, R, stageKind === 'board');
+    drawWhiteGlass(c);
+    // and the shaft, in the air in front of everything
+    drawSpotBeam(c, lamp, x, y, R, dt);
+  }
+  // the board: a stage lamp is white light, but the pool shows the board's own (vivid) wallpaper —
+  // a round layer under the pool takes most of the colour out, so the light reads as white
+  var poolEl = null;
+  function placePool(x, y, R, on) {
+    if (!layer) return;
+    if (!poolEl || poolEl.parentNode !== layer) {
+      poolEl = document.createElement('div'); poolEl.className = 'fbfx-pool';
+      layer.insertBefore(poolEl, layer.firstChild);
+    }
+    if (!on) { poolEl.style.opacity = '0'; return; }
+    var d = R * 2.1;
+    poolEl.style.opacity = '1';
+    poolEl.style.width = poolEl.style.height = d.toFixed(1) + 'px';
+    poolEl.style.transform = 'translate(' + (x - d / 2).toFixed(1) + 'px,' + (y - d / 2).toFixed(1) + 'px)';
+  }
+  // grab the spot by its edge (a ring outside the card), so the lit card stays tappable
+  function inRing(px, py) {
+    if (mode !== 'spotlight' || !stageOn) return false;
+    var R = spotR(), d = Math.hypot(px - spot.x, py - spot.y);
+    if (d < R * 0.8 || d > R * 1.12) return false;
+    // never on a card: a tap there is the card's (to flip it); the pool is moved from the room
+    var fr = frontRect();
+    if (fr && px > fr.left && px < fr.right && py > fr.top && py < fr.bottom) return false;
+    var el = elAt(px, py);
+    if (el && el.closest && el.closest('[data-card-id], .coverflow-card-item')) return false;
+    if (el && el.closest && el.closest('button, a, input, textarea, select, [role="button"], header, .fbfx-btn')) return false;
+    return true;
+  }
+
+  // ---------------------------------------------------------------- light on the glass cards
+  // Every visible card answers the light the way a pane of glass does, from its real 3D pose
+  // (the item's rotateY — flow pose and the front card's spin included):
+  //   · a mirror specular: the lamp's reflection, placed where a flat mirror would show it,
+  //     a sharp core in a softer bloom, flashing as a turning card lines up with the light;
+  //   · diffuse light on the frosted face, falling off with distance;
+  //   · Fresnel: the rim brightens toward grazing angles and on the side facing the light,
+  //     with a touch of spectral colour, and a faint internal reflection on the far side;
+  //   · refraction: beams crossing the pane show as a shifted band with red/blue fringes;
+  //   · dispersion: in a dark room, the far edge of the front card throws a small rainbow.
+  var litOn = [];
+  var LIT_MAX = 9;
+  var frontLit = null;          // this frame's light on the front card, for the prism
+  function cardRY(el) {
+    var tf = el.style.transform || '', re = /rotateY\((-?[\d.]+)deg\)/g, m, a = 0, any = false;
+    while ((m = re.exec(tf))) { a += +m[1]; any = true; }
+    if (!any) {
+      try { var M = new DOMMatrixReadOnly(getComputedStyle(el).transform); if (!M.is2D) a = Math.atan2(-M.m13, M.m11) * 180 / Math.PI; } catch (e) {}
+    }
+    return a * Math.PI / 180;
+  }
+  function visibleCards() {
+    var st = stageEl();
+    if (!st) return [];
+    var its = st.querySelectorAll(cardSel()), out = [];
+    for (var i = 0; i < its.length; i++) {
+      var r = lrect(its[i].getBoundingClientRect());
+      if (r.width < 24 || r.right < 0 || r.left > W || r.bottom < 0 || r.top > H) continue;
+      out.push({ el: its[i], r: r, a: r.width * r.height });
+    }
+    if (stageKind === 'board') {
+      // the board: the card being looked at first, then its neighbours
+      var f = frontRect(), fx0 = f ? f.left + f.width / 2 : W / 2, fy0 = f ? f.top + f.height / 2 : H / 2;
+      out.forEach(function (o) { o.d = o.el === fc.el ? -1 : Math.hypot(o.r.left + o.r.width / 2 - fx0, o.r.top + o.r.height / 2 - fy0); });
+      out.sort(function (a, b) { return a.d - b.d; });
+    } else out.sort(function (a, b) { return b.a - a.a; });
+    out = out.slice(0, LIT_MAX);
+    for (var j = 0; j < out.length; j++) out[j].ry = cardRY(out[j].el);
+    return out;
+  }
+  function litLayer(item) {
+    var face = item.querySelector('.face-front') || item;
+    var ov = face.__fbLit;
+    if (!ov || ov.parentNode !== face) {
+      ov = document.createElement('div');
+      ov.className = 'fbfx-lit';
+      ov.__rim = document.createElement('div');
+      ov.__rim.className = 'fbfx-rim';
+      ov.appendChild(ov.__rim);
+      face.appendChild(ov);
+      face.__fbLit = ov;
+    }
+    return ov;
+  }
+  function clearLit(ov) {
+    if (!ov.__on) return;
+    ov.style.background = ''; ov.style.boxShadow = ''; ov.style.opacity = '0';
+    if (ov.__rim) { ov.__rim.style.background = ''; ov.__rim.style.opacity = '0'; }
+    ov.__on = false;
+  }
+
+  // the lights in the room this frame: position (z toward the viewer), colour, power
+  var LOVE_RGB = [255, 60, 100], GOLD = [255, 205, 120];
+  var WARM = [232, 240, 250];   // the spot is a cool white, as in iMessage
+  function sceneLights() {
+    var Ls = [], ambient = stageOn && mode !== 'none';
+    if (ambient && mode === 'lasers') Ls.push({ x: src.x, y: src.y, z: 240, rgb: hsl2rgb(laserHue, 100, 66), p: 1.15 * laserBeat, kind: 'rig' });
+    if (ambient && mode === 'spotlight') { var lp = spotLamp(); Ls.push({ x: lp.x, y: lp.y, z: 900, rgb: WARM, p: 1.1, kind: 'spot' }); }
+    if (ambient && mode === 'firework') {
+      for (var i = 0; i < fw.glows.length; i++) {
+        var g = fw.glows[i], a = Math.pow(1 - g.life / g.max, 1.6);
+        if (a > 0.02) Ls.push({ x: g.x, y: g.y, z: 520, rgb: g.rgb, p: 1.2 * a, kind: 'burst' });
+      }
+    }
+    if (intro && intro.kind === 'love' && intro.extra.pos) { var hp = intro.extra.pos; Ls.push({ x: hp.x, y: hp.y, z: 160 + hp.S * 0.4, rgb: LOVE_RGB, p: 0.85, kind: 'heart' }); }
+    if (intro && intro.kind === 'celebration') {
+      var ca = 0.9 * Math.max(0, 1 - intro.t / 2.8) * smooth(intro.t / 0.3);
+      if (ca > 0.02) Ls.push({ x: W, y: 0, z: 360, rgb: GOLD, p: ca, kind: 'gold' });
+    }
+    return Ls;
+  }
+  // the beam that crosses a pane (lasers): its refracted band
+  function laserBand(r) {
+    var cx = r.left + r.width / 2, cy = r.top + r.height / 2, size = Math.min(r.width, r.height), best = 0, bb = null;
+    for (var i = 0; i < beams.length; i++) {
+      var b = beams[i], dx = Math.cos(b.a), dy = Math.sin(b.a), vx = cx - src.x, vy = cy - src.y;
+      if (vx * dx + vy * dy < -size * 0.3) continue;
+      var k = Math.exp(-Math.pow((vx * -dy + vy * dx) / (0.55 * size), 2));
+      if (k > best) { best = k; bb = b; }
+    }
+    return bb ? { ang: bb.a, px: src.x - Math.sin(bb.a) * 8, py: src.y + Math.cos(bb.a) * 8, I: best * 0.8 * laserBeat, rgb: bb.rgb, w: 9 } : null;
+  }
+  // shade one card: returns { glow:{x,y,I,hr?}, spec:{x,y,I,rs}, rim:{ang,I}, fres, rgb, band }
+  function shadeCard(cd, Ls) {
+    var r = cd.r, cx = r.left + r.width / 2, cy = r.top + r.height / 2, size = Math.min(r.width, r.height);
+    var nx = Math.sin(cd.ry), nz = Math.cos(cd.ry);
+    if (nz < 0.04) return null;                          // edge-on or turned away: its face is not seen
+    var fres = 0.04 + 0.96 * Math.pow(1 - nz, 5);         // Schlick: glass shows more at grazing angles
+    var best = null, bestV = 0, glowSum = 0, specSum = 0, rimSum = 0;
+    var D = Math.max(W, H) * 1.6;
+    for (var i = 0; i < Ls.length; i++) {
+      var L = Ls[i];
+      var lx = L.x - cx, ly = L.y - cy, lz = L.z, ll = Math.hypot(lx, ly, lz) || 1;
+      var ux = lx / ll, uy = ly / ll, uz = lz / ll;
+      var nl = Math.max(0, nx * ux + nz * uz);
+      var hx = ux, hy = uy, hz = uz + 1, hl = Math.hypot(hx, hy, hz) || 1;
+      var nh = Math.max(0, (nx * hx + nz * hz) / hl);
+      var att = 1 / (1 + Math.pow(ll / D, 2) * 2.2);
+      var diffuse = nl * att * L.p, spec = Math.pow(nh, 70) * L.p * (0.6 + 0.4 * att);
+      // where a flat mirror shows the light: P = L - t·r, r = 2(n·v)n - v, t = ((L - C)·n) / (n·v)
+      var t = (lx * nx + lz * nz) / nz, rx = 2 * nz * nx, rz = 2 * nz * nz - 1;
+      var px = L.x - t * rx, py = L.y;
+      if (!isFinite(px)) px = L.x;
+      var gx = px, gy = py, cover = 1, hr = 0;
+      if (L.kind === 'spot') {
+        // the spot only lights the pool: its glow is the pool, its glint only where the pool is
+        var R = spotR(), ox = Math.max(r.left - spot.x, 0, spot.x - r.right), oy = Math.max(r.top - spot.y, 0, spot.y - r.bottom);
+        cover = 1 - smooth(Math.hypot(ox, oy) / R);
+        gx = spot.x; gy = spot.y - R * 0.12; hr = R * 0.95;
+        diffuse = 0.5 * cover * L.p;
+        spec *= Math.hypot(px - spot.x, py - spot.y) < R * 0.9 ? cover : 0;
+      }
+      var v = diffuse + spec * 1.5;
+      glowSum += diffuse; specSum += spec; rimSum += diffuse * 0.5 + fres * L.p * cover + spec * 0.4;
+      if (v > bestV) { bestV = v; best = { L: L, gx: gx, gy: gy, hr: hr, sx: px, sy: py, spec: spec } }
+    }
+    if (!best || (glowSum < 0.01 && specSum < 0.01 && rimSum < 0.02)) return null;
+    var L0 = best.L;
+    return {
+      rgb: L0.rgb, fres: fres,
+      glow: { x: best.gx, y: best.gy, I: Math.min(1, glowSum * 0.55), hr: best.hr },
+      spec: { x: best.sx, y: best.sy, I: Math.min(1, specSum * 1.3), rs: size * (L0.kind === 'spot' ? 0.1 : 0.13) },
+      rim: { ang: Math.atan2(L0.y - cy, L0.x - cx), I: Math.min(1, rimSum) },
+      band: L0.kind === 'rig' ? laserBand(r) : null,
+      kind: L0.kind, lx: L0.x, ly: L0.y
+    };
+  }
+  function pct(v) { return v.toFixed(1) + '%'; }
+  function applyGlass(ov, r, S) {
+    if (!S) { clearLit(ov); return; }
+    ov.__on = true;
+    var norm = isLight() && !(stageOn && mode !== 'none');   // white cards with no dark room: plain blending
+    ov.style.mixBlendMode = norm ? 'normal' : 'screen';
+    var k = norm ? 0.55 : 1, c = S.rgb.join(','), layers = [];
+    function at(x, y) { return pct(clamp((x - r.left) / r.width * 100, -45, 145)) + ' ' + pct(clamp((y - r.top) / r.height * 100, -45, 145)); }
+    // 1. the mirror glint: a hot core in its own bloom
+    var sI = S.spec.I * k;
+    if (sI > 0.01) {
+      var rs = Math.round(S.spec.rs);
+      layers.push('radial-gradient(circle ' + rs + 'px at ' + at(S.spec.x, S.spec.y) + ', rgba(255,255,255,' + (0.95 * sI).toFixed(3) + ') 0%, rgba(' + c + ',' + (0.7 * sI).toFixed(3) + ') 22%, rgba(' + c + ',' + (0.22 * sI).toFixed(3) + ') 55%, rgba(' + c + ',0) 100%)');
+      layers.push('radial-gradient(circle ' + Math.round(rs * 3.2) + 'px at ' + at(S.spec.x, S.spec.y) + ', rgba(' + c + ',' + (0.3 * sI).toFixed(3) + ') 0%, rgba(' + c + ',0) 100%)');
+    }
+    // 2. the refracted beam band (with its dispersion fringes)
+    var b = S.band;
+    if (b && b.I > 0.012) {
+      var nx = -Math.sin(b.ang), ny = Math.cos(b.ang);
+      var deg = Math.atan2(nx, -ny) * 180 / Math.PI, ar = deg * Math.PI / 180;
+      var len = Math.abs(r.width * Math.sin(ar)) + Math.abs(r.height * Math.cos(ar));
+      var bcx = r.left + r.width / 2, bcy = r.top + r.height / 2;
+      var P = 50 + ((b.px - bcx) * nx + (b.py - bcy) * ny) / len * 100;
+      if (P > -20 && P < 120) {
+        var bI = Math.min(1, b.I) * k, bc = b.rgb.join(','), bw = b.w || 12, fo = bw * 0.28;
+        layers.push('linear-gradient(' + deg.toFixed(1) + 'deg, rgba(0,0,0,0) ' + pct(P - bw) + ', rgba(255,60,110,' + (0.2 * bI).toFixed(3) + ') ' + pct(P - fo) + ', rgba(' + bc + ',' + (0.45 * bI).toFixed(3) + ') ' + pct(P - fo * 0.25) + ', rgba(255,255,255,' + (0.5 * bI).toFixed(3) + ') ' + pct(P) + ', rgba(' + bc + ',' + (0.4 * bI).toFixed(3) + ') ' + pct(P + fo * 0.25) + ', rgba(70,150,255,' + (0.2 * bI).toFixed(3) + ') ' + pct(P + fo) + ', rgba(0,0,0,0) ' + pct(P + bw) + ')');
+      }
+    }
+    // 3. diffuse light on the frosted face
+    var gI = S.glow.I * k;
+    if (gI > 0.01) {
+      layers.push('radial-gradient(' + (S.glow.hr ? 'circle ' + Math.round(S.glow.hr) + 'px' : 'ellipse 68% 55%') + ' at ' + at(S.glow.x, S.glow.y) + ', rgba(' + c + ',' + (0.5 * gI).toFixed(3) + ') 0%, rgba(' + c + ',' + (0.2 * gI).toFixed(3) + ') 38%, rgba(' + c + ',0) 72%)');
+    }
+    ov.style.background = layers.length ? layers.join(',') : '';
+    // 4. body light at the edges: the side facing the light glows inward, the far side a cool fringe
+    var rI = S.rim.I * k, dx = Math.cos(S.rim.ang), dy = Math.sin(S.rim.ang);
+    ov.style.boxShadow = 'inset ' + (-dx * 14).toFixed(1) + 'px ' + (-dy * 14).toFixed(1) + 'px 24px -12px rgba(' + c + ',' + (0.85 * rI).toFixed(3) + '),' +
+      'inset ' + (dx * 8).toFixed(1) + 'px ' + (dy * 8).toFixed(1) + 'px 18px -13px rgba(90,160,255,' + (0.35 * rI).toFixed(3) + ')';
+    // 5. the Fresnel rim: a hairline round the pane, burning where it faces the light,
+    // spectral at the ends of the bright arc, a faint internal reflection opposite
+    var rim = ov.__rim;
+    if (rim) {
+      var A = S.rim.ang * 180 / Math.PI + 90, base = (0.1 + 0.5 * S.fres) * k, hi = Math.min(1, 0.25 + rI) * k;
+      rim.style.background = 'conic-gradient(from ' + (A - 70).toFixed(1) + 'deg,' +
+        'rgba(255,255,255,' + base.toFixed(3) + ') 0deg,' +
+        'rgba(255,110,170,' + (0.45 * hi).toFixed(3) + ') 26deg,' +
+        'rgba(' + c + ',' + (0.8 * hi).toFixed(3) + ') 48deg,' +
+        'rgba(255,255,255,' + (0.98 * hi).toFixed(3) + ') 70deg,' +
+        'rgba(' + c + ',' + (0.8 * hi).toFixed(3) + ') 92deg,' +
+        'rgba(110,190,255,' + (0.45 * hi).toFixed(3) + ') 114deg,' +
+        'rgba(255,255,255,' + base.toFixed(3) + ') 140deg,' +
+        'rgba(255,255,255,' + base.toFixed(3) + ') 215deg,' +
+        'rgba(' + c + ',' + Math.max(base, 0.28 * hi).toFixed(3) + ') 250deg,' +
+        'rgba(255,255,255,' + base.toFixed(3) + ') 285deg,' +
+        'rgba(255,255,255,' + base.toFixed(3) + ') 360deg)';
+      rim.style.opacity = '1';
+    }
+    ov.style.opacity = '1';
+  }
+  function lightCards(ambient) {
+    var cards = stageOn ? visibleCards() : [];
+    var Ls = sceneLights(), seen = [];
+    frontLit = null;
+    for (var i = 0; i < cards.length; i++) {
+      var cd = cards[i], ov = litLayer(cd.el), S = Ls.length ? shadeCard(cd, Ls) : null;
+      applyGlass(ov, cd.r, S);
+      if (i === 0 && S) frontLit = { S: S, r: cd.r };
+      seen.push(ov);
+    }
+    for (var j = 0; j < litOn.length; j++) if (seen.indexOf(litOn[j]) < 0) clearLit(litOn[j]);
+    litOn = seen;
+  }
+  function clearAllLit() {
+    for (var j = 0; j < litOn.length; j++) clearLit(litOn[j]);
+    litOn = [];
+    frontLit = null;
+  }
+  // White (light-theme) glass in a dark room. Additive light does nothing on white, so the front
+  // pane is shaded here instead, clipped to its true outline: a white pane takes the colour of
+  // the light that reaches it — bright and tinted on the side facing the light, falling into
+  // shadow away from it — with a white glint in a frosted bloom and a Fresnel hairline on top.
+  function drawWhiteGlass(c) {
+    if (!isLight() || !(stageOn && mode !== 'none')) return;
+    var r = frontRect();
+    if (!r) return;
+    var S = frontLit ? frontLit.S : null, size = Math.min(r.width, r.height);
+    var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    c.save();
+    if (!frontPath(c)) { c.restore(); return; }
+    c.clip();
+    c.globalCompositeOperation = 'source-over';
+    if (mode === 'spotlight') {
+      // inside the pool the white glass keeps its form: a cool shade gathering toward the edge
+      var R = spotR();
+      var v = c.createRadialGradient(spot.x, spot.y - R * 0.15, R * 0.15, spot.x, spot.y, R * 1.02);
+      // (runs smoothly into the pool's own soft edge — no ring, or it reads as a ball)
+      v.addColorStop(0, 'rgba(40,52,68,0)');
+      v.addColorStop(0.6, 'rgba(40,52,68,0.05)');
+      v.addColorStop(0.85, 'rgba(40,52,68,0.1)');
+      v.addColorStop(1, 'rgba(40,52,68,0.1)');
+      c.fillStyle = v; c.beginPath(); c.arc(spot.x, spot.y, R * 1.02, 0, TAU); c.fill();
+    } else {
+      var Lx = S ? S.lx : cx, Ly = S ? S.ly : r.top - size, col = S ? S.rgb.join(',') : '255,255,255';
+      var ang = Math.atan2(cy - Ly, cx - Lx);
+      var nx0 = cx - Math.cos(ang) * size * 0.72, ny0 = cy - Math.sin(ang) * size * 0.72;   // the side nearest the light
+      var fx0 = cx + Math.cos(ang) * size * 0.9, fy0 = cy + Math.sin(ang) * size * 0.9;     // the far side
+      // how strongly the pane is lit: the laser rig is always on (and strobes); bursts come and go
+      var lit = !S ? 0 : mode === 'lasers' ? 0.55 + 0.45 * laserBeat : Math.min(1, 0.2 + S.glow.I * 1.6 + S.spec.I * 0.4 + S.rim.I * 0.2);
+      // shadow: barely any on the lit side, deep on the far side
+      var dk = c.createLinearGradient(nx0, ny0, fx0, fy0);
+      dk.addColorStop(0, 'rgba(6,8,16,' + (0.05 + 0.42 * (1 - lit)).toFixed(3) + ')');
+      dk.addColorStop(0.55, 'rgba(6,8,16,' + (0.24 + 0.3 * (1 - lit)).toFixed(3) + ')');
+      dk.addColorStop(1, 'rgba(6,8,16,' + (0.52 + 0.1 * (1 - lit)).toFixed(3) + ')');
+      c.fillStyle = dk; c.fillRect(r.left - 4, r.top - 4, r.width + 8, r.height + 8);
+      if (S && lit > 0.01) {
+        // the light's own colour on the white pane: vivid where it lands, fading across
+        var tg = c.createLinearGradient(nx0, ny0, fx0, fy0);
+        tg.addColorStop(0, 'rgba(' + col + ',' + (0.64 * lit).toFixed(3) + ')');
+        tg.addColorStop(0.45, 'rgba(' + col + ',' + (0.32 * lit).toFixed(3) + ')');
+        tg.addColorStop(1, 'rgba(' + col + ',' + (0.08 * lit).toFixed(3) + ')');
+        c.fillStyle = tg; c.fillRect(r.left - 4, r.top - 4, r.width + 8, r.height + 8);
+        // light entering at the near edge scatters a little way into the frosted pane
+        var eg = c.createRadialGradient(nx0, ny0, 0, nx0, ny0, size * 0.6);
+        eg.addColorStop(0, 'rgba(' + col + ',' + (0.4 * lit).toFixed(3) + ')');
+        eg.addColorStop(0.5, 'rgba(' + col + ',' + (0.14 * lit).toFixed(3) + ')');
+        eg.addColorStop(1, 'rgba(' + col + ',0)');
+        c.fillStyle = eg; c.fillRect(r.left - 4, r.top - 4, r.width + 8, r.height + 8);
+        // a soft reflection sheen across the glass, square to the light, on its lit half
+        var bx = cx - Math.cos(ang) * size * 0.28, by = cy - Math.sin(ang) * size * 0.28;
+        var ux = Math.cos(ang), uy = Math.sin(ang), bw = size * 0.16;
+        var sg = c.createLinearGradient(bx - ux * bw, by - uy * bw, bx + ux * bw, by + uy * bw);
+        sg.addColorStop(0, 'rgba(255,255,255,0)');
+        sg.addColorStop(0.5, 'rgba(255,255,255,' + (0.2 * lit).toFixed(3) + ')');
+        sg.addColorStop(1, 'rgba(255,255,255,0)');
+        c.fillStyle = sg; c.fillRect(r.left - 4, r.top - 4, r.width + 8, r.height + 8);
+      }
+    }
+    // the glint: a white core in a frosted, tinted bloom
+    if (S && S.spec.I > 0.02) {
+      var sp = S.spec, sc2 = S.rgb.join(','), rs = sp.rs * 2.4;
+      var gg = c.createRadialGradient(sp.x, sp.y, 0, sp.x, sp.y, rs);
+      gg.addColorStop(0, 'rgba(255,255,255,' + (0.9 * sp.I).toFixed(3) + ')');
+      gg.addColorStop(0.18, 'rgba(255,255,255,' + (0.55 * sp.I).toFixed(3) + ')');
+      gg.addColorStop(0.45, 'rgba(' + sc2 + ',' + (0.3 * sp.I).toFixed(3) + ')');
+      gg.addColorStop(1, 'rgba(' + sc2 + ',0)');
+      c.fillStyle = gg; c.beginPath(); c.arc(sp.x, sp.y, rs, 0, TAU); c.fill();
+    }
+    c.restore();
+    // the Fresnel hairline, brightest where the pane faces the light
+    if (S && S.rim.I > 0.02 && mode !== 'spotlight') {
+      var A = Math.atan2(S.ly - cy, S.lx - cx), ri = Math.min(1, 0.3 + S.rim.I), rc = S.rgb.join(',');
+      c.save();
+      c.globalCompositeOperation = 'source-over';
+      if (c.createConicGradient) {
+        var rg = c.createConicGradient(A - Math.PI * 0.55, cx, cy);
+        rg.addColorStop(0, 'rgba(255,255,255,' + (0.12 * ri).toFixed(3) + ')');
+        rg.addColorStop(0.16, 'rgba(' + rc + ',' + (0.55 * ri).toFixed(3) + ')');
+        rg.addColorStop(0.275, 'rgba(255,255,255,' + (0.95 * ri).toFixed(3) + ')');
+        rg.addColorStop(0.39, 'rgba(' + rc + ',' + (0.55 * ri).toFixed(3) + ')');
+        rg.addColorStop(0.55, 'rgba(255,255,255,' + (0.12 * ri).toFixed(3) + ')');
+        rg.addColorStop(0.78, 'rgba(' + rc + ',' + (0.22 * ri).toFixed(3) + ')');
+        rg.addColorStop(1, 'rgba(255,255,255,' + (0.12 * ri).toFixed(3) + ')');
+        c.strokeStyle = rg;
+      } else c.strokeStyle = 'rgba(255,255,255,' + (0.5 * ri).toFixed(3) + ')';
+      c.lineWidth = 2.2;
+      if (frontPath(c)) c.stroke();
+      c.restore();
+    }
+  }
+
+  // dispersion: light through the front pane leaves a small rainbow off its far edge (dark rooms)
+  var SPECTRUM = [[255, 40, 60], [255, 150, 40], [255, 235, 60], [70, 230, 110], [60, 150, 255], [150, 80, 255]];
+  function drawPrism(c) {
+    if (!frontLit || isLight() && !(stageOn && mode !== 'none')) return;
+    var S = frontLit.S, r = frontLit.r;
+    var I = Math.min(1, S.glow.I * 0.8 + S.spec.I * 0.6 + S.rim.I * 0.3);
+    var cx = r.left + r.width / 2, cy = r.top + r.height / 2, dx = S.lx - cx, dy = S.ly - cy;
+    var vertical = Math.abs(dx) / r.width > Math.abs(dy) / r.height;
+    var ex, ey, ox, oy, along;
+    if (vertical) { ex = dx > 0 ? r.left : r.right; ey = cy + dy * 0.12; ox = dx > 0 ? -1 : 1; oy = 0; along = r.height; }
+    else { ex = cx + dx * 0.12; ey = dy > 0 ? r.top : r.bottom; ox = 0; oy = dy > 0 ? -1 : 1; along = r.width; }
+    if (S.kind === 'spot') {
+      // the spot's pool must reach that edge for light to pass out of it
+      I *= 1 - smooth((Math.hypot(ex - spot.x, ey - spot.y) - spotR() * 0.55) / (spotR() * 0.6));
+    }
+    if (I < 0.03) return;
+    ensureBloom();
+    bctx.globalCompositeOperation = 'lighter';
+    var len = 54, g = bctx.createLinearGradient(ex, ey, ex + ox * len, ey + oy * len);
+    g.addColorStop(0, 'rgba(255,255,255,0)');
+    for (var i = 0; i < SPECTRUM.length; i++) {
+      var sp = SPECTRUM[i];
+      g.addColorStop(0.12 + i * 0.14, 'rgba(' + sp.join(',') + ',' + (0.42 * I).toFixed(3) + ')');
+    }
+    g.addColorStop(1, 'rgba(150,80,255,0)');
+    bctx.fillStyle = g;
+    bctx.save();
+    bctx.beginPath();
+    if (vertical) bctx.ellipse(ex + ox * len / 2, ey, len / 2, along * 0.3, 0, 0, TAU);
+    else bctx.ellipse(ex, ey + oy * len / 2, along * 0.3, len / 2, 0, 0, TAU);
+    bctx.fill();
+    bctx.restore();
+    blitBloom(c);
+  }
+
+  // ---------------------------------------------------------------- ambient: fireworks
+  // Real shells: a rocket climbs on a sparking tail and bursts with a white-hot flash; its stars
+  // fly out as a 3D shell, slow in the air and droop, burning white → colour → fading, leaving
+  // glowing trails. Chrysanthemums shed gold sparks, willows rain gold, crossettes break again,
+  // glitter strobes as it dies. Every burst lights its own smoke and the whole room.
+  var FW_PALETTE = [[0, 100, 62], [28, 100, 60], [48, 100, 64], [130, 90, 58], [190, 100, 62], [220, 100, 70], [280, 95, 70], [320, 100, 66]];
+  var GOLDC = [40, 95, 62];
+  var trail = null, tctx = null, TS = 0.5;       // persistent trail buffer (half resolution)
+  function trailFade(dt) {
+    var tw = Math.max(1, Math.ceil(W * TS)), th = Math.max(1, Math.ceil(H * TS));
+    if (!trail) { trail = document.createElement('canvas'); tctx = trail.getContext('2d'); }
+    if (trail.width !== tw || trail.height !== th) { trail.width = tw; trail.height = th; }
+    tctx.setTransform(1, 0, 0, 1, 0, 0);
+    tctx.globalCompositeOperation = 'destination-out';
+    tctx.fillStyle = 'rgba(0,0,0,' + clamp(1 - Math.exp(-dt * 5.2), 0.02, 0.5).toFixed(4) + ')';
+    tctx.fillRect(0, 0, tw, th);
+    tctx.setTransform(TS, 0, 0, TS, 0, 0);
+    tctx.globalCompositeOperation = 'lighter';
+    tctx.lineCap = 'round';
+  }
+  function clearTrail() { if (tctx) { tctx.setTransform(1, 0, 0, 1, 0, 0); tctx.clearRect(0, 0, trail.width, trail.height); } }
+  function launch(tx, ty, fromX) {
+    var x0 = fromX != null ? fromX : rnd(W * 0.12, W * 0.88);
+    var y0 = H + 8, g = 300;
+    ty = clamp(ty, H * 0.08, H * 0.7);
+    var t = Math.sqrt(2 * (y0 - ty) / g);
+    fw.rockets.push({ x: x0, y: y0, px: x0, py: y0, vx: (tx - x0) / t, vy: -g * t, g: g, col: pick(FW_PALETTE), wob: rnd(0, TAU), acc: 0 });
+    if (stageOn && mode === 'firework') sfxLaunch(x0);
+  }
+  // bursts bloom around the card (the message), not hidden behind it
+  function autoLaunch() {
+    var fr = frontRect(), x = 0, y = 0;
+    for (var tries = 0; tries < 6; tries++) {
+      x = rnd(W * 0.1, W * 0.9); y = rnd(H * 0.2, H * 0.48);
+      if (!fr || x < fr.left - 60 || x > fr.right + 60 || y < fr.top - 60 || y > fr.bottom + 60) break;
+    }
+    launch(x, y);
+  }
+  function star(x, y, vx, vy, o) {
+    var p = { x: x, y: y, px: x, py: y, vx: vx, vy: vy, life: 0, max: 1.5, h: 0, s: 100, l: 62, drag: 2.3, g: 70, w: 2, ph: rnd(0, TAU) };
+    for (var k in o) p[k] = o[k];
+    fw.sparks.push(p);
+    return p;
+  }
+  function explode(x, y, col) {
+    var type = pick(['peony', 'peony', 'peony', 'chrys', 'chrys', 'willow', 'ring', 'crossette', 'glitter', 'pistil']);
+    if (stageOn && mode === 'firework') sfxBoom(x, type !== 'ring' && type !== 'pistil');
+    // 44.5: tell the page where a shell burst (the Mini Pet looks up at it)
+    try { window.dispatchEvent(new CustomEvent('fbfx:burst', { detail: { x: x, y: y, type: type, big: type === 'chrys' || type === 'willow' || type === 'crossette', w: W, h: H } })); } catch (e) {}
+    var base = clamp(Math.min(W, H), 360, 1100);
+    var Rb = base * rnd(0.27, 0.4);                        // how far the stars get
+    var drag = type === 'willow' ? 1.5 : 2.3, v = Rb * drag;
+    var n = Math.round((type === 'ring' ? 90 : type === 'willow' ? 150 : rnd(170, 230)) * (MOBILE ? 0.7 : 1));
+    // a ring shell seen nearly face-on: only a slight lean, never a flat slanted ellipse
+    var col2 = pick(FW_PALETTE), tilt = rnd(-0.35, 0.35), squash = rnd(0.86, 1), i, vx, vy;
+    for (i = 0; i < n; i++) {
+      if (type === 'ring') {
+        var a = i * TAU / n + rnd(-0.02, 0.02), vr = v * rnd(0.94, 1.03), rx = Math.cos(a) * vr, ry = Math.sin(a) * vr * squash;
+        vx = rx * Math.cos(tilt) - ry * Math.sin(tilt); vy = rx * Math.sin(tilt) + ry * Math.cos(tilt);
+      } else {
+        // a 3D shell seen from the front: dense rim, filled middle
+        var z = rnd(-1, 1), th = rnd(0, TAU), rr = Math.sqrt(1 - z * z), vv = v * rnd(0.93, 1.04);
+        vx = Math.cos(th) * rr * vv; vy = Math.sin(th) * rr * vv;
+      }
+      if (type === 'willow') star(x, y, vx, vy, { h: GOLDC[0], s: GOLDC[1], l: GOLDC[2], max: rnd(2.5, 3.1), drag: 1.5, g: 58, w: 1.6, emit: 26, ember: true });
+      else if (type === 'chrys') star(x, y, vx, vy, { h: col[0], s: col[1], l: col[2], max: rnd(1.4, 1.8), emit: 14 });
+      else if (type === 'crossette') star(x, y, vx * 0.8, vy * 0.8, { h: col[0], s: col[1], l: col[2], max: rnd(1.3, 1.6), split: true, w: 2.2 });
+      else if (type === 'glitter') star(x, y, vx, vy, { h: i % 3 ? GOLDC[0] : col[0], s: i % 3 ? 60 : col[1], l: i % 3 ? 78 : col[2], max: rnd(1.6, 2.0), glitter: true, ember: i % 3 !== 0 });
+      else star(x, y, vx, vy, { h: col[0], s: col[1], l: col[2], max: rnd(1.3, 1.7), crackle: type === 'peony' && Math.random() < 0.15 });
+    }
+    if (type === 'ring') {
+      // a ring is never alone in a real shell: a sparse spray of stars fills it
+      for (i = 0; i < 40; i++) {
+        var z3 = rnd(-1, 1), th3 = rnd(0, TAU), r3 = Math.sqrt(1 - z3 * z3) * rnd(0.3, 0.75);
+        star(x, y, Math.cos(th3) * r3 * v, Math.sin(th3) * r3 * v, { h: col2[0], s: col2[1], l: col2[2], max: rnd(1.0, 1.4), w: 1.6 });
+      }
+    }
+    if (type === 'pistil' || (type === 'peony' && Math.random() < 0.35)) {
+      // a smaller inner shell in a second colour
+      for (i = 0; i < 64; i++) {
+        var z2 = rnd(-1, 1), th2 = rnd(0, TAU), r2 = Math.sqrt(1 - z2 * z2);
+        star(x, y, Math.cos(th2) * r2 * v * 0.42, Math.sin(th2) * r2 * v * 0.42, { h: col2[0], s: col2[1], l: col2[2], max: rnd(1.0, 1.3), w: 1.8 });
+      }
+    }
+    // the room (and the glass) is lit in the colour the stars actually burn
+    var lc = type === 'willow' ? GOLDC : type === 'glitter' ? [44, 85, 72] : col;
+    var rgb = hsl2rgb(lc[0], lc[1], Math.max(62, lc[2]));
+    fw.flashes.push({ x: x, y: y, life: 0, max: 0.2, r: Rb * 0.32, h: col[0] });
+    fw.glows.push({ x: x, y: y, life: 0, max: 1.3, rgb: rgb });
+    if (fw.glows.length > 6) fw.glows.shift();
+    for (i = 0; i < 3; i++) fw.smoke.push({ x: x + rnd(-0.25, 0.25) * Rb, y: y + rnd(-0.2, 0.25) * Rb, r: Rb * rnd(0.45, 0.75), life: 0, max: rnd(3.2, 4.6), rgb: rgb });
+    if (fw.smoke.length > 24) fw.smoke.splice(0, fw.smoke.length - 24);
+    var cap = MOBILE ? 1800 : 3200;
+    if (fw.sparks.length > cap) fw.sparks.splice(0, fw.sparks.length - cap);
+  }
+  // a star's colour through its burn: white-hot as it lights, its colour, then dying away
+  function starHSLA(p, lf) {
+    var h = p.h, s = p.s, l = p.l, a;
+    if (lf < 0.05) { s *= 0.25; l = 96; }
+    else if (lf < 0.13) { var k = (lf - 0.05) / 0.08; s *= 0.25 + 0.75 * k; l = 96 - (96 - p.l) * k; }
+    if (p.ember && lf > 0.45) { var e = (lf - 0.45) / 0.55; h -= 20 * e; l -= 16 * e; }   // gold burns down to orange
+    a = lf < 0.68 ? 1 : 1 - (lf - 0.68) / 0.32;
+    if (p.glitter && lf > 0.4) a *= Math.sin(p.life * 62 + p.ph * 9) > 0.15 ? 1 : 0.1;
+    return [h, s, l, a];
+  }
+  function drawFireworks(c, dt) {
+    fw.next -= dt;
+    if (fw.next <= 0) {
+      autoLaunch();
+      if (Math.random() < 0.3) autoLaunch();
+      fw.next = rnd(0.7, 1.4);
+    }
+    // the room: dark, but every burst lights it for a moment
+    var roomLit = 0;
+    for (var gi = fw.glows.length - 1; gi >= 0; gi--) {
+      var gw = fw.glows[gi];
+      gw.life += dt;
+      if (gw.life >= gw.max) { fw.glows.splice(gi, 1); continue; }
+      roomLit += Math.pow(1 - gw.life / gw.max, 2);
+    }
+    // (a white page under the dark is far brighter: the room lifts less there, or it greys out)
+    c.fillStyle = 'rgba(0,0,4,' + roomA(0.84 - (isLight() ? 0.1 : 0.24) * Math.min(1, roomLit)).toFixed(3) + ')';
+    c.fillRect(0, 0, W, H);
+    liftFront(c, 14);
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    // the room glow from each burst
+    for (var f = 0; f < fw.glows.length; f++) {
+      var gl = fw.glows[f], ga = Math.pow(1 - gl.life / gl.max, 2.2), gr = Math.max(W, H) * 0.7;
+      var gg = c.createRadialGradient(gl.x, gl.y, 0, gl.x, gl.y, gr);
+      gg.addColorStop(0, 'rgba(' + gl.rgb.join(',') + ',' + (0.2 * ga).toFixed(3) + ')');
+      gg.addColorStop(1, 'rgba(' + gl.rgb.join(',') + ',0)');
+      c.fillStyle = gg; c.fillRect(0, 0, W, H);
+    }
+    // smoke hanging where shells went off, lit by their light and fading to grey
+    for (var sm = fw.smoke.length - 1; sm >= 0; sm--) {
+      var s = fw.smoke[sm];
+      s.life += dt;
+      if (s.life >= s.max) { fw.smoke.splice(sm, 1); continue; }
+      s.r += dt * 12; s.x += dt * 9; s.y -= dt * 4;
+      var lf0 = s.life / s.max, lit = Math.exp(-s.life * 1.4);
+      var sr = Math.round(s.rgb[0] * lit + 120 * (1 - lit)), sg = Math.round(s.rgb[1] * lit + 120 * (1 - lit)), sb = Math.round(s.rgb[2] * lit + 130 * (1 - lit));
+      var sa = (0.035 + 0.1 * lit) * smooth(s.life / 0.3) * (1 - lf0);
+      var sgd = c.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r);
+      sgd.addColorStop(0, 'rgba(' + sr + ',' + sg + ',' + sb + ',' + sa.toFixed(3) + ')');
+      sgd.addColorStop(1, 'rgba(' + sr + ',' + sg + ',' + sb + ',0)');
+      c.fillStyle = sgd; c.beginPath(); c.arc(s.x, s.y, s.r, 0, TAU); c.fill();
+    }
+    c.restore();
+
+    trailFade(dt);
+    // rockets: a wobbling climb on a sparking tail
+    for (var r = fw.rockets.length - 1; r >= 0; r--) {
+      var k = fw.rockets[r];
+      k.px = k.x; k.py = k.y;
+      k.vy += k.g * dt;
+      k.x += (k.vx + Math.sin(clock * 9 + k.wob) * 16) * dt; k.y += k.vy * dt;
+      k.acc += dt;
+      while (k.acc > 0.012) {
+        k.acc -= 0.012;
+        star(k.x, k.y, rnd(-26, 26), rnd(20, 70), { h: 36, s: 90, l: 66, max: rnd(0.35, 0.6), drag: 3, g: 120, w: 1.1, ember: true });
+      }
+      tctx.strokeStyle = 'rgba(255,225,170,0.9)'; tctx.lineWidth = 2;
+      tctx.beginPath(); tctx.moveTo(k.px, k.py); tctx.lineTo(k.x, k.y); tctx.stroke();
+      if (k.vy >= -20) { fw.rockets.splice(r, 1); explode(k.x, k.y, k.col); }
+    }
+    // stars
+    var heads = [];
+    for (var i = fw.sparks.length - 1; i >= 0; i--) {
+      var p = fw.sparks[i];
+      p.life += dt;
+      if (p.split && !p.did && p.life > p.max * 0.42) {
+        // crossette: the star breaks into four
+        p.did = true;
+        var a0 = rnd(0, TAU);
+        for (var q = 0; q < 4; q++) star(p.x, p.y, p.vx * 0.3 + Math.cos(a0 + q * Math.PI / 2) * 150, p.vy * 0.3 + Math.sin(a0 + q * Math.PI / 2) * 150, { h: p.h, s: p.s, l: p.l + 6, max: rnd(0.6, 0.85), w: 1.6 });
+        fw.sparks.splice(i, 1); continue;
+      }
+      if (p.life >= p.max) {
+        if (p.crackle) for (var cq = 0; cq < 4; cq++) star(p.x, p.y, rnd(-70, 70), rnd(-70, 70), { h: 50, s: 20, l: 94, max: rnd(0.08, 0.16), drag: 5, g: 0, w: 1.3 });
+        fw.sparks.splice(i, 1); continue;
+      }
+      var kd = Math.exp(-dt * p.drag);
+      p.px = p.x; p.py = p.y;
+      p.vx *= kd; p.vy = p.vy * kd + p.g * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.emit && Math.random() < dt * p.emit) star(p.x, p.y, rnd(-18, 18), rnd(0, 30), { h: 38, s: 92, l: 64, max: rnd(0.4, 0.8), drag: 3, g: 90, w: 1, ember: true });
+      var lf = p.life / p.max, hs = starHSLA(p, lf);
+      if (hs[3] < 0.02) continue;
+      tctx.strokeStyle = 'hsla(' + hs[0].toFixed(0) + ',' + hs[1].toFixed(0) + '%,' + hs[2].toFixed(0) + '%,' + (0.85 * hs[3]).toFixed(3) + ')';
+      tctx.lineWidth = p.w * (1 - lf * 0.45);
+      tctx.beginPath(); tctx.moveTo(p.px, p.py); tctx.lineTo(p.x + 0.01, p.y); tctx.stroke();
+      if (p.w >= 1.5) heads.push(p, hs);
+    }
+    c.save();
+    c.setTransform(DPR, 0, 0, DPR, 0, 0);
+    c.globalCompositeOperation = 'lighter';
+    c.imageSmoothingEnabled = true;
+    c.drawImage(trail, 0, 0, trail.width / TS, trail.height / TS);
+    // burst flashes: a white-hot core for a split second
+    for (var fl = fw.flashes.length - 1; fl >= 0; fl--) {
+      var fh = fw.flashes[fl];
+      fh.life += dt;
+      if (fh.life >= fh.max) { fw.flashes.splice(fl, 1); continue; }
+      var fa = 1 - fh.life / fh.max;
+      var fg = c.createRadialGradient(fh.x, fh.y, 0, fh.x, fh.y, fh.r);
+      fg.addColorStop(0, 'rgba(255,255,255,' + (0.9 * fa).toFixed(3) + ')');
+      fg.addColorStop(0.3, 'hsla(' + fh.h + ',100%,80%,' + (0.45 * fa).toFixed(3) + ')');
+      fg.addColorStop(1, 'hsla(' + fh.h + ',100%,60%,0)');
+      c.fillStyle = fg; c.beginPath(); c.arc(fh.x, fh.y, fh.r, 0, TAU); c.fill();
+    }
+    // the stars' burning heads
+    for (var hI = 0; hI < heads.length; hI += 2) {
+      var hp = heads[hI], hc = heads[hI + 1];
+      c.fillStyle = 'hsla(' + hc[0].toFixed(0) + ',' + hc[1].toFixed(0) + '%,' + Math.min(96, hc[2] + 14).toFixed(0) + '%,' + (0.28 * hc[3]).toFixed(3) + ')';
+      c.beginPath(); c.arc(hp.x, hp.y, hp.w * 2.2, 0, TAU); c.fill();
+      c.fillStyle = 'hsla(' + hc[0].toFixed(0) + ',' + (hc[1] * 0.5).toFixed(0) + '%,' + Math.min(97, hc[2] + 26).toFixed(0) + '%,' + hc[3].toFixed(3) + ')';
+      c.beginPath(); c.arc(hp.x, hp.y, hp.w * 0.62, 0, TAU); c.fill();
+    }
+    c.restore();
+    liftFront(c, 10, 0.72);     // bursts behind the card show faintly through its glass
+    if (!isLight()) veilFront(c, 0.22); else drawWhiteGlass(c);
+  }
+
+  // ---------------------------------------------------------------- opening effects
+  var HEART = (function () {
+    var p = new Path2D();
+    for (var i = 0; i <= 72; i++) {
+      var t = i / 72 * TAU, s = Math.sin(t);
+      var x = 16 * s * s * s, y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+      if (i === 0) p.moveTo(x / 32, y / 32); else p.lineTo(x / 32, y / 32);
+    }
+    p.closePath();
+    return p;   // about 1 unit wide, centred
+  })();
+  // iMessage Love is a red foil balloon heart: deep saturated red, a metallic red-orange sheen,
+  // a seam round its edge, puffy, and seen in 3D as it turns. Its outline (1 unit wide) is
+  // sampled once; every frame it is projected through the heart's yaw, pitch and a perspective.
+  var HEART_PTS = (function () {
+    var segs = [
+      [[0, 0.37], [-0.1, 0.29], [-0.5, 0.05], [-0.5, -0.15]],
+      [[-0.5, -0.15], [-0.5, -0.36], [-0.36, -0.47], [-0.24, -0.47]],
+      [[-0.24, -0.47], [-0.12, -0.47], [-0.035, -0.4], [0, -0.3]],
+      [[0, -0.3], [0.035, -0.4], [0.12, -0.47], [0.24, -0.47]],
+      [[0.24, -0.47], [0.36, -0.47], [0.5, -0.36], [0.5, -0.15]],
+      [[0.5, -0.15], [0.5, 0.05], [0.1, 0.29], [0, 0.37]]
+    ], pts = [];
+    for (var s = 0; s < segs.length; s++) {
+      var p = segs[s];
+      for (var i = 0; i < 20; i++) {
+        var t = i / 20, u = 1 - t;
+        pts.push([u * u * u * p[0][0] + 3 * u * u * t * p[1][0] + 3 * u * t * t * p[2][0] + t * t * t * p[3][0],
+                  u * u * u * p[0][1] + 3 * u * u * t * p[1][1] + 3 * u * t * t * p[2][1] + t * t * t * p[3][1]]);
+      }
+    }
+    return pts;
+  })();
+  var HEART2 = (function () { var p = new Path2D(); HEART_PTS.forEach(function (q, i) { if (i) p.lineTo(q[0], q[1]); else p.moveTo(q[0], q[1]); }); p.closePath(); return p; })();
+  function pulseAt(t, t0) { var u = (t - t0) / 0.22; return u > 0 && u < 1 ? Math.sin(u * Math.PI) : 0; }
+  // a point of the puffy heart (its face bulges toward us) seen through yaw / pitch and perspective
+  function heartProj(x, y, yaw, pitch, bulge) {
+    var r2 = (x * x) / 0.25 + ((y + 0.06) * (y + 0.06)) / 0.19;
+    var z = bulge * Math.max(0, 1 - r2) * 0.24;
+    var cy = Math.cos(yaw), sy = Math.sin(yaw);
+    var X = x * cy + z * sy, Z = -x * sy + z * cy;
+    var cp = Math.cos(pitch), sp = Math.sin(pitch);
+    var Y = y * cp - Z * sp; Z = y * sp + Z * cp;
+    var k = 1 / (1 - Z * 0.55);
+    return [X * k, Y * k];
+  }
+  function heartPath(yaw, pitch, scale) {
+    var p = new Path2D();
+    for (var i = 0; i < HEART_PTS.length; i++) {
+      var q = heartProj(HEART_PTS[i][0] * scale, HEART_PTS[i][1] * scale + 0.0 * scale, yaw, pitch, 0);
+      if (i) p.lineTo(q[0], q[1]); else p.moveTo(q[0], q[1]);
+    }
+    p.closePath();
+    return p;
+  }
+  // yaw ≈ -0.6..0.6 (turning), pitch small; rot rolls it in the screen plane
+  function drawHeart(c, x, y, S, yaw, rot, pitch) {
+    pitch = pitch || 0;
+    var path = heartPath(yaw, pitch, 1), seam = heartPath(yaw, pitch, 0.93);
+    var L = heartProj(-0.24, -0.25, yaw, pitch, 1), Rl = heartProj(0.24, -0.25, yaw, pitch, 1), M = heartProj(0, -0.02, yaw, pitch, 1);
+    var sh = -0.1 * Math.sin(yaw);        // the sheen stays toward the light while the heart turns
+    c.save();
+    c.translate(x, y);
+    c.rotate(rot);
+    // a dark soft shadow below it, no pink glow
+    c.shadowColor = 'rgba(30,0,4,0.5)'; c.shadowBlur = S * 0.12 * DPR; c.shadowOffsetY = S * 0.06 * DPR;
+    c.scale(S, S);
+    var base = c.createRadialGradient(M[0] - 0.12 + sh, M[1] - 0.18, 0.02, M[0] + 0.05, M[1] + 0.05, 0.72);
+    base.addColorStop(0, '#f0201e');
+    base.addColorStop(0.35, '#d40812');
+    base.addColorStop(0.7, '#aa000b');
+    base.addColorStop(1, '#6e0006');
+    c.fillStyle = base;
+    c.fill(path);
+    c.shadowColor = 'transparent'; c.shadowBlur = 0; c.shadowOffsetY = 0;
+    c.save();
+    c.clip(path);
+    // volume: the edges roll away from us — an inner shadow all round
+    var frame = new Path2D();
+    frame.rect(-2, -2, 4, 4);
+    frame.addPath(path);
+    c.shadowColor = 'rgba(55,0,6,0.85)'; c.shadowBlur = S * 0.09 * DPR;
+    c.fillStyle = '#000';
+    c.fill(frame, 'evenodd');
+    c.shadowColor = 'transparent'; c.shadowBlur = 0;
+    // the lobes swell toward us: a lit dome on each, the nearer one fuller
+    var lobes = [[L, yaw > 0 ? 0.3 : 0.44], [Rl, yaw > 0 ? 0.44 : 0.3]];
+    for (var i = 0; i < 2; i++) {
+      var lp = lobes[i][0], la = lobes[i][1];
+      var dome = c.createRadialGradient(lp[0] - 0.06 + sh, lp[1] - 0.06, 0, lp[0], lp[1], 0.32);
+      dome.addColorStop(0, 'rgba(255,70,50,' + la + ')');
+      dome.addColorStop(1, 'rgba(255,70,50,0)');
+      c.fillStyle = dome; c.fillRect(-1, -1, 2, 2);
+    }
+    // the cleft sinks in
+    var cl = heartProj(0, -0.33, yaw, pitch, 1);
+    var cleft = c.createRadialGradient(cl[0], cl[1], 0, cl[0], cl[1], 0.2);
+    cleft.addColorStop(0, 'rgba(60,0,6,0.6)'); cleft.addColorStop(1, 'rgba(60,0,6,0)');
+    c.fillStyle = cleft; c.fillRect(-1, -1, 2, 2);
+    // foil sheen: broad red-orange streaks curving over each lobe
+    c.globalCompositeOperation = 'lighter';
+    var streaks = [[L[0] - 0.04 + sh, L[1] - 0.05, 0.16, 0.07, -0.7, 0.55], [Rl[0] + 0.02 + sh, Rl[1] - 0.08, 0.13, 0.05, 0.5, 0.35], [M[0] - 0.1 + sh, M[1] + 0.12, 0.2, 0.05, -0.9, 0.18]];
+    for (var k = 0; k < streaks.length; k++) {
+      var st = streaks[k];
+      c.save();
+      c.translate(st[0], st[1]); c.rotate(st[4]); c.scale(1, st[3] / st[2]);
+      var sg = c.createRadialGradient(0, 0, 0, 0, 0, st[2]);
+      sg.addColorStop(0, 'rgba(255,120,80,' + st[5] + ')');
+      sg.addColorStop(0.5, 'rgba(255,60,40,' + (st[5] * 0.4).toFixed(3) + ')');
+      sg.addColorStop(1, 'rgba(255,40,30,0)');
+      c.fillStyle = sg; c.beginPath(); c.arc(0, 0, st[2], 0, TAU); c.fill();
+      c.restore();
+    }
+    // a warm bounce in the tip
+    var tip = heartProj(0, 0.3, yaw, pitch, 0);
+    var bg = c.createRadialGradient(tip[0], tip[1], 0, tip[0], tip[1], 0.22);
+    bg.addColorStop(0, 'rgba(255,40,30,0.22)'); bg.addColorStop(1, 'rgba(255,40,30,0)');
+    c.fillStyle = bg; c.fillRect(-1, -1, 2, 2);
+    c.globalCompositeOperation = 'source-over';
+    // the foil seam just inside the edge
+    c.strokeStyle = 'rgba(255,110,95,0.28)'; c.lineWidth = 0.008;
+    c.stroke(seam);
+    c.strokeStyle = 'rgba(70,0,6,0.16)'; c.lineWidth = 0.005;
+    c.save(); c.translate(0.004, 0.006); c.stroke(seam); c.restore();
+    c.restore();
+    // small crisp speculars, near-white with a red cast
+    var sp1 = [L[0] - 0.07 + sh, L[1] - 0.09];
+    c.fillStyle = 'rgba(255,225,215,0.85)';
+    c.beginPath(); c.ellipse(sp1[0], sp1[1], 0.035, 0.016, -0.7, 0, TAU); c.fill();
+    c.fillStyle = 'rgba(255,200,190,0.5)';
+    c.beginPath(); c.ellipse(Rl[0] + sh, Rl[1] - 0.12, 0.022, 0.01, 0.5, 0, TAU); c.fill();
+    c.restore();
+  }
+
+  var BALLOON_HUES = [355, 25, 48, 140, 200, 225, 275, 320];
+  var CONFETTI = ['#ff3b5c', '#ff9f0a', '#ffd60a', '#30d158', '#64d2ff', '#0a84ff', '#bf5af2', '#ff6ec7', '#ffffff'];
+
+  function playIntro(kind) {
+    if (!kind) {
+      var pool = INTROS.filter(function (k) { return k !== lastIntro; });
+      kind = pick(pool);
+    }
+    lastIntro = kind;
+    intro = { kind: kind, t: 0, dur: 4.6, parts: [], extra: {} };
+    try { window.dispatchEvent(new CustomEvent('fbfx:intro', { detail: { kind: kind } })); } catch (e) {}   // 44.5
+    var sc = clamp(Math.min(W, H) / 760, 0.6, 1.5);
+    if (kind === 'balloons') {
+      var n = Math.round(clamp(W / 120, 7, 14));
+      for (var i = 0; i < n; i++) {
+        var h = BALLOON_HUES[i % BALLOON_HUES.length];
+        var depth = Math.random(), r = (26 + 34 * depth) * sc;
+        intro.parts.push({
+          x0: (i + rnd(0.1, 0.9)) / n * W, y: H + r * 1.3 + rnd(0, H * 0.45), r: r,
+          vy: -(0.3 + 0.24 * depth) * H - 70, sw: rnd(14, 34) * sc, fq: rnd(0.55, 1.05), ph: rnd(0, TAU), x: 0, tilt: 0,
+          base: 'hsl(' + h + ',85%,55%)', light: 'hsl(' + h + ',95%,80%)', dark: 'hsl(' + h + ',78%,32%)'
+        });
+      }
+      intro.parts.sort(function (a, b) { return a.r - b.r; });
+      intro.dur = 4.8;
+    } else if (kind === 'confetti') {
+      // a full-screen downpour: a wall of it already tumbling in from the top, more behind it
+      var m = Math.round(clamp(W * H / 650, MOBILE ? 360 : 520, MOBILE ? 700 : 1300));
+      for (var j = 0; j < m; j++) {
+        var early = j < m * 0.3;          // some of it is already tumbling down the top half
+        intro.parts.push({
+          x: rnd(-0.05, 1.05) * W, y: early ? rnd(-20, H * 0.5) : -rnd(10, H * 1.25), vx: rnd(-110, 110), vy: rnd(220, 420), fin: early ? 0 : 1,
+          rot: rnd(0, TAU), vr: rnd(-7, 7), ph: rnd(0, TAU), vph: rnd(5, 11),
+          w: rnd(6, 13) * sc, h: rnd(3, 7) * sc, col: pick(CONFETTI), shape: Math.random() < 0.18 ? 'circle' : (Math.random() < 0.25 ? 'ribbon' : 'rect')
+        });
+      }
+      intro.dur = 5.6;
+    } else if (kind === 'celebration') {
+      intro.extra.emitted = 0;
+      intro.dur = 4.6;
+    } else if (kind === 'love') {
+      intro.extra.size = clamp(Math.min(W, H) * 0.26, 110, 250);
+      intro.extra.dir = Math.random() < 0.5 ? 1 : -1;
+      intro.extra.y0 = H * rnd(0.5, 0.64);
+      intro.extra.ph = rnd(0, TAU);
+      intro.dur = 6.0;
+    }
+    kick();
+  }
+
+  function drawBalloon(c, b) {
+    var r = b.r;
+    c.save();
+    c.translate(b.x, b.y);
+    c.rotate(b.tilt);
+    // string
+    c.strokeStyle = isLight() ? 'rgba(40,45,60,0.35)' : 'rgba(255,255,255,0.5)'; c.lineWidth = 1;
+    var L = r * 2.4, w = Math.sin(clock * 3 + b.ph) * r * 0.22, y0 = r * 1.2;
+    c.beginPath(); c.moveTo(0, y0);
+    c.bezierCurveTo(w, y0 + L * 0.33, -w, y0 + L * 0.66, w * 0.5, y0 + L); c.stroke();
+    // knot
+    c.fillStyle = b.dark;
+    c.beginPath(); c.moveTo(-r * 0.13, y0 + r * 0.09); c.lineTo(r * 0.13, y0 + r * 0.09); c.lineTo(0, y0 - r * 0.06); c.closePath(); c.fill();
+    // body — a little narrower at the bottom
+    var g = c.createRadialGradient(-r * 0.35, -r * 0.45, r * 0.08, 0, 0, r * 1.3);
+    g.addColorStop(0, b.light); g.addColorStop(0.42, b.base); g.addColorStop(1, b.dark);
+    c.fillStyle = g;
+    c.beginPath();
+    c.moveTo(0, -r * 1.18);
+    c.bezierCurveTo(r * 0.72, -r * 1.18, r * 1.02, -r * 0.5, r * 0.98, -r * 0.05);
+    c.bezierCurveTo(r * 0.94, r * 0.55, r * 0.42, r * 1.1, 0, r * 1.2);
+    c.bezierCurveTo(-r * 0.42, r * 1.1, -r * 0.94, r * 0.55, -r * 0.98, -r * 0.05);
+    c.bezierCurveTo(-r * 1.02, -r * 0.5, -r * 0.72, -r * 1.18, 0, -r * 1.18);
+    c.fill();
+    // gloss
+    c.fillStyle = 'rgba(255,255,255,0.5)';
+    c.beginPath(); c.ellipse(-r * 0.4, -r * 0.52, r * 0.14, r * 0.3, -0.45, 0, TAU); c.fill();
+    c.restore();
+  }
+
+  function drawIntro(c, dt) {
+    var it = intro;
+    it.t += dt;
+    var t = it.t, fade = it.kind === 'love' ? 1 : 1 - smooth((t - (it.dur - 0.6)) / 0.6);
+    c.globalAlpha = fade;
+    if (it.kind === 'balloons') {
+      for (var i = 0; i < it.parts.length; i++) {
+        var b = it.parts[i];
+        b.y += b.vy * dt;
+        var sway = Math.sin(t * TAU * b.fq * 0.5 + b.ph);
+        b.x = b.x0 + b.sw * sway;
+        b.tilt = 0.12 * Math.cos(t * TAU * b.fq * 0.5 + b.ph);
+        if (b.y > -b.r * 4) drawBalloon(c, b);
+      }
+    } else if (it.kind === 'confetti') {
+      for (var j = 0; j < it.parts.length; j++) {
+        var p = it.parts[j];
+        p.vy = Math.min(p.vy + 400 * dt, 300 + 80 * Math.sin(p.ph));   // air holds it back
+        if (p.fin < 1) p.fin = Math.min(1, p.fin + dt * 5);
+        p.vx *= Math.exp(-dt * 1.1);
+        p.ph += p.vph * dt; p.rot += p.vr * dt;
+        p.x += (p.vx + 38 * Math.sin(p.ph * 0.5)) * dt; p.y += p.vy * dt;
+        if (p.y < -30 || p.y > H + 20) continue;
+        var fl = Math.cos(p.ph);
+        c.save();
+        c.translate(p.x, p.y); c.rotate(p.rot); c.scale(1, fl);
+        var pc = p.col === '#ffffff' && isLight() ? '#c3c9d4' : p.col;
+        c.fillStyle = pc;
+        c.globalAlpha = fade * p.fin * (0.75 + 0.25 * Math.abs(fl));
+        if (p.shape === 'circle') { c.beginPath(); c.arc(0, 0, p.h * 0.8, 0, TAU); c.fill(); }
+        else if (p.shape === 'ribbon') {
+          c.strokeStyle = pc; c.lineWidth = p.h * 0.7; c.lineCap = 'round';
+          c.beginPath(); c.moveTo(-p.w, 0); c.quadraticCurveTo(-p.w * 0.5, -p.h * 1.4, 0, 0); c.quadraticCurveTo(p.w * 0.5, p.h * 1.4, p.w, 0); c.stroke();
+        } else c.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        c.restore();
+      }
+      c.globalAlpha = fade;
+    } else if (it.kind === 'celebration') {
+      // gold sparkles bursting out of the top-right corner, drifting over the screen
+      var want = Math.min(340, Math.round(340 * smooth(t / 1.3)));
+      var sc = Math.hypot(W, H) / 1200;
+      while (it.extra.emitted < want) {
+        it.extra.emitted++;
+        var a = rnd(Math.PI * 0.52, Math.PI * 0.98), v = rnd(260, 1900) * sc;
+        it.parts.push({ x: W + 6, y: -6, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0, max: rnd(2.2, 3.8), s: rnd(1.5, 4.8), ph: rnd(0, TAU), h: rnd(38, 52), l: rnd(62, 82) });
+      }
+      var lt = isLight();
+      c.fillStyle = 'rgba(0,0,0,' + ((lt ? 0.12 : 0.32) * smooth(t / 0.4) * (1 - smooth((t - it.dur + 1) / 1))).toFixed(3) + ')';
+      c.fillRect(0, 0, W, H);
+      c.globalCompositeOperation = lt ? 'source-over' : 'lighter';
+      var ga = Math.max(0, 1 - t / 2.2);
+      if (ga > 0) {
+        var cg = c.createRadialGradient(W, 0, 0, W, 0, Math.hypot(W, H) * 0.65);
+        cg.addColorStop(0, lt ? 'rgba(236,170,60,' + (0.3 * ga).toFixed(3) + ')' : 'rgba(255,214,120,' + (0.4 * ga).toFixed(3) + ')');
+        cg.addColorStop(1, 'rgba(255,190,80,0)');
+        c.fillStyle = cg; c.fillRect(0, 0, W, H);
+      }
+      for (var k = it.parts.length - 1; k >= 0; k--) {
+        var s = it.parts[k];
+        s.life += dt;
+        if (s.life >= s.max) { it.parts.splice(k, 1); continue; }
+        var kd = Math.exp(-dt * 1.75);
+        s.vx *= kd; s.vy = s.vy * kd + 28 * dt;
+        s.x += s.vx * dt; s.y += s.vy * dt;
+        var lf = s.life / s.max, tw = 0.55 + 0.45 * Math.sin(s.life * 16 + s.ph);
+        var al = (lf < 0.1 ? lf / 0.1 : 1 - smooth((lf - 0.55) / 0.45)) * tw;
+        var sz = s.s * (0.7 + 0.5 * tw);
+        c.fillStyle = lt ? 'hsla(' + s.h + ',92%,' + (s.l - 26) + '%,' + al.toFixed(3) + ')' : 'hsla(' + s.h + ',100%,' + s.l + '%,' + al.toFixed(3) + ')';
+        c.beginPath(); c.arc(s.x, s.y, sz * (lt ? 0.7 : 0.55), 0, TAU); c.fill();
+        if (lt && sz > 2) { c.fillStyle = 'rgba(255,248,225,' + al.toFixed(3) + ')'; c.beginPath(); c.arc(s.x - sz * 0.15, s.y - sz * 0.15, sz * 0.28, 0, TAU); c.fill(); }
+        if (sz > 2.4) {   // the bigger ones glint with a four-point star
+          c.strokeStyle = lt ? 'hsla(' + s.h + ',95%,45%,' + (al * 0.8).toFixed(3) + ')' : 'hsla(' + s.h + ',100%,88%,' + (al * 0.8).toFixed(3) + ')';
+          c.lineWidth = 0.9;
+          c.beginPath();
+          c.moveTo(s.x - sz * 2.4, s.y); c.lineTo(s.x + sz * 2.4, s.y);
+          c.moveTo(s.x, s.y - sz * 2.4); c.lineTo(s.x, s.y + sz * 2.4);
+          c.stroke();
+        }
+      }
+      c.globalCompositeOperation = 'source-over';
+    } else if (it.kind === 'love') {
+      // iMessage Love: a glossy heart drifts in from one side, eases to a hover mid-screen and
+      // beats twice, then lets go and rises away into the sky, growing smaller as it goes
+      var S = it.extra.size, T = it.dur, dir = it.extra.dir, ph = it.extra.ph, tA = T * 0.5;
+      var xs = dir > 0 ? -S * 0.7 : W + S * 0.7, xm = W * (0.5 + dir * 0.06);
+      var b = t < tA ? 0 : (t - tA) / (T - tA);
+      var x = t < tA ? xs + (xm - xs) * (1 - Math.pow(1 - t / tA, 2.2)) : xm + dir * S * 0.55 * Math.pow(b, 1.5);
+      var y = it.extra.y0 - H * 0.05 * Math.min(1, t / tA)
+        + Math.sin(t * 1.9 + ph) * S * 0.14 * (1 - smooth(b))
+        - Math.pow(b, 2) * (it.extra.y0 + S * 1.6);
+      var beat = 1 + 0.07 * pulseAt(t, tA - 0.62) + 0.1 * pulseAt(t, tA - 0.32);
+      var sc = 1 - 0.32 * smooth(b);
+      // it turns as it floats — one lobe comes toward you, then the other
+      var yaw = 0.55 * Math.sin(t * 1.25 + ph) + dir * 0.18;
+      var pitch = 0.14 * Math.sin(t * 0.9 + ph * 1.3);
+      var rot = dir * (0.16 + 0.06 * Math.sin(t * 1.7 + ph)) * (1 - 0.7 * smooth(b));
+      it.extra.pos = { x: x, y: y, S: S * sc };
+      if (y > -S) drawHeart(c, x, y, S * sc * beat, yaw, rot, pitch);
+    }
+    c.globalAlpha = 1;
+    if (t >= it.dur) intro = null;
+  }
+
+  // ---------------------------------------------------------------- invisible ink (card mode)
+  // iMessage Invisible Ink: each card is veiled by a dense shimmer of fine particles that never
+  // stops moving. Rub the front card and the ink blows away under your finger (sparks fly off
+  // the edge of the cleared patch); tap it and the whole card clears for a few seconds. Leave it
+  // and the ink drifts back. Drawn on its own canvas under the light effects, so lasers and the
+  // rest still play over it, and their cut-outs never cut the ink.
+  var inkCv = null, inkCtx = null, inkWas = false;
+  var inkTiles = null, inkTileTheme = '';
+  var inkState = {};           // per card id: { cells: Float32Array, touched: Float32Array, all: 0, allT: -9 }
+  var inkSparks = [];
+  var INK_GX = 18, INK_GY = 22;
+  function inkActive() { return stageOn && !!document.querySelector('.ink-mode'); }
+  function ensureInkCanvas() {
+    if (!layer) return;
+    if (!inkCv || inkCv.parentNode !== layer) {
+      inkCv = document.createElement('canvas');
+      inkCv.className = 'fbfx-ink';
+      inkCtx = inkCv.getContext('2d');
+      layer.insertBefore(inkCv, cv);        // under the light effects
+    }
+    var w = Math.round(W * DPR), h = Math.round(H * DPR);
+    if (inkCv.width !== w || inkCv.height !== h) { inkCv.width = w; inkCv.height = h; }
+  }
+  // three tiles of fine particles (drawn at device resolution so a grain is one real pixel)
+  function makeInkTiles() {
+    var theme = isLight() ? 'l' : 'd';
+    if (inkTiles && inkTileTheme === theme + DPR) return inkTiles;
+    inkTileTheme = theme + DPR; inkTiles = [];
+    var T = Math.round(180 * DPR);
+    for (var k = 0; k < 3; k++) {
+      var tc = document.createElement('canvas'); tc.width = tc.height = T;
+      var x2 = tc.getContext('2d'), n = Math.round(T * T / (DPR * DPR) * (k === 0 ? 0.06 : 0.04));
+      for (var i = 0; i < n; i++) {
+        var px = Math.random() * T, py = Math.random() * T, r = (0.3 + Math.random() * (k === 2 ? 0.7 : 0.45)) * DPR;
+        var b = Math.random();
+        if (theme === 'd') x2.fillStyle = 'rgba(' + Math.round(200 + 55 * b) + ',' + Math.round(210 + 45 * b) + ',255,' + (0.35 + 0.65 * Math.random()).toFixed(2) + ')';
+        else x2.fillStyle = b < 0.7 ? 'rgba(' + Math.round(70 + 60 * b) + ',' + Math.round(80 + 60 * b) + ',' + Math.round(105 + 50 * b) + ',' + (0.35 + 0.55 * Math.random()).toFixed(2) + ')' : 'rgba(255,255,255,0.95)';
+        x2.beginPath(); x2.arc(px, py, r, 0, TAU); x2.fill();
+      }
+      inkTiles.push(tc);
+    }
+    return inkTiles;
+  }
+  function inkFor(id) {
+    var s = inkState[id];
+    if (!s) s = inkState[id] = { cells: new Float32Array(INK_GX * INK_GY), touched: new Float32Array(INK_GX * INK_GY), all: 0, allT: -9 };
+    return s;
+  }
+  // bilinear point on a card's quad from (u, v) in 0..1
+  function quadPt(Q, u, v) {
+    var x = (1 - u) * (1 - v) * Q[0][0] + u * (1 - v) * Q[1][0] + u * v * Q[2][0] + (1 - u) * v * Q[3][0];
+    var y = (1 - u) * (1 - v) * Q[0][1] + u * (1 - v) * Q[1][1] + u * v * Q[2][1] + (1 - u) * v * Q[3][1];
+    return [x, y];
+  }
+  // (u, v) of a screen point on a (nearly flat-on) quad
+  function quadUV(Q, px, py) {
+    var ex = Q[1][0] - Q[0][0], ey = Q[1][1] - Q[0][1], fx = Q[3][0] - Q[0][0], fy = Q[3][1] - Q[0][1];
+    var det = ex * fy - ey * fx;
+    if (!det) return null;
+    var dx = px - Q[0][0], dy = py - Q[0][1];
+    return [(dx * fy - dy * fx) / det, (ex * dy - ey * dx) / det];
+  }
+  function inkRubAt(el, px, py, radius) {
+    var sh = shapeOf(el);
+    if (!sh) return;
+    var uv = quadUV(sh.q, px, py);
+    if (!uv) return;
+    var st = inkFor(el.getAttribute('data-card-id') || 'x'), now = clock;
+    var cw = Math.hypot(sh.q[1][0] - sh.q[0][0], sh.q[1][1] - sh.q[0][1]) / INK_GX, chh = Math.hypot(sh.q[3][0] - sh.q[0][0], sh.q[3][1] - sh.q[0][1]) / INK_GY;
+    var ru = radius / (cw * INK_GX), rv = radius / (chh * INK_GY);
+    for (var j = 0; j < INK_GY; j++) for (var i = 0; i < INK_GX; i++) {
+      var du = ((i + 0.5) / INK_GX - uv[0]) / ru, dv = ((j + 0.5) / INK_GY - uv[1]) / rv, d2 = du * du + dv * dv;
+      if (d2 < 1) {
+        var k = j * INK_GX + i;
+        st.cells[k] = Math.max(st.cells[k], 1 - d2 * d2);
+        st.touched[k] = now;
+      }
+    }
+    // the ink blows off the edge of the patch
+    for (var s = 0; s < 7; s++) {
+      var a = Math.random() * TAU, sp = rnd(60, 190);
+      inkSparks.push({ x: px + Math.cos(a) * radius * 0.8, y: py + Math.sin(a) * radius * 0.8, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0, max: rnd(0.35, 0.7), s: rnd(0.6, 1.4) });
+    }
+    if (inkSparks.length > 500) inkSparks.splice(0, inkSparks.length - 500);
+  }
+  function inkRevealAll(el) {
+    var st = inkFor(el.getAttribute('data-card-id') || 'x');
+    st.allT = clock;
+    var sh = shapeOf(el);
+    if (!sh) return;
+    for (var s = 0; s < 90; s++) {
+      var p = quadPt(sh.q, Math.random(), Math.random()), a = Math.random() * TAU, sp = rnd(40, 160);
+      inkSparks.push({ x: p[0], y: p[1], vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0, max: rnd(0.4, 0.9), s: rnd(0.6, 1.5) });
+    }
+  }
+  function drawInk(dt) {
+    ensureInkCanvas();
+    var c = inkCtx;
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.clearRect(0, 0, inkCv.width, inkCv.height);
+    if (!inkActive()) { inkSparks.length = 0; return false; }
+    c.setTransform(DPR, 0, 0, DPR, 0, 0);
+    var st = stageKind === 'cover' ? stageEl() : null;
+    if (!st) return false;
+    var tiles = makeInkTiles(), light = isLight(), t = clock;
+    var its = st.querySelectorAll(CARD_SEL), list = [];
+    for (var i = 0; i < its.length; i++) {
+      var sh = shapeOf(its[i]);
+      if (sh && sh.cx > -sh.size && sh.cx < W + sh.size) list.push({ el: its[i], sh: sh });
+    }
+    list.sort(function (a, b) { return b.sh.size - a.sh.size; });
+    list = list.slice(0, 7);
+    for (var n = list.length - 1; n >= 0; n--) {
+      var el = list[n].el, s2 = list[n].sh, id = el.getAttribute('data-card-id') || 'x', ink = inkFor(id);
+      // the whole-card reveal (tap): clears fast, holds, drifts back
+      var at = t - ink.allT, all = at < 0.3 ? smooth(at / 0.3) : at < 3.3 ? 1 : 1 - smooth((at - 3.3) / 1.3);
+      // cells drift back after a pause
+      for (var k = 0; k < ink.cells.length; k++) if (ink.cells[k] > 0 && t - ink.touched[k] > 2.4) ink.cells[k] = Math.max(0, ink.cells[k] - dt / 0.9);
+      var vis = 1 - all;
+      if (vis <= 0.01) continue;
+      c.save();
+      c.globalAlpha = vis;
+      c.beginPath(); traceShape(c, s2, 1); c.clip();
+      var bx = s2.cx - s2.size, by = s2.cy - s2.size, bs = s2.size * 2.4;
+      // the veil: the card's own tone, nearly opaque, so nothing shows through
+      c.fillStyle = light ? 'rgba(226,231,239,0.96)' : 'rgba(28,34,48,0.95)';
+      c.fillRect(bx - bs * 0.2, by - bs * 0.2, bs * 1.4, bs * 1.4);
+      // the particles: three grain layers drifting different ways, jittering, twinkling
+      for (var L2 = 0; L2 < 3; L2++) {
+        var p = c.createPattern(tiles[L2], 'repeat');
+        var ox = (t * [7, -11, 4][L2] + Math.sin(t * [1.7, 2.3, 3.1][L2] + L2) * 3 + (Math.random() - 0.5) * 1.4);
+        var oy = (t * [-5, 6, 9][L2] + Math.cos(t * [1.9, 1.3, 2.7][L2] + L2) * 3 + (Math.random() - 0.5) * 1.4);
+        if (p && p.setTransform && window.DOMMatrix) p.setTransform(new DOMMatrix([1 / DPR, 0, 0, 1 / DPR, ox, oy]));
+        c.fillStyle = p;
+        c.globalAlpha = vis * (0.55 + 0.35 * Math.sin(t * [5.1, 6.7, 8.3][L2] + L2 * 2));
+        c.fillRect(bx - bs * 0.2, by - bs * 0.2, bs * 1.4, bs * 1.4);
+      }
+      c.globalAlpha = vis;
+      // rubbed-away patches, with soft edges
+      c.globalCompositeOperation = 'destination-out';
+      var cw = s2.size / INK_GX * 1.9;
+      for (var j = 0; j < INK_GY; j++) for (var i2 = 0; i2 < INK_GX; i2++) {
+        var r = ink.cells[j * INK_GX + i2];
+        if (r < 0.02) continue;
+        var q = quadPt(s2.q, (i2 + 0.5) / INK_GX, (j + 0.5) / INK_GY);
+        var g = c.createRadialGradient(q[0], q[1], 0, q[0], q[1], cw);
+        g.addColorStop(0, 'rgba(0,0,0,' + r.toFixed(3) + ')');
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = g; c.beginPath(); c.arc(q[0], q[1], cw, 0, TAU); c.fill();
+      }
+      c.restore();
+    }
+    // sparks of ink blown off
+    c.globalCompositeOperation = 'source-over';
+    for (var z = inkSparks.length - 1; z >= 0; z--) {
+      var sp = inkSparks[z];
+      sp.life += dt;
+      if (sp.life >= sp.max) { inkSparks.splice(z, 1); continue; }
+      var kd = Math.exp(-dt * 3.2);
+      sp.vx *= kd; sp.vy *= kd;
+      sp.x += sp.vx * dt; sp.y += sp.vy * dt;
+      var a2 = 1 - sp.life / sp.max;
+      c.fillStyle = light ? 'rgba(90,100,125,' + (0.8 * a2).toFixed(3) + ')' : 'rgba(225,235,255,' + (0.9 * a2).toFixed(3) + ')';
+      c.beginPath(); c.arc(sp.x, sp.y, sp.s, 0, TAU); c.fill();
+    }
+    return true;
+  }
+  // rubbing: press on the front card and move; a tap clears the whole card for a while
+  var inkRub = null;
+  function frontCardEl() { frontRect(); return fc.el; }
+  function inkHit(px, py) {
+    if (!inkActive()) return null;
+    var el = frontCardEl();
+    if (!el) return null;
+    var hit = elAt(px, py);
+    return hit && el.contains(hit) ? el : null;
+  }
+  window.addEventListener('pointerdown', function (e) {
+    if (inkRub || !inkActive()) return;
+    syncOrigin();
+    var px = lx(e.clientX), py = ly(e.clientY), el = inkHit(px, py);
+    if (!el) return;
+    inkRub = { id: e.pointerId, el: el, x0: px, y0: py, moved: 0 };
+    e.preventDefault(); e.stopImmediatePropagation();
+    kick();
+  }, true);
+  window.addEventListener('pointermove', function (e) {
+    if (!inkRub || e.pointerId !== inkRub.id) return;
+    var px = lx(e.clientX), py = ly(e.clientY);
+    inkRub.moved = Math.max(inkRub.moved, Math.hypot(px - inkRub.x0, py - inkRub.y0));
+    if (inkRub.moved > 5) inkRubAt(inkRub.el, px, py, 34);
+    e.preventDefault(); e.stopImmediatePropagation();
+  }, true);
+  var inkUp = function (e) {
+    if (!inkRub || e.pointerId !== inkRub.id) return;
+    if (inkRub.moved <= 5 && e.type === 'pointerup') inkRevealAll(inkRub.el);
+    inkRub = null;
+    swallowInkClick = performance.now() + 450;    // the card must not also flip
+    e.stopImmediatePropagation();
+    kick();
+  };
+  window.addEventListener('pointerup', inkUp, true);
+  window.addEventListener('pointercancel', inkUp, true);
+  var swallowInkClick = 0;
+  window.addEventListener('click', function (e) {
+    if (performance.now() < swallowInkClick) { swallowInkClick = 0; e.preventDefault(); e.stopImmediatePropagation(); }
+  }, true);
+  // touch browsers: keep the card's own touch gestures out of it while rubbing
+  window.addEventListener('touchstart', function (e) {
+    var tt = e.changedTouches && e.changedTouches[0];
+    if (!tt || !inkActive()) return;
+    syncOrigin();
+    if (inkHit(lx(tt.clientX), ly(tt.clientY))) { e.preventDefault(); e.stopImmediatePropagation(); }
+  }, { capture: true, passive: false });
+  window.addEventListener('touchmove', function (e) { if (inkRub) { e.preventDefault(); e.stopImmediatePropagation(); } }, { capture: true, passive: false });
+
+  // ---------------------------------------------------------------- loop
+  function drawHint(c) {
+    // (no on-screen instructions for any light mode: the lasers and the spotlight speak for themselves)
+    return;
+    var a = clamp((hintUntil - clock) / 0.5, 0, 1) * clamp((clock - (hintUntil - (mode === 'spotlight' ? 5 : 2.8))) / 0.3, 0, 1);
+    var fr = frontRect(), behind = mode === 'lasers' && srcBehindCard(fr);
+    var hx = mode === 'spotlight' ? spot.x : src.x, hy = mode === 'spotlight' ? spot.y + spotR() * 0.92 : (behind ? fr.top - 18 : src.y + orbRadius() * 3 + 16);
+    c.save();
+    c.globalAlpha = a;
+    c.font = '600 12px -apple-system,BlinkMacSystemFont,sans-serif';
+    c.textAlign = 'center';
+    // on a dark pill, so it reads on a white card as well as in the dark
+    var htxt = mode === 'spotlight' ? 'Drag to follow · Drag beam to reposition · Double-tap empty space to reset' : (behind ? 'Drag spilled light around card edge · Double-tap to reset' : 'Drag light source · Double-tap to reset');
+    var hy2 = clamp(hy, 22, H - 12), tw = c.measureText(htxt).width, hx2 = clamp(hx, tw / 2 + 18, W - tw / 2 - 18);
+    c.fillStyle = 'rgba(10,12,20,0.62)';
+    rrect(c, hx2 - tw / 2 - 12, hy2 - 16, tw + 24, 24, 12); c.fill();
+    c.fillStyle = 'rgba(255,255,255,0.94)';
+    c.fillText(htxt, hx2, hy2);
+    c.restore();
+  }
+
+  function frame(now) {
+    raf = 0;
+    syncOrigin();
+    var dt = lastT ? Math.max(0, Math.min(0.05, (now - lastT) / 1000)) : 1 / 60;
+    lastT = now;
+    clock += dt;
+    var ambient = stageOn && mode !== 'none', inkOn = inkActive();
+    if (!ambient && !intro && !inkOn) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+      if (inkCtx) { inkCtx.setTransform(1, 0, 0, 1, 0, 0); inkCtx.clearRect(0, 0, inkCv.width, inkCv.height); }
+      if (poolEl) poolEl.style.opacity = '0';
+      lastT = 0; placeHandle(); clearAllLit(); return;
+    }
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    if (poolEl && !(ambient && mode === 'spotlight' && stageKind === 'board')) poolEl.style.opacity = '0';
+    // 40.9: neon glows through CSS alone — no canvas work, the loop stops until needed
+    if (ambient && mode === 'neon' && !intro && !inkOn) { clearAllLit(); placeBtn(); lastT = 0; return; }
+    if (ambient) {
+      modeT += dt;
+      // ease the room into the dark when a mode is switched on
+      ctx.globalAlpha = smooth(modeT / 0.45);
+      if (mode === 'lasers') { glide(src, dt); drawLasers(ctx, dt); }
+      else if (mode === 'spotlight') { glide(spot, dt); drawSpotlight(ctx, dt); }
+      else if (mode === 'firework') drawFireworks(ctx, dt);
+      ctx.globalAlpha = 1;
+      audioTick(dt);
+      drawHint(ctx);
+    }
+    if (intro) drawIntro(ctx, dt);
+    lightCards(ambient);
+    drawInk(dt);
+    placeHandle();
+    placeBtn();
+    if (!document.hidden) raf = requestAnimationFrame(frame);
+  }
+  function kick() {
+    ensureDOM();
+    if (!raf && ctx) raf = requestAnimationFrame(frame);
+  }
+
+  function setMode(m) {
+    if (MODES.indexOf(m) < 0) m = 'none';
+    var was = mode;
+    mode = m;
+    if (was !== m) { try { window.dispatchEvent(new CustomEvent('fbfx:mode', { detail: { mode: m, from: was } })); } catch (e) {} }   // 44.5
+    try { localStorage.setItem(LS_KEY, m); } catch (e) {}
+    modeT = 0;
+    fw.rockets.length = 0; fw.sparks.length = 0; fw.flashes.length = 0; fw.glows.length = 0; fw.smoke.length = 0; fw.next = 0.15;
+    clearTrail();
+    hintUntil = 0;
+    if (m !== 'spotlight' && m !== 'lasers') document.documentElement.classList.remove('fbfx-grab');
+    if (m === 'lasers' || m === 'spotlight') {
+      hintUntil = 0;
+      if (m === 'spotlight') { spot.placed = false; spot.tgt = null; lampAim.placed = false; }
+      if (m === 'lasers') src.placed = false;
+    }
+    if (poolEl && m !== 'spotlight') poolEl.style.opacity = '0';
+    syncReadMode();
+    audioMode(m);
+    renderBtn();
+    placeBtn();
+    // under the spotlight no card may show its back: turn any flipped one face up again
+    if (m === 'spotlight') { try { window.dispatchEvent(new Event('fbfx:noflip')); } catch (e) {} }
+    neonApply(m === 'neon');
+    if (m === 'neon') neonShow();
+    kick();
+  }
+
+  // 40.8: double-tap anywhere moves the running light effect on (40.9: to the next mode; after
+  // neon it is off). The tab bar sits under the effect, so this is the way through and out.
+  var dtap = { t: 0, x: 0, y: 0, at: 0 };
+  window.addEventListener('pointerdown', function (e) {
+    if (!stageOn || mode === 'none') { dtap.t = 0; return; }
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    var tg = e.target;
+    if (tg && tg.closest && tg.closest('button, a, input, textarea, select, [contenteditable="true"], .fbfx-btn, .fbfx-neon-ctl')) { dtap.t = 0; return; }
+    var now = performance.now();
+    if (dtap.t && now - dtap.t < 340 && Math.hypot(e.clientX - dtap.x, e.clientY - dtap.y) < 56) {
+      var firstAt = dtap.at;
+      dtap.t = 0;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      // the click this second tap makes must not reach the page
+      var swallow = function (ev) { ev.preventDefault(); ev.stopImmediatePropagation(); };
+      window.addEventListener('click', swallow, true);
+      setTimeout(function () { window.removeEventListener('click', swallow, true); }, 450);
+      // undo what the first tap did: a Cover Flow flip, a Clear row opened for editing
+      var lf = window.__cfLastFlip;
+      if (lf && lf.at >= firstAt - 30) { try { window.dispatchEvent(new CustomEvent('fbfx:undoflip', { detail: { id: lf.id } })); } catch (err) {} }
+      // 40.9: in neon, a double-tap on a card gives that card the next gas (a single tap
+      // still flips it); a double-tap anywhere else leaves the effect
+      if (mode === 'neon' && dtap.card) {
+        var tc = neonCardFrom(tg);
+        if (tc && tc.getAttribute('data-card-id') === dtap.card) {
+          if ((window.__clearEditStartedAt || 0) >= firstAt - 30) {
+            var ta0 = document.querySelector('.clear-active-column .fb-composer textarea');
+            if (ta0) { try { ta0.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); } catch (err) {} }
+          }
+          dtap.card = null;
+          paintCard(tc);
+          return;
+        }
+      }
+      if ((window.__clearEditStartedAt || 0) >= firstAt - 30) {
+        var ta = document.querySelector('.clear-active-column .fb-composer textarea');
+        if (ta) { try { ta.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); } catch (err) {} }
+      }
+      // 40.9: a double-tap moves on to the next light mode (lasers → firework → spotlight →
+      // neon); neon is the last, so there it means off
+      var nextMode = MODES[(MODES.indexOf(mode) + 1) % MODES.length];
+      if (nextMode === 'none') window.__fbfxExitAt = Date.now();
+      setMode(nextMode);
+      try { if (window.MinestNative && window.MinestNative.haptic) window.MinestNative.haptic('light'); else if (navigator.vibrate) navigator.vibrate(12); } catch (err) {}
+      return;
+    }
+    dtap.t = now; dtap.at = Date.now(); dtap.x = e.clientX; dtap.y = e.clientY;
+    var fc = mode === 'neon' ? neonCardFrom(tg) : null;
+    dtap.card = fc ? fc.getAttribute('data-card-id') : null;
+  }, true);
+
+  // 40.9: tapping any other button (a tab, the top bar, Summary, a menu…) leaves Light FX
+  // and Card FX — the effects belong to the screen they were turned on for
+  window.addEventListener('click', function (e) {
+    var t = e.target;
+    if (!t || !t.closest) return;
+    var b = t.closest('button, [role="button"], a[href], .ios-tab-item');
+    if (!b) return;
+    if (b.closest('.dock-fx-tab, .bar-fx-btn, .fbfx-btn, .fbfx-neon-ctl, .card-mode-btn, [data-card-id], .perspective-stage, .apple-wallet-overlay, .hu-island-header, .fb-composer, .card-gap-active-composer')) return;
+    var root = document.documentElement;
+    var cardFxOn = root.classList.contains('fb-cardfx-on') || !!document.querySelector('.board-swimlane-scroll.ripple-active') ||
+      !!(window.__HeadsUpController && window.__HeadsUpController.isActive && window.__HeadsUpController.isActive());
+    var lightOn = mode !== 'none';
+    if (!lightOn && !cardFxOn) return;
+    if (lightOn) setMode('none');
+    if (cardFxOn) { try { window.dispatchEvent(new Event('minest:fx-reset')); } catch (err) {} }
+  }, true);
+
+  // Fireworks: a click on empty space sends a rocket up to that point.
+  document.addEventListener('pointerdown', function (e) {
+    if (!stageOn || mode !== 'firework' || !W) return;
+    syncOrigin();
+    var ex = lx(e.clientX), ey = ly(e.clientY);
+    if (!inLayer(ex, ey)) return;
+    var t = e.target;
+    if (t && t.closest && t.closest('[data-card-id], .coverflow-card-item, button, a, input, textarea, select, [role="button"], [contenteditable], .fbfx-btn, header')) return;
+    launch(ex, ey, clamp(ex + rnd(-40, 40), 10, W - 10));
+    kick();
+  }, true);
+
+  // Spotlight: press on the spot's edge (outside the card) and drag it; double-click there: back to the card.
+  var ring = null, ringTap = 0;
+  function ringStart(obj, id, x, y) {
+    var now = performance.now();
+    if (now - ringTap < 320) {   // double-click: back to the card
+      if (obj.follow) { spot.placed = false; spot.tgt = null; } else obj.placed = false;
+      obj.vx = obj.vy = 0; ringTap = 0; kick(); return true;
+    }
+    ringTap = now;
+    if (obj.follow) {
+      spot.placed = true; spot.tgt = { x: x, y: y }; spot.vx = spot.vy = 0; hintUntil = 0;
+      obj.drag = true;
+      ring = { obj: obj, id: id, hist: [] };
+      document.documentElement.classList.add('fbfx-grabbing');
+      kick();
+      return true;
+    }
+    if (obj.lamp) {
+      // the shaft turns about the pool; grabbing anywhere along it does not make it jump
+      var P = spotLamp();
+      obj.dist = Math.max(Math.hypot(P.x - spot.x, P.y - spot.y), Math.hypot(W, H) * 0.9);
+      obj.ang = Math.atan2(P.y - spot.y, P.x - spot.x);
+      obj.x = P.x; obj.y = P.y;
+      obj.placed = true; obj.drag = true; hintUntil = 0;
+      ring = { obj: obj, id: id, da: obj.ang - Math.atan2(y - spot.y, x - spot.x), hist: [] };
+      document.documentElement.classList.add('fbfx-grabbing');
+      kick();
+      return true;
+    }
+    ring = { obj: obj, id: id, ox: obj.x - x, oy: obj.y - y, hist: [{ t: now, x: x, y: y }] };
+    obj.drag = true; obj.placed = true; obj.vx = obj.vy = 0; hintUntil = 0;
+    document.documentElement.classList.add('fbfx-grabbing');
+    kick();
+    return true;
+  }
+  function ringMove(x, y) {
+    var o = ring.obj;
+    if (o === spot) spot.tgt = null;
+    if (o.lamp) {
+      o.ang = Math.atan2(y - spot.y, x - spot.x) + ring.da;
+      o.x = spot.x + Math.cos(o.ang) * o.dist; o.y = spot.y + Math.sin(o.ang) * o.dist;
+      return;
+    }
+    if (o.follow) { spot.tgt = { x: clamp(x, 0, W), y: clamp(y, 0, H) }; return; }
+    o.x = clamp(x + ring.ox, 0, W); o.y = clamp(y + ring.oy, 0, H);
+    var now = performance.now();
+    ring.hist.push({ t: now, x: x, y: y });
+    while (ring.hist.length > 2 && now - ring.hist[0].t > 100) ring.hist.shift();
+  }
+  var swallowClickUntil = 0;
+  window.addEventListener('click', function (e) {
+    if (performance.now() < swallowClickUntil) { swallowClickUntil = 0; e.preventDefault(); e.stopImmediatePropagation(); }
+  }, true);
+  function ringEnd() {
+    swallowClickUntil = performance.now() + 450;
+    var now = performance.now(), a = ring.hist[0], b = ring.hist[ring.hist.length - 1];
+    if (!ring.obj.lamp && !ring.obj.follow && a && b && b.t > a.t && now - b.t < 60) {
+      var s = 1000 / Math.max(16, b.t - a.t);
+      ring.obj.vx = clamp((b.x - a.x) * s, -2600, 2600); ring.obj.vy = clamp((b.y - a.y) * s, -2600, 2600);
+    }
+    ring.obj.drag = false; ring = null;
+    document.documentElement.classList.remove('fbfx-grabbing');
+    kick();
+  }
+  window.addEventListener('pointerdown', function (e) {
+    if (ring || !stageOn || (mode !== 'spotlight' && mode !== 'lasers')) return;
+    syncOrigin();
+    var px = lx(e.clientX), py = ly(e.clientY);
+    if (!inLayer(px, py)) return;
+    var obj = inRing(px, py) ? spot : inBeam(px, py) ? lampAim : inRoom(px, py) ? FOLLOW : (laserGrab(px, py) ? src : null);
+    if (!obj) return;
+    ringStart(obj, e.pointerId, px, py);
+    e.preventDefault(); e.stopImmediatePropagation();
+  }, true);
+  window.addEventListener('pointermove', function (e) {
+    if (ring && e.pointerId === ring.id) { ringMove(lx(e.clientX), ly(e.clientY)); e.preventDefault(); e.stopImmediatePropagation(); return; }
+    if (e.pointerType === 'mouse' && stageOn && (mode === 'spotlight' || mode === 'lasers')) {
+      var mx = lx(e.clientX), my = ly(e.clientY);
+      document.documentElement.classList.toggle('fbfx-grab', inLayer(mx, my) && (inRing(mx, my) || inBeam(mx, my) || inRoom(mx, my) || laserGrab(mx, my)));
+    }
+  }, true);
+  var ringUp = function (e) { if (ring && e.pointerId === ring.id) { ringEnd(); e.stopImmediatePropagation(); } };
+  window.addEventListener('pointerup', ringUp, true);
+  window.addEventListener('pointercancel', ringUp, true);
+  // touch browsers send touch events to the cards as well: keep those away from them too
+  window.addEventListener('touchstart', function (e) {
+    var tt = e.changedTouches && e.changedTouches[0];
+    if (!tt || !stageOn || (mode !== 'spotlight' && mode !== 'lasers')) return;
+    syncOrigin();
+    var tx = lx(tt.clientX), ty = ly(tt.clientY);
+    if (ring || (inLayer(tx, ty) && (inRing(tx, ty) || inBeam(tx, ty) || inRoom(tx, ty) || laserGrab(tx, ty)))) { e.preventDefault(); e.stopImmediatePropagation(); }
+  }, { capture: true, passive: false });
+  window.addEventListener('touchmove', function (e) { if (ring) { e.preventDefault(); e.stopImmediatePropagation(); } }, { capture: true, passive: false });
+
+  // the board's "front card": the one under the pointer (kept when the pointer leaves the cards)
+  document.addEventListener('pointermove', function (e) {
+    if (stageKind !== 'board' || !e.target || !e.target.closest) return;
+    var a = e.target.closest('article.kanban-card[data-card-id]');
+    if (a && a !== boardFocus) { boardFocus = a; fc.t = -1; }
+  }, { passive: true, capture: true });
+
+  // Watch for 3D Cover Flow opening / closing (and, on the web, the Board).
+  var themeWas = null, boardIdWas = null;
+  // 27.8: opening effects only at the moment Board ⇄ 3D actually switches.
+  // A stage must be seen on two polls in a row (re-render flicker is ignored), the very
+  // first stage after launch plays nothing, and effects are at least 3 s apart.
+  var seenKind = null, seenCount = 0, lastStageKind = null, lastIntroAt = 0;
+  function poll() {
+    var rawKind = document.querySelector('.perspective-stage') ? 'cover' : (BOARD_STAGE && document.querySelector('.fb-board-stage') ? 'board' : null);
+    if (rawKind === seenKind) seenCount++; else { seenKind = rawKind; seenCount = 1; }
+    var kind = seenCount >= 2 ? rawKind : stageKind;
+    var switchTo = null, introNow = false;
+    if (kind !== stageKind) {
+      if (kind && lastStageKind && kind !== lastStageKind && Date.now() - lastIntroAt > 3000) introNow = true;
+      if (kind) lastStageKind = kind;
+      // 40.8: leaving a stage turns its effect off (it used to come back on the next visit)
+      if (stageKind) modeByKind[stageKind] = 'none';
+      stageKind = kind;
+      fc.t = -1; boardFocus = null;
+      // each stage has its own light mode (a laser show on the board does not follow you into
+      // the Cover Flow, and back)
+      if (kind && (modeByKind[kind] || 'none') !== mode) switchTo = modeByKind[kind] || 'none';
+    }
+    var on = !!kind;
+    // (27.8: switching to another board no longer plays an opening effect)
+    var ink = on && !!document.querySelector('.ink-mode');
+    if (ink !== inkWas) { inkWas = ink; kick(); }
+    if (on !== stageOn) {
+      stageOn = on;
+      ensureDOM();
+      if (on) modeT = 0;
+      renderBtn();
+      placeBtn();
+      if (!on) { clearAllLit(); intro = null; document.documentElement.classList.remove('fbfx-grab', 'fbfx-grabbing'); if (poolEl) poolEl.style.opacity = '0'; }
+      neonApply(false);
+      audioMode(on ? mode : 'none');
+      kick();
+    } else if (on) {
+      ensureDOM();
+      // the theme changed: the button's own light / dark look follows it
+      var lt = !!document.querySelector('.theme-white');
+      if (lt !== themeWas) { themeWas = lt; renderBtn(); }
+      placeBtn();
+    }
+    if (switchTo) setMode(switchTo);
+    syncReadMode();
+    // (a random one, never the same twice in a row)
+    if (introNow) { lastIntroAt = Date.now(); ensureDOM(); resize(false); playIntro(); kick(); }
+  }
+  setInterval(poll, 350);
+  window.addEventListener('resize', function () { resize(false); placeBtn(); kick(); });
+  window.addEventListener('scroll', function () { placeBtn(); }, true);
+  document.addEventListener('visibilitychange', function () { if (document.hidden) humStop(); else { lastT = 0; kick(); } });
+
+  window.FBFX = {
+    setMode: setMode,
+    intro: playIntro,
+    get mode() { return mode; },
+    get active() { return stageOn; },
+    // spotlight: the lit card stays face up (the React flip reads this; see 'fbfx:noflip')
+    get noFlip() { return stageKind === 'cover' && mode === 'spotlight'; },
+    get stage() { return stageKind; },
+    // (debug) audio state, with the output level peak over the last ~0.1 s
+    // (debug) run the effect loop by hand for `sec` seconds at 60 fps (a background tab gets no frames)
+    _advance: function (sec) {
+      var n = Math.round((sec || 1) * 60), t = lastT || performance.now();
+      for (var i = 0; i < n; i++) { t += 1000 / 60; if (raf) { cancelAnimationFrame(raf); raf = 0; } frame(t); }
+      lastT = 0;   // the real frames carry on from here
+      return n;
+    },
+    _audio: function () {
+      var lv = null;
+      if (AU.ctx && AU.bus) {
+        if (!AU.an) { AU.an = AU.ctx.createAnalyser(); AU.an.fftSize = 4096; AU.bus.connect(AU.an); }
+        var d = new Float32Array(AU.an.fftSize); AU.an.getFloatTimeDomainData(d);
+        lv = 0; for (var i = 0; i < d.length; i++) lv = Math.max(lv, Math.abs(d[i]));
+        lv = +lv.toFixed(3);
+      }
+      return { ctx: AU.ctx ? AU.ctx.state : null, hum: !!AU.hum, beat: AU.beat, peak: lv };
+    },
+    _state: function () { return { mode: mode, stageOn: stageOn, intro: intro && intro.kind, src: { x: src.x, y: src.y }, spot: { x: spot.x, y: spot.y, placed: spot.placed }, sparks: fw.sparks.length, rockets: fw.rockets.length }; }
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', poll); else poll();
+})();
+
+
+  </script>
 <script>/* Minest · 3D 词卡 · 学生页 (vocab3d.html?code=CODE, /vocab) — only the words the teacher assigned, as 3D dynamic
    cards (the 3D Cover modes, card styles, the exploded learning card). No Dock, no system keys, no way into the rest
    of Minest (2026-11-20, the user). The student marks each word 我会了 / 再看看; progress goes to the teacher:
@@ -2540,7 +5518,7 @@ body.v3-xl #v3-home, body.vt-playing #v3-home { display: none; }
       if (window.V3Type) window.V3Type.start({ cards: CARDS, code: code, mark: function (c, v) { var k0 = key(c.id); if ((K[k0] || 0) < v) { K[k0] = v; save(); } }, extra: function (o) { EXTRA = o; synced = ''; save(); } });
       paintPill(); save(); return;
     }
-    try { if (!window.MinestCoverModes.get() || window.MinestCoverModes.get() === 'flow') window.MinestCoverModes.set('wall'); } catch (e) {}
+    try { if (!window.MinestCoverModes.get()) window.MinestCoverModes.set('flow'); } catch (e) {}
     try { window.dispatchEvent(new Event('minest:image-assets')); } catch (e) {}
     wrapExplode(); paintPill(); save();
   }

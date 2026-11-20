@@ -12,8 +12,8 @@
 html, body { margin: 0; height: 100%; overflow: hidden; background: #070b16; color: #e8eefb; font-family: -apple-system, "SF Pro Text", "PingFang SC", system-ui, sans-serif; -webkit-text-size-adjust: 100%; overscroll-behavior: none; }
 body { position: fixed; inset: 0; }
 .sf-slot[data-sf-view="coverflow"] { position: absolute; inset: 0; overflow: hidden; }
-/* the original 3D Cover (flow) lives in Minest itself — here every other mode */
-#cm-bar button[data-m="flow"], #cm-pick button[data-m="flow"] { display: none !important; }
+/* 3D Cover here is drawn by the modes' engine (Minest's own lives in its board): the cards stand on a reflection */
+#cm-ov.flow .cm-orb { -webkit-box-reflect: below 8px linear-gradient(transparent 58%, rgba(255,255,255,.26)); }
 /* nothing that leads out of the words: no AI call, no "open the card", no style chip */
 #xl .xl-ai, #xl [data-a="card"], #cs-btn { display: none !important; }
 /* no Dock here: the controls sit lower */
@@ -146,6 +146,19 @@ body.v3-xl #v3-home, body.vt-playing #v3-home { display: none; }
 
 /* notes sit top left, small, under the title — never over the cards in the middle (2026-11-20, the user) */
 #v3-banner { left: calc(env(safe-area-inset-left, 0px) + 14px) !important; right: auto !important; top: calc(env(safe-area-inset-top, 0px) + 46px) !important; transform: none !important; max-width: min(360px, 60vw) !important; white-space: normal !important; font-size: 12.5px !important; padding: 6px 12px 8px !important; }
+
+/* Light FX: the room's light effects (FBFX); its own floating key gives way to the mode bar's */
+.fbfx-btn { display: none !important; }
+/* Card FX */
+#cm-ov .cm-c > .cfx { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 40; display: none; }
+html.cfx-ink #cm-ov .cm-c > .cfx, html.cfx-liq #cm-ov .cm-c > .cfx { display: block; }
+html.cfx-ink #cm-ov .cm-c > .cfx { background: radial-gradient(circle, rgba(255,255,255,.5) .7px, transparent 1.3px) 0 0 / 6px 6px, radial-gradient(circle, rgba(170,200,255,.35) .7px, transparent 1.3px) 3px 3px / 6px 6px, linear-gradient(160deg, rgba(30,34,52,.94), rgba(14,16,26,.96)); animation: cfxink 2.8s linear infinite; transition: opacity .35s ease; }
+html.cfx-ink #cm-ov .cm-c.act > .cfx, html.cfx-ink #cm-ov .cm-c:hover > .cfx { opacity: 0; }
+@keyframes cfxink { to { background-position: 18px 12px, 21px 15px, 0 0; } }
+html.cfx-liq #cm-ov .cm-c > .cfx { background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.38) 45%, rgba(190,230,255,.18) 52%, transparent 66%) 0 0 / 260% 100%, radial-gradient(120% 60% at 50% 0%, rgba(255,255,255,.28), transparent 60%); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.55), inset 0 -18px 30px rgba(120,190,255,.18); animation: cfxliq 3.6s ease-in-out infinite; }
+@keyframes cfxliq { 0% { background-position: 120% 0, 0 0; } 100% { background-position: -120% 0, 0 0; } }
+/* Light FX on: the room's light shows through the stage (as in Minest, the effect is behind the cards, they stay lit) */
+html.fx-on #cm-ov, html.fx-on #cm-ov.hl { background: transparent !important; }
 </style>
 <style>/* Minest Knowledge Drive V1.0: a minimal HUD over the drive (road name · play · mini map · next stop · exit) */
 .kd-root { position: fixed; inset: 0; z-index: 2147483645; background: #10131a; overflow: hidden; -webkit-user-select: none; user-select: none; touch-action: none;
@@ -10230,7 +10243,7 @@ window.KRail = (function () {
       if (window.V3Type) window.V3Type.start({ cards: CARDS, code: code, mark: function (c, v) { var k0 = key(c.id); if ((K[k0] || 0) < v) { K[k0] = v; save(); } }, extra: function (o) { EXTRA = o; synced = ''; save(); } });
       paintPill(); save(); return;
     }
-    try { if (!window.MinestCoverModes.get() || window.MinestCoverModes.get() === 'flow') window.MinestCoverModes.set('wall'); } catch (e) {}
+    try { if (!window.MinestCoverModes.get()) window.MinestCoverModes.set('flow'); } catch (e) {}
     try { window.dispatchEvent(new Event('minest:image-assets')); } catch (e) {}
     wrapExplode(); paintPill(); save();
   }
