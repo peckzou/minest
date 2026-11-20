@@ -16,6 +16,26 @@
   var shape = 'port'; try { shape = localStorage.getItem('minest.coverShape') === 'land' ? 'land' : 'port'; } catch (e) {}
   var KEY = 'minest.coverMode', mode = 'flow', playing = false, speed = 1, fanT = 0, ov = null, bar = null, eng = null, sig = '';
   try { mode = localStorage.getItem(KEY) || 'flow'; speed = parseFloat(localStorage.getItem('minest.coverSpeed')) || 1; } catch (e) {}
+
+  /* the mode bar's icons (2026-11-20, the user: the bar took too much room and did not look refined) — one line each */
+  var ICO = {
+    flow: '<path d="M3 7.5l4-1.5v12l-4-1.5zM21 7.5l-4-1.5v12l4-1.5z"/><rect x="8.5" y="4.5" width="7" height="15" rx="1.4"/>',
+    wall: '<rect x="3.5" y="4.5" width="7" height="6" rx="1.2"/><rect x="13.5" y="4.5" width="7" height="6" rx="1.2"/><rect x="3.5" y="13.5" width="7" height="6" rx="1.2"/><rect x="13.5" y="13.5" width="7" height="6" rx="1.2"/>',
+    fan: '<rect x="9" y="4" width="6" height="11" rx="1.2"/><path d="M8 7.5l-4.2 1.2 2.4 9.4 4.4-1.2M16 7.5l4.2 1.2-2.4 9.4-4.4-1.2"/><path d="M8 20.5h8"/>',
+    helix: '<path d="M8 3c8 3 8 6 0 9s-8 6 0 9M16 3c-8 3-8 6 0 9s8 6 0 9"/>',
+    stack: '<rect x="5" y="11" width="14" height="9" rx="1.4"/><path d="M7 8h10M9 5h6"/>',
+    spiral: '<path d="M12 12.5a1.5 1.5 0 1 1 1.6-1.5 3 3 0 0 1-3 3.3 4.5 4.5 0 0 1-4.6-4.6A6 6 0 0 1 12 3.8a7.6 7.6 0 0 1 7.8 7.8A9 9 0 0 1 11 20.5"/>',
+    orbit: '<ellipse cx="12" cy="12" rx="9.5" ry="4.2"/><rect x="9.5" y="7" width="5" height="7" rx="1"/><circle cx="20" cy="13.6" r="1.1" fill="currentColor" stroke="none"/>',
+    sphere: '<circle cx="12" cy="12" r="8.5"/><ellipse cx="12" cy="12" rx="3.6" ry="8.5"/><path d="M3.6 12h16.8"/>',
+    wave: '<path d="M2.5 12c2.4-5 4.8-5 7.1 0s4.8 5 7.2 0 3.4-3.3 4.7-2"/><circle cx="9.6" cy="12" r="1" fill="currentColor" stroke="none"/>',
+    play: '<path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="none"/>', pause: '<rect x="7" y="5.5" width="3.4" height="13" rx="1" fill="currentColor" stroke="none"/><rect x="13.6" y="5.5" width="3.4" height="13" rx="1" fill="currentColor" stroke="none"/>',
+    port: '<rect x="7.5" y="3.5" width="9" height="17" rx="2"/>', land: '<rect x="3.5" y="7.5" width="17" height="9" rx="2"/>',
+    style: '<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.6-.9 1.2-1.8-.5-1-.1-2.2 1.2-2.2H17a3.5 3.5 0 0 0 3.5-3.5c0-5.3-3.8-9.5-8.5-9.5z"/><circle cx="7.8" cy="11" r="1.1" fill="currentColor" stroke="none"/><circle cx="10.5" cy="7.4" r="1.1" fill="currentColor" stroke="none"/><circle cx="14.8" cy="7.6" r="1.1" fill="currentColor" stroke="none"/>',
+    close: '<path d="M6 6l12 12M18 6L6 18"/>', lab: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>'
+  };
+  var MZH = { flow: '3D 封面', wall: '卡片墙', fan: '扇形', helix: '螺旋', stack: '叠放', spiral: '旋涡', orbit: '轨道', sphere: '球体', wave: '波浪' };
+  function ico(k) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICO[k] || '') + '</svg>'; }
+  function flashName(host, txt) { var n = host.querySelector('.cm-mname'); if (!n) { n = document.createElement('div'); n.className = 'cm-mname'; host.appendChild(n); } n.textContent = txt; n.classList.remove('show'); void n.offsetWidth; n.classList.add('show'); clearTimeout(n._t); n._t = setTimeout(function () { n.classList.remove('show'); }, 1300); }
   var calm = false; try { calm = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
   /* a soft tick and a light tap when a card comes to the front (not while playing on its own) */
   var lastLand = 0;
@@ -29,14 +49,16 @@
 
   var css = document.createElement('style');
   css.textContent =
-    '#cm-bar{position:absolute;top:44px;left:50%;transform:translateX(-50%);z-index:2100;display:flex;align-items:center;gap:2px;max-width:96vw;overflow-x:auto;scrollbar-width:none;padding:4px 6px;border-radius:99px;background:rgba(15,18,26,.8);border:1px solid rgba(255,255,255,.18);box-shadow:0 12px 32px rgba(0,0,0,.3);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}' +
+    '#cm-bar{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;transform:translateX(-50%);z-index:2100;display:flex;align-items:center;gap:1px;max-width:94vw;overflow-x:auto;scrollbar-width:none;padding:3px;border-radius:14px;background:linear-gradient(180deg,rgba(28,31,40,.62),rgba(14,16,22,.62));border:1px solid rgba(255,255,255,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 10px 30px -8px rgba(0,0,0,.45);-webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%)}' +
     '#cm-bar::-webkit-scrollbar{display:none}' +
-    '#cm-bar button{border:0;border-radius:99px;padding:6px 10px;background:none;color:#cbd5e1;font:600 11.5px -apple-system,system-ui,sans-serif;cursor:pointer;white-space:nowrap;flex:none;transition:background .18s ease,color .18s ease,transform .15s ease}' +
+    '#cm-bar button,#cm-hbar button{flex:none;width:32px;height:30px;padding:0;border:0;border-radius:10px;background:none;color:rgba(232,236,245,.62);display:grid;place-items:center;cursor:pointer;transition:background .2s ease,color .2s ease}' +
+    '#cm-bar button svg,#cm-hbar button svg{width:18px;height:18px;display:block}' +
     '#cm-bar button:hover{color:#fff}' +
-    '#cm-bar button.on{background:#fff;color:#0f172a;box-shadow:0 2px 10px rgba(255,255,255,.35)}' +
-    '#cm-bar .pl{width:28px;padding:6px 0;margin-left:3px;background:rgba(255,255,255,.16);color:#fff}' +
-    '#cm-bar .pl.on{background:#38bdf8;color:#0f172a}' +
-    '#cm-bar .shp{display:flex;align-items:center;gap:6px;margin-left:2px;color:#fff;background:rgba(255,255,255,.1)}#cm-bar .shp i{display:block;border:1.6px solid currentColor;border-radius:2.5px}#cm-bar .shp i.port{width:8px;height:12px}#cm-bar .shp i.land{width:13px;height:8px}' +
+    '#cm-bar button.on{background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.1));color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 2px 8px rgba(0,0,0,.25)}' +
+    '#cm-bar .sep,#cm-hbar .sep{width:1px;height:16px;margin:0 4px;background:rgba(255,255,255,.14);flex:none}' +
+    '#cm-bar .pl.on{color:#7dd3fc}' +
+    '.cm-mname{position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%) translateY(-4px);padding:4px 10px;border-radius:8px;background:rgba(14,16,22,.7);color:#f1f5f9;font:600 11.5px -apple-system,system-ui,sans-serif;letter-spacing:.04em;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease}' +
+    '.cm-mname.show{opacity:1;transform:translateX(-50%) translateY(0)}#cm-bar,#cm-hbar{overflow:visible}' +
     /* the other shape for each mode (each class is drawn in its own shape by default) */
     '#cm-ov.port .cm-wl{width:214px;height:292px;margin:-146px 0 0 -107px}#cm-ov.port .cm-hx{width:214px;height:296px;margin:-148px 0 0 -107px}' +
     '#cm-ov.port .cm-wl.wi .art,#cm-ov.port .cm-hx.wi .art{height:auto!important;bottom:78px}#cm-ov.port .cm-wl .wg,#cm-ov.port .cm-hx .wg{display:none}#cm-ov.port .cm-wl .wt,#cm-ov.port .cm-hx .wt{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;bottom:30px;font-size:18px!important}' +
@@ -51,8 +73,7 @@
     '#cm-ov .cm-gbar .lv{display:none}#cm-ov .cm-gbar.lean{opacity:1}#cm-ov .cm-gbar.lean .lv{display:inline-block;background:rgba(120,190,255,.35)}html.mn-dock-v #cm-ov .cm-gbar{bottom:calc(env(safe-area-inset-bottom,0px) + 18px)}html.mn-sys-reading #cm-ov .cm-gbar{display:none}' +
     '#cm-ov .cm-hctl{position:absolute;left:0;top:0;width:300px;display:flex;gap:4px;justify-content:center;pointer-events:auto}#cm-ov .cm-hctl button{flex:none;min-width:34px;height:32px;padding:0 10px;border-radius:99px;border:1px solid rgba(255,255,255,.35);background:rgba(20,24,34,.78);color:#fff;font:600 13px -apple-system,system-ui,sans-serif;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}' +
     '#cm-ov .cm-hand.has .cm-hback{display:block}html.mn-dock-v #cm-ov .cm-hback{bottom:calc(env(safe-area-inset-bottom,0px) + 22px)}' +
-    '#cm-bar .sty{margin-left:2px;padding:6px 12px;background:linear-gradient(120deg,rgba(255,255,255,.18),rgba(255,255,255,.06));color:#fff;border:1px solid rgba(255,255,255,.22)}' +
-    '#cm-bar input{width:60px;margin:0 6px 0 4px;accent-color:#38bdf8;align-self:center;flex:none}' +
+    '#cm-bar input{display:none;width:56px;margin:0 6px 0 2px;accent-color:#7dd3fc;align-self:center;flex:none}#cm-bar.playing input{display:block}' +
     'body.cm-on .sf-slot[data-sf-view="coverflow"]>*:not(#cm-ov):not(#cm-bar):not(#xl){visibility:hidden!important}' +
     '#cm-ov{position:absolute;inset:0;z-index:50;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;background:radial-gradient(circle at 50% 42%,rgba(255,255,255,.55),transparent 68%),linear-gradient(155deg,#e2e8f0 0%,#f8fafc 50%,#cbd5e1 100%)}' +
     'body.theme-dark #cm-ov{background:radial-gradient(circle at 50% 38%,rgba(56,189,248,.14),transparent 62%),linear-gradient(160deg,#090d16 0%,#111827 52%,#0b1120 100%)!important}' +
@@ -763,17 +784,19 @@
     if (!bar || bar.parentNode !== slot) {
       if (bar) bar.remove();
       bar = document.createElement('div'); bar.id = 'cm-bar';
-      MODES.forEach(function (x) { var b = document.createElement('button'); b.textContent = x[1]; b.dataset.m = x[0]; b.onclick = function (e) { e.stopPropagation(); setMode(x[0]); }; bar.appendChild(b); });
-      var pl = document.createElement('button'); pl.className = 'pl'; pl.textContent = playing ? '❚❚' : '▶'; pl.title = 'Auto play';
-      pl.onclick = function (e) { e.stopPropagation(); playing = !playing; pl.textContent = playing ? '❚❚' : '▶'; pl.classList.toggle('on', playing); };
+      MODES.forEach(function (x) { var b = document.createElement('button'); b.innerHTML = ico(x[0]); b.title = MZH[x[0]] + ' · ' + x[1]; b.setAttribute('aria-label', MZH[x[0]]); b.dataset.m = x[0]; b.onclick = function (e) { e.stopPropagation(); setMode(x[0]); flashName(bar, MZH[x[0]]); }; bar.appendChild(b); });
+      var sep0 = document.createElement('i'); sep0.className = 'sep'; bar.appendChild(sep0);
+      var pl = document.createElement('button'); pl.className = 'pl'; pl.innerHTML = ico(playing ? 'pause' : 'play'); pl.title = '自动播放';
+      pl.onclick = function (e) { e.stopPropagation(); playing = !playing; pl.innerHTML = ico(playing ? 'pause' : 'play'); pl.classList.toggle('on', playing); bar.classList.toggle('playing', playing); };
+      bar.classList.toggle('playing', playing);
       pl.classList.toggle('on', playing);
       var rg = document.createElement('input'); rg.type = 'range'; rg.min = .25; rg.max = 3; rg.step = .25; rg.value = speed; rg.title = 'Speed';
       rg.oninput = function () { speed = parseFloat(rg.value); try { localStorage.setItem('minest.coverSpeed', speed); } catch (e) {} };
       ['pointerdown', 'click'].forEach(function (ev) { rg.addEventListener(ev, function (e) { e.stopPropagation(); }); });
-      var sty = document.createElement('button'); sty.className = 'sty'; sty.title = '卡片风格'; sty.textContent = '风格';
+      var sty = document.createElement('button'); sty.className = 'sty'; sty.title = '卡片风格'; sty.innerHTML = ico('style');
       sty.onclick = function (e) { e.stopPropagation(); if (window.MinestCardStyles) MinestCardStyles.open(); };
       var shp = document.createElement('button'); shp.className = 'shp'; shp.title = '竖卡 / 横卡';
-      var paintShp = function () { shp.innerHTML = '<i class="' + shape + '"></i>' + (shape === 'port' ? '竖卡' : '横卡'); };
+      var paintShp = function () { shp.innerHTML = ico(shape); shp.title = shape === 'port' ? '竖卡 · 点按换横卡' : '横卡 · 点按换竖卡'; };
       paintShp(); shp.onclick = function (e) { e.stopPropagation(); shape = shape === 'port' ? 'land' : 'port'; try { localStorage.setItem('minest.coverShape', shape); } catch (x) {} paintShp(); sync(true); };
       bar.appendChild(pl); bar.appendChild(rg); bar.appendChild(shp); bar.appendChild(sty);
       slot.appendChild(bar);
@@ -825,10 +848,10 @@
     '#cm-holo .cm-hfx{position:absolute;left:0;top:0;z-index:1200;pointer-events:none}html.mn-sys-reading #cm-holo .cm-hfx{opacity:.6}' +
     '#cm-hbeam{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}' +
     '#cm-holo .cm-free .cm-c:not(.act){box-shadow:0 0 8px rgba(80,200,255,.3),inset 0 0 14px rgba(80,200,255,.12)!important}#cm-holo .cm-free .cm-c.act{box-shadow:0 0 0 1px rgba(214,251,255,.6),0 0 40px rgba(90,215,255,.8),0 24px 50px rgba(0,0,0,.45)!important}' +
-    '#cm-hbar{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;transform:translateX(-50%);z-index:2100;pointer-events:auto;display:flex;align-items:center;gap:2px;max-width:94%;overflow-x:auto;scrollbar-width:none;padding:4px;border-radius:99px;background:rgba(6,30,46,.6);border:1px solid rgba(130,230,255,.45);box-shadow:0 0 22px rgba(80,200,255,.25),inset 0 0 14px rgba(80,200,255,.12);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}' +
-    '#cm-hbar::-webkit-scrollbar{display:none}#cm-hbar button{flex:none;border:0;border-radius:99px;padding:6px 11px;background:none;color:#9fe6ff;font:600 11.5px ui-monospace,Menlo,monospace;letter-spacing:.06em;cursor:pointer;white-space:nowrap;text-shadow:0 0 6px rgba(110,230,255,.6)}' +
-    '#cm-hbar button.on{background:rgba(160,240,255,.92);color:#03202e;text-shadow:none;box-shadow:0 0 14px rgba(140,235,255,.7)}#cm-hbar .sep{width:1px;height:18px;background:rgba(130,230,255,.35);margin:0 4px;flex:none}' +
-    '#cm-hbar .x{width:30px;padding:6px 0;font-size:14px}';
+    '#cm-hbar{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;transform:translateX(-50%);z-index:2100;pointer-events:auto;display:flex;align-items:center;gap:1px;max-width:94%;scrollbar-width:none;padding:3px;border-radius:14px;background:rgba(6,30,46,.6);border:1px solid rgba(130,230,255,.45);box-shadow:0 0 22px rgba(80,200,255,.25),inset 0 0 14px rgba(80,200,255,.12);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}' +
+    '#cm-hbar::-webkit-scrollbar{display:none}#cm-hbar button{color:#9fe6ff}' +
+    '#cm-hbar button.on{background:rgba(160,240,255,.22);color:#e8fdff;box-shadow:inset 0 1px 0 rgba(200,250,255,.35),0 0 12px rgba(140,235,255,.35)}' +
+    '';
   document.head.appendChild(hcss);
 
   /* a tap read from the finger itself (in Spatial Home the room takes the touches, so 'click' may never come) */
@@ -1027,14 +1050,14 @@
     var bar = document.createElement('div'); bar.id = 'cm-hbar'; root.appendChild(bar);
     if (hfx) hfx.destroy(); hfx = HoloFX(root);
     var HM = [['flow', '3D']].concat(MODES.filter(function (x) { return x[0] !== 'flow'; }));
-    HM.forEach(function (x) { var b = document.createElement('button'); b.type = 'button'; b.textContent = x[1]; b.dataset.m = x[0]; tapOn(b, function () { hmode = x[0]; try { localStorage.setItem('minest.holoMode', hmode); } catch (er) {} build(); }); bar.appendChild(b); });
+    HM.forEach(function (x) { var b = document.createElement('button'); b.type = 'button'; b.innerHTML = ico(x[0]); b.title = MZH[x[0]]; b.setAttribute('aria-label', MZH[x[0]]); b.dataset.m = x[0]; tapOn(b, function () { hmode = x[0]; try { localStorage.setItem('minest.holoMode', hmode); } catch (er) {} build(); flashName(bar, MZH[x[0]]); }); bar.appendChild(b); });
     var sep = document.createElement('i'); sep.className = 'sep'; bar.appendChild(sep);
     var shp = document.createElement('button'); shp.type = 'button'; bar.appendChild(shp);
-    var paint = function () { shp.textContent = shape === 'port' ? '竖卡' : '横卡'; [].forEach.call(bar.querySelectorAll('[data-m]'), function (b) { b.classList.toggle('on', b.dataset.m === hmode); }); [].forEach.call(bar.querySelectorAll('.fo'), function (b) { b.style.display = hmode === 'free' ? '' : 'none'; }); };
+    var paint = function () { shp.innerHTML = ico(shape); shp.title = shape === 'port' ? '竖卡' : '横卡'; [].forEach.call(bar.querySelectorAll('[data-m]'), function (b) { b.classList.toggle('on', b.dataset.m === hmode); }); [].forEach.call(bar.querySelectorAll('.fo'), function (b) { b.style.display = hmode === 'free' ? '' : 'none'; }); };
     tapOn(shp, function () { shape = shape === 'port' ? 'land' : 'port'; try { localStorage.setItem('minest.coverShape', shape); } catch (er) {} build(); });
-    var sty = document.createElement('button'); sty.type = 'button'; sty.textContent = '风格'; tapOn(sty, function () { if (window.MinestCardStyles) MinestCardStyles.open(); }); bar.appendChild(sty);
-    if (opt.onLab) { var lab = document.createElement('button'); lab.type = 'button'; lab.textContent = '◈ 文字实验室'; tapOn(lab, function () { holoClose(); opt.onLab(); }); bar.appendChild(lab); }
-    var x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = '✕'; x.title = '关闭全息卡片'; tapOn(x, function () { holoClose(); if (opt.onClose) opt.onClose(); }); bar.appendChild(x);
+    var sty = document.createElement('button'); sty.type = 'button'; sty.innerHTML = ico('style'); sty.title = '卡片风格'; tapOn(sty, function () { if (window.MinestCardStyles) MinestCardStyles.open(); }); bar.appendChild(sty);
+    if (opt.onLab) { var lab = document.createElement('button'); lab.type = 'button'; lab.innerHTML = ico('lab'); lab.title = '全息文字实验室'; tapOn(lab, function () { holoClose(); opt.onLab(); }); bar.appendChild(lab); }
+    var x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.innerHTML = ico('close'); root._close = function () { holoClose(); if (opt.onClose) opt.onClose(); }; x.title = '关闭全息卡片'; tapOn(x, function () { holoClose(); if (opt.onClose) opt.onClose(); }); bar.appendChild(x);
     ['pointerdown', 'touchstart', 'wheel', 'keydown', 'click'].forEach(function (t) { root.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
     var ov = null;
     function build() {
@@ -1080,6 +1103,6 @@
     cancelAnimationFrame(hraf); if (hfx) { hfx.destroy(); hfx = null; }
     if (holoEl) { var e0 = holoEl; holoEl = null; e0.remove(); }
   }
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && holoEl) { var b = holoEl.querySelector('#cm-hbar .x'); if (b) b.click(); } });
-  window.MinestCoverModes = { holo: holo, holoClose: holoClose,  play: function (v) { playing = v === undefined ? !playing : !!v; var b = bar && bar.querySelector('.pl'); if (b) { b.textContent = playing ? '❚❚' : '▶'; b.classList.toggle('on', playing); } }, speed: function (v) { speed = v; }, set: setMode, get: function () { return mode; } };
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && holoEl) { if (holoEl._close) holoEl._close(); } });
+  window.MinestCoverModes = { holo: holo, holoClose: holoClose,  play: function (v) { playing = v === undefined ? !playing : !!v; var b = bar && bar.querySelector('.pl'); if (b) { b.innerHTML = ico(playing ? 'pause' : 'play'); b.classList.toggle('on', playing); bar.classList.toggle('playing', playing); } }, speed: function (v) { speed = v; }, set: setMode, get: function () { return mode; } };
 })();

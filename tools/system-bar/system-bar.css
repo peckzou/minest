@@ -13,6 +13,9 @@ html.mn-sysbar #mn-start-full { display: none !important; }   /* the system keys
 /* Top: the bottom row, moved up under the title bar */
 html.mn-dock-top[data-mn-bd=bottom]:not(.mn-start-active) body .mn-bdock.mn-bdock { top: calc(env(safe-area-inset-top, 0px) + var(--mn-bd-top, 52px) + 6px) !important; bottom: auto !important; }
 
+/* in the room and in My World the Dock (and so the system keys) sits above them — under them it was covered by the
+   room's canvas (z 2147483600), on the opening too, which boots into the room (2026-11-20, the user) */
+html.mn-sysbar[data-mn-ctx=room] body .mn-bdock.mn-bdock, html.mn-sysbar[data-mn-ctx=world] body .mn-bdock.mn-bdock { z-index: 2147483620 !important; }
 /* the system keys: a size down from the apps, never "the app in use" */
 .mn-bdock .mn-bapp.mn-sys-key { flex-shrink: 0; }
 html .mn-bdock .mn-bapp.mn-sys-key { width: calc(var(--mn-key, 40px) * .86) !important; height: calc(var(--mn-key, 40px) * .86) !important; min-width: calc(var(--mn-key, 40px) * .86) !important; }

@@ -182818,385 +182818,6 @@ html.mn70 #minest-pet-raising-overlay .minest-pet-x.idle:active { opacity: 1; }
 <link rel="stylesheet" href="live-games/extra-games.css?v=13-1">
 <script src="live-games/extra-drag.js?v=13-1"></script>
 <script src="live-games/extra-runtime.js?v=13-1"></script>
-<style id="mn-dock-pill-style">
-/* Minest · Pill Dock (2026-11-19). One capsule of neutral graphite glass (white frosted glass on a light page) —
-   no tint: a thin light rim, a soft inner light, a deep soft shadow; white icons with room round them; the app in use
-   in an inset lens with its name. Sizes come from --mn-key (tools/system-bar fits the whole Dock to the screen).
-   Orientation comes from html.mn-dock-v / html.mn-dock-h (set by tools/system-bar from where the Dock really is). */
-html.mn-dock-pill .mn-bdock::before { display: none !important; }
-html.mn-dock-pill .mn-bdock {
-  --pd-ink: #f4f5f7;
-  background: linear-gradient(180deg, rgba(44,46,54,.74) 0%, rgba(24,26,32,.80) 100%) !important;
-  border: 1px solid rgba(255,255,255,.22) !important;
-  border-radius: 999px !important;
-  -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
-  backdrop-filter: blur(24px) saturate(160%) !important;
-  box-shadow: inset 0 1px 1.5px rgba(255,255,255,.22), inset 0 -1px 2px rgba(0,0,0,.25), 0 14px 30px -10px rgba(0,0,0,.55), 0 3px 8px rgba(0,0,0,.2) !important;
-  padding: 5px !important;
-  gap: 4px !important;
-  align-items: center !important;
-  max-width: calc(100vw - 16px) !important;
-  max-height: calc(100vh - 16px) !important;
-  overflow: hidden !important;
-}
-html.mn-dock-pill.mnh-tw .mn-bdock {
-  --pd-ink: #15171c;
-  background: linear-gradient(180deg, rgba(255,255,255,.80) 0%, rgba(238,240,245,.74) 100%) !important;
-  border: 1px solid rgba(255,255,255,.9) !important;
-  box-shadow: inset 0 1.5px 2px rgba(255,255,255,.85), 0 12px 28px -8px rgba(15,23,42,.25) !important;
-}
-html.mn-dock-pill[data-mn-bd=bottom] .mn-bdock { bottom: max(calc(env(safe-area-inset-bottom, 0px) + 8px), 12px) !important; }
-
-/* every app: an icon, no frame */
-html.mn-dock-pill .mn-bapp {
-  width: var(--mn-key, 40px) !important;
-  height: var(--mn-key, 40px) !important;
-  min-width: var(--mn-key, 40px) !important;
-  border-radius: 999px !important;
-  background: transparent !important;
-  border: 1px solid transparent !important;
-  box-shadow: none !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-  color: var(--pd-ink) !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 8px !important;
-  padding: 0 !important;
-  flex-shrink: 0 !important;
-  position: relative !important;
-  transition: background .34s cubic-bezier(.22,1,.36,1), border-color .3s ease, box-shadow .34s ease, padding .34s cubic-bezier(.22,1,.36,1), height .34s cubic-bezier(.22,1,.36,1), width .34s cubic-bezier(.22,1,.36,1) !important;
-}
-html.mn-dock-pill .mn-bapp::before { display: none !important; }
-html.mn-dock-pill .mn-bapp::after { display: none !important; }
-html.mn-dock-pill .mn-bapp svg { width: calc(var(--mn-key, 40px) * .52) !important; height: calc(var(--mn-key, 40px) * .52) !important; flex-shrink: 0 !important; }
-html.mn-dock-pill .mn-bapp img { width: calc(var(--mn-key, 40px) * .55) !important; height: calc(var(--mn-key, 40px) * .55) !important; flex-shrink: 0 !important; border-radius: 50% !important; }
-html.mn-dock-pill .mn-bapp.mn-pill-util { opacity: .78; }
-
-/* the app in use: an inset lens of lighter glass */
-html.mn-dock-pill .mn-bapp.on,
-html.mn-dock-pill .mn-bapp.mn-pill-active {
-  background: linear-gradient(180deg, rgba(255,255,255,.20) 0%, rgba(255,255,255,.10) 100%) !important;
-  border: 1px solid rgba(255,255,255,.42) !important;
-  box-shadow: inset 0 1.5px 3px rgba(255,255,255,.28), 0 4px 10px -4px rgba(0,0,0,.4) !important;
-}
-html.mn-dock-pill.mnh-tw .mn-bapp.on, html.mn-dock-pill.mnh-tw .mn-bapp.mn-pill-active {
-  background: linear-gradient(180deg, rgba(20,24,32,.10) 0%, rgba(20,24,32,.05) 100%) !important;
-  border: 1px solid rgba(255,255,255,.95) !important;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,.08), 0 3px 8px -3px rgba(15,23,42,.18) !important;
-}
-html.mn-dock-pill .mn-bapp.on::after,
-html.mn-dock-pill .mn-bapp.mn-pill-active::after {
-  content: attr(data-pill-label) !important;
-  display: inline-block !important;
-  position: static !important;
-  width: auto !important; height: auto !important;
-  background: none !important; border: 0 !important; box-shadow: none !important;
-  font: 600 12.5px/1 -apple-system, "SF Pro Text", "PingFang SC", system-ui, sans-serif !important;
-  white-space: nowrap !important;
-  color: inherit !important;
-}
-/* standing up: the lens is tall, icon below, the name running up above it */
-html.mn-dock-pill.mn-dock-v .mn-bapp.on,
-html.mn-dock-pill.mn-dock-v .mn-bapp.mn-pill-active {
-  height: auto !important;
-  min-height: calc(var(--mn-key, 40px) * 2.35) !important;
-  flex-direction: column-reverse !important;
-  justify-content: center !important;
-  gap: 8px !important;
-  padding: 12px 0 10px !important;
-}
-html.mn-dock-pill.mn-dock-v .mn-bapp.on::after,
-html.mn-dock-pill.mn-dock-v .mn-bapp.mn-pill-active::after { writing-mode: vertical-rl !important; transform: rotate(180deg) !important; }
-/* lying down: the lens is wide, the name beside the icon */
-html.mn-dock-pill.mn-dock-h .mn-bapp.on,
-html.mn-dock-pill.mn-dock-h .mn-bapp.mn-pill-active { width: auto !important; padding: 0 13px 0 10px !important; }
-@media (prefers-reduced-motion: reduce) { html.mn-dock-pill .mn-bapp { transition: none !important; } }
-</style>
-<script id="mn-dock-pill-js">
-(function () {
-  var KEY = 'mn_dock_pill_v1';
-  var PILL_ICON = '<svg class="miv-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="7" width="19" height="10" rx="5"/><rect x="4.5" y="9" width="8" height="6" rx="3" fill="currentColor" stroke="none" opacity=".35"/><circle cx="16.5" cy="12" r="1.3" fill="currentColor" stroke="none"/></svg>';
-  function isOn() {
-    try { var v = localStorage.getItem(KEY); return v === null ? true : v === '1'; } catch (e) { return true; }
-  }
-  function apply(on) {
-    document.documentElement.classList.toggle('mn-dock-pill', !!on);
-    try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {}
-    syncLabels();
-    if (window.MinestChrome && window.MinestChrome.show) window.MinestChrome.show();
-  }
-  /* the name in the lens: the English part of "Spatial Home · 我的房间", a whole word or two, never cut mid-word */
-  function shortLabel(btn) {
-    var raw = (btn.getAttribute('aria-label') || btn.title || '').trim();
-    if (!raw) return 'App';
-    var clean = raw.split(/\s[·•|—:(]\s?|\s-\s/)[0].trim();
-    if (clean.length > 12) { var w = clean.split(/\s+/); clean = w[0].length <= 12 ? w[0] : w[0].slice(0, 12); }
-    return clean;
-  }
-  var UTIL = /^(close|back|more)\b|关闭|返回|更多/i;   // the dock's own keys never become "the app in use"
-  function isUtil(b) { return b.classList.contains('mn-sys-key') || UTIL.test((b.getAttribute('aria-label') || b.title || '').trim()); }   // the system keys (tools/system-bar) too
-  function syncLabels() {
-    var dock = document.querySelector('.mn-bdock');
-    if (!dock) return;
-    var btns = Array.from(dock.querySelectorAll('.mn-bapp')).filter(function (b) {
-      return getComputedStyle(b).display !== 'none';
-    });
-    var apps = btns.filter(function (b) { return !isUtil(b); });
-    var hasOn = apps.some(function (b) { return b.classList.contains('on'); });
-    var hasActive = apps.some(function (b) { return b.classList.contains('mn-pill-active'); });
-    btns.forEach(function (b) {
-      var util = isUtil(b);
-      b.classList.toggle('mn-pill-util', util);
-      if (util) { b.classList.remove('mn-pill-active'); return; }
-      var lbl = shortLabel(b);
-      if (b.getAttribute('data-pill-label') !== lbl) b.setAttribute('data-pill-label', lbl);
-      if (!b.dataset.mnPillBound) {
-        b.dataset.mnPillBound = '1';
-        b.addEventListener('click', function () {
-          Array.from(dock.querySelectorAll('.mn-bapp')).forEach(function (x) { x.classList.remove('mn-pill-active'); });
-          b.classList.add('mn-pill-active');
-        }, true);
-      }
-      if (hasOn) b.classList.remove('mn-pill-active');
-    });
-    if (!hasOn && !hasActive && apps[0]) apps[0].classList.add('mn-pill-active');
-  }
-  function injectIntoLooksFan(fan) {
-    if (!fan || fan.querySelector('.mn-pill-fan-item')) return;
-    var items = fan.querySelectorAll('.miv-fan-item');
-    if (!items.length) return;
-    var last = items[items.length - 1];
-    var dir = fan.dataset.dir || 'up';
-    var lx = parseFloat(last.style.getPropertyValue('--x')) || 0;
-    var ly = parseFloat(last.style.getPropertyValue('--y')) || 0;
-    var lr = parseFloat(last.style.getPropertyValue('--r')) || 0;
-    var dx = parseFloat(last.style.getPropertyValue('--dx')) || 0;
-    var dy = parseFloat(last.style.getPropertyValue('--dy')) || 0;
-    var nx = dir === 'up' ? lx + 10 : lx;
-    var ny = dir === 'up' ? Math.max(36, ly - 58) : Math.min(innerHeight - 36, ly + 58);
-    var it = document.createElement('button');
-    it.type = 'button';
-    it.className = 'miv-fan-item mn-pill-fan-item';
-    it.setAttribute('role', 'menuitem');
-    it.title = 'Pill Dock · 液态玻璃胶囊 Dock';
-    it.style.setProperty('--x', nx + 'px');
-    it.style.setProperty('--y', ny + 'px');
-    it.style.setProperty('--r', (lr + 1.2) + 'deg');
-    it.style.setProperty('--dx', (dx - (nx - lx)) + 'px');
-    it.style.setProperty('--dy', (dy - (ny - ly)) + 'px');
-    it.style.setProperty('--d', (items.length * 38) + 'ms');
-    it.style.setProperty('--dc', '0ms');
-    it.innerHTML = '<span class="miv-fan-ic">' + PILL_ICON + '</span><span class="miv-fan-label">' + (isOn() ? '经典方块 Dock' : '胶囊玻璃 Dock') + '</span>';
-    function handleToggle(e) {
-      e.stopPropagation();
-      e.preventDefault();
-      apply(!isOn());
-      fan.remove();
-    }
-    it.addEventListener('click', handleToggle);
-    fan.appendChild(it);
-  }
-  window.MinestPillDock = { isOn: isOn, set: apply, toggle: function () { apply(!isOn()); } };
-  apply(isOn());
-  var raf = 0;
-  new MutationObserver(function (muts) {
-    for (var i = 0; i < muts.length; i++) {
-      for (var j = 0; j < muts[i].addedNodes.length; j++) {
-        var n = muts[i].addedNodes[j];
-        if (n && n.nodeType === 1 && n.classList && n.classList.contains('mn-looks-fan')) {
-          injectIntoLooksFan(n);
-        }
-      }
-    }
-    if (raf) return;
-    raf = requestAnimationFrame(function () { raf = 0; syncLabels(); });
-  }).observe(document.documentElement, { childList: true, subtree: true });
-})();
-</script>
-<style id="mn-btn-motion-css">
-/* Crisp Monochrome Geometric Micro-Interactions (inspired by Ramin Nasibov's 36-tile collection) */
-:root {
-  --mn-ease-silky: cubic-bezier(.22, 1, .36, 1);
-  --mn-ease-spring: cubic-bezier(.34, 1.56, .64, 1);
-}
-
-/* Tactile spring press using standalone CSS scale (never clashes with transform!) */
-button:not(.miv-fan-item):not([disabled]) {
-  transition: scale .28s var(--mn-ease-spring), opacity .2s ease;
-  -webkit-tap-highlight-color: transparent;
-}
-button:not(.miv-fan-item):not([disabled]):active {
-  scale: 0.94;
-  transition: scale .09s var(--mn-ease-silky);
-}
-
-/* 01 · BARS: Horizontal Track Scanner sheen on tap */
-button.mn-fx-scan {
-  position: relative;
-  overflow: hidden;
-}
-button.mn-fx-scan::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,.26) 50%, transparent 70%);
-  transform: translateX(-120%);
-  animation: mnFxScan .52s var(--mn-ease-silky) forwards;
-}
-@keyframes mnFxScan {
-  0%   { transform: translateX(-120%); opacity: .9; }
-  100% { transform: translateX(120%);  opacity: 0; }
-}
-
-/* 01 · BARS: Rotating Cross (+ / x / menu) */
-.mn-anim-cross svg, .mn-anim-cross > span:first-child {
-  animation: mnAnimCross .46s var(--mn-ease-spring);
-}
-@keyframes mnAnimCross {
-  0%   { transform: rotate(0deg) scale(1); }
-  45%  { transform: rotate(90deg) scale(0.84); }
-  100% { transform: rotate(90deg) scale(1); }
-}
-
-/* 01 · BARS: Equalizer / Audio Pulse */
-.mn-anim-bars svg {
-  animation: mnAnimBars .52s var(--mn-ease-spring);
-}
-@keyframes mnAnimBars {
-  0%   { transform: scaleY(1); }
-  25%  { transform: scaleY(0.72) scaleX(1.08); }
-  55%  { transform: scaleY(1.18) scaleX(0.94); }
-  80%  { transform: scaleY(0.92); }
-  100% { transform: scaleY(1); }
-}
-
-/* 02 · SQUARES: Rocking / Sliding Tile (Kanban / Boards / Cards) */
-.mn-anim-square svg {
-  animation: mnAnimSquare .48s var(--mn-ease-spring);
-}
-@keyframes mnAnimSquare {
-  0%   { transform: rotate(0deg) scale(1); }
-  30%  { transform: rotate(-10deg) scale(0.88); }
-  65%  { transform: rotate(6deg) scale(1.10); }
-  100% { transform: rotate(0deg) scale(1); }
-}
-
-/* 03 · ORBIT: Smooth Tapered Spin (Sync / Refresh / Looks / Sparkle) */
-.mn-anim-orbit svg {
-  animation: mnAnimOrbit .62s var(--mn-ease-silky);
-}
-@keyframes mnAnimOrbit {
-  0%   { transform: rotate(0deg) scale(1); }
-  35%  { transform: rotate(160deg) scale(1.14); }
-  100% { transform: rotate(360deg) scale(1); }
-}
-
-/* 04 · PROGRESS: Checkmark Pop + Draw-In */
-.mn-anim-check svg {
-  animation: mnAnimCheck .46s var(--mn-ease-spring);
-}
-@keyframes mnAnimCheck {
-  0%   { transform: scale(0.7); opacity: .6; }
-  55%  { transform: scale(1.22); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-/* 04 · PROGRESS: Directional Pill Glide (Next / Prev / 完整 App >) */
-.mn-anim-glide-r svg {
-  animation: mnAnimGlideR .42s var(--mn-ease-spring);
-}
-@keyframes mnAnimGlideR {
-  0%   { transform: translateX(0); }
-  45%  { transform: translateX(4px) scale(1.08); }
-  100% { transform: translateX(0); }
-}
-.mn-anim-glide-l svg {
-  animation: mnAnimGlideL .42s var(--mn-ease-spring);
-}
-@keyframes mnAnimGlideL {
-  0%   { transform: translateX(0); }
-  45%  { transform: translateX(-4px) scale(1.08); }
-  100% { transform: translateX(0); }
-}
-
-/* 06 · OBJECTS: Ringing Bell (top-pivot damped swing) */
-.mn-anim-bell svg {
-  transform-origin: 50% 15%;
-  animation: mnAnimBell .62s var(--mn-ease-silky);
-}
-@keyframes mnAnimBell {
-  0%   { transform: rotate(0deg); }
-  18%  { transform: rotate(16deg); }
-  38%  { transform: rotate(-14deg); }
-  58%  { transform: rotate(9deg); }
-  78%  { transform: rotate(-5deg); }
-  100% { transform: rotate(0deg); }
-}
-
-/* 06 · OBJECTS: Starburst Pop (Favorite / Star / Award) */
-.mn-anim-star svg {
-  animation: mnAnimStar .54s var(--mn-ease-spring);
-}
-@keyframes mnAnimStar {
-  0%   { transform: scale(1) rotate(0deg); }
-  35%  { transform: scale(1.28) rotate(24deg); }
-  70%  { transform: scale(0.92) rotate(-8deg); }
-  100% { transform: scale(1) rotate(0deg); }
-}
-
-/* Default Crisp Geometric Tap Pop for any icon button */
-.mn-anim-pop svg {
-  animation: mnAnimPop .42s var(--mn-ease-spring);
-}
-@keyframes mnAnimPop {
-  0%   { transform: scale(1); }
-  40%  { transform: scale(0.82); }
-  75%  { transform: scale(1.12); }
-  100% { transform: scale(1); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  button, button::after, button svg { animation: none !important; transition: none !important; }
-}
-</style>
-<script id="mn-btn-motion-js">
-(function () {
-  var ALL = ['mn-fx-scan','mn-anim-cross','mn-anim-bars','mn-anim-square','mn-anim-orbit','mn-anim-check','mn-anim-glide-r','mn-anim-glide-l','mn-anim-bell','mn-anim-star','mn-anim-pop'];
-  function pickAnim(btn) {
-    var txt = ((btn.getAttribute('aria-label') || '') + ' ' + (btn.title || '') + ' ' + (btn.textContent || '')).toLowerCase();
-    if (/bell|notif|remind|提醒|通知|闹钟/.test(txt)) return 'mn-anim-bell';
-    if (/star|fav|bookmark|award|badge|收藏|勋章/.test(txt)) return 'mn-anim-star';
-    if (/check|done|complete|学会|完成|✓|✔/.test(txt)) return 'mn-anim-check';
-    if (/sync|refresh|reload|looks|fx|light|dark|theme|外观|刷新|同步/.test(txt)) return 'mn-anim-orbit';
-    if (/audio|voice|speak|read|sound|mic|朗读|语音|听/.test(txt)) return 'mn-anim-bars';
-    if (/prev|back|left|上一|返回|‹|◀|←/.test(txt)) return 'mn-anim-glide-l';
-    if (/next|forward|right|完整 app|开始|下一|›|▶|→/.test(txt)) return 'mn-anim-glide-r';
-    if (/add|new|plus|close|menu|加|新建|\+|✕|×/.test(txt)) return 'mn-anim-cross';
-    if (/board|kanban|list|card|wallet|grid|看板|列表|闪卡|书桌/.test(txt)) return 'mn-anim-square';
-    return 'mn-anim-pop';
-  }
-  document.addEventListener('click', function (e) {
-    var btn = e.target && e.target.closest && e.target.closest('button');
-    if (!btn || btn.disabled || btn.classList.contains('miv-fan-item')) return;
-    var anim = pickAnim(btn);
-    ALL.forEach(function (c) { btn.classList.remove(c); });
-    void btn.offsetWidth;
-    btn.classList.add(anim);
-    // Add subtle horizontal scanner sweep to pill/solid buttons (skip tiny icon-only buttons < 56px)
-    if (btn.offsetWidth >= 56 && getComputedStyle(btn).position !== 'static' || btn.classList.contains('mn-bapp')) {
-      btn.classList.add('mn-fx-scan');
-    }
-    clearTimeout(btn._mnAnimT);
-    btn._mnAnimT = setTimeout(function () {
-      btn.classList.remove(anim);
-      btn.classList.remove('mn-fx-scan');
-    }, 680);
-  }, true);
-})();
-</script>
 <style id="mn-spatial-home-css">
 /* Minest · Spatial Home — everything is scoped under #mn-sh (and the sh- ids), so it can live inside the Minest page. */
 #mn-sh, #sh-host, #sh-veil, #sh-pill { --sh-ink: #1d2b4f; --sh-blue: #2f6fd6; --sh-paper: #fbf7ee; --sh-glass: rgba(251, 247, 238, .82); --sh-line: rgba(29, 43, 79, .14); }
@@ -195741,6 +195362,9 @@ html.mn-sysbar #mn-start-full { display: none !important; }   /* the system keys
 /* Top: the bottom row, moved up under the title bar */
 html.mn-dock-top[data-mn-bd=bottom]:not(.mn-start-active) body .mn-bdock.mn-bdock { top: calc(env(safe-area-inset-top, 0px) + var(--mn-bd-top, 52px) + 6px) !important; bottom: auto !important; }
 
+/* in the room and in My World the Dock (and so the system keys) sits above them — under them it was covered by the
+   room's canvas (z 2147483600), on the opening too, which boots into the room (2026-11-20, the user) */
+html.mn-sysbar[data-mn-ctx=room] body .mn-bdock.mn-bdock, html.mn-sysbar[data-mn-ctx=world] body .mn-bdock.mn-bdock { z-index: 2147483620 !important; }
 /* the system keys: a size down from the apps, never "the app in use" */
 .mn-bdock .mn-bapp.mn-sys-key { flex-shrink: 0; }
 html .mn-bdock .mn-bapp.mn-sys-key { width: calc(var(--mn-key, 40px) * .86) !important; height: calc(var(--mn-key, 40px) * .86) !important; min-width: calc(var(--mn-key, 40px) * .86) !important; }
@@ -196058,6 +195682,26 @@ html.mn-dock-pill[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-pill-active, htm
   var shape = 'port'; try { shape = localStorage.getItem('minest.coverShape') === 'land' ? 'land' : 'port'; } catch (e) {}
   var KEY = 'minest.coverMode', mode = 'flow', playing = false, speed = 1, fanT = 0, ov = null, bar = null, eng = null, sig = '';
   try { mode = localStorage.getItem(KEY) || 'flow'; speed = parseFloat(localStorage.getItem('minest.coverSpeed')) || 1; } catch (e) {}
+
+  /* the mode bar's icons (2026-11-20, the user: the bar took too much room and did not look refined) — one line each */
+  var ICO = {
+    flow: '<path d="M3 7.5l4-1.5v12l-4-1.5zM21 7.5l-4-1.5v12l4-1.5z"/><rect x="8.5" y="4.5" width="7" height="15" rx="1.4"/>',
+    wall: '<rect x="3.5" y="4.5" width="7" height="6" rx="1.2"/><rect x="13.5" y="4.5" width="7" height="6" rx="1.2"/><rect x="3.5" y="13.5" width="7" height="6" rx="1.2"/><rect x="13.5" y="13.5" width="7" height="6" rx="1.2"/>',
+    fan: '<rect x="9" y="4" width="6" height="11" rx="1.2"/><path d="M8 7.5l-4.2 1.2 2.4 9.4 4.4-1.2M16 7.5l4.2 1.2-2.4 9.4-4.4-1.2"/><path d="M8 20.5h8"/>',
+    helix: '<path d="M8 3c8 3 8 6 0 9s-8 6 0 9M16 3c-8 3-8 6 0 9s8 6 0 9"/>',
+    stack: '<rect x="5" y="11" width="14" height="9" rx="1.4"/><path d="M7 8h10M9 5h6"/>',
+    spiral: '<path d="M12 12.5a1.5 1.5 0 1 1 1.6-1.5 3 3 0 0 1-3 3.3 4.5 4.5 0 0 1-4.6-4.6A6 6 0 0 1 12 3.8a7.6 7.6 0 0 1 7.8 7.8A9 9 0 0 1 11 20.5"/>',
+    orbit: '<ellipse cx="12" cy="12" rx="9.5" ry="4.2"/><rect x="9.5" y="7" width="5" height="7" rx="1"/><circle cx="20" cy="13.6" r="1.1" fill="currentColor" stroke="none"/>',
+    sphere: '<circle cx="12" cy="12" r="8.5"/><ellipse cx="12" cy="12" rx="3.6" ry="8.5"/><path d="M3.6 12h16.8"/>',
+    wave: '<path d="M2.5 12c2.4-5 4.8-5 7.1 0s4.8 5 7.2 0 3.4-3.3 4.7-2"/><circle cx="9.6" cy="12" r="1" fill="currentColor" stroke="none"/>',
+    play: '<path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="none"/>', pause: '<rect x="7" y="5.5" width="3.4" height="13" rx="1" fill="currentColor" stroke="none"/><rect x="13.6" y="5.5" width="3.4" height="13" rx="1" fill="currentColor" stroke="none"/>',
+    port: '<rect x="7.5" y="3.5" width="9" height="17" rx="2"/>', land: '<rect x="3.5" y="7.5" width="17" height="9" rx="2"/>',
+    style: '<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.6-.9 1.2-1.8-.5-1-.1-2.2 1.2-2.2H17a3.5 3.5 0 0 0 3.5-3.5c0-5.3-3.8-9.5-8.5-9.5z"/><circle cx="7.8" cy="11" r="1.1" fill="currentColor" stroke="none"/><circle cx="10.5" cy="7.4" r="1.1" fill="currentColor" stroke="none"/><circle cx="14.8" cy="7.6" r="1.1" fill="currentColor" stroke="none"/>',
+    close: '<path d="M6 6l12 12M18 6L6 18"/>', lab: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>'
+  };
+  var MZH = { flow: '3D 封面', wall: '卡片墙', fan: '扇形', helix: '螺旋', stack: '叠放', spiral: '旋涡', orbit: '轨道', sphere: '球体', wave: '波浪' };
+  function ico(k) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICO[k] || '') + '</svg>'; }
+  function flashName(host, txt) { var n = host.querySelector('.cm-mname'); if (!n) { n = document.createElement('div'); n.className = 'cm-mname'; host.appendChild(n); } n.textContent = txt; n.classList.remove('show'); void n.offsetWidth; n.classList.add('show'); clearTimeout(n._t); n._t = setTimeout(function () { n.classList.remove('show'); }, 1300); }
   var calm = false; try { calm = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
   /* a soft tick and a light tap when a card comes to the front (not while playing on its own) */
   var lastLand = 0;
@@ -196071,14 +195715,16 @@ html.mn-dock-pill[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-pill-active, htm
 
   var css = document.createElement('style');
   css.textContent =
-    '#cm-bar{position:absolute;top:44px;left:50%;transform:translateX(-50%);z-index:2100;display:flex;align-items:center;gap:2px;max-width:96vw;overflow-x:auto;scrollbar-width:none;padding:4px 6px;border-radius:99px;background:rgba(15,18,26,.8);border:1px solid rgba(255,255,255,.18);box-shadow:0 12px 32px rgba(0,0,0,.3);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}' +
+    '#cm-bar{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;transform:translateX(-50%);z-index:2100;display:flex;align-items:center;gap:1px;max-width:94vw;overflow-x:auto;scrollbar-width:none;padding:3px;border-radius:14px;background:linear-gradient(180deg,rgba(28,31,40,.62),rgba(14,16,22,.62));border:1px solid rgba(255,255,255,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 10px 30px -8px rgba(0,0,0,.45);-webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%)}' +
     '#cm-bar::-webkit-scrollbar{display:none}' +
-    '#cm-bar button{border:0;border-radius:99px;padding:6px 10px;background:none;color:#cbd5e1;font:600 11.5px -apple-system,system-ui,sans-serif;cursor:pointer;white-space:nowrap;flex:none;transition:background .18s ease,color .18s ease,transform .15s ease}' +
+    '#cm-bar button,#cm-hbar button{flex:none;width:32px;height:30px;padding:0;border:0;border-radius:10px;background:none;color:rgba(232,236,245,.62);display:grid;place-items:center;cursor:pointer;transition:background .2s ease,color .2s ease}' +
+    '#cm-bar button svg,#cm-hbar button svg{width:18px;height:18px;display:block}' +
     '#cm-bar button:hover{color:#fff}' +
-    '#cm-bar button.on{background:#fff;color:#0f172a;box-shadow:0 2px 10px rgba(255,255,255,.35)}' +
-    '#cm-bar .pl{width:28px;padding:6px 0;margin-left:3px;background:rgba(255,255,255,.16);color:#fff}' +
-    '#cm-bar .pl.on{background:#38bdf8;color:#0f172a}' +
-    '#cm-bar .shp{display:flex;align-items:center;gap:6px;margin-left:2px;color:#fff;background:rgba(255,255,255,.1)}#cm-bar .shp i{display:block;border:1.6px solid currentColor;border-radius:2.5px}#cm-bar .shp i.port{width:8px;height:12px}#cm-bar .shp i.land{width:13px;height:8px}' +
+    '#cm-bar button.on{background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.1));color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 2px 8px rgba(0,0,0,.25)}' +
+    '#cm-bar .sep,#cm-hbar .sep{width:1px;height:16px;margin:0 4px;background:rgba(255,255,255,.14);flex:none}' +
+    '#cm-bar .pl.on{color:#7dd3fc}' +
+    '.cm-mname{position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%) translateY(-4px);padding:4px 10px;border-radius:8px;background:rgba(14,16,22,.7);color:#f1f5f9;font:600 11.5px -apple-system,system-ui,sans-serif;letter-spacing:.04em;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease}' +
+    '.cm-mname.show{opacity:1;transform:translateX(-50%) translateY(0)}#cm-bar,#cm-hbar{overflow:visible}' +
     /* the other shape for each mode (each class is drawn in its own shape by default) */
     '#cm-ov.port .cm-wl{width:214px;height:292px;margin:-146px 0 0 -107px}#cm-ov.port .cm-hx{width:214px;height:296px;margin:-148px 0 0 -107px}' +
     '#cm-ov.port .cm-wl.wi .art,#cm-ov.port .cm-hx.wi .art{height:auto!important;bottom:78px}#cm-ov.port .cm-wl .wg,#cm-ov.port .cm-hx .wg{display:none}#cm-ov.port .cm-wl .wt,#cm-ov.port .cm-hx .wt{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;bottom:30px;font-size:18px!important}' +
@@ -196093,8 +195739,7 @@ html.mn-dock-pill[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-pill-active, htm
     '#cm-ov .cm-gbar .lv{display:none}#cm-ov .cm-gbar.lean{opacity:1}#cm-ov .cm-gbar.lean .lv{display:inline-block;background:rgba(120,190,255,.35)}html.mn-dock-v #cm-ov .cm-gbar{bottom:calc(env(safe-area-inset-bottom,0px) + 18px)}html.mn-sys-reading #cm-ov .cm-gbar{display:none}' +
     '#cm-ov .cm-hctl{position:absolute;left:0;top:0;width:300px;display:flex;gap:4px;justify-content:center;pointer-events:auto}#cm-ov .cm-hctl button{flex:none;min-width:34px;height:32px;padding:0 10px;border-radius:99px;border:1px solid rgba(255,255,255,.35);background:rgba(20,24,34,.78);color:#fff;font:600 13px -apple-system,system-ui,sans-serif;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}' +
     '#cm-ov .cm-hand.has .cm-hback{display:block}html.mn-dock-v #cm-ov .cm-hback{bottom:calc(env(safe-area-inset-bottom,0px) + 22px)}' +
-    '#cm-bar .sty{margin-left:2px;padding:6px 12px;background:linear-gradient(120deg,rgba(255,255,255,.18),rgba(255,255,255,.06));color:#fff;border:1px solid rgba(255,255,255,.22)}' +
-    '#cm-bar input{width:60px;margin:0 6px 0 4px;accent-color:#38bdf8;align-self:center;flex:none}' +
+    '#cm-bar input{display:none;width:56px;margin:0 6px 0 2px;accent-color:#7dd3fc;align-self:center;flex:none}#cm-bar.playing input{display:block}' +
     'body.cm-on .sf-slot[data-sf-view="coverflow"]>*:not(#cm-ov):not(#cm-bar):not(#xl){visibility:hidden!important}' +
     '#cm-ov{position:absolute;inset:0;z-index:50;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;background:radial-gradient(circle at 50% 42%,rgba(255,255,255,.55),transparent 68%),linear-gradient(155deg,#e2e8f0 0%,#f8fafc 50%,#cbd5e1 100%)}' +
     'body.theme-dark #cm-ov{background:radial-gradient(circle at 50% 38%,rgba(56,189,248,.14),transparent 62%),linear-gradient(160deg,#090d16 0%,#111827 52%,#0b1120 100%)!important}' +
@@ -196805,17 +196450,19 @@ html.mn-dock-pill[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-pill-active, htm
     if (!bar || bar.parentNode !== slot) {
       if (bar) bar.remove();
       bar = document.createElement('div'); bar.id = 'cm-bar';
-      MODES.forEach(function (x) { var b = document.createElement('button'); b.textContent = x[1]; b.dataset.m = x[0]; b.onclick = function (e) { e.stopPropagation(); setMode(x[0]); }; bar.appendChild(b); });
-      var pl = document.createElement('button'); pl.className = 'pl'; pl.textContent = playing ? '❚❚' : '▶'; pl.title = 'Auto play';
-      pl.onclick = function (e) { e.stopPropagation(); playing = !playing; pl.textContent = playing ? '❚❚' : '▶'; pl.classList.toggle('on', playing); };
+      MODES.forEach(function (x) { var b = document.createElement('button'); b.innerHTML = ico(x[0]); b.title = MZH[x[0]] + ' · ' + x[1]; b.setAttribute('aria-label', MZH[x[0]]); b.dataset.m = x[0]; b.onclick = function (e) { e.stopPropagation(); setMode(x[0]); flashName(bar, MZH[x[0]]); }; bar.appendChild(b); });
+      var sep0 = document.createElement('i'); sep0.className = 'sep'; bar.appendChild(sep0);
+      var pl = document.createElement('button'); pl.className = 'pl'; pl.innerHTML = ico(playing ? 'pause' : 'play'); pl.title = '自动播放';
+      pl.onclick = function (e) { e.stopPropagation(); playing = !playing; pl.innerHTML = ico(playing ? 'pause' : 'play'); pl.classList.toggle('on', playing); bar.classList.toggle('playing', playing); };
+      bar.classList.toggle('playing', playing);
       pl.classList.toggle('on', playing);
       var rg = document.createElement('input'); rg.type = 'range'; rg.min = .25; rg.max = 3; rg.step = .25; rg.value = speed; rg.title = 'Speed';
       rg.oninput = function () { speed = parseFloat(rg.value); try { localStorage.setItem('minest.coverSpeed', speed); } catch (e) {} };
       ['pointerdown', 'click'].forEach(function (ev) { rg.addEventListener(ev, function (e) { e.stopPropagation(); }); });
-      var sty = document.createElement('button'); sty.className = 'sty'; sty.title = '卡片风格'; sty.textContent = '风格';
+      var sty = document.createElement('button'); sty.className = 'sty'; sty.title = '卡片风格'; sty.innerHTML = ico('style');
       sty.onclick = function (e) { e.stopPropagation(); if (window.MinestCardStyles) MinestCardStyles.open(); };
       var shp = document.createElement('button'); shp.className = 'shp'; shp.title = '竖卡 / 横卡';
-      var paintShp = function () { shp.innerHTML = '<i class="' + shape + '"></i>' + (shape === 'port' ? '竖卡' : '横卡'); };
+      var paintShp = function () { shp.innerHTML = ico(shape); shp.title = shape === 'port' ? '竖卡 · 点按换横卡' : '横卡 · 点按换竖卡'; };
       paintShp(); shp.onclick = function (e) { e.stopPropagation(); shape = shape === 'port' ? 'land' : 'port'; try { localStorage.setItem('minest.coverShape', shape); } catch (x) {} paintShp(); sync(true); };
       bar.appendChild(pl); bar.appendChild(rg); bar.appendChild(shp); bar.appendChild(sty);
       slot.appendChild(bar);
@@ -196867,10 +196514,10 @@ html.mn-dock-pill[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-pill-active, htm
     '#cm-holo .cm-hfx{position:absolute;left:0;top:0;z-index:1200;pointer-events:none}html.mn-sys-reading #cm-holo .cm-hfx{opacity:.6}' +
     '#cm-hbeam{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}' +
     '#cm-holo .cm-free .cm-c:not(.act){box-shadow:0 0 8px rgba(80,200,255,.3),inset 0 0 14px rgba(80,200,255,.12)!important}#cm-holo .cm-free .cm-c.act{box-shadow:0 0 0 1px rgba(214,251,255,.6),0 0 40px rgba(90,215,255,.8),0 24px 50px rgba(0,0,0,.45)!important}' +
-    '#cm-hbar{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;transform:translateX(-50%);z-index:2100;pointer-events:auto;display:flex;align-items:center;gap:2px;max-width:94%;overflow-x:auto;scrollbar-width:none;padding:4px;border-radius:99px;background:rgba(6,30,46,.6);border:1px solid rgba(130,230,255,.45);box-shadow:0 0 22px rgba(80,200,255,.25),inset 0 0 14px rgba(80,200,255,.12);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}' +
-    '#cm-hbar::-webkit-scrollbar{display:none}#cm-hbar button{flex:none;border:0;border-radius:99px;padding:6px 11px;background:none;color:#9fe6ff;font:600 11.5px ui-monospace,Menlo,monospace;letter-spacing:.06em;cursor:pointer;white-space:nowrap;text-shadow:0 0 6px rgba(110,230,255,.6)}' +
-    '#cm-hbar button.on{background:rgba(160,240,255,.92);color:#03202e;text-shadow:none;box-shadow:0 0 14px rgba(140,235,255,.7)}#cm-hbar .sep{width:1px;height:18px;background:rgba(130,230,255,.35);margin:0 4px;flex:none}' +
-    '#cm-hbar .x{width:30px;padding:6px 0;font-size:14px}';
+    '#cm-hbar{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;transform:translateX(-50%);z-index:2100;pointer-events:auto;display:flex;align-items:center;gap:1px;max-width:94%;scrollbar-width:none;padding:3px;border-radius:14px;background:rgba(6,30,46,.6);border:1px solid rgba(130,230,255,.45);box-shadow:0 0 22px rgba(80,200,255,.25),inset 0 0 14px rgba(80,200,255,.12);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}' +
+    '#cm-hbar::-webkit-scrollbar{display:none}#cm-hbar button{color:#9fe6ff}' +
+    '#cm-hbar button.on{background:rgba(160,240,255,.22);color:#e8fdff;box-shadow:inset 0 1px 0 rgba(200,250,255,.35),0 0 12px rgba(140,235,255,.35)}' +
+    '';
   document.head.appendChild(hcss);
 
   /* a tap read from the finger itself (in Spatial Home the room takes the touches, so 'click' may never come) */
@@ -197069,14 +196716,14 @@ html.mn-dock-pill[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-pill-active, htm
     var bar = document.createElement('div'); bar.id = 'cm-hbar'; root.appendChild(bar);
     if (hfx) hfx.destroy(); hfx = HoloFX(root);
     var HM = [['flow', '3D']].concat(MODES.filter(function (x) { return x[0] !== 'flow'; }));
-    HM.forEach(function (x) { var b = document.createElement('button'); b.type = 'button'; b.textContent = x[1]; b.dataset.m = x[0]; tapOn(b, function () { hmode = x[0]; try { localStorage.setItem('minest.holoMode', hmode); } catch (er) {} build(); }); bar.appendChild(b); });
+    HM.forEach(function (x) { var b = document.createElement('button'); b.type = 'button'; b.innerHTML = ico(x[0]); b.title = MZH[x[0]]; b.setAttribute('aria-label', MZH[x[0]]); b.dataset.m = x[0]; tapOn(b, function () { hmode = x[0]; try { localStorage.setItem('minest.holoMode', hmode); } catch (er) {} build(); flashName(bar, MZH[x[0]]); }); bar.appendChild(b); });
     var sep = document.createElement('i'); sep.className = 'sep'; bar.appendChild(sep);
     var shp = document.createElement('button'); shp.type = 'button'; bar.appendChild(shp);
-    var paint = function () { shp.textContent = shape === 'port' ? '竖卡' : '横卡'; [].forEach.call(bar.querySelectorAll('[data-m]'), function (b) { b.classList.toggle('on', b.dataset.m === hmode); }); [].forEach.call(bar.querySelectorAll('.fo'), function (b) { b.style.display = hmode === 'free' ? '' : 'none'; }); };
+    var paint = function () { shp.innerHTML = ico(shape); shp.title = shape === 'port' ? '竖卡' : '横卡'; [].forEach.call(bar.querySelectorAll('[data-m]'), function (b) { b.classList.toggle('on', b.dataset.m === hmode); }); [].forEach.call(bar.querySelectorAll('.fo'), function (b) { b.style.display = hmode === 'free' ? '' : 'none'; }); };
     tapOn(shp, function () { shape = shape === 'port' ? 'land' : 'port'; try { localStorage.setItem('minest.coverShape', shape); } catch (er) {} build(); });
-    var sty = document.createElement('button'); sty.type = 'button'; sty.textContent = '风格'; tapOn(sty, function () { if (window.MinestCardStyles) MinestCardStyles.open(); }); bar.appendChild(sty);
-    if (opt.onLab) { var lab = document.createElement('button'); lab.type = 'button'; lab.textContent = '◈ 文字实验室'; tapOn(lab, function () { holoClose(); opt.onLab(); }); bar.appendChild(lab); }
-    var x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = '✕'; x.title = '关闭全息卡片'; tapOn(x, function () { holoClose(); if (opt.onClose) opt.onClose(); }); bar.appendChild(x);
+    var sty = document.createElement('button'); sty.type = 'button'; sty.innerHTML = ico('style'); sty.title = '卡片风格'; tapOn(sty, function () { if (window.MinestCardStyles) MinestCardStyles.open(); }); bar.appendChild(sty);
+    if (opt.onLab) { var lab = document.createElement('button'); lab.type = 'button'; lab.innerHTML = ico('lab'); lab.title = '全息文字实验室'; tapOn(lab, function () { holoClose(); opt.onLab(); }); bar.appendChild(lab); }
+    var x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.innerHTML = ico('close'); root._close = function () { holoClose(); if (opt.onClose) opt.onClose(); }; x.title = '关闭全息卡片'; tapOn(x, function () { holoClose(); if (opt.onClose) opt.onClose(); }); bar.appendChild(x);
     ['pointerdown', 'touchstart', 'wheel', 'keydown', 'click'].forEach(function (t) { root.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
     var ov = null;
     function build() {
@@ -197122,8 +196769,8 @@ html.mn-dock-pill[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-pill-active, htm
     cancelAnimationFrame(hraf); if (hfx) { hfx.destroy(); hfx = null; }
     if (holoEl) { var e0 = holoEl; holoEl = null; e0.remove(); }
   }
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && holoEl) { var b = holoEl.querySelector('#cm-hbar .x'); if (b) b.click(); } });
-  window.MinestCoverModes = { holo: holo, holoClose: holoClose,  play: function (v) { playing = v === undefined ? !playing : !!v; var b = bar && bar.querySelector('.pl'); if (b) { b.textContent = playing ? '❚❚' : '▶'; b.classList.toggle('on', playing); } }, speed: function (v) { speed = v; }, set: setMode, get: function () { return mode; } };
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && holoEl) { if (holoEl._close) holoEl._close(); } });
+  window.MinestCoverModes = { holo: holo, holoClose: holoClose,  play: function (v) { playing = v === undefined ? !playing : !!v; var b = bar && bar.querySelector('.pl'); if (b) { b.innerHTML = ico(playing ? 'pause' : 'play'); b.classList.toggle('on', playing); bar.classList.toggle('playing', playing); } }, speed: function (v) { speed = v; }, set: setMode, get: function () { return mode; } };
 })();
 </script>
 <script id="mn-card-styles-js">
@@ -198030,6 +197677,393 @@ html.mn-dock-pill[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-pill-active, htm
     return out;
   }
   window.MinestExplode = { open: open, close: close, isOpen: function () { return !!cur; }, facts: facts, parts: parts, breakdown: breakdown };
+})();
+</script>
+<style id="mn-dock-pill-style">
+/* Minest · Pill Dock (2026-11-19). One capsule of neutral graphite glass (white frosted glass on a light page) —
+   no tint: a thin light rim, a soft inner light, a deep soft shadow; white icons with room round them; the app in use
+   in an inset lens with its name. Sizes come from --mn-key (tools/system-bar fits the whole Dock to the screen).
+   Orientation comes from html.mn-dock-v / html.mn-dock-h (set by tools/system-bar from where the Dock really is). */
+html.mn-dock-pill .mn-bdock::before { display: none !important; }
+html.mn-dock-pill .mn-bdock {
+  --pd-ink: #f4f5f7;
+  background: linear-gradient(180deg, rgba(44,46,54,.74) 0%, rgba(24,26,32,.80) 100%) !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
+  border-radius: 999px !important;
+  -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
+  backdrop-filter: blur(24px) saturate(160%) !important;
+  box-shadow: inset 0 1px 1.5px rgba(255,255,255,.22), inset 0 -1px 2px rgba(0,0,0,.25), 0 14px 30px -10px rgba(0,0,0,.55), 0 3px 8px rgba(0,0,0,.2) !important;
+  padding: 5px !important;
+  gap: 4px !important;
+  align-items: center !important;
+  max-width: calc(100vw - 16px) !important;
+  max-height: calc(100vh - 16px) !important;
+  overflow: hidden !important;
+}
+html.mn-dock-pill.mnh-tw .mn-bdock {
+  --pd-ink: #15171c;
+  background: linear-gradient(180deg, rgba(255,255,255,.80) 0%, rgba(238,240,245,.74) 100%) !important;
+  border: 1px solid rgba(255,255,255,.9) !important;
+  box-shadow: inset 0 1.5px 2px rgba(255,255,255,.85), 0 12px 28px -8px rgba(15,23,42,.25) !important;
+}
+html.mn-dock-pill[data-mn-bd=bottom] .mn-bdock { bottom: max(calc(env(safe-area-inset-bottom, 0px) + 8px), 12px) !important; }
+
+/* every app: an icon, no frame */
+html.mn-dock-pill .mn-bapp {
+  width: var(--mn-key, 40px) !important;
+  height: var(--mn-key, 40px) !important;
+  min-width: var(--mn-key, 40px) !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  color: var(--pd-ink) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 0 !important;
+  flex-shrink: 0 !important;
+  position: relative !important;
+  transition: background .34s cubic-bezier(.22,1,.36,1), border-color .3s ease, box-shadow .34s ease, padding .34s cubic-bezier(.22,1,.36,1), height .34s cubic-bezier(.22,1,.36,1), width .34s cubic-bezier(.22,1,.36,1) !important;
+}
+html.mn-dock-pill .mn-bapp::before { display: none !important; }
+html.mn-dock-pill .mn-bapp::after { display: none !important; }
+html.mn-dock-pill .mn-bapp svg { width: calc(var(--mn-key, 40px) * .52) !important; height: calc(var(--mn-key, 40px) * .52) !important; flex-shrink: 0 !important; }
+html.mn-dock-pill .mn-bapp img { width: calc(var(--mn-key, 40px) * .55) !important; height: calc(var(--mn-key, 40px) * .55) !important; flex-shrink: 0 !important; border-radius: 50% !important; }
+html.mn-dock-pill .mn-bapp.mn-pill-util { opacity: .78; }
+
+/* the app in use: an inset lens of lighter glass */
+html.mn-dock-pill .mn-bapp.on,
+html.mn-dock-pill .mn-bapp.mn-pill-active {
+  background: linear-gradient(180deg, rgba(255,255,255,.20) 0%, rgba(255,255,255,.10) 100%) !important;
+  border: 1px solid rgba(255,255,255,.42) !important;
+  box-shadow: inset 0 1.5px 3px rgba(255,255,255,.28), 0 4px 10px -4px rgba(0,0,0,.4) !important;
+}
+html.mn-dock-pill.mnh-tw .mn-bapp.on, html.mn-dock-pill.mnh-tw .mn-bapp.mn-pill-active {
+  background: linear-gradient(180deg, rgba(20,24,32,.10) 0%, rgba(20,24,32,.05) 100%) !important;
+  border: 1px solid rgba(255,255,255,.95) !important;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.08), 0 3px 8px -3px rgba(15,23,42,.18) !important;
+}
+html.mn-dock-pill .mn-bapp.on::after,
+html.mn-dock-pill .mn-bapp.mn-pill-active::after {
+  content: attr(data-pill-label) !important;
+  display: inline-block !important;
+  position: static !important;
+  width: auto !important; height: auto !important;
+  background: none !important; border: 0 !important; box-shadow: none !important;
+  font: 600 12.5px/1 -apple-system, "SF Pro Text", "PingFang SC", system-ui, sans-serif !important;
+  white-space: nowrap !important;
+  color: inherit !important;
+}
+/* standing up: the lens is tall, icon below, the name running up above it */
+html.mn-dock-pill.mn-dock-v .mn-bapp.on,
+html.mn-dock-pill.mn-dock-v .mn-bapp.mn-pill-active {
+  height: auto !important;
+  min-height: calc(var(--mn-key, 40px) * 2.35) !important;
+  flex-direction: column-reverse !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 12px 0 10px !important;
+}
+html.mn-dock-pill.mn-dock-v .mn-bapp.on::after,
+html.mn-dock-pill.mn-dock-v .mn-bapp.mn-pill-active::after { writing-mode: vertical-rl !important; transform: rotate(180deg) !important; }
+/* lying down: the lens is wide, the name beside the icon */
+html.mn-dock-pill.mn-dock-h .mn-bapp.on,
+html.mn-dock-pill.mn-dock-h .mn-bapp.mn-pill-active { width: auto !important; padding: 0 13px 0 10px !important; }
+@media (prefers-reduced-motion: reduce) { html.mn-dock-pill .mn-bapp { transition: none !important; } }
+
+/* 2026-11-20 (the user: no names in the Dock): the app in use is its icon in the lens, the same size as the others —
+   no name beside it or running up it */
+html.mn-dock-pill .mn-bapp.on::after, html.mn-dock-pill .mn-bapp.mn-pill-active::after { content: none !important; display: none !important; }
+html.mn-dock-pill.mn-dock-v .mn-bapp.on, html.mn-dock-pill.mn-dock-v .mn-bapp.mn-pill-active,
+html.mn-dock-pill.mn-dock-h .mn-bapp.on, html.mn-dock-pill.mn-dock-h .mn-bapp.mn-pill-active {
+  width: var(--mn-key, 40px) !important; height: var(--mn-key, 40px) !important; min-height: 0 !important; padding: 0 !important; flex-direction: row !important; gap: 0 !important;
+}
+</style>
+<script id="mn-dock-pill-js">
+(function () {
+  var KEY = 'mn_dock_pill_v1';
+  var PILL_ICON = '<svg class="miv-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="7" width="19" height="10" rx="5"/><rect x="4.5" y="9" width="8" height="6" rx="3" fill="currentColor" stroke="none" opacity=".35"/><circle cx="16.5" cy="12" r="1.3" fill="currentColor" stroke="none"/></svg>';
+  function isOn() {
+    try { var v = localStorage.getItem(KEY); return v === null ? true : v === '1'; } catch (e) { return true; }
+  }
+  function apply(on) {
+    document.documentElement.classList.toggle('mn-dock-pill', !!on);
+    try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {}
+    syncLabels();
+    if (window.MinestChrome && window.MinestChrome.show) window.MinestChrome.show();
+  }
+  /* the name in the lens: the English part of "Spatial Home · 我的房间", a whole word or two, never cut mid-word */
+  function shortLabel(btn) {
+    var raw = (btn.getAttribute('aria-label') || btn.title || '').trim();
+    if (!raw) return 'App';
+    var clean = raw.split(/\s[·•|—:(]\s?|\s-\s/)[0].trim();
+    if (clean.length > 12) { var w = clean.split(/\s+/); clean = w[0].length <= 12 ? w[0] : w[0].slice(0, 12); }
+    return clean;
+  }
+  var UTIL = /^(close|back|more)\b|关闭|返回|更多/i;   // the dock's own keys never become "the app in use"
+  function isUtil(b) { return b.classList.contains('mn-sys-key') || UTIL.test((b.getAttribute('aria-label') || b.title || '').trim()); }   // the system keys (tools/system-bar) too
+  function syncLabels() {
+    var dock = document.querySelector('.mn-bdock');
+    if (!dock) return;
+    var btns = Array.from(dock.querySelectorAll('.mn-bapp')).filter(function (b) {
+      return getComputedStyle(b).display !== 'none';
+    });
+    var apps = btns.filter(function (b) { return !isUtil(b); });
+    var hasOn = apps.some(function (b) { return b.classList.contains('on'); });
+    var hasActive = apps.some(function (b) { return b.classList.contains('mn-pill-active'); });
+    btns.forEach(function (b) {
+      var util = isUtil(b);
+      b.classList.toggle('mn-pill-util', util);
+      if (util) { b.classList.remove('mn-pill-active'); return; }
+      var lbl = shortLabel(b);
+      if (b.getAttribute('data-pill-label') !== lbl) b.setAttribute('data-pill-label', lbl);
+      if (!b.dataset.mnPillBound) {
+        b.dataset.mnPillBound = '1';
+        b.addEventListener('click', function () {
+          Array.from(dock.querySelectorAll('.mn-bapp')).forEach(function (x) { x.classList.remove('mn-pill-active'); });
+          b.classList.add('mn-pill-active');
+        }, true);
+      }
+      if (hasOn) b.classList.remove('mn-pill-active');
+    });
+    if (!hasOn && !hasActive && apps[0]) apps[0].classList.add('mn-pill-active');
+  }
+  function injectIntoLooksFan(fan) {
+    if (!fan || fan.querySelector('.mn-pill-fan-item')) return;
+    var items = fan.querySelectorAll('.miv-fan-item');
+    if (!items.length) return;
+    var last = items[items.length - 1];
+    var dir = fan.dataset.dir || 'up';
+    var lx = parseFloat(last.style.getPropertyValue('--x')) || 0;
+    var ly = parseFloat(last.style.getPropertyValue('--y')) || 0;
+    var lr = parseFloat(last.style.getPropertyValue('--r')) || 0;
+    var dx = parseFloat(last.style.getPropertyValue('--dx')) || 0;
+    var dy = parseFloat(last.style.getPropertyValue('--dy')) || 0;
+    var nx = dir === 'up' ? lx + 10 : lx;
+    var ny = dir === 'up' ? Math.max(36, ly - 58) : Math.min(innerHeight - 36, ly + 58);
+    var it = document.createElement('button');
+    it.type = 'button';
+    it.className = 'miv-fan-item mn-pill-fan-item';
+    it.setAttribute('role', 'menuitem');
+    it.title = 'Pill Dock · 液态玻璃胶囊 Dock';
+    it.style.setProperty('--x', nx + 'px');
+    it.style.setProperty('--y', ny + 'px');
+    it.style.setProperty('--r', (lr + 1.2) + 'deg');
+    it.style.setProperty('--dx', (dx - (nx - lx)) + 'px');
+    it.style.setProperty('--dy', (dy - (ny - ly)) + 'px');
+    it.style.setProperty('--d', (items.length * 38) + 'ms');
+    it.style.setProperty('--dc', '0ms');
+    it.innerHTML = '<span class="miv-fan-ic">' + PILL_ICON + '</span><span class="miv-fan-label">' + (isOn() ? '经典方块 Dock' : '胶囊玻璃 Dock') + '</span>';
+    function handleToggle(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      apply(!isOn());
+      fan.remove();
+    }
+    it.addEventListener('click', handleToggle);
+    fan.appendChild(it);
+  }
+  window.MinestPillDock = { isOn: isOn, set: apply, toggle: function () { apply(!isOn()); } };
+  apply(isOn());
+  var raf = 0;
+  new MutationObserver(function (muts) {
+    for (var i = 0; i < muts.length; i++) {
+      for (var j = 0; j < muts[i].addedNodes.length; j++) {
+        var n = muts[i].addedNodes[j];
+        if (n && n.nodeType === 1 && n.classList && n.classList.contains('mn-looks-fan')) {
+          injectIntoLooksFan(n);
+        }
+      }
+    }
+    if (raf) return;
+    raf = requestAnimationFrame(function () { raf = 0; syncLabels(); });
+  }).observe(document.documentElement, { childList: true, subtree: true });
+})();
+</script>
+<style id="mn-btn-motion-css">
+/* Crisp Monochrome Geometric Micro-Interactions (inspired by Ramin Nasibov's 36-tile collection) */
+:root {
+  --mn-ease-silky: cubic-bezier(.22, 1, .36, 1);
+  --mn-ease-spring: cubic-bezier(.34, 1.56, .64, 1);
+}
+
+/* Tactile spring press using standalone CSS scale (never clashes with transform!) */
+button:not(.miv-fan-item):not([disabled]) {
+  transition: scale .28s var(--mn-ease-spring), opacity .2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+button:not(.miv-fan-item):not([disabled]):active {
+  scale: 0.94;
+  transition: scale .09s var(--mn-ease-silky);
+}
+
+/* 01 · BARS: Horizontal Track Scanner sheen on tap */
+button.mn-fx-scan {
+  position: relative;
+  overflow: hidden;
+}
+button.mn-fx-scan::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,.26) 50%, transparent 70%);
+  transform: translateX(-120%);
+  animation: mnFxScan .52s var(--mn-ease-silky) forwards;
+}
+@keyframes mnFxScan {
+  0%   { transform: translateX(-120%); opacity: .9; }
+  100% { transform: translateX(120%);  opacity: 0; }
+}
+
+/* 01 · BARS: Rotating Cross (+ / x / menu) */
+.mn-anim-cross svg, .mn-anim-cross > span:first-child {
+  animation: mnAnimCross .46s var(--mn-ease-spring);
+}
+@keyframes mnAnimCross {
+  0%   { transform: rotate(0deg) scale(1); }
+  45%  { transform: rotate(90deg) scale(0.84); }
+  100% { transform: rotate(90deg) scale(1); }
+}
+
+/* 01 · BARS: Equalizer / Audio Pulse */
+.mn-anim-bars svg {
+  animation: mnAnimBars .52s var(--mn-ease-spring);
+}
+@keyframes mnAnimBars {
+  0%   { transform: scaleY(1); }
+  25%  { transform: scaleY(0.72) scaleX(1.08); }
+  55%  { transform: scaleY(1.18) scaleX(0.94); }
+  80%  { transform: scaleY(0.92); }
+  100% { transform: scaleY(1); }
+}
+
+/* 02 · SQUARES: Rocking / Sliding Tile (Kanban / Boards / Cards) */
+.mn-anim-square svg {
+  animation: mnAnimSquare .48s var(--mn-ease-spring);
+}
+@keyframes mnAnimSquare {
+  0%   { transform: rotate(0deg) scale(1); }
+  30%  { transform: rotate(-10deg) scale(0.88); }
+  65%  { transform: rotate(6deg) scale(1.10); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+/* 03 · ORBIT: Smooth Tapered Spin (Sync / Refresh / Looks / Sparkle) */
+.mn-anim-orbit svg {
+  animation: mnAnimOrbit .62s var(--mn-ease-silky);
+}
+@keyframes mnAnimOrbit {
+  0%   { transform: rotate(0deg) scale(1); }
+  35%  { transform: rotate(160deg) scale(1.14); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+/* 04 · PROGRESS: Checkmark Pop + Draw-In */
+.mn-anim-check svg {
+  animation: mnAnimCheck .46s var(--mn-ease-spring);
+}
+@keyframes mnAnimCheck {
+  0%   { transform: scale(0.7); opacity: .6; }
+  55%  { transform: scale(1.22); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* 04 · PROGRESS: Directional Pill Glide (Next / Prev / 完整 App >) */
+.mn-anim-glide-r svg {
+  animation: mnAnimGlideR .42s var(--mn-ease-spring);
+}
+@keyframes mnAnimGlideR {
+  0%   { transform: translateX(0); }
+  45%  { transform: translateX(4px) scale(1.08); }
+  100% { transform: translateX(0); }
+}
+.mn-anim-glide-l svg {
+  animation: mnAnimGlideL .42s var(--mn-ease-spring);
+}
+@keyframes mnAnimGlideL {
+  0%   { transform: translateX(0); }
+  45%  { transform: translateX(-4px) scale(1.08); }
+  100% { transform: translateX(0); }
+}
+
+/* 06 · OBJECTS: Ringing Bell (top-pivot damped swing) */
+.mn-anim-bell svg {
+  transform-origin: 50% 15%;
+  animation: mnAnimBell .62s var(--mn-ease-silky);
+}
+@keyframes mnAnimBell {
+  0%   { transform: rotate(0deg); }
+  18%  { transform: rotate(16deg); }
+  38%  { transform: rotate(-14deg); }
+  58%  { transform: rotate(9deg); }
+  78%  { transform: rotate(-5deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* 06 · OBJECTS: Starburst Pop (Favorite / Star / Award) */
+.mn-anim-star svg {
+  animation: mnAnimStar .54s var(--mn-ease-spring);
+}
+@keyframes mnAnimStar {
+  0%   { transform: scale(1) rotate(0deg); }
+  35%  { transform: scale(1.28) rotate(24deg); }
+  70%  { transform: scale(0.92) rotate(-8deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+/* Default Crisp Geometric Tap Pop for any icon button */
+.mn-anim-pop svg {
+  animation: mnAnimPop .42s var(--mn-ease-spring);
+}
+@keyframes mnAnimPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(0.82); }
+  75%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button, button::after, button svg { animation: none !important; transition: none !important; }
+}
+</style>
+<script id="mn-btn-motion-js">
+(function () {
+  var ALL = ['mn-fx-scan','mn-anim-cross','mn-anim-bars','mn-anim-square','mn-anim-orbit','mn-anim-check','mn-anim-glide-r','mn-anim-glide-l','mn-anim-bell','mn-anim-star','mn-anim-pop'];
+  function pickAnim(btn) {
+    var txt = ((btn.getAttribute('aria-label') || '') + ' ' + (btn.title || '') + ' ' + (btn.textContent || '')).toLowerCase();
+    if (/bell|notif|remind|提醒|通知|闹钟/.test(txt)) return 'mn-anim-bell';
+    if (/star|fav|bookmark|award|badge|收藏|勋章/.test(txt)) return 'mn-anim-star';
+    if (/check|done|complete|学会|完成|✓|✔/.test(txt)) return 'mn-anim-check';
+    if (/sync|refresh|reload|looks|fx|light|dark|theme|外观|刷新|同步/.test(txt)) return 'mn-anim-orbit';
+    if (/audio|voice|speak|read|sound|mic|朗读|语音|听/.test(txt)) return 'mn-anim-bars';
+    if (/prev|back|left|上一|返回|‹|◀|←/.test(txt)) return 'mn-anim-glide-l';
+    if (/next|forward|right|完整 app|开始|下一|›|▶|→/.test(txt)) return 'mn-anim-glide-r';
+    if (/add|new|plus|close|menu|加|新建|\+|✕|×/.test(txt)) return 'mn-anim-cross';
+    if (/board|kanban|list|card|wallet|grid|看板|列表|闪卡|书桌/.test(txt)) return 'mn-anim-square';
+    return 'mn-anim-pop';
+  }
+  document.addEventListener('click', function (e) {
+    var btn = e.target && e.target.closest && e.target.closest('button');
+    if (!btn || btn.disabled || btn.classList.contains('miv-fan-item')) return;
+    var anim = pickAnim(btn);
+    ALL.forEach(function (c) { btn.classList.remove(c); });
+    void btn.offsetWidth;
+    btn.classList.add(anim);
+    // Add subtle horizontal scanner sweep to pill/solid buttons (skip tiny icon-only buttons < 56px)
+    if (btn.offsetWidth >= 56 && getComputedStyle(btn).position !== 'static' || btn.classList.contains('mn-bapp')) {
+      btn.classList.add('mn-fx-scan');
+    }
+    clearTimeout(btn._mnAnimT);
+    btn._mnAnimT = setTimeout(function () {
+      btn.classList.remove(anim);
+      btn.classList.remove('mn-fx-scan');
+    }, 680);
+  }, true);
 })();
 </script>
 </body>
