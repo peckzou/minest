@@ -139,6 +139,7 @@
     [].forEach.call(document.querySelectorAll('#vt-word [data-say]'), function (b) { b.onclick = function (e) { e.stopPropagation(); sayCur(); }; });
     // what comes next (跟打 shows the line ahead)
     $('#vt-next').innerHTML = run.kind === 'follow' ? run.list.slice(run.i + 1, run.i + 6).map(function (x) { return '<span>' + esc(x.cn ? x.hz : x.hz) + '</span>'; }).join('') : '';
+    var wr = $('#vt-word').getBoundingClientRect(); $('#vt-next').style.top = Math.round(wr.bottom + 10) + 'px';   // the words ahead, under the card (top left)
     $('#vt-count').textContent = (run.i + 1) + ' / ' + run.list.length;
     $('#vt-acc').textContent = acc() + '%';
     $('#vt-cpm').textContent = run.t0 ? rate() : '—';

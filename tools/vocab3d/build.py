@@ -28,10 +28,15 @@ def student():
     (ROOT / 'vocab3d.html').write_text(page, encoding='utf-8')
     print('vocab3d: wrote vocab3d.html (%d KB)' % (len(page) // 1024))
     # Knowledge Drive for students: the drive (sfx, drive, cars) and the same join / progress script
-    KD = ROOT / 'tools' / 'knowledge-drive'
+    # every Dynamic presentation (as tools/knowledge-drive/patch_knowledge_drive.py puts them in Minest, without its gallery entry)
+    KD = ROOT / 'tools' / 'knowledge-drive'; RAIL = ROOT / 'tools' / 'knowledge-rail'; BAL = ROOT / 'tools' / 'knowledge-balloon'
+    import subprocess, sys; subprocess.run([sys.executable, str(RAIL / 'build_common.py')], check=True, capture_output=True)
+    dcss = '\n'.join((d / f).read_text(encoding='utf-8') for d, f in [(KD, 'drive.css'), (RAIL, 'rail.css'), (RAIL, 'phase3.css'), (KD, 'duo-dyn.css'), (BAL, 'balloon.css')])
+    djs = '\n'.join(read(d / f) for d, f in [(KD, 'sfx.js'), (KD, 'drive.js'), (KD, 'cars.js'), (RAIL, 'rail-common.js'), (RAIL, 'train.js'), (RAIL, 'metro.js'), (RAIL, 'tower.js'),
+                                             (RAIL, 'showcase-common.js'), (RAIL, 'rack.js'), (RAIL, 'library.js'), (RAIL, 'museum.js'), (RAIL, 'city.js'), (RAIL, 'galaxy.js'), (BAL, 'balloon.js')])
     page = (HERE / 'drive.html').read_text(encoding='utf-8')
-    for k, v in [('{{CSS}}', (HERE / 'student.css').read_text(encoding='utf-8')), ('{{DRIVE_CSS}}', (KD / 'drive.css').read_text(encoding='utf-8')),
-                 ('{{DRIVE_JS}}', '\n'.join(read(KD / f) for f in ('sfx.js', 'drive.js', 'cars.js'))), ('{{STUDENT}}', read(HERE / 'student.js'))]:
+    for k, v in [('{{CSS}}', (HERE / 'student.css').read_text(encoding='utf-8')), ('{{DRIVE_CSS}}', dcss),
+                 ('{{DRIVE_JS}}', djs), ('{{STUDENT}}', read(HERE / 'student.js'))]:
         page = page.replace(k, v)
     (ROOT / 'vocab-drive.html').write_text(page, encoding='utf-8')
     print('vocab3d: wrote vocab-drive.html (%d KB)' % (len(page) // 1024))

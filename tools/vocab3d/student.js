@@ -6,7 +6,7 @@
   'use strict';
   var DB = 'https://minest-33761-default-rtdb.firebaseio.com/minest-live/';
   var qs = new URLSearchParams(location.search), PREVIEW = qs.has('preview');
-  var VIEW = window.__V3_VIEW || 'cards';   // 'cards' (vocab3d.html) or 'drive' (vocab-drive.html): how the teacher chose to present the words
+  var VIEW = window.__V3_VIEW || 'cards';   // the page: 'cards' (vocab3d.html), 'dyn' (vocab-drive.html: the Dynamic presentations), 'type' (vocab-type.html)
   function db(path, method, body) {
     return fetch(DB + path + '.json', { method: method || 'GET', headers: body ? { 'Content-Type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' })
       .then(function (r) { if (!r.ok) throw new Error('网络错误（' + r.status + '）'); return r.json(); });
@@ -86,17 +86,24 @@
     try { K = JSON.parse(ls('minest.vocab3d.k.' + code) || '{}') || {}; } catch (e) { K = {}; }
     B.title = host.title; B.columns = (host.board.columns || []).map(function (col) { return { id: col.id, title: col.title, color: col.color, cards: (col.cards || []).map(function (c) { return raw(c, col); }) }; });
     CARDS = []; B.columns.forEach(function (c) { CARDS = CARDS.concat(c.cards); });
-    document.title = host.title + (VIEW === 'drive' ? ' · Knowledge Drive' : VIEW === 'type' ? ' · 3D Type' : ' · 3D 词卡');
     $('#v3-ttl').textContent = host.title;
     if (host.state === 'ended') banner('老师已经结束了这个作业：还可以看，进度不再记录。');
-    if (PREVIEW) banner('老师预览：这里的标记不会记进学生进度。');
+    // (a teacher's preview says so in the Solo bar: no banner over the cards)
     save();   // the teacher sees the student as soon as they are in (on the level map too)
     route();
   }
 
   /* ---------------- the game modes: the teacher switches them on and off; the level map lights the ones that are on ---------------- */
-  var PAGE = { cards: 'vocab3d.html', drive: 'vocab-drive.html', type: 'vocab-type.html' };
-  var MODE = [['cards', '🧊', '3D 词卡', '九种 3D 动态卡片，展开每个词'], ['drive', '🚗', 'Knowledge Drive', '坐车沿路看词，每个词表一条路'], ['type', '⌨️', '3D Type', '拼音打字：跟打 + 四关闯关']];
+  /* every game mode: 3D 词卡, the eleven Dynamic presentations (one page: vocab-drive.html), 3D Type */
+  var MODE = [['cards', '🧊', '3D 词卡', '九种 3D 动态卡片，展开每个词'],
+    ['drive', '🚗', 'Knowledge Drive', '坐车沿路看词，每个词表一条路'], ['train', '🚆', 'Knowledge Train', '坐在车窗边，每个词表一条铁路'],
+    ['metro', '🚇', 'Knowledge Metro', '每个词表一条地铁线，每个词一站'], ['tower', '🏙', 'Knowledge Skyscraper', '坐电梯逛玻璃大楼，每层一组词'],
+    ['roadtrip', '🛣', 'Road Trip', '沿着有名的公路自驾看词'], ['rack', '🎠', 'Rotating Rack', '旋转展架：转一转，挑一个拿出来'],
+    ['library', '📚', 'Library Corridor', '走进图书馆长廊，从书架上抽书'], ['museum', '🏛', 'Museum Walkthrough', '逛博物馆：画、雕塑、展柜'],
+    ['city', '🌆', 'Knowledge City', '逛街：每个词表一家店'], ['galaxy', '🌌', 'Knowledge Galaxy', '开飞船，降落在每个星球'],
+    ['balloon', '🎈', 'Knowledge Balloon', '坐热气球飘过每个词'], ['type', '⌨️', '3D Type', '拼音打字：跟打 + 四关闯关']];
+  var PAGE = {}; MODE.forEach(function (x) { PAGE[x[0]] = x[0] === 'cards' ? 'vocab3d.html' : x[0] === 'type' ? 'vocab-type.html' : 'vocab-drive.html'; });
+  var HERE = VIEW === 'cards' ? 'vocab3d.html' : VIEW === 'type' ? 'vocab-type.html' : 'vocab-drive.html', CUR = null;
   function modes() { var m = host.modes; if (!m) { m = {}; m[host.view === 'drive' || host.view === 'type' ? host.view : 'cards'] = true; } return MODE.filter(function (x) { return m[x[0]]; }).map(function (x) { return x[0]; }); }
   function url(m, hub) { return PAGE[m || 'cards'] + '?code=' + encodeURIComponent(code) + (m ? '&m=' + m : '') + (hub ? '&hub=1' : '') + (PREVIEW ? '&preview=1' : ''); }
   var inMode = false;
@@ -107,11 +114,12 @@
     hub();
   }
   function go(m) {
-    if (m !== VIEW) { location.replace(url(m)); return; }
+    if (PAGE[m] !== HERE) { location.replace(url(m)); return; }
+    CUR = m;
     var H = $('#v3-hub'); if (H) H.hidden = true;
     inMode = true; document.body.classList.add('v3-on');
     if (modes().length > 1) homeKey();
-    begin();
+    begin(m);
   }
   function homeKey() {
     if ($('#v3-home')) return;
@@ -125,14 +133,15 @@
     var H = $('#v3-hub'); if (!H) { H = document.createElement('div'); H.id = 'v3-hub'; document.body.appendChild(H); }
     H.hidden = false; document.body.classList.remove('v3-on');
     var on = modes(), c = counts(), N = CARDS.length || 1;
-    var prog = { cards: '会了 ' + c.known + ' / ' + CARDS.length, drive: '看过 ' + c.seen + ' / ' + CARDS.length, type: '★ ' + stars() + ' / 12' };
-    var pct = { cards: c.known / N, drive: c.seen / N, type: stars() / 12 };
+    var prog = {}, pct = {};
+    MODE.forEach(function (x) { prog[x[0]] = '看过 ' + c.seen + ' / ' + CARDS.length; pct[x[0]] = c.seen / N; });
+    prog.cards = '会了 ' + c.known + ' / ' + CARDS.length; pct.cards = c.known / N; prog.type = '★ ' + stars() + ' / 12'; pct.type = stars() / 12;
     H.innerHTML = '<div class="hb-in"><div class="hb-top"><b>' + esc(host.title) + '</b><span>' + esc(me) + '</span></div><h1>选一个关卡</h1>' +
       '<div class="hb-modes">' + MODE.map(function (x, i) {
         var open = on.indexOf(x[0]) >= 0;
         return '<button type="button" class="hb-m m' + i + (open ? '' : ' off') + '" data-m="' + x[0] + '"' + (open ? '' : ' disabled') + '><span class="ic">' + x[1] + '</span><b>' + x[2] + '</b><small>' + x[3] + '</small>' +
           (open ? '<span class="pg"><i style="width:' + Math.round(pct[x[0]] * 100) + '%"></i></span><em>' + prog[x[0]] + '</em>' : '<em class="lk">🔒 老师还没开放</em>') + '</button>';
-      }).join('') + '</div>' + (host.state === 'ended' ? '<p class="hb-note">老师已经结束了这个作业：还可以玩，进度不再记录。</p>' : '') + (PREVIEW ? '<p class="hb-note">老师预览：不计入学生进度。</p>' : '') + '</div>';
+      }).join('') + '</div>' + (host.state === 'ended' ? '<p class="hb-note">老师已经结束了这个作业：还可以玩，进度不再记录。</p>' : '') + '' + '</div>';
     [].forEach.call(H.querySelectorAll('[data-m]'), function (b) { b.onclick = function () { if (!b.disabled) go(b.getAttribute('data-m')); }; });
   }
   /* the teacher's switches, heard every few seconds: the level map follows; a mode switched off sends you back to it */
@@ -141,14 +150,15 @@
     db(code + '/host/modes').then(function (m) {
       if (!m) return; var before = JSON.stringify(host.modes || null); host.modes = m;
       if (JSON.stringify(m) === before) return;
-      if (inMode && !m[VIEW]) { banner('老师关闭了这个模式，回到关卡地图…'); setTimeout(function () { location.href = url(null, true); }, 1800); return; }
+      if (inMode && CUR && !m[CUR]) { banner('老师关闭了这个模式，回到关卡地图…'); setTimeout(function () { location.href = url(null, true); }, 1800); return; }
       if (!inMode && $('#v3-hub') && !$('#v3-hub').hidden) hub();
       if (inMode && modes().length > 1) homeKey();
     }).catch(function () {});
   }, 6000);
 
-  function begin() {
-    if (VIEW === 'drive') { drive(); paintPill(); save(); return; }
+  function begin(m) {
+    document.title = host.title + ' · ' + (MODE.filter(function (x) { return x[0] === m; })[0] || ['', '', '3D 词卡'])[2];
+    if (VIEW === 'dyn') { dyn(m); paintPill(); save(); return; }
     if (VIEW === 'type') {
       if (window.V3Type) window.V3Type.start({ cards: CARDS, code: code, mark: function (c, v) { var k0 = key(c.id); if ((K[k0] || 0) < v) { K[k0] = v; save(); } }, extra: function (o) { EXTRA = o; synced = ''; save(); } });
       paintPill(); save(); return;
@@ -169,18 +179,19 @@
       }) };
     }) };
   }
-  var DB2 = null;
-  function drive() {
+  var DB2 = null, DYN = { drive: 'MinestDrive', roadtrip: 'MinestDrive', train: 'MinestTrain', metro: 'MinestMetro', tower: 'MinestTower', rack: 'MinestRack', library: 'MinestLibrary', museum: 'MinestMuseum', city: 'MinestCity', galaxy: 'MinestGalaxy', balloon: 'MinestBalloon' };
+  function dyn(m) {
     var end = $('#v3-end'); end.hidden = true;
-    if (!window.MinestDrive || !window.THREE) { banner('这台设备打不开 3D 驾驶（WebGL 不可用）。'); return; }
+    var api = window[DYN[m] || 'MinestDrive'];
+    if (!api || !window.THREE) { banner('这台设备打不开这个 3D 呈现（WebGL 不可用）。'); return; }
     DB2 = DB2 || driveBoard();
     var P = { boards: function () { return [DB2]; }, openCard: null };
-    try {
-      window.MinestDrive.open({ source: { type: 'board', bid: DB2.id }, provider: P, fresh: false, onExit: function () { end.hidden = false; } });
-    } catch (e) { banner('打不开 3D 驾驶：' + (e.message || e)); }
+    var o = { source: { type: 'board', bid: DB2.id }, provider: P, fresh: false, onExit: function () { end.hidden = false; } };
+    if (m === 'roadtrip') o.style = 'ca1';
+    try { api.open(o); } catch (e) { banner('打不开：' + (e.message || e)); }
   }
-  $('#v3-end [data-again]') && ($('#v3-end [data-again]').onclick = function () { drive(); });
-  function driveFocus() { try { var d = window.MinestDrive && MinestDrive.current(); var f = d && d.state && d.state().focus; return f || null; } catch (e) { return null; } }
+  $('#v3-end [data-again]') && ($('#v3-end [data-again]').onclick = function () { dyn(CUR || 'drive'); });
+  function driveFocus() { if (CUR !== 'drive' && CUR !== 'roadtrip') return null; try { var d = window.MinestDrive && MinestDrive.current(); var f = d && d.state && d.state().focus; return f || null; } catch (e) { return null; } }
   function banner(t) { var b = $('#v3-banner'); b.textContent = t; b.hidden = false; }
 
   /* the word in view: the exploded card open on it; "我会了" / "再看看" */
@@ -194,7 +205,7 @@
   function paintMark() {
     var m = $('#v3-mark'), open;
     if (VIEW === 'type') { m.hidden = true; document.body.classList.toggle('vt-playing', !!(document.getElementById('vt-play') && !document.getElementById('vt-play').hidden)); return; }
-    if (VIEW === 'drive') {   // the billboard in focus is the word in view
+    if (VIEW === 'dyn') {   // the drive: the billboard in focus is the word in view
       var t = driveFocus(); open = !!t;
       if (t) { var c0 = CARDS.filter(function (x) { return x.title === t; })[0]; if (c0 && c0 !== cur) { cur = c0; if (!K[key(c0.id)]) { K[key(c0.id)] = 1; save(); } } }
       m.hidden = !open || !cur; document.body.classList.toggle('v3-xl', open);

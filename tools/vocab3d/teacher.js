@@ -67,6 +67,7 @@
   /* ---------------- the look ---------------- */
   var css = document.createElement('style');
   /* the look: Minest Live's (Blooket-like) — a purple room, white chunky cards, Titan One titles, buttons that press down */
+  var PAL = ['#0bc2cf', '#ff9f1c', '#3d8bfd', '#7b2ff7', '#00a69c', '#e8505b', '#ff4f7b', '#a46bff', '#c98a1c', '#ff7a59', '#4b11b8', '#22b35e', '#ff4f7b'];   // a colour per mode (the students' level map uses the same)
   var INK = '#2f2a3d', MUTE = '#7a7090', PURP = '#7b2ff7', DEEP = '#4b11b8', TEAL = '#0bc2cf', GOLD = '#ffcc00';
   var TITLE = '"Titan One","Lilita One",Nunito,system-ui,sans-serif', BODY = 'Nunito,"Nunito Sans",ui-rounded,system-ui,sans-serif';
   var BTN = 'border:0;border-radius:14px;font-family:' + TITLE + ';font-weight:400;letter-spacing:.02em;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.18);box-shadow:inset 0 -6px 0 rgba(0,0,0,.22),0 4px 10px rgba(40,0,90,.2);padding:11px 18px 15px;cursor:pointer';
@@ -97,12 +98,12 @@
     '#v3t .v3-sw{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:4px 0 6px}#v3t .v3-sw button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 8px 14px;border:0;border-radius:16px;background:#c9c2d8;color:#fff;cursor:pointer;box-shadow:inset 0 -6px 0 rgba(0,0,0,.14);font-family:' + BODY + '}',
     '#v3t .v3-sw button span{font-size:26px;filter:grayscale(1);opacity:.7}#v3t .v3-sw button b{font:400 15px ' + TITLE + ';letter-spacing:.02em}#v3t .v3-sw button i{font-style:normal;font:400 13px ' + TITLE + ';padding:2px 12px 4px;border-radius:9px;background:rgba(0,0,0,.18)}',
     '#v3t .v3-sw button.on{background:#22b35e;box-shadow:inset 0 -6px 0 rgba(0,0,0,.22)}#v3t .v3-sw button.on span{filter:none;opacity:1}#v3t .v3-sw button.on i{background:' + GOLD + ';color:' + INK + '}#v3t .v3-sw button:active{transform:translateY(3px)}',
-    '#v3t .v3-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:8px 0 16px}',
+    '#v3t .v3-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:9px;margin:8px 0 16px}#v3t .v3-tg{grid-column:1/-1;margin:6px 0 -2px;font:400 14px ' + TITLE + ';color:' + MUTE + ';letter-spacing:.03em}',
     '#v3t .v3-tile{display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px 8px 14px;border:0;border-radius:18px;background:#c9c2d8;color:#fff;cursor:pointer;text-align:center;box-shadow:inset 0 -6px 0 rgba(0,0,0,.14);font-family:' + BODY + ';font-weight:800}',
     '#v3t .v3-tile .ic{font-size:36px;line-height:1.1;filter:grayscale(1);opacity:.6}#v3t .v3-tile b{font:400 16px ' + TITLE + ';letter-spacing:.02em}#v3t .v3-tile small{font-size:11.5px;line-height:1.35;opacity:.92}',
     '#v3t .v3-tile.on{box-shadow:inset 0 -6px 0 rgba(0,0,0,.22),0 6px 14px rgba(40,0,90,.22)}#v3t .v3-tile.on .ic{filter:drop-shadow(0 3px 0 rgba(0,0,0,.15));opacity:1}#v3t .v3-tile.on b{text-shadow:0 2px 0 rgba(0,0,0,.18)}',
-    '#v3t .v3-tile.on.c0{background:' + TEAL + '}#v3t .v3-tile.on.c1{background:#ff9f1c}#v3t .v3-tile.on.c2{background:#ff4f7b}#v3t .v3-tile:active{transform:translateY(3px)}#v3t .v3-tile[disabled]{opacity:.7}',
-    '@media (max-width:520px){#v3t .v3-tiles{grid-template-columns:1fr 1fr}}',
+    PAL.map(function (c, i) { return '#v3t .v3-tile.on.c' + i + '{background:' + c + '}'; }).join('') + '#v3t .v3-tile:active{transform:translateY(3px)}#v3t .v3-tile[disabled]{opacity:.7}',
+    '#v3t .v3-tile{padding:12px 6px 11px}#v3t .v3-tile .ic{font-size:30px}#v3t .v3-tile b{font-size:14px}#v3t .v3-tile small{font-size:11px}',
     '#v3-solo{position:fixed;inset:0;z-index:2147483400;background:' + DEEP + '}#v3-solo iframe{position:absolute;left:0;right:0;bottom:0;top:calc(env(safe-area-inset-top,0px) + 52px);width:100%;height:calc(100% - env(safe-area-inset-top,0px) - 52px);border:0;background:#000}',
     '#v3-solo .v3s-bar{position:absolute;left:0;right:0;top:0;height:calc(env(safe-area-inset-top,0px) + 52px);padding:env(safe-area-inset-top,0px) 10px 0 18px;box-sizing:border-box;display:flex;align-items:center;gap:12px;background:' + DEEP + ';color:#fff;font-family:' + BODY + ';font-weight:800;box-shadow:0 4px 0 rgba(0,0,0,.18);white-space:nowrap}#v3-solo .v3s-bar button{margin-left:auto}',
     '#v3-solo .v3s-bar b{font:400 16px ' + TITLE + ';letter-spacing:.02em}#v3-solo .v3s-bar span{font-size:12.5px;opacity:.85}#v3-solo .v3s-bar button{width:36px;height:36px;border:0;border-radius:11px;background:#fff;color:' + PURP + ';font:400 16px ' + TITLE + ';box-shadow:inset 0 -4px 0 rgba(0,0,0,.12);cursor:pointer}',
@@ -110,7 +111,18 @@
   ].join('');
   document.head.appendChild(css);
 
-  var MODES = [['cards', '🧊', '3D 词卡', '九种 3D 动态卡片 · 爆炸学习卡'], ['drive', '🚗', 'Knowledge Drive', '坐车沿路看词，每个词表一条路'], ['type', '⌨️', '3D Type', '拼音打字：跟打 + 四关闯关']];
+  var MODES = [['cards', '🧊', '3D 词卡', '十种 3D 动态卡片 · 爆炸学习卡', '3D 卡片'],
+    ['drive', '🚗', 'Knowledge Drive', '坐车沿路看词', '动态呈现'], ['train', '🚆', 'Knowledge Train', '车窗外一路看词', '动态呈现'],
+    ['metro', '🚇', 'Knowledge Metro', '每个词一站', '动态呈现'], ['tower', '🏙', 'Skyscraper', '坐电梯逛大楼', '动态呈现'],
+    ['roadtrip', '🛣', 'Road Trip', '名路自驾', '动态呈现'], ['rack', '🎠', 'Rotating Rack', '旋转展架挑词', '动态呈现'],
+    ['library', '📚', 'Library', '书架上抽书', '动态呈现'], ['museum', '🏛', 'Museum', '逛博物馆', '动态呈现'],
+    ['city', '🌆', 'Knowledge City', '逛街看词', '动态呈现'], ['galaxy', '🌌', 'Galaxy', '开飞船登星球', '动态呈现'],
+    ['balloon', '🎈', 'Balloon', '热气球飘过词', '动态呈现'], ['type', '⌨️', '3D Type', '拼音打字：跟打 + 闯关', '打字']];
+  function tiles(on) {   // the modes as level-map tiles, grouped
+    var out = '', g = '';
+    MODES.forEach(function (x, i) { if (x[4] !== g) { g = x[4]; out += '<div class="v3-tg">' + g + '</div>'; } out += tile(x, i, on(x[0], i)); });
+    return out;
+  }
   function modesOf(h) { if (h && h.modes) return h.modes; var o = {}; o[h && (h.view === 'drive' || h.view === 'type') ? h.view : 'cards'] = true; return o; }
   /* a game mode as a tile of the students' level map: lit = on, grey = off (2026-11-20, the user) */
   function tile(x, i, on) { return '<button type="button" class="v3-tile c' + i + (on ? ' on' : '') + '" data-mode="' + x[0] + '" aria-pressed="' + !!on + '"><span class="ic">' + x[1] + '</span><b>' + x[2] + '</b><small>' + x[3] + '</small></button>'; }
@@ -139,7 +151,7 @@
       cols.map(function (c) { var n = (c.cards || []).filter(function (k) { return k && k.title && !k.teachingArchived; }).length;
         return '<label class="v3-l"><input type="checkbox" value="' + esc(c.id) + '"' + (pre.indexOf(c.id) >= 0 ? ' checked' : '') + '>' + esc(c.title || '词表') + '<small>' + n + ' 个词</small></label>'; }).join('') +
       '</div><div style="font-size:13px;color:#7a7090;font-weight:800">游戏模式 · 点亮即开（之后在课堂码界面也能随时点）</div><div class="v3-tiles" data-pick>' +
-      MODES.map(function (x, i) { return tile(x, i, i === 0); }).join('') +
+      tiles(function (k, i) { return i === 0; }) +
       '</div><div class="v3-row"><button type="button" class="v3-b pri" data-go>生成课堂码</button><button type="button" class="v3-b" data-mine>我布置的作业</button></div><p class="v3-msg" data-msg></p>');
     m.querySelector('[data-mine]').onclick = manage;
     [].forEach.call(m.querySelectorAll('[data-pick] [data-mode]'), function (b) { b.onclick = function () { b.classList.toggle('on'); b.setAttribute('aria-pressed', b.classList.contains('on')); }; });
@@ -197,7 +209,7 @@
       var x = m.querySelector('.v3-x'); if (x) x.onclick = shut;
       m.querySelector('[data-toggle]').textContent = host && host.state !== 'ended' ? '结束作业' : '重新开放';
       var md = modesOf(host), sw = m.querySelector('[data-sw]');
-      sw.innerHTML = MODES.map(function (x, i) { return tile(x, i, !!md[x[0]]); }).join('');
+      sw.innerHTML = tiles(function (k) { return !!md[k]; });
       [].forEach.call(sw.querySelectorAll('[data-mode]'), function (b) { b.onclick = function () {
         var nx = {}; MODES.forEach(function (x) { nx[x[0]] = !!md[x[0]]; }); nx[b.getAttribute('data-mode')] = !nx[b.getAttribute('data-mode')];
         if (!MODES.some(function (x) { return nx[x[0]]; })) { msg.textContent = '至少点亮一个游戏模式。'; return; }
