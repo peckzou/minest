@@ -196322,7 +196322,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     '#cm-ov.wall,#cm-ov.helix,#cm-ov.stack,#cm-ov.orbit,#cm-ov.sphere,#cm-ov.wave{background:radial-gradient(circle at 50% 38%,rgba(255,255,255,.72),transparent 64%),linear-gradient(160deg,#d8d6dc,#f4f3f7 55%,#dfdde4)}' +
     '#cm-fr{position:absolute;left:50%;top:50%;width:720px;height:720px;margin:-360px 0 0 -360px}' +
     '#cm-tilt{position:absolute;inset:0;perspective:1400px;transform-style:preserve-3d}' +
-    '.cm-c{position:absolute;left:0;top:0;will-change:transform,opacity;backface-visibility:hidden;overflow:hidden;font-family:-apple-system,system-ui,sans-serif;border:1px solid rgba(255,255,255,.58);display:flex;contain:layout paint;align-items:center;justify-content:center;text-align:center;box-sizing:border-box;cursor:grab}' +
+    '.cm-c{position:absolute;left:0;top:0;overflow:hidden;font-family:-apple-system,system-ui,sans-serif;border:1px solid rgba(255,255,255,.58);display:flex;contain:layout paint;align-items:center;justify-content:center;text-align:center;box-sizing:border-box;cursor:grab}' +
     '.cm-c .im{position:absolute;inset:0;background-size:cover;background-position:center;transition:transform .45s cubic-bezier(.22,1,.36,1)}' +
     '.cm-c:hover .im{transform:scale(1.06)}' +
     '.cm-c .sh{position:absolute;inset:0;pointer-events:none;z-index:3;background:linear-gradient(115deg,transparent 28%,rgba(255,255,255,.32) 46%,rgba(255,255,255,.04) 54%,transparent 70%);mix-blend-mode:overlay}' +
@@ -196536,6 +196536,14 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       }
     }
 
+    /* a card that cannot be seen leaves the page's layers altogether (transparent cards still held a GPU layer each,
+       and Sphere / Spiral with dozens of them ran a phone's web view out of memory) */
+    function cull() {
+      for (var i = 0; i < cards.length; i++) {
+        var el = cards[i], o = el.style.opacity, off = o !== '' && +o < 0.02;
+        if (off !== (el.style.display === 'none')) el.style.display = off ? 'none' : '';
+      }
+    }
     function render() {
       var M = count;
       if (m === 'spiral') { var cu = Math.round(t); if (cu !== lastCur) { if (lastCur !== null && !playing) land(); lastCur = cu; } }
@@ -196657,7 +196665,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
           var sc = (0.4 + Math.pow(front, 1.7) * 0.62) * mix(shrink, 1, Math.pow(front, 6)) + (hovIdx === i ? 0.06 : 0);
           var rotY = x1 * 38 * (1 - Math.pow(front, 4));
           var rotX = -y2 * 32 * (1 - Math.pow(front, 4));
-          el.style.opacity = clamp(0.14 + Math.pow(front, 1.4) * 0.9, 0.14, 1);
+          el.style.opacity = z2 < -0.3 ? 0 : clamp(0.14 + Math.pow(front, 1.4) * 0.9, 0.14, 1) * clamp((z2 + 0.3) / 0.25, 0, 1);   // the far side of the globe is not drawn
           el.style.pointerEvents = z2 < -0.05 ? 'none' : '';
           el.style.transform = 'translate3d(' + (360 + px).toFixed(1) + 'px,' + (350 + py).toFixed(1) + 'px,0) perspective(1000px) rotateY(' + rotY.toFixed(2) + 'deg) rotateX(' + rotX.toFixed(2) + 'deg) scale(' + sc.toFixed(3) + ')';
           el.style.zIndex = Math.round(500 + z2 * 400);
@@ -196764,7 +196772,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       } else if (m === 'fan' || m === 'helix' || m === 'stack' || m === 'orbit' || m === 'wave') {
         selF += (sel - selF) * Math.min(1, dt * 18); selV = 0;
       }
-      render();
+      render(); cull();
     }
     rafId = requestAnimationFrame(tick);
 
@@ -196861,7 +196869,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
   /* a big board: only a window of cards round the one in view is built (every card animated each frame, each with
      its picture and the card style's layers, was too much for a phone) */
-  var CAP = { sphere: 56, wall: 50 }, lastPickId = null;
+  var CAP = { sphere: 36, spiral: 40, wall: 50 }, lastPickId = null;
   function windowed(list) {
     var cap = CAP[mode] || 64; if (list.length <= cap) return list;
     var at = 0; if (lastPickId) { for (var i = 0; i < list.length; i++) if (list[i].id === lastPickId) { at = i; break; } }
