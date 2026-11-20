@@ -112,6 +112,59 @@
       var dst=new THREE.BufferGeometry();attrs.forEach(function(k){dst.setAttribute(k,new THREE.Float32BufferAttribute(out[k],src.attributes[k].itemSize));});groups.forEach(function(g){dst.addGroup(g.start,g.count,g.materialIndex);});dst.computeBoundingBox();dst.computeBoundingSphere();m.geometry=dst;
     });
   }
+  /* a twin of one bookcase bay (2026-11-19, the user: "the secret door must not look like a door"): every visible
+     triangle of the room inside box q, clipped to it, in world space, moved dz along z and mirrored about the bay's
+     middle (so it is not the bay beside it again). The rotating bookcase wears it as its face. */
+  function liftBay(holder, q, dz) {
+    holder.updateMatrixWorld(true);
+    var out = new THREE.Group(), zc = (q[2] + q[5]) / 2, qb = new THREE.Box3(new THREE.Vector3(q[0], q[1], q[2]), new THREE.Vector3(q[3], q[4], q[5]));
+    var A = new THREE.Vector3(), N = new THREE.Vector3(), nm = new THREE.Matrix3();
+    holder.traverse(function (m) {
+      if (!m.isMesh || !m.geometry || !m.geometry.attributes.position || !m.material || Array.isArray(m.material) && !m.geometry.groups.length) return;
+      for (var o = m; o; o = o.parent) if (!o.visible) return;
+      if (!m.isInstancedMesh) { if (new THREE.Box3().setFromObject(m).intersectsBox(qb)) lift(m, m.matrixWorld, null, m.material); return; }
+      /* the shelves' own books are instanced: each one is lifted alone, its instance colour baked into its vertices */
+      if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
+      var IM = new THREE.Matrix4(), W = new THREE.Matrix4(), col = new THREE.Color(), mat = null;
+      for (var n = 0; n < m.count; n++) {
+        m.getMatrixAt(n, IM); W.multiplyMatrices(m.matrixWorld, IM);
+        if (!m.geometry.boundingBox.clone().applyMatrix4(W).intersectsBox(qb)) continue;
+        if (m.instanceColor) { m.getColorAt(n, col); if (!mat) { mat = m.material.clone(); mat.vertexColors = true; } }
+        lift(m, W.clone(), m.instanceColor ? col.clone() : null, mat || m.material);
+      }
+    });
+    function lift(m, MW, tint, material) {
+      var src = m.geometry, pos = src.attributes.position, nrm = src.attributes.normal, uv = src.attributes.uv, idx = src.index, multi = Array.isArray(material);
+      nm.getNormalMatrix(MW);
+      var P = [], NN = [], UV = [], groups = [], cursor = 0;
+      function vtx(i) { A.set(raw(pos, i, 0), raw(pos, i, 1), raw(pos, i, 2)).applyMatrix4(MW); var v = { w: [A.x, A.y, A.z] };
+        if (nrm) { N.set(raw(nrm, i, 0), raw(nrm, i, 1), raw(nrm, i, 2)).applyMatrix3(nm).normalize(); v.n = [N.x, N.y, N.z]; }
+        if (uv) v.u = [raw(uv, i, 0), raw(uv, i, 1)]; return v; }
+      function mix(a, b, t) { var v = { w: a.w.map(function (x, c) { return x + (b.w[c] - x) * t; }) }; if (a.n) v.n = a.n.map(function (x, c) { return x + (b.n[c] - x) * t; }); if (a.u) v.u = a.u.map(function (x, c) { return x + (b.u[c] - x) * t; }); return v; }
+      function keep(poly, axis, limit, sign) { var r = []; for (var i = 0; i < poly.length; i++) { var a = poly[i], b = poly[(i + 1) % poly.length], da = (a.w[axis] - limit) * sign, db = (b.w[axis] - limit) * sign; if (da >= 0) r.push(a); if ((da >= 0) !== (db >= 0)) r.push(mix(a, b, da / (da - db))); } return r; }
+      var count = idx ? idx.count : pos.count;
+      for (var i = 0; i + 2 < count; i += 3) {
+        var poly = [vtx(idx ? idx.getX(i) : i), vtx(idx ? idx.getX(i + 1) : i + 1), vtx(idx ? idx.getX(i + 2) : i + 2)];
+        var planes = [[0, q[0], 1], [0, q[3], -1], [1, q[1], 1], [1, q[4], -1], [2, q[2], 1], [2, q[5], -1]];
+        for (var j = 0; j < 6 && poly.length >= 3; j++) poly = keep(poly, planes[j][0], planes[j][1], planes[j][2]);
+        if (poly.length < 3) continue;
+        var sg = multi ? src.groups.find(function (gr) { return i >= gr.start && i < gr.start + gr.count; }) : null, mat = sg ? sg.materialIndex : 0;
+        for (var k = 1; k + 1 < poly.length; k++) [poly[0], poly[k + 1], poly[k]].forEach(function (v) {   // mirrored, so the winding turns round
+          P.push(v.w[0], v.w[1], 2 * zc - v.w[2] + dz); if (v.n) NN.push(v.n[0], v.n[1], -v.n[2]); if (v.u) UV.push(v.u[0], v.u[1]);
+          var last = groups[groups.length - 1]; if (last && last.materialIndex === mat) last.count++; else groups.push({ start: cursor, count: 1, materialIndex: mat }); cursor++;
+        });
+      }
+      if (!P.length) return;
+      var g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+      if (NN.length === P.length) g.setAttribute('normal', new THREE.Float32BufferAttribute(NN, 3)); else g.computeVertexNormals();
+      if (uv && UV.length * 3 === P.length * 2) g.setAttribute('uv', new THREE.Float32BufferAttribute(UV, 2));
+      if (multi) groups.forEach(function (gr) { g.addGroup(gr.start, gr.count, gr.materialIndex); });
+      if (tint) { var C3 = new Float32Array(P.length); for (var t = 0; t < P.length; t += 3) { C3[t] = tint.r; C3[t + 1] = tint.g; C3[t + 2] = tint.b; } g.setAttribute('color', new THREE.BufferAttribute(C3, 3)); }
+      g.computeBoundingBox(); g.computeBoundingSphere();
+      var c = new THREE.Mesh(g, material); c.castShadow = m.castShadow; c.receiveShadow = true; c.name = 'twin:' + (m.name || ''); out.add(c);
+    }
+    return out;
+  }
   /* window glass out of a scan: inside each box, drop only the triangles whose texture is near-white (the blown-out
      glass and sheers); the frames and glazing bars, darker, stay — the view outside then shows through */
   function cutGlass(model, boxes, thr) {
@@ -1100,6 +1153,8 @@
     var pilSkip = { W: [], E: [], N: [], S: [] }; try { pilSkip = vicPilasters(model); } catch (e) {}
     try { mantelPainting(model, holder); } catch (e) { if (root.console) console.warn('Spatial Home: painting', e); }
     try { fillShelves(model, holder, { skipE: [[VW.z - VW.w / 2 - 0.6, VW.z + VW.w / 2 + 0.6], [-4.7, -2.5]].concat(pilSkip.E), skip: { W: pilSkip.W.concat(VSTORE), E: pilSkip.E, S: pilSkip.S, N: (pilSkip.N || []).concat(VNICHE) } }); } catch (e) { if (root.console) console.warn('Spatial Home: shelves', e); }   // the empty shelves get books (not behind the Scenic Window or the cut)
+    /* the rotating bookcase in bay A wears bay B's books and shelves (mirrored): shut, it is just another bay */
+    try { var st = root.MinestStudySecret = root.MinestStudySecret || { open: false, progress: 0 }; st.twin = liftBay(holder, [-9.2, 0.03, -9.01, -7.6, 3.02, -7.32], 1.97); st.twinZ = [-9.01, -7.32, -7.04, -5.35]; st.twinId = (st.twinId | 0) + 1; } catch (e) { if (root.console) console.warn('Spatial Home: bookcase twin', e); }
     /* reflections: a small warm room rendered once into an environment map */
     var envTex = null;
     if (R && THREE.PMREMGenerator) {

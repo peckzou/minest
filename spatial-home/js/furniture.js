@@ -676,11 +676,13 @@
       box(T, leaf, mat, -0.60 + i * 0.108, y + h / 2, 0.10, 0.09, h, 0.23);
       box(T, leaf, M.gold, -0.60 + i * 0.108, y + 0.08, 0.219, 0.065, 0.008, 0.008);
     } });
+    var front = leaf.children.slice();   // the stand-in face, until the room's own bay is copied onto it (see skin)
     // The reverse carries the actual existing Times Square portal, including its live billboard and ticker.
     var oldPortal = root.SpatialEntries && root.SpatialEntries.portal ? root.SpatialEntries.portal() : null;
     if (oldPortal) { oldPortal.group.scale.setScalar(0.84); oldPortal.group.rotation.y = Math.PI; oldPortal.group.position.set(0,0.22,-0.25); leaf.add(oldPortal.group); }
     // The jambs line the opening from the bookcase front (z 0.23, the leaf's face) back into the wall; nothing stands
     // proud of the bookcases. Behind them a dark stone passage: the leaf sinks into it and turns there (2026-11-19).
+    var frameFrom = g.children.length;
     [-1,1].forEach(function (side) {
       box(T, g, wood, side*0.89, 1.50, -0.28, 0.12, 3.0, 1.02);
       box(T, g, trim, side*0.94, 1.50, 0.18, 0.12, 3.06, 0.10);
@@ -689,10 +691,31 @@
     box(T, g, wood, 0, 0.04, -0.28, 1.90, 0.08, 1.02);
     box(T, g, trim, 0, 3.01, 0.18, 2.02, 0.12, 0.10);
     box(T, g, trim, 0, 0.05, 0.18, 2.02, 0.10, 0.10);
+    var frame = g.children.slice(frameFrom);
     var stone = new T.MeshStandardMaterial({ color: new T.Color(0x2a2420).convertSRGBToLinear(), roughness: 0.95, side: T.BackSide });
-    var passage = new T.Mesh(new T.BoxGeometry(1.70, 2.96, 1.60), stone); passage.position.set(0, 1.50, -1.58); passage.receiveShadow = true; g.add(passage);   // open towards the room (its back faces are culled from here)
+    var passage = new T.Mesh(new T.BoxGeometry(2.5, 2.96, 2.3), stone); passage.position.set(0, 1.50, -1.93); passage.receiveShadow = true; g.add(passage);   // open towards the room (its back faces are culled from here)
     [0.03,2.78].forEach(function (y) { var spindle = new T.Mesh(new T.CylinderGeometry(0.045,0.045,0.08,16),M.gold); spindle.position.set(0,y,0); pivot.add(spindle); });
-    var latch = box(T,g,M.gold,0.78,1.28,0.05,0.16,0.04,0.045);
+    var latch = box(T,g,M.gold,0.78,1.28,0.05,0.16,0.04,0.045); frame.push(latch);
+    /* disguise (2026-11-19, the user: "it must not look like a door"): once the room has copied a bookcase bay (env-glb
+       liftBay), the leaf wears it — the same books, shelves and carving as the bays round it — and the frame, trims and
+       latch that gave it away go. Shut, it is one more bay of the bookcase. */
+    var skinned = 0, backPanel = null;
+    function skin() {
+      var tw = state.twin; if (!tw || skinned === state.twinId || !g.parent) return;
+      var pp = pivot.position.clone(), pr = pivot.rotation.y, lp = leaf.position.clone(), lr = leaf.rotation.z;
+      pivot.position.set(0, 0, 0); pivot.rotation.y = 0; leaf.position.set(0, 0, 0); leaf.rotation.z = 0;
+      g.updateWorldMatrix(true, true);
+      var inv = leaf.matrixWorld.clone().invert(), bb = new T.Box3();
+      leaf.children.filter(function (c) { return c.userData.twin; }).forEach(function (c) { leaf.remove(c); c.geometry.dispose(); });
+      tw.children.forEach(function (m) { var c = new T.Mesh(m.geometry.clone().applyMatrix4(inv), m.material); c.userData.twin = true; c.castShadow = m.castShadow; c.receiveShadow = true; c.geometry.computeBoundingBox(); bb.union(c.geometry.boundingBox); leaf.add(c); });
+      pivot.position.copy(pp); pivot.rotation.y = pr; leaf.position.copy(lp); leaf.rotation.z = lr;
+      if (bb.isEmpty()) return;
+      front.forEach(function (c) { c.visible = false; }); frame.forEach(function (c) { c.visible = false; });
+      if (!backPanel) { backPanel = new T.Mesh(new T.BoxGeometry(1, 1, 0.03), wood); leaf.add(backPanel); }
+      backPanel.scale.set(bb.max.x - bb.min.x, bb.max.y - bb.min.y, 1); backPanel.position.set((bb.max.x + bb.min.x) / 2, (bb.max.y + bb.min.y) / 2, bb.min.z - 0.02);
+      if (oldPortal) oldPortal.group.position.z = Math.min(-0.25, bb.min.z - 0.05);
+      skinned = state.twinId;
+    }
     var phase = state.open ? 1 : 0, last = null, prev = phase;
     function smooth(x) { x = Math.max(0,Math.min(1,x)); return x*x*x*(x*(x*6-15)+10); }
     function clamp01(x) { return Math.max(0, Math.min(1, x)); }
@@ -703,7 +726,7 @@
     function glow(c) { return new T.MeshBasicMaterial({ color: c, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false }); }
     var seamM = glow(0xffc66b), seam = new T.Group(); g.add(seam);
     [[-0.80, 1.50, 0.025, 2.84], [0.80, 1.50, 0.025, 2.84], [0, 2.90, 1.62, 0.025], [0, 0.10, 1.62, 0.025]].forEach(function (q) { var m = new T.Mesh(new T.PlaneGeometry(q[2], q[3]), seamM); m.position.set(q[0], q[1], 0.17); seam.add(m); });
-    var backL = new T.PointLight(0xffb45a, 0, 4.5, 2); backL.position.set(0, 1.9, -1.9); g.add(backL);   // a lamp down the passage
+    var backL = new T.PointLight(0xffb45a, 0, 4.5, 2); backL.position.set(0, 1.9, -2.6); g.add(backL);   // a lamp down the passage
     var beamTex = (function () { var c = document.createElement('canvas'); c.width = 64; c.height = 256; var x = c.getContext('2d'), gr = x.createLinearGradient(0, 0, 64, 0);
       gr.addColorStop(0, 'rgba(255,200,120,0)'); gr.addColorStop(0.5, 'rgba(255,214,150,1)'); gr.addColorStop(1, 'rgba(255,200,120,0)'); x.fillStyle = gr; x.fillRect(0, 0, 64, 256);
       var fade = x.createLinearGradient(0, 0, 0, 256); fade.addColorStop(0, 'rgba(0,0,0,1)'); fade.addColorStop(0.15, 'rgba(0,0,0,0)'); fade.addColorStop(0.85, 'rgba(0,0,0,0)'); fade.addColorStop(1, 'rgba(0,0,0,1)');
@@ -733,6 +756,7 @@
     return { group: g, hb: [1.6,3.0,0.8], place: 'wall',
       tick: function (t, realTime) {
         var now = typeof realTime === 'number' ? realTime : t;
+        if (skinned !== state.twinId) try { skin(); } catch (e) { skinned = state.twinId; }
         var dt = last === null ? 0 : Math.max(0,now-last); last=now;
         var target = state.open ? 1 : 0;
         prev = phase;
@@ -747,7 +771,7 @@
         var turn = smooth((phase-0.24)/0.56), rotation = turn + 0.045*bump(phase, 0.78, 0.93);   // a few degrees past half a turn, and back
         var sink = smooth((phase-0.06)/0.16)*(1-smooth((phase-0.84)/0.13));                       // 0 → 1 → 0: into the wall and out again
         var jolt = -0.02*bump(phase, 0.01, 0.06);                                                     // the latch gives
-        pivot.position.z = -0.54*sink + jolt; pivot.position.y = 0.012*smooth(phase/0.12)*(1-smooth((phase-0.92)/0.08));
+        pivot.position.z = -1.1*sink + jolt; pivot.position.y = 0.012*smooth(phase/0.12)*(1-smooth((phase-0.92)/0.08));
         pivot.rotation.y = Math.PI*rotation;
         var moving = phase > 0 && phase < 1, shake = moving ? (0.003*bump(phase, 0.06, 0.82) + 0.005*bump(phase, 0.93, 0.99)) * Math.sin(now*57) : 0;
         leaf.position.x = shake; leaf.rotation.z = shake * 0.4;
