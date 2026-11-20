@@ -153,6 +153,28 @@
 
   var P = [[-170, 175, 1, -3], [-35, 110, .85, -2], [90, 75, .78, 1], [178, 40, .62, 4], [215, -35, .54, 8], [122, -145, .46, 14], [42, -165, .35, 18], [-13, -165, .3, 20], [-70, -145, .25, 22], [-114, -118, .21, 24], [-155, -90, .18, 26], [-198, -54, .15, 28], [-210, -18, .12, 30], [-212, 22, .095, 32], [-212, 55, .075, 34], [-212, 82, .058, 34], [-212, 104, .044, 34], [-212, 122, .033, 34], [-212, 136, .025, 34], [-212, 148, .019, 34], [-212, 156, .014, 34], [-212, 162, .01, 34]];
 
+  /* the gyroscope (2026-11-19, the user: on the Duo, no buttons — and the gyroscope): tilting the phone leans the
+     group (and a card in hand, a little) as if looking round a hologram through the screen. Measured from how you hold
+     it — that slowly becomes 'straight' again when you keep still. iOS asks once, on the first touch. */
+  var GY = { on: false, lr: 0, fb: 0, b0: null, x: 0, y: 0, asked: false };
+  function gyroAsk() {
+    if (GY.asked) return; GY.asked = true;
+    try { if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') DeviceOrientationEvent.requestPermission().catch(function () {}); } catch (e) {}
+  }
+  window.addEventListener('deviceorientation', function (e) {
+    if (e.beta == null || e.gamma == null) return;
+    var ang = (screen.orientation && screen.orientation.angle != null) ? screen.orientation.angle : (window.orientation || 0), lr, fb;
+    if (ang === 90) { lr = e.beta; fb = -e.gamma; } else if (ang === -90 || ang === 270) { lr = -e.beta; fb = e.gamma; } else if (ang === 180) { lr = -e.gamma; fb = -e.beta; } else { lr = e.gamma; fb = e.beta; }
+    if (!GY.b0) GY.b0 = { lr: lr, fb: fb };
+    GY.lr = lr; GY.fb = fb; GY.on = true;
+  }, { passive: true });
+  function gyroStep(dt) {   // degrees of lean now, eased; the rest pose drifts towards how the phone is held
+    if (!GY.on || !GY.b0) return;
+    var k = Math.min(1, dt * 0.35); GY.b0.lr += (GY.lr - GY.b0.lr) * k; GY.b0.fb += (GY.fb - GY.b0.fb) * k;
+    var tx = clamp((GY.lr - GY.b0.lr) * 1.1, -28, 28), ty = clamp(-(GY.fb - GY.b0.fb) * 1.1, -24, 24), e = Math.min(1, dt * 8);
+    GY.x += (tx - GY.x) * e; GY.y += (ty - GY.y) * e;
+  }
+
   function Engine(box, list, m, onPick) {
     var N = list.length, fr = document.createElement('div'), tilt = document.createElement('div'), det = document.createElement('div');
     fr.id = 'cm-fr'; tilt.id = 'cm-tilt'; det.id = 'cm-det'; fr.appendChild(tilt); box.appendChild(fr); box.appendChild(det);
@@ -563,8 +585,9 @@
     function putAllBack() { hand.slice().forEach(putBack); asideT = 0; }
     /* ---- the whole group's angle ---- */
     function groupLean(dt) {
-      var k = Math.min(1, dt * 9); cgx += (grx - cgx) * k; cgy += (gry - cgy) * k; cgz += (grz - cgz) * k;
-      if (Math.abs(cgx) + Math.abs(cgy) + Math.abs(cgz) > 0.05) tilt.style.transform = (tilt.style.transform || '') + ' rotateX(' + cgx.toFixed(2) + 'deg) rotateY(' + cgy.toFixed(2) + 'deg) rotateZ(' + cgz.toFixed(2) + 'deg)';
+      var k = Math.min(1, dt * 9); cgx += (grx - cgx) * k; cgy += (gry - cgy) * k; cgz += (grz - cgz) * k; gyroStep(dt);
+      var ax = cgx + GY.y, ay = cgy + GY.x;   // your lean + the phone's
+      if (Math.abs(ax) + Math.abs(ay) + Math.abs(cgz) > 0.05) tilt.style.transform = (tilt.style.transform || '') + ' rotateX(' + ax.toFixed(2) + 'deg) rotateY(' + ay.toFixed(2) + 'deg) rotateZ(' + cgz.toFixed(2) + 'deg)';
       if (gbar) gbar.classList.toggle('lean', Math.abs(grx) + Math.abs(gry) + Math.abs(grz) > 0.5);
     }
     gbar = document.createElement('div'); gbar.className = 'cm-gbar';
@@ -584,7 +607,7 @@
         if (it.ptr == null) { var hx = Math.max(50, Math.min(BW - 50, it.x)), hy = Math.max(70, Math.min(BH - 70, it.y)); it.x += (hx - it.x) * Math.min(1, dt * 10); it.y += (hy - it.y) * Math.min(1, dt * 10); }   // let go off screen: it drifts back into view
         var el = it.el, st = el.style; st.display = ''; st.opacity = '1'; st.filter = ''; st.zIndex = String(3000 + z); st.pointerEvents = 'auto';
         var ek = Math.min(1, dt * 12), idle = it.ptr == null && !Object.keys(ptrs).length ? 1 : 0, tnow = performance.now() / 1000;
-        it.crx += (it.rx + idle * Math.sin(tnow * 0.9 + z) * 3 - it.crx) * ek; it.cry += (it.ry + idle * Math.sin(tnow * 0.7 + z * 2) * 4 - it.cry) * ek; it.cr += (it.r - it.cr) * ek;
+        it.crx += (it.rx + GY.y * 0.6 + idle * Math.sin(tnow * 0.9 + z) * 3 - it.crx) * ek; it.cry += (it.ry + GY.x * 0.6 + idle * Math.sin(tnow * 0.7 + z * 2) * 4 - it.cry) * ek; it.cr += (it.r - it.cr) * ek;
         st.transform = 'translate(' + it.x.toFixed(1) + 'px,' + it.y.toFixed(1) + 'px) perspective(900px) rotateX(' + it.crx.toFixed(2) + 'deg) rotateY(' + it.cry.toFixed(2) + 'deg) rotate(' + it.cr.toFixed(2) + 'deg) scale(' + it.s.toFixed(3) + ')' + (it.ptr != null ? ' translateZ(18px)' : '');
         st.boxShadow = (-it.cry * 0.5).toFixed(1) + 'px ' + (28 + it.crx * 0.5).toFixed(1) + 'px 60px rgba(0,0,0,.45),0 0 0 1.5px rgba(255,255,255,.65),0 0 34px rgba(120,190,255,.5)';
         st.setProperty('--hg', (50 + it.cry * 0.9 - it.crx * 0.4).toFixed(1) + '%');
@@ -644,6 +667,7 @@
     var px = 0, py = 0;
     box.addEventListener('pointerdown', down); box.addEventListener('pointermove', move); box.addEventListener('pointerup', up); box.addEventListener('pointercancel', up);
     function down(e) {
+      gyroAsk();
       if (e.target.closest('#cm-bar') || e.target.closest('#cm-pills') || e.target.closest('.cm-hand') || e.target.closest('#xl')) return;
       var ce0 = e.target.closest && e.target.closest('.cm-c');
       ptrs[e.pointerId] = { x: e.clientX, y: e.clientY, card: ce0 && !ce0._held ? ce0 : null };
