@@ -904,8 +904,83 @@
       m.group.position.fromArray(e.p); m.group.rotation.y = e.ry || 0; scene.add(m.group);
       if (room.envId === 'victorian' && e.kind === 'vic-armour') m.press = function () { var st = window.MinestStudySecret = window.MinestStudySecret || { open: false, progress: 0 }; st.reduced = !!S.motion; st.open = !st.open; return st.open ? '咔哒——书架正在转开。' : '机关书架正在合拢。'; };
       var x = { e: e, group: m.group, hit: hit, place: m.place, tick: m.tick, machine: m.machine, press: m.press }; hit.userData.extra = x; XS.push(x);
+      if (m.piano) x.press = function () { pianoOpen(x, m.piano); return '🎹 魔法钢琴 · 弹起来吧'; };   // the study's grand: sit down and play
     });
   }
+  /* ------------------------------------------------------------ the magic piano (2026-11-20, the user): sit at the
+     study's grand and play it — the computer keyboard (two octaves: Z…/ and Q…P, [ ] for the octave), a tap on the
+     3D keys, or the keys on the screen (several fingers, slides); each note sounds and the key throws up light */
+  var PNO = null;
+  var PKEY = { z: 0, s: 1, x: 2, d: 3, c: 4, v: 5, g: 6, b: 7, h: 8, n: 9, j: 10, m: 11, ',': 12, l: 13, '.': 14, ';': 15, '/': 16,
+    q: 12, '2': 13, w: 14, '3': 15, e: 16, r: 17, '5': 18, t: 19, '6': 20, y: 21, '7': 22, u: 23, i: 24, '9': 25, o: 26, '0': 27, p: 28 };
+  function pianoOpen(x, P) {
+    if (PNO || busy) return;
+    x.group.updateMatrixWorld(true);
+    var eye = P.body.localToWorld(new THREE.Vector3(0, 1.36, 0.17 + 0.98)), look = P.body.localToWorld(new THREE.Vector3(0, 0.72, 0.1));
+    PNO = { P: P, x: x, base: 48, held: {}, ptr: {}, pc: camera.position.clone(), pq: camera.quaternion.clone() };
+    busy = true; walkTo = null; setHot(null); body.classList.add('busy');
+    flyLook([eye.x, eye.y, eye.z], [look.x, look.y, look.z], 0.9).then(function () { if (PNO) pianoHud(true); });
+  }
+  function pianoClose() {
+    if (!PNO) return; var st = PNO; PNO = null;
+    Object.keys(st.held).forEach(function (k) { st.P.noteOff(st.held[k]); }); Object.keys(st.ptr).forEach(function (k) { st.P.noteOff(st.ptr[k]); });
+    pianoHud(false);
+    fly(st.pc, st.pq, 0.8).then(function () { camAuto = true; busy = false; body.classList.remove('busy'); });
+  }
+  var pHud = null, pHit = null;
+  function pianoHud(on) {
+    if (!on) { if (pHud) pHud.remove(); if (pHit) pHit.remove(); pHud = pHit = null; return; }
+    pHit = document.createElement('div'); pHit.id = 'sh-pianohit'; body.appendChild(pHit);
+    pHud = document.createElement('div'); pHud.id = 'sh-piano';
+    var touch = body.classList.contains('touch');
+    pHud.innerHTML = '<div class="pk" data-keys' + (touch ? '' : ' hidden') + '></div>' +
+      '<div class="pb"><b>🎹 魔法钢琴</b><span class="ph">' + (touch ? '点下面的琴键，或直接点钢琴的键' : '电脑键盘弹：Z S X D C … / 与 Q 2 W 3 E … P · [ ] 换八度 · 也可以直接点琴键') + '</span>' +
+      '<button type="button" data-oct="-1" aria-label="低八度">−</button><i data-octn></i><button type="button" data-oct="1" aria-label="高八度">＋</button>' +
+      '<button type="button" data-kb aria-label="屏幕琴键">⌨︎</button><button type="button" data-x aria-label="离开钢琴">离开</button></div>';
+    body.appendChild(pHud);
+    function octLabel() { pHud.querySelector('[data-octn]').textContent = 'C' + (Math.floor(PNO.base / 12) - 1) + '–C' + (Math.floor(PNO.base / 12) + 1); }
+    function keysPaint() {
+      var k = pHud.querySelector('[data-keys]'), h = '';
+      for (var n = 0; n < 25; n++) { var m = PNO.base + n, bl = [1, 3, 6, 8, 10].indexOf(m % 12) >= 0; if (!bl) h += '<i class="w" data-m="' + m + '">' + (m % 12 === 0 ? '<s>C' + (Math.floor(m / 12) - 1) + '</s>' : '') + '</i>'; }
+      k.innerHTML = h; var ws = k.querySelectorAll('.w'), W = 100 / ws.length;
+      for (var n2 = 0, wi = 0; n2 < 25; n2++) { var m2 = PNO.base + n2; if ([1, 3, 6, 8, 10].indexOf(m2 % 12) >= 0) { var b = document.createElement('i'); b.className = 'b'; b.dataset.m = m2; b.style.left = (wi * W - W * 0.3) + '%'; b.style.width = (W * 0.6) + '%'; k.appendChild(b); } else wi++; }
+      octLabel();
+    }
+    keysPaint();
+    pHud.querySelector('[data-x]').onclick = pianoClose;
+    pHud.querySelector('[data-kb]').onclick = function () { var k = pHud.querySelector('[data-keys]'); k.hidden = !k.hidden; };
+    [].forEach.call(pHud.querySelectorAll('[data-oct]'), function (b) { b.onclick = function () { PNO.base = clamp(PNO.base + 12 * b.dataset.oct, 21, 96); keysPaint(); }; });
+    /* the screen's keys: every finger its own note, a slide plays the keys it crosses */
+    var K = pHud.querySelector('[data-keys]');
+    function keyAt(e) { var el = document.elementFromPoint(e.clientX, e.clientY); return el && el.closest && el.closest('[data-keys] [data-m]'); }
+    function lit(m, on) { var el = K.querySelector('[data-m="' + m + '"]'); if (el) el.classList.toggle('on', on); }
+    K.addEventListener('pointerdown', function (e) { e.preventDefault(); var el = keyAt(e); if (!el) return; try { K.setPointerCapture(e.pointerId); } catch (er) {} var m = +el.dataset.m; PNO.ptr['s' + e.pointerId] = m; PNO.P.noteOn(m); lit(m, true); });
+    K.addEventListener('pointermove', function (e) { var id = 's' + e.pointerId; if (!(id in PNO.ptr)) return; var el = keyAt(e), m = el ? +el.dataset.m : null; if (m === PNO.ptr[id]) return; PNO.P.noteOff(PNO.ptr[id]); lit(PNO.ptr[id], false); if (m != null) { PNO.P.noteOn(m, 0.7); lit(m, true); PNO.ptr[id] = m; } else delete PNO.ptr[id]; });
+    function kUp(e) { var id = 's' + e.pointerId; if (!(id in PNO.ptr)) return; PNO.P.noteOff(PNO.ptr[id]); lit(PNO.ptr[id], false); delete PNO.ptr[id]; }
+    K.addEventListener('pointerup', kUp); K.addEventListener('pointercancel', kUp);
+    /* the 3D keys: a ray from the finger onto the piano */
+    var keyMeshes = PNO.P.keys.map(function (q) { return q.mesh; }), pr = new THREE.Raycaster(), pn = new THREE.Vector2();
+    function key3d(e) { var r = canvas.getBoundingClientRect(); pn.set((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); pr.setFromCamera(pn, camera); var h = pr.intersectObjects(keyMeshes, false); return h.length ? h[0].object.userData.pianoKey : null; }
+    pHit.addEventListener('pointerdown', function (e) { e.preventDefault(); var m = key3d(e); if (m == null) return; try { pHit.setPointerCapture(e.pointerId); } catch (er) {} PNO.ptr['d' + e.pointerId] = m; PNO.P.noteOn(m); });
+    pHit.addEventListener('pointermove', function (e) { var id = 'd' + e.pointerId; if (!(id in PNO.ptr)) return; var m = key3d(e); if (m === PNO.ptr[id]) return; PNO.P.noteOff(PNO.ptr[id]); if (m != null) { PNO.P.noteOn(m, 0.7); PNO.ptr[id] = m; } else delete PNO.ptr[id]; });
+    function dUp(e) { var id = 'd' + e.pointerId; if (!(id in PNO.ptr)) return; PNO.P.noteOff(PNO.ptr[id]); delete PNO.ptr[id]; }
+    pHit.addEventListener('pointerup', dUp); pHit.addEventListener('pointercancel', dUp);
+  }
+  /* the computer keyboard while at the piano: notes, [ ], Esc — and nothing reaches the room (no walking off) */
+  window.addEventListener('keydown', function (e) {
+    if (!PNO || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.target && /input|textarea|select/i.test(e.target.tagName)) return;
+    e.stopImmediatePropagation(); e.preventDefault();
+    if (e.key === 'Escape') return pianoClose();
+    if (e.key === '[' || e.key === ']') { PNO.base = clamp(PNO.base + (e.key === ']' ? 12 : -12), 21, 96); if (pHud) { var o = pHud.querySelector('[data-octn]'); pianoHud(false); pianoHud(true); } return; }
+    var k = String(e.key).toLowerCase(); if (!(k in PKEY) || e.repeat || PNO.held[k] != null) return;
+    var m = PNO.base + PKEY[k]; PNO.held[k] = m; PNO.P.noteOn(m);
+  }, true);
+  window.addEventListener('keyup', function (e) {
+    if (!PNO) return; var k = String(e.key).toLowerCase(); if (PNO.held[k] == null) return;
+    e.stopImmediatePropagation(); PNO.P.noteOff(PNO.held[k]); delete PNO.held[k];
+  }, true);
+
   window.addEventListener('spatial:secret-enter', function () {
     if (room.envId !== 'victorian' || body.hidden) return;
     var st = window.MinestStudySecret; if (!st || !st.open || st.progress < 0.999) return;
@@ -1319,6 +1394,8 @@
     walkTo: function (x, z) { if (mode === 'explore' && inArea(x, z)) { walkTo = { x: x, z: z, stuck: 0 }; return true; } return false; },
     activate: function (id) { activate(objects.filter(function (o) { return o.id === id; })[0]); },
     setMode: setMode, setView: setView, leave: function () { B.leave('api'); }, skip: skipAll,
+    piano: function (on) { var x = XS.filter(function (q) { return q.e && q.e.kind === 'vic-piano'; })[0]; if (on === false) return pianoClose(); if (x && x.press) return x.press(); return null; },   // sit at the study's grand (or leave it)
+    playing: function () { return PNO ? { base: PNO.base, held: Object.keys(window.__mnPianoAudio && __mnPianoAudio.v || {}).map(Number) } : null; },   // at the piano: its octave and the notes sounding
     state: function () { return { shown: !body.hidden, mode: mode, view: S.view, busy: busy, inFeature: inFeature ? inFeature.t.id : null, host: B.state(), env: room.envId, envState: room.state ? room.state() : null, pose: { x: P.x, z: P.z, yaw: P.yaw, pitch: P.pitch }, desk: { yaw: DK.yaw, pitch: DK.pitch }, cam: camera.position.toArray().map(function (n) { return +n.toFixed(3); }), k: objects.map(function (o) { return +o.k.toFixed(2); }) }; }
   };
   return API;

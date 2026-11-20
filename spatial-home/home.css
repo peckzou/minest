@@ -291,3 +291,22 @@ html.sh-main-dock-disabled body .mn-bdock { display: none !important; }
 #mn-bp .grid .it { height: 108px !important; min-height: 108px !important; min-width: 0; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
 #mn-bp .it img, #mn-bp .it i { flex: none; }
 #mn-bp .it span { flex: none; line-height: 18px; }
+
+/* the magic piano (2026-11-20): a layer that takes taps on the 3D keys, the bar, the keys on the screen */
+#sh-pianohit { position: absolute; inset: 0; z-index: 11; touch-action: none; cursor: pointer; }
+#sh-piano { position: absolute; z-index: 13; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 78px); transform: translateX(-50%); width: min(780px, calc(100vw - 20px)); display: flex; flex-direction: column; gap: 8px; align-items: stretch; pointer-events: none; font-family: -apple-system, "PingFang SC", system-ui, sans-serif; }
+#sh-piano > * { pointer-events: auto; }
+#sh-piano .pb { display: flex; align-items: center; gap: 8px; padding: 7px 8px 7px 14px; border-radius: 16px; background: rgba(6, 18, 34, .72); border: 1px solid rgba(110, 220, 255, .35); box-shadow: 0 0 24px rgba(57, 200, 255, .25), inset 0 1px 0 rgba(255,255,255,.08); color: #dff6ff; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+#sh-piano .pb b { font-weight: 700; font-size: 14px; white-space: nowrap; text-shadow: 0 0 10px rgba(90, 220, 255, .8); }
+#sh-piano .ph { flex: 1; min-width: 0; font-size: 12px; color: #9fd6ec; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#sh-piano .pb button { flex: none; min-width: 34px; height: 32px; padding: 0 10px; border: 1px solid rgba(110, 220, 255, .35); border-radius: 10px; background: rgba(57, 200, 255, .12); color: #e6f8ff; font: 600 13px inherit; cursor: pointer; }
+#sh-piano .pb button:active { transform: translateY(1px); background: rgba(57, 200, 255, .3); }
+#sh-piano .pb i { font-style: normal; font: 600 12px ui-monospace, Menlo, monospace; color: #9fe9ff; min-width: 54px; text-align: center; }
+#sh-piano [data-keys] { position: relative; height: 140px; display: flex; border-radius: 14px; overflow: hidden; background: rgba(4, 12, 24, .7); border: 1px solid rgba(110, 220, 255, .3); box-shadow: 0 0 30px rgba(57, 200, 255, .22); touch-action: none; user-select: none; -webkit-user-select: none; }
+#sh-piano [data-keys][hidden] { display: none; }
+#sh-piano [data-keys] .w { position: relative; flex: 1; margin: 0 1px; border-radius: 0 0 8px 8px; background: linear-gradient(180deg, #f3f6fb, #dfe6ef); box-shadow: inset 0 -6px 0 rgba(0,0,0,.08); }
+#sh-piano [data-keys] .w s { position: absolute; left: 0; right: 0; bottom: 8px; text-align: center; text-decoration: none; font: 600 10px ui-monospace, Menlo, monospace; color: #6b7a90; }
+#sh-piano [data-keys] .b { position: absolute; top: 0; height: 58%; z-index: 2; border-radius: 0 0 6px 6px; background: linear-gradient(180deg, #1b2230, #0b0f17); box-shadow: inset 0 -4px 0 rgba(255,255,255,.06), 0 3px 6px rgba(0,0,0,.4); }
+#sh-piano [data-keys] .w.on { background: linear-gradient(180deg, #c9f4ff, #6fdcff); box-shadow: 0 0 22px rgba(90, 220, 255, .9), inset 0 -4px 0 rgba(0,0,0,.08); }
+#sh-piano [data-keys] .b.on { background: linear-gradient(180deg, #3cd2ff, #0a6fa0); box-shadow: 0 0 18px rgba(90, 220, 255, .9); }
+#mn-sh.busy #sh-piano, #mn-sh.busy #sh-pianohit { pointer-events: auto; }

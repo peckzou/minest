@@ -563,10 +563,117 @@
     /* the keyboard */
     box(T, g, M.gloss, 0, 0.66, 0.15, 1.48, 0.08, 0.3);                                                 // the keybed
     [-1, 1].forEach(function (s) { box(T, g, M.gloss, s * 0.7, 0.74, 0.15, 0.08, 0.1, 0.3); });          // the cheeks
-    box(T, g, M.ivory, 0, 0.712, 0.17, 1.3, 0.018, 0.24);
-    for (var w = 1; w < 52; w++) box(T, g, M.dark, -0.65 + w * 1.3 / 52, 0.722, 0.17, 0.0015, 0.003, 0.235);
-    var pat = [1, 1, 0, 1, 1, 1, 0], wk = 1.3 / 52;
-    for (var k = 0; k < 51; k++) if (pat[(k + 5) % 7]) box(T, g, M.ebony, -0.65 + (k + 1) * wk, 0.73, 0.125, wk * 0.55, 0.022, 0.15);
+    /* the keys, one by one (2026-11-20, the user: a real, playable grand with magic light) — 52 white + 36 black,
+       A0..C8; each its own material, so a pressed key sinks and glows */
+    var pat = [1, 1, 0, 1, 1, 1, 0], wk = 1.3 / 52, KEYS = [], STEP = [2, 1, 2, 2, 1, 2, 2], midi = 21;   // A→B→C→D→E→F→G→A
+    var cyan = new T.Color(0x22c8ff).convertSRGBToLinear(), cyanKey = new T.Color(0x0870d8).convertSRGBToLinear();   // linear, like the room's materials (a plain hex read as linear came out near white)
+    for (var w = 0; w < 52; w++) {
+      var wm = M.ivory.clone(); wm.emissive = new T.Color(0x000000); wm.userData = { c0: wm.color.clone() };
+      var kw = box(T, g, wm, -0.65 + (w + 0.5) * wk, 0.712, 0.17, wk * 0.93, 0.018, 0.24);
+      KEYS.push({ mesh: kw, midi: midi, y0: 0.712, white: true, glow: 0, down: 0 }); kw.userData.pianoKey = midi;
+      midi += STEP[w % 7];
+    }
+    for (var k = 0; k < 51; k++) if (pat[(k + 5) % 7]) {
+      var bm = M.ebony.clone(); bm.emissive = new T.Color(0x000000); bm.userData = { c0: bm.color.clone() };
+      var kb = box(T, g, bm, -0.65 + (k + 1) * wk, 0.73, 0.125, wk * 0.55, 0.022, 0.15);
+      var wmid = KEYS[k].midi + 1; KEYS.push({ mesh: kb, midi: wmid, y0: 0.73, white: false, glow: 0, down: 0 }); kb.userData.pianoKey = wmid;
+    }
+    var BY = {}; KEYS.forEach(function (q) { BY[q.midi] = q; });
+    /* the magic: a ribbon of light along the keys' front, a cyan light over them, sparks rising from a struck key */
+    var ribbon = new T.Mesh(new T.PlaneGeometry(1.34, 0.012), new T.MeshBasicMaterial({ color: 0x5fe3ff, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false }));
+    ribbon.position.set(0, 0.705, 0.292); g.add(ribbon);
+    var halo = new T.Mesh(new T.PlaneGeometry(1.5, 0.5), new T.MeshBasicMaterial({ color: 0x39b8ff, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide }));
+    halo.rotation.x = -Math.PI / 2; halo.position.set(0, 0.74, 0.16); g.add(halo);
+    var lamp = new T.PointLight(0x46d2ff, 0, 2.6, 2); lamp.position.set(0, 1.05, 0.25); g.add(lamp);
+    var NP = 900, pPos = new Float32Array(NP * 3), pCol = new Float32Array(NP * 3), PS = [];
+    for (var pi = 0; pi < NP; pi++) { pPos[pi * 3 + 1] = -99; PS.push({ life: 0 }); }
+    var pg = new T.BufferGeometry(); pg.setAttribute('position', new T.BufferAttribute(pPos, 3)); pg.setAttribute('color', new T.BufferAttribute(pCol, 3));
+    var spr = document.createElement('canvas'); spr.width = spr.height = 64; var sx = spr.getContext('2d'), sgr = sx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    sgr.addColorStop(0, 'rgba(255,255,255,1)'); sgr.addColorStop(0.25, 'rgba(160,240,255,.85)'); sgr.addColorStop(1, 'rgba(60,180,255,0)'); sx.fillStyle = sgr; sx.fillRect(0, 0, 64, 64);
+    var pts = new T.Points(pg, new T.PointsMaterial({ size: 0.024, map: new T.CanvasTexture(spr), vertexColors: true, transparent: true, depthWrite: false, blending: T.AdditiveBlending, sizeAttenuation: true }));
+    pts.frustumCulled = false; g.add(pts);
+    var pNext = 0, energy = 0, lastT = 0;
+    var bc = document.createElement('canvas'); bc.width = 8; bc.height = 128; var bx = bc.getContext('2d'), bgr = bx.createLinearGradient(0, 128, 0, 0);
+    bgr.addColorStop(0, 'rgba(200,250,255,1)'); bgr.addColorStop(0.25, 'rgba(90,220,255,.75)'); bgr.addColorStop(1, 'rgba(40,160,255,0)'); bx.fillStyle = bgr; bx.fillRect(0, 0, 8, 128);
+    var beamTex = new T.CanvasTexture(bc), BEAMS = [], bNext = 0;
+    for (var bi = 0; bi < 24; bi++) {
+      var bmsh = new T.Mesh(new T.PlaneGeometry(1, 1), new T.MeshBasicMaterial({ map: beamTex, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide }));
+      bmsh.visible = false; g.add(bmsh); BEAMS.push({ m: bmsh, life: 0 });
+    }
+    function beam(q) {
+      var B = BEAMS[bNext]; bNext = (bNext + 1) % BEAMS.length;
+      B.life = 1; B.h = 0.35 + Math.random() * 0.35; B.w = q.white ? wk * 0.8 : wk * 0.5; B.x = q.mesh.position.x; B.z = q.white ? 0.12 : 0.09; B.y0 = q.y0 + 0.01; B.m.visible = true;
+    }
+    function burst(q) {
+      beam(q);
+      var x = q.mesh.position.x, z = q.white ? 0.13 : 0.1, n = q.white ? 26 : 22;
+      for (var i = 0; i < n; i++) {
+        var P = PS[pNext]; pNext = (pNext + 1) % NP;
+        P.x = x + (Math.random() - 0.5) * wk * 0.8; P.y = q.y0 + 0.02; P.z = z + (Math.random() - 0.5) * 0.06;
+        P.vx = (Math.random() - 0.5) * 0.04; P.vy = 0.25 + Math.random() * 0.55; P.vz = (Math.random() - 0.5) * 0.05 - 0.04;
+        P.life = 1; P.max = 0.9 + Math.random() * 1.1; P.c = Math.random();
+      }
+    }
+    /* the sound: a few partials, a hammer's knock, decay longer in the bass, a soft hall; released keys are damped */
+    var AU = window.__mnPianoAudio || (window.__mnPianoAudio = { ac: null, out: null, v: {} });
+    function audio() {
+      if (AU.ac) { if (AU.ac.state === 'suspended') AU.ac.resume(); return AU.ac; }
+      var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null;
+      var ac = AU.ac = new AC(), out = AU.out = ac.createGain(); out.gain.value = 0.7;
+      var comp = ac.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 3; out.connect(comp); comp.connect(ac.destination);
+      var len = ac.sampleRate * 2.2, ir = ac.createBuffer(2, len, ac.sampleRate);
+      for (var ch = 0; ch < 2; ch++) { var d = ir.getChannelData(ch); for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6); }
+      var cv = ac.createConvolver(); cv.buffer = ir; var wet = ac.createGain(); wet.gain.value = 0.22; out.connect(cv); cv.connect(wet); wet.connect(comp);
+      return ac;
+    }
+    function noteOn(m, vel) {
+      var q = BY[m]; if (!q) return; vel = vel == null ? 0.8 : vel;
+      var ac = audio();
+      if (ac && AU.v[m]) noteOff(m, 0.04);   // the same note again: the old one stops, this one sounds
+      q.down = 1; q.glow = 1; energy = Math.min(1.6, energy + 0.35); burst(q);
+      if (!ac) return;
+      var t = ac.currentTime, f = 440 * Math.pow(2, (m - 69) / 12), lo = (m - 21) / 87, dec = 3.4 - lo * 2.4;
+      var vg = ac.createGain(), lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(Math.min(16000, f * 9), t); lp.frequency.exponentialRampToValueAtTime(Math.max(600, f * 2.2), t + dec * 0.6);
+      vg.gain.setValueAtTime(0.0001, t); vg.gain.exponentialRampToValueAtTime(0.32 * vel, t + 0.006); vg.gain.exponentialRampToValueAtTime(0.11 * vel, t + 0.35); vg.gain.exponentialRampToValueAtTime(0.0006, t + dec);
+      lp.connect(vg); vg.connect(AU.out);
+      var osc = [[1, 1, 'sine'], [2, 0.42, 'sine'], [3, 0.2, 'sine'], [4, 0.11, 'sine'], [5.02, 0.05, 'sine'], [1.002, 0.35, 'triangle']].map(function (h) {
+        var o = ac.createOscillator(), og = ac.createGain(); o.type = h[2]; o.frequency.value = f * h[0]; og.gain.value = h[1] * (h[0] > 3 ? (1 - lo * 0.6) : 1); o.connect(og); og.connect(lp); o.start(t); o.stop(t + dec + 0.1); return o; });
+      var nb = ac.createBuffer(1, ac.sampleRate * 0.03, ac.sampleRate), nd = nb.getChannelData(0); for (var i = 0; i < nd.length; i++) nd[i] = (Math.random() * 2 - 1) * (1 - i / nd.length);
+      var ns = ac.createBufferSource(), ng = ac.createGain(), nf = ac.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = Math.min(5000, f * 3); ng.gain.value = 0.06 * vel; ns.buffer = nb; ns.connect(nf); nf.connect(ng); ng.connect(AU.out); ns.start(t);
+      AU.v[m] = { g: vg, o: osc, end: t + dec };
+    }
+    function noteOff(m, rel) {
+      var q = BY[m]; if (q) q.down = 0;
+      var v = AU.v[m]; if (!v || !AU.ac) return; delete AU.v[m];
+      var t = AU.ac.currentTime; if (t >= v.end) return;
+      try { v.g.gain.cancelScheduledValues(t); v.g.gain.setValueAtTime(Math.max(0.0005, v.g.gain.value), t); v.g.gain.exponentialRampToValueAtTime(0.0004, t + (rel || 0.32)); v.o.forEach(function (o) { o.stop(t + (rel || 0.32) + 0.05); }); } catch (e) {}
+    }
+    function tick(TT, now) {
+      var dt = lastT ? Math.min(0.05, now - lastT) : 0.016; lastT = now;
+      energy *= Math.pow(0.35, dt);
+      KEYS.forEach(function (q) {
+        var ty = q.y0 - (q.down ? 0.0035 : 0); q.mesh.position.y += (ty - q.mesh.position.y) * Math.min(1, dt * 30);
+        var mt = q.mesh.material;
+        if (q.glow > 0.002) { q.glow *= q.down ? Math.pow(0.7, dt) : Math.pow(0.05, dt); mt.emissive.copy(cyan).multiplyScalar(q.glow * (q.white ? 0.9 : 2.4)); mt.color.copy(mt.userData.c0).lerp(cyanKey, Math.min(1, q.glow * 1.25)); }
+        else if (q.glow) { q.glow = 0; mt.emissive.setRGB(0, 0, 0); mt.color.copy(mt.userData.c0); }
+      });
+      ribbon.material.opacity = Math.min(0.95, energy * 0.8 + 0.05 * (energy > 0.01 ? 1 : 0)); halo.material.opacity = Math.min(0.35, energy * 0.22); lamp.intensity = energy * 2.2;
+      BEAMS.forEach(function (B) {
+        if (B.life <= 0) { if (B.m.visible) B.m.visible = false; return; }
+        B.life -= dt / 1.1; var a = Math.max(0, B.life), grow = 1 - a * a, h = B.h * (0.4 + 0.6 * grow);
+        B.m.scale.set(B.w * (1 + (1 - a) * 0.6), h, 1); B.m.position.set(B.x, B.y0 + h / 2, B.z); B.m.material.opacity = a * 0.9;
+        B.m.rotation.y = 0;
+      });
+      var any = false;
+      for (var i = 0; i < NP; i++) {
+        var P = PS[i], j = i * 3; if (P.life <= 0) { if (pPos[j + 1] !== -99) { pPos[j + 1] = -99; any = true; } continue; }
+        any = true; P.life -= dt / P.max; P.vy *= Math.pow(0.7, dt); P.vx += Math.sin(now * 3 + i) * 0.02 * dt;
+        P.x += P.vx * dt; P.y += P.vy * dt; P.z += P.vz * dt;
+        pPos[j] = P.x; pPos[j + 1] = P.y; pPos[j + 2] = P.z;
+        var a = Math.max(0, P.life); pCol[j] = (0.35 + P.c * 0.4) * a; pCol[j + 1] = (0.8 + P.c * 0.2) * a; pCol[j + 2] = a;
+      }
+      if (any) { pg.attributes.position.needsUpdate = true; pg.attributes.color.needsUpdate = true; }
+    }
     box(T, g, M.gloss, 0, 0.7, 0.305, 1.4, 0.05, 0.012);                                                // the key slip
     box(T, g, M.felt, 0, 0.724, 0.045, 1.3, 0.01, 0.012);
     var fb = box(T, g, M.gloss, 0, 0.8, 0.03, 1.32, 0.13, 0.02); fb.rotation.x = -0.3;                  // the fallboard, open
@@ -586,7 +693,8 @@
     var bench = new T.Group(); bench.position.set(0, 0, 0.82); g.add(bench);
     box(T, bench, M.gloss, 0, 0.44, 0, 0.8, 0.07, 0.36); box(T, bench, E.leather, 0, 0.5, 0, 0.76, 0.05, 0.33);
     [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (q) { var bl = lathe(T, [[0, 0], [0.025, 0], [0.032, 0.05], [0.022, 0.2], [0.03, 0.38], [0.03, 0.42], [0, 0.42]], M.gloss, 14); bl.position.set(q[0] * 0.34, 0, q[1] * 0.14); g.add(bl); bench.add(bl); });
-    return { group: root0, hb: [1.56, 1.85, 2.9], place: 'floor' };
+    return { group: root0, hb: [1.56, 1.85, 2.9], place: 'floor', tick: tick,
+      piano: { keys: KEYS, noteOn: noteOn, noteOff: noteOff, body: g, keyboard: { y: 0.72, z: 0.17 + 0.42, w: 1.3 } } };
   };
 
   /* 2 · the Thinker, a white marble replica about 76 cm high, on a veined marble pedestal */
