@@ -32,9 +32,44 @@
     var b = document.createElement('button'); b.type = 'button'; b.className = 'mn-bapp mn-sys-key ' + cls;
     b.setAttribute('aria-label', label); b.title = label; b.innerHTML = inner;
     b.setAttribute('data-spatial-home-dock', '');   // not an app: the room must not leave for the Minest page when it is pressed
-    b.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); haptic(); fn(b); }, true);
+    /* a tap is read from the finger (pointer down → up, a little drift allowed): a click was lost when the finger
+       moved a hair or the Dock resized under it (2026-11-20, the user: the keys sometimes did nothing) */
+    var dn = null, done = 0;
+    function fire() { done = Date.now(); haptic(); pressFx(b, 'up'); fn(b); }
+    b.addEventListener('pointerdown', function (e) { if (e.button > 0) return; dn = { x: e.clientX, y: e.clientY, t: Date.now(), id: e.pointerId }; pressFx(b, 'down'); }, true);
+    b.addEventListener('pointerup', function (e) { var d = dn; dn = null; if (!d || d.id !== e.pointerId) return; if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 28 || Date.now() - d.t > 900) { pressFx(b, 'cancel'); return; } e.stopPropagation(); fire(); }, true);
+    b.addEventListener('pointercancel', function () { if (dn) { dn = null; pressFx(b, 'cancel'); } }, true);
+    b.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); if (Date.now() - done < 700) return; fire(); }, true);   // keyboard, or a click with no pointer before it
     return b;
   }
+  /* the press, drawn with the Web Animations API (the page may pause CSS transitions): the key sinks under the finger,
+     springs back with a ring of light; each system key then shows what it did */
+  function anim(el, kf, o) { try { return el.animate(kf, o); } catch (e) { return null; } }
+  function pressFx(b, ph) {
+    if (ph === 'down') { b.__sink = anim(b, [{ transform: 'scale(1)' }, { transform: 'scale(.84)' }], { duration: 110, easing: 'ease-out', fill: 'forwards' }); return; }
+    if (b.__sink) { try { b.__sink.cancel(); } catch (e) {} b.__sink = null; }
+    anim(b, [{ transform: 'scale(.84)' }, { transform: 'scale(1.1)', offset: .55 }, { transform: 'scale(1)' }], { duration: ph === 'cancel' ? 220 : 380, easing: 'cubic-bezier(.3,1.4,.5,1)' });
+    if (ph === 'cancel') return;
+    var r = document.createElement('i'); r.className = 'mn-sk-ring'; b.appendChild(r);
+    var a = anim(r, [{ transform: 'scale(.4)', opacity: .55 }, { transform: 'scale(1.5)', opacity: 0 }], { duration: 480, easing: 'cubic-bezier(.2,.7,.3,1)' });
+    if (a) a.onfinish = function () { r.remove(); }; else setTimeout(function () { r.remove(); }, 500);
+    var sv = b.querySelector('svg'); if (!sv) return;
+    if (b.classList.contains('mn-sk-close')) anim(sv, [{ transform: 'rotate(0)' }, { transform: 'rotate(90deg)' }], { duration: 360, easing: 'cubic-bezier(.3,1.3,.5,1)' });
+    else if (b.classList.contains('mn-sk-back')) anim(sv, [{ transform: 'translateX(0)' }, { transform: 'translateX(-5px)', offset: .4 }, { transform: 'translateX(0)' }], { duration: 380, easing: 'ease-out' });
+    else if (b.classList.contains('mn-sk-full')) anim(sv, [{ transform: 'scale(1)' }, { transform: 'scale(1.28)', offset: .45 }, { transform: 'scale(1)' }], { duration: 380, easing: 'ease-out' });
+  }
+  /* nothing to go back to / close: the key shakes its head, and says so */
+  function nothing(b, txt) {
+    anim(b, [{ transform: 'translateX(0)' }, { transform: 'translateX(-4px)' }, { transform: 'translateX(4px)' }, { transform: 'translateX(-3px)' }, { transform: 'translateX(2px)' }, { transform: 'translateX(0)' }], { duration: 380, easing: 'ease-out' });
+    var t = document.getElementById('mn-sk-toast'); if (!t) { t = document.createElement('div'); t.id = 'mn-sk-toast'; document.body.appendChild(t); }
+    t.textContent = txt; var r = b.getBoundingClientRect(), v = R.classList.contains('mn-dock-v');
+    t.style.left = (v ? r.left - 12 : r.left + r.width / 2) + 'px'; t.style.top = (v ? r.top + r.height / 2 : r.top - 12) + 'px'; t.className = v ? 'v' : '';
+    if (t.__a) try { t.__a.cancel(); } catch (e) {}
+    t.__a = anim(t, [{ opacity: 0, translate: '0 6px' }, { opacity: 1, translate: '0 0', offset: .12 }, { opacity: 1, translate: '0 0', offset: .8 }, { opacity: 0, translate: '0 -2px' }], { duration: 1500, easing: 'ease-out', fill: 'forwards' });
+  }
+  /* did a step back / a close change anything on screen? (the page's own Esc handlers say nothing back) */
+  function snap() { var b = document.body; return location.href + '|' + b.className + '|' + R.className.replace(/\bmn-(dock-[hv]|sys-\S+)\b/g, '') + '|' + b.childElementCount + '|' + document.querySelectorAll('[role=dialog],[class*=modal],[class*=overlay],[class*=popover],[class*=sheet]').length; }
+  function orNothing(b, before, txt) { setTimeout(function () { if (snap() === before) nothing(b, txt); }, 280); }
   /* the room (Spatial Home) is the screen in use: open, and not showing a Minest feature over it */
   function inRoom() {
     try { var H = window.MinestSpatialHome; if (!H || !H.isOpen || !H.isOpen()) return false; var st = H.api && H.api().state(); return !(st && st.inFeature); } catch (e) { return false; }
@@ -43,8 +78,8 @@
   /* 1, 2 */
   function dockKey(sel) { var b = document.querySelector('.mn-bdock ' + sel); if (b) { b.click(); return true; } return false; }
   function esc() { return document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true, cancelable: true })); }
-  function close() { if (ctx === 'room' && press('sh-exitBtn')) return; if (!dockKey('.mn-sys-exit')) esc(); }
-  function back() { if (ctx === 'room') { if (esc() && !press('sh-exitBtn')) {} return; } if (!dockKey('.mn-sys-back') && esc() && location.hash.length > 1) history.back(); }
+  function close(b) { var s0 = snap(); if (ctx === 'room' && press('sh-exitBtn')) return; if (!dockKey('.mn-sys-exit')) esc(); orNothing(b, s0, '没有可关闭的'); }
+  function back(b) { var s0 = snap(); if (ctx === 'room') { if (esc() && !press('sh-exitBtn')) {} return; } if (!dockKey('.mn-sys-back') && esc() && location.hash.length > 1) history.back(); orNothing(b, s0, '已经是最前一页'); }
   /* 3: reading mode, here and in every open frame of the same site */
   var HIDE = 'button,[role="button"],[role="toolbar"],header.iphone-topbar,.ios-bottom-tab-bar,.mn-bdock,#minest-mini-pet-p0,#cs-btn,' +
     '#sh-top,#sh-labels,#sh-stick,#sh-hint,#sh-credit,#sh-pill,#sh-reading-enter,#sh-dock,#sh-settings,#sh-pack,#sh-edit,#sh-card,#sh-toast,#sh-skip,.clun-entry,.mn-start-control';
