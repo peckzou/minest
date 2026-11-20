@@ -36,8 +36,8 @@ EDITS = [
      "      if (d.mode && d.mode !== k) return;\n      if (L.teach && d.c != null) { run.c = d.c; run.w = d.w || 0; run.seen = d.c + run.w; }   // 74: the teaching game counted its own answers\n      var passed"),
     ("      if (r && SA && SA.isOpen && SA.isOpen()) SA.close(true);",
      "      if (r && SA && SA.isOpen && SA.isOpen()) SA.close(true);\n      if (r && levelInfo(r.k).teach && window.MinestLiveTeach) { MinestLiveTeach.stop(); if (window.MinestTemplates && MinestTemplates.isOpen()) MinestTemplates.close(); }   // 74"),
-    ("LEVELS.map(function (l, i) { return '<button type=\"button\" class=\"mlv-chip'",
-     "LEVELS.map(function (l, i) { return (l.teach && !LEVELS[i - 1].teach ? '<span class=\"mlv-chip-sep\">🎓 教学游戏 · 点一下放进学生端</span>' : '') + '<button type=\"button\" class=\"mlv-chip'"),   # 74: the teaching games, their own group
+    ("LEVELS.map(function (l, i) { return '<button type=\"button\" class=\"mlv-lvt c'",
+     "LEVELS.map(function (l, i) { return (l.teach && !LEVELS[i - 1].teach ? '<span class=\"mlv-chip-sep\">🎓 教学游戏 · 点亮就放进学生端</span>' : '') + '<button type=\"button\" class=\"mlv-lvt c'"),   # 74: the teaching games, their own group (the Levels are lit tiles since 2026-11-20)
     ("options=Object.assign({},options||{});try{board=Sets.read();}catch(e){alert(e.message);return;}",
      "options=Object.assign({},options||{});try{if(!options.liveBoard)board=Sets.read();}catch(e){alert(e.message);return;}"),   # 74: a live game's own cards stay its own
 ]

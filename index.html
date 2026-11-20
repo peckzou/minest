@@ -97651,7 +97651,13 @@ var Ve = (function(_Component) {
         '<button class="mlv-btn alt mlv-sm" data-export type="button">⬇ Export JSON</button><button class="mlv-btn alt mlv-sm" data-template type="button">📄 Template</button>' + (b.kit ? '<button class="mlv-btn alt mlv-sm" data-dropkit type="button">🗑 Remove set</button>' : '') +
         '<input type="file" accept=".json,application/json" data-file hidden></div><div class="mlv-err" data-kiterr></div>' +
         '<label class="f">Lists (the deck)</label><div class="mlv-chips">' + cols.map(function (c) { return '<button type="button" class="mlv-chip' + (st.cols.indexOf(c.id) >= 0 ? ' on' : '') + '" data-col="' + esc(c.id) + '">' + esc(c.title || 'List') + ' · ' + (c.cards || []).length + '</button>'; }).join('') + '</div>' +
-        '<label class="f">Levels · 📖 learning first (in order), then 🎮 any game</label><div class="mlv-chips">' + LEVELS.map(function (l, i) { return (l.teach && !LEVELS[i - 1].teach ? '<span class="mlv-chip-sep">🎓 教学游戏 · 点一下放进学生端</span>' : '') + '<button type="button" class="mlv-chip' + (st.levels.indexOf(l.k) >= 0 ? ' on' : '') + '" data-lv="' + l.k + '">' + (i + 1) + ' ' + l.icon + ' ' + esc(l.name) + '</button>'; }).join('') + '</div>' +
+        // the levels as a level map (2026-11-20, the user): a lit tile is in the game, a grey one is not — tap to light it
+        '<label class="f">Levels · 📖 learning first (in order), then 🎮 any game · 点亮即开</label><style>.mlv-lvpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:6px 0 12px}.mlv-lvpick .mlv-chip-sep{grid-column:1/-1;margin:6px 0 0}' +
+        '.mlv-lvt{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:14px 8px 13px;border:0;border-radius:18px;background:#c9c2d8;color:#fff;cursor:pointer;text-align:center;box-shadow:inset 0 -6px 0 rgba(0,0,0,.14);font-family:Nunito,ui-rounded,system-ui,sans-serif;font-weight:800}' +
+        '.mlv-lvt .ic{font-size:34px;line-height:1.1;filter:grayscale(1);opacity:.6}.mlv-lvt b{font:400 15px "Titan One","Lilita One",Nunito,system-ui,sans-serif;letter-spacing:.02em}.mlv-lvt small{font-size:11.5px;opacity:.9;line-height:1.3}.mlv-lvt em{position:absolute;left:10px;top:8px;font:400 14px "Titan One",Nunito,sans-serif;font-style:normal;opacity:.75}' +
+        '.mlv-lvt.on{box-shadow:inset 0 -6px 0 rgba(0,0,0,.22),0 6px 14px rgba(40,0,90,.22)}.mlv-lvt.on .ic{filter:drop-shadow(0 3px 0 rgba(0,0,0,.15));opacity:1}.mlv-lvt.on b{text-shadow:0 2px 0 rgba(0,0,0,.18)}.mlv-lvt:active{transform:translateY(3px)}' +
+        '.mlv-lvt.on.c0{background:#0bc2cf}.mlv-lvt.on.c1{background:#7b2ff7}.mlv-lvt.on.c2{background:#ff4f7b}.mlv-lvt.on.c3{background:#ff9f1c}.mlv-lvt.on.c4{background:#22b35e}.mlv-lvt.on.c5{background:#3d8bfd}.mlv-lvt.on.c6{background:#e8505b}</style>' +
+        '<div class="mlv-lvpick">' + LEVELS.map(function (l, i) { return (l.teach && !LEVELS[i - 1].teach ? '<span class="mlv-chip-sep">🎓 教学游戏 · 点亮就放进学生端</span>' : '') + '<button type="button" class="mlv-lvt c' + (i % 7) + (st.levels.indexOf(l.k) >= 0 ? ' on' : '') + '" data-lv="' + l.k + '" aria-pressed="' + (st.levels.indexOf(l.k) >= 0) + '"><em>' + (i + 1) + '</em><span class="ic">' + l.icon + '</span><b>' + esc(l.name) + '</b><small>' + esc(l.tag || '') + '</small></button>'; }).join('') + '</div>' +
         '<label class="f">Pace</label><div class="mlv-chips">' + [['veryslow', 'Very slow 🐢'], ['slow', 'Slow'], ['easy', 'Easy'], ['normal', 'Normal'], ['fast', 'Fast']].map(function (p) { return '<button type="button" class="mlv-chip' + (st.pace === p[0] ? ' on' : '') + '" data-pace="' + p[0] + '">' + p[1] + '</button>'; }).join('') + '</div>' +
         '<div class="mlv-chips"><button type="button" class="mlv-chip' + (st.spd !== false ? ' on' : '') + '" data-spd>' + (st.spd !== false ? '✓' : '✕') + ' Students can change speed (🐢 / 🐇 in Glass Fruit &amp; Whack-a-Term)</button></div>' +
         '<label class="f">Goal</label><div class="mlv-chips">' +
@@ -198597,6 +198603,12 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
     '#v3t .v3-sw{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:4px 0 6px}#v3t .v3-sw button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 8px 14px;border:0;border-radius:16px;background:#c9c2d8;color:#fff;cursor:pointer;box-shadow:inset 0 -6px 0 rgba(0,0,0,.14);font-family:' + BODY + '}',
     '#v3t .v3-sw button span{font-size:26px;filter:grayscale(1);opacity:.7}#v3t .v3-sw button b{font:400 15px ' + TITLE + ';letter-spacing:.02em}#v3t .v3-sw button i{font-style:normal;font:400 13px ' + TITLE + ';padding:2px 12px 4px;border-radius:9px;background:rgba(0,0,0,.18)}',
     '#v3t .v3-sw button.on{background:#22b35e;box-shadow:inset 0 -6px 0 rgba(0,0,0,.22)}#v3t .v3-sw button.on span{filter:none;opacity:1}#v3t .v3-sw button.on i{background:' + GOLD + ';color:' + INK + '}#v3t .v3-sw button:active{transform:translateY(3px)}',
+    '#v3t .v3-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:8px 0 16px}',
+    '#v3t .v3-tile{display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px 8px 14px;border:0;border-radius:18px;background:#c9c2d8;color:#fff;cursor:pointer;text-align:center;box-shadow:inset 0 -6px 0 rgba(0,0,0,.14);font-family:' + BODY + ';font-weight:800}',
+    '#v3t .v3-tile .ic{font-size:36px;line-height:1.1;filter:grayscale(1);opacity:.6}#v3t .v3-tile b{font:400 16px ' + TITLE + ';letter-spacing:.02em}#v3t .v3-tile small{font-size:11.5px;line-height:1.35;opacity:.92}',
+    '#v3t .v3-tile.on{box-shadow:inset 0 -6px 0 rgba(0,0,0,.22),0 6px 14px rgba(40,0,90,.22)}#v3t .v3-tile.on .ic{filter:drop-shadow(0 3px 0 rgba(0,0,0,.15));opacity:1}#v3t .v3-tile.on b{text-shadow:0 2px 0 rgba(0,0,0,.18)}',
+    '#v3t .v3-tile.on.c0{background:' + TEAL + '}#v3t .v3-tile.on.c1{background:#ff9f1c}#v3t .v3-tile.on.c2{background:#ff4f7b}#v3t .v3-tile:active{transform:translateY(3px)}#v3t .v3-tile[disabled]{opacity:.7}',
+    '@media (max-width:520px){#v3t .v3-tiles{grid-template-columns:1fr 1fr}}',
     '#v3-solo{position:fixed;inset:0;z-index:2147483400;background:' + DEEP + '}#v3-solo iframe{position:absolute;left:0;right:0;bottom:0;top:calc(env(safe-area-inset-top,0px) + 52px);width:100%;height:calc(100% - env(safe-area-inset-top,0px) - 52px);border:0;background:#000}',
     '#v3-solo .v3s-bar{position:absolute;left:0;right:0;top:0;height:calc(env(safe-area-inset-top,0px) + 52px);padding:env(safe-area-inset-top,0px) 10px 0 18px;box-sizing:border-box;display:flex;align-items:center;gap:12px;background:' + DEEP + ';color:#fff;font-family:' + BODY + ';font-weight:800;box-shadow:0 4px 0 rgba(0,0,0,.18);white-space:nowrap}#v3-solo .v3s-bar button{margin-left:auto}',
     '#v3-solo .v3s-bar b{font:400 16px ' + TITLE + ';letter-spacing:.02em}#v3-solo .v3s-bar span{font-size:12.5px;opacity:.85}#v3-solo .v3s-bar button{width:36px;height:36px;border:0;border-radius:11px;background:#fff;color:' + PURP + ';font:400 16px ' + TITLE + ';box-shadow:inset 0 -4px 0 rgba(0,0,0,.12);cursor:pointer}',
@@ -198606,6 +198618,8 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
 
   var MODES = [['cards', '🧊', '3D 词卡', '九种 3D 动态卡片 · 爆炸学习卡'], ['drive', '🚗', 'Knowledge Drive', '坐车沿路看词，每个词表一条路'], ['type', '⌨️', '3D Type', '拼音打字：跟打 + 四关闯关']];
   function modesOf(h) { if (h && h.modes) return h.modes; var o = {}; o[h && (h.view === 'drive' || h.view === 'type') ? h.view : 'cards'] = true; return o; }
+  /* a game mode as a tile of the students' level map: lit = on, grey = off (2026-11-20, the user) */
+  function tile(x, i, on) { return '<button type="button" class="v3-tile c' + i + (on ? ' on' : '') + '" data-mode="' + x[0] + '" aria-pressed="' + !!on + '"><span class="ic">' + x[1] + '</span><b>' + x[2] + '</b><small>' + x[3] + '</small></button>'; }
   var M = null, poll = 0;
   function shut() { clearInterval(poll); poll = 0; if (M) { M.remove(); M = null; } document.removeEventListener('keydown', onKey, true); }
   function onKey(e) { if (e.key === 'Escape' && M) { e.stopPropagation(); shut(); } }
@@ -198630,16 +198644,17 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
       '<div style="font-size:12.5px;color:#93a0b8;font-weight:600">选择词表</div><div class="v3-lists">' +
       cols.map(function (c) { var n = (c.cards || []).filter(function (k) { return k && k.title && !k.teachingArchived; }).length;
         return '<label class="v3-l"><input type="checkbox" value="' + esc(c.id) + '"' + (pre.indexOf(c.id) >= 0 ? ' checked' : '') + '>' + esc(c.title || '词表') + '<small>' + n + ' 个词</small></label>'; }).join('') +
-      '</div><div style="font-size:13px;color:#7a7090;font-weight:800">游戏模式 · 学生在关卡地图里选（之后也能随时开关）</div><div class="v3-views">' +
-      MODES.map(function (x) { return '<label><input type="checkbox" name="v3mode" value="' + x[0] + '" checked><b>' + x[1] + ' ' + x[2] + '</b><small>' + x[3] + '</small></label>'; }).join('') +
+      '</div><div style="font-size:13px;color:#7a7090;font-weight:800">游戏模式 · 点亮即开（之后在课堂码界面也能随时点）</div><div class="v3-tiles" data-pick>' +
+      MODES.map(function (x, i) { return tile(x, i, i === 0); }).join('') +
       '</div><div class="v3-row"><button type="button" class="v3-b pri" data-go>生成课堂码</button><button type="button" class="v3-b" data-mine>我布置的作业</button></div><p class="v3-msg" data-msg></p>');
     m.querySelector('[data-mine]').onclick = manage;
+    [].forEach.call(m.querySelectorAll('[data-pick] [data-mode]'), function (b) { b.onclick = function () { b.classList.toggle('on'); b.setAttribute('aria-pressed', b.classList.contains('on')); }; });
     m.querySelector('[data-go]').onclick = function () {
       var btn = this, msg = m.querySelector('[data-msg]'), ids = [].map.call(m.querySelectorAll('.v3-lists input:checked'), function (i) { return i.value; });
       if (!ids.length) { msg.textContent = '至少选一个词表。'; return; }
       var t = m.querySelector('[data-t]').value.trim() || '3D 词卡', pb = packBoard(board, ids, t), n = pb.columns.reduce(function (s, c) { return s + c.cards.length; }, 0);
       if (!n) { msg.textContent = '选中的词表里没有词。'; return; }
-      if (![].some.call(m.querySelectorAll('input[name=v3mode]'), function (x) { return x.checked; })) { msg.textContent = '至少开一个游戏模式。'; return; }
+      if (!m.querySelector('[data-pick] [data-mode].on')) { msg.textContent = '至少点亮一个游戏模式。'; return; }
       if (n > 400) { msg.textContent = '一次最多布置 400 个词（现在 ' + n + ' 个），请少选几个词表。'; return; }
       btn.disabled = true; msg.textContent = '';
       (function tryCode(k) {
@@ -198647,7 +198662,7 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
         return db(code).then(function (cur) {
           if (cur && k < 5) return tryCode(k + 1);
           if (cur) throw new Error('课堂码冲突，请再试一次。');
-          var md = {}; [].forEach.call(m.querySelectorAll('input[name=v3mode]'), function (x) { md[x.value] = x.checked; });
+          var md = {}; [].forEach.call(m.querySelectorAll('[data-pick] [data-mode]'), function (x) { md[x.getAttribute('data-mode')] = x.classList.contains('on'); });
           var vw = MODES.filter(function (x) { return md[x[0]]; }).map(function (x) { return x[0]; })[0] || 'cards';
           var host = { kind: 'vocab3d', v: 2, view: vw, modes: md, title: t, board: pb, state: 'live', created: { '.sv': 'timestamp' }, words: n };
           return db(code + '/host', 'PUT', host).then(function () {
@@ -198663,7 +198678,7 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
   function roster(code) {
     var m = modal('<div data-head></div><div class="v3-code"><div><span>课堂码</span><b>' + esc(code) + '</b></div><button type="button" class="v3-b" data-copy-code>复制</button></div>' +
       '<div class="v3-link"><code>' + esc(link(code)) + '</code><button type="button" class="v3-b pri" data-copy>复制链接</button></div><p class="v3-hint">学生打开 <b>' + esc(SITE.replace(/^https?:\/\//, '')) + '/iphone?play</b>，输入课堂码和名字就能进入。</p>' +
-      '<h3>游戏模式 · 点一下开关</h3><div class="v3-sw" data-sw></div>' +
+      '<h3>游戏模式 · 点亮即开</h3><div class="v3-tiles" data-sw></div>' +
       '<div data-body><div class="v3-none">正在读取…</div></div>' +
       '<div class="v3-row" style="margin-top:16px"><button type="button" class="v3-b solo" data-open-page>🕹 Solo 试玩</button><button type="button" class="v3-b" data-toggle></button><button type="button" class="v3-b warn" data-del>删除作业</button><button type="button" class="v3-b" data-mine style="margin-left:auto">全部作业</button></div><p class="v3-msg" data-msg></p>');
     var host = null, msg = m.querySelector('[data-msg]');
@@ -198688,10 +198703,10 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
       var x = m.querySelector('.v3-x'); if (x) x.onclick = shut;
       m.querySelector('[data-toggle]').textContent = host && host.state !== 'ended' ? '结束作业' : '重新开放';
       var md = modesOf(host), sw = m.querySelector('[data-sw]');
-      sw.innerHTML = MODES.map(function (x) { return '<button type="button" class="' + (md[x[0]] ? 'on' : '') + '" data-mode="' + x[0] + '"><span>' + x[1] + '</span><b>' + x[2] + '</b><i>' + (md[x[0]] ? '开' : '关') + '</i></button>'; }).join('');
+      sw.innerHTML = MODES.map(function (x, i) { return tile(x, i, !!md[x[0]]); }).join('');
       [].forEach.call(sw.querySelectorAll('[data-mode]'), function (b) { b.onclick = function () {
         var nx = {}; MODES.forEach(function (x) { nx[x[0]] = !!md[x[0]]; }); nx[b.getAttribute('data-mode')] = !nx[b.getAttribute('data-mode')];
-        if (!MODES.some(function (x) { return nx[x[0]]; })) { msg.textContent = '至少开一个游戏模式。'; return; }
+        if (!MODES.some(function (x) { return nx[x[0]]; })) { msg.textContent = '至少点亮一个游戏模式。'; return; }
         b.disabled = true; db(code + '/host', 'PATCH', { modes: nx }).then(function () { host.modes = nx; msg.textContent = ''; paint(); }).catch(function (e) { b.disabled = false; msg.textContent = '没有改成：' + e.message; });
       }; });
       var rows = Object.keys(players || {}).map(function (k) { return players[k]; }).filter(function (p) { return p && p.name; }).sort(function (a, b) { return (b.known || 0) - (a.known || 0) || (b.seen || 0) - (a.seen || 0); });
