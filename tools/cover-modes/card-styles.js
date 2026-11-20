@@ -418,6 +418,7 @@
   }
 
   function colorizeAll(force) {
+    if (cur === 'default' && !force && !document.querySelector('#cs-modal.open')) return;   // nothing to colour
     var nodes = document.querySelectorAll(TARGETS);
     for (var i = 0; i < nodes.length; i++) colorizeCard(nodes[i], i, force);
   }
@@ -496,9 +497,14 @@
     apply(cur);
 
     var obsTimer = null;
-    var obs = new MutationObserver(function () {
-      if (obsTimer) return;
-      obsTimer = setTimeout(function () { obsTimer = null; colorizeAll(false); }, 120);
+    var CARDISH = '.cm-c,.coverflow-card-item,[data-card-id]';
+    var obs = new MutationObserver(function (ms) {
+      if (obsTimer || cur === 'default') return;
+      /* only when cards were added (the detail plate, toasts, the cover stage's own changes do not need a pass over the page) */
+      var hit = false;
+      for (var i = 0; i < ms.length && !hit; i++) { var a = ms[i].addedNodes; for (var j = 0; j < a.length; j++) { var n = a[j]; if (n.nodeType === 1 && (n.matches(CARDISH) || n.querySelector(CARDISH))) { hit = true; break; } } }
+      if (!hit) return;
+      obsTimer = setTimeout(function () { obsTimer = null; colorizeAll(false); }, 300);
     });
     obs.observe(document.body, { childList: true, subtree: true });
   }
@@ -534,6 +540,7 @@
     if (asked) return; asked = true;
     try { if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') DeviceOrientationEvent.requestPermission().catch(function () {}); } catch (e) {}
   }
+  var LIT = '#cm-ov,#cm-holo,#xl,#cs-modal.open,.sf-slot[data-sf-view="coverflow"]';
   function lightLoop(now) {
     requestAnimationFrame(lightLoop);
     var modalOpen = !!document.querySelector('#cs-modal.open');
@@ -541,8 +548,10 @@
     if (!calmL && Date.now() - L.at > 2600) { var t = now / 1000; L.tx = 50 + 34 * Math.sin(t * 0.33); L.ty = 45 + 22 * Math.sin(t * 0.21 + 1.3); }
     L.x += (L.tx - L.x) * 0.12; L.y += (L.ty - L.y) * 0.12;
     var sx = L.x.toFixed(1), sy = L.y.toFixed(1); if (sx === L.sx && sy === L.sy) return; L.sx = sx; L.sy = sy;
-    var r = document.documentElement.style;
-    r.setProperty('--cs-px', sx + '%'); r.setProperty('--cs-py', sy + '%'); r.setProperty('--cs-ang', Math.round(90 + (L.x - 50) * 1.6 + (L.y - 50) * 0.8) + 'deg');
+    /* only on the places that show cards now — set on the page's root, every element of the page (the whole board
+       behind, too) was restyled 30 times a second */
+    var ang = Math.round(90 + (L.x - 50) * 1.6 + (L.y - 50) * 0.8) + 'deg';
+    [].forEach.call(document.querySelectorAll(LIT), function (el) { var r = el.style; r.setProperty('--cs-px', sx + '%'); r.setProperty('--cs-py', sy + '%'); r.setProperty('--cs-ang', ang); });
   }
   requestAnimationFrame(lightLoop);
 

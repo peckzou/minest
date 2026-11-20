@@ -124,10 +124,12 @@
   document.head.appendChild(css);
 
   function hue(s) { var h = 0; s = String(s); for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return h; }
-  var itemsCache = null, itemsAt = 0;
+  var itemsCache = null, itemsAt = 0, itemsKey = '';
   function items(fresh) {
-    if (!fresh && itemsCache && Date.now() - itemsAt < 4000) return itemsCache;
-    itemsAt = Date.now(); return (itemsCache = readItems());
+    var b = null; try { b = window.MinestAI && MinestAI.board && MinestAI.board(); } catch (e) {}
+    var key = b ? b.id + ':' + (b.columns || []).reduce(function (n, c) { return n + (c.cards || []).length; }, 0) : '';
+    if (!fresh && itemsCache && key === itemsKey && Date.now() - itemsAt < 20000) return itemsCache;   // the same board, the same cards: not read again
+    itemsAt = Date.now(); itemsKey = key; return (itemsCache = readItems());
   }
   function readItems() {
     var b = null; try { b = window.MinestAI && MinestAI.board && MinestAI.board(); } catch (e) {}
@@ -207,7 +209,7 @@
       tp.setAttribute('d', 'M' + pts.join(' L')); tp.setAttribute('fill', 'none'); tp.setAttribute('stroke', 'rgba(148,163,184,.28)'); tp.setAttribute('stroke-width', '1.6'); tp.setAttribute('stroke-dasharray', '2 7'); tp.setAttribute('stroke-linecap', 'round');
       tsv.appendChild(tp); fr.insertBefore(tsv, tilt);
     }
-    var detAge = 1, hxPath = null, hxPath2 = null, born = calm ? 1 : 0; if (!calm) fr.style.opacity = '0';
+    var detAge = 1, hxPath = null, hxPath2 = null, born = calm ? 1 : 0;
     if (m === 'helix' || m === 'orbit' || m === 'wave') {
       var sv = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       sv.setAttribute('viewBox', '0 0 720 720');
@@ -487,7 +489,7 @@
       var now = performance.now(), dt = Math.min(.05, (now - last) / 1000); last = now; if (!calm) time += dt;
       if (document.hidden) return;
       if (detAge < 1) { detAge = Math.min(1, detAge + dt / 0.32); var de = 1 - Math.pow(1 - detAge, 3); [].forEach.call(det.children, function (c) { c.style.opacity = de.toFixed(3); c.style.transform = 'translateY(' + ((1 - de) * 6).toFixed(1) + 'px)'; }); }
-      if (born < 1) { born = Math.min(1, born + dt / 0.5); var e = 1 - Math.pow(1 - born, 3); fr.style.opacity = e.toFixed(3); tilt.style.translate = '0 ' + ((1 - e) * 18).toFixed(1) + 'px'; if (born >= 1) { fr.style.opacity = ''; tilt.style.translate = ''; } }
+      if (born < 1) { born = Math.min(1, born + dt / 0.45); var e = 1 - Math.pow(1 - born, 3); tilt.style.translate = '0 ' + ((1 - e) * 22).toFixed(1) + 'px'; if (born >= 1) tilt.style.translate = ''; }   // a rise, no fade: fading the stage made the browser flatten and redraw every card
       par.x += (par.tx - par.x) * Math.min(1, dt * 8);
       par.y += (par.ty - par.y) * Math.min(1, dt * 8);
       if (!drag) {
