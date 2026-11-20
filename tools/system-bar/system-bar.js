@@ -135,6 +135,16 @@
   function study() { try { var e = window.MinestSpatialHome.api().env(); return !!(e && e.envId === 'victorian' && window.MinestStudyBoard && window.MinestStudyBoard.slide); } catch (er) { return false; } }
   function inWorld() { try { return !!(window.MinestMyWorld && MinestMyWorld.isOpen && MinestMyWorld.isOpen()); } catch (e) { return false; } }
 
+  /* the page's own keys (2026-11-20, the user: the right of the Dock holds only what the page in use needs — its top
+     bar moves down here): a page hands over one group of keys; while it is there, the board's apps give way (the
+     "Dock" key brings them back) */
+  var pageEl = null;
+  function setPage(el) {
+    if (pageEl === el) return; if (pageEl && pageEl.parentNode && pageEl !== el) pageEl.remove();
+    pageEl = el || null; R.classList.toggle('mn-ctx-page', !!pageEl);
+    if (!pageEl && ctx !== 'room') { R.classList.remove('mn-ctx-apps'); dockAll.setAttribute('aria-pressed', 'false'); }
+    mount(); fit();
+  }
   function dock() { return document.querySelector('.mn-bdock'); }
   function mount() {
     var d = dock(); if (!d) return;
@@ -143,6 +153,7 @@
     if (at !== sep) d.insertBefore(sep, at);
     var anchor = sep.nextElementSibling;
     roomKeys.forEach(function (b) { if (b.parentNode !== d) d.insertBefore(b, anchor); });
+    if (pageEl && pageEl.parentNode !== d) d.insertBefore(pageEl, sep.nextElementSibling);
     if (!exitKey.isConnected && document.body) document.body.appendChild(exitKey);
     R.classList.add('mn-sysbar');
   }
@@ -153,7 +164,7 @@
     var cs = getComputedStyle(d), h = /^row/.test(cs.flexDirection);
     R.classList.toggle('mn-dock-h', h); R.classList.toggle('mn-dock-v', !h);
     var mc = ctx === 'room' || ctx === 'world', keys = 0, seps = 0;
-    [].forEach.call(d.children, function (c) { if (getComputedStyle(c).display === 'none') return; if (c.classList.contains('mn-sys-sep')) seps++; else keys++; });
+    [].forEach.call(d.children, function (c) { if (c === pageEl) { [].forEach.call(c.children, function (k) { if (getComputedStyle(k).display !== 'none') keys++; }); return; } if (getComputedStyle(c).display === 'none') return; if (c.classList.contains('mn-sys-sep')) seps++; else keys++; });
     var lens = mc ? 0 : (h ? 1.6 : 1.35), room = (h ? innerWidth : innerHeight) - 28 - (h ? 0 : 20);
     var k = Math.floor((room - 10 - seps * 10 - Math.max(0, keys - 1) * 4) / (keys + lens));
     k = Math.max(22, Math.min(mc ? 38 : 40, k));
@@ -179,7 +190,7 @@
   }
   function context() {
     var c = inRoom() ? 'room' : inWorld() ? 'world' : 'board';
-    if (c === 'room') { modeLabel(roomKeys[0]); pixelIcons(); var fl = study() ? 'room' : 'off'; slideKeys.forEach(function (k) { if (k.dataset.ctx !== fl) k.dataset.ctx = fl; }); } else if (R.classList.contains('mn-ctx-apps')) { R.classList.remove('mn-ctx-apps'); dockAll.setAttribute('aria-pressed', 'false'); }
+    if (c === 'room') { modeLabel(roomKeys[0]); pixelIcons(); var fl = study() ? 'room' : 'off'; slideKeys.forEach(function (k) { if (k.dataset.ctx !== fl) k.dataset.ctx = fl; }); } else if (!pageEl && R.classList.contains('mn-ctx-apps')) { R.classList.remove('mn-ctx-apps'); dockAll.setAttribute('aria-pressed', 'false'); }
     if (c !== ctx) { ctx = c; R.setAttribute('data-mn-ctx', c); }
     else if (R.getAttribute('data-mn-ctx') !== c) R.setAttribute('data-mn-ctx', c);
   }
@@ -188,7 +199,7 @@
   var queued = false;
   new MutationObserver(function () {
     if (queued) return; queued = true;
-    requestAnimationFrame(function () { queued = false; var d = dock(); if (d && (d.firstElementChild !== sysKeys[0] || sep.parentNode !== d || roomKeys[0].parentNode !== d)) mount(); context(); sides(); fit(); var m = document.querySelector('.mn-bd-menu'); if (m) menu(m); if (reading) syncFrames(); });
+    requestAnimationFrame(function () { queued = false; var d = dock(); if (d && (d.firstElementChild !== sysKeys[0] || sep.parentNode !== d || roomKeys[0].parentNode !== d || (pageEl && pageEl.parentNode !== d))) mount(); context(); sides(); fit(); var m = document.querySelector('.mn-bd-menu'); if (m) menu(m); if (reading) syncFrames(); });
   }).observe(document.body || R, { childList: true, subtree: true });
   new MutationObserver(function () { sides(); fit(); }).observe(R, { attributes: true, attributeFilter: ['data-mn-bd'] });
   window.addEventListener('resize', function () { fit(); });
@@ -196,5 +207,5 @@
   window.addEventListener('load', function () { setTimeout(syncFrames, 300); }, true);
   function start() { mount(); setTools(toolsOn()); context(); sides(); fit(); }
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
-  window.MinestSystemBar = { reading: setReading, tools: setTools, state: function () { return { reading: reading, tools: !R.classList.contains('mn-sys-tools-off'), ctx: ctx }; } };
+  window.MinestSystemBar = { page: setPage, reading: setReading, tools: setTools, state: function () { return { reading: reading, tools: !R.classList.contains('mn-sys-tools-off'), ctx: ctx }; } };
 })();
