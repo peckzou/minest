@@ -96625,7 +96625,7 @@ var Ve = (function(_Component) {
   function $(root, sel) { return root.querySelector(sel); }
   function $$(root, sel) { return Array.prototype.slice.call(root.querySelectorAll(sel)); }
   function cleanCode(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8); }
-  function newCode() { var a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', o = ''; for (var i = 0; i < 6; i++) o += a[Math.floor(Math.random() * a.length)]; return o; }
+  function newCode() { var o = String(1 + Math.floor(Math.random() * 9)); for (var i = 0; i < 5; i++) o += Math.floor(Math.random() * 10); return o; }   // six digits (2026-11-20, the user: codes are numbers)
   function uid() { return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
   function key(id) { return String(id).replace(/[.#$\[\]\/]/g, '_').slice(0, 120); }   // a database key
   function cut(s, n) { s = String(s || '').trim(); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
@@ -98839,7 +98839,7 @@ var Ve = (function(_Component) {
     var selectedAv = STARTER_MONSTERS.indexOf(savedAv) >= 0 && ownsAv(savedAv) ? savedAv : STARTER_MONSTERS[0];
     o.body.innerHTML = '<section class="mlv-card" style="max-width:440px;margin:5vh auto 0;text-align:center"><div style="font-size:42px">🕹</div><h2 style="margin:4px 0 2px">Join Arcade Game</h2><p class="sub" style="margin-bottom:12px">Enter the code on your teacher’s screen.</p>' +
       '<div data-acct class="mlv-acct"></div>' +
-      '<input type="text" data-code maxlength="8" placeholder="GAME CODE" style="text-align:center;font-size:24px;font-weight:900;letter-spacing:.15em" value="' + esc(code) + '">' +
+      '<input type="text" data-code maxlength="8" inputmode="numeric" autocomplete="off" placeholder="GAME CODE" style="text-align:center;font-size:24px;font-weight:900;letter-spacing:.15em" value="' + esc(code) + '">' +
       '<input type="text" data-name maxlength="24" placeholder="NAME" style="margin-top:12px;text-align:center;font-size:24px;font-weight:900;letter-spacing:.15em;text-transform:uppercase" value="' + esc((saved.name || '').toUpperCase()) + '">' +
       '<div class="mlv-avatar-label">Choose your buddy · <span data-gemct style="color:#fde68a">💎 ' + gems() + '</span></div><div class="mlv-avatar-picker" data-avatar>' + STARTER_MONSTERS.map(function (id) { var c = cardById(id); var own = ownsAv(id); return '<button type="button" class="mlv-avatar-choice' + (id === selectedAv ? ' on' : '') + (own ? '' : ' lock') + '" data-av="' + id + '" title="' + esc(c.name) + '">' + iconHtml(c, 'mlv-card-icon') + (own ? '' : '<span class="pr">💎 ' + avCost(id) + '</span>') + '</button>'; }).join('') + '</div>' +
       '<div class="mlv-row" style="justify-content:center"><button class="mlv-btn" data-join>Join</button></div><div class="mlv-err" data-err></div>' +
@@ -99002,6 +99002,8 @@ var Ve = (function(_Component) {
       if (!name) { err.textContent = 'Enter your First & Last Name.'; nameIn.focus(); return; }
       err.textContent = 'Joining…'; $(o.body, '[data-join]').disabled = true;
       db(c + '/host').then(function (h) {
+        // one entry for students (2026-11-20): a teacher's word-list assignment (3D 词卡 / Knowledge Drive / 3D Type) opens its own page, the name handed over
+        if (h && h.kind === 'vocab3d') { try { sessionStorage.setItem('minest.vocab3d.join', JSON.stringify({ code: c, name: name, at: Date.now() })); } catch (e) {} location.href = location.pathname.replace(/[^\/]*$/, '') + 'vocab3d.html?code=' + c; return new Promise(function () {}); }
         if (!h || !h.board) throw new Error('No game with code ' + c + '.');
         if (h.state === 'ended') throw new Error('That game has ended.');
         // signed in: the account is the player (same progress on any device); a guest gets a random id

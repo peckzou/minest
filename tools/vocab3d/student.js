@@ -12,7 +12,7 @@
       .then(function (r) { if (!r.ok) throw new Error('网络错误（' + r.status + '）'); return r.json(); });
   }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function clean(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8); }
+  function clean(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8); }   // digits now; older letter codes still open
   function key(id) { return String(id).replace(/[.#$\[\]\/]/g, '_').slice(0, 120); }
   function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -39,7 +39,7 @@
     J.hidden = false;
     if (step === 'code') {
       J.innerHTML = '<div class="v3j-card"><div class="v3j-logo">◈</div><h1>3D 词卡</h1><p>输入老师给你的课堂码</p>' +
-        '<input class="v3j-code" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="V·····" value="' + esc(code) + '">' +
+        '<input class="v3j-code" maxlength="8" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="课堂码" value="' + esc(code) + '">' +
         '<button type="button" class="v3j-go">进入</button><p class="v3j-err">' + esc(err || '') + '</p></div>';
       var inp = $('.v3j-code', J), go = function () { var c = clean(inp.value); if (c.length < 4) { $('.v3j-err', J).textContent = '课堂码不完整。'; return; } code = c; load(); };
       $('.v3j-go', J).onclick = go; inp.onkeydown = function (e) { if (e.key === 'Enter') go(); }; setTimeout(function () { inp.focus(); }, 50);
@@ -58,10 +58,11 @@
     joinView('正在打开…');
     db(code + '/host').then(function (h) {
       if (!h || h.kind !== 'vocab3d' || !h.board) { joinView('code', '找不到这个课堂码，请检查一下。'); return; }
-      var want = h.view === 'drive' || h.view === 'type' ? h.view : 'cards';
-      if (want !== VIEW) { location.replace({ drive: 'vocab-drive.html', type: 'vocab-type.html', cards: 'vocab3d.html' }[want] + location.search); return; }
       host = h; pid = ls('minest.vocab3d.pid.' + code);
       if (PREVIEW) { start('老师预览'); return; }
+      /* from the one student entry (/iphone?play): the code and the name were given there */
+      var hand = null; try { hand = JSON.parse(sessionStorage.getItem('minest.vocab3d.join') || 'null'); } catch (e) {}
+      if (hand && hand.code === code && hand.name && Date.now() - (hand.at || 0) < 6e5) { try { sessionStorage.removeItem('minest.vocab3d.join'); } catch (e) {} ls('minest.vocab3d.name', hand.name); start(hand.name); return; }
       var n = ls('minest.vocab3d.name'); if (pid && n) start(n); else joinView('name');
     }).catch(function (e) { joinView('code', '打不开：' + e.message); });
   }
@@ -89,7 +90,64 @@
     $('#v3-ttl').textContent = host.title;
     if (host.state === 'ended') banner('老师已经结束了这个作业：还可以看，进度不再记录。');
     if (PREVIEW) banner('老师预览：这里的标记不会记进学生进度。');
-    document.body.classList.add('v3-on');
+    save();   // the teacher sees the student as soon as they are in (on the level map too)
+    route();
+  }
+
+  /* ---------------- the game modes: the teacher switches them on and off; the level map lights the ones that are on ---------------- */
+  var PAGE = { cards: 'vocab3d.html', drive: 'vocab-drive.html', type: 'vocab-type.html' };
+  var MODE = [['cards', '🧊', '3D 词卡', '九种 3D 动态卡片，展开每个词'], ['drive', '🚗', 'Knowledge Drive', '坐车沿路看词，每个词表一条路'], ['type', '⌨️', '3D Type', '拼音打字：跟打 + 四关闯关']];
+  function modes() { var m = host.modes; if (!m) { m = {}; m[host.view === 'drive' || host.view === 'type' ? host.view : 'cards'] = true; } return MODE.filter(function (x) { return m[x[0]]; }).map(function (x) { return x[0]; }); }
+  function url(m, hub) { return PAGE[m || 'cards'] + '?code=' + encodeURIComponent(code) + (m ? '&m=' + m : '') + (hub ? '&hub=1' : '') + (PREVIEW ? '&preview=1' : ''); }
+  var inMode = false;
+  function route() {
+    var on = modes(), want = qs.get('m');
+    if (!qs.has('hub') && want && on.indexOf(want) >= 0) return go(want);
+    if (!qs.has('hub') && on.length === 1) return go(on[0]);
+    hub();
+  }
+  function go(m) {
+    if (m !== VIEW) { location.replace(url(m)); return; }
+    var H = $('#v3-hub'); if (H) H.hidden = true;
+    inMode = true; document.body.classList.add('v3-on');
+    if (modes().length > 1) homeKey();
+    begin();
+  }
+  function homeKey() {
+    if ($('#v3-home')) return;
+    var b = document.createElement('button'); b.type = 'button'; b.id = 'v3-home'; b.innerHTML = '<i>★</i>关卡'; b.title = '回到关卡地图';
+    b.onclick = function () { location.href = url(null, true); };
+    document.body.appendChild(b);
+  }
+  function stars() { try { var t = JSON.parse(ls('minest.vocab3d.type.' + code) || '{}'); var n = 0; Object.keys(t.lv || {}).forEach(function (k) { n += t.lv[k] || 0; }); return n; } catch (e) { return 0; } }
+  function hub() {
+    inMode = false;
+    var H = $('#v3-hub'); if (!H) { H = document.createElement('div'); H.id = 'v3-hub'; document.body.appendChild(H); }
+    H.hidden = false; document.body.classList.remove('v3-on');
+    var on = modes(), c = counts(), N = CARDS.length || 1;
+    var prog = { cards: '会了 ' + c.known + ' / ' + CARDS.length, drive: '看过 ' + c.seen + ' / ' + CARDS.length, type: '★ ' + stars() + ' / 12' };
+    var pct = { cards: c.known / N, drive: c.seen / N, type: stars() / 12 };
+    H.innerHTML = '<div class="hb-in"><div class="hb-top"><b>' + esc(host.title) + '</b><span>' + esc(me) + '</span></div><h1>选一个关卡</h1>' +
+      '<div class="hb-modes">' + MODE.map(function (x, i) {
+        var open = on.indexOf(x[0]) >= 0;
+        return '<button type="button" class="hb-m m' + i + (open ? '' : ' off') + '" data-m="' + x[0] + '"' + (open ? '' : ' disabled') + '><span class="ic">' + x[1] + '</span><b>' + x[2] + '</b><small>' + x[3] + '</small>' +
+          (open ? '<span class="pg"><i style="width:' + Math.round(pct[x[0]] * 100) + '%"></i></span><em>' + prog[x[0]] + '</em>' : '<em class="lk">🔒 老师还没开放</em>') + '</button>';
+      }).join('') + '</div>' + (host.state === 'ended' ? '<p class="hb-note">老师已经结束了这个作业：还可以玩，进度不再记录。</p>' : '') + (PREVIEW ? '<p class="hb-note">老师预览：不计入学生进度。</p>' : '') + '</div>';
+    [].forEach.call(H.querySelectorAll('[data-m]'), function (b) { b.onclick = function () { if (!b.disabled) go(b.getAttribute('data-m')); }; });
+  }
+  /* the teacher's switches, heard every few seconds: the level map follows; a mode switched off sends you back to it */
+  setInterval(function () {
+    if (!host || document.hidden) return;
+    db(code + '/host/modes').then(function (m) {
+      if (!m) return; var before = JSON.stringify(host.modes || null); host.modes = m;
+      if (JSON.stringify(m) === before) return;
+      if (inMode && !m[VIEW]) { banner('老师关闭了这个模式，回到关卡地图…'); setTimeout(function () { location.href = url(null, true); }, 1800); return; }
+      if (!inMode && $('#v3-hub') && !$('#v3-hub').hidden) hub();
+      if (inMode && modes().length > 1) homeKey();
+    }).catch(function () {});
+  }, 6000);
+
+  function begin() {
     if (VIEW === 'drive') { drive(); paintPill(); save(); return; }
     if (VIEW === 'type') {
       if (window.V3Type) window.V3Type.start({ cards: CARDS, code: code, mark: function (c, v) { var k0 = key(c.id); if ((K[k0] || 0) < v) { K[k0] = v; save(); } }, extra: function (o) { EXTRA = o; synced = ''; save(); } });
