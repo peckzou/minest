@@ -299,6 +299,7 @@
       }
       el.dataset.i = i % N;
       el.dataset.slot = i;
+      el.style.setProperty('--mf-k', ((((i % N) * 0.618034) % 1) * 2 - 1).toFixed(3));   // Mindful: each card its own place in the colour range
       el.style.setProperty('--cm-d', ((i % 9) * -0.68) + 's');
       (function (idx) {
         el.addEventListener('pointerenter', function () { hovIdx = idx; });
