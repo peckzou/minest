@@ -6,6 +6,7 @@
   'use strict';
   var DB = 'https://minest-33761-default-rtdb.firebaseio.com/minest-live/';
   var qs = new URLSearchParams(location.search), PREVIEW = qs.has('preview');
+  var VIEW = window.__V3_VIEW || 'cards';   // 'cards' (vocab3d.html) or 'drive' (vocab-drive.html): how the teacher chose to present the words
   function db(path, method, body) {
     return fetch(DB + path + '.json', { method: method || 'GET', headers: body ? { 'Content-Type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' })
       .then(function (r) { if (!r.ok) throw new Error('网络错误（' + r.status + '）'); return r.json(); });
@@ -57,6 +58,8 @@
     joinView('正在打开…');
     db(code + '/host').then(function (h) {
       if (!h || h.kind !== 'vocab3d' || !h.board) { joinView('code', '找不到这个课堂码，请检查一下。'); return; }
+      var want = h.view === 'drive' ? 'drive' : 'cards';
+      if (want !== VIEW) { location.replace((want === 'drive' ? 'vocab-drive.html' : 'vocab3d.html') + location.search); return; }
       host = h; pid = ls('minest.vocab3d.pid.' + code);
       if (PREVIEW) { start('老师预览'); return; }
       var n = ls('minest.vocab3d.name'); if (pid && n) start(n); else joinView('name');
@@ -81,14 +84,40 @@
     try { K = JSON.parse(ls('minest.vocab3d.k.' + code) || '{}') || {}; } catch (e) { K = {}; }
     B.title = host.title; B.columns = (host.board.columns || []).map(function (col) { return { id: col.id, title: col.title, color: col.color, cards: (col.cards || []).map(function (c) { return raw(c, col); }) }; });
     CARDS = []; B.columns.forEach(function (c) { CARDS = CARDS.concat(c.cards); });
-    document.title = host.title + ' · 3D 词卡';
+    document.title = host.title + (VIEW === 'drive' ? ' · Knowledge Drive' : ' · 3D 词卡');
     $('#v3-ttl').textContent = host.title;
     if (host.state === 'ended') banner('老师已经结束了这个作业：还可以看，进度不再记录。');
     if (PREVIEW) banner('老师预览：这里的标记不会记进学生进度。');
+    document.body.classList.add('v3-on');
+    if (VIEW === 'drive') { drive(); paintPill(); save(); return; }
     try { if (!window.MinestCoverModes.get() || window.MinestCoverModes.get() === 'flow') window.MinestCoverModes.set('wall'); } catch (e) {}
     try { window.dispatchEvent(new Event('minest:image-assets')); } catch (e) {}
-    document.body.classList.add('v3-on'); wrapExplode(); paintPill(); save();
+    wrapExplode(); paintPill(); save();
   }
+
+  /* ---------------- Knowledge Drive: the words as billboards along a road (each list a road) ---------------- */
+  function driveBoard() {   // the drive reads cards in Minest's shape: title, titleZh, back, a cover picture
+    return { id: 'vocab3d', title: B.title, columns: B.columns.map(function (col) {
+      return { id: col.id, title: col.title, color: col.color, cards: col.cards.map(function (c) {
+        var back = [c.pron, c.meaning || c.definitions.en, c.definitions.zh].filter(Boolean).join('\n');
+        var o = { id: c.id, title: c.title, titleZh: c.titleZh || '', back: back, notes: c.examples.length ? c.examples.map(function (e) { return e.text; }).join('\n') : '' };
+        if (c.img) o.cover = { type: 'image', value: c.img };
+        return o;
+      }) };
+    }) };
+  }
+  var DB2 = null;
+  function drive() {
+    var end = $('#v3-end'); end.hidden = true;
+    if (!window.MinestDrive || !window.THREE) { banner('这台设备打不开 3D 驾驶（WebGL 不可用）。'); return; }
+    DB2 = DB2 || driveBoard();
+    var P = { boards: function () { return [DB2]; }, openCard: null };
+    try {
+      window.MinestDrive.open({ source: { type: 'board', bid: DB2.id }, provider: P, fresh: false, onExit: function () { end.hidden = false; } });
+    } catch (e) { banner('打不开 3D 驾驶：' + (e.message || e)); }
+  }
+  $('#v3-end [data-again]') && ($('#v3-end [data-again]').onclick = function () { drive(); });
+  function driveFocus() { try { var d = window.MinestDrive && MinestDrive.current(); var f = d && d.state && d.state().focus; return f || null; } catch (e) { return null; } }
   function banner(t) { var b = $('#v3-banner'); b.textContent = t; b.hidden = false; }
 
   /* the word in view: the exploded card open on it; "我会了" / "再看看" */
@@ -100,7 +129,15 @@
   }
   function byTitle() { var t = $('#xl .xl-title'); if (!t) return null; var s = t.textContent.replace(/^Exploded Learning Card · /, ''); for (var i = 0; i < CARDS.length; i++) if (CARDS[i].title === s) return CARDS[i]; return null; }
   function paintMark() {
-    var open = !!document.getElementById('xl'), m = $('#v3-mark');
+    var m = $('#v3-mark'), open;
+    if (VIEW === 'drive') {   // the billboard in focus is the word in view
+      var t = driveFocus(); open = !!t;
+      if (t) { var c0 = CARDS.filter(function (x) { return x.title === t; })[0]; if (c0 && c0 !== cur) { cur = c0; if (!K[key(c0.id)]) { K[key(c0.id)] = 1; save(); } } }
+      m.hidden = !open || !cur; document.body.classList.toggle('v3-xl', open);
+      if (!m.hidden) { var v0 = K[key(cur.id)]; $('[data-known]', m).classList.toggle('on', v0 === 2); $('[data-again]', m).classList.toggle('on', v0 === 1); }
+      return;
+    }
+    open = !!document.getElementById('xl');
     if (open) { var c = byTitle(); if (c && c !== cur) { cur = c; if (!K[key(c.id)]) { K[key(c.id)] = 1; save(); } } }
     m.hidden = !open || !cur; document.body.classList.toggle('v3-xl', open);
     if (!m.hidden) { var v = K[key(cur.id)]; $('[data-known]', m).classList.toggle('on', v === 2); $('[data-again]', m).classList.toggle('on', v === 1); }
@@ -125,7 +162,7 @@
       $('.v3s-list', s).innerHTML = CARDS.filter(function (c) { var v = K[key(c.id)]; return f === 'all' || (f === 'known' && v === 2) || (f === 'again' && v === 1) || (f === 'new' && !v); }).map(function (c) {
         var v = K[key(c.id)]; return '<button data-id="' + esc(c.id) + '"><i class="' + (v === 2 ? 'k' : v === 1 ? 'a' : '') + '"></i><b>' + esc(c.title) + '</b><small>' + esc(c.titleZh || c.meaning || '') + '</small></button>';
       }).join('') || '<p class="v3s-none">这里没有词。</p>';
-      [].forEach.call(s.querySelectorAll('.v3s-list [data-id]'), function (b) { b.onclick = function () { var c = CARDS.filter(function (x) { return x.id === b.getAttribute('data-id'); })[0]; s.hidden = true; openWord(c); }; });
+      [].forEach.call(s.querySelectorAll('.v3s-list [data-id]'), function (b) { if (VIEW === 'drive') { b.disabled = true; return; } b.onclick = function () { var c = CARDS.filter(function (x) { return x.id === b.getAttribute('data-id'); })[0]; s.hidden = true; openWord(c); }; });
     }
     [].forEach.call(s.querySelectorAll('[data-f]'), function (b) { b.onclick = function () { f = b.getAttribute('data-f'); [].forEach.call(s.querySelectorAll('[data-f]'), function (x) { x.classList.toggle('on', x === b); }); list(); }; });
     $('[data-x]', s).onclick = function () { s.hidden = true; };

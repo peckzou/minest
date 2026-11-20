@@ -27,6 +27,14 @@ def student():
         page = page.replace(k, v)
     (ROOT / 'vocab3d.html').write_text(page, encoding='utf-8')
     print('vocab3d: wrote vocab3d.html (%d KB)' % (len(page) // 1024))
+    # Knowledge Drive for students: the drive (sfx, drive, cars) and the same join / progress script
+    KD = ROOT / 'tools' / 'knowledge-drive'
+    page = (HERE / 'drive.html').read_text(encoding='utf-8')
+    for k, v in [('{{CSS}}', (HERE / 'student.css').read_text(encoding='utf-8')), ('{{DRIVE_CSS}}', (KD / 'drive.css').read_text(encoding='utf-8')),
+                 ('{{DRIVE_JS}}', '\n'.join(read(KD / f) for f in ('sfx.js', 'drive.js', 'cars.js'))), ('{{STUDENT}}', read(HERE / 'student.js'))]:
+        page = page.replace(k, v)
+    (ROOT / 'vocab-drive.html').write_text(page, encoding='utf-8')
+    print('vocab3d: wrote vocab-drive.html (%d KB)' % (len(page) // 1024))
 
 
 def teacher():

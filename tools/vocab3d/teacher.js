@@ -84,6 +84,8 @@
     '#v3t .v3-none{padding:18px;text-align:center;color:#8190a8;font-size:13.5px;border:1px dashed rgba(255,255,255,.12);border-radius:14px}',
     '#v3t .v3-mine{display:flex;flex-direction:column;gap:6px}#v3t .v3-mine button{display:flex;align-items:center;gap:10px;text-align:left;padding:11px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.04);color:#e8eefb;font:500 14px inherit;cursor:pointer}#v3t .v3-mine b{font:700 13px ui-monospace,Menlo,monospace;color:#7dd3fc}#v3t .v3-mine small{margin-left:auto;color:#8190a8}',
     '#v3t h3{margin:18px 0 8px;font:650 14px inherit;color:#cbd5e1}',
+    '#v3t .v3-views{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0 16px}#v3t .v3-views label{position:relative;display:flex;flex-direction:column;gap:3px;padding:12px 12px 12px 36px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);cursor:pointer}',
+    '#v3t .v3-views input{position:absolute;left:12px;top:14px;accent-color:#7dd3fc}#v3t .v3-views b{font-size:14px}#v3t .v3-views small{font-size:11.5px;color:#8190a8}#v3t .v3-views label:has(input:checked){border-color:rgba(125,211,252,.55);background:rgba(125,211,252,.1)}',
     '.v3-entry{white-space:nowrap}'
   ].join('');
   document.head.appendChild(css);
@@ -107,12 +109,15 @@
     var cols = board.columns.filter(function (c) { return !c.teachingListArchived && (c.cards || []).some(function (k) { return k && k.title && !k.teachingArchived; }); });
     var pre = o.listIds || (cols.length === 1 ? [cols[0].id] : []);
     var title = o.title || (pre.length === 1 ? (cols.filter(function (c) { return c.id === pre[0]; })[0] || {}).title : board.title) || '3D 词卡';
-    var m = modal(hd('布置 3D 词卡', '学生用课堂码打开一个只有这些词卡的 3D 学习页，你在这里看到每个人的进度。') +
+    var m = modal(hd('布置给学生', '学生用课堂码打开一个只有这些词的学习页（3D 词卡或 Knowledge Drive），你在这里看到每个人的进度。') +
       '<label class="v3-f">作业标题<input type="text" data-t maxlength="80" value="' + esc(title) + '"></label>' +
       '<div style="font-size:12.5px;color:#93a0b8;font-weight:600">选择词表</div><div class="v3-lists">' +
       cols.map(function (c) { var n = (c.cards || []).filter(function (k) { return k && k.title && !k.teachingArchived; }).length;
         return '<label class="v3-l"><input type="checkbox" value="' + esc(c.id) + '"' + (pre.indexOf(c.id) >= 0 ? ' checked' : '') + '>' + esc(c.title || '词表') + '<small>' + n + ' 个词</small></label>'; }).join('') +
-      '</div><div class="v3-row"><button type="button" class="v3-b pri" data-go>生成课堂码</button><button type="button" class="v3-b" data-mine>我的 3D 词卡作业</button></div><p class="v3-msg" data-msg></p>');
+      '</div><div style="font-size:12.5px;color:#93a0b8;font-weight:600">呈现方式</div><div class="v3-views">' +
+      '<label><input type="radio" name="v3view" value="cards"' + (o.view === 'drive' ? '' : ' checked') + '><b>🧊 3D 词卡</b><small>九种 3D 动态卡片 · 爆炸学习卡</small></label>' +
+      '<label><input type="radio" name="v3view" value="drive"' + (o.view === 'drive' ? ' checked' : '') + '><b>🚗 Knowledge Drive</b><small>坐车沿路看词，每个词表一条路</small></label>' +
+      '</div><div class="v3-row"><button type="button" class="v3-b pri" data-go>生成课堂码</button><button type="button" class="v3-b" data-mine>我布置的作业</button></div><p class="v3-msg" data-msg></p>');
     m.querySelector('[data-mine]').onclick = manage;
     m.querySelector('[data-go]').onclick = function () {
       var btn = this, msg = m.querySelector('[data-msg]'), ids = [].map.call(m.querySelectorAll('.v3-lists input:checked'), function (i) { return i.value; });
@@ -126,9 +131,10 @@
         return db(code).then(function (cur) {
           if (cur && k < 5) return tryCode(k + 1);
           if (cur) throw new Error('课堂码冲突，请再试一次。');
-          var host = { kind: 'vocab3d', v: 1, title: t, board: pb, state: 'live', created: { '.sv': 'timestamp' }, words: n };
+          var vw = (m.querySelector('input[name=v3view]:checked') || {}).value === 'drive' ? 'drive' : 'cards';
+          var host = { kind: 'vocab3d', v: 1, view: vw, title: t, board: pb, state: 'live', created: { '.sv': 'timestamp' }, words: n };
           return db(code + '/host', 'PUT', host).then(function () {
-            var all = mine().filter(function (x) { return x.code !== code; }); all.unshift({ code: code, title: t, at: Date.now(), words: n }); saveMine(all);
+            var all = mine().filter(function (x) { return x.code !== code; }); all.unshift({ code: code, title: t, at: Date.now(), words: n, view: vw }); saveMine(all);
             roster(code);
           });
         });
@@ -160,7 +166,7 @@
     var players = {};
     function paint() {
       if (!M || M !== m) return;
-      m.querySelector('[data-head]').innerHTML = hd(esc(host ? host.title : code), host ? (host.words || 0) + ' 个词 · 布置于 ' + new Date(host.created).toLocaleString() + (host.state !== 'ended' ? ' · <span style="color:#86efac">开放中</span>' : ' · <span style="color:#fca5a5">已结束</span>') : '');
+      m.querySelector('[data-head]').innerHTML = hd(esc(host ? host.title : code), host ? (host.view === 'drive' ? '🚗 Knowledge Drive · ' : '🧊 3D 词卡 · ') + (host.words || 0) + ' 个词 · 布置于 ' + new Date(host.created).toLocaleString() + (host.state !== 'ended' ? ' · <span style="color:#86efac">开放中</span>' : ' · <span style="color:#fca5a5">已结束</span>') : '');
       var x = m.querySelector('.v3-x'); if (x) x.onclick = shut;
       m.querySelector('[data-toggle]').textContent = host && host.state !== 'ended' ? '结束作业' : '重新开放';
       var rows = Object.keys(players || {}).map(function (k) { return players[k]; }).filter(function (p) { return p && p.name; }).sort(function (a, b) { return (b.known || 0) - (a.known || 0) || (b.seen || 0) - (a.seen || 0); });
@@ -182,7 +188,7 @@
   /* ---------------- every assignment made on this device ---------------- */
   function manage() {
     var all = mine();
-    var m = modal(hd('我的 3D 词卡作业', '在这台设备上布置的作业；点开看学生进度。') + (all.length ? '<div class="v3-mine">' + all.map(function (x) {
+    var m = modal(hd('我布置的作业', '在这台设备上布置的作业；点开看学生进度。') + (all.length ? '<div class="v3-mine">' + all.map(function (x) {
       return '<button type="button" data-code="' + esc(x.code) + '"><b>' + esc(x.code) + '</b>' + esc(x.title) + '<small>' + (x.words || 0) + ' 词 · ' + new Date(x.at).toLocaleDateString() + '</small></button>';
     }).join('') + '</div>' : '<div class="v3-none">还没有布置过 3D 词卡作业。在词表旁点「3D 词卡」开始。</div>'));
     [].forEach.call(m.querySelectorAll('[data-code]'), function (b) { b.onclick = function () { roster(b.getAttribute('data-code')); }; });
@@ -191,7 +197,7 @@
   /* ---------------- the entries: a "3D 词卡" button on each word list ---------------- */
   function sets() { try { return window.MinestTeachingSets && MinestTeachingSets.read ? MinestTeachingSets.read() : null; } catch (e) { return null; } }
   function entryBtn(cls, id) {
-    var b = document.createElement('button'); b.type = 'button'; b.className = cls + ' v3-entry'; b.textContent = '🧊 3D 词卡'; b.title = '把这个词表布置给学生，在 3D 动态卡片里学';
+    var b = document.createElement('button'); b.type = 'button'; b.className = cls + ' v3-entry'; b.textContent = '🎓 布置给学生'; b.title = '把这个词表布置给学生：3D 词卡或 Knowledge Drive';
     b.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); var s = sets(); if (s) assign(s, { listIds: [id] }); }, true);
     return b;
   }
