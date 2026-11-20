@@ -196399,7 +196399,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     '#cm-det em{display:block;font-style:normal;margin-top:12px;font-size:12.5px;line-height:1.45;color:#5d5866}#cm-det em:empty{display:none}' +
     'body.theme-dark #cm-ov.fan #cm-det{background:#1d2230;box-shadow:0 18px 44px rgba(0,0,0,.45)}body.theme-dark #cm-det em{color:#a3a9b8}' +
     '#cm-ov.fan:not(.wide) #cm-det{bottom:calc(env(safe-area-inset-bottom,0px) + 142px)}html.mn-dock-v #cm-ov.fan:not(.wide) #cm-det{bottom:calc(env(safe-area-inset-bottom,0px) + 66px)}' +
-    'html[data-card-style] #cm-ov .cm-c:not(.act)::before,html[data-card-style] #cm-ov .cm-c:not(.act)::after{mix-blend-mode:normal!important;filter:none!important}' +
+    'html[data-card-style] #cm-ov .cm-c::before,html[data-card-style] #cm-ov .cm-c::after{mix-blend-mode:normal!important;filter:none!important}' +
     'html[data-card-style] #cm-ov .cm-c{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}' +
     '#cm-ov.spiral #cm-trail{position:absolute;inset:0;pointer-events:none;overflow:visible}' +
     '#cm-det{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 96px);width:min(340px,86%);transform:translateX(-50%);z-index:1200;background:rgba(255,255,255,.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.85);border-radius:22px;box-shadow:0 18px 44px rgba(15,23,42,.2);padding:14px 20px;text-align:center;box-sizing:border-box;font-family:-apple-system,system-ui,sans-serif;display:none;pointer-events:none}' +
@@ -196472,6 +196472,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       tilt.appendChild(el); cards.push(el);
     }
     if (m === 'spiral' || m === 'helix' || m === 'stack' || m === 'orbit' || m === 'sphere' || m === 'wave') tilt.style.transformStyle = 'flat';
+    if (m === 'sphere') tilt.style.perspective = 'none';   // the globe is drawn flat (see render)
     var head = null, pills = null, groups = [];
     if (m === 'fan') {
       head = document.createElement('div'); head.id = 'cm-head'; box.appendChild(head);
@@ -196691,9 +196692,14 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
           var sc = (0.4 + Math.pow(front, 1.7) * 0.62) * mix(shrink, 1, Math.pow(front, 6)) + (hovIdx === i ? 0.06 : 0);
           var rotY = x1 * 38 * (1 - Math.pow(front, 4));
           var rotX = -y2 * 32 * (1 - Math.pow(front, 4));
-          el.style.opacity = z2 < -0.3 ? 0 : clamp(0.14 + Math.pow(front, 1.4) * 0.9, 0.14, 1) * clamp((z2 + 0.3) / 0.25, 0, 1);   // the far side of the globe is not drawn
+          /* the far side is not drawn — with a margin, so a card at the rim does not flicker in and out (each time it
+             came back its picture was decoded again) */
+          if (el._far ? z2 > -0.2 : z2 < -0.34) el._far = !el._far;
+          el.style.opacity = el._far ? 0 : clamp(0.14 + Math.pow(front, 1.4) * 0.9, 0.14, 1) * clamp((z2 + 0.34) / 0.3, 0.04, 1);
           el.style.pointerEvents = z2 < -0.05 ? 'none' : '';
-          el.style.transform = 'translate3d(' + (360 + px).toFixed(1) + 'px,' + (350 + py).toFixed(1) + 'px,0) perspective(1000px) rotateY(' + rotY.toFixed(2) + 'deg) rotateX(' + rotX.toFixed(2) + 'deg) scale(' + sc.toFixed(3) + ')';
+          /* flat 2D: the globe's projection is worked out here, so the cards need no 3D layers of their own (dozens of
+             3D layers ran a phone's web view out of memory); a slight lean and squash keep the roundness */
+          el.style.transform = 'translate(' + (360 + px).toFixed(1) + 'px,' + (350 + py).toFixed(1) + 'px) rotate(' + (x1 * y2 * -10).toFixed(2) + 'deg) scale(' + (sc * (1 - Math.abs(x1) * 0.12 * (1 - front))).toFixed(3) + ',' + (sc * (1 - Math.abs(y2) * 0.12 * (1 - front))).toFixed(3) + ')';
           el.style.zIndex = Math.round(500 + z2 * 400);
         });
         cards.forEach(function (el, i) { el.classList.toggle('act', i === bestI); });
@@ -196904,7 +196910,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
   /* a big board: only a window of cards round the one in view is built (every card animated each frame, each with
      its picture and the card style's layers, was too much for a phone) */
-  var CAP = { sphere: 36, spiral: 40, wall: 50 }, lastPickId = null;
+  var CAP = { sphere: 30, spiral: 40, wall: 50 }, lastPickId = null;
   function windowed(list) {
     var cap = CAP[mode] || 64; if (list.length <= cap) return list;
     var at = 0; if (lastPickId) { for (var i = 0; i < list.length; i++) if (list[i].id === lastPickId) { at = i; break; } }
