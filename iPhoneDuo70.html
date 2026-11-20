@@ -196396,7 +196396,12 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   document.head.appendChild(css);
 
   function hue(s) { var h = 0; s = String(s); for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return h; }
-  function items() {
+  var itemsCache = null, itemsAt = 0;
+  function items(fresh) {
+    if (!fresh && itemsCache && Date.now() - itemsAt < 4000) return itemsCache;
+    itemsAt = Date.now(); return (itemsCache = readItems());
+  }
+  function readItems() {
     var b = null; try { b = window.MinestAI && MinestAI.board && MinestAI.board(); } catch (e) {}
     if (!b || !window.MinestImageViews) return [];
     var list = MinestImageViews.cards(b, null, '');
@@ -196412,7 +196417,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   function Engine(box, list, m, onPick) {
     var N = list.length, fr = document.createElement('div'), tilt = document.createElement('div'), det = document.createElement('div');
     fr.id = 'cm-fr'; tilt.id = 'cm-tilt'; det.id = 'cm-det'; fr.appendChild(tilt); box.appendChild(fr); box.appendChild(det);
-    var PT = !box.classList.contains('land'), SX = 46, SY = -52, stepClock = 0, lastCur = null;
+    var AX = 1, PT = !box.classList.contains('land'), SX = 46, SY = -52, stepClock = 0, lastCur = null;
     var minCount = { spiral: 22, helix: 12, stack: 10, fan: 9, orbit: 12, sphere: 18, wave: 13 }[m] || N;
     var count = m === 'wall' ? Math.max(Math.ceil(Math.max(N, 20) / 5) + (Math.ceil(Math.max(N, 20) / 5) % 2), 4) * 5 : Math.max(N, minCount);
     var cards = [], time = 0, idle = 0, drag = false, vel = 0, t = 0, sel = 0, selF = 0, selV = 0, off = { x: 0, y: 0 }, ov2 = { x: 0, y: 0 }, sph = { rx: 0.18, ry: 0, vx: 0, vy: 0 }, goal = null, moved = 0, last = performance.now(), par = { x: 0, y: 0, tx: 0, ty: 0 }, hovIdx = -1, dead = false;
@@ -196425,19 +196430,19 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       el.style.backgroundColor = dark ? '#161b24' : '#fbfaf7';
       el.style.backgroundImage = dark ? 'linear-gradient(135deg,' + col + '52 0%,' + col + '1e 50%,rgba(14,22,33,.88) 100%)' : 'linear-gradient(135deg,' + col + '3a 0%,' + col + '14 50%,rgba(255,255,255,.94) 100%)';
       el.style.borderColor = col + '77';
-      el.innerHTML = (it.src ? '<div class="im" style="background-image:url(&quot;' + String(it.src).replace(/"/g, '%22') + '&quot;)"></div>' : '') + '<div class="cm-bd"></div><div class="cm-ini"></div><div class="sh"></div><div class="tt"></div><div class="cm-st"></div>';
+      el.innerHTML = (it.src ? '<div class="im" data-bg="' + String(it.src).replace(/"/g, '%22') + '"></div>' : '') + '<div class="cm-bd"></div><div class="cm-ini"></div><div class="sh"></div><div class="tt"></div><div class="cm-st"></div>';
       el.style.setProperty('--cm-col', col);
       if (m === 'fan') {
         el.removeAttribute('style'); el.className = 'cm-c cm-fc';
         el.style.setProperty('--cm-col', col);
         el.innerHTML = '<div class="fa"></div><div class="sh"></div><div class="fn"></div><div class="fs"></div>';
         var fa = el.querySelector('.fa');
-        if (it.src) fa.style.backgroundImage = 'url("' + String(it.src).replace(/"/g, '%22') + '")';
+        if (it.src) fa.setAttribute('data-bg', String(it.src).replace(/"/g, '%22'));
         else { fa.style.backgroundImage = 'linear-gradient(140deg,' + col + ',' + col + '99 55%,' + col + '55)'; fa.innerHTML = '<b></b>'; fa.firstChild.textContent = (String(it.title).trim().charAt(0) || '').toUpperCase(); }
         el.querySelector('.fn').textContent = it.title; el.querySelector('.fs').textContent = it.sub;
       } else if ((m === 'wall' || m === 'helix' || m === 'stack') && it.src) {
         el.removeAttribute('style'); el.classList.add('wi');
-        el.innerHTML = '<div class="art"' + (it.src ? ' style="background-image:url(&quot;' + String(it.src).replace(/"/g, '%22') + '&quot;)"' : ' style="background-image:linear-gradient(135deg,' + col + '55,' + col + '14)"') + '>' + (it.src ? '' : '<i style="top:18px;width:46%"></i><i style="top:34px;width:30%"></i><i style="top:76px;width:38%;background:' + col + '"></i>') + '</div><div class="sh"></div><div class="wt"></div><div class="ws"></div><div class="wg"></div>';
+        el.innerHTML = '<div class="art"' + (it.src ? ' data-bg="' + String(it.src).replace(/"/g, '%22') + '"' : ' style="background-image:linear-gradient(135deg,' + col + '55,' + col + '14)"') + '>' + (it.src ? '' : '<i style="top:18px;width:46%"></i><i style="top:34px;width:30%"></i><i style="top:76px;width:38%;background:' + col + '"></i>') + '</div><div class="sh"></div><div class="wt"></div><div class="ws"></div><div class="wg"></div>';
         el.querySelector('.wt').textContent = it.title; el.querySelector('.ws').textContent = it.sub; el.querySelector('.wg').textContent = it.sub;
       } else {
         if (it.src) el.classList.add('hasim');
@@ -196492,9 +196497,15 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       fr.insertBefore(sv, tilt);
     }
     function fit() {
-      var w = box.clientWidth || 390, h = box.clientHeight || 700;
+      var w = box.clientWidth || 390, h = box.clientHeight || 700; AX = clamp(w / Math.max(1, h), 1, 1.9);
       if (m === 'fan') box.classList.toggle('wide', w >= 600 && w / h > 1.05);
-      fr.style.transform = 'scale(' + (m === 'wall' ? Math.max(w / 1000, h / 1100) : (m === 'helix' || m === 'stack' ? Math.min(w / 640, h / (PT ? 980 : 900)) : Math.min(w / 720, h / 740) * (m === 'sphere' ? 0.82 / Math.min(1.25, Math.sqrt(Math.max(1, count / 18))) + 0.12 : 1))) + ')';
+      var sc = m === 'wall' ? Math.max(w / 1000, h / 1100)
+        : (m === 'helix' || m === 'stack') ? Math.min(w / 640, h / (PT ? 980 : 900))
+        : m === 'sphere' ? Math.min((h - 96) / 640, w / 700)
+        : m === 'orbit' ? Math.min((h - 220) / 390, w / (640 * AX))
+        : m === 'wave' ? Math.min((h - 220) / 400, w / (720 * AX))
+        : Math.min(w / 720, h / 740);
+      fr.style.transform = 'scale(' + sc.toFixed(4) + ')';
     }
     fit();
 
@@ -196542,6 +196553,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       for (var i = 0; i < cards.length; i++) {
         var el = cards[i], o = el.style.opacity, off = o !== '' && +o < 0.02;
         if (off !== (el.style.display === 'none')) el.style.display = off ? 'none' : '';
+        if (!off && !el._bg) { el._bg = 1; var bgn = el.querySelector('[data-bg]'); if (bgn) bgn.style.backgroundImage = 'url("' + bgn.getAttribute('data-bg') + '")'; }
       }
     }
     function render() {
@@ -196594,8 +196606,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
         var hxPts = [], hxPts2 = [];
         for (var hd = -2.5; hd <= 2.55; hd += 0.18) {
           var hth = hd * .82;
-          hxPts.push((360 + Math.sin(hth) * (PT ? 205 : 245)).toFixed(1) + ',' + (360 - hd * (PT ? 232 : 195)).toFixed(1));
-          hxPts2.push((360 + Math.sin(hth + 0.45) * (PT ? 180 : 215)).toFixed(1) + ',' + (360 - hd * (PT ? 232 : 195) + Math.cos(time * 1.4 + hd) * 8).toFixed(1));
+          hxPts.push((360 + Math.sin(hth) * (PT ? 205 : 245) * Math.min(AX, 1.5)).toFixed(1) + ',' + (360 - hd * (PT ? 232 : 195)).toFixed(1));
+          hxPts2.push((360 + Math.sin(hth + 0.45) * (PT ? 180 : 215) * Math.min(AX, 1.5)).toFixed(1) + ',' + (360 - hd * (PT ? 232 : 195) + Math.cos(time * 1.4 + hd) * 8).toFixed(1));
         }
         if (hxPath) hxPath.setAttribute('d', 'M' + hxPts.join(' L'));
         if (hxPath2) hxPath2.setAttribute('d', 'M' + hxPts2.join(' L'));
@@ -196604,7 +196616,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
           var th = d * .82, R = PT ? 205 : 245;
           var bobY = Math.sin(time * 1.85 + i * 1.35) * 7;
           var bobRot = Math.cos(time * 1.35 + i * 0.95) * 2.6;
-          var x = Math.sin(th) * R + par.x * 14 * (1 - Math.min(ad, 2) * .3);
+          var x = Math.sin(th) * R * Math.min(AX, 1.5) + par.x * 14 * (1 - Math.min(ad, 2) * .3);
           var y = 360 - d * (PT ? 232 : 195) + bobY + par.y * 10;
           var focus = clamp(1 - ad / .85, 0, 1);
           var rotY = Math.sin(th) * 26 * (1 - focus * .85) + par.x * 5;
@@ -196620,8 +196632,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
         /* 6. 3D Planetary Halo Orbit Ring — card-centered perspective so cards never blow up over #cm-det */
         var oPts = [], oPts2 = [];
         for (var oa = 0; oa <= 6.32; oa += 0.16) {
-          oPts.push((360 + Math.sin(oa) * 262).toFixed(1) + ',' + (268 + Math.cos(oa) * 82).toFixed(1));
-          oPts2.push((360 + Math.sin(oa) * 276).toFixed(1) + ',' + (268 + Math.cos(oa) * 90 + Math.sin(oa * 3 + time * 2) * 3).toFixed(1));
+          oPts.push((360 + Math.sin(oa) * 262 * AX).toFixed(1) + ',' + (268 + Math.cos(oa) * 82).toFixed(1));
+          oPts2.push((360 + Math.sin(oa) * 276 * AX).toFixed(1) + ',' + (268 + Math.cos(oa) * 90 + Math.sin(oa * 3 + time * 2) * 3).toFixed(1));
         }
         if (hxPath) hxPath.setAttribute('d', 'M' + oPts.join(' L') + ' Z');
         if (hxPath2) hxPath2.setAttribute('d', 'M' + oPts2.join(' L') + ' Z');
@@ -196631,7 +196643,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
           if (Math.abs(d) > RING / 2) { el.style.opacity = 0; el.style.pointerEvents = 'none'; return; }
           var sinA = Math.sin(ang), cosA = Math.cos(ang);
           var flt = Math.sin(time * 2.1 + i * 0.9) * 5;
-          var x = sinA * 262 + par.x * 14 * cosA;
+          var x = sinA * 262 * AX + par.x * 14 * cosA;
           var front = clamp((cosA + 1) * 0.5, 0, 1);
           var focus = Math.pow(front, 3.2), big = Math.pow(front, 24);   // big: only the card in front
           var y = 246 + cosA * 70 + big * 8 + flt - par.y * 10;
@@ -196647,7 +196659,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
         updateDet(sel, 'ORBIT');
       } else if (m === 'sphere') {
         /* 7. 3D Fibonacci Knowledge Globe — card-centered perspective */
-        var phi = Math.PI * (3 - Math.sqrt(5)), dens = Math.sqrt(Math.max(1, M / 18)), R = 232 * Math.min(1.25, dens), shrink = 1 / Math.min(1.6, dens);
+        var phi = Math.PI * (3 - Math.sqrt(5)), R = 292, shrink = 0.92;
         var cosY = Math.cos(sph.ry + par.x * 0.25), sinY = Math.sin(sph.ry + par.x * 0.25);
         var cosX = Math.cos(sph.rx - par.y * 0.2), sinX = Math.sin(sph.rx - par.y * 0.2);
         var bestI = 0, bestZ = -1e9;
@@ -196676,8 +196688,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
         var wPts = [], wPts2 = [];
         for (var wd = -3.4; wd <= 3.45; wd += 0.16) {
           var ph = wd * 0.85 - time * 1.4;
-          wPts.push((360 + wd * 98).toFixed(1) + ',' + (280 + Math.sin(ph) * 74).toFixed(1));
-          wPts2.push((360 + wd * 98).toFixed(1) + ',' + (280 + Math.cos(ph) * 52).toFixed(1));
+          wPts.push((360 + wd * 98 * AX).toFixed(1) + ',' + (280 + Math.sin(ph) * 74).toFixed(1));
+          wPts2.push((360 + wd * 98 * AX).toFixed(1) + ',' + (280 + Math.cos(ph) * 52).toFixed(1));
         }
         if (hxPath) hxPath.setAttribute('d', 'M' + wPts.join(' L'));
         if (hxPath2) hxPath2.setAttribute('d', 'M' + wPts2.join(' L'));
@@ -196686,7 +196698,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
           if (ad > 3.6) { el.style.opacity = 0; el.style.pointerEvents = 'none'; return; }
           el.style.pointerEvents = '';
           var ph = d * 0.85 - time * 1.4;
-          var x = d * (PT ? 102 : 136) + par.x * 14;
+          var x = d * (PT ? 102 : 136) * AX + par.x * 14;
           var y = 278 + Math.sin(ph) * 72 * clamp(ad * 0.65, 0.15, 1) - par.y * 10;
           var focus = clamp(1 - ad / 0.85, 0, 1);
           var rotZ = Math.cos(ph) * 14 * (1 - focus * 0.85);
@@ -196877,7 +196889,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     return list.slice(from, from + cap);
   }
   addEventListener('resize', function () { if (eng) eng.fit(); });
-  window.addEventListener('minest:image-assets', function () { sync(true); });
+  window.addEventListener('minest:image-assets', function () { itemsAt = 0; sync(true); });
   setInterval(function () { try { sync(false); } catch (e) {} }, 700);
   window.MinestCoverModes = { play: function (v) { playing = v === undefined ? !playing : !!v; var b = bar && bar.querySelector('.pl'); if (b) { b.textContent = playing ? '❚❚' : '▶'; b.classList.toggle('on', playing); } }, speed: function (v) { speed = v; }, set: setMode, get: function () { return mode; } };
 })();
