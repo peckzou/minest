@@ -305,6 +305,9 @@
     var mc = ctx === 'room' || ctx === 'world', keys = 0, seps = 0;
     [].forEach.call(d.children, function (c) { if (c === pageEl) { [].forEach.call(c.children, function (k) { if (getComputedStyle(k).display !== 'none') keys++; }); return; } if (getComputedStyle(c).display === 'none') return; if (c.classList.contains('mn-sys-sep')) seps++; else keys++; });
     var lens = mc ? 0 : (h ? 1.6 : 1.35), room = (h ? innerWidth : innerHeight) - 28 - (h ? 0 : 20);
+    if (R.classList.contains('duo-dockpin') || R.classList.contains('duo-docktop')) {   // the Duo's pinned Dock starts at its own place: the room left from there
+      var dr = d.getBoundingClientRect(); room = h ? innerWidth - Math.max(0, dr.left) - 16 : innerHeight - Math.max(0, dr.top) - 16;
+    }
     var k = Math.floor((room - 10 - seps * 10 - Math.max(0, keys - 1) * 4) / (keys + lens));
     k = Math.max(22, Math.min(mc ? 38 : 40, k));
     if (R.style.getPropertyValue('--mn-key') !== k + 'px') R.style.setProperty('--mn-key', k + 'px');
