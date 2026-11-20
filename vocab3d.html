@@ -815,7 +815,8 @@ body.v3-xl #v3-home, body.vt-playing #v3-home { display: none; }
     '#cm-ov .cm-gbar.on .js-ring{opacity:1;cursor:grabbing}#cm-ov .cm-gbar.on .js-knob{transition:none}#cm-ov .cm-gbar.lean .js-dot{opacity:.95}#cm-ov .cm-gbar.lean .js-ring{opacity:1}' +
     '#cm-ov .cm-gbar .js-k{position:absolute;width:30px;height:30px;padding:0;border-radius:50%;pointer-events:auto;touch-action:none;display:grid;place-items:center;color:rgba(235,242,252,.85);background:rgba(22,26,36,.55);border:1px solid rgba(255,255,255,.16);box-shadow:0 6px 16px -6px rgba(0,0,0,.55);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}' +
     '#cm-ov .cm-gbar .js-k svg{width:15px;height:15px}#cm-ov .cm-gbar .js-k:active,#cm-ov .cm-gbar .js-k.hold{transform:scale(.9);background:rgba(125,195,255,.3)}' +
-    '#cm-ov .cm-gbar .js-ccw{left:66px;top:-4px}#cm-ov .cm-gbar .js-cw{left:86px;top:34px}#cm-ov .cm-gbar .js-lv{left:4px;top:-30px;opacity:0;pointer-events:none;transform:scale(.7)}#cm-ov .cm-gbar.lean .js-lv{opacity:1;pointer-events:auto;transform:none;color:#7dd3fc}' +
+    '#cm-ov .cm-gbar .js-ccw{left:66px;top:-4px}#cm-ov .cm-gbar .js-cw{left:86px;top:34px}#cm-ov .cm-gbar .js-lv{left:4px;top:-30px;color:#7dd3fc}' +
+    '#cm-ov .cm-gbar .js-k{opacity:0;pointer-events:none}#cm-ov .cm-gbar.keys .js-k{pointer-events:auto}#cm-ov .cm-gbar.keys:not(.lean) .js-lv{pointer-events:none}' +
     'html.mn-dock-v #cm-ov .cm-gbar{bottom:calc(env(safe-area-inset-bottom,0px) + 22px)}html.mn-sys-reading #cm-ov .cm-gbar{display:none}' +
     '#cm-ov .cm-hctl{position:absolute;left:0;top:0;width:300px;display:flex;gap:4px;justify-content:center;pointer-events:auto}#cm-ov .cm-hctl button{flex:none;min-width:34px;height:32px;padding:0 10px;border-radius:99px;border:1px solid rgba(255,255,255,.35);background:rgba(20,24,34,.78);color:#fff;font:600 13px -apple-system,system-ui,sans-serif;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}' +
     '#cm-ov .cm-hand.has .cm-hback{display:block}html.mn-dock-v #cm-ov .cm-hback{bottom:calc(env(safe-area-inset-bottom,0px) + 22px)}' +
@@ -1440,28 +1441,30 @@ body.v3-xl #v3-home, body.vt-playing #v3-home { display: none; }
     }
     gbar = document.createElement('div'); gbar.className = 'cm-gbar';
     var jsI = function (p) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>'; };
-    gbar.innerHTML = '<div class="js-ring" role="slider" aria-label="卡组角度 · 推动摇杆倾斜，双击摆正"><svg viewBox="0 0 84 84" aria-hidden="true"><path d="M38.5 10.5L42 7l3.5 3.5M38.5 73.5L42 77l3.5-3.5M10.5 38.5L7 42l3.5 3.5M73.5 38.5L77 42l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="42" cy="42" r="25" fill="none" stroke="currentColor" stroke-width=".8" stroke-dasharray="1.5 4.2" opacity=".55"/></svg><i class="js-dot"></i><i class="js-knob"></i></div>' +
+    gbar.innerHTML = '<div class="js-ring" role="slider" aria-label="卡组角度 · 推动摇杆倾斜，双击摆正"><svg viewBox="0 0 84 84" aria-hidden="true"><circle cx="42" cy="42" r="25" fill="none" stroke="currentColor" stroke-width=".8" stroke-dasharray="1.5 4.2" opacity=".55"/></svg><i class="js-dot"></i><i class="js-knob"></i></div>' +
       '<button type="button" class="js-k js-ccw" data-g="ccw" aria-label="卡组 · 向左转">' + jsI('<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/>') + '</button>' +
       '<button type="button" class="js-k js-cw" data-g="cw" aria-label="卡组 · 向右转">' + jsI('<path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v4.5h-4.5"/>') + '</button>' +
       '<button type="button" class="js-k js-lv" data-g="lv" aria-label="卡组 · 摆正">' + jsI('<rect x="5" y="7" width="14" height="10" rx="2"/><path d="M2.5 12h2M19.5 12h2"/>') + '</button>';
     box.appendChild(gbar);
-    var joy = { x: 0, y: 0, on: false, id: null, rot: 0, lastTap: 0 }, jRing = gbar.querySelector('.js-ring'), jKnob = gbar.querySelector('.js-knob'), jDot = gbar.querySelector('.js-dot');
+    var joy = { x: 0, y: 0, on: false, id: null, rot: 0, lastTap: 0, vis: 0, until: 0 }, jRing = gbar.querySelector('.js-ring'), jKnob = gbar.querySelector('.js-knob'), jDot = gbar.querySelector('.js-dot'), jKeys = [].slice.call(gbar.querySelectorAll('.js-k'));
     function level() { grx = gry = grz = 0; try { if (window.MinestNative && MinestNative.haptic) MinestNative.haptic('light'); } catch (e) {} }
     (function () {
       var R0 = 26, t0 = 0, moved = 0;
       function at(e) { var r = jRing.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2), d = Math.hypot(dx, dy); if (d > R0) { dx *= R0 / d; dy *= R0 / d; } joy.x = dx / R0; joy.y = dy / R0; moved = Math.max(moved, d); joy.kx = dx; joy.ky = dy; joy.back = 0; jKnob.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px)'; }
-      jRing.addEventListener('pointerdown', function (e) { e.stopPropagation(); e.preventDefault(); joy.on = true; joy.id = e.pointerId; t0 = performance.now(); moved = 0; try { jRing.setPointerCapture(e.pointerId); } catch (er) {} gbar.classList.add('on'); at(e); });
+      jRing.addEventListener('pointerdown', function (e) { e.stopPropagation(); e.preventDefault(); joy.until = performance.now() + 2600; joy.on = true; joy.id = e.pointerId; t0 = performance.now(); moved = 0; try { jRing.setPointerCapture(e.pointerId); } catch (er) {} gbar.classList.add('on'); at(e); });
       jRing.addEventListener('pointermove', function (e) { e.stopPropagation(); if (joy.on && e.pointerId === joy.id) at(e); });
-      function up(e) { e.stopPropagation(); if (!joy.on || e.pointerId !== joy.id) return; joy.on = false; joy.x = joy.y = 0; gbar.classList.remove('on'); joy.back = 1;
+      function up(e) { e.stopPropagation(); if (!joy.on || e.pointerId !== joy.id) return; joy.until = performance.now() + 2600; joy.on = false; joy.x = joy.y = 0; gbar.classList.remove('on'); joy.back = 1;
         var now = performance.now(); if (now - t0 < 260 && moved < 30) { if (now - joy.lastTap < 360) { level(); joy.lastTap = 0; } else joy.lastTap = now; } }
       jRing.addEventListener('pointerup', up); jRing.addEventListener('pointercancel', up);
       [].forEach.call(gbar.querySelectorAll('.js-k'), function (b) {
         var g = b.getAttribute('data-g'), dir = g === 'ccw' ? -1 : g === 'cw' ? 1 : 0;
-        b.addEventListener('pointerdown', function (e) { e.stopPropagation(); e.preventDefault(); if (!dir) { level(); return; } try { b.setPointerCapture(e.pointerId); } catch (er) {} b.classList.add('hold'); grz += dir * 8; joy.rot = dir; joy.rotAt = performance.now(); });
+        b.addEventListener('pointerdown', function (e) { e.stopPropagation(); e.preventDefault(); joy.until = performance.now() + 2600; if (!dir) { level(); return; } try { b.setPointerCapture(e.pointerId); } catch (er) {} b.classList.add('hold'); grz += dir * 8; joy.rot = dir; joy.rotAt = performance.now(); });
         function stop(e) { e.stopPropagation(); b.classList.remove('hold'); if (joy.rot === dir) joy.rot = 0; }
         b.addEventListener('pointerup', stop); b.addEventListener('pointercancel', stop);
       });
       gbar.addEventListener('click', function (e) { e.stopPropagation(); });
+      gbar.addEventListener('pointerover', function (e) { if (e.pointerType === 'mouse') joy.until = performance.now() + 1800; });
+      gbar.addEventListener('pointermove', function (e) { if (e.pointerType === 'mouse') joy.until = performance.now() + 1800; });
     })();
     /* each frame: the knob's push leans the group (a held key turns it); the dot shows where the group leans now */
     function joyStep(dt) {
@@ -1469,6 +1472,14 @@ body.v3-xl #v3-home, body.vt-playing #v3-home { display: none; }
       if (joy.back && (joy.kx || joy.ky)) { var q = Math.min(1, dt * 14); joy.kx -= joy.kx * q; joy.ky -= joy.ky * q; if (Math.abs(joy.kx) + Math.abs(joy.ky) < 0.3) { joy.kx = joy.ky = 0; joy.back = 0; } jKnob.style.transform = joy.kx || joy.ky ? 'translate(' + joy.kx.toFixed(1) + 'px,' + joy.ky.toFixed(1) + 'px)' : ''; }
       if (joy.rot && performance.now() - joy.rotAt > 260) grz += joy.rot * 70 * dt;
       jDot.style.transform = 'translate(' + (gry / 70 * 26).toFixed(1) + 'px,' + (-grx / 60 * 26).toFixed(1) + 'px)';
+      // the keys round the stick: only while it is in use (held, a key pressed, or the pointer on it), faded in and out here
+      var want = joy.on || joy.rot || performance.now() < joy.until ? 1 : 0, leaned = gbar.classList.contains('lean');
+      joy.vis += (want - joy.vis) * Math.min(1, dt * 12); if (Math.abs(want - joy.vis) < 0.01) joy.vis = want;
+      jKeys.forEach(function (k) {
+        var v = k.classList.contains('js-lv') && !leaned ? 0 : joy.vis, st0 = v.toFixed(2);
+        if (k._v !== st0) { k._v = st0; k.style.opacity = st0; k.style.transform = 'scale(' + (0.7 + 0.3 * v).toFixed(3) + ')'; }
+      });
+      gbar.classList.toggle('keys', joy.vis > 0.5);
     }
     function handRender(dt) {
       if (Math.abs(asideT - aside) > 0.001) { aside += (asideT - aside) * Math.min(1, dt * 8); applyFr(); }
