@@ -363,6 +363,20 @@
     if (c !== ctx) { ctx = c; R.setAttribute('data-mn-ctx', c); }
     else if (R.getAttribute('data-mn-ctx') !== c) R.setAttribute('data-mn-ctx', c);
   }
+  /* an app key pressed in the room (Dock · 全部入口): its panel opens on the board, under the room's canvas — it looked
+     dead (2026-11-20, the user). Leave the room first, then press it again on the board. */
+  document.addEventListener('click', function (e) {
+    if (ctx !== 'room') return;
+    var b = e.target.closest && e.target.closest('.mn-bdock .mn-bapp');
+    if (!b || b.__mnReplay || b.classList.contains('mn-sys-key') || b.classList.contains('mn-ctx-key') || b.classList.contains('mn-page-key') || b.hasAttribute('data-spatial-home-dock')) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    try { if (window.MinestSpatialHome && MinestSpatialHome.close) MinestSpatialHome.close(); else press('sh-exitBtn'); } catch (er) { press('sh-exitBtn'); }
+    var t0 = Date.now();
+    (function again() {
+      if (!inRoom() || Date.now() - t0 > 2500) { setTimeout(function () { b.__mnReplay = 1; try { b.click(); } finally { b.__mnReplay = 0; } }, 120); return; }
+      setTimeout(again, 80);
+    })();
+  }, true);
   document.addEventListener('keydown', onKey, true);
   document.addEventListener('fullscreenchange', function () { if (reading && nativeFull && !document.fullscreenElement) setReading(false); });
   var queued = false;

@@ -196815,6 +196815,20 @@ html.mn-sysbar.duo-dockpin:not(.mn-sys-reading) body .mn-bdock.mn-bdock, html.mn
     if (c !== ctx) { ctx = c; R.setAttribute('data-mn-ctx', c); }
     else if (R.getAttribute('data-mn-ctx') !== c) R.setAttribute('data-mn-ctx', c);
   }
+  /* an app key pressed in the room (Dock · 全部入口): its panel opens on the board, under the room's canvas — it looked
+     dead (2026-11-20, the user). Leave the room first, then press it again on the board. */
+  document.addEventListener('click', function (e) {
+    if (ctx !== 'room') return;
+    var b = e.target.closest && e.target.closest('.mn-bdock .mn-bapp');
+    if (!b || b.__mnReplay || b.classList.contains('mn-sys-key') || b.classList.contains('mn-ctx-key') || b.classList.contains('mn-page-key') || b.hasAttribute('data-spatial-home-dock')) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    try { if (window.MinestSpatialHome && MinestSpatialHome.close) MinestSpatialHome.close(); else press('sh-exitBtn'); } catch (er) { press('sh-exitBtn'); }
+    var t0 = Date.now();
+    (function again() {
+      if (!inRoom() || Date.now() - t0 > 2500) { setTimeout(function () { b.__mnReplay = 1; try { b.click(); } finally { b.__mnReplay = 0; } }, 120); return; }
+      setTimeout(again, 80);
+    })();
+  }, true);
   document.addEventListener('keydown', onKey, true);
   document.addEventListener('fullscreenchange', function () { if (reading && nativeFull && !document.fullscreenElement) setReading(false); });
   var queued = false;
@@ -196996,9 +197010,10 @@ html.mn-sysbar.duo-dockpin:not(.mn-sys-reading) body .mn-bdock.mn-bdock, html.mn
     '#cm-ov .cm-rgp .ds{margin:4px 2px 8px;color:#8b97ab;font-size:11.5px;line-height:1.45}' +
     '#cm-ov .cm-rgp label{display:grid;grid-template-columns:96px 1fr 50px;align-items:center;gap:8px;margin:0 0 8px}#cm-ov .cm-rgp label span{color:#b4bfd0;font-size:11.5px}#cm-ov .cm-rgp input{width:100%;accent-color:#e8eef8;display:block!important;margin:0}#cm-ov .cm-rgp b{font:600 11px ui-monospace,Menlo,monospace;color:#cbd5e1;text-align:right}' +
     'html.mn-sys-reading #cm-ov .cm-rgset,html.mn-sys-reading #cm-ov .cm-rgp{display:none!important}' +
-    '.cm-stm{width:190px;height:250px;margin:-125px 0 0 -95px;border-radius:20px;box-shadow:0 22px 46px -18px rgba(15,23,42,.45)}.cm-stm .tt{font-size:17px}#cm-ov.land .cm-stm{width:250px;height:176px;margin:-88px 0 0 -125px}' +
-    '#cm-ov.stream{background:radial-gradient(circle at 50% 47%,#ffffff,#eef2f8 55%,#dfe5ee)!important}body.theme-dark #cm-ov.stream{background:radial-gradient(circle at 50% 47%,#1a2440,#0a0f1d 65%)!important}' +
-    '#cm-ov .cm-stmfx{position:absolute;inset:0;pointer-events:none;z-index:0}#cm-ov.stream #cm-fr{z-index:1}' +
+    '.cm-rg.cm-stm{width:196px;height:268px;margin:-134px 0 0 -98px;border-radius:22px}#cm-ov.land .cm-rg.cm-stm{width:268px;height:186px;margin:-93px 0 0 -134px}' +
+    '.cm-rg.cm-stm .rt{left:16px;right:16px;top:14px;bottom:auto;font-size:15px}' +
+    '#cm-ov.stream{background:radial-gradient(circle at 50% 47%,#ffffff,#eef2f8 55%,#dfe5ee)!important}body.theme-dark #cm-ov.stream{background:radial-gradient(circle at 50% 47%,#ffffff,#eef2f8 55%,#dfe5ee)!important}#cm-ov.stream .cm-rcap,#cm-ov.stream #cm-det{color:#1f2430}' +
+    '#cm-ov.stream::before,#cm-ov.stream::after{content:"";position:absolute;top:0;bottom:0;width:9%;pointer-events:none;z-index:1200;background:linear-gradient(90deg,rgba(255,255,255,.55),rgba(255,255,255,0))}#cm-ov.stream::before{left:0}#cm-ov.stream::after{right:0;transform:scaleX(-1)}body.theme-dark #cm-ov.stream::before,body.theme-dark #cm-ov.stream::after{background:linear-gradient(90deg,rgba(160,200,255,.12),rgba(160,200,255,0))}' +
     '.cm-wav{width:176px;height:224px;margin:-112px 0 0 -88px;border-radius:22px;box-shadow:0 18px 40px rgba(15,23,42,.25)}.cm-wav .tt{font-size:16px}' +
     '.cm-hx{backdrop-filter:none;-webkit-backdrop-filter:none;width:320px;height:212px;margin:-106px 0 0 -160px;border-radius:20px;box-shadow:0 20px 46px rgba(0,0,0,.28);backface-visibility:hidden;transition:box-shadow .25s ease}' +
     '.cm-c.act{box-shadow:0 30px 64px rgba(14,165,233,.34),0 20px 48px rgba(0,0,0,.38)}' +
@@ -197113,10 +197128,10 @@ html.mn-sysbar.duo-dockpin:not(.mn-sys-reading) body .mn-bdock.mn-bdock, html.mn
       el.style.borderColor = col + '77';
       el.innerHTML = (it.src ? '<div class="im" data-bg="' + String(it.src).replace(/"/g, '%22') + '"></div>' : '') + '<div class="cm-bd"></div><div class="cm-ini"></div><div class="sh"></div><div class="tt"></div><div class="cm-st"></div>';
       el.style.setProperty('--cm-col', col);
-      if (m === 'ring') {
-        el.removeAttribute('style'); el.className = 'cm-c cm-rg';
+      if (m === 'ring' || m === 'stream') {
+        el.removeAttribute('style'); el.className = 'cm-c cm-rg' + (m === 'stream' ? ' cm-stm' : '');
         var pal = FLUID[(i % N + Math.floor(i / N) * 3) % FLUID.length];   // each card its own palette (neighbours never the same)
-        ['--c0', '--c1', '--c2', '--c3'].forEach(function (v, q) { el.style.setProperty(v, pal[q]); });
+        ['--c0', '--c1', '--c2', '--c3'].forEach(function (v, q) { el.style.setProperty(v, pal[q]); }); el.__glow = pal[1];
         el.innerHTML = '<div class="fl"></div>' + (it.src ? '<div class="im" data-bg="' + String(it.src).replace(/"/g, '%22') + '"></div>' : '') + '<div class="rt"></div>';
         el.querySelector('.rt').textContent = it.title;
       } else if (m === 'fan') {
@@ -197147,7 +197162,7 @@ html.mn-sysbar.duo-dockpin:not(.mn-sys-reading) body .mn-bdock.mn-bdock, html.mn
       tilt.appendChild(el); cards.push(el);
     }
     if (m === 'spiral' || m === 'helix' || m === 'stack' || m === 'orbit' || m === 'sphere' || m === 'wave' || m === 'ring' || m === 'stream') tilt.style.transformStyle = 'flat';
-    var stm = m === 'stream' ? streamFx(box) : null;
+    var stm = null;
     var rgCap = null, rgRim = null;
     if (m === 'ring') ringUI();
     if (m === 'sphere') tilt.style.perspective = 'none';   // the globe is drawn flat (see render)
@@ -197439,22 +197454,31 @@ html.mn-sysbar.duo-dockpin:not(.mn-sys-reading) body .mn-bdock.mn-bdock, html.mn
         });
         updateDet(sel, 'WAVE');
       } else if (m === 'stream') {
-        /* 10. Stream (流光, 2026-11-20, the user): a tunnel of light — the cards stand on its two walls and come down it
-           towards you, light streaks rush out from the vanishing point behind them (streamFx), longer the faster */
-        var bestS = 0, bestSd = 99, run = playing ? speed * 0.72 : 0;
+        /* 10. Stream (流光, 2026-11-20, the user's reference): the cards on a gentle inner curve, drifting sideways; towards
+           the screen's edges the glass bends them — they stretch out, slide to the edge, blur and smear into a streak of
+           their own light; the middle stays sharp */
+        var Rs = Math.min(M, 10), Rr = 620, Ps = 900, bestS = 0, bestSd = 99, drift = time * 0.11;
         cards.forEach(function (el, i) {
-          var d = ((i - selF) % M + M) % M, z = d - 0.55;   // z: 0 the near card, growing into the distance; below 0 it passes you
-          if (z > 7.2 || z < -0.5) { el.style.opacity = 0; el.style.pointerEvents = 'none'; return; }
-          var side = (i % 2) ? 1 : -1, k = 1 / (1 + Math.max(-0.45, z) * 0.42), lift = ((i % 3) - 1) * 26;
-          var x = side * 250 * AX * k, y = 300 + lift * k - par.y * 8 * k, ry = side * -38 * (0.55 + 0.45 * k);
-          var fade = z < 0 ? clamp(1 + z / 0.5, 0, 1) : clamp((7.2 - z) / 2.2, 0, 1);
-          el.style.opacity = fade.toFixed(3); el.style.pointerEvents = fade < 0.35 ? 'none' : '';
-          el.style.transform = 'translate3d(' + (360 + x + par.x * 12 * k).toFixed(1) + 'px,' + y.toFixed(1) + 'px,0) perspective(900px) rotateY(' + ry.toFixed(2) + 'deg) scale(' + (k * 1.05 + (hovIdx === i ? 0.03 : 0)).toFixed(3) + ')';
-          el.style.zIndex = Math.round(1000 - z * 100);
-          var ad = Math.abs(z - 0.45); if (ad < bestSd) { bestSd = ad; bestS = i; }
+          var d = ((i - selF - drift) % M + M + M / 2) % M - M / 2, a = d / Rs * Math.PI * 2;
+          if (Math.abs(a) > 1.85) { el.style.opacity = 0; el.style.pointerEvents = 'none'; return; }
+          var ca = Math.cos(a), sa = Math.sin(a), z = Rr * ca - Rr * 0.62, k = Ps / Math.max(150, Ps + z), x = Rr * sa * k * 0.66;
+          var q = x / (360 * AX), e = clamp((Math.abs(q) - 0.34) / 0.56, 0, 1), sg = x < 0 ? -1 : 1, ee = e * e;
+          var sx = 1 + ee * 3.8, sy = 1 + ee * 0.1, push = sg * ee * 200 * AX, ry = -a * 52 * (1 - ee * 0.5);
+          var fade = clamp((1.85 - Math.abs(a)) / 0.35, 0, 1);
+          el.style.opacity = fade.toFixed(3); el.style.pointerEvents = e > 0.6 || fade < 0.4 ? 'none' : '';
+          el.style.transform = 'translate3d(' + (360 + x + push + par.x * 10).toFixed(1) + 'px,' + (300 - par.y * 8).toFixed(1) + 'px,0) perspective(900px) rotateY(' + ry.toFixed(2) + 'deg) scale(' + (k * sx).toFixed(3) + ',' + (k * sy).toFixed(3) + ')';
+          el.style.zIndex = Math.round(1000 - z);
+          /* the refraction: blur, more colour, and the card's light smeared towards the edge (only when it changes) */
+          var fq = Math.round(ee * 10) / 10;
+          if (el._fq !== fq) {
+            el._fq = fq;
+            var gl = el.__glow || '#4fa8ff';
+            el.style.filter = fq > 0.05 ? 'blur(' + (fq * 4.5).toFixed(1) + 'px) saturate(' + (1 + fq * 0.8).toFixed(2) + ') brightness(' + (1 + fq * 0.14).toFixed(2) + ')' : '';
+            el.style.boxShadow = fq > 0.05 ? (sg * fq * 70).toFixed(0) + 'px 0 ' + (24 + fq * 30).toFixed(0) + 'px ' + (fq * 8).toFixed(0) + 'px ' + gl + ',' + (sg * fq * 190).toFixed(0) + 'px 0 ' + (60 + fq * 50).toFixed(0) + 'px ' + (fq * 16).toFixed(0) + 'px color-mix(in srgb,' + gl + ' 55%,transparent)' : '';
+          }
+          var ad = Math.abs(d); if (ad < bestSd) { bestSd = ad; bestS = i; }
         });
         cards.forEach(function (el, i) { el.classList.toggle('act', i === bestS); });
-        if (stm) stm.speed(Math.abs(selV) * 1.6 + run + 0.12);
         updateDet(+cards[bestS].dataset.i, 'STREAM');
       } else if (m === 'ring') {
         /* 9. Depth Ring (2026-11-20, the user's reference: cards on a ring, fluid gradients) — Inside: you stand in the
@@ -198116,42 +198140,6 @@ html.mn-sysbar.duo-dockpin:not(.mn-sys-reading) body .mn-bdock.mn-bdock, html.mn
      lean), a thin stream rising from the console's emitter into the cards (in place of the cone), cards forming from
      light along their edges when a mode comes in, a burst when a card comes apart, and sparks trailing a card carried
      in the hand. Capped, paused while hidden, fewer with reduced motion. */
-  /* the Stream's light: streaks rushing out from the vanishing point (canvas, behind the cards); the colours of the
-     reference — cyan, blue, orange, magenta, green; on a light stage they are drawn over it, on a dark one they glow */
-  function streamFx(box) {
-    var cv = document.createElement('canvas'); cv.className = 'cm-stmfx'; box.insertBefore(cv, box.firstChild);
-    var g = cv.getContext('2d'), dpr = Math.min(2, window.devicePixelRatio || 1), W = 1, H = 1, sp = 0.3, last = performance.now(), dead = false, raf = 0;
-    var COLS = ['#19c8ff', '#2f6bff', '#ff8a2a', '#ff3d9a', '#3be08a', '#8a5cff', '#00e5d4'], S = [];
-    function size() { W = box.clientWidth || 1; H = box.clientHeight || 1; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.width = W + 'px'; cv.style.height = H + 'px'; }
-    function seed(st, far) { st.a = Math.random() * Math.PI * 2; st.r = far ? Math.random() * 0.9 : 0.02 + Math.random() * 0.06; st.c = COLS[Math.floor(Math.random() * COLS.length)]; st.w = 0.6 + Math.random() * 1.8; st.v = 0.6 + Math.random() * 0.8; return st; }
-    for (var i = 0; i < (window.innerWidth < 700 ? 60 : 96); i++) S.push(seed({}, true));
-    size(); addEventListener('resize', size);
-    function frame(now) {
-      if (dead) return; raf = requestAnimationFrame(frame);
-      var dt = Math.min(0.05, (now - last) / 1000); last = now; if (document.hidden) return;
-      if (!(frame.n = (frame.n || 0) + 1) || frame.n % 20 === 1) {   // the vanishing point: where the cards meet — the stage's (360, 300), wherever the stage is drawn
-        var fr = box.querySelector('#cm-fr'), br = box.getBoundingClientRect(), rr = fr && fr.getBoundingClientRect();
-        if (rr && rr.width) { frame.vx = rr.left - br.left + rr.width * 0.5; frame.vy = rr.top - br.top + rr.height * (300 / 720); }
-      }
-      var cx = frame.vx || W / 2, cy = frame.vy || H * 0.47, R = Math.hypot(W, H) * 0.62, light = box.classList.contains('bg-light') || box.classList.contains('stream') && !document.body.classList.contains('theme-dark') && !box.style.background;
-      g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
-      g.globalCompositeOperation = light ? 'source-over' : 'lighter';
-      var core = g.createRadialGradient(cx, cy, 0, cx, cy, R * 0.35); core.addColorStop(0, light ? 'rgba(255,255,255,.95)' : 'rgba(120,200,255,.28)'); core.addColorStop(1, 'rgba(255,255,255,0)');
-      g.fillStyle = core; g.fillRect(0, 0, W, H);
-      for (var i = 0; i < S.length; i++) {
-        var st = S[i]; st.r += dt * (0.08 + sp * 0.9) * st.v * (0.25 + st.r * 1.6);
-        if (st.r > 1.1) seed(st, false);
-        var r0 = st.r * R, len = (18 + sp * 160) * (0.3 + st.r) * st.v, r1 = r0 + len, ca = Math.cos(st.a), sa = Math.sin(st.a) * 0.62;
-        var x0 = cx + ca * r0, y0 = cy + sa * r0, x1 = cx + ca * r1, y1 = cy + sa * r1, al = Math.min(1, st.r * 1.6) * (light ? 0.75 : 0.9);
-        var lg = g.createLinearGradient(x0, y0, x1, y1); lg.addColorStop(0, 'rgba(255,255,255,0)'); lg.addColorStop(1, st.c);
-        g.globalAlpha = al; g.strokeStyle = lg; g.lineWidth = st.w * (0.6 + st.r * 3.2); g.lineCap = 'round';
-        g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
-      }
-      g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
-    }
-    raf = requestAnimationFrame(frame);
-    return { speed: function (v) { sp += (Math.min(3, v) - sp) * 0.12; }, destroy: function () { dead = true; cancelAnimationFrame(raf); removeEventListener('resize', size); cv.remove(); } };
-  }
   function HoloFX(root) {
     var cv = document.createElement('canvas'); cv.className = 'cm-hfx'; root.appendChild(cv);
     var x = cv.getContext('2d'), dpr = Math.min(2, window.devicePixelRatio || 1), W = 1, H = 1, ps = [], dust = [], last = performance.now(), dead = false, anchor = null, mid = null;
