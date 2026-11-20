@@ -822,6 +822,7 @@
     '#cm-holo #cm-det,#cm-holo #cm-ov.fan #cm-det{background:rgba(10,40,60,.55)!important;border:1px solid rgba(130,230,255,.55)!important;box-shadow:0 0 24px rgba(80,200,255,.3)!important;color:#c9f6ff}' +
     '#cm-holo #cm-det b,#cm-holo #cm-det p,#cm-holo #cm-det em,#cm-holo #cm-det .go{color:#c9f6ff!important;text-shadow:0 0 8px rgba(110,230,255,.6)}#cm-holo #cm-det span{color:#7fdcff!important}' +
     '#cm-holo #cm-head{color:#c9f6ff!important;text-shadow:0 0 12px rgba(110,230,255,.7)}#cm-holo #cm-pills{background:rgba(10,40,60,.5)!important;border:1px solid rgba(130,230,255,.35)}#cm-holo #cm-pills button{color:#9fe6ff!important}#cm-holo #cm-pills button.on{background:rgba(160,240,255,.9)!important;color:#03202e!important}' +
+    '#cm-holo .cm-hfx{position:absolute;left:0;top:0;z-index:1200;pointer-events:none}html.mn-sys-reading #cm-holo .cm-hfx{opacity:.6}' +
     '#cm-hbeam{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}' +
     '#cm-holo .cm-free .cm-c:not(.act){box-shadow:0 0 8px rgba(80,200,255,.3),inset 0 0 14px rgba(80,200,255,.12)!important}#cm-holo .cm-free .cm-c.act{box-shadow:0 0 0 1px rgba(214,251,255,.6),0 0 40px rgba(90,215,255,.8),0 24px 50px rgba(0,0,0,.45)!important}' +
     '#cm-hbar{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;transform:translateX(-50%);z-index:2100;pointer-events:auto;display:flex;align-items:center;gap:2px;max-width:94%;overflow-x:auto;scrollbar-width:none;padding:4px;border-radius:99px;background:rgba(6,30,46,.6);border:1px solid rgba(130,230,255,.45);box-shadow:0 0 22px rgba(80,200,255,.25),inset 0 0 14px rgba(80,200,255,.12);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}' +
@@ -954,7 +955,66 @@
     return { destroy: function () { dead = true; removeEventListener('resize', onR); box.removeEventListener('pointerdown', onDown); box.removeEventListener('pointermove', onMove); box.removeEventListener('pointerup', onUp); box.removeEventListener('pointercancel', onUp); box.removeEventListener('wheel', onWheel); layer.remove(); },
       tidy: tidy, spread: spread, fit: size };
   }
-  var holoEl = null, heng = null, hmode = 'sphere', hlist = null, hraf = 0;
+
+  /* ── holo particles (2026-11-20, the user: polish the hologram's particles) ──
+     One canvas over the projection, additive light: drifting motes (parallax with the phone's tilt and the group's
+     lean), a thin stream rising from the console's emitter into the cards (in place of the cone), cards forming from
+     light along their edges when a mode comes in, a burst when a card comes apart, and sparks trailing a card carried
+     in the hand. Capped, paused while hidden, fewer with reduced motion. */
+  function HoloFX(root) {
+    var cv = document.createElement('canvas'); cv.className = 'cm-hfx'; root.appendChild(cv);
+    var x = cv.getContext('2d'), dpr = Math.min(2, window.devicePixelRatio || 1), W = 1, H = 1, ps = [], dust = [], last = performance.now(), dead = false, anchor = null, mid = null;
+    var calm = false; try { calm = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+    var CAP = calm ? 120 : 420, NDUST = calm ? 30 : (window.innerWidth < 700 ? 60 : 110);
+    function sprite(c1, c2) { var s = document.createElement('canvas'); s.width = s.height = 64; var g = s.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, c1); gr.addColorStop(0.25, c2); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return s; }
+    var SP = [sprite('rgba(255,255,255,1)', 'rgba(120,230,255,.55)'), sprite('rgba(230,250,255,1)', 'rgba(80,170,255,.45)'), sprite('rgba(255,250,235,1)', 'rgba(170,220,255,.5)')];
+    function size() { W = root.clientWidth || 1; H = root.clientHeight || 1; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.width = W + 'px'; cv.style.height = H + 'px'; }
+    size(); var onR = function () { size(); }; addEventListener('resize', onR);
+    function mote(fresh) { return { x: Math.random() * W, y: fresh ? Math.random() * H : H + 10, z: 0.3 + Math.random() * 0.7, vy: -(6 + Math.random() * 16), ph: Math.random() * 6.28, s: 1.2 + Math.random() * 2.4, sp: (Math.random() * 3) | 0 }; }
+    for (var i = 0; i < NDUST; i++) dust.push(mote(true));
+    function add(px, py, vx, vy, life, sz, k) { if (ps.length >= CAP) ps.shift(); ps.push({ x: px, y: py, vx: vx, vy: vy, t: 0, life: life, s: sz, k: k || 0, sp: (Math.random() * 3) | 0 }); }
+    /* cards forming from light: sparks along each visible card's edges, drawn in towards it */
+    function form() {
+      var cs = root.querySelectorAll('#cm-ov .cm-c'), br = root.getBoundingClientRect(), n = 0;
+      for (var i = 0; i < cs.length && n < 26; i++) { var c = cs[i]; if (c.style.display === 'none' || +(c.style.opacity || 1) < 0.3) continue; var r = c.getBoundingClientRect(); if (r.width < 20) continue; n++;
+        for (var j = 0; j < 12; j++) { var u = Math.random(), side = (Math.random() * 4) | 0, px = r.left - br.left + (side === 1 ? r.width : side === 3 ? 0 : u * r.width), py = r.top - br.top + (side === 0 ? 0 : side === 2 ? r.height : u * r.height);
+          var cx = r.left - br.left + r.width / 2, cy = r.top - br.top + r.height / 2; add(px + (px - cx) * 0.25, py + (py - cy) * 0.25, (cx - px) * 0.6, (cy - py) * 0.6, 0.55 + Math.random() * 0.35, 1.8 + Math.random() * 1.6, 1); } }
+    }
+    function burst(cx, cy, n) { for (var i = 0; i < n; i++) { var a = Math.random() * 6.283, v = 60 + Math.random() * 220; add(cx, cy, Math.cos(a) * v, Math.sin(a) * v, 0.6 + Math.random() * 0.7, 1.5 + Math.random() * 2.5, 2); } }
+    var trail = new WeakMap(), hadX = false;
+    function frame(now) {
+      if (dead) return; requestAnimationFrame(frame);
+      var dt = Math.min(0.05, (now - last) / 1000); last = now; if (document.hidden) return;
+      x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, W, H); x.globalCompositeOperation = 'lighter';
+      var lx = (GY.x || 0) * 1.2, ly = (GY.y || 0) * -1.2, t = now / 1000;
+      /* motes */
+      dust.forEach(function (d, i) {
+        d.y += d.vy * dt * d.z; d.x += Math.sin(t * 0.6 + d.ph) * 6 * dt * d.z; if (d.y < -10) dust[i] = mote(false);
+        var tw = 0.35 + 0.65 * Math.abs(Math.sin(t * (0.8 + d.z) + d.ph)), sz = d.s * (0.6 + d.z * 0.8) * 4;
+        x.globalAlpha = 0.22 * tw * d.z; x.drawImage(SP[d.sp], d.x + lx * d.z - sz / 2, d.y + ly * d.z - sz / 2, sz, sz);
+      });
+      /* the stream from the emitter towards the cards */
+      if (anchor && mid && !calm) { var rate = 22 * dt + Math.random() * 0.6;
+        for (var q = 0; q < rate; q++) { var tx = mid.x + (Math.random() - 0.5) * W * 0.5, ty = mid.y + (Math.random() - 0.5) * H * 0.18, life = 1.1 + Math.random() * 0.8;
+          add(anchor.x + (Math.random() - 0.5) * 16, anchor.y, (tx - anchor.x) / life, (ty - anchor.y) / life, life, 1 + Math.random() * 1.6, 3); } }
+      /* sparks off a card being carried */
+      var held = root.querySelectorAll('.cm-hand .cm-held'), br = held.length ? root.getBoundingClientRect() : null;
+      for (var h = 0; h < held.length; h++) { var r = held[h].getBoundingClientRect(), cx = r.left - br.left + r.width / 2, cy = r.top - br.top + r.height / 2, pv = trail.get(held[h]);
+        if (pv) { var mv = Math.hypot(cx - pv.x, cy - pv.y); if (mv > 2) for (var k2 = 0; k2 < Math.min(8, mv / 4); k2++) add(cx + (Math.random() - 0.5) * r.width * 0.9, cy + (Math.random() - 0.5) * r.height * 0.9, (pv.x - cx) * 2 + (Math.random() - 0.5) * 40, (pv.y - cy) * 2 + (Math.random() - 0.5) * 40, 0.5 + Math.random() * 0.4, 1.4 + Math.random() * 1.8, 2); }
+        trail.set(held[h], { x: cx, y: cy }); }
+      /* a card coming apart */
+      var hasX = !!root.querySelector('#xl'); if (hasX && !hadX) burst(W / 2, H * 0.45, calm ? 30 : 90); hadX = hasX;
+      /* the sparks */
+      for (var i2 = ps.length - 1; i2 >= 0; i2--) { var p = ps[i2]; p.t += dt; if (p.t >= p.life) { ps.splice(i2, 1); continue; }
+        var f = p.k === 2 ? Math.exp(-dt * 2.6) : 1; p.vx *= f; p.vy *= f; p.x += p.vx * dt; p.y += p.vy * dt;
+        var u = p.t / p.life, al = (p.k === 3 ? Math.sin(u * Math.PI) * 0.55 : (1 - u) * 0.9), sz2 = p.s * 4 * (p.k === 1 ? 1.2 - u * 0.6 : 1);
+        x.globalAlpha = al; x.drawImage(SP[p.sp], p.x - sz2 / 2, p.y - sz2 / 2, sz2, sz2); }
+      x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
+    }
+    requestAnimationFrame(frame);
+    return { form: form, burst: burst, aim: function (a, m) { anchor = a; mid = m; }, destroy: function () { dead = true; removeEventListener('resize', onR); cv.remove(); } };
+  }
+  var holoEl = null, heng = null, hmode = 'sphere', hfx = null, hlist = null, hraf = 0;
   try { hmode = localStorage.getItem('minest.holoMode') || 'sphere'; if (hmode === 'free') hmode = 'sphere'; } catch (e) {}   // the hands work inside every mode now (pinch, press and hold, aside)
   function holo(container, opt) {
     opt = opt || {}; holoClose(true);
@@ -965,6 +1025,7 @@
       '<polygon id="cmhp" fill="url(#cmhb)"/><ellipse id="cmhe" fill="url(#cmhg)"/><ellipse id="cmhr" fill="none" stroke="#8fe9ff" stroke-opacity=".5" stroke-width="1.2" stroke-dasharray="3 6"/>';
     root.appendChild(sv);
     var bar = document.createElement('div'); bar.id = 'cm-hbar'; root.appendChild(bar);
+    if (hfx) hfx.destroy(); hfx = HoloFX(root);
     var HM = [['flow', '3D']].concat(MODES.filter(function (x) { return x[0] !== 'flow'; }));
     HM.forEach(function (x) { var b = document.createElement('button'); b.type = 'button'; b.textContent = x[1]; b.dataset.m = x[0]; tapOn(b, function () { hmode = x[0]; try { localStorage.setItem('minest.holoMode', hmode); } catch (er) {} build(); }); bar.appendChild(b); });
     var sep = document.createElement('i'); sep.className = 'sep'; bar.appendChild(sep);
@@ -988,6 +1049,7 @@
         if (window.MinestExplode) { MinestExplode.open(it, hlist, { container: root, holo: true, onNext: nextCard, onOpenCard: function (x) { holoClose(); if (opt.onPick) opt.onPick(x); } }); return; }
         holoClose(); if (opt.onPick) opt.onPick(it); }) : null;
       mode = saved; paint();
+      setTimeout(function () { if (hfx) hfx.form(); }, 140);
     }
     build();
     /* the beam: from the console's emitter (projected into the screen each frame) up to the foot of the cards */
@@ -1002,6 +1064,7 @@
       if (fr) fr.style.top = cy.toFixed(1) + 'px';
       root.style.setProperty('--cm-hy', (cy / H * 100).toFixed(1) + '%');
       var top = cy + H * 0.1, half = Math.min(W * 0.3, 420), cx = W / 2, nar = 12;
+      if (hfx) hfx.aim({ x: a.x, y: a.y - 6 }, { x: cx, y: cy });
       poly.setAttribute('points', '');   // no beam cone: it stood in front of the cards (the user)
       glow.setAttribute('cx', a.x); glow.setAttribute('cy', a.y); glow.setAttribute('rx', 60); glow.setAttribute('ry', 16);
       ring.setAttribute('rx', 0); ring.setAttribute('cx', cx); ring.setAttribute('cy', Math.min(H * 0.86, cy + H * 0.3)); ring.setAttribute('rx', half * 0.9); ring.setAttribute('ry', 26); ring.setAttribute('transform', 'rotate(' + (((now - t0) / 60) % 360 * 0) + ')');
@@ -1014,7 +1077,7 @@
   function holoClose(silent) {
     if (window.MinestExplode && MinestExplode.isOpen()) MinestExplode.close(true);
     if (heng) { heng.destroy(); heng = null; }
-    cancelAnimationFrame(hraf);
+    cancelAnimationFrame(hraf); if (hfx) { hfx.destroy(); hfx = null; }
     if (holoEl) { var e0 = holoEl; holoEl = null; e0.remove(); }
   }
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && holoEl) { var b = holoEl.querySelector('#cm-hbar .x'); if (b) b.click(); } });

@@ -132,7 +132,7 @@
     '@media (orientation:landscape){#cs-btn{bottom:16px}}',
 
     /* Modal overlay & 15-grid */
-    '#cs-modal{position:fixed;inset:0;z-index:2147482500;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(8,12,20,.72);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);font-family:-apple-system,system-ui,sans-serif}',
+    '#cs-modal{position:fixed;inset:0;z-index:2147483640;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(8,12,20,.72);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);font-family:-apple-system,system-ui,sans-serif}',
     '#cs-modal.open{display:flex}',
     '#cs-panel{width:min(940px,96vw);max-height:88vh;overflow:auto;border-radius:26px;padding:22px;background:rgba(248,250,252,.97);color:#0f172a;box-shadow:0 36px 96px rgba(0,0,0,.48);border:1px solid rgba(255,255,255,.9)}',
     'body.theme-dark #cs-panel{background:rgba(16,22,34,.96);color:#f1f5f9;border-color:rgba(255,255,255,.14)}',
