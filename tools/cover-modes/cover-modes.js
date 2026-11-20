@@ -44,7 +44,7 @@
     '#cm-ov.land .cm-fc{width:236px;height:162px;margin:-81px 0 0 -118px}#cm-ov.land .cm-fc .fa{bottom:58px}#cm-ov.land .cm-fc .fn{-webkit-line-clamp:1;bottom:22px}' +
     '#cm-bar .sty{margin-left:2px;padding:6px 12px;background:linear-gradient(120deg,rgba(255,255,255,.18),rgba(255,255,255,.06));color:#fff;border:1px solid rgba(255,255,255,.22)}' +
     '#cm-bar input{width:60px;margin:0 6px 0 4px;accent-color:#38bdf8;align-self:center;flex:none}' +
-    'body.cm-on .sf-slot[data-sf-view="coverflow"]>*:not(#cm-ov):not(#cm-bar){visibility:hidden!important}' +
+    'body.cm-on .sf-slot[data-sf-view="coverflow"]>*:not(#cm-ov):not(#cm-bar):not(#xl){visibility:hidden!important}' +
     '#cm-ov{position:absolute;inset:0;z-index:50;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;background:radial-gradient(circle at 50% 42%,rgba(255,255,255,.55),transparent 68%),linear-gradient(155deg,#e2e8f0 0%,#f8fafc 50%,#cbd5e1 100%)}' +
     'body.theme-dark #cm-ov{background:radial-gradient(circle at 50% 38%,rgba(56,189,248,.14),transparent 62%),linear-gradient(160deg,#090d16 0%,#111827 52%,#0b1120 100%)!important}' +
     '#cm-ov.wall,#cm-ov.helix,#cm-ov.stack,#cm-ov.orbit,#cm-ov.sphere,#cm-ov.wave{background:radial-gradient(circle at 50% 38%,rgba(255,255,255,.72),transparent 64%),linear-gradient(160deg,#d8d6dc,#f4f3f7 55%,#dfdde4)}' +
@@ -136,7 +136,7 @@
     return list.map(function (c) {
       var im = MinestImageViews.image(c), src = im.thumb || im.full || '';
       var ds = String(c.description || c.desc || '').replace(/<[^>]*>/g, ' ').replace(/[#*_>`\[\]]/g, '').replace(/\s+/g, ' ').trim();
-      return { id: c.id, desc: ds.length > 150 ? ds.slice(0, 148) + '…' : ds, title: c.title || 'Untitled', sub: c.columnTitle || '', src: src, hue: hue(c.id || c.title), color: c.color || (c.background && c.background !== '#fbfaf7' ? c.background : '') || (c.columnColor || '') };
+      return { raw: c, id: c.id, desc: ds.length > 150 ? ds.slice(0, 148) + '…' : ds, title: c.title || 'Untitled', sub: c.columnTitle || '', src: src, hue: hue(c.id || c.title), color: c.color || (c.background && c.background !== '#fbfaf7' ? c.background : '') || (c.columnColor || '') };
     });
   }
 
@@ -573,7 +573,15 @@
   }
 
   function setMode(m) { mode = m; document.body.classList.toggle('cm-on', m !== 'flow'); try { localStorage.setItem(KEY, m); } catch (e) {} sync(true); }
+  /* the card in front, tapped: it comes apart into its layers (explode.js); 打开原卡 opens it in Minest as before */
+  var lastList = [];
+  function nextCard() { try { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); } catch (e) {} }
   function pick(it) {
+    var slot = document.querySelector('.sf-slot[data-sf-view="coverflow"]');
+    if (window.MinestExplode && slot) { lastPickId = it.id; MinestExplode.open(it, lastList, { container: slot, onOpenCard: openCard, onNext: nextCard }); return; }
+    openCard(it);
+  }
+  function openCard(it) {
     lastPickId = it.id;
     try { var b = MinestAI.board(); MinestImageViews.select(b.id, it.id, 'coverflow'); } catch (e) {}
   }
@@ -606,6 +614,7 @@
     if (eng) eng.destroy();
     if (ov) ov.remove();
     ov = document.createElement('div'); ov.id = 'cm-ov'; ov.className = mode + ' ' + shape; slot.insertBefore(ov, bar); sig = s;
+    lastList = list;
     eng = list.length ? Engine(ov, list, mode, pick) : null;
   }
   /* a big board: only a window of cards round the one in view is built (every card animated each frame, each with
@@ -674,7 +683,9 @@
       ov = document.createElement('div'); ov.id = 'cm-ov'; ov.className = hmode + ' ' + shape; root.insertBefore(ov, bar);
       var all = items(true); hlist = all.length > 48 ? all.slice(0, 48) : all;
       var saved = mode; mode = hmode;   // the window (CAP) follows the mode in view
-      heng = hlist.length ? Engine(ov, hlist, hmode, function (it) { holoClose(); if (opt.onPick) opt.onPick(it); }) : null;
+      heng = hlist.length ? Engine(ov, hlist, hmode, function (it) {
+        if (window.MinestExplode) { MinestExplode.open(it, hlist, { container: root, holo: true, onNext: nextCard, onOpenCard: function (x) { holoClose(); if (opt.onPick) opt.onPick(x); } }); return; }
+        holoClose(); if (opt.onPick) opt.onPick(it); }) : null;
       mode = saved; paint();
     }
     build();
@@ -700,6 +711,7 @@
     return { close: holoClose };
   }
   function holoClose(silent) {
+    if (window.MinestExplode && MinestExplode.isOpen()) MinestExplode.close(true);
     if (heng) { heng.destroy(); heng = null; }
     cancelAnimationFrame(hraf);
     if (holoEl) { var e0 = holoEl; holoEl = null; e0.remove(); }

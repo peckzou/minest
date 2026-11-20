@@ -22,6 +22,7 @@
     { id: 'velvet-theatre', cat: 'material', name: 'Velvet & Brass', zh: '丝绒鎏金', desc: '深邃剧院天鹅绒光泽、Art Deco 鎏金放射几何线框与聚光灯焦点。', accent: '#e11d48' },
     { id: 'mother-of-pearl', cat: 'light', name: 'Mother of Pearl', zh: '珍珠母贝', desc: '天然鲍贝螺钿虹彩层纹、温润珠光干涉色泽与银边镶嵌工艺。', accent: '#f9a8d4' },
     { id: 'kintsugi-jade', cat: 'east', name: 'Kintsugi Celadon Jade', zh: '金缮青玉', desc: '宋代汝窑青玉温润冰裂釉面，以 24K 纯金修补裂纹的东方金缮美学。', accent: '#34d399' },
+    { id: 'holo-blue', cat: 'light', name: 'Holo Glass', zh: '全息蓝晶', desc: '深蓝玻璃卡、亮青描边与一圈随光流动的边缘辉光，白色粗标题与发光标签。', accent: '#60a5fa' },
     { id: 'chrome', cat: 'light', name: 'Liquid Chrome', zh: '液态铬', desc: '镜面镀铬，周围的光在金属上流动反射，压印深色字。', accent: '#cbd5e1' },
     { id: 'aurora', cat: 'light', name: 'Aurora Flow', zh: '极光流体', desc: '深夜玻璃下缓慢流动的极光色团，柔和而有呼吸感。', accent: '#22d3ee' },
     { id: 'noir-gold', cat: 'material', name: 'Noir & Gold', zh: '黑金', desc: '哑光黑卡、细金线框与 Didot 字，一道金箔光随角度掠过。', accent: '#d4af37' },
@@ -348,6 +349,16 @@
     'html[data-card-style="holographic"] .cm-c.hasim::after,html[data-card-style="holographic"] .cm-c.wi::after,html[data-card-style="holographic"] .cm-fc::after,html[data-card-style="holographic"] .coverflow-card-item .face-front:has(img)::after,html[data-card-style="holographic"] [data-card-id]:not(.coverflow-card-item):has(img)::after{opacity:.55}',
     /* the same restraint for the glass and the chrome sheen over pictures */
     'html[data-card-style="chrome"] .cm-c.hasim,html[data-card-style="chrome"] .coverflow-card-item .face-front:has(img){padding:6px!important}',
+
+    /* Holo Glass (after the user's reference, 2026-11-19): deep blue glass, a bright cyan rim, a glow that runs round
+       the edge with the light, bold white type, glowing pill labels */
+    rule('holo-blue', 'border-radius:22px!important;border:1.5px solid rgba(150,200,255,.85)!important;background:radial-gradient(120% 70% at 25% 0%,rgba(110,150,255,.55),rgba(34,52,150,.8) 45%,rgba(10,18,62,.95) 100%)!important;color:#fff!important;box-shadow:0 0 0 1px rgba(110,170,255,.3),0 0 30px rgba(80,140,255,.5),0 26px 52px -18px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.55),inset 0 0 30px rgba(120,170,255,.22)!important;'),
+    focusRule('holo-blue', 'border-color:#d6e8ff!important;box-shadow:0 0 0 1px rgba(190,220,255,.55),0 0 46px rgba(90,150,255,.75),0 30px 60px -18px rgba(0,0,0,.7),inset 0 1px 0 #fff,inset 0 0 36px rgba(140,190,255,.3)!important;'),
+    typo('holo-blue', 'font-family:"SF Pro Display",-apple-system,"PingFang SC",sans-serif!important;font-weight:800!important;letter-spacing:-.015em!important;color:#fff!important;text-shadow:0 0 14px rgba(140,190,255,.65)!important;'),
+    subTypo('holo-blue', 'border-radius:999px!important;background:rgba(60,110,255,.55)!important;border:1px solid rgba(160,210,255,.85)!important;color:#fff!important;box-shadow:0 0 12px rgba(90,150,255,.5)!important;text-shadow:none!important;'),
+    before('holo-blue', 'background:linear-gradient(180deg,rgba(255,255,255,.16),transparent 24%),radial-gradient(80% 30% at 50% 104%,rgba(120,180,255,.45),transparent 70%);'),
+    after('holo-blue', 'padding:1.5px;background:conic-gradient(from var(--cs-ang),transparent 0deg,rgba(170,225,255,.95) 40deg,transparent 110deg,transparent 200deg,rgba(120,180,255,.7) 250deg,transparent 320deg);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);filter:drop-shadow(0 0 6px rgba(140,200,255,.9));'),
+    '.cs-prev[data-s="holo-blue"]{}',
 
     /* Liquid Chrome: a mirror; the room's light runs down the metal as the angle changes */
     rule('chrome', 'border-radius:16px!important;border:1px solid rgba(255,255,255,.9)!important;background:linear-gradient(180deg,#f6f8fa 0%,#a3abb5 18%,#eef1f4 34%,#59616b 50%,#d5dade 66%,#868e98 82%,#f1f3f6 100%)!important;background-size:100% 240%!important;background-position:50% var(--cs-py)!important;color:#15181c!important;box-shadow:inset 0 1px 0 #fff,inset 0 -1px 0 rgba(0,0,0,.25),0 22px 40px -14px rgba(0,0,0,.55)!important;'),
