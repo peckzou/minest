@@ -190887,8 +190887,21 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     return {
       id: 'holoDesk', name: '全息操作台', en: 'Holo Typography Lab', icon: '◈', feature: 'holo', anchor: 'floor.holo', group: g, startStashed: true,
       hit: hitBox(g, -0.42, 0, -0.3, 0.42, 1.35, 0.3), label: [0, 1.45, 0],
-      focus: { pos: [0.35, 1.55, 1.05], look: [1.6, 1.0, 1.05] },
-      panel: function () { return new Promise(function (res) { if (root.SpatialHoloLab) root.SpatialHoloLab.open(res); else res(null); }); },
+      focus: { pos: [0.05, 1.72, 1.05], look: [1.6, 1.32, 1.05] },   // stood back: the console low in view, the projected cards above it
+      /* 2026-11-19: the console projects the board's cards as light into the room (Holo Cards, MinestCoverModes.holo) —
+         the room stays in view, a beam runs from the emitter into the cards; the Typography Lab is one tap away */
+      panel: function (ctx) { return new Promise(function (res) {
+        var CM = root.MinestCoverModes, lab = function () { if (root.SpatialHoloLab) root.SpatialHoloLab.open(res); else res(null); };
+        if (!CM || !CM.holo || !ctx || !ctx.container) { lab(); return; }
+        var V = new THREE.Vector3();
+        CM.holo(ctx.container, {
+          anchor: function () { var cam = root.SpatialRoom && root.SpatialRoom.camera; if (!cam) return null; V.set(0, 0.72, 0); g.localToWorld(V); V.project(cam); if (V.z > 1) return null;
+            var r = ctx.container.getBoundingClientRect(); return { x: (V.x + 1) / 2 * r.width, y: (1 - V.y) / 2 * r.height }; },
+          onPick: function (it) { res({ feature: 'kanban', after: function (w) { setTimeout(function () { try { w.MinestAI.openCard(it.id); } catch (e) {} }, 120); } }); },
+          onLab: lab,
+          onClose: function () { res(null); }
+        });
+      }); },
       set: function (k) { kk = k; var e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; beam.material.opacity = 0.07 + 0.25 * e; proj.scale.setScalar(1 + 0.35 * e); light.intensity = 0.5 + 1.5 * e; },
       idle: function (t) {
         rings[0].rotation.z = t * 0.6; rings[1].rotation.z = -t * 0.9; rings[2].rotation.z = t * 0.35; core.rotation.y = t * 0.8; core.rotation.x = t * 0.3;

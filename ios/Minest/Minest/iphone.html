@@ -192253,8 +192253,21 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     return {
       id: 'holoDesk', name: '全息操作台', en: 'Holo Typography Lab', icon: '◈', feature: 'holo', anchor: 'floor.holo', group: g, startStashed: true,
       hit: hitBox(g, -0.42, 0, -0.3, 0.42, 1.35, 0.3), label: [0, 1.45, 0],
-      focus: { pos: [0.35, 1.55, 1.05], look: [1.6, 1.0, 1.05] },
-      panel: function () { return new Promise(function (res) { if (root.SpatialHoloLab) root.SpatialHoloLab.open(res); else res(null); }); },
+      focus: { pos: [0.05, 1.72, 1.05], look: [1.6, 1.32, 1.05] },   // stood back: the console low in view, the projected cards above it
+      /* 2026-11-19: the console projects the board's cards as light into the room (Holo Cards, MinestCoverModes.holo) —
+         the room stays in view, a beam runs from the emitter into the cards; the Typography Lab is one tap away */
+      panel: function (ctx) { return new Promise(function (res) {
+        var CM = root.MinestCoverModes, lab = function () { if (root.SpatialHoloLab) root.SpatialHoloLab.open(res); else res(null); };
+        if (!CM || !CM.holo || !ctx || !ctx.container) { lab(); return; }
+        var V = new THREE.Vector3();
+        CM.holo(ctx.container, {
+          anchor: function () { var cam = root.SpatialRoom && root.SpatialRoom.camera; if (!cam) return null; V.set(0, 0.72, 0); g.localToWorld(V); V.project(cam); if (V.z > 1) return null;
+            var r = ctx.container.getBoundingClientRect(); return { x: (V.x + 1) / 2 * r.width, y: (1 - V.y) / 2 * r.height }; },
+          onPick: function (it) { res({ feature: 'kanban', after: function (w) { setTimeout(function () { try { w.MinestAI.openCard(it.id); } catch (e) {} }, 120); } }); },
+          onLab: lab,
+          onClose: function () { res(null); }
+        });
+      }); },
       set: function (k) { kk = k; var e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; beam.material.opacity = 0.07 + 0.25 * e; proj.scale.setScalar(1 + 0.35 * e); light.intensity = 0.5 + 1.5 * e; },
       idle: function (t) {
         rings[0].rotation.z = t * 0.6; rings[1].rotation.z = -t * 0.9; rings[2].rotation.z = t * 0.35; core.rotation.y = t * 0.8; core.rotation.x = t * 0.3;
@@ -196414,7 +196427,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     var minCount = { spiral: 22, helix: 12, stack: 10, fan: 9, orbit: 12, sphere: 18, wave: 13 }[m] || N;
     var count = m === 'wall' ? Math.max(Math.ceil(Math.max(N, 20) / 5) + (Math.ceil(Math.max(N, 20) / 5) % 2), 4) * 5 : Math.max(N, minCount);
     var cards = [], time = 0, idle = 0, drag = false, vel = 0, t = 0, sel = 0, selF = 0, selV = 0, off = { x: 0, y: 0 }, ov2 = { x: 0, y: 0 }, sph = { rx: 0.18, ry: 0, vx: 0, vy: 0 }, goal = null, moved = 0, last = performance.now(), par = { x: 0, y: 0, tx: 0, ty: 0 }, hovIdx = -1, dead = false;
-    var cls = { spiral: 'cm-sp', wall: 'cm-wl', helix: 'cm-hx', stack: 'cm-hx', fan: 'cm-fn', orbit: 'cm-orb', sphere: 'cm-sph', wave: 'cm-wav' }[m];
+    var cls = { flow: 'cm-orb', spiral: 'cm-sp', wall: 'cm-wl', helix: 'cm-hx', stack: 'cm-hx', fan: 'cm-fn', orbit: 'cm-orb', sphere: 'cm-sph', wave: 'cm-wav' }[m];
     for (var i = 0; i < count; i++) {
       var it = list[i % N], el = document.createElement('div');
       el.className = 'cm-c ' + cls;
@@ -196498,6 +196511,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
         : m === 'orbit' ? Math.min((h - 220) / 390, w / (640 * AX))
         : m === 'wave' ? Math.min((h - 220) / 400, w / (720 * AX))
         : Math.min(w / 720, h / 740);
+      if (box.parentNode && box.parentNode.id === 'cm-holo') sc *= 0.86;   // projected: a little smaller, so the console shows below
       fr.style.transform = 'scale(' + sc.toFixed(4) + ')';
     }
     fit();
@@ -196884,7 +196898,92 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   addEventListener('resize', function () { if (eng) eng.fit(); });
   window.addEventListener('minest:image-assets', function () { itemsAt = 0; sync(true); });
   setInterval(function () { try { sync(false); } catch (e) {} }, 700);
-  window.MinestCoverModes = { play: function (v) { playing = v === undefined ? !playing : !!v; var b = bar && bar.querySelector('.pl'); if (b) { b.textContent = playing ? '❚❚' : '▶'; b.classList.toggle('on', playing); } }, speed: function (v) { speed = v; }, set: setMode, get: function () { return mode; } };
+
+  /* ===== Holo Cards (2026-11-19): the same modes projected from Spatial Home's holo console — the room stays in view,
+     the cards are light (cyan glass, scanlines, a glow), a beam runs from the console's emitter up into them ===== */
+  var hcss = document.createElement('style');
+  hcss.textContent =
+    '#cm-holo{position:absolute;inset:0;z-index:40;pointer-events:none;font-family:-apple-system,system-ui,sans-serif}' +
+    '#cm-holo #cm-ov{pointer-events:auto;background:transparent!important}' +
+    '#cm-holo #cm-ov::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(55% 42% at 50% var(--cm-hy,40%),rgba(60,190,255,.14),transparent 72%),radial-gradient(ellipse 80% 75% at 50% 45%,transparent 40%,rgba(2,8,16,.5) 100%)}' +
+    '#cm-holo #cm-ov:not(.wide) #cm-det{display:none!important}' +
+    '#cm-holo .cm-c,#cm-holo .cm-c.wi,#cm-holo .cm-fc{background:linear-gradient(160deg,rgba(90,210,255,.16),rgba(40,140,220,.07) 60%,rgba(120,230,255,.12))!important;border:1px solid rgba(130,230,255,.75)!important;border-radius:14px!important;box-shadow:0 0 16px rgba(80,200,255,.38),inset 0 0 22px rgba(80,200,255,.16)!important;color:#c9f6ff!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}' +
+    '#cm-holo .cm-c.act{border-color:#d6fbff!important;box-shadow:0 0 0 1px rgba(214,251,255,.5),0 0 34px rgba(90,215,255,.7),inset 0 0 30px rgba(90,215,255,.25)!important}' +
+    '#cm-holo .cm-c *{color:#c9f6ff!important;text-shadow:0 0 8px rgba(110,230,255,.85)!important}' +
+    '#cm-holo .cm-c .cm-st,#cm-holo .cm-fc .fs,#cm-holo .cm-c .ws{color:#7fdcff!important}' +
+    '#cm-holo .cm-c .cm-bd{background:rgba(160,240,255,.9)!important;height:2px}#cm-holo .cm-c .cm-ini{color:#8fe6ff!important;opacity:.12}' +
+    '#cm-holo .cm-c .im,#cm-holo .cm-c .art,#cm-holo .cm-fc .fa{filter:grayscale(1) sepia(1) hue-rotate(155deg) saturate(2.4) brightness(1.05) contrast(1.15);opacity:.78;mix-blend-mode:screen}' +
+    '#cm-holo .cm-c.hasim .tt{background:linear-gradient(180deg,transparent,rgba(0,40,70,.55))!important}' +
+    '#cm-holo .cm-c::before{display:none!important}' +
+    '#cm-holo .cm-c::after{content:""!important;position:absolute!important;inset:0!important;z-index:9!important;pointer-events:none!important;border-radius:inherit!important;mix-blend-mode:normal!important;filter:none!important;opacity:1!important;box-shadow:none!important;' +
+      'background:repeating-linear-gradient(0deg,rgba(170,245,255,.09) 0 1px,transparent 1px 3px),linear-gradient(180deg,transparent calc(var(--cm-sweep,40%) - 8%),rgba(180,245,255,.22) var(--cm-sweep,40%),transparent calc(var(--cm-sweep,40%) + 6%))!important}' +
+    '#cm-holo #cm-det,#cm-holo #cm-ov.fan #cm-det{background:rgba(10,40,60,.55)!important;border:1px solid rgba(130,230,255,.55)!important;box-shadow:0 0 24px rgba(80,200,255,.3)!important;color:#c9f6ff}' +
+    '#cm-holo #cm-det b,#cm-holo #cm-det p,#cm-holo #cm-det em,#cm-holo #cm-det .go{color:#c9f6ff!important;text-shadow:0 0 8px rgba(110,230,255,.6)}#cm-holo #cm-det span{color:#7fdcff!important}' +
+    '#cm-holo #cm-head{color:#c9f6ff!important;text-shadow:0 0 12px rgba(110,230,255,.7)}#cm-holo #cm-pills{background:rgba(10,40,60,.5)!important;border:1px solid rgba(130,230,255,.35)}#cm-holo #cm-pills button{color:#9fe6ff!important}#cm-holo #cm-pills button.on{background:rgba(160,240,255,.9)!important;color:#03202e!important}' +
+    '#cm-hbeam{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}' +
+    '#cm-hbar{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;transform:translateX(-50%);z-index:60;pointer-events:auto;display:flex;align-items:center;gap:2px;max-width:94%;overflow-x:auto;scrollbar-width:none;padding:4px;border-radius:99px;background:rgba(6,30,46,.6);border:1px solid rgba(130,230,255,.45);box-shadow:0 0 22px rgba(80,200,255,.25),inset 0 0 14px rgba(80,200,255,.12);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}' +
+    '#cm-hbar::-webkit-scrollbar{display:none}#cm-hbar button{flex:none;border:0;border-radius:99px;padding:6px 11px;background:none;color:#9fe6ff;font:600 11.5px ui-monospace,Menlo,monospace;letter-spacing:.06em;cursor:pointer;white-space:nowrap;text-shadow:0 0 6px rgba(110,230,255,.6)}' +
+    '#cm-hbar button.on{background:rgba(160,240,255,.92);color:#03202e;text-shadow:none;box-shadow:0 0 14px rgba(140,235,255,.7)}#cm-hbar .sep{width:1px;height:18px;background:rgba(130,230,255,.35);margin:0 4px;flex:none}' +
+    '#cm-hbar .x{width:30px;padding:6px 0;font-size:14px}';
+  document.head.appendChild(hcss);
+  var holoEl = null, heng = null, hmode = 'orbit', hlist = null, hraf = 0;
+  try { hmode = localStorage.getItem('minest.holoMode') || 'orbit'; } catch (e) {}
+  function holo(container, opt) {
+    opt = opt || {}; holoClose(true);
+    var root = document.createElement('div'); root.id = 'cm-holo'; container.appendChild(root); holoEl = root;
+    var NS = 'http://www.w3.org/2000/svg', sv = document.createElementNS(NS, 'svg'); sv.id = 'cm-hbeam';
+    sv.innerHTML = '<defs><linearGradient id="cmhb" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#7fe3ff" stop-opacity=".55"/><stop offset=".55" stop-color="#4fc8ff" stop-opacity=".16"/><stop offset="1" stop-color="#4fc8ff" stop-opacity="0"/></linearGradient>' +
+      '<radialGradient id="cmhg" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#bff6ff" stop-opacity=".9"/><stop offset="1" stop-color="#4fc8ff" stop-opacity="0"/></radialGradient></defs>' +
+      '<polygon id="cmhp" fill="url(#cmhb)"/><ellipse id="cmhe" fill="url(#cmhg)"/><ellipse id="cmhr" fill="none" stroke="#8fe9ff" stroke-opacity=".5" stroke-width="1.2" stroke-dasharray="3 6"/>';
+    root.appendChild(sv);
+    var bar = document.createElement('div'); bar.id = 'cm-hbar'; root.appendChild(bar);
+    var HM = [['flow', '3D']].concat(MODES.filter(function (x) { return x[0] !== 'flow'; }));
+    HM.forEach(function (x) { var b = document.createElement('button'); b.type = 'button'; b.textContent = x[1]; b.dataset.m = x[0]; b.onclick = function (e) { e.stopPropagation(); hmode = x[0]; try { localStorage.setItem('minest.holoMode', hmode); } catch (er) {} build(); }; bar.appendChild(b); });
+    var sep = document.createElement('i'); sep.className = 'sep'; bar.appendChild(sep);
+    var shp = document.createElement('button'); shp.type = 'button'; bar.appendChild(shp);
+    var paint = function () { shp.textContent = shape === 'port' ? '竖卡' : '横卡'; [].forEach.call(bar.querySelectorAll('[data-m]'), function (b) { b.classList.toggle('on', b.dataset.m === hmode); }); };
+    shp.onclick = function (e) { e.stopPropagation(); shape = shape === 'port' ? 'land' : 'port'; try { localStorage.setItem('minest.coverShape', shape); } catch (er) {} build(); };
+    if (opt.onLab) { var lab = document.createElement('button'); lab.type = 'button'; lab.textContent = '◈ 文字实验室'; lab.onclick = function (e) { e.stopPropagation(); holoClose(); opt.onLab(); }; bar.appendChild(lab); }
+    var x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = '✕'; x.title = '关闭全息卡片'; x.onclick = function (e) { e.stopPropagation(); holoClose(); if (opt.onClose) opt.onClose(); }; bar.appendChild(x);
+    ['pointerdown', 'touchstart', 'wheel', 'keydown', 'click'].forEach(function (t) { root.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
+    var ov = null;
+    function build() {
+      if (heng) { heng.destroy(); heng = null; } if (ov) ov.remove();
+      ov = document.createElement('div'); ov.id = 'cm-ov'; ov.className = hmode + ' ' + shape; root.insertBefore(ov, bar);
+      var all = items(true); hlist = all.length > 48 ? all.slice(0, 48) : all;
+      var saved = mode; mode = hmode;   // the window (CAP) follows the mode in view
+      heng = hlist.length ? Engine(ov, hlist, hmode, function (it) { holoClose(); if (opt.onPick) opt.onPick(it); }) : null;
+      mode = saved; paint();
+    }
+    build();
+    /* the beam: from the console's emitter (projected into the screen each frame) up to the foot of the cards */
+    var poly = sv.querySelector('#cmhp'), glow = sv.querySelector('#cmhe'), ring = sv.querySelector('#cmhr'), t0 = performance.now();
+    function beam(now) {
+      if (holoEl !== root) return; hraf = requestAnimationFrame(beam);
+      var W = root.clientWidth || 1, H = root.clientHeight || 1, a = null;
+      try { a = opt.anchor && opt.anchor(); } catch (e) {}
+      if (!a || !(a.x >= 0 && a.x <= W && a.y >= H * 0.3 && a.y <= H * 1.05)) a = { x: W / 2, y: H * 0.96 };   // the console out of view: the beam rises from the foot of the screen
+      /* the cards float above the console: the stage's middle a third of the screen above the emitter */
+      var fr = root.querySelector('#cm-fr'), cy = Math.max(H * 0.3, Math.min(H * 0.46, a.y - H * 0.34));
+      if (fr) fr.style.top = cy.toFixed(1) + 'px';
+      root.style.setProperty('--cm-hy', (cy / H * 100).toFixed(1) + '%');
+      var top = cy + H * 0.1, half = Math.min(W * 0.3, 420), cx = W / 2, nar = 12;
+      poly.setAttribute('points', (a.x - nar) + ',' + a.y + ' ' + (a.x + nar) + ',' + a.y + ' ' + (cx + half) + ',' + top + ' ' + (cx - half) + ',' + top);
+      glow.setAttribute('cx', a.x); glow.setAttribute('cy', a.y); glow.setAttribute('rx', 60); glow.setAttribute('ry', 16);
+      ring.setAttribute('cx', cx); ring.setAttribute('cy', Math.min(H * 0.86, cy + H * 0.3)); ring.setAttribute('rx', half * 0.9); ring.setAttribute('ry', 26); ring.setAttribute('transform', 'rotate(' + (((now - t0) / 60) % 360 * 0) + ')');
+      ring.setAttribute('stroke-dashoffset', String(-((now - t0) / 40) % 9));
+      root.style.setProperty('--cm-sweep', (((now - t0) / 2600) % 1 * 140 - 20).toFixed(1) + '%');
+    }
+    hraf = requestAnimationFrame(beam);
+    return { close: holoClose };
+  }
+  function holoClose(silent) {
+    if (heng) { heng.destroy(); heng = null; }
+    cancelAnimationFrame(hraf);
+    if (holoEl) { var e0 = holoEl; holoEl = null; e0.remove(); }
+  }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && holoEl) { var b = holoEl.querySelector('#cm-hbar .x'); if (b) b.click(); } });
+  window.MinestCoverModes = { holo: holo, holoClose: holoClose,  play: function (v) { playing = v === undefined ? !playing : !!v; var b = bar && bar.querySelector('.pl'); if (b) { b.textContent = playing ? '❚❚' : '▶'; b.classList.toggle('on', playing); } }, speed: function (v) { speed = v; }, set: setMode, get: function () { return mode; } };
 })();
 </script>
 <script id="mn-card-styles-js">
