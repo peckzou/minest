@@ -76,7 +76,7 @@
     if (saved && STYLES.some(function (s) { return s.id === saved; })) cur = saved;
   } catch (e) {}
 
-  var TARGETS = '.coverflow-card-item .face-front, .coverflow-card-item .face-back, .cm-c, [data-card-id]';
+  var TARGETS = '.coverflow-card-item .face-front, .coverflow-card-item .face-back, .cm-c, [data-card-id]:not(.coverflow-card-item)';
   function rule(s, body) {
     return TARGETS.split(',').map(function (sel) {
       return 'html[data-card-style="' + s + '"] ' + sel.trim();
@@ -86,8 +86,8 @@
     return [
       'html[data-card-style="' + s + '"] .cm-c.act',
       'html[data-card-style="' + s + '"] .cm-c:hover',
-      'html[data-card-style="' + s + '"] [data-card-id]:hover',
-      'html[data-card-style="' + s + '"] [data-card-id]:focus-within',
+      'html[data-card-style="' + s + '"] [data-card-id]:not(.coverflow-card-item):hover',
+      'html[data-card-style="' + s + '"] [data-card-id]:not(.coverflow-card-item):focus-within',
       'html[data-card-style="' + s + '"] .coverflow-card-item.is-held-active .face-front',
       '.cs-opt:hover .cs-prev[data-s="' + s + '"]',
       '.cs-opt.on .cs-prev[data-s="' + s + '"]'
@@ -103,9 +103,9 @@
     return [
       'html[data-card-style="' + s + '"] .cm-c .ws',
       'html[data-card-style="' + s + '"] .cm-c .wg',
-      'html[data-card-style="' + s + '"] [data-card-id] .card-label',
-      'html[data-card-style="' + s + '"] [data-card-id] span[class*="badge"]',
-      'html[data-card-style="' + s + '"] [data-card-id] span[class*="tag"]'
+      'html[data-card-style="' + s + '"] [data-card-id]:not(.coverflow-card-item) .card-label',
+      'html[data-card-style="' + s + '"] [data-card-id]:not(.coverflow-card-item) span[class*="badge"]',
+      'html[data-card-style="' + s + '"] [data-card-id]:not(.coverflow-card-item) span[class*="tag"]'
     ].join(',') + '{' + body + '}';
   }
   function before(s, body) {
@@ -178,8 +178,8 @@
     '.cs-opt-t{font:600 12.5px/1.2 -apple-system,system-ui,sans-serif!important;padding:0 2px}.cs-opt-d{display:none!important}',
     '.cs-opt .cs-zh{display:block;font:500 11px/1.2 -apple-system,system-ui,sans-serif;color:#8b90a0;padding:2px 2px 0}',
     '@media (max-width:640px){#cs-top{flex-direction:column;align-items:stretch;gap:8px}#cs-stage{width:100%;height:200px}#cs-hero{width:140px!important;height:188px!important}#cs-info{text-align:center}#cs-info p{margin-left:auto;margin-right:auto}}',
-    'html:not([data-card-style="default"]) [data-card-id]{position:relative!important;overflow:hidden!important;transition:transform .22s cubic-bezier(.22,1,.36,1),box-shadow .22s ease,border-color .22s ease!important}',
-    'html:not([data-card-style="default"]) [data-card-id]:hover{transform:translateY(-3px)!important}',
+    'html:not([data-card-style="default"]) [data-card-id]:not(.coverflow-card-item){position:relative!important;overflow:hidden!important;transition:transform .22s cubic-bezier(.22,1,.36,1),box-shadow .22s ease,border-color .22s ease!important}',
+    'html:not([data-card-style="default"]) [data-card-id]:not(.coverflow-card-item):hover{transform:translateY(-3px)!important}',
 
     /* 1. Default */
     '.cs-prev[data-s="default"]{background:linear-gradient(145deg,#ffffff,#e2e8f0);color:#1e293b;border:1px solid #cbd5e1}',
@@ -192,7 +192,7 @@
     typo('cartoon', 'font-family:"Hiragino Maru Gothic ProN","Yuanti SC","PingFang SC","SF Pro Rounded","Chalkboard SE",ui-rounded,sans-serif!important;font-weight:800!important;letter-spacing:.03em!important;color:#6d2856!important;text-shadow:0 2px 0 #fff,0 -1px 0 #fff,1.5px 0 0 #fff,-1.5px 0 0 #fff,0 3px 6px rgba(190,24,93,.18)!important;'),
     subTypo('cartoon', 'border-radius:999px!important;padding:3px 9px!important;background:#fff!important;border:1.5px solid var(--cs-bd)!important;color:var(--cs-lip)!important;box-shadow:0 2px 0 color-mix(in srgb,var(--cs-bd) 45%,transparent)!important;text-shadow:none!important;'),
     after('cartoon', 'background:' + CARTOON_SPARKLE + ' center/100% 100% no-repeat,linear-gradient(180deg,rgba(255,255,255,.68) 0%,rgba(255,255,255,.16) 24%,transparent 40%);box-shadow:inset 0 0 0 4px rgba(255,251,235,.92),inset 0 5px 0 rgba(255,255,255,.98),inset 0 -5px 0 color-mix(in srgb,var(--cs-bd) 42%,transparent);'),
-    'html[data-card-style="cartoon"] [data-card-id]:hover{transform:translateY(-3px) scale(1.015) rotate(-0.6deg)!important}',
+    'html[data-card-style="cartoon"] [data-card-id]:not(.coverflow-card-item):hover{transform:translateY(-3px) scale(1.015) rotate(-0.6deg)!important}',
     '.cs-prev[data-s="cartoon"]{--cs-c1:#fff7ed;--cs-c2:#fbcfe8;--cs-bd:#f472b6;--cs-lip:#db2777}',
 
     /* 4. Hard Paper Card */
@@ -212,7 +212,7 @@
     subTypo('paper-cut', 'border-radius:6px!important;background:rgba(255,251,235,.22)!important;border:1px solid rgba(255,251,235,.38)!important;color:#fffbeb!important;'),
     before('paper-cut', 'background:' + PAPER_CUT_SVG + ' center/cover no-repeat;opacity:.92;filter:hue-rotate(var(--cs-hue));'),
     after('paper-cut', 'box-shadow:inset 0 10px 22px rgba(255,244,214,.62),inset 0 -12px 20px rgba(0,0,0,.42),inset 0 0 0 1.5px rgba(180,150,110,.4);'),
-    'html[data-card-style="paper-cut"] [data-card-id]::before{opacity:.38}',
+    'html[data-card-style="paper-cut"] [data-card-id]:not(.coverflow-card-item)::before{opacity:.38}',
     '.cs-prev[data-s="paper-cut"]{--cs-hue:0deg}',
 
     /* 7. Diorama Card */
@@ -222,7 +222,7 @@
     subTypo('diorama', 'border-radius:4px!important;background:rgba(120,75,30,.55)!important;border:1px solid rgba(253,230,138,.42)!important;color:#fde68a!important;'),
     before('diorama', 'background:' + DIORAMA_SVG + ' center/cover no-repeat;opacity:.94;filter:hue-rotate(var(--cs-hue));'),
     after('diorama', 'box-shadow:inset 0 0 28px rgba(0,0,0,.86),inset 0 5px 14px rgba(255,220,140,.34),inset 0 0 0 2.5px rgba(180,120,60,.48);background:radial-gradient(circle at var(--cs-px) 26%,rgba(254,240,138,.26),transparent 48%);'),
-    'html[data-card-style="diorama"] [data-card-id]::before{opacity:.42}',
+    'html[data-card-style="diorama"] [data-card-id]:not(.coverflow-card-item)::before{opacity:.42}',
     '.cs-prev[data-s="diorama"]{--cs-hue:0deg}',
 
     /* 8. Leather & Foil */
@@ -269,7 +269,7 @@
     subTypo('stained-glass', 'border-radius:4px!important;border:1.5px solid #facc15!important;background:rgba(15,23,42,.78)!important;color:#fde047!important;'),
     before('stained-glass', 'background:' + STAINED_GLASS_SVG + ' center/cover no-repeat;opacity:.88;filter:hue-rotate(var(--cs-hue));'),
     after('stained-glass', 'background:radial-gradient(circle at var(--cs-px) var(--cs-py),rgba(254,249,195,.38),transparent 52%);box-shadow:inset 0 0 0 2px rgba(250,204,21,.42);'),
-    'html[data-card-style="stained-glass"] [data-card-id]::before{opacity:.42}',
+    'html[data-card-style="stained-glass"] [data-card-id]:not(.coverflow-card-item)::before{opacity:.42}',
     '.cs-prev[data-s="stained-glass"]{--cs-hue:0deg}',
 
     /* 14. Blue & White Porcelain: jade-white ceramic glaze + cobalt fretwork + vermilion seal */
@@ -344,8 +344,8 @@
     after('holographic', 'background:radial-gradient(farthest-corner circle at var(--cs-px) var(--cs-py),rgba(255,255,255,.7) 0%,rgba(255,255,255,.12) 22%,transparent 48%),' + GLITTER + ' repeat,' + HOLO_PRISM + ' repeat;background-size:auto,96px 96px,140px 140px;background-position:0 0,calc(var(--cs-px) * .6) calc(var(--cs-py) * .6),0 0;mix-blend-mode:overlay;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25),inset 0 0 26px rgba(255,255,255,.18);'),
     '.cs-prev[data-s="holographic"]{--cs-bd:#c084fc}',
     /* on a picture the holo keeps to the edges: the picture stays clear in the middle */
-    'html[data-card-style="holographic"] .cm-c.hasim::before,html[data-card-style="holographic"] .cm-c.wi::before,html[data-card-style="holographic"] .cm-fc::before,html[data-card-style="holographic"] .coverflow-card-item .face-front:has(img)::before,html[data-card-style="holographic"] [data-card-id]:has(img)::before{-webkit-mask-image:radial-gradient(ellipse 72% 70% at 50% 50%,transparent 48%,#000 100%);mask-image:radial-gradient(ellipse 72% 70% at 50% 50%,transparent 48%,#000 100%);opacity:.75}',
-    'html[data-card-style="holographic"] .cm-c.hasim::after,html[data-card-style="holographic"] .cm-c.wi::after,html[data-card-style="holographic"] .cm-fc::after,html[data-card-style="holographic"] .coverflow-card-item .face-front:has(img)::after,html[data-card-style="holographic"] [data-card-id]:has(img)::after{opacity:.55}',
+    'html[data-card-style="holographic"] .cm-c.hasim::before,html[data-card-style="holographic"] .cm-c.wi::before,html[data-card-style="holographic"] .cm-fc::before,html[data-card-style="holographic"] .coverflow-card-item .face-front:has(img)::before,html[data-card-style="holographic"] [data-card-id]:not(.coverflow-card-item):has(img)::before{-webkit-mask-image:radial-gradient(ellipse 72% 70% at 50% 50%,transparent 48%,#000 100%);mask-image:radial-gradient(ellipse 72% 70% at 50% 50%,transparent 48%,#000 100%);opacity:.75}',
+    'html[data-card-style="holographic"] .cm-c.hasim::after,html[data-card-style="holographic"] .cm-c.wi::after,html[data-card-style="holographic"] .cm-fc::after,html[data-card-style="holographic"] .coverflow-card-item .face-front:has(img)::after,html[data-card-style="holographic"] [data-card-id]:not(.coverflow-card-item):has(img)::after{opacity:.55}',
     /* the same restraint for the glass and the chrome sheen over pictures */
     'html[data-card-style="chrome"] .cm-c.hasim,html[data-card-style="chrome"] .coverflow-card-item .face-front:has(img){padding:6px!important}',
 
