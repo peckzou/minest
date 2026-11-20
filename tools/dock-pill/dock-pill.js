@@ -80,6 +80,16 @@
     }
     it.addEventListener('click', handleToggle);
     fan.appendChild(it);
+    /* card style lives here too (2026-11-20, the user: the "风格" chip bottom-left moves into Looks) */
+    var CS = window.MinestCardStyles; if (!CS) return;
+    var cx = dir === 'up' ? nx + 10 : nx, cy = dir === 'up' ? Math.max(36, ny - 58) : Math.min(innerHeight - 36, ny + 58);
+    var st = (CS.styles || []).find(function (q) { return q.id === CS.get(); }) || {};
+    var cs = document.createElement('button'); cs.type = 'button'; cs.className = 'miv-fan-item mn-pill-fan-item mn-cs-fan-item'; cs.setAttribute('role', 'menuitem'); cs.title = '卡片风格';
+    cs.style.setProperty('--x', cx + 'px'); cs.style.setProperty('--y', cy + 'px'); cs.style.setProperty('--r', (lr + 2.4) + 'deg');
+    cs.style.setProperty('--dx', (dx - (cx - lx)) + 'px'); cs.style.setProperty('--dy', (dy - (cy - ly)) + 'px'); cs.style.setProperty('--d', ((items.length + 1) * 38) + 'ms'); cs.style.setProperty('--dc', '0ms');
+    cs.innerHTML = '<span class="miv-fan-ic"><svg class="miv-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3.5" width="12" height="16" rx="2.2"/><path d="M8 7.5h4"/><rect x="8.5" y="6.5" width="11.5" height="14" rx="2.2" fill="' + (st.accent || 'currentColor') + '" fill-opacity=".35"/></svg></span><span class="miv-fan-label">卡片风格 · ' + (st.zh || '经典默认') + '</span>';
+    cs.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); fan.remove(); CS.open(); });
+    fan.appendChild(cs);
   }
   window.MinestPillDock = { isOn: isOn, set: apply, toggle: function () { apply(!isOn()); } };
   apply(isOn());
