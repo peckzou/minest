@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#000000">
+<title>3D Type · Minest</title>
+<style>/* Minest · 3D 词卡 · 学生页 */
+:root { color-scheme: dark; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #070b16; color: #e8eefb; font-family: -apple-system, "SF Pro Text", "PingFang SC", system-ui, sans-serif; -webkit-text-size-adjust: 100%; overscroll-behavior: none; }
+body { position: fixed; inset: 0; }
+.sf-slot[data-sf-view="coverflow"] { position: absolute; inset: 0; overflow: hidden; }
+/* the original 3D Cover (flow) lives in Minest itself — here every other mode */
+#cm-bar button[data-m="flow"], #cm-pick button[data-m="flow"] { display: none !important; }
+/* nothing that leads out of the words: no AI call, no "open the card", no style chip */
+#xl .xl-ai, #xl [data-a="card"], #cs-btn { display: none !important; }
+/* no Dock here: the controls sit lower */
+#cm-ov .cm-gbar { bottom: calc(env(safe-area-inset-bottom, 0px) + 18px) !important; }
+#cm-ov .cm-hback { bottom: calc(env(safe-area-inset-bottom, 0px) + 22px) !important; }
+#cm-bar { top: calc(env(safe-area-inset-top, 0px) + 54px) !important; }
+
+/* the join card */
+#v3-join { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; background: radial-gradient(90% 70% at 50% 20%, rgba(56,189,248,.22), transparent 60%), radial-gradient(80% 60% at 80% 100%, rgba(167,139,250,.18), transparent 60%), #070b16; }
+#v3-join[hidden] { display: none; }
+.v3j-card { width: min(380px, 100%); text-align: center; padding: 30px 24px 22px; border-radius: 28px; background: linear-gradient(180deg, rgba(30,36,52,.78), rgba(14,18,28,.82)); border: 1px solid rgba(255,255,255,.1); box-shadow: 0 40px 90px -30px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.08); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
+.v3j-logo { font-size: 42px; line-height: 1; color: #7dd3fc; text-shadow: 0 0 24px rgba(125,211,252,.7); margin-bottom: 10px; }
+.v3j-logo.spin { animation: v3spin 1.4s linear infinite; display: inline-block; }
+@keyframes v3spin { to { transform: rotate(360deg); } }
+.v3j-card h1 { margin: 0 0 6px; font-size: 24px; font-weight: 750; letter-spacing: .01em; }
+.v3j-card p { margin: 0 0 18px; color: #93a0b8; font-size: 14px; line-height: 1.5; }
+.v3j-card input { display: block; width: 100%; box-sizing: border-box; padding: 14px 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); color: #fff; outline: none; font: 600 18px inherit; text-align: center; }
+.v3j-card input:focus { border-color: rgba(125,211,252,.6); box-shadow: 0 0 0 4px rgba(125,211,252,.15); }
+.v3j-card .v3j-code { font: 800 28px ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .22em; text-transform: uppercase; }
+.v3j-go { margin-top: 12px; width: 100%; padding: 14px; border: 0; border-radius: 16px; font: 700 16px inherit; color: #04203a; background: linear-gradient(180deg, #a5e3fd, #38bdf8); cursor: pointer; box-shadow: 0 12px 30px -10px rgba(56,189,248,.7); }
+.v3j-go:active { transform: scale(.98); }
+.v3j-err { min-height: 18px; margin: 12px 0 0 !important; color: #fca5a5 !important; font-size: 13px !important; }
+
+/* the title, top left */
+#v3-top { position: fixed; z-index: 2200; left: calc(env(safe-area-inset-left, 0px) + 16px); right: calc(env(safe-area-inset-right, 0px) + 16px); top: calc(env(safe-area-inset-top, 0px) + 12px); display: flex; align-items: center; gap: 10px; pointer-events: none; }
+#v3-top b { font: 700 15px/1.2 inherit; color: #f1f5f9; text-shadow: 0 1px 8px rgba(0,0,0,.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#v3-top i { font-style: normal; font-size: 18px; color: #7dd3fc; text-shadow: 0 0 12px rgba(125,211,252,.7); }
+body:not(.v3-on) #v3-top, body:not(.v3-on) #v3-pill { display: none; }
+#v3-banner { position: fixed; z-index: 2200; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 100px); transform: translateX(-50%); padding: 7px 14px; border-radius: 12px; background: rgba(120,53,15,.75); border: 1px solid rgba(253,186,116,.35); color: #fed7aa; font-size: 12.5px; white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
+#v3-banner[hidden] { display: none; }
+
+/* progress, bottom right */
+#v3-pill { position: fixed; z-index: 2200; right: calc(env(safe-area-inset-right, 0px) + 16px); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); display: flex; align-items: center; gap: 10px; padding: 6px 14px 6px 6px; border: 1px solid rgba(255,255,255,.12); border-radius: 99px; color: #e8eefb; background: linear-gradient(180deg, rgba(30,34,46,.78), rgba(14,16,22,.8)); -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%); box-shadow: 0 12px 30px -10px rgba(0,0,0,.6); cursor: pointer; font: inherit; }
+#v3-ring { --p: 0; width: 34px; height: 34px; border-radius: 50%; background: conic-gradient(#7dd3fc calc(var(--p) * 1%), rgba(255,255,255,.1) 0); display: grid; place-items: center; }
+#v3-ring::after { content: "✓"; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: #111522; color: #a7f3d0; font-size: 13px; font-weight: 800; }
+#v3-pill span { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
+#v3-pill b { font: 750 14px ui-monospace, "SF Mono", Menlo, monospace; }
+#v3-pill small { font-size: 11px; color: #93a0b8; }
+body.v3-xl #v3-pill { display: none; }
+
+/* 我会了 / 再看看 while a word is open */
+#v3-mark { position: fixed; z-index: 2600; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 74px); transform: translateX(-50%); display: flex; gap: 10px; padding: 6px; border-radius: 20px; background: rgba(10,14,26,.72); border: 1px solid rgba(255,255,255,.12); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); box-shadow: 0 16px 40px -14px rgba(0,0,0,.7); }
+#v3-mark[hidden] { display: none; }
+#v3-mark button { white-space: nowrap; border: 1px solid transparent; border-radius: 15px; padding: 11px 18px; font: 700 15px inherit; cursor: pointer; color: #e8eefb; background: rgba(255,255,255,.07); }
+#v3-mark [data-known] { color: #052e1f; background: linear-gradient(180deg, #a7f3d0, #34d399); }
+#v3-mark [data-again].on { border-color: rgba(253,186,116,.7); color: #fed7aa; background: rgba(253,186,116,.16); }
+#v3-mark [data-known].on { box-shadow: 0 0 0 3px rgba(167,243,208,.35); }
+#v3-mark [data-known].on::before { content: "✓ "; }
+
+/* the word list */
+#v3-sheet { position: fixed; z-index: 2700; right: calc(env(safe-area-inset-right, 0px) + 12px); bottom: calc(env(safe-area-inset-bottom, 0px) + 70px); width: min(360px, calc(100vw - 24px)); max-height: min(70vh, 560px); display: flex; flex-direction: column; border-radius: 22px; background: linear-gradient(180deg, rgba(28,32,44,.95), rgba(14,17,26,.96)); border: 1px solid rgba(255,255,255,.1); box-shadow: 0 30px 70px -20px rgba(0,0,0,.8); overflow: hidden; }
+#v3-sheet[hidden] { display: none; }
+.v3s-hd { display: flex; align-items: center; gap: 10px; padding: 14px 14px 8px 16px; }
+.v3s-hd b { font-size: 15px; } .v3s-hd span { color: #93a0b8; font-size: 12.5px; }
+.v3s-hd button { margin-left: auto; width: 30px; height: 30px; border-radius: 50%; border: 0; background: rgba(255,255,255,.08); color: #cfd8ea; cursor: pointer; }
+.v3s-tabs { display: flex; gap: 4px; padding: 0 12px 10px; }
+.v3s-tabs button { flex: 1; border: 0; border-radius: 10px; padding: 7px 0; font: 600 12.5px inherit; color: #93a0b8; background: rgba(255,255,255,.04); cursor: pointer; }
+.v3s-tabs button.on { color: #fff; background: rgba(255,255,255,.14); }
+.v3s-list { overflow: auto; padding: 0 8px 10px; display: flex; flex-direction: column; gap: 2px; }
+.v3s-list button { display: flex; align-items: center; gap: 10px; text-align: left; border: 0; border-radius: 12px; padding: 10px 10px; background: none; color: #e8eefb; cursor: pointer; font: inherit; }
+.v3s-list button:hover { background: rgba(255,255,255,.06); }
+.v3s-list i { flex: none; width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.18); }
+.v3s-list i.k { background: #34d399; box-shadow: 0 0 8px #34d399; } .v3s-list i.a { background: #fdba74; }
+.v3s-list b { font-size: 15px; font-weight: 650; white-space: nowrap; }
+.v3s-list small { color: #8190a8; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v3s-none { color: #8190a8; text-align: center; font-size: 13px; }
+/* a word open: its card has the screen — the mode bar and the title step aside */
+body.v3-xl #cm-bar, body.v3-xl #v3-top, body.v3-xl #cm-pick { display: none !important; }
+#v3-mark { bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); }
+/* the roots layer with no breakdown of its own (the AI one is not offered here) */
+#xl .xl-c[data-k="ety"]:has(.xl-ai)::before { content: "这个词没有可拆的词根。点「Word」层听发音，或者翻到下一层。"; position: absolute; left: 16px; right: 16px; top: 50%; transform: translateY(-50%); color: #b9d0ff; font-size: 14px; line-height: 1.6; text-align: center; opacity: .85; }
+</style>
+<style>/* Minest · 3D Type for students */
+body { background: #000; }
+#vt-stage { position: fixed; inset: 0; }
+#vt-stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; pointer-events: none; }
+body:not(.vt-on) #vt-world { display: none; }
+#v3-pill { top: calc(env(safe-area-inset-top, 0px) + 10px); bottom: auto !important; padding: 4px 12px 4px 4px; }
+#v3-pill #v3-ring { width: 28px; height: 28px; } #v3-pill #v3-ring::after { width: 21px; height: 21px; font-size: 11px; }
+#v3-sheet { top: calc(env(safe-area-inset-top, 0px) + 60px); bottom: auto !important; }
+#vt-world { position: fixed; z-index: 2200; left: calc(env(safe-area-inset-left, 0px) + 14px); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 99px; border: 1px solid rgba(255,255,255,.14); background: rgba(14,16,22,.6); color: #dbe3f0; font: 600 12.5px -apple-system, "PingFang SC", system-ui, sans-serif; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); cursor: pointer; }
+#vt-world i { font-style: normal; color: #7dd3fc; }
+body.vt-playing #vt-world { display: none; }
+
+/* home: 跟打 and the four levels */
+#vt-levels { position: fixed; inset: 0; z-index: 2100; display: grid; place-items: center; padding: 70px 16px 60px; overflow: auto; }
+#vt-levels[hidden], #vt-play[hidden], #vt-result[hidden] { display: none; }
+.vt-home { width: min(520px, 100%); padding: 22px; border-radius: 26px; background: linear-gradient(180deg, rgba(24,28,40,.8), rgba(10,12,18,.84)); border: 1px solid rgba(255,255,255,.1); -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px); box-shadow: 0 40px 90px -30px rgba(0,0,0,.9); }
+.vt-home h2 { margin: 0 0 4px; font-size: 22px; } .vt-home > p { margin: 0 0 16px; color: #93a0b8; font-size: 13.5px; }
+.vt-mode { display: block; width: 100%; text-align: left; padding: 16px 18px; border-radius: 18px; border: 1px solid rgba(125,211,252,.35); background: radial-gradient(120% 140% at 0 0, rgba(125,211,252,.22), rgba(255,255,255,.03)); color: #fff; cursor: pointer; font: inherit; margin-bottom: 12px; }
+.vt-mode b { display: block; font-size: 17px; margin-bottom: 3px; } .vt-mode small { color: #a8b6cc; font-size: 12.5px; }
+.vt-lvs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.vt-lv { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left; padding: 14px 14px 12px; border-radius: 18px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.05); color: #fff; cursor: pointer; font: inherit; min-height: 112px; }
+.vt-lv .n { font: 800 26px/1 ui-monospace, "SF Mono", Menlo, monospace; color: #7dd3fc; text-shadow: 0 0 14px rgba(125,211,252,.5); }
+.vt-lv b { font-size: 15px; } .vt-lv small { color: #8a98b0; font-size: 11.5px; line-height: 1.4; }
+.vt-lv .st { margin-top: auto; font-size: 15px; letter-spacing: 2px; }
+.vt-lv .st i, .vt-stars i { font-style: normal; color: rgba(255,255,255,.18); } .vt-lv .st i.on, .vt-stars i.on { color: #fcd34d; text-shadow: 0 0 10px rgba(252,211,77,.7); }
+.vt-lv.lock { opacity: .45; cursor: default; }
+
+/* a run */
+#vt-play { position: fixed; inset: 0; z-index: 2100; pointer-events: none; }
+#vt-play > * { pointer-events: auto; }
+body.vt-playing #v3-top, body.vt-playing #v3-pill { display: none; }
+#vt-hud { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 10px); transform: translateX(-50%); display: flex; align-items: center; gap: 14px; padding: 6px 8px 6px 16px; border-radius: 16px; background: rgba(12,14,20,.6); border: 1px solid rgba(255,255,255,.1); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); font: 600 13px -apple-system, "PingFang SC", system-ui, sans-serif; white-space: nowrap; max-width: calc(100vw - 20px); }
+#vt-hud span { display: flex; flex-direction: column; align-items: center; line-height: 1.15; } #vt-hud span i { font-style: normal; font-size: 10px; color: #8a98b0; font-weight: 500; }
+#vt-hud b { font: 700 14px ui-monospace, "SF Mono", Menlo, monospace; color: #fff; }
+#vt-mode { color: #7dd3fc; font-size: 13px; flex-direction: row !important; }
+#vt-quit { width: 30px; height: 30px; border: 0; border-radius: 50%; background: rgba(255,255,255,.08); color: #cbd5e1; cursor: pointer; }
+#vt-track { position: fixed; left: 0; right: 0; top: 0; height: 3px; background: rgba(255,255,255,.06); }
+#vt-bar { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #38bdf8, #a7f3d0); transition: width .3s ease; }
+#vt-word { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 70px); transform: translateX(-50%); min-width: 220px; max-width: calc(100vw - 24px); text-align: center; padding: 14px 22px 16px; border-radius: 22px; background: rgba(10,12,18,.55); border: 1px solid rgba(255,255,255,.1); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+#vt-word .hz { font: 700 44px/1.15 "PingFang SC", "Hiragino Sans GB", -apple-system, system-ui, sans-serif; color: #fff; letter-spacing: .06em; text-shadow: 0 0 20px rgba(125,211,252,.35); }
+#vt-word .py { margin-top: 6px; font: 600 24px/1.3 -apple-system, "SF Pro Display", system-ui, sans-serif; letter-spacing: .02em; display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
+#vt-word .py i { font-style: normal; color: rgba(230,238,250,.42); display: inline-block; min-width: .5em; }
+#vt-word .py i.t { color: #a7f3d0; text-shadow: 0 0 10px rgba(167,243,208,.6); }
+#vt-word .py i.n { color: #fff; border-bottom: 2.5px solid #7dd3fc; }
+#vt-word .mean { margin-top: 8px; color: #b9c7dc; font-size: 14px; max-width: 520px; }
+#vt-word .vt-say { border: 0; background: rgba(125,211,252,.16); color: #fff; border-radius: 16px; font-size: 26px; padding: 8px 18px; cursor: pointer; }
+#vt-word .vt-say.sm { position: absolute; right: 8px; top: 8px; font-size: 14px; padding: 4px 8px; border-radius: 10px; background: rgba(255,255,255,.06); }
+#vt-word.bad { animation: vtshake .32s ease; } #vt-word.win { animation: vtwin .42s ease; }
+@keyframes vtshake { 20% { transform: translateX(calc(-50% - 7px)); } 40% { transform: translateX(calc(-50% + 6px)); } 60% { transform: translateX(calc(-50% - 4px)); } 80% { transform: translateX(calc(-50% + 2px)); } }
+@keyframes vtwin { 40% { transform: translateX(-50%) scale(1.06); box-shadow: 0 0 40px rgba(167,243,208,.45); } }
+#vt-next { position: fixed; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 236px); display: flex; gap: 10px; color: rgba(230,238,250,.45); font: 500 15px "PingFang SC", system-ui, sans-serif; white-space: nowrap; max-width: 92vw; overflow: hidden; pointer-events: none !important; }
+#vt-next span:first-child { color: rgba(230,238,250,.75); }
+body:not(.vt-soft) #vt-kb { display: none; }
+#vt-kb { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); transform: translateX(-50%); width: min(640px, calc(100vw - 12px)); display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 20px; background: rgba(12,14,20,.55); border: 1px solid rgba(255,255,255,.08); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+#vt-kb .r { display: flex; justify-content: center; gap: 5px; }
+#vt-kb button { flex: 1 1 0; max-width: 56px; height: 46px; border: 0; border-radius: 10px; background: rgba(255,255,255,.1); color: #f1f5f9; font: 600 18px -apple-system, system-ui, sans-serif; cursor: pointer; position: relative; box-shadow: inset 0 -2px 0 rgba(0,0,0,.35); }
+#vt-kb button small { position: absolute; right: 4px; top: 2px; font-size: 10px; color: #7dd3fc; }
+#vt-kb button.next { background: rgba(125,211,252,.35); box-shadow: 0 0 0 2px rgba(125,211,252,.7), 0 0 18px rgba(125,211,252,.5); }
+#vt-kb button.ok { animation: vtok .25s ease; } #vt-kb button.bad { animation: vtbad .3s ease; }
+@keyframes vtok { 40% { background: rgba(167,243,208,.55); transform: scale(.94); } }
+@keyframes vtbad { 30% { background: rgba(248,113,113,.6); transform: translateX(-3px); } 60% { transform: translateX(3px); } }
+@media (max-height: 560px) { #vt-word .hz { font-size: 32px; } #vt-word .py { font-size: 19px; } #vt-kb button { height: 36px; } #vt-next { display: none; } }
+
+/* the result */
+#vt-result { position: fixed; inset: 0; z-index: 2150; display: grid; place-items: center; padding: 20px; background: rgba(0,0,0,.35); }
+.vt-rc { width: min(400px, 100%); text-align: center; padding: 26px 22px 20px; border-radius: 26px; background: linear-gradient(180deg, rgba(26,30,44,.92), rgba(12,14,22,.95)); border: 1px solid rgba(255,255,255,.12); box-shadow: 0 40px 90px -30px rgba(0,0,0,.9); }
+.vt-stars { font-size: 40px; letter-spacing: 6px; color: #7dd3fc; } .vt-rc h2 { margin: 8px 0 14px; font-size: 22px; }
+.vt-nums { display: flex; justify-content: center; gap: 22px; margin-bottom: 14px; } .vt-nums span { display: flex; flex-direction: column; color: #8a98b0; font-size: 12px; } .vt-nums b { font: 800 24px ui-monospace, "SF Mono", Menlo, monospace; color: #fff; }
+.vt-rc p { color: #fca5a5; font-size: 13px; margin: 0 0 12px; }
+.vt-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.vt-b { border: 0; border-radius: 14px; padding: 11px 18px; font: 650 14.5px inherit; cursor: pointer; background: rgba(255,255,255,.1); color: #e8eefb; }
+.vt-b.pri { background: linear-gradient(180deg, #a5e3fd, #38bdf8); color: #04203a; }
+</style>
+</head>
+<body>
+<div id="vt-stage"></div>
+<div id="v3-top"><i>◈</i><b id="v3-ttl"></b></div>
+<div id="v3-banner" hidden></div>
+<button type="button" id="v3-pill" aria-label="我的进度和词表"><i id="v3-ring"></i><span><b id="v3-n">0 / 0</b><small id="v3-seen">看过 0</small></span></button>
+<div id="v3-mark" hidden><button type="button" data-again>再看看</button><button type="button" data-known>我会了</button></div>
+<div id="v3-sheet" hidden></div>
+<button type="button" id="vt-world" aria-label="换一个 3D 世界"></button>
+<div id="vt-levels" hidden></div>
+<div id="vt-play" hidden>
+  <div id="vt-hud"><span id="vt-mode"></span><span><i>进度</i><b id="vt-count"></b></span><span><i>正确率</i><b id="vt-acc"></b></span><span><i>字/分</i><b id="vt-cpm"></b></span><button type="button" id="vt-quit" aria-label="结束这一轮">✕</button></div>
+  <div id="vt-track"><i id="vt-bar"></i></div>
+  <div id="vt-word"></div>
+  <div id="vt-next"></div>
+  <div id="vt-kb"></div>
+</div>
+<div id="vt-result" hidden></div>
+<div id="v3-join" hidden></div>
+<script>/* Minest · 3D Type for students (vocab-type.html) — pinyin typing over the assigned words, in a real 3D Type world.
+   跟打: the words one after another, pinyin with tones shown; speed (字/分) and accuracy.
+   闯关: four levels — 1 看拼音 · 2 首字母 · 3 只看汉字 · 4 听写 (the word read aloud, the meaning shown); stars by
+   accuracy, a level opens when the one before has a star.
+   Every right key is typed into the 3D world (the type3d page in an iframe: same site, its own HUD, links and world
+   strip hidden — nothing leads out); a wrong key is not typed, it shakes. ü is v, as in a pinyin keyboard.
+   A word typed through: seen; typed with no mistake: known (student.js keeps and syncs that). Level stars and the
+   best speed go to the teacher too. window.V3Type = { start(o) } — o from student.js. */
+(function () {
+  'use strict';
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+  var CJK = /[㐀-鿿]/;
+  var WORLDS = [['index.html', '立体打印', 'Filament'], ['neon.html', '霓虹', 'Neon'], ['saber.html', '光剑', 'Saber'], ['firework.html', '烟花', 'Firework'],
+    ['quill.html', '羽毛笔', 'Quill'], ['topiary.html', '园艺', 'Topiary'], ['book.html', '魔法书', 'Book']];
+  var LEVELS = [
+    { n: 1, name: '看拼音', sub: '拼音和声调都在眼前' },
+    { n: 2, name: '首字母', sub: '只提示每个音节的第一个字母' },
+    { n: 3, name: '只看汉字', sub: '拼音藏起来，打出来才看到' },
+    { n: 4, name: '听写', sub: '听读音、看意思，汉字也藏起来' }
+  ];
+
+  /* ---------------- the words as keys ---------------- */
+  function keyOf(ch) { ch = ch.toLowerCase(); if (/[üǖǘǚǜ]/.test(ch)) return 'v'; var b = ch.normalize('NFD').replace(/[̀-ͯ]/g, ''); return /^[a-z]$/.test(b) ? b : ''; }
+  function target(c) {
+    var hz = c.title, py = String(c.pron || '').normalize('NFC').trim(), cn = CJK.test(hz);
+    var src = cn ? py : hz;   // a Chinese word: its pinyin; any other word: the word itself
+    var syl = src.split(/[\s'’\-·]+/).filter(Boolean).map(function (s) {
+      var shown = [], keys = '';
+      Array.from(s).forEach(function (ch) { var k = keyOf(ch); if (k) { shown.push(ch); keys += k; } });
+      return { shown: shown, keys: keys };
+    }).filter(function (s) { return s.keys; });
+    var keys = syl.map(function (s) { return s.keys; }).join('');
+    return { card: c, hz: hz, cn: cn, py: py, syl: syl, keys: keys, mean: c.meaning || (c.definitions && c.definitions.en) || '' };
+  }
+
+  /* ---------------- the 3D world ---------------- */
+  var fr = null, worldAt = 0;
+  function world(i) {
+    worldAt = (i + WORLDS.length) % WORLDS.length; ls('minest.vocab3d.world', String(worldAt));
+    var w = WORLDS[worldAt]; $('#vt-world').innerHTML = '<i>◐</i>' + esc(w[1]);
+    if (fr) fr.remove();
+    fr = document.createElement('iframe'); fr.id = 'vt-frame'; fr.title = '3D Type'; fr.setAttribute('tabindex', '-1'); fr.src = 'type3d/' + w[0];
+    fr.onload = function () {
+      try {
+        var d = fr.contentDocument, s = d.createElement('style');
+        s.textContent = '.hud,#t3ds,#t3dw,a,#hint,#err,#title,#jobs,#line{display:none!important}';   // the world's own HUD, links and world strip: nothing leads out
+        d.head.appendChild(s);
+        new MutationObserver(function () { [].forEach.call(d.querySelectorAll('#t3ds,#t3dw'), function (n) { n.remove(); }); }).observe(d.body, { childList: true });
+      } catch (e) {}
+    };
+    $('#vt-stage').appendChild(fr);
+  }
+  function send(key) {   // into the world: its own keyboard handler draws the letter (or starts a new line)
+    try { fr.contentWindow.dispatchEvent(new KeyboardEvent('keydown', { key: key, bubbles: true, cancelable: true })); } catch (e) {}
+  }
+
+  /* ---------------- reading aloud ---------------- */
+  function say(t, cn) { try { var u = new SpeechSynthesisUtterance(String(t)); u.lang = cn ? 'zh-CN' : 'en-US'; u.rate = .85; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {} }
+
+  /* ---------------- a run: 跟打 or one level ---------------- */
+  var O = null, ALL = [], run = null, KEYSTATE = {};
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function begin(kind, lv) {
+    var list = kind === 'follow' ? ALL.slice() : shuffle(ALL).slice(0, Math.min(10, ALL.length));
+    run = { kind: kind, lv: lv || 0, list: list, i: 0, pos: 0, ok: 0, bad: 0, wordBad: 0, slip: 0, t0: 0, t: 0, done: 0, chars: 0 };
+    $('#vt-levels').hidden = true; $('#vt-result').hidden = true; $('#vt-play').hidden = false;
+    $('#vt-mode').textContent = kind === 'follow' ? '跟打' : '第 ' + lv + ' 关 · ' + LEVELS[lv - 1].name;
+    send('Enter'); paint(); focusKb();
+    if (lv === 4) setTimeout(function () { sayCur(); }, 350);
+  }
+  function cur() { return run && run.list[run.i]; }
+  function sayCur() { var w = cur(); if (w) say(w.hz, w.cn); }
+  function press(k) {
+    if (!run || $('#vt-play').hidden) return;
+    var w = cur(); if (!w) return;
+    k = (k || '').toLowerCase(); if (k === 'ü') k = 'v'; if (!/^[a-z]$/.test(k)) return;
+    if (!run.t0) run.t0 = performance.now();
+    var want = w.keys.charAt(run.pos);
+    if (k === want) {
+      run.ok++; run.pos++; run.slip = 0; send(k); keyFx(k, 'ok');
+      if (run.pos >= w.keys.length) wordDone(w);
+    } else {
+      run.bad++; run.wordBad++; run.slip++; keyFx(k, 'bad'); shake();
+      if (run.slip >= 3 && run.lv >= 2) { run.slip = 0; hintFx(); }   // stuck: the next letter shows for a moment
+    }
+    paint();
+  }
+  function wordDone(w) {
+    run.done++; run.chars += w.cn ? Array.from(w.hz).filter(function (c) { return CJK.test(c); }).length : 1;
+    O.mark(w.card, run.wordBad ? 1 : 2);
+    var card = $('#vt-word'); card.classList.remove('win'); void card.offsetWidth; card.classList.add('win');
+    if (w.cn && run.lv !== 4) say(w.hz, true);
+    setTimeout(function () {
+      send('Enter'); run.i++; run.pos = 0; run.wordBad = 0;
+      if (run.i >= run.list.length) return finish();
+      paint(); if (run.lv === 4) sayCur();
+    }, run.lv === 4 ? 700 : 420);
+  }
+  function rate() { var ms = (run.t || (performance.now() - run.t0)) || 1; return Math.round(run.chars / (ms / 60000)); }
+  function acc() { return run.ok + run.bad ? Math.round(run.ok / (run.ok + run.bad) * 100) : 100; }
+  function finish() {
+    run.t = performance.now() - (run.t0 || performance.now());
+    var a = acc(), cpm = rate(), stars = a >= 95 ? 3 : a >= 85 ? 2 : a >= 70 ? 1 : 0, S = state();
+    if (run.kind === 'level') { S.lv[run.lv] = Math.max(S.lv[run.lv] || 0, stars); }
+    if (!S.best || cpm > S.best.cpm) S.best = { cpm: cpm, acc: a };
+    S.runs = (S.runs || 0) + 1; saveState(S);
+    var R = $('#vt-result'), next = run.kind === 'level' && stars && run.lv < 4;
+    R.innerHTML = '<div class="vt-rc"><div class="vt-stars">' + (run.kind === 'level' ? [1, 2, 3].map(function (i) { return '<i class="' + (i <= stars ? 'on' : '') + '">★</i>'; }).join('') : '⌨︎') + '</div>' +
+      '<h2>' + (run.kind === 'follow' ? '跟打完成' : stars ? '第 ' + run.lv + ' 关 通过' : '再试一次') + '</h2>' +
+      '<div class="vt-nums"><span><b>' + cpm + '</b>' + (ALL[0] && ALL[0].cn ? '字/分' : '词/分') + '</span><span><b>' + a + '%</b>正确率</span><span><b>' + Math.round(run.t / 1000) + 's</b>用时</span></div>' +
+      (run.kind === 'level' && !stars ? '<p>正确率到 70% 就能拿到一颗星。</p>' : '') +
+      '<div class="vt-row">' + (next ? '<button class="vt-b pri" data-next>下一关</button>' : '') + '<button class="vt-b' + (next ? '' : ' pri') + '" data-again>再来一次</button><button class="vt-b" data-home>' + (run.kind === 'level' ? '关卡' : '回到开始') + '</button></div></div>';
+    $('#vt-play').hidden = true; R.hidden = false;
+    var lv = run.lv, kind = run.kind;
+    var nb = $('[data-next]', R); if (nb) nb.onclick = function () { begin('level', lv + 1); };
+    $('[data-again]', R).onclick = function () { begin(kind, lv); };
+    $('[data-home]', R).onclick = function () { if (kind === 'level') levels(); else home(); };
+    run = null;
+  }
+
+  /* ---------------- the look of a run ---------------- */
+  function paint() {
+    var w = cur(); if (!w) return;
+    var lv = run.lv, hideHz = lv === 4, at = 0;
+    var py = w.syl.map(function (s) {   // each letter: typed, the next one, or still to come (hidden from level 2 on)
+      var h = '<span class="syl">' + s.shown.map(function (ch, j) {
+        var idx = at + j, typed = idx < run.pos, isNext = idx === run.pos;
+        var show = typed || lv <= 1 || (lv === 2 && j === 0) || (isNext && run.peek);
+        return '<i class="' + (typed ? 't' : isNext ? 'n' : '') + '">' + (show ? esc(ch) : '·') + '</i>';
+      }).join('') + '</span>';
+      at += s.keys.length; return h;
+    }).join('');
+    var done = run.pos >= w.keys.length;
+    $('#vt-word').innerHTML = (w.cn ? '<div class="hz">' + (hideHz && !done ? '<button class="vt-say" data-say aria-label="再听一遍">🔊</button>' : esc(w.hz)) + '</div>' : '') +
+      '<div class="py">' + py + '</div>' + ((lv === 4 || !w.cn) && w.mean ? '<div class="mean">' + esc(w.mean) + '</div>' : '') +
+      (!hideHz && w.cn ? '<button class="vt-say sm" data-say aria-label="读一遍">🔊</button>' : '');
+    [].forEach.call(document.querySelectorAll('#vt-word [data-say]'), function (b) { b.onclick = function (e) { e.stopPropagation(); sayCur(); }; });
+    // what comes next (跟打 shows the line ahead)
+    $('#vt-next').innerHTML = run.kind === 'follow' ? run.list.slice(run.i + 1, run.i + 6).map(function (x) { return '<span>' + esc(x.cn ? x.hz : x.hz) + '</span>'; }).join('') : '';
+    $('#vt-count').textContent = (run.i + 1) + ' / ' + run.list.length;
+    $('#vt-acc').textContent = acc() + '%';
+    $('#vt-cpm').textContent = run.t0 ? rate() : '—';
+    $('#vt-bar').style.width = (run.i / run.list.length * 100).toFixed(1) + '%';
+    var nk = w.keys.charAt(run.pos);
+    [].forEach.call(document.querySelectorAll('#vt-kb [data-k]'), function (b) { b.classList.toggle('next', run.lv <= 1 || run.kind === 'follow' ? b.getAttribute('data-k') === nk : false); });
+  }
+  function shake() { var c = $('#vt-word'); c.classList.remove('bad'); void c.offsetWidth; c.classList.add('bad'); try { if (navigator.vibrate) navigator.vibrate(18); } catch (e) {} }
+  function hintFx() { run.peek = true; paint(); setTimeout(function () { if (run) { run.peek = false; paint(); } }, 900); }
+  function keyFx(k, cls) { var b = $('#vt-kb [data-k="' + k + '"]'); if (!b) return; b.classList.remove('ok', 'bad'); void b.offsetWidth; b.classList.add(cls); }
+
+  /* ---------------- the keyboard: on screen (no Chinese IME in the way) and the real one ---------------- */
+  function keyboard() {
+    var rows = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
+    $('#vt-kb').innerHTML = rows.map(function (r) { return '<div class="r">' + r.split('').map(function (k) { return '<button type="button" data-k="' + k + '">' + (k === 'v' ? 'v<small>ü</small>' : k) + '</button>'; }).join('') + '</div>'; }).join('');
+    $('#vt-kb').addEventListener('pointerdown', function (e) { var b = e.target.closest('[data-k]'); if (!b) return; e.preventDefault(); press(b.getAttribute('data-k')); });
+  }
+  /* students type on Chromebooks: the on-screen keyboard stays hidden; a finger on the screen brings it, a real key
+     sends it away again (2026-11-20, the user) */
+  function softKb(on) { document.body.classList.toggle('vt-soft', !!on); }
+  document.addEventListener('pointerdown', function (e) { if (e.pointerType === 'touch') softKb(true); }, true);
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.target && /input|textarea/i.test(e.target.tagName) && e.target.id !== 'vt-in') return;
+    if (e.isTrusted) softKb(false);
+    if (e.key && e.key.length === 1) { e.preventDefault(); press(e.key); }
+  }, true);
+  function focusKb() {}
+
+  /* ---------------- screens ---------------- */
+  function state() { try { var s = JSON.parse(ls('minest.vocab3d.type.' + O.code) || '{}') || {}; s.lv = s.lv || {}; return s; } catch (e) { return { lv: {} }; } }
+  function saveState(S) { ls('minest.vocab3d.type.' + O.code, JSON.stringify(S)); O.extra({ lv: S.lv, best: S.best || null, runs: S.runs || 0 }); }
+  function home() {
+    run = null; $('#vt-play').hidden = true; $('#vt-result').hidden = true; $('#vt-levels').hidden = false;
+    var S = state(), L = $('#vt-levels');
+    L.innerHTML = '<div class="vt-home"><h2>拼音打字</h2><p>' + ALL.length + ' 个词 · 打对的字母会在 3D 世界里长出来</p>' +
+      '<button class="vt-mode" data-follow><b>⌨︎ 跟打</b><small>按顺序把每个词打一遍，看速度和正确率' + (S.best ? ' · 最好 ' + S.best.cpm + ' 字/分' : '') + '</small></button>' +
+      '<div class="vt-lvs">' + LEVELS.map(function (lv, i) {
+        var st = S.lv[lv.n] || 0, open = i === 0 || (S.lv[i] || 0) > 0;
+        return '<button class="vt-lv' + (open ? '' : ' lock') + '" data-lv="' + lv.n + '"' + (open ? '' : ' disabled') + '><span class="n">' + lv.n + '</span><b>' + lv.name + '</b><small>' + lv.sub + '</small><span class="st">' + (open ? [1, 2, 3].map(function (k) { return '<i class="' + (k <= st ? 'on' : '') + '">★</i>'; }).join('') : '🔒') + '</span></button>';
+      }).join('') + '</div></div>';
+    $('[data-follow]', L).onclick = function () { begin('follow', 0); };
+    [].forEach.call(L.querySelectorAll('[data-lv]'), function (b) { b.onclick = function () { if (!b.disabled) begin('level', +b.getAttribute('data-lv')); }; });
+  }
+  function levels() { home(); }
+  $('#vt-quit').onclick = function () { home(); };
+  $('#vt-world').onclick = function () { world(worldAt + 1); };
+
+  window.V3Type = {
+    start: function (o) {
+      O = o; ALL = o.cards.map(target).filter(function (w) { return w.keys; });
+      document.body.classList.add('vt-on');
+      if (!ALL.length) { $('#vt-levels').hidden = false; $('#vt-levels').innerHTML = '<div class="vt-home"><h2>这个词表没有可以打的拼音</h2><p>请老师给词加上拼音。</p></div>'; return; }
+      keyboard(); world(+(ls('minest.vocab3d.world') || 0) || 0); home();
+    }
+  };
+})();
+</script>
+<script>window.__V3_VIEW = 'type';</script>
+<script>/* Minest · 3D 词卡 · 学生页 (vocab3d.html?code=CODE, /vocab) — only the words the teacher assigned, as 3D dynamic
+   cards (the 3D Cover modes, card styles, the exploded learning card). No Dock, no system keys, no way into the rest
+   of Minest (2026-11-20, the user). The student marks each word 我会了 / 再看看; progress goes to the teacher:
+   /minest-live/{CODE}/players/{pid} = { name, seen, known, total, at, k: { cardKey: 1 seen | 2 known } }. */
+(function () {
+  'use strict';
+  var DB = 'https://minest-33761-default-rtdb.firebaseio.com/minest-live/';
+  var qs = new URLSearchParams(location.search), PREVIEW = qs.has('preview');
+  var VIEW = window.__V3_VIEW || 'cards';   // 'cards' (vocab3d.html) or 'drive' (vocab-drive.html): how the teacher chose to present the words
+  function db(path, method, body) {
+    return fetch(DB + path + '.json', { method: method || 'GET', headers: body ? { 'Content-Type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('网络错误（' + r.status + '）'); return r.json(); });
+  }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function clean(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8); }
+  function key(id) { return String(id).replace(/[.#$\[\]\/]/g, '_').slice(0, 120); }
+  function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+
+  /* ---------------- the board the 3D cards read (a stand-in for Minest's own board) ---------------- */
+  var B = { id: 'vocab3d', title: '', columns: [] }, CARDS = [];
+  function raw(c, col) {   // the fields the exploded card reads
+    var o = { id: c.id, title: c.title, titleZh: c.titleZh || '', meaning: c.meaning || '', pron: c.pron || '', definitions: { en: c.defEn || '', zh: c.defZh || '' },
+      examples: (c.examples || []).map(function (t) { return { text: t }; }), relatedWords: c.related || [], etymology: c.ety || '', hint: c.hint || '', img: c.img || '' };
+    o.columnTitle = col.title; o.columnColor = col.color || ''; return o;
+  }
+  window.MinestAI = { board: function () { return B; }, boards: function () { return [B]; } };
+  window.MinestImageViews = {
+    cards: function (b) { var out = []; (b.columns || []).forEach(function (c) { (c.cards || []).forEach(function (k) { out.push(k); }); }); return out; },
+    image: function (c) { return { thumb: (c && c.img) || '', full: (c && c.img) || '' }; },
+    select: function () {}
+  };
+  window.__mnNoVoice = false;
+
+  /* ---------------- join: the code, then a name ---------------- */
+  var code = clean(qs.get('code') || qs.get('c') || ''), host = null, me = null, pid = null;
+  var J = $('#v3-join');
+  function joinView(step, err) {
+    J.hidden = false;
+    if (step === 'code') {
+      J.innerHTML = '<div class="v3j-card"><div class="v3j-logo">◈</div><h1>3D 词卡</h1><p>输入老师给你的课堂码</p>' +
+        '<input class="v3j-code" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="V·····" value="' + esc(code) + '">' +
+        '<button type="button" class="v3j-go">进入</button><p class="v3j-err">' + esc(err || '') + '</p></div>';
+      var inp = $('.v3j-code', J), go = function () { var c = clean(inp.value); if (c.length < 4) { $('.v3j-err', J).textContent = '课堂码不完整。'; return; } code = c; load(); };
+      $('.v3j-go', J).onclick = go; inp.onkeydown = function (e) { if (e.key === 'Enter') go(); }; setTimeout(function () { inp.focus(); }, 50);
+    } else if (step === 'name') {
+      var saved = ls('minest.vocab3d.name') || '';
+      J.innerHTML = '<div class="v3j-card"><div class="v3j-logo">◈</div><h1>' + esc(host.title) + '</h1><p>' + (host.words || 0) + ' 个词 · 写上你的名字，老师能看到你的进度</p>' +
+        '<input class="v3j-name" maxlength="24" autocomplete="off" placeholder="你的名字" value="' + esc(saved) + '">' +
+        '<button type="button" class="v3j-go">开始学习</button><p class="v3j-err">' + esc(err || '') + '</p></div>';
+      var ni = $('.v3j-name', J), go2 = function () { var n = ni.value.trim().slice(0, 24); if (!n) { $('.v3j-err', J).textContent = '先写上名字。'; return; } ls('minest.vocab3d.name', n); start(n); };
+      $('.v3j-go', J).onclick = go2; ni.onkeydown = function (e) { if (e.key === 'Enter') go2(); }; setTimeout(function () { ni.focus(); }, 50);
+    } else {
+      J.innerHTML = '<div class="v3j-card"><div class="v3j-logo spin">◈</div><p>' + esc(step) + '</p></div>';
+    }
+  }
+  function load() {
+    joinView('正在打开…');
+    db(code + '/host').then(function (h) {
+      if (!h || h.kind !== 'vocab3d' || !h.board) { joinView('code', '找不到这个课堂码，请检查一下。'); return; }
+      var want = h.view === 'drive' || h.view === 'type' ? h.view : 'cards';
+      if (want !== VIEW) { location.replace({ drive: 'vocab-drive.html', type: 'vocab-type.html', cards: 'vocab3d.html' }[want] + location.search); return; }
+      host = h; pid = ls('minest.vocab3d.pid.' + code);
+      if (PREVIEW) { start('老师预览'); return; }
+      var n = ls('minest.vocab3d.name'); if (pid && n) start(n); else joinView('name');
+    }).catch(function (e) { joinView('code', '打不开：' + e.message); });
+  }
+
+  /* ---------------- study ---------------- */
+  var K = {}, synced = '', syncT = 0, EXTRA = null;
+  function counts() { var s = 0, k = 0; CARDS.forEach(function (c) { var v = K[key(c.id)]; if (v) s++; if (v === 2) k++; }); return { seen: s, known: k }; }
+  function save() {
+    ls('minest.vocab3d.k.' + code, JSON.stringify(K)); paintPill();
+    if (PREVIEW || !pid || host.state === 'ended') return;
+    clearTimeout(syncT); syncT = setTimeout(function () {
+      var c = counts(), body = { name: me, seen: c.seen, known: c.known, total: CARDS.length, at: Date.now(), k: K }, s = JSON.stringify([c, K, EXTRA]);
+      if (EXTRA) body.type = EXTRA;
+      if (s === synced) return;
+      db(code + '/players/' + pid, 'PATCH', body).then(function () { synced = s; }).catch(function () {});
+    }, 900);
+  }
+  function start(name) {
+    me = name; J.hidden = true; J.innerHTML = '';
+    if (!pid && !PREVIEW) { pid = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); ls('minest.vocab3d.pid.' + code, pid); }
+    try { K = JSON.parse(ls('minest.vocab3d.k.' + code) || '{}') || {}; } catch (e) { K = {}; }
+    B.title = host.title; B.columns = (host.board.columns || []).map(function (col) { return { id: col.id, title: col.title, color: col.color, cards: (col.cards || []).map(function (c) { return raw(c, col); }) }; });
+    CARDS = []; B.columns.forEach(function (c) { CARDS = CARDS.concat(c.cards); });
+    document.title = host.title + (VIEW === 'drive' ? ' · Knowledge Drive' : VIEW === 'type' ? ' · 3D Type' : ' · 3D 词卡');
+    $('#v3-ttl').textContent = host.title;
+    if (host.state === 'ended') banner('老师已经结束了这个作业：还可以看，进度不再记录。');
+    if (PREVIEW) banner('老师预览：这里的标记不会记进学生进度。');
+    document.body.classList.add('v3-on');
+    if (VIEW === 'drive') { drive(); paintPill(); save(); return; }
+    if (VIEW === 'type') {
+      if (window.V3Type) window.V3Type.start({ cards: CARDS, code: code, mark: function (c, v) { var k0 = key(c.id); if ((K[k0] || 0) < v) { K[k0] = v; save(); } }, extra: function (o) { EXTRA = o; synced = ''; save(); } });
+      paintPill(); save(); return;
+    }
+    try { if (!window.MinestCoverModes.get() || window.MinestCoverModes.get() === 'flow') window.MinestCoverModes.set('wall'); } catch (e) {}
+    try { window.dispatchEvent(new Event('minest:image-assets')); } catch (e) {}
+    wrapExplode(); paintPill(); save();
+  }
+
+  /* ---------------- Knowledge Drive: the words as billboards along a road (each list a road) ---------------- */
+  function driveBoard() {   // the drive reads cards in Minest's shape: title, titleZh, back, a cover picture
+    return { id: 'vocab3d', title: B.title, columns: B.columns.map(function (col) {
+      return { id: col.id, title: col.title, color: col.color, cards: col.cards.map(function (c) {
+        var back = [c.pron, c.meaning || c.definitions.en, c.definitions.zh].filter(Boolean).join('\n');
+        var o = { id: c.id, title: c.title, titleZh: c.titleZh || '', back: back, notes: c.examples.length ? c.examples.map(function (e) { return e.text; }).join('\n') : '' };
+        if (c.img) o.cover = { type: 'image', value: c.img };
+        return o;
+      }) };
+    }) };
+  }
+  var DB2 = null;
+  function drive() {
+    var end = $('#v3-end'); end.hidden = true;
+    if (!window.MinestDrive || !window.THREE) { banner('这台设备打不开 3D 驾驶（WebGL 不可用）。'); return; }
+    DB2 = DB2 || driveBoard();
+    var P = { boards: function () { return [DB2]; }, openCard: null };
+    try {
+      window.MinestDrive.open({ source: { type: 'board', bid: DB2.id }, provider: P, fresh: false, onExit: function () { end.hidden = false; } });
+    } catch (e) { banner('打不开 3D 驾驶：' + (e.message || e)); }
+  }
+  $('#v3-end [data-again]') && ($('#v3-end [data-again]').onclick = function () { drive(); });
+  function driveFocus() { try { var d = window.MinestDrive && MinestDrive.current(); var f = d && d.state && d.state().focus; return f || null; } catch (e) { return null; } }
+  function banner(t) { var b = $('#v3-banner'); b.textContent = t; b.hidden = false; }
+
+  /* the word in view: the exploded card open on it; "我会了" / "再看看" */
+  var cur = null;
+  function cardOf(it) { var id = it && (it.id || (it.raw && it.raw.id)); for (var i = 0; i < CARDS.length; i++) if (CARDS[i].id === id) return CARDS[i]; return null; }
+  function wrapExplode() {
+    var X = window.MinestExplode; if (!X || X.__v3) return; X.__v3 = 1;
+    var open = X.open; X.open = function (it) { var c = cardOf(it); if (c) { cur = c; if (!K[key(c.id)]) { K[key(c.id)] = 1; save(); } } var r = open.apply(this, arguments); paintMark(); return r; };
+  }
+  function byTitle() { var t = $('#xl .xl-title'); if (!t) return null; var s = t.textContent.replace(/^Exploded Learning Card · /, ''); for (var i = 0; i < CARDS.length; i++) if (CARDS[i].title === s) return CARDS[i]; return null; }
+  function paintMark() {
+    var m = $('#v3-mark'), open;
+    if (VIEW === 'type') { m.hidden = true; document.body.classList.toggle('vt-playing', !!(document.getElementById('vt-play') && !document.getElementById('vt-play').hidden)); return; }
+    if (VIEW === 'drive') {   // the billboard in focus is the word in view
+      var t = driveFocus(); open = !!t;
+      if (t) { var c0 = CARDS.filter(function (x) { return x.title === t; })[0]; if (c0 && c0 !== cur) { cur = c0; if (!K[key(c0.id)]) { K[key(c0.id)] = 1; save(); } } }
+      m.hidden = !open || !cur; document.body.classList.toggle('v3-xl', open);
+      if (!m.hidden) { var v0 = K[key(cur.id)]; $('[data-known]', m).classList.toggle('on', v0 === 2); $('[data-again]', m).classList.toggle('on', v0 === 1); }
+      return;
+    }
+    open = !!document.getElementById('xl');
+    if (open) { var c = byTitle(); if (c && c !== cur) { cur = c; if (!K[key(c.id)]) { K[key(c.id)] = 1; save(); } } }
+    m.hidden = !open || !cur; document.body.classList.toggle('v3-xl', open);
+    if (!m.hidden) { var v = K[key(cur.id)]; $('[data-known]', m).classList.toggle('on', v === 2); $('[data-again]', m).classList.toggle('on', v === 1); }
+  }
+  setInterval(paintMark, 350);
+  function mark(v) { if (!cur) return; K[key(cur.id)] = v; save(); paintMark(); try { if (navigator.vibrate) navigator.vibrate(12); } catch (e) {} }
+  $('#v3-mark [data-known]').onclick = function () { mark(2); };
+  $('#v3-mark [data-again]').onclick = function () { mark(1); };
+
+  /* the progress pill; a tap lists the words (a tap on one opens it) */
+  function paintPill() {
+    var c = counts(), n = CARDS.length || 1;
+    $('#v3-n').textContent = c.known + ' / ' + CARDS.length;
+    $('#v3-ring').style.setProperty('--p', (c.known / n * 100).toFixed(1));
+    $('#v3-seen').textContent = '看过 ' + c.seen;
+  }
+  $('#v3-pill').onclick = function () {
+    var s = $('#v3-sheet'); if (!s.hidden) { s.hidden = true; return; }
+    s.innerHTML = '<div class="v3s-hd"><b>' + esc(host.title) + '</b><span>' + esc(me) + '</span><button type="button" data-x aria-label="关闭">✕</button></div><div class="v3s-tabs"><button data-f="all" class="on">全部</button><button data-f="again">再看看</button><button data-f="new">没看过</button><button data-f="known">会了</button></div><div class="v3s-list"></div>';
+    var f = 'all';
+    function list() {
+      $('.v3s-list', s).innerHTML = CARDS.filter(function (c) { var v = K[key(c.id)]; return f === 'all' || (f === 'known' && v === 2) || (f === 'again' && v === 1) || (f === 'new' && !v); }).map(function (c) {
+        var v = K[key(c.id)]; return '<button data-id="' + esc(c.id) + '"><i class="' + (v === 2 ? 'k' : v === 1 ? 'a' : '') + '"></i><b>' + esc(c.title) + '</b><small>' + esc(c.titleZh || c.meaning || '') + '</small></button>';
+      }).join('') || '<p class="v3s-none">这里没有词。</p>';
+      [].forEach.call(s.querySelectorAll('.v3s-list [data-id]'), function (b) { if (VIEW !== 'cards') { b.disabled = true; return; } b.onclick = function () { var c = CARDS.filter(function (x) { return x.id === b.getAttribute('data-id'); })[0]; s.hidden = true; openWord(c); }; });
+    }
+    [].forEach.call(s.querySelectorAll('[data-f]'), function (b) { b.onclick = function () { f = b.getAttribute('data-f'); [].forEach.call(s.querySelectorAll('[data-f]'), function (x) { x.classList.toggle('on', x === b); }); list(); }; });
+    $('[data-x]', s).onclick = function () { s.hidden = true; };
+    list(); s.hidden = false;
+  };
+  function openWord(c) {
+    var slot = document.querySelector('.sf-slot[data-sf-view="coverflow"]'); if (!c || !slot || !window.MinestExplode) return;
+    var it = { raw: c, id: c.id, title: c.title, sub: c.columnTitle, src: c.img || '', desc: c.meaning || '', color: c.columnColor || '' };
+    window.MinestExplode.open(it, CARDS.map(function (x) { return { raw: x, id: x.id, title: x.title, sub: x.columnTitle, src: x.img || '', desc: x.meaning || '' }; }), { container: slot });
+  }
+
+  /* students stay here: no links out, no right-click menu into the rest of the site */
+  document.addEventListener('click', function (e) { var a = e.target.closest && e.target.closest('a[href]'); if (a) e.preventDefault(); }, true);
+  if (code) load(); else joinView('code');
+})();
+</script>
+</body>
+</html>

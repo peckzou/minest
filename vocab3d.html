@@ -2259,8 +2259,8 @@ body.v3-xl #cm-bar, body.v3-xl #v3-top, body.v3-xl #cm-pick { display: none !imp
     joinView('正在打开…');
     db(code + '/host').then(function (h) {
       if (!h || h.kind !== 'vocab3d' || !h.board) { joinView('code', '找不到这个课堂码，请检查一下。'); return; }
-      var want = h.view === 'drive' ? 'drive' : 'cards';
-      if (want !== VIEW) { location.replace((want === 'drive' ? 'vocab-drive.html' : 'vocab3d.html') + location.search); return; }
+      var want = h.view === 'drive' || h.view === 'type' ? h.view : 'cards';
+      if (want !== VIEW) { location.replace({ drive: 'vocab-drive.html', type: 'vocab-type.html', cards: 'vocab3d.html' }[want] + location.search); return; }
       host = h; pid = ls('minest.vocab3d.pid.' + code);
       if (PREVIEW) { start('老师预览'); return; }
       var n = ls('minest.vocab3d.name'); if (pid && n) start(n); else joinView('name');
@@ -2268,13 +2268,14 @@ body.v3-xl #cm-bar, body.v3-xl #v3-top, body.v3-xl #cm-pick { display: none !imp
   }
 
   /* ---------------- study ---------------- */
-  var K = {}, synced = '', syncT = 0;
+  var K = {}, synced = '', syncT = 0, EXTRA = null;
   function counts() { var s = 0, k = 0; CARDS.forEach(function (c) { var v = K[key(c.id)]; if (v) s++; if (v === 2) k++; }); return { seen: s, known: k }; }
   function save() {
     ls('minest.vocab3d.k.' + code, JSON.stringify(K)); paintPill();
     if (PREVIEW || !pid || host.state === 'ended') return;
     clearTimeout(syncT); syncT = setTimeout(function () {
-      var c = counts(), body = { name: me, seen: c.seen, known: c.known, total: CARDS.length, at: Date.now(), k: K }, s = JSON.stringify([c, K]);
+      var c = counts(), body = { name: me, seen: c.seen, known: c.known, total: CARDS.length, at: Date.now(), k: K }, s = JSON.stringify([c, K, EXTRA]);
+      if (EXTRA) body.type = EXTRA;
       if (s === synced) return;
       db(code + '/players/' + pid, 'PATCH', body).then(function () { synced = s; }).catch(function () {});
     }, 900);
@@ -2285,12 +2286,16 @@ body.v3-xl #cm-bar, body.v3-xl #v3-top, body.v3-xl #cm-pick { display: none !imp
     try { K = JSON.parse(ls('minest.vocab3d.k.' + code) || '{}') || {}; } catch (e) { K = {}; }
     B.title = host.title; B.columns = (host.board.columns || []).map(function (col) { return { id: col.id, title: col.title, color: col.color, cards: (col.cards || []).map(function (c) { return raw(c, col); }) }; });
     CARDS = []; B.columns.forEach(function (c) { CARDS = CARDS.concat(c.cards); });
-    document.title = host.title + (VIEW === 'drive' ? ' · Knowledge Drive' : ' · 3D 词卡');
+    document.title = host.title + (VIEW === 'drive' ? ' · Knowledge Drive' : VIEW === 'type' ? ' · 3D Type' : ' · 3D 词卡');
     $('#v3-ttl').textContent = host.title;
     if (host.state === 'ended') banner('老师已经结束了这个作业：还可以看，进度不再记录。');
     if (PREVIEW) banner('老师预览：这里的标记不会记进学生进度。');
     document.body.classList.add('v3-on');
     if (VIEW === 'drive') { drive(); paintPill(); save(); return; }
+    if (VIEW === 'type') {
+      if (window.V3Type) window.V3Type.start({ cards: CARDS, code: code, mark: function (c, v) { var k0 = key(c.id); if ((K[k0] || 0) < v) { K[k0] = v; save(); } }, extra: function (o) { EXTRA = o; synced = ''; save(); } });
+      paintPill(); save(); return;
+    }
     try { if (!window.MinestCoverModes.get() || window.MinestCoverModes.get() === 'flow') window.MinestCoverModes.set('wall'); } catch (e) {}
     try { window.dispatchEvent(new Event('minest:image-assets')); } catch (e) {}
     wrapExplode(); paintPill(); save();
@@ -2331,6 +2336,7 @@ body.v3-xl #cm-bar, body.v3-xl #v3-top, body.v3-xl #cm-pick { display: none !imp
   function byTitle() { var t = $('#xl .xl-title'); if (!t) return null; var s = t.textContent.replace(/^Exploded Learning Card · /, ''); for (var i = 0; i < CARDS.length; i++) if (CARDS[i].title === s) return CARDS[i]; return null; }
   function paintMark() {
     var m = $('#v3-mark'), open;
+    if (VIEW === 'type') { m.hidden = true; document.body.classList.toggle('vt-playing', !!(document.getElementById('vt-play') && !document.getElementById('vt-play').hidden)); return; }
     if (VIEW === 'drive') {   // the billboard in focus is the word in view
       var t = driveFocus(); open = !!t;
       if (t) { var c0 = CARDS.filter(function (x) { return x.title === t; })[0]; if (c0 && c0 !== cur) { cur = c0; if (!K[key(c0.id)]) { K[key(c0.id)] = 1; save(); } } }
@@ -2363,7 +2369,7 @@ body.v3-xl #cm-bar, body.v3-xl #v3-top, body.v3-xl #cm-pick { display: none !imp
       $('.v3s-list', s).innerHTML = CARDS.filter(function (c) { var v = K[key(c.id)]; return f === 'all' || (f === 'known' && v === 2) || (f === 'again' && v === 1) || (f === 'new' && !v); }).map(function (c) {
         var v = K[key(c.id)]; return '<button data-id="' + esc(c.id) + '"><i class="' + (v === 2 ? 'k' : v === 1 ? 'a' : '') + '"></i><b>' + esc(c.title) + '</b><small>' + esc(c.titleZh || c.meaning || '') + '</small></button>';
       }).join('') || '<p class="v3s-none">这里没有词。</p>';
-      [].forEach.call(s.querySelectorAll('.v3s-list [data-id]'), function (b) { if (VIEW === 'drive') { b.disabled = true; return; } b.onclick = function () { var c = CARDS.filter(function (x) { return x.id === b.getAttribute('data-id'); })[0]; s.hidden = true; openWord(c); }; });
+      [].forEach.call(s.querySelectorAll('.v3s-list [data-id]'), function (b) { if (VIEW !== 'cards') { b.disabled = true; return; } b.onclick = function () { var c = CARDS.filter(function (x) { return x.id === b.getAttribute('data-id'); })[0]; s.hidden = true; openWord(c); }; });
     }
     [].forEach.call(s.querySelectorAll('[data-f]'), function (b) { b.onclick = function () { f = b.getAttribute('data-f'); [].forEach.call(s.querySelectorAll('[data-f]'), function (x) { x.classList.toggle('on', x === b); }); list(); }; });
     $('[data-x]', s).onclick = function () { s.hidden = true; };

@@ -1,0 +1,72 @@
+/* Minest · 3D Type for students */
+body { background: #000; }
+#vt-stage { position: fixed; inset: 0; }
+#vt-stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; pointer-events: none; }
+body:not(.vt-on) #vt-world { display: none; }
+#v3-pill { top: calc(env(safe-area-inset-top, 0px) + 10px); bottom: auto !important; padding: 4px 12px 4px 4px; }
+#v3-pill #v3-ring { width: 28px; height: 28px; } #v3-pill #v3-ring::after { width: 21px; height: 21px; font-size: 11px; }
+#v3-sheet { top: calc(env(safe-area-inset-top, 0px) + 60px); bottom: auto !important; }
+#vt-world { position: fixed; z-index: 2200; left: calc(env(safe-area-inset-left, 0px) + 14px); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 99px; border: 1px solid rgba(255,255,255,.14); background: rgba(14,16,22,.6); color: #dbe3f0; font: 600 12.5px -apple-system, "PingFang SC", system-ui, sans-serif; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); cursor: pointer; }
+#vt-world i { font-style: normal; color: #7dd3fc; }
+body.vt-playing #vt-world { display: none; }
+
+/* home: 跟打 and the four levels */
+#vt-levels { position: fixed; inset: 0; z-index: 2100; display: grid; place-items: center; padding: 70px 16px 60px; overflow: auto; }
+#vt-levels[hidden], #vt-play[hidden], #vt-result[hidden] { display: none; }
+.vt-home { width: min(520px, 100%); padding: 22px; border-radius: 26px; background: linear-gradient(180deg, rgba(24,28,40,.8), rgba(10,12,18,.84)); border: 1px solid rgba(255,255,255,.1); -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px); box-shadow: 0 40px 90px -30px rgba(0,0,0,.9); }
+.vt-home h2 { margin: 0 0 4px; font-size: 22px; } .vt-home > p { margin: 0 0 16px; color: #93a0b8; font-size: 13.5px; }
+.vt-mode { display: block; width: 100%; text-align: left; padding: 16px 18px; border-radius: 18px; border: 1px solid rgba(125,211,252,.35); background: radial-gradient(120% 140% at 0 0, rgba(125,211,252,.22), rgba(255,255,255,.03)); color: #fff; cursor: pointer; font: inherit; margin-bottom: 12px; }
+.vt-mode b { display: block; font-size: 17px; margin-bottom: 3px; } .vt-mode small { color: #a8b6cc; font-size: 12.5px; }
+.vt-lvs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.vt-lv { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left; padding: 14px 14px 12px; border-radius: 18px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.05); color: #fff; cursor: pointer; font: inherit; min-height: 112px; }
+.vt-lv .n { font: 800 26px/1 ui-monospace, "SF Mono", Menlo, monospace; color: #7dd3fc; text-shadow: 0 0 14px rgba(125,211,252,.5); }
+.vt-lv b { font-size: 15px; } .vt-lv small { color: #8a98b0; font-size: 11.5px; line-height: 1.4; }
+.vt-lv .st { margin-top: auto; font-size: 15px; letter-spacing: 2px; }
+.vt-lv .st i, .vt-stars i { font-style: normal; color: rgba(255,255,255,.18); } .vt-lv .st i.on, .vt-stars i.on { color: #fcd34d; text-shadow: 0 0 10px rgba(252,211,77,.7); }
+.vt-lv.lock { opacity: .45; cursor: default; }
+
+/* a run */
+#vt-play { position: fixed; inset: 0; z-index: 2100; pointer-events: none; }
+#vt-play > * { pointer-events: auto; }
+body.vt-playing #v3-top, body.vt-playing #v3-pill { display: none; }
+#vt-hud { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 10px); transform: translateX(-50%); display: flex; align-items: center; gap: 14px; padding: 6px 8px 6px 16px; border-radius: 16px; background: rgba(12,14,20,.6); border: 1px solid rgba(255,255,255,.1); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); font: 600 13px -apple-system, "PingFang SC", system-ui, sans-serif; white-space: nowrap; max-width: calc(100vw - 20px); }
+#vt-hud span { display: flex; flex-direction: column; align-items: center; line-height: 1.15; } #vt-hud span i { font-style: normal; font-size: 10px; color: #8a98b0; font-weight: 500; }
+#vt-hud b { font: 700 14px ui-monospace, "SF Mono", Menlo, monospace; color: #fff; }
+#vt-mode { color: #7dd3fc; font-size: 13px; flex-direction: row !important; }
+#vt-quit { width: 30px; height: 30px; border: 0; border-radius: 50%; background: rgba(255,255,255,.08); color: #cbd5e1; cursor: pointer; }
+#vt-track { position: fixed; left: 0; right: 0; top: 0; height: 3px; background: rgba(255,255,255,.06); }
+#vt-bar { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #38bdf8, #a7f3d0); transition: width .3s ease; }
+#vt-word { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 70px); transform: translateX(-50%); min-width: 220px; max-width: calc(100vw - 24px); text-align: center; padding: 14px 22px 16px; border-radius: 22px; background: rgba(10,12,18,.55); border: 1px solid rgba(255,255,255,.1); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+#vt-word .hz { font: 700 44px/1.15 "PingFang SC", "Hiragino Sans GB", -apple-system, system-ui, sans-serif; color: #fff; letter-spacing: .06em; text-shadow: 0 0 20px rgba(125,211,252,.35); }
+#vt-word .py { margin-top: 6px; font: 600 24px/1.3 -apple-system, "SF Pro Display", system-ui, sans-serif; letter-spacing: .02em; display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
+#vt-word .py i { font-style: normal; color: rgba(230,238,250,.42); display: inline-block; min-width: .5em; }
+#vt-word .py i.t { color: #a7f3d0; text-shadow: 0 0 10px rgba(167,243,208,.6); }
+#vt-word .py i.n { color: #fff; border-bottom: 2.5px solid #7dd3fc; }
+#vt-word .mean { margin-top: 8px; color: #b9c7dc; font-size: 14px; max-width: 520px; }
+#vt-word .vt-say { border: 0; background: rgba(125,211,252,.16); color: #fff; border-radius: 16px; font-size: 26px; padding: 8px 18px; cursor: pointer; }
+#vt-word .vt-say.sm { position: absolute; right: 8px; top: 8px; font-size: 14px; padding: 4px 8px; border-radius: 10px; background: rgba(255,255,255,.06); }
+#vt-word.bad { animation: vtshake .32s ease; } #vt-word.win { animation: vtwin .42s ease; }
+@keyframes vtshake { 20% { transform: translateX(calc(-50% - 7px)); } 40% { transform: translateX(calc(-50% + 6px)); } 60% { transform: translateX(calc(-50% - 4px)); } 80% { transform: translateX(calc(-50% + 2px)); } }
+@keyframes vtwin { 40% { transform: translateX(-50%) scale(1.06); box-shadow: 0 0 40px rgba(167,243,208,.45); } }
+#vt-next { position: fixed; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 236px); display: flex; gap: 10px; color: rgba(230,238,250,.45); font: 500 15px "PingFang SC", system-ui, sans-serif; white-space: nowrap; max-width: 92vw; overflow: hidden; pointer-events: none !important; }
+#vt-next span:first-child { color: rgba(230,238,250,.75); }
+body:not(.vt-soft) #vt-kb { display: none; }
+#vt-kb { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); transform: translateX(-50%); width: min(640px, calc(100vw - 12px)); display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 20px; background: rgba(12,14,20,.55); border: 1px solid rgba(255,255,255,.08); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+#vt-kb .r { display: flex; justify-content: center; gap: 5px; }
+#vt-kb button { flex: 1 1 0; max-width: 56px; height: 46px; border: 0; border-radius: 10px; background: rgba(255,255,255,.1); color: #f1f5f9; font: 600 18px -apple-system, system-ui, sans-serif; cursor: pointer; position: relative; box-shadow: inset 0 -2px 0 rgba(0,0,0,.35); }
+#vt-kb button small { position: absolute; right: 4px; top: 2px; font-size: 10px; color: #7dd3fc; }
+#vt-kb button.next { background: rgba(125,211,252,.35); box-shadow: 0 0 0 2px rgba(125,211,252,.7), 0 0 18px rgba(125,211,252,.5); }
+#vt-kb button.ok { animation: vtok .25s ease; } #vt-kb button.bad { animation: vtbad .3s ease; }
+@keyframes vtok { 40% { background: rgba(167,243,208,.55); transform: scale(.94); } }
+@keyframes vtbad { 30% { background: rgba(248,113,113,.6); transform: translateX(-3px); } 60% { transform: translateX(3px); } }
+@media (max-height: 560px) { #vt-word .hz { font-size: 32px; } #vt-word .py { font-size: 19px; } #vt-kb button { height: 36px; } #vt-next { display: none; } }
+
+/* the result */
+#vt-result { position: fixed; inset: 0; z-index: 2150; display: grid; place-items: center; padding: 20px; background: rgba(0,0,0,.35); }
+.vt-rc { width: min(400px, 100%); text-align: center; padding: 26px 22px 20px; border-radius: 26px; background: linear-gradient(180deg, rgba(26,30,44,.92), rgba(12,14,22,.95)); border: 1px solid rgba(255,255,255,.12); box-shadow: 0 40px 90px -30px rgba(0,0,0,.9); }
+.vt-stars { font-size: 40px; letter-spacing: 6px; color: #7dd3fc; } .vt-rc h2 { margin: 8px 0 14px; font-size: 22px; }
+.vt-nums { display: flex; justify-content: center; gap: 22px; margin-bottom: 14px; } .vt-nums span { display: flex; flex-direction: column; color: #8a98b0; font-size: 12px; } .vt-nums b { font: 800 24px ui-monospace, "SF Mono", Menlo, monospace; color: #fff; }
+.vt-rc p { color: #fca5a5; font-size: 13px; margin: 0 0 12px; }
+.vt-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.vt-b { border: 0; border-radius: 14px; padding: 11px 18px; font: 650 14.5px inherit; cursor: pointer; background: rgba(255,255,255,.1); color: #e8eefb; }
+.vt-b.pri { background: linear-gradient(180deg, #a5e3fd, #38bdf8); color: #04203a; }

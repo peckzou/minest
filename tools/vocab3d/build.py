@@ -35,6 +35,13 @@ def student():
         page = page.replace(k, v)
     (ROOT / 'vocab-drive.html').write_text(page, encoding='utf-8')
     print('vocab3d: wrote vocab-drive.html (%d KB)' % (len(page) // 1024))
+    # 3D Type for students: pinyin typing (跟打 + 闯关) in a type3d world
+    page = (HERE / 'type.html').read_text(encoding='utf-8')
+    for k, v in [('{{CSS}}', (HERE / 'student.css').read_text(encoding='utf-8')), ('{{TYPE_CSS}}', (HERE / 'type.css').read_text(encoding='utf-8')),
+                 ('{{TYPE_JS}}', read(HERE / 'type.js')), ('{{STUDENT}}', read(HERE / 'student.js'))]:
+        page = page.replace(k, v)
+    (ROOT / 'vocab-type.html').write_text(page, encoding='utf-8')
+    print('vocab3d: wrote vocab-type.html (%d KB)' % (len(page) // 1024))
 
 
 def teacher():
