@@ -31,6 +31,7 @@
     play: '<path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="none"/>', pause: '<rect x="7" y="5.5" width="3.4" height="13" rx="1" fill="currentColor" stroke="none"/><rect x="13.6" y="5.5" width="3.4" height="13" rx="1" fill="currentColor" stroke="none"/>',
     port: '<rect x="7.5" y="3.5" width="9" height="17" rx="2"/>', land: '<rect x="3.5" y="7.5" width="17" height="9" rx="2"/>',
     style: '<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.6-.9 1.2-1.8-.5-1-.1-2.2 1.2-2.2H17a3.5 3.5 0 0 0 3.5-3.5c0-5.3-3.8-9.5-8.5-9.5z"/><circle cx="7.8" cy="11" r="1.1" fill="currentColor" stroke="none"/><circle cx="10.5" cy="7.4" r="1.1" fill="currentColor" stroke="none"/><circle cx="14.8" cy="7.6" r="1.1" fill="currentColor" stroke="none"/>',
+    assign: '<path d="M2.5 9.5L12 5l9.5 4.5L12 14z"/><path d="M6.5 11.5v4.2c1.4 1.5 3.3 2.3 5.5 2.3s4.1-.8 5.5-2.3v-4.2M21.5 9.5v5"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>', lab: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>'
   };
   var MZH = { flow: '3D 封面', wall: '卡片墙', fan: '扇形', helix: '螺旋', stack: '叠放', spiral: '旋涡', orbit: '轨道', sphere: '球体', wave: '波浪' };
@@ -821,6 +822,8 @@
     var pl = k('pl', '自动播放', function () { playing = !playing; paint(); if (pickEl) pickPaint(); });
     var shp = k('shp', '竖卡 / 横卡', function () { shape = shape === 'port' ? 'land' : 'port'; try { localStorage.setItem('minest.coverShape', shape); } catch (x) {} paint(); sync(true); });
     k('sty', '卡片风格', function () { pickClose(); if (window.MinestCardStyles) MinestCardStyles.open(); }).innerHTML = ico('style');
+    /* a teacher hands these cards to the students: the 3D 词卡 page (tools/vocab3d) */
+    if (window.MinestVocab3D && !(window.isStudentMode && window.isStudentMode())) k('asg', '布置给学生 · 3D 词卡', function () { pickClose(); var b = null; try { b = MinestAI.board(); } catch (e) {} if (b) MinestVocab3D.assign(b); }).innerHTML = ico('assign');
     function paint() {
       if (mk.dataset.m !== mode) { mk.dataset.m = mode; mk.innerHTML = ico(mode); var l = '模式 · ' + (MZH[mode] || mode); mk.title = l; mk.setAttribute('aria-label', l); }
       var pk = playing ? 'pause' : 'play'; if (pl.dataset.k !== pk) { pl.dataset.k = pk; pl.innerHTML = ico(pk); pl.title = playing ? '暂停' : '自动播放'; } pl.classList.toggle('on', playing);

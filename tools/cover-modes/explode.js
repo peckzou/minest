@@ -315,7 +315,7 @@
     cur.after = after || null; cur.setPhase('close');
   }
   function say(w) {
-    try { var u = new SpeechSynthesisUtterance(String(w)); u.lang = 'en-US'; u.rate = 0.9; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {}
+    try { var u = new SpeechSynthesisUtterance(String(w)); u.lang = /[\u3400-\u9fff]/.test(String(w)) ? 'zh-CN' : 'en-US'; u.rate = 0.9; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {}
   }
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && cur) { e.stopPropagation(); if (cur.hasFocus()) cur.focusOff(); else close(); } }, true);
   /* the same breakdown as data (for the Holo Lab's 构词拆解): morphemes, the title's sense groups, the sentence by sense

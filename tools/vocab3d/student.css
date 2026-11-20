@@ -1,0 +1,78 @@
+/* Minest · 3D 词卡 · 学生页 */
+:root { color-scheme: dark; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #070b16; color: #e8eefb; font-family: -apple-system, "SF Pro Text", "PingFang SC", system-ui, sans-serif; -webkit-text-size-adjust: 100%; overscroll-behavior: none; }
+body { position: fixed; inset: 0; }
+.sf-slot[data-sf-view="coverflow"] { position: absolute; inset: 0; overflow: hidden; }
+/* the original 3D Cover (flow) lives in Minest itself — here every other mode */
+#cm-bar button[data-m="flow"], #cm-pick button[data-m="flow"] { display: none !important; }
+/* nothing that leads out of the words: no AI call, no "open the card", no style chip */
+#xl .xl-ai, #xl [data-a="card"], #cs-btn { display: none !important; }
+/* no Dock here: the controls sit lower */
+#cm-ov .cm-gbar { bottom: calc(env(safe-area-inset-bottom, 0px) + 18px) !important; }
+#cm-ov .cm-hback { bottom: calc(env(safe-area-inset-bottom, 0px) + 22px) !important; }
+#cm-bar { top: calc(env(safe-area-inset-top, 0px) + 54px) !important; }
+
+/* the join card */
+#v3-join { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; background: radial-gradient(90% 70% at 50% 20%, rgba(56,189,248,.22), transparent 60%), radial-gradient(80% 60% at 80% 100%, rgba(167,139,250,.18), transparent 60%), #070b16; }
+#v3-join[hidden] { display: none; }
+.v3j-card { width: min(380px, 100%); text-align: center; padding: 30px 24px 22px; border-radius: 28px; background: linear-gradient(180deg, rgba(30,36,52,.78), rgba(14,18,28,.82)); border: 1px solid rgba(255,255,255,.1); box-shadow: 0 40px 90px -30px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.08); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
+.v3j-logo { font-size: 42px; line-height: 1; color: #7dd3fc; text-shadow: 0 0 24px rgba(125,211,252,.7); margin-bottom: 10px; }
+.v3j-logo.spin { animation: v3spin 1.4s linear infinite; display: inline-block; }
+@keyframes v3spin { to { transform: rotate(360deg); } }
+.v3j-card h1 { margin: 0 0 6px; font-size: 24px; font-weight: 750; letter-spacing: .01em; }
+.v3j-card p { margin: 0 0 18px; color: #93a0b8; font-size: 14px; line-height: 1.5; }
+.v3j-card input { display: block; width: 100%; box-sizing: border-box; padding: 14px 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); color: #fff; outline: none; font: 600 18px inherit; text-align: center; }
+.v3j-card input:focus { border-color: rgba(125,211,252,.6); box-shadow: 0 0 0 4px rgba(125,211,252,.15); }
+.v3j-card .v3j-code { font: 800 28px ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .22em; text-transform: uppercase; }
+.v3j-go { margin-top: 12px; width: 100%; padding: 14px; border: 0; border-radius: 16px; font: 700 16px inherit; color: #04203a; background: linear-gradient(180deg, #a5e3fd, #38bdf8); cursor: pointer; box-shadow: 0 12px 30px -10px rgba(56,189,248,.7); }
+.v3j-go:active { transform: scale(.98); }
+.v3j-err { min-height: 18px; margin: 12px 0 0 !important; color: #fca5a5 !important; font-size: 13px !important; }
+
+/* the title, top left */
+#v3-top { position: fixed; z-index: 2200; left: calc(env(safe-area-inset-left, 0px) + 16px); right: calc(env(safe-area-inset-right, 0px) + 16px); top: calc(env(safe-area-inset-top, 0px) + 12px); display: flex; align-items: center; gap: 10px; pointer-events: none; }
+#v3-top b { font: 700 15px/1.2 inherit; color: #f1f5f9; text-shadow: 0 1px 8px rgba(0,0,0,.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#v3-top i { font-style: normal; font-size: 18px; color: #7dd3fc; text-shadow: 0 0 12px rgba(125,211,252,.7); }
+body:not(.v3-on) #v3-top, body:not(.v3-on) #v3-pill { display: none; }
+#v3-banner { position: fixed; z-index: 2200; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 100px); transform: translateX(-50%); padding: 7px 14px; border-radius: 12px; background: rgba(120,53,15,.75); border: 1px solid rgba(253,186,116,.35); color: #fed7aa; font-size: 12.5px; white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
+#v3-banner[hidden] { display: none; }
+
+/* progress, bottom right */
+#v3-pill { position: fixed; z-index: 2200; right: calc(env(safe-area-inset-right, 0px) + 16px); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); display: flex; align-items: center; gap: 10px; padding: 6px 14px 6px 6px; border: 1px solid rgba(255,255,255,.12); border-radius: 99px; color: #e8eefb; background: linear-gradient(180deg, rgba(30,34,46,.78), rgba(14,16,22,.8)); -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%); box-shadow: 0 12px 30px -10px rgba(0,0,0,.6); cursor: pointer; font: inherit; }
+#v3-ring { --p: 0; width: 34px; height: 34px; border-radius: 50%; background: conic-gradient(#7dd3fc calc(var(--p) * 1%), rgba(255,255,255,.1) 0); display: grid; place-items: center; }
+#v3-ring::after { content: "✓"; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: #111522; color: #a7f3d0; font-size: 13px; font-weight: 800; }
+#v3-pill span { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
+#v3-pill b { font: 750 14px ui-monospace, "SF Mono", Menlo, monospace; }
+#v3-pill small { font-size: 11px; color: #93a0b8; }
+body.v3-xl #v3-pill { display: none; }
+
+/* 我会了 / 再看看 while a word is open */
+#v3-mark { position: fixed; z-index: 2600; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 74px); transform: translateX(-50%); display: flex; gap: 10px; padding: 6px; border-radius: 20px; background: rgba(10,14,26,.72); border: 1px solid rgba(255,255,255,.12); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); box-shadow: 0 16px 40px -14px rgba(0,0,0,.7); }
+#v3-mark[hidden] { display: none; }
+#v3-mark button { border: 1px solid transparent; border-radius: 15px; padding: 11px 18px; font: 700 15px inherit; cursor: pointer; color: #e8eefb; background: rgba(255,255,255,.07); }
+#v3-mark [data-known] { color: #052e1f; background: linear-gradient(180deg, #a7f3d0, #34d399); }
+#v3-mark [data-again].on { border-color: rgba(253,186,116,.7); color: #fed7aa; background: rgba(253,186,116,.16); }
+#v3-mark [data-known].on { box-shadow: 0 0 0 3px rgba(167,243,208,.35); }
+#v3-mark [data-known].on::before { content: "✓ "; }
+
+/* the word list */
+#v3-sheet { position: fixed; z-index: 2700; right: calc(env(safe-area-inset-right, 0px) + 12px); bottom: calc(env(safe-area-inset-bottom, 0px) + 70px); width: min(360px, calc(100vw - 24px)); max-height: min(70vh, 560px); display: flex; flex-direction: column; border-radius: 22px; background: linear-gradient(180deg, rgba(28,32,44,.95), rgba(14,17,26,.96)); border: 1px solid rgba(255,255,255,.1); box-shadow: 0 30px 70px -20px rgba(0,0,0,.8); overflow: hidden; }
+#v3-sheet[hidden] { display: none; }
+.v3s-hd { display: flex; align-items: center; gap: 10px; padding: 14px 14px 8px 16px; }
+.v3s-hd b { font-size: 15px; } .v3s-hd span { color: #93a0b8; font-size: 12.5px; }
+.v3s-hd button { margin-left: auto; width: 30px; height: 30px; border-radius: 50%; border: 0; background: rgba(255,255,255,.08); color: #cfd8ea; cursor: pointer; }
+.v3s-tabs { display: flex; gap: 4px; padding: 0 12px 10px; }
+.v3s-tabs button { flex: 1; border: 0; border-radius: 10px; padding: 7px 0; font: 600 12.5px inherit; color: #93a0b8; background: rgba(255,255,255,.04); cursor: pointer; }
+.v3s-tabs button.on { color: #fff; background: rgba(255,255,255,.14); }
+.v3s-list { overflow: auto; padding: 0 8px 10px; display: flex; flex-direction: column; gap: 2px; }
+.v3s-list button { display: flex; align-items: center; gap: 10px; text-align: left; border: 0; border-radius: 12px; padding: 10px 10px; background: none; color: #e8eefb; cursor: pointer; font: inherit; }
+.v3s-list button:hover { background: rgba(255,255,255,.06); }
+.v3s-list i { flex: none; width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.18); }
+.v3s-list i.k { background: #34d399; box-shadow: 0 0 8px #34d399; } .v3s-list i.a { background: #fdba74; }
+.v3s-list b { font-size: 15px; font-weight: 650; white-space: nowrap; }
+.v3s-list small { color: #8190a8; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v3s-none { color: #8190a8; text-align: center; font-size: 13px; }
+/* a word open: its card has the screen — the mode bar and the title step aside */
+body.v3-xl #cm-bar, body.v3-xl #v3-top, body.v3-xl #cm-pick { display: none !important; }
+#v3-mark { bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); }
+/* the roots layer with no breakdown of its own (the AI one is not offered here) */
+#xl .xl-c[data-k="ety"]:has(.xl-ai)::before { content: "这个词没有可拆的词根。点「Word」层听发音，或者翻到下一层。"; position: absolute; left: 16px; right: 16px; top: 50%; transform: translateY(-50%); color: #b9d0ff; font-size: 14px; line-height: 1.6; text-align: center; opacity: .85; }
