@@ -96,6 +96,14 @@ const mine = [
   assert.strictEqual(r.opened, 1); assert(!r.wrote(), 'IndexedDB is only read');
   assert.strictEqual(r.D.board().id, 'b1'); assert.strictEqual(r.D.listId(), 'c2');
   assert.deepStrictEqual(ids(r.IV.cards(r.AI.board())), ['c', 'z']);
+  // the same cards with other words in IndexedDB: a newer deck to the engine (it keeps a deck by its id), and to the page
+  const reworded = JSON.parse(JSON.stringify(mine)); reworded[0].columns[0].cards[1].title = 'Emma (1815)';
+  r = await load({ ls: { focusboard_boards_v7_2: JSON.stringify(mine) }, idb: reworded });
+  assert.strictEqual(r.D.rev(), 2); assert.strictEqual(r.AI.board().id, 'b1@2'); assert.strictEqual(r.D.board().id, 'b1');
+  assert.strictEqual(r.IV.cards(r.AI.board())[2].title, 'Emma (1815)');
+  r.D.pick('b1', 'c2'); assert.strictEqual(r.AI.board().id, 'b1#c2@2'); assert.strictEqual(r.D.rev(), 2, 'choosing a list is not new data');
+  r = await load({ ls: { focusboard_boards_v7_2: JSON.stringify(mine) }, idb: JSON.parse(JSON.stringify(mine)) });
+  assert.strictEqual(r.D.rev(), 1, 'the same boards in both copies: nothing to show again'); assert.strictEqual(r.AI.board().id, 'b1');
   r = await load({ idb: JSON.stringify(mine) }); assert(!r.D.sample() && r.D.boards().length === 2, 'boards only in IndexedDB are found');
   r = await load({ ls: { focusboard_boards_v7_2: '{broken' }, idb: [{ id: 'q' }, null, 7] }); assert(r.D.sample(), 'unreadable data falls back to the sample');
 

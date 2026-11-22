@@ -1,11 +1,11 @@
 /* 动态卡片 2.0 · the cards the 1.0 engine shows (../tools/cover-modes/cover-modes.js reads MinestAI.board() and
    MinestImageViews, which Minest itself provides; here they are stand-ins). The boards are read, never written:
    the ones Minest keeps on this device (same web address, so the same storage), else a sample deck.
-   window.Cards2Data = { boards(), board(), pick(boardId, listId), listId(), sample(), ready(fn) } */
+   window.Cards2Data = { boards(), board(), pick(boardId, listId), listId(), rev(), sample(), ready(fn) } */
 (function () {
   'use strict';
   var LS_BOARDS = 'focusboard_boards_v7_2', LS_ACTIVE = 'focusboard_active_id_v7_2', IDB = 'focusboard_idb_v1', MINE = 'minest.cards2.board';
-  var boards = [], cur = null, listId = '', isSample = false, waiting = [], done = false;
+  var boards = [], cur = null, listId = '', isSample = false, waiting = [], done = false, rev = 0, last = '';
 
   function count(b) { return (b.columns || []).reduce(function (n, c) { return n + (c.cards || []).reduce(function (k, x) { return k + 1 + (x.stack || []).filter(function (c) { return c && c.id; }).length; }, 0); }, 0); }
   function clean(v) {
@@ -13,7 +13,10 @@
     return Array.isArray(v) ? v.filter(function (b) { return b && b.id && Array.isArray(b.columns) && count(b) > 0; }) : [];
   }
   function mem(v) { try { if (v === undefined) return JSON.parse(localStorage.getItem(MINE) || 'null'); localStorage.setItem(MINE, JSON.stringify(v)); } catch (e) { return null; } }
+  /* what the boards say, with long values (embedded pictures) cut short: the two copies Minest keeps are told apart by it */
+  function told(list) { try { return JSON.stringify(list, function (k, v) { return typeof v === 'string' && v.length > 240 ? v.length + ':' + v.slice(0, 80) + v.slice(-80) : v; }); } catch (e) { return String(Math.random()); } }
   function use(list, sample) {
+    var t = told(list); if (t !== last) { last = t; rev++; }
     boards = list; isSample = !!sample;
     var m = mem() || {}, act = ''; try { act = localStorage.getItem(LS_ACTIVE) || ''; } catch (e) {}
     cur = boards.filter(function (b) { return b.id === m.b; })[0] || boards.filter(function (b) { return b.id === act; })[0] || boards[0] || null;
@@ -47,9 +50,10 @@
   /* the board the engine sees: the chosen board, or one of its lists */
   function view() {
     if (!cur) return null;
-    if (!listId) return cur;
+    if (!listId && rev < 2) return cur;
     var o = {}; for (var k in cur) o[k] = cur[k];
-    o.id = cur.id + '#' + listId; o.columns = (cur.columns || []).filter(function (c) { return c.id === listId; });
+    o.id = cur.id + (listId ? '#' + listId : '') + (rev > 1 ? '@' + rev : '');   // (the engine keeps a deck's cards by its id: a list, or a newer copy, is another deck to it)
+    if (listId) o.columns = (cur.columns || []).filter(function (c) { return c.id === listId; });
     return o;
   }
   window.MinestAI = { board: view, boards: function () { return boards; } };
@@ -72,7 +76,7 @@
   };
 
   window.Cards2Data = {
-    boards: function () { return boards; }, board: function () { return cur; }, listId: function () { return listId; }, sample: function () { return isSample; }, count: count,
+    boards: function () { return boards; }, board: function () { return cur; }, listId: function () { return listId; }, rev: function () { return rev; }, sample: function () { return isSample; }, count: count,
     pick: function (b, l) { var nb = boards.filter(function (x) { return x.id === b; })[0]; if (!nb) return; cur = nb; listId = l && (nb.columns || []).some(function (c) { return c.id === l; }) ? l : ''; mem({ b: cur.id, l: listId }); window.dispatchEvent(new CustomEvent('cards2:data')); },
     ready: function (fn) { if (done) fn(); else waiting.push(fn); }
   };

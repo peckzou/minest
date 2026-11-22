@@ -190,7 +190,7 @@
   document.addEventListener('pointerdown', function (e) { if (!pn.hidden && !pn.contains(e.target) && !bb.contains(e.target)) panel(false); }, true);
   var shown = '';
   function fresh() {   // other cards: the old ones leave, the new formation comes in
-    var b = D.board(), k = b ? b.id + '|' + D.listId() : ''; sub(); if (k === shown) return; var first = !shown; shown = k;
+    var b = D.board(), k = b ? b.id + '|' + D.listId() + '|' + D.rev() : ''; sub(); if (k === shown) return; var first = !shown; shown = k;
     if (first) { CM.set(CM.get()); paint(CM.get()); mount(); } else { tour(false); go(CM.get(), true); }
   }
   window.addEventListener('cards2:data', fresh);
