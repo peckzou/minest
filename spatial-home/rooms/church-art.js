@@ -3,9 +3,9 @@
      the Crucifixion, the Resurrection and the Ascension in the apse), the west rose, and the standing saints of the clerestory;
    · the murals: four frescoes (the Good Shepherd, the Sermon on the Mount, Jacob's Ladder, Jonah) and the painted frieze
      of angels and saints that runs along the triforium;
-   · the thirty verse tablets of the aisles (the verses themselves: rooms/church-verses.js).
+   · the thirty verse windows of the aisles (the verses themselves: rooms/church-verses.js).
    One small drawing kit serves both: in glass every piece is leaded and saturated, in fresco the same shapes are earthen and
-   soft. Exposes SpatialChurchArt = { STORIES, MURALS, glass, rose, saint, mural, frieze, tablet, title }. */
+   soft. Exposes SpatialChurchArt = { STORIES, MURALS, glass, rose, saint, mural, frieze, verseGlass, verseTitle }. */
 (function (root) {
   'use strict';
   var PI = Math.PI, TAU = PI * 2;
@@ -352,47 +352,93 @@
     for (i = 0; i < 900; i++) { x.fillStyle = 'rgba(' + (r() < 0.6 ? '226,212,180,' : '80,60,40,') + (0.03 + r() * 0.1) + ')'; x.fillRect(r() * w, r() * h, 1 + r() * 4, 1 + r() * 4); }
   }
 
-  /* ── the verse tablets ── */
+  /* ── the verse windows ── */
   var NOBREAK = '，。；：、？！”’）》';
   function wrapZh(x, s, mw) { var out = [], line = '', i, ch; for (i = 0; i < s.length; i++) { ch = s[i]; if (line && x.measureText(line + ch).width > mw && NOBREAK.indexOf(ch) < 0) { out.push(line); line = ch; } else line += ch; } if (line) out.push(line); return out; }
   function wrapEn(x, s, mw) { var out = [], line = ''; s.split(' ').forEach(function (wd) { var t = line ? line + ' ' + wd : wd; if (line && x.measureText(t).width > mw) { out.push(line); line = wd; } else line = t; }); if (line) out.push(line); return out; }
-  function parchment(x, w, h, seed) {
-    var r = rng(seed), i, g = x.createLinearGradient(0, 0, w, h); g.addColorStop(0, '#f3e8cc'); g.addColorStop(1, '#e6d5ae'); x.fillStyle = g; x.fillRect(0, 0, w, h);
-    for (i = 0; i < 260; i++) { x.fillStyle = 'rgba(' + (r() < 0.5 ? '120,84,40,' : '255,250,235,') + (0.02 + r() * 0.05) + ')'; x.beginPath(); x.arc(r() * w, r() * h, 4 + r() * w * 0.06, 0, TAU); x.fill(); }
-    x.strokeStyle = '#8f2a22'; x.lineWidth = w * 0.012; x.strokeRect(w * 0.035, w * 0.035, w - w * 0.07, h - w * 0.07);
-    x.strokeStyle = '#b8892e'; x.lineWidth = w * 0.005; x.strokeRect(w * 0.055, w * 0.055, w - w * 0.11, h - w * 0.11);
-    [[0.055, 0.055], [0.945, 0.055], [0.055, 1], [0.945, 1]].forEach(function (q) { var cx = w * q[0], cy = q[1] === 1 ? h - w * 0.055 : w * q[1]; x.fillStyle = '#b8892e'; x.beginPath(); x.arc(cx, cy, w * 0.018, 0, TAU); x.fill(); });
-  }
-  /* tablet n (1..30) of v = [ref zh, ref en, zh, en]: number, reference, the verse in Chinese, then in English, sized to fit */
-  function tablet(x, w, h, n, v) {
-    parchment(x, w, h, 100 + n); var mw = w * 0.8, cx = w / 2, y = w * 0.17, fz, fe, zl, el, need, room, i;
-    x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.fillStyle = '#8f2a22'; x.beginPath(); x.arc(cx, y, w * 0.062, 0, TAU); x.fill(); x.strokeStyle = '#b8892e'; x.lineWidth = w * 0.008; x.stroke();
-    x.fillStyle = '#f6e7b8'; x.font = '700 ' + w * 0.066 + 'px ' + SERIF; x.fillText(String(n), cx, y + w * 0.004);
-    y += w * 0.125; x.fillStyle = '#5c1c16'; x.font = '700 ' + w * 0.076 + 'px ' + SERIF; x.fillText(v[0], cx, y);
-    y += w * 0.074; x.fillStyle = '#7a5a2a'; x.font = 'italic ' + w * 0.043 + 'px ' + SERIF; x.fillText(v[1], cx, y);
-    y += w * 0.052; x.strokeStyle = '#b8892e'; x.lineWidth = w * 0.004; x.beginPath(); x.moveTo(cx - w * 0.28, y); x.lineTo(cx - w * 0.03, y); x.moveTo(cx + w * 0.03, y); x.lineTo(cx + w * 0.28, y); x.stroke();
-    x.fillStyle = '#b8892e'; x.beginPath(); x.moveTo(cx, y - w * 0.014); x.lineTo(cx + w * 0.014, y); x.lineTo(cx, y + w * 0.014); x.lineTo(cx - w * 0.014, y); x.fill();
-    y += w * 0.045; room = h - w * 0.1 - y;
-    for (fz = w * 0.07; fz >= w * 0.036; fz -= w * 0.002) {
-      fe = fz * 0.6; x.font = '600 ' + fz + 'px ' + SERIF; zl = wrapZh(x, v[2], mw); x.font = 'italic ' + fe + 'px ' + SERIF; el = wrapEn(x, v[3], mw);
-      need = zl.length * fz * 1.42 + fz * 0.7 + el.length * fe * 1.36; if (need <= room) break;
+  /* the verse windows: small lancets low in the aisle walls (the arch crops the top third of the canvas). The whole light is
+     one piece of leaded glass in one of four patterns — rays from the numbered medallion, a mosaic of cut quarries, running
+     waves, scales — in the deep blues, rubies, greens and purples of the story windows; the reference is a band of gold glass
+     and the verse itself, Chinese over English, is lettered into the pattern in clear glass with a lead line round each letter. */
+  var TONES = { b: ['#1a3aa8', '#16308f', '#2450c4', '#1b5fae'], r: ['#a31b26', '#8f1620', '#b8242e', '#9c2238'], g: ['#17662f', '#0f5a2c', '#1f7a3c', '#14705a'], p: ['#5a1f86', '#6b2a9a', '#4a2390', '#7a2d8a'], a: ['#b9791a', '#c98a1e', '#a86a16', '#c0801c'] };
+  var SCHEMES = ['brg', 'rbp', 'bpg', 'gbr', 'pbr', 'bra', 'rgb', 'gpb'];
+  function piece(x, col, veil) { x.fillStyle = col; x.fill(); if (veil) { x.fillStyle = veil; x.fill(); } x.stroke(); }
+  function verseGround(x, w, h, k, b, cx, cy) {
+    var r = rng(900 + k * 37), sch = SCHEMES[k % SCHEMES.length], kind = k % 4, i, j, n, m, a0, a1, r0, r1, d, pts, q;
+    function tone(c) { var t = TONES[sch[c % 3]]; return t[Math.floor(r() * t.length)]; }
+    function veil() { var t = r(); return t < 0.5 ? 'rgba(255,255,255,' + (0.02 + t * 0.16) + ')' : 'rgba(0,0,20,' + (t - 0.5) * 0.3 + ')'; }
+    x.save(); x.beginPath(); x.rect(b, b, w - 2 * b, h - 2 * b); x.clip(); x.strokeStyle = '#0c0a14'; x.lineWidth = 2.6; x.lineJoin = 'round';
+    if (kind === 1) {                                                    // rays from the medallion, cut by rings
+      d = w * 0.17;
+      for (j = 0; j * d < h * 1.05; j++) {
+        n = j < 2 ? 12 : j < 5 ? 24 : 36; r0 = j * d; r1 = r0 + d;
+        for (i = 0; i < n; i++) { a0 = i * TAU / n + j * 0.07; a1 = a0 + TAU / n; x.beginPath(); x.arc(cx, cy, r1, a0, a1); x.arc(cx, cy, r0, a1, a0, true); x.closePath(); piece(x, tone(j % 4 === 3 ? 2 : (i + j) % 2), veil()); }
+      }
+    } else if (kind === 2) {                                             // a mosaic of cut quarries, coloured in diagonal bands
+      n = 6; m = 11; pts = [];
+      for (j = 0; j <= m; j++) for (i = 0; i <= n; i++) pts.push([b + (w - 2 * b) * (i + (i && i < n ? (r() - 0.5) * 0.5 : 0)) / n, b + (h - 2 * b) * (j + (j && j < m ? (r() - 0.5) * 0.5 : 0)) / m]);
+      for (j = 0; j < m; j++) for (i = 0; i < n; i++) {
+        q = [pts[j * (n + 1) + i], pts[j * (n + 1) + i + 1], pts[(j + 1) * (n + 1) + i + 1], pts[(j + 1) * (n + 1) + i]];
+        if ((i + j) % 2) { x.beginPath(); x.moveTo(q[0][0], q[0][1]); x.lineTo(q[1][0], q[1][1]); x.lineTo(q[2][0], q[2][1]); x.closePath(); piece(x, tone(Math.floor((i + j) / 2)), veil()); x.beginPath(); x.moveTo(q[0][0], q[0][1]); x.lineTo(q[2][0], q[2][1]); x.lineTo(q[3][0], q[3][1]); x.closePath(); piece(x, tone(Math.floor((i + j) / 2) + 1), veil()); }
+        else { x.beginPath(); x.moveTo(q[0][0], q[0][1]); x.lineTo(q[1][0], q[1][1]); x.lineTo(q[2][0], q[2][1]); x.lineTo(q[3][0], q[3][1]); x.closePath(); piece(x, tone(Math.floor((i + j) / 2)), veil()); }
+      }
+    } else if (kind === 3) {                                             // running waves, each cut into lengths
+      d = w * 0.15; q = function (px, j) { return b + j * d + Math.sin(px / w * TAU * 1.5 + j * 0.9) * d * 0.33; };
+      for (j = -1; j * d < h; j++) for (i = 0, a0 = b - r() * w * 0.2; a0 < w; i++, a0 = a1) {
+        a1 = a0 + w * (0.16 + r() * 0.16); x.beginPath(); x.moveTo(a0, q(a0, j));
+        for (n = 1; n <= 6; n++) x.lineTo(a0 + (a1 - a0) * n / 6, q(a0 + (a1 - a0) * n / 6, j));
+        for (n = 6; n >= 0; n--) x.lineTo(a0 + (a1 - a0) * n / 6 + d * 0.12, q(a0 + (a1 - a0) * n / 6 + d * 0.12, j + 1));
+        x.closePath(); piece(x, tone(j % 3 === 2 ? 2 : (j + 400) % 2 + (i % 3 ? 0 : 3)), veil());
+      }
+    } else {                                                             // scales
+      d = w * 0.105;
+      for (j = Math.ceil(h / d) + 1; j >= 0; j--) for (i = -1; i * 2 * d < w + d; i++) { x.beginPath(); x.arc(i * 2 * d + (j % 2) * d, j * d, d * 1.04, 0, TAU); piece(x, tone(j % 4 === 3 ? 2 : (j >> 1) % 2 + (i + j) % 2 * 3), veil()); }
     }
-    y += (room - need) * 0.42 + fz * 0.7; x.fillStyle = '#2a1a10'; x.font = '600 ' + fz + 'px ' + SERIF;
-    for (i = 0; i < zl.length; i++) { x.fillText(zl[i], cx, y); y += fz * 1.42; }
-    y += fz * 0.7 - fz * 0.4; x.fillStyle = '#5b452a'; x.font = 'italic ' + fe + 'px ' + SERIF;
-    for (i = 0; i < el.length; i++) { x.fillText(el[i], cx, y); y += fe * 1.36; }
+    x.restore();
+  }
+  function versePane(x, w, h, k, mark) {
+    var b = w * 0.06, cy = h * 0.125, r = w * 0.115, pad = b + w * 0.05, py = h * 0.335;
+    x.fillStyle = '#0a0d2a'; x.fillRect(0, 0, w, h); verseGround(x, w, h, k, b, w / 2, cy);
+    x.fillStyle = '#f2b632'; x.strokeStyle = '#0c0a14'; x.lineWidth = 3; x.beginPath(); x.arc(w / 2, cy, r, 0, TAU); x.fill(); x.stroke();
+    x.fillStyle = k % 2 ? '#1d46c8' : '#c8202a'; x.beginPath(); x.arc(w / 2, cy, r * 0.8, 0, TAU); x.fill(); x.stroke();
+    x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#ffe9a0'; x.font = '700 ' + r * 0.92 + 'px ' + SERIF; x.fillText(mark, w / 2, cy + r * 0.04);
+    return { x: pad, y: py, w: w - 2 * pad, h: h - b - w * 0.04 - py, b: b };
+  }
+  /* zl and el set at sizes fz and fe, the Chinese over the English, the block centred in the pane: each letter clear glass in a lead line */
+  function setVerse(x, w, P, zl, el, fz, fe) {
+    var lz = fz * 1.46, le = fe * 1.46, gap = fz * 0.5, top = P.y + (P.h - zl.length * lz - gap - el.length * le) * 0.5, mid = top + zl.length * lz + gap, i;
+    function put(t, y, f, col) { x.lineWidth = f * 0.26; x.strokeStyle = '#0c0a14'; x.strokeText(t, w / 2, y); x.fillStyle = col; x.fillText(t, w / 2, y); }
+    x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineJoin = 'round'; x.miterLimit = 2;
+    x.font = '700 ' + fz + 'px ' + SERIF; for (i = 0; i < zl.length; i++) put(zl[i], top + (i + 0.5) * lz, fz, '#fff0b4');
+    x.font = 'italic 700 ' + fe + 'px ' + SERIF; for (i = 0; i < el.length; i++) put(el[i], mid + (i + 0.5) * le, fe, '#fdfaf0');
+    for (i = -1; i <= 1; i++) { x.fillStyle = '#f2b632'; x.strokeStyle = '#0c0a14'; x.lineWidth = 2; x.beginPath(); x.arc(w / 2 + i * fz * 0.9, mid - gap * 0.62, fz * (i ? 0.09 : 0.13), 0, TAU); x.fill(); x.stroke(); }   // three gold beads between the two
+  }
+  /* Chinese wrapped to mw, then the same number of lines made equally long, so the last is not one stray character */
+  function evenZh(x, s, mw) {
+    var n = wrapZh(x, s, mw).length, out = [], a = 0, b, i;
+    for (i = 1; i <= n; i++) { b = i === n ? s.length : Math.round(s.length * i / n); while (b < s.length && NOBREAK.indexOf(s[b]) >= 0) b++; if (b > a) out.push(s.slice(a, b)); a = b; }
+    return out.some(function (l) { return x.measureText(l).width > mw * 1.06; }) ? wrapZh(x, s, mw) : out;
+  }
+  /* English wrapped to the narrowest measure that keeps the same number of lines */
+  function evenEn(x, s, mw) { var out = wrapEn(x, s, mw), t, k; for (k = 0.97; k > 0.55; k -= 0.03) { t = wrapEn(x, s, mw * k); if (t.length > out.length) break; out = t; } return out; }
+  /* window n (1..30) of v = [ref zh, ref en, zh, en] */
+  function verseGlass(x, w, h, n, v) {
+    var P = versePane(x, w, h, n, String(n)), mw = P.w, fz, fe, zl, el;
+    label(x, w, w * 0.12, h * 0.218, w * 0.76, h * 0.098, v[0], v[1]);
+    for (fz = w * 0.094; fz >= w * 0.034; fz -= w * 0.002) {
+      fe = fz * 0.62; x.font = '700 ' + fz + 'px ' + SERIF; zl = evenZh(x, v[2], mw); x.font = 'italic 700 ' + fe + 'px ' + SERIF; el = evenEn(x, v[3], mw);
+      if (zl.length * fz * 1.46 + fz * 0.5 + el.length * fe * 1.46 <= P.h - w * 0.04) break;
+    }
+    setVerse(x, w, P, zl, el, fz, fe); border(x, w, h, P.b); leadAndLight(x, w, h, 300 + n, 1);
     return { zh: zl.length, en: el.length, size: fz };
   }
-  /* the title tablet at the head of each aisle */
-  function title(x, w, h, lines) {
-    parchment(x, w, h, 99); x.textAlign = 'center'; x.textBaseline = 'middle'; var cx = w / 2;
-    x.fillStyle = '#8f2a22'; x.font = '700 ' + w * 0.2 + 'px ' + SERIF; x.fillText('✝', cx, h * 0.17);
-    x.fillStyle = '#5c1c16'; x.font = '700 ' + w * 0.115 + 'px ' + SERIF; x.fillText(lines[0], cx, h * 0.36);
-    x.fillStyle = '#7a5a2a'; x.font = 'italic ' + w * 0.052 + 'px ' + SERIF; x.fillText(lines[1], cx, h * 0.46);
-    x.fillStyle = '#2a1a10'; x.font = '600 ' + w * 0.056 + 'px ' + SERIF; x.fillText(lines[2], cx, h * 0.62); x.fillText(lines[3], cx, h * 0.7);
-    x.fillStyle = '#5b452a'; x.font = 'italic ' + w * 0.04 + 'px ' + SERIF; x.fillText(lines[4], cx, h * 0.82); x.fillText(lines[5], cx, h * 0.87);
+  /* the window at the head of each aisle that says what the others are: lines = [title zh, title en, zh, zh, en, en] */
+  function verseTitle(x, w, h, lines) {
+    var P = versePane(x, w, h, 0, '✝'), mw = P.w, fz = w * 0.07, fe = w * 0.05, zl, el;
+    label(x, w, w * 0.12, h * 0.218, w * 0.76, h * 0.098, lines[0], lines[1]);
+    x.font = '700 ' + fz + 'px ' + SERIF; zl = evenZh(x, lines[2], mw).concat(evenZh(x, lines[3], mw)); x.font = 'italic 700 ' + fe + 'px ' + SERIF; el = wrapEn(x, lines[4], mw).concat(wrapEn(x, lines[5], mw));
+    setVerse(x, w, P, zl, el, fz, fe); border(x, w, h, P.b); leadAndLight(x, w, h, 299, 1);
   }
 
-  root.SpatialChurchArt = { STORIES: STORIES, MURALS: MURALS, glass: glass, rose: rose, saint: saint, mural: mural, frieze: frieze, tablet: tablet, title: title, wrapZh: wrapZh, wrapEn: wrapEn };
+  root.SpatialChurchArt = { STORIES: STORIES, MURALS: MURALS, glass: glass, rose: rose, saint: saint, mural: mural, frieze: frieze, verseGlass: verseGlass, verseTitle: verseTitle, wrapZh: wrapZh, wrapEn: wrapEn };
 })(typeof window !== 'undefined' ? window : globalThis);

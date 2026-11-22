@@ -59,10 +59,10 @@ ART.STORIES.forEach(s => { drawn.length = 0; ART.glass(ctx2d(), 384, 720, s.id);
 ART.MURALS.forEach(s => { drawn.length = 0; ART.mural(ctx2d(), 768, 883, s.id); assert(drawn.indexOf(s.zh) >= 0, 'the mural names its story: ' + s.id); });
 ART.rose(ctx2d(), 1024); ART.frieze(ctx2d(), 2048, 320); [0, 1, 2, 3].forEach(k => ART.saint(ctx2d(), 256, 448, k));
 V.forEach((v, i) => {
-  drawn.length = 0; ART.tablet(ctx2d(), 512, 768, i + 1, v);
-  assert(drawn.indexOf(String(i + 1)) >= 0 && drawn.indexOf(v[0]) >= 0 && drawn.indexOf(v[1]) >= 0, 'tablet ' + (i + 1) + ' carries its number and reference');
-  assert.strictEqual(drawn.filter(s => v[2].indexOf(s) >= 0 && s.length > 1 && s !== v[0]).join(''), v[2], 'tablet ' + (i + 1) + ': the whole Chinese verse, in order');
-  assert.strictEqual(drawn.filter(s => v[3].indexOf(s) >= 0 && s !== v[1] && s !== String(i + 1)).join(' '), v[3], 'tablet ' + (i + 1) + ': the whole English verse, in order');
+  drawn.length = 0; ART.verseGlass(ctx2d(), 512, 948, i + 1, v);
+  assert(drawn.indexOf(String(i + 1)) >= 0 && drawn.indexOf(v[0]) >= 0 && drawn.indexOf(v[1]) >= 0, 'verse window ' + (i + 1) + ' carries its number and reference');
+  assert.strictEqual(drawn.filter(s => v[2].indexOf(s) >= 0 && s.length > 1 && s !== v[0]).join(''), v[2], 'verse window ' + (i + 1) + ': the whole Chinese verse, in order');
+  assert.strictEqual(drawn.filter(s => v[3].indexOf(s) >= 0 && s !== v[1] && s !== String(i + 1)).join(' '), v[3], 'verse window ' + (i + 1) + ': the whole English verse, in order');
 });
 
 // ---------------------------------------------------------------- 4 · the room
@@ -85,21 +85,30 @@ ANCHORS.forEach(k => {
 assert(room.anchors['floor.window'].w > 1 && room.anchors['floor.window'].h > 1, 'the Scenic Window has its size');
 const used = new Set(); (read('js/objects.js') + read('js/entries.js')).replace(/anchor: '([a-z.]+)'/g, (m, k) => { used.add(k); return m; });
 used.forEach(k => assert(room.anchors[k], 'objects.js / entries.js place something at ' + k));
-// the thirty tablets: 1–15 east along the south aisle, 16–30 back west along the north
-assert.strictEqual(room.verses.length, 30, 'thirty tablets on the walls');
+// the thirty verses are windows of glass in the aisle walls: 1–15 east along the north aisle, 16–30 back west along the south,
+// so that each aisle reads left to right as you face its wall
+assert(!ART.tablet && !ART.title, 'no parchment tablets any more');
+scene.updateMatrixWorld(true);
+assert.strictEqual(room.verses.length, 30, 'thirty verse windows');
+const at3 = room.verses.map(m => m.getWorldPosition(new THREE.Vector3()));
 room.verses.forEach((m, i) => {
-  assert.strictEqual(m.name, 'verse-' + (i + 1));
-  assert(Math.abs(Math.abs(m.position.x) - W) < 0.1 && m.position.y > 1.2 && m.position.y < 2 , 'tablet ' + (i + 1) + ' hangs on an aisle wall at eye height');
-  assert.strictEqual(Math.sign(m.position.x), i < 15 ? 1 : -1, 'tablet ' + (i + 1) + ' is in the ' + (i < 15 ? 'south' : 'north') + ' aisle');
-  if (i % 15) assert((m.position.z - room.verses[i - 1].position.z) * (i < 15 ? -1 : 1) >= 1, 'tablet ' + (i + 1) + ' follows ' + i + ' along the walk, without overlapping');
+  const p = at3[i]; assert.strictEqual(m.name, 'verse-' + (i + 1));
+  assert(m.material.isMeshBasicMaterial && m.material.map && !m.material.emissiveMap, 'verse ' + (i + 1) + ' is glass, lit from behind, not a painted board');
+  assert(Math.abs(p.x) > W && Math.abs(p.x) < W + 0.5, 'verse ' + (i + 1) + ' is set in the thickness of an aisle wall');
+  m.geometry.computeBoundingBox(); const bb = m.geometry.boundingBox;
+  assert(p.y + bb.min.y > 0.5 && p.y + bb.max.y < 2.75 && p.y + (bb.min.y + bb.max.y) / 2 > 1.3 && p.y + (bb.min.y + bb.max.y) / 2 < 1.9, 'verse ' + (i + 1) + ' is at eye height, under the story windows');
+  assert.strictEqual(Math.sign(p.x), i < 15 ? -1 : 1, 'verse ' + (i + 1) + ' is in the ' + (i < 15 ? 'north' : 'south') + ' aisle');
+  for (let z = -10.5; z <= 10.5; z += 3.5) assert(p.z + bb.min.x > z + 0.4 || p.z + bb.max.x < z, 'verse ' + (i + 1) + ' is clear of the arch across the aisle at ' + z);
+  if (i % 15) assert((p.z - at3[i - 1].z) * (i < 15 ? -1 : 1) >= bb.max.x - bb.min.x, 'verse ' + (i + 1) + ' follows ' + i + ' along the walk, without overlapping');
 });
+['south', 'north'].forEach(k => assert(room.holder.getObjectByName('verse-title-' + k), 'a title window at the head of the ' + k + ' aisle'));
 // where you start, sit and walk
 const inSolid = (x, z) => room.solids.some(s => x > s[0] && x < s[2] && z > s[1] && z < s[3]);
 room.solids.forEach(s => assert(s.length === 4 && s[0] < s[2] && s[1] < s[3], 'solid ' + s));
 assert(!inSolid(room.start.pos[0], room.start.pos[2]), 'you do not start inside something');
 assert(!inSolid(room.seat.approach[0], room.seat.approach[1]), 'the chair can be reached');
 for (let z = -8; z <= 9; z += 0.5) { assert(!inSolid(0, z), 'the middle walk is clear at z=' + z); assert(!inSolid(5, z) && !inSolid(-5, z), 'the aisles are clear at z=' + z); }
-room.verses.forEach((m, i) => assert(!inSolid(m.position.x - Math.sign(m.position.x) * 1.2, m.position.z), 'you can stand in front of tablet ' + (i + 1)));
+at3.forEach((p, i) => assert(!inSolid(p.x - Math.sign(p.x) * 1.5, p.z), 'you can stand in front of verse ' + (i + 1)));
 // the organ console in the layout, clear of the door
 const ex = room.defaultLayout().extras; assert(ex.length === 1 && ex[0].kind === 'church-organ' && Math.abs(ex[0].p[0]) > 1.6, 'the console stands beside the door, not in it');
 const organ = global.SpatialFurniture['church-organ'](THREE); assert(organ.group.isGroup && organ.hb.length === 3 && typeof organ.press === 'function');
@@ -108,7 +117,7 @@ assert(/放不出声音/.test(organ.press()), 'without Web Audio the console say
 assert(room.size.H > 12 && D >= 12, 'nave height ' + room.size.H);
 let glass = 0, painted = 0, lights = 0, meshes = 0;
 room.holder.traverse(o => { if (o.isLight) lights++; if (o.isMesh) { meshes++; if (o.material.isMeshBasicMaterial && o.material.map && o.material.side === THREE.DoubleSide && !o.material.transparent) glass++; if (o.material.emissiveMap) painted++; } });
-assert(glass >= 15 + 16 + 4 + 1, 'story windows, clerestory, the rose: ' + glass); assert(painted >= 30 + 2 + 4 + 2, 'tablets, murals, friezes: ' + painted); assert(lights >= 6 && meshes > 400);
+assert(glass >= 15 + 16 + 4 + 1 + 32, 'story windows, clerestory, the rose, the verse windows: ' + glass); assert(painted >= 4 + 2, 'murals, friezes: ' + painted); assert(lights >= 6 && meshes > 400);
 // day, dusk, night, a few frames, then gone
 ['day', 'dusk', 'night', 'auto'].forEach(m => room.setTime(m)); for (let t = 0; t < 3; t += 0.016) room.tick(t, 0.016);
 room.dispose(); assert.strictEqual(scene.background, null); assert.strictEqual(room.holder.parent, null, 'the church leaves the scene');
