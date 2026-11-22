@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 帕菲特人格同一性 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+.core{grid-column:1/-1;font-size:13px;color:#1f2b38;background:#fff7e0;border:1px solid #f0d08a;border-radius:6px;padding:4px 8px}
+.bound{grid-column:1/-1;font-size:11.5px;color:#667;padding:2px 2px 6px}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>帕菲特 · 人格同一性</b>
+  <button class="tab on" data-l="1">① 记忆之链</button>
+  <button class="tab" data-l="2">② 替换光谱</button>
+  <button class="tab" data-l="3">③ 传送机</button>
+  <button class="tab" data-l="4">④ 分裂</button>
+  <button class="tab" data-l="5">⑤ 应用练习：什么才重要</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="bd" id="sBody"></div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ======== 保存与恢复（localStorage 不可用时静默退回内存） ======== */
+const KEY='minest_parfit_v1';let store={lit:{},done:{},lv:1};
+try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.lit)store=s;}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}}
+
+/* ======== 原文：SEP「Personal Identity」（E. Olson 撰，2023 年修订版）。
+   帕菲特《理与人》受版权保护，未直接引用；帕菲特立场按词条概述，思想实验本身标“转述”。 ======== */
+const SEP='SEP「Personal Identity」';
+const MAP={
+1:[["拖出第一条记忆线：后来的人记得先前的人","洛克：人格是“一个能思维、有智慧的存在者，具有理性与反省，能把自己看作自己，即在不同时间、不同地点的同一个思维者”。","a thinking intelligent being, that has reason and reflection, and can consider itself as itself, the same thinking thing, in different times and places","洛克《人类理解论》II.27，据 "+SEP+" §1 转引"],
+   ["老人想记起学生时代：连不上","同一性是传递的；记忆的连续却不是。","Identity is transitive; memory continuity is not.",SEP+" §4"],
+   ["把“睡眠”拖进时间线：那段时间一片空白","记忆标准有一个荒谬的推论：在你无意识的任何时候，你都从未存在过。","The memory criterion has the absurd implication that you have never existed at any time when you were unconscious",SEP+" §4"],
+   ["按住睡眠段：信念穿过睡眠继续传下去","对先前经验有一个当下的记忆（或准记忆），只是心理联系的一种。","Having a current memory (or quasi-memory) of an earlier experience is one sort of psychological connection",SEP+" §4"]],
+2:[["拖到“身体全换、心理不变”","结果出来的那个人会确信，他或她就是你。","the resulting person would be convinced that he or she was you",SEP+" §4"],
+   ["拖到“身体不变、心理全换”","（纯物理观）你就是那个拥有你的身体、或与你是同一个生物有机体的过去或将来的存在者。","you are that past or future being that has your body, or that is the same biological organism as you are",SEP+" §3"],
+   ["在光谱中间来回拖动：找不到那条线","（转述）帕菲特设想一条“光谱”：从你出发，细胞与心理一点一点被替换，直到另一端成为完全不同的人。中间任何一步都只差一点点，却找不到一个清楚的点，说“在这里你不再存在”。","（转述，无英文原文；帕菲特《理与人》受版权保护）","帕菲特《理与人》第三部分（转述）"]],
+3:[["按住扫描：原件被扫描、信息传到火星","（转述）帕菲特的“远程传送机”：你在地球上被扫描，身体被拆解，信息传到火星，在那里用新物质造出一个与你完全相同的人。他醒来，记得你的一切。","（转述，无英文原文；帕菲特《理与人》受版权保护）","帕菲特《理与人》第十章（转述）"],
+   ["两个人都醒来：都说“我是本人”","每一个都会出于同样的理由认为自己就是你——但只有一个是对的。","each will think, for the same reasons, that he or she is you—but only one will be right",SEP+" §6"],
+   ["原件留着、复制品也在：分支","（非分支观的推论）即使把你的整个脑状态复制到另一个脑里、对你毫无物理伤害，也会杀死你。","even copying your total brain state to another brain without doing you any physical harm would kill you",SEP+" §5"],
+   ["拉下拉杆：只剩火星上的那一个","你真的能借“脑状态转移”，从一个有机体搬到另一个有机体里吗？心理连续论者对此意见不一。","Could you literally move from one organism to another by “brain-state transfer”? Psychological-continuity theorists disagree.",SEP+" §4"]],
+4:[["把两半大脑分别拖进两个身体","你可能同时与两个过去或将来的人心理连续。","you could be psychologically continuous with two past or future people at once",SEP+" §5"],
+   ["左＝你？右＝你？可左≠右","一个东西不可能在数目上同一于两个不同的东西。","One thing cannot be numerically identical with two different things.",SEP+" §5"],
+   ["按住空的原身体：数一数故事里有几个人","（非分支观）一个过去或将来的存在者是你，仅当她那时与你心理连续，并且没有别的存在者也是。","a past or future being is you only if she is then psychologically continuous with you and no other being then is",SEP+" §5"],
+   ["结论","分裂就是死亡。","Fission is death.",SEP+" §5（Shoemaker、帕菲特等持此观点）"],
+   ["只保留一半 vs 保留两半","如果你的脑被分开，只保留一半你就能活下来，两半都保留你反而会死。","if your brain is divided, you will survive if only one half is preserved, but you will die if both halves are",SEP+" §5"]],
+5:[["把关切之光投向“明天的你”","每个人都对自己的将来、而不是别人的将来，有一种特别的、自利的关切。","Each person has a special, selfish interest in her own future and no one else’s.",SEP+" §1（常识观点）"],
+   ["把关切之光投向分裂后的人或复制品","（帕菲特等）你有理由想要的，是将来有某个人与你心理联系或连续，无论她是不是你。","that there be someone in the future who is psychologically connected or continuous with you, whether or not she is you",SEP+" §5（词条概述帕菲特立场）"],
+   ["四种将来的人都照过一遍","关于数目同一性的事实——关于谁是谁——没有实践上的重要性。","facts about numerical identity—about who is who—have no practical importance",SEP+" §5（词条概述）"]]};
+const TITLE={1:'① 记忆之链 · 从后来的人拖向先前的人，画出“记得”；把左下角的月亮拖进时间线',2:'② 替换光谱 · 在左侧方格里拖动把手：横向替换身体细胞，纵向替换记忆与性格',3:'③ 传送机 · 按住地球舱扫描；之后可以拖动原件旁的拉杆',4:'④ 分裂 · 把中间那人的左右半脑分别拖进两边的空身体（或拖进下方的回收箱）',5:'⑤ 应用练习 · 按住左边的“现在的你”，把关切之光拖到右边每一个将来的人身上'};
+const CORE='核心问题：是什么让将来的某个人就是“你”？——而这件事，真的那么重要吗？';
+const BOUND='适用边界：记忆线、细胞替换、传送机与分裂都是思想实验的教学画面；画面中的“连续性”数值只是示意，不是任何理论给出的度量。帕菲特本人的论证见《理与人》第三部分。';
+function mapHTML(l){return `<div class="core">${CORE}</div>`+MAP[l].map((r,i)=>`<div class="mr${store.lit[l+'_'+i]?' on':''}" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——${r[3]}</div></div></div>`).join('')+`<div class="bound">${BOUND}</div>`;}
+function hit(l,i){const e=$('mr'+l+'_'+i);store.lit[l+'_'+i]=1;save();if(!e||e.classList.contains('on'))return;e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});
+  if(MAP[l].every((_,k)=>store.lit[l+'_'+k])){store.done[l]=1;save();tabs();}}
+
+/* ======== 通用绘制 ======== */
+function person(x,y,s,col,alpha,label,lc){ctx.save();ctx.globalAlpha=alpha==null?1:alpha;ctx.fillStyle=col||'#3a6f99';
+  ctx.beginPath();ctx.arc(x,y-s*1.75,s*.42,0,7);ctx.fill();ctx.beginPath();ctx.moveTo(x-s*.55,y);ctx.quadraticCurveTo(x-s*.6,y-s*1.4,x,y-s*1.35);ctx.quadraticCurveTo(x+s*.6,y-s*1.4,x+s*.55,y);ctx.closePath();ctx.fill();ctx.restore();
+  if(label)txt(label,x,y+18,lc||'#334',13);}
+function bubble(x,y,t,c){ctx.font='13px sans-serif';const w=ctx.measureText(t).width+18;ctx.fillStyle='#fff';ctx.strokeStyle=c||'#3a6f99';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(x-w/2,y-28,w,24,12);ctx.fill();ctx.stroke();txt(t,x,y-11,c||'#3a6f99',13);}
+function meter(x,y,w,v,col,t){ctx.fillStyle='#fff';ctx.fillRect(x,y,w,9);ctx.fillStyle=col;ctx.fillRect(x,y,w*clamp(v,0,1),9);ctx.strokeStyle='#888';ctx.strokeRect(x,y,w,9);txt(t,x+w/2,y-4,'#334',12);}
+function bg(c1,c2){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,c1);g.addColorStop(1,c2);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);}
+
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y};cv.setPointerCapture(e.pointerId);HD[L]&&HD[L].down&&HD[L].down(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]&&HD[L].move&&HD[L].move(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{const p=PT;PT=null;HD[L]&&HD[L].up&&HD[L].up(p);});
+
+/* ================= 第 1 关：记忆之链 ================= */
+let A;
+const STG=[{n:'学生',sub:'借书逾期被罚款',age:0},{n:'律师',sub:'记得付过那笔罚款',age:.5},{n:'老人',sub:'记得当律师的岁月',age:1}];
+function init1(){A={links:[],drag:null,fail:null,sleep:null,dragMoon:false,mx:0,my:0,hold:0,holding:false,threads:[]};}
+const g1=()=>({y:H*0.56,xs:[W*0.2,W*0.5,W*0.8],moonX:W*0.07,moonY:H*0.86});
+function stageAt(x,y){const g=g1();for(let i=0;i<3;i++)if(Math.hypot(x-g.xs[i],y-(g.y-H*0.06))<46)return i;return -1;}
+HD[1]={down(x,y){const g=g1();
+  if(Math.hypot(x-g.moonX,y-g.moonY)<26&&!A.sleep){A.dragMoon=true;A.mx=x;A.my=y;return;}
+  if(A.sleep&&Math.abs(x-A.sleep.x)<40&&Math.abs(y-g.y)<40){A.holding=true;return;}
+  const s=stageAt(x,y);if(s>=0)A.drag={from:s,x,y};},
+ move(x,y){if(A.drag){A.drag.x=x;A.drag.y=y;}if(A.dragMoon){A.mx=x;A.my=y;}},
+ up(){const g=g1();A.holding=false;
+  if(A.dragMoon){A.dragMoon=false;if(Math.abs(A.my-g.y)<60&&A.mx>g.xs[0]&&A.mx<g.xs[2]){A.sleep={x:A.mx};hit(1,2);toast('这段时间里你什么也记不起来：那时睡在床上的，不是你？');}}
+  if(A.drag){const d=A.drag;A.drag=null;const to=stageAt(d.x,d.y);if(to<0||to===d.from)return;
+    if(to>d.from){toast('只能从后来的人往回记：人记得的是过去');return;}
+    if(d.from===2&&to===0){A.fail={t:1.6};toast('她记得当律师的岁月，却已忘了青年时的一切');if(A.links.length>=2)hit(1,1);else toast('先把“律师→学生”“老人→律师”两条记忆线连上');return;}
+    if(!A.links.find(k=>k.a===d.from&&k.b===to)){A.links.push({a:d.from,b:to});hit(1,0);}}}};
+function t1(dt){const g=g1();bg('#eef3f7','#d6dfe7');
+  ctx.strokeStyle='#8a99a8';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(W*0.08,g.y+30);ctx.lineTo(W*0.92,g.y+30);ctx.stroke();txt('时间 →',W*0.92,g.y+52,'#667',12,'right');
+  STG.forEach((s,i)=>{const col=`rgb(${Math.round(lerp(70,150,s.age))},${Math.round(lerp(120,140,s.age))},${Math.round(lerp(190,150,s.age))})`;person(g.xs[i],g.y+30,H*0.06*(1-s.age*0.12),col,1,s.n);txt(s.sub,g.xs[i],g.y+68,'#667',12);});
+  // 记忆线
+  A.links.forEach(k=>{const x1=g.xs[k.a],x2=g.xs[k.b],cy=g.y-H*0.2;ctx.strokeStyle='rgba(58,111,153,.8)';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x1,g.y-H*0.1);ctx.quadraticCurveTo((x1+x2)/2,cy,x2,g.y-H*0.1);ctx.stroke();
+    for(let j=0;j<4;j++){const u=((T*0.5+j/4)%1);const px=(1-u)*(1-u)*x1+2*(1-u)*u*((x1+x2)/2)+u*u*x2,py=(1-u)*(1-u)*(g.y-H*0.1)+2*(1-u)*u*cy+u*u*(g.y-H*0.1);ctx.fillStyle='#3a6f99';ctx.beginPath();ctx.arc(px,py,3.5,0,7);ctx.fill();}
+    txt('记得',(x1+x2)/2,cy+H*0.04,'#3a6f99',12);});
+  if(A.fail){A.fail.t-=dt;const x1=g.xs[2],x2=g.xs[0],cy=g.y-H*0.34;ctx.strokeStyle=`rgba(198,40,40,${clamp(A.fail.t,0,1)})`;ctx.setLineDash([8,8]);ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x1,g.y-H*0.1);ctx.quadraticCurveTo(W*0.5,cy,x2,g.y-H*0.1);ctx.stroke();ctx.setLineDash([]);txt('✗ 记不起来',W*0.5,cy+H*0.06,`rgba(198,40,40,${clamp(A.fail.t,0,1)})`,14,'center',true);if(A.fail.t<=0)A.fail=null;}
+  if(A.links.length>=2)txt('按记忆标准：学生＝律师，律师＝老人……那么老人＝学生？',W*0.5,28,'#223',14,'center',true);
+  // 拖动中的线
+  if(A.drag){ctx.strokeStyle='rgba(58,111,153,.5)';ctx.lineWidth=2;ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(g.xs[A.drag.from],g.y-H*0.1);ctx.lineTo(A.drag.x,A.drag.y);ctx.stroke();ctx.setLineDash([]);}
+  // 月亮 / 睡眠段
+  const moon=(x,y)=>{ctx.fillStyle='#4a5a8a';ctx.beginPath();ctx.arc(x,y,16,0,7);ctx.fill();ctx.fillStyle='#eef3f7';ctx.beginPath();ctx.arc(x+7,y-5,13,0,7);ctx.fill();};
+  if(!A.sleep){moon(A.dragMoon?A.mx:g.moonX,A.dragMoon?A.my:g.moonY);if(!A.dragMoon)txt('睡眠',g.moonX,g.moonY+30,'#4a5a8a',12);}
+  else{ctx.fillStyle='rgba(40,50,90,.82)';ctx.fillRect(A.sleep.x-36,g.y-6,72,72);moon(A.sleep.x,g.y+12);txt('无梦的睡眠',A.sleep.x,g.y+56,'#dfe6ff',11);
+    if(A.holding){A.hold+=dt;for(let j=0;j<5;j++){const u=((T*0.6+j/5)%1);ctx.fillStyle='rgba(243,165,43,.95)';ctx.beginPath();ctx.arc(A.sleep.x-50+u*100,g.y+30+Math.sin(u*6+j)*4,3.5,0,7);ctx.fill();}
+      txt('信念、性格、计划：一直在因果上延续下去',A.sleep.x,g.y-16,'#a0620a',12);if(A.hold>1.5)hit(1,3);}
+    else txt('按住这一段',A.sleep.x,g.y-16,'#4a5a8a',12);}
+  if(!A.links.length)txt('按住“律师”，拖到“学生”上：画出一条“记得”',W*0.5,28,'#223',14);}
+
+/* ================= 第 2 关：替换光谱 ================= */
+let B;
+function init2(){B={px:0,py:0,drag:false,midDist:0,path:[]};}
+const g2=()=>{const P=Math.min(H*0.78,W*0.42);return{x0:W*0.06,y0:H*0.1,P};};
+HD[2]={down(x,y){const g=g2();if(x>g.x0-20&&x<g.x0+g.P+20&&y>g.y0-20&&y<g.y0+g.P+20){B.drag=true;HD[2].move(x,y,0,0,true);}},
+ move(x,y,dx,dy){if(!B.drag)return;const g=g2();const nx=clamp((x-g.x0)/g.P,0,1),ny=clamp((y-g.y0)/g.P,0,1);
+  if(nx>0.25&&nx<0.75&&ny>0.25&&ny<0.75)B.midDist+=Math.hypot(dx,dy);B.px=nx;B.py=ny;B.path.push([nx,ny]);if(B.path.length>400)B.path.shift();
+  if(nx>0.9&&ny<0.1)hit(2,0);if(ny>0.9&&nx<0.1)hit(2,1);if(B.midDist>W*0.6)hit(2,2);},
+ up(){B.drag=false;}};
+function t2(){const g=g2();bg('#f3f1ec','#e2ddd2');
+  // 方格（颜色渐变）
+  for(let i=0;i<20;i++)for(let j=0;j<20;j++){const u=i/19,v=j/19;ctx.fillStyle=`rgba(${Math.round(lerp(90,230,u))},${Math.round(lerp(140,120,v))},${Math.round(lerp(210,90,v))},.35)`;ctx.fillRect(g.x0+u*g.P*0.95,g.y0+v*g.P*0.95,g.P/20,g.P/20);}
+  ctx.strokeStyle='#556';ctx.lineWidth=1.5;ctx.strokeRect(g.x0,g.y0,g.P,g.P);
+  txt('身体细胞被替换 →',g.x0+g.P/2,g.y0-6,'#334',12);ctx.save();ctx.translate(g.x0-10,g.y0+g.P/2);ctx.rotate(-Math.PI/2);txt('记忆与性格被替换 →',0,0,'#334',12);ctx.restore();
+  txt('你',g.x0+10,g.y0+16,'#223',13,'left',true);txt('另一个人',g.x0+g.P-6,g.y0+g.P-8,'#223',13,'right',true);
+  // 轨迹
+  ctx.strokeStyle='rgba(243,165,43,.6)';ctx.lineWidth=2;ctx.beginPath();B.path.forEach((p,i)=>{const X=g.x0+p[0]*g.P,Y=g.y0+p[1]*g.P;i?ctx.lineTo(X,Y):ctx.moveTo(X,Y);});ctx.stroke();
+  const hx=g.x0+B.px*g.P,hy=g.y0+B.py*g.P;ctx.fillStyle='#f3a52b';ctx.beginPath();ctx.arc(hx,hy,12,0,7);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.stroke();
+  // 右侧：人物
+  const cx=g.x0+g.P+(W-g.x0-g.P)/2,cy=H*0.78,s=H*0.13;
+  person(cx,cy,s,`rgb(${Math.round(lerp(70,220,B.px))},${Math.round(lerp(120,110,B.px))},${Math.round(lerp(190,70,B.px))})`,1);
+  for(let k=0;k<40;k++){const a=k*2.4,r=(k%7)/7;const X=cx+Math.cos(a)*s*0.4*r,Y=cy-s*0.7+Math.sin(a)*s*0.5*r;ctx.fillStyle=(k/40)<B.px?'#ffd27a':'#bcd4f0';ctx.beginPath();ctx.arc(X,Y,2.4,0,7);ctx.fill();}
+  const MEM=['初恋','老家的院子','第一次登台','母亲的歌','那年的雪','学会游泳','好友的名字','一句誓言'],OTH=['陌生的街','别人的童年','不认识的脸','另一种口音','他人的婚礼','陌生的语言','别处的海','另一个名字'];
+  MEM.forEach((m,k)=>{const a=-Math.PI*0.95+k*Math.PI*0.9/7,X=cx+Math.cos(a)*s*1.9,Y=cy-s*1.9+Math.sin(a)*s*0.9;const rep=(k/8)<B.py;ctx.fillStyle=rep?'#f6e0c8':'#dbe8f7';ctx.beginPath();ctx.roundRect(X-38,Y-11,76,22,10);ctx.fill();txt(rep?OTH[k]:m,X,Y+4,rep?'#8a4a1a':'#2c5a85',11);});
+  // 读数
+  const psy=1-B.py,phy=1-B.px;meter(cx-W*0.12,H*0.06,W*0.24,psy,'#3a6f99','心理连续（他觉得自己是你）');meter(cx-W*0.12,H*0.14,W*0.24,phy,'#a0522d','同一个有机体（身体的连续）');
+  txt(`心理连续观：${psy>0.5?'是你':psy>0.3?'？？':'不是你'}    纯物理观：${phy>0.5?'是你':phy>0.3?'？？':'不是你'}`,cx,H*0.24,'#223',13,'center',true);
+  if(B.px>0.3&&B.px<0.7&&B.py>0.3&&B.py<0.7)txt('再挪一点点，是否就不再是你了？',cx,H*0.3,'#a0620a',13);}
+
+/* ================= 第 3 关：传送机 ================= */
+let C;
+function init3(){C={scan:0,holding:false,sent:false,beam:0,copy:0,lever:0,dragLever:false,gone:0,tBoth:0};}
+const g3=()=>({ex:W*0.22,mx:W*0.78,y:H*0.82,lx:W*0.22+W*0.1});
+HD[3]={down(x,y){const g=g3();if(!C.sent&&Math.abs(x-g.ex)<70&&y>H*0.3)C.holding=true;
+  if(C.copy>0.9&&C.gone<1&&Math.abs(x-g.lx)<26&&Math.abs(y-(H*0.42+C.lever*H*0.3))<30)C.dragLever=true;},
+ move(x,y){if(C.dragLever)C.lever=clamp((y-H*0.42)/(H*0.3),0,1);},
+ up(){C.holding=false;if(C.dragLever){C.dragLever=false;if(C.lever<0.95)C.lever=0;}}};
+function booth(x,y,c,label){ctx.strokeStyle=c;ctx.lineWidth=3;ctx.strokeRect(x-60,y-H*0.5,120,H*0.5);ctx.fillStyle='rgba(255,255,255,.06)';ctx.fillRect(x-60,y-H*0.5,120,H*0.5);txt(label,x,y-H*0.5-8,'#cfe',13,'center',true);}
+function t3(dt){const g=g3();bg('#0f1626','#1d2a44');
+  for(let i=0;i<40;i++){ctx.fillStyle='rgba(255,255,255,.25)';ctx.fillRect((i*137%100)/100*W,(i*53%60)/100*H*0.5,2,2);}
+  booth(g.ex,g.y,'#6ec6ff','地球 · 扫描舱');booth(g.mx,g.y,'#ff9b6b','火星 · 复制舱');
+  if(C.holding)C.scan=Math.min(1,C.scan+dt*0.33);else if(!C.sent)C.scan=Math.max(0,C.scan-dt*0.5);
+  if(C.scan>=1&&!C.sent){C.sent=true;hit(3,0);}
+  if(C.sent){C.beam=Math.min(1,C.beam+dt*0.8);if(C.beam>=1)C.copy=Math.min(1,C.copy+dt*0.6);}
+  if(C.lever>=0.95&&C.gone<1){C.gone=Math.min(1,C.gone+dt*0.5);if(C.gone>=1)hit(3,3);}
+  const s=H*0.09;
+  // 原件
+  if(C.gone<1){person(g.ex,g.y-6,s,'#6ec6ff',1-C.gone);}
+  if(C.gone>0&&C.gone<1){for(let i=0;i<20;i++){ctx.fillStyle=`rgba(110,198,255,${1-C.gone})`;ctx.fillRect(g.ex+(Math.random()-.5)*60,g.y-s*2+Math.random()*s*2-C.gone*40,3,3);}}
+  // 扫描线
+  if(C.scan>0&&!C.sent){const sy=g.y-H*0.5+H*0.5*((T*0.8)%1);ctx.fillStyle='rgba(110,198,255,.5)';ctx.fillRect(g.ex-58,sy,116,4);meter(g.ex-60,g.y+14,120,C.scan,'#6ec6ff','扫描');}
+  // 光束
+  if(C.sent&&C.beam<1.01&&C.copy<1){for(let i=0;i<30;i++){const u=((T*1.5+i/30)%1);ctx.fillStyle='rgba(255,220,150,.9)';ctx.fillRect(lerp(g.ex,g.mx,u),H*0.35+Math.sin(u*12+i)*14,3,3);}}
+  // 复制品
+  if(C.copy>0){person(g.mx,g.y-6,s,'#ff9b6b',C.copy);if(C.copy<1){for(let i=0;i<15;i++){ctx.fillStyle='rgba(255,155,107,.8)';ctx.fillRect(g.mx+(Math.random()-.5)*50,g.y-Math.random()*s*2.2,3,3);}}}
+  if(C.copy>=1){
+    if(C.gone<1){C.tBoth+=dt;bubble(g.ex,g.y-s*2.6,'我是本人','#2c5a85');bubble(g.mx,g.y-s*2.6,'我是本人','#a0522d');
+      if(C.tBoth>1.5)hit(3,1);if(C.tBoth>3.2)hit(3,2);
+      txt('两个人：都记得你的一生，都确信自己是你',W/2,H*0.12,'#ffe7b5',15,'center',true);
+      // 拉杆
+      ctx.strokeStyle='#888';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(g.lx,H*0.42);ctx.lineTo(g.lx,H*0.72);ctx.stroke();ctx.fillStyle='#c0392b';ctx.beginPath();ctx.arc(g.lx,H*0.42+C.lever*H*0.3,13,0,7);ctx.fill();txt('拆解原件',g.lx+42,H*0.42,'#ffb0b0',12);}
+    else{bubble(g.mx,g.y-s*2.6,'我是本人','#a0522d');txt('现在只剩火星上的一个人：他是你吗？',W/2,H*0.12,'#ffe7b5',15,'center',true);}}
+  if(!C.sent)txt(C.holding?'扫描中……别松手':'按住地球舱',W/2,H*0.12,'#ffe7b5',14);}
+
+/* ================= 第 4 关：分裂 ================= */
+let D;
+function init4(){D={hemi:[{id:'L',at:'o',x:0,y:0},{id:'R',at:'o',x:0,y:0}],drag:null,tTwo:0,count:0,holdC:false,seenOne:false,seenTwo:false};}
+const g4=()=>({o:{x:W*0.5,y:H*0.86},l:{x:W*0.17,y:H*0.86},r:{x:W*0.83,y:H*0.86},bin:{x:W*0.5,y:H*0.2},s:H*0.1});
+function headPos(k){const g=g4();const b=g[k];return{x:b.x,y:b.y-g.s*1.75};}
+function hemiPos(h){if(D.drag&&D.drag.h===h)return{x:D.drag.x,y:D.drag.y};if(h.at==='bin'){const g=g4();return{x:g.bin.x+(h.id==='L'?-14:14),y:g.bin.y+6};}const p=headPos(h.at);const both=D.hemi.filter(q=>q.at===h.at).length===2;return{x:p.x+(both?(h.id==='L'?-9:9):0),y:p.y};}
+HD[4]={down(x,y){const g=g4();for(const h of D.hemi){const p=hemiPos(h);if(Math.hypot(x-p.x,y-p.y)<20&&h.at!=='bin'){D.drag={h,x,y};return;}}
+  if(Math.hypot(x-g.o.x,y-(g.o.y-g.s))<g.s*1.4)D.holdC=true;},
+ move(x,y){if(D.drag){D.drag.x=x;D.drag.y=y;}},
+ up(){D.holdC=false;if(!D.drag)return;const d=D.drag;D.drag=null;const g=g4();let best=null,bd=1e9;
+  ['o','l','r'].forEach(k=>{const p=headPos(k);const dd=Math.hypot(d.x-p.x,d.y-p.y);if(dd<bd){bd=dd;best=k;}});
+  if(Math.hypot(d.x-g.bin.x,d.y-g.bin.y)<60){d.h.at='bin';}else if(bd<70){d.h.at=best;}evaluate();}};
+function carriers(){const c={};D.hemi.forEach(h=>{if(h.at!=='bin')c[h.at]=(c[h.at]||0)+1;});return Object.keys(c);}
+function evaluate(){const c=carriers(),split=D.hemi[0].at!==D.hemi[1].at;
+  if(split&&c.length===2){hit(4,0);D.seenTwo=true;}
+  if(split&&c.length===1){D.seenOne=true;toast('只保留了一半：按非分支观，你活下来了');}
+  if(D.seenOne&&D.seenTwo)hit(4,4);}
+function t4(dt){const g=g4();bg('#f2eef6','#ddd5e6');
+  const c=carriers(),split=D.hemi[0].at!==D.hemi[1].at,two=split&&c.length===2;
+  ['l','o','r'].forEach(k=>{const has=c.includes(k);const lab=k==='o'?'原来的你':k==='l'?'空身体 1':'空身体 2';
+    person(g[k].x,g[k].y,g.s,has?(k==='o'?'#3a6f99':'#7a5aa0'):'#b9b3c3',has?1:0.55,two&&has?(k==='l'?'左':k==='r'?'右':'原身体'):lab);
+    const hp=headPos(k);ctx.strokeStyle='rgba(0,0,0,.25)';ctx.setLineDash([3,3]);ctx.beginPath();ctx.arc(hp.x,hp.y,g.s*.46,0,7);ctx.stroke();ctx.setLineDash([]);});
+  // 回收箱
+  ctx.fillStyle='#8a8a8a';ctx.fillRect(g.bin.x-34,g.bin.y-14,68,40);txt('回收（销毁）',g.bin.x,g.bin.y+42,'#666',11);
+  // 半脑
+  D.hemi.forEach(h=>{const p=hemiPos(h);ctx.fillStyle=h.id==='L'?'#f48fb1':'#f8b4c8';ctx.strokeStyle='#a04a6a';ctx.lineWidth=1.5;ctx.beginPath();
+    if(h.id==='L')ctx.arc(p.x,p.y,12,Math.PI/2,Math.PI*1.5);else ctx.arc(p.x,p.y,12,-Math.PI/2,Math.PI/2);ctx.closePath();ctx.fill();ctx.stroke();});
+  if(two){D.tTwo+=dt;if(D.tTwo>1.5)hit(4,1);
+    txt('你＝左？  你＝右？  可是  左 ≠ 右',W/2,H*0.36,'#4a2a80',17,'center',true);
+    if(D.holdC){D.count=Math.min(2.99,D.count+dt*0.9);}
+    const n=Math.floor(D.count);if(D.count>0)txt(n<1?'故事里有……':n<2?'1 个人？':'不，2 个人',W/2,H*0.46,'#223',15,'center',true);
+    if(D.count>=2.5){hit(4,2);hit(4,3);txt('非分支观：两半都活着，你却死了',W/2,H*0.54,'#b00020',14,'center',true);}
+    if(D.count<0.01)txt('按住中间空着的原身体：数一数',W/2,H*0.46,'#667',13);}
+  else{D.tTwo=0;D.count=0;txt(!split?'拖动原来那人头里的粉色半脑（左半或右半）':c.length===1?'只剩一个携带者：你还在':'',W/2,H*0.36,'#4a2a80',14);}}
+
+/* ================= 第 5 关：应用练习 ================= */
+let E;
+const FUT=[{k:'tom',n:'明天的你',c:0.95,id:'是',col:'#3a6f99'},{k:'left',n:'分裂后的“左”',c:0.9,id:'不是（非分支观）',col:'#7a5aa0'},{k:'copy',n:'火星复制品',c:0.95,id:'有争议',col:'#ff9b6b'},{k:'str',n:'陌生人',c:0.02,id:'不是',col:'#999'}];
+function init5(){E={beam:false,bx:0,by:0,on:null,dwell:0,seen:{}};}
+const g5=()=>({sx:W*0.12,sy:H*0.62,pts:FUT.map((f,i)=>({x:W*(0.5+0.12*i),y:H*(0.32+0.14*(i%2))}))});
+HD[5]={down(x,y){const g=g5();if(Math.hypot(x-g.sx,y-(g.sy-H*0.07))<60){E.beam=true;E.bx=x;E.by=y;}},move(x,y){if(E.beam){E.bx=x;E.by=y;}},up(){E.beam=false;E.on=null;E.dwell=0;}};
+function t5(dt){const g=g5();bg('#10151f','#1f2a3b');const s=H*0.075;
+  person(g.sx,g.sy,s*1.1,'#f3c46b',1,'现在的你','#ffe7b5');
+  let target=null;FUT.forEach((f,i)=>{const p=g.pts[i];const lit=E.seen[f.k];const glow=lit?f.c:0;
+    if(glow>0.05){const gg=ctx.createRadialGradient(p.x,p.y-s,4,p.x,p.y-s,s*3);gg.addColorStop(0,`rgba(243,196,107,${0.6*glow})`);gg.addColorStop(1,'rgba(243,196,107,0)');ctx.fillStyle=gg;ctx.fillRect(p.x-s*3,p.y-s*4,s*6,s*6);}
+    person(p.x,p.y,s,f.col,1,f.n,'#e8ecf4');
+    if(lit){meter(p.x-50,p.y+34,100,f.c,'#f3c46b','心理联系');txt('是不是你：'+f.id,p.x,p.y+60,'#cfd6e6',11);}
+    if(E.beam&&Math.hypot(E.bx-p.x,E.by-(p.y-s))<s*1.3)target=f;});
+  if(E.beam){ctx.strokeStyle='rgba(243,196,107,.85)';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(g.sx,g.sy-s*1.5);ctx.lineTo(E.bx,E.by);ctx.stroke();
+    if(target){if(E.on===target)E.dwell+=dt;else{E.on=target;E.dwell=0;}
+      if(E.dwell>1.2&&!E.seen[target.k]){E.seen[target.k]=1;
+        if(target.k==='tom')hit(5,0);if(target.k==='left'||target.k==='copy')hit(5,1);
+        toast(target.k==='str'?'与陌生人没有任何心理联系：关切也就没有落点':`心理联系 ${Math.round(target.c*100)}%：${target.k==='tom'?'这是常识里的“自己”':'不是“你”，但几乎什么都没少'}`);
+        if(Object.keys(E.seen).length===4)hit(5,2);}}
+    else{E.on=null;E.dwell=0;}}
+  txt(Object.keys(E.seen).length<4?'按住“现在的你”，把关切之光拖到每个将来的人身上，停留片刻':'关切跟着心理联系走，而不是跟着“是不是你”这个标签走',W/2,28,'#ffe7b5',14,'center',true);
+  txt('注意：每个人身上亮起的光，只取决于“心理联系”，与“是不是你”无关',W/2,H-14,'rgba(255,231,181,.75)',12);}
+
+/* ======== 调度 ======== */
+const INIT={1:init1,2:init2,3:init3,4:init4,5:init5},TICK={1:t1,2:t2,3:t3,4:t4,5:t5};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!store.done[t.dataset.l]);});}
+function go(n){L=n;store.lv=n;save();tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{INIT[L]();toast('已重置本关（已对应的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(store.lv&&INIT[store.lv]?store.lv:1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

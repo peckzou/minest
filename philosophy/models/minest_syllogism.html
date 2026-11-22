@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 亚里士多德三段论 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+#side .q{padding:4px 10px;font-size:12.5px;color:#334;background:#e6edf4;border-bottom:1px solid #d5d8de}#side .q b{color:#3a6f99}</style>
+</head>
+<body>
+<div id="tabs">
+  <b>亚里士多德 · 三段论</b>
+  <button class="tab on" data-l="1">① 必然随之而来</button>
+  <button class="tab" data-l="2">② 反例世界</button>
+  <button class="tab" data-l="3">③ 格与化归</button>
+  <button class="tab" data-l="4">④ 应用练习</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="q"><b>核心问题：</b>什么时候，结论是“不得不”成立的？ <span style="color:#889">｜ 适用边界：圆圈包含只是对“述说所有/不述说任何”的教学类比；亚里士多德讨论的是词项间的述说关系，不是几何图形。</span></div><div class="tt" id="sTitle"></div><div class="bd" id="sBody"></div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+const STORE='minest_syllogism_v1';
+let SAVE={done:{},lit:{}};
+try{const s=localStorage.getItem(STORE);if(s)SAVE=JSON.parse(s);}catch(e){}
+function persist(){try{localStorage.setItem(STORE,JSON.stringify(SAVE));}catch(e){}}
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',()=>{resize();if(INIT[L])INIT[L](true);});resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ======== 原文：Jenkinson 英译《前分析篇》（MIT Classics）；中文编译 ======== */
+const MAP={"1": [["把 B 拖进 A：大前提成立", "三段论是一种论证，其中某些东西被陈述了，另外某种不同于所陈述的东西，由于它们是如此，必然地随之而来。", "A syllogism is discourse in which, certain things being stated, something other than what is stated follows of necessity from their being so.", "《前分析篇》第一卷 第1章"], ["把 C 拖进 B：B 成为中项", "我把这样的词项称为中项：它本身包含于另一个之中，又在自身中包含另一个；在位置上它也居中。", "I call that term middle which is itself contained in another and contains another in itself: in position also this comes in the middle.", "《前分析篇》第一卷 第4章"], ["前提成立时拖动 C：怎么也出不了 A", "如果 A 述说所有 B，B 述说所有 C，那么 A 必然述说所有 C。", "If A is predicated of all B, and B of all C, A must be predicated of all C", "《前分析篇》第一卷 第4章"], ["把 B 拖出 A 之外：另一种组合", "同样，如果 A 不述说任何 B，而 B 述说所有 C，那么必然没有 C 是 A。", "Similarly also, if A is predicated of no B, and B of all C, it is necessary that no C will be A.", "《前分析篇》第一卷 第4章"], ["无须外加任何东西：完满的三段论", "我称这样的三段论为完满的：它除了已陈述的东西之外，不需要任何别的东西来表明必然的结论。", "I call that a perfect syllogism which needs nothing other than what has been stated to make plain what necessarily follows", "《前分析篇》第一卷 第1章"]], "2": [["B 在 A 内，C 在 B 外", "但如果第一项属于所有中项，而中项不属于任何末项，那么在两端之间就没有三段论。", "But if the first term belongs to all the middle, but the middle to none of the last term, there will be no syllogism in respect of the extremes", "《前分析篇》第一卷 第4章"], ["把 C 拖进 A 内（B 外）：仍满足前提", "因为第一项可能属于末项的全部，也可能一个都不属于。", "for it is possible that the first should belong either to all or to none of the last", "《前分析篇》第一卷 第4章"], ["再把 C 拖到 A 外：也满足前提", "因而无论特称还是全称的结论都不是必然的。", "so that neither a particular nor a universal conclusion is necessary", "《前分析篇》第一卷 第4章"], ["两种世界都造出来：没有三段论", "但如果没有必然的结果，就不可能凭这些前提得出三段论。", "But if there is no necessary consequence, there cannot be a syllogism by means of these premisses.", "《前分析篇》第一卷 第4章"]], "3": [["第二格：中项 M 在两端之外", "每当同一个东西属于一个主项的全部而不属于另一个的任何部分，……我称这样的格为第二格。", "Whenever the same thing belongs to all of one subject, and to none of another, or to all of each subject or to none of either, I call such a figure the second", "《前分析篇》第一卷 第5章"], ["中项不在中间：结论不显而易见", "在这个格中，三段论无论如何都不可能是完满的。", "A syllogism cannot be perfect anyhow in this figure", "《前分析篇》第一卷 第5章"], ["按住“换位”：M 与 O 的关系翻转", "因为如果 M 不属于任何 O，那么 O 也不属于任何 M。", "For if M belongs to no O, O belongs to no M", "《前分析篇》第一卷 第5章"], ["换位完成：第一格重新形成", "因为第一格又被形成了。", "for the first figure has again been formed", "《前分析篇》第一卷 第5章"], ["需要额外的一步：非完满", "必然性并没有仅仅从原来的前提完满地确立起来，还需要别的命题。", "necessity is not perfectly established merely from the original premisses; others also are needed", "《前分析篇》第一卷 第5章"]], "4": [["应用：给三个新词项安排位置", "每当三个词项彼此如此相关：末项整个包含于中项，而中项整个包含于或排除于首项，两端就必然以完满的三段论相联系。", "Whenever three terms are so related to one another that the last is contained in the middle as in a whole, and the middle is either contained in, or excluded from, the first as in or from a whole, the extremes must be related by a perfect syllogism.", "《前分析篇》第一卷 第4章"], ["两题都推出必然结论", "第二格的一切三段论都可以化归为第一格的全称三段论。", "all syllogisms in the middle figure can be reduced to universal syllogisms in the first figure", "《前分析篇》第一卷 第7章"]]};
+const TITLE={1:'① 必然随之而来 · 把圆拖进圆里建立前提，再试着把 C 拖出 A',2:'② 反例世界 · 前提不变，亲手造出“C 在 A 内”和“C 在 A 外”两个世界',3:'③ 格与化归 · 第二格：中项在外；按住“换位”把它化归为第一格',4:'④ 应用练习 · 新词项：拖动圆圈，使左上角的结论变得必然'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr${(SAVE.lit[l]||[]).includes(i)?' on':''}" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——亚里士多德${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const e=$('mr'+l+'_'+i);if(!e||e.classList.contains('on'))return;e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});
+  (SAVE.lit[l]=SAVE.lit[l]||[]).push(i);if(MAP[l].every((_,k)=>$('mr'+l+'_'+k).classList.contains('on'))){SAVE.done[l]=1;tabs();}persist();}
+
+/* ======== 词项圆 ======== */
+function mk(id,label,x,y,r,col){return{id,label,x,y,r,col,vx:0,vy:0};}
+const inside=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y)+a.r<=b.r+0.5;      // a 整个在 b 内
+const outside=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y)>=a.r+b.r-0.5;      // a 与 b 完全分离
+function drawCircle(c,hl){ctx.save();ctx.globalAlpha=0.22;ctx.fillStyle=c.col;ctx.beginPath();ctx.arc(c.x,c.y,c.r,0,7);ctx.fill();ctx.globalAlpha=1;
+  ctx.strokeStyle=hl?'#f3a52b':c.col;ctx.lineWidth=hl?4:2.5;ctx.stroke();ctx.restore();
+  txt(c.id,c.x,c.y-c.r+20,c.col,18,'center',true);txt(c.label,c.x,c.y-c.r+38,'#445',12);}
+/* 拖动：带“约束”——被锁定的前提不能被打破，圆会被推回 */
+let PT=null,DRAG=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y,t0:T};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]?.move?.(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]?.up?.();DRAG=null;});
+function pick(list,x,y){let best=null;for(const c of list){const d=Math.hypot(x-c.x,y-c.y);if(d<c.r&&(!best||c.r<best.r))best=c;}return best;}
+/* 在锁定约束下移动圆 c 到 (tx,ty)：若违背约束则沿边界滑动并“抵抗” */
+function moveConstrained(c,tx,ty,cons){const ox=c.x,oy=c.y;c.x=tx;c.y=ty;let blocked=false;
+  for(let it=0;it<6;it++){let ok=true;for(const k of cons){if(k.t==='in'&&k.a===c&&!inside(c,k.b)){const d=Math.hypot(c.x-k.b.x,c.y-k.b.y)||1,m=k.b.r-c.r;c.x=k.b.x+(c.x-k.b.x)/d*m;c.y=k.b.y+(c.y-k.b.y)/d*m;ok=false;blocked=true;}
+    if(k.t==='in'&&k.b===c&&!inside(k.a,c)){const d=Math.hypot(k.a.x-c.x,k.a.y-c.y)||1,m=c.r-k.a.r;c.x=k.a.x-(k.a.x-c.x)/d*m;c.y=k.a.y-(k.a.y-c.y)/d*m;ok=false;blocked=true;}
+    if(k.t==='out'&&(k.a===c||k.b===c)&&!outside(k.a,k.b)){const o=k.a===c?k.b:k.a,d=Math.hypot(c.x-o.x,c.y-o.y)||1,m=c.r+o.r;c.x=o.x+(c.x-o.x)/d*m;c.y=o.y+(c.y-o.y)/d*m;ok=false;blocked=true;}}
+    if(ok)break;}
+  c.x=clamp(c.x,c.r+4,W-c.r-4);c.y=clamp(c.y,c.r+4,H-c.r-4);return blocked;}
+let strain=0,strainAt=null;
+function drawStrain(){if(strain>0.02&&strainAt){ctx.strokeStyle=`rgba(192,57,43,${strain})`;ctx.lineWidth=3;for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(strainAt.x,strainAt.y,strainAt.r+6+i*6+Math.sin(T*30)*2,0,7);ctx.stroke();}}strain*=0.9;}
+function premBar(x,y,w,label,state){ctx.fillStyle=state===1?'#e8f6ec':state===-1?'#fdecec':'#fff';ctx.strokeStyle=state===1?'#2f9e57':state===-1?'#c0392b':'#bbb';ctx.lineWidth=1.5;ctx.beginPath();ctx.roundRect(x,y,w,28,8);ctx.fill();ctx.stroke();
+  txt((state===1?'✓ ':state===-1?'✗ ':'○ ')+label,x+10,y+19,state===1?'#1f6e3c':state===-1?'#a02a1f':'#667',13,'left',true);}
+
+/* ================= 第 1 关 ================= */
+let S1;
+function init1(keep){const R=Math.min(W,H);S1={A:mk('A','动物',W*0.38,H*0.5,R*0.36,'#3a6f99'),B:mk('B','人',W*0.78,H*0.32,R*0.2,'#a0522d'),C:mk('C','苏格拉底',W*0.82,H*0.78,R*0.08,'#2f9e57'),locked:false,tries:0,pushT:0,neg:false,negDone:false};}
+function cons1(){const c=[];if(S1.locked){if(!S1.neg)c.push({t:'in',a:S1.B,b:S1.A});else c.push({t:'out',a:S1.B,b:S1.A});c.push({t:'in',a:S1.C,b:S1.B});}return c;}
+HD[1]={down(x,y){DRAG=pick([S1.A,S1.B,S1.C],x,y);},move(x,y,dx,dy){if(!DRAG)return;const tx=DRAG.x+dx,ty=DRAG.y+dy;
+  const before=S1.locked;const blocked=moveConstrained(DRAG,tx,ty,cons1());
+  if(blocked&&DRAG===S1.C&&S1.locked){strain=Math.min(1,strain+0.15);strainAt=S1.C;S1.pushT+=Math.hypot(dx,dy);if(S1.pushT>200){hit(1,2);}}
+  if(blocked&&DRAG===S1.B&&S1.locked){strain=Math.min(1,strain+0.15);strainAt=S1.B;}}};
+function t1(dt){const {A,B,C}=S1;ctx.fillStyle='#f4f1ea';ctx.fillRect(0,0,W,H);
+  const p1=S1.neg?outside(B,A):inside(B,A),p2=inside(C,B);
+  if(inside(B,A))hit(1,0);if(p1&&p2&&!S1.neg)hit(1,1);
+  // 两前提都成立时锁定：前提成为约束
+  if(p1&&p2&&!S1.locked){S1.locked=true;toast('两个前提都成立了。现在试着把 C 拖出 A');}
+  if(S1.locked&&!S1.neg&&!(inside(B,A)&&inside(C,B)))S1.locked=false;
+  // 否定组合：用户把 B 拖到 A 外（需解除锁定：拖 B 时按住超过 1.5 秒则“松开前提”）
+  if(DRAG===S1.B&&PT&&T-PT.t0>1.5&&S1.locked&&!S1.neg){S1.locked=false;toast('你松开了大前提。把 B 整个拖到 A 外面，再把 C 留在 B 里');}
+  if(!S1.locked&&outside(B,A)&&inside(C,B)){S1.neg=true;S1.locked=true;hit(1,3);toast('A 不述说任何 B，B 述说所有 C：C 必然在 A 之外');}
+  if(S1.neg&&S1.locked&&outside(C,A)&&isOn(1,2))hit(1,4);
+  drawCircle(A,false);drawCircle(B,S1.locked);drawCircle(C,DRAG===C);drawStrain();
+  const bw=Math.min(240,W*0.3);
+  premBar(12,12,bw,S1.neg?'没有 B 是 A':'所有 B 是 A',S1.neg?(outside(B,A)?1:0):(inside(B,A)?1:0));
+  premBar(12,46,bw,'所有 C 是 B',inside(C,B)?1:0);
+  const concl=S1.neg?outside(C,A):inside(C,A);
+  ctx.fillStyle='#223';ctx.fillRect(12,82,bw,2);
+  premBar(12,90,bw,S1.locked?(S1.neg?'∴ 没有 C 是 A（必然）':'∴ 所有 C 是 A（必然）'):'结论：尚未被迫',S1.locked&&concl?1:0);
+  if(!S1.locked)txt(inside(B,A)?'再把小圆 C 拖进 B':'把中圆 B 整个拖进大圆 A',W*0.6,H-14,'#445',13);
+  else txt(S1.neg?'再试着把 C 拖进 A：做不到':'C 被困住了：要让它离开 A，只能先打破一个前提（按住 B 1.5 秒可松开大前提）',W*0.6,H-14,'#445',13);}
+const isOn=(l,i)=>{const e=$('mr'+l+'_'+i);return e&&e.classList.contains('on');};
+
+/* ================= 第 2 关：反例世界 ================= */
+let S2;
+function init2(){const R=Math.min(W,H);S2={A:mk('A','动物',W*0.32,H*0.5,R*0.36,'#3a6f99'),B:mk('B','人',W*0.28,H*0.5,R*0.17,'#a0522d'),C:mk('C','?',W*0.82,H*0.2,R*0.08,'#2f9e57'),worlds:[],flash:0};}
+HD[2]={down(x,y){DRAG=pick([S2.C,S2.B],x,y);},move(x,y,dx,dy){if(!DRAG)return;moveConstrained(DRAG,DRAG.x+dx,DRAG.y+dy,[{t:'in',a:S2.B,b:S2.A},{t:'out',a:S2.C,b:S2.B}]);},
+ up(){const {A,B,C}=S2;if(!outside(C,B))return;const kind=inside(C,A)?'in':outside(C,A)?'out':null;if(!kind)return;
+   if(!S2.worlds.find(w=>w.kind===kind)){S2.worlds.push({kind,cx:C.x,cy:C.y});S2.flash=1;
+     if(kind==='in'){C.label='马';hit(2,1);toast('世界一：C=马。所有人是动物，没有马是人——而所有马是动物');}
+     else{C.label='石头';hit(2,2);toast('世界二：C=石头。前提同样成立——而没有石头是动物');}
+     if(S2.worlds.length===2)hit(2,3);}}};
+function t2(dt){const {A,B,C}=S2;ctx.fillStyle='#f4f1ea';ctx.fillRect(0,0,W,H);if(T>0.6)hit(2,0);
+  S2.worlds.forEach(w=>{ctx.save();ctx.globalAlpha=0.35;ctx.fillStyle=w.kind==='in'?'#2f9e57':'#c0392b';ctx.beginPath();ctx.arc(w.cx,w.cy,C.r,0,7);ctx.fill();ctx.restore();txt(w.kind==='in'?'马':'石头',w.cx,w.cy+4,'#223',12,'center',true);});
+  drawCircle(A,false);drawCircle(B,false);drawCircle(C,DRAG===C);
+  const bw=Math.min(260,W*0.32);premBar(12,12,bw,'所有 B 是 A（锁定）',inside(B,A)?1:0);premBar(12,46,bw,'没有 C 是 B（锁定）',outside(C,B)?1:0);
+  ctx.fillStyle='#223';ctx.fillRect(12,82,bw,2);
+  const st=inside(C,A)?'此世界：所有 C 是 A':outside(C,A)?'此世界：没有 C 是 A':'此世界：有些 C 是 A';
+  premBar(12,90,bw,S2.worlds.length===2?'∴ 结论：无必然结论':st,S2.worlds.length===2?-1:0);
+  txt(S2.worlds.length===0?'前提被锁定。把 C 拖到 A 里面（但在 B 外）松手，造出一个世界':S2.worlds.length===1?'现在把 C 拖到 A 外面松手，造出第二个世界':'两种结局都与前提相容：结论不是被迫的',W*0.62,H-14,'#445',13);}
+
+/* ================= 第 3 关：第二格与化归 ================= */
+let S3;
+function init3(){const R=Math.min(W,H);S3={M:mk('M','实体',W*0.5,H*0.5,R*0.13,'#7a4fc9'),N:mk('N','人',W*0.22,H*0.5,R*0.24,'#a0522d'),O:mk('O','数',W*0.8,H*0.5,R*0.16,'#2f9e57'),hold:false,conv:0,done:false};
+  // 第二格：M 属于所有 N（N 包含于 M? 这里用“述说”：M 述说所有 N ⇒ N ⊂ M），M 不属于任何 O（O 与 M 分离）
+  S3.M.r=R*0.3;S3.N.r=R*0.12;S3.M.x=W*0.3;S3.N.x=W*0.3;S3.O.x=W*0.78;}
+HD[3]={down(x,y){if(x>W*0.82&&y>H*0.78){S3.hold=true;return;}DRAG=pick([S3.N,S3.O],x,y);},
+ move(x,y,dx,dy){if(!DRAG||S3.done)return;moveConstrained(DRAG,DRAG.x+dx,DRAG.y+dy,[{t:'in',a:S3.N,b:S3.M},{t:'out',a:S3.O,b:S3.M}]);hit(3,1);},
+ up(){S3.hold=false;}};
+function t3(dt){const {M,N,O}=S3;ctx.fillStyle='#f4f1ea';ctx.fillRect(0,0,W,H);if(T>0.6)hit(3,0);
+  if(S3.hold&&!S3.done){S3.conv=Math.min(1,S3.conv+dt*0.45);if(S3.conv>0.15)hit(3,2);if(S3.conv>=1){S3.done=true;hit(3,3);setTimeout(()=>hit(3,4),1200);toast('换位：“没有 O 是 M”。现在 M 居中：第一格');}}
+  else if(!S3.done)S3.conv=Math.max(0,S3.conv-dt*0.6);
+  drawCircle(M,false);drawCircle(N,false);drawCircle(O,false);
+  // 换位动画：表达式翻转
+  const bw=Math.min(280,W*0.34),k=S3.conv;
+  premBar(12,12,bw,'M 述说所有 N（所有 N 是 M）',1);
+  ctx.save();ctx.translate(12+bw/2,60);ctx.scale(1,Math.cos(k*Math.PI));premBar(-bw/2,-14,bw,k<0.5?'M 不述说任何 O':'O 不述说任何 M（换位）',1);ctx.restore();
+  ctx.fillStyle='#223';ctx.fillRect(12,82,bw,2);
+  premBar(12,90,bw,S3.done?'∴ 没有 N 是 O（经第一格）':'结论：看不出来',S3.done?1:0);
+  // 中项位置示意
+  const yy=H*0.86;const order=S3.done?['O','M','N']:['M','N','O'];
+  order.forEach((s,i)=>{const x=W*0.18+i*W*0.12;ctx.fillStyle=s==='M'?'#7a4fc9':'#889';ctx.beginPath();ctx.roundRect(x-26,yy-16,52,30,8);ctx.fill();txt(s,x,yy+5,'#fff',15,'center',true);});
+  txt(S3.done?'中项回到了中间':'中项在最前：不在两端之间',W*0.18+W*0.12,yy+34,'#556',12);
+  ctx.fillStyle=S3.hold?'#f3a52b':'rgba(255,255,255,.95)';ctx.strokeStyle='#999';ctx.beginPath();ctx.roundRect(W*0.82,H*0.78,W*0.16,H*0.18,10);ctx.fill();ctx.stroke();
+  txt('按住：换位',W*0.9,H*0.87+5,'#222',14,'center',true);
+  ctx.fillStyle='#f3a52b';ctx.fillRect(W*0.83,H*0.94,W*0.14*S3.conv,5);
+  txt(S3.done?'换位后，原前提之外加了一个命题——所以第二格是“非完满的”':'拖动 N、O：中项 M 站在外面。按住右下角把小前提换位',W*0.5,24,'#445',13);}
+
+/* ================= 第 4 关：应用练习 ================= */
+let S4;
+const TASKS=[{big:'会死的',mid:'动物',small:'鲸',goal:'in',txt:'目标：所有鲸都会死（必然）'},{big:'植物',mid:'哺乳动物',small:'狗',goal:'out',txt:'目标：没有狗是植物（必然）'}];
+function init4(){const R=Math.min(W,H);S4={k:0,solved:[],C:null};setTask();}
+function setTask(){const R=Math.min(W,H),t=TASKS[S4.k];S4.A=mk('大',t.big,W*0.25,H*0.45,R*0.3,'#3a6f99');S4.B=mk('中',t.mid,W*0.7,H*0.3,R*0.17,'#a0522d');S4.C=mk('小',t.small,W*0.86,H*0.78,R*0.07,'#2f9e57');S4.hold=0;}
+HD[4]={down(x,y){DRAG=pick([S4.A,S4.B,S4.C],x,y);},move(x,y,dx,dy){if(DRAG)moveConstrained(DRAG,DRAG.x+dx,DRAG.y+dy,[]);}};
+function t4(dt){const {A,B,C}=S4,t=TASKS[S4.k];ctx.fillStyle='#eef2ec';ctx.fillRect(0,0,W,H);hit(4,0);
+  const forced=t.goal==='in'?(inside(B,A)&&inside(C,B)):(outside(B,A)&&inside(C,B));
+  if(forced&&!DRAG){S4.hold+=dt;}else S4.hold=0;
+  drawCircle(A,false);drawCircle(B,forced);drawCircle(C,false);
+  const bw=Math.min(280,W*0.34);premBar(12,12,bw,t.txt,forced?1:0);
+  premBar(12,46,bw,`前提一：${t.goal==='in'?'所有':'没有'}「${t.mid}」${t.goal==='in'?'是':'是'}「${t.big}」`,t.goal==='in'?(inside(B,A)?1:0):(outside(B,A)?1:0));
+  premBar(12,80,bw,`前提二：所有「${t.small}」是「${t.mid}」`,inside(C,B)?1:0);
+  if(forced){ctx.fillStyle='#1f6e3c';ctx.fillRect(12,116,bw*clamp(S4.hold/1.2,0,1),4);}
+  if(S4.hold>1.2&&!S4.solved.includes(S4.k)){S4.solved.push(S4.k);toast('结论被迫成立：中项把两端连了起来');
+    if(S4.solved.length===2){hit(4,1);SAVE.done[4]=1;tabs();persist();}else setTimeout(()=>{S4.k=1;setTask();},1200);}
+  txt(S4.solved.length===2?'两题完成。中项总是“包含另一个，又被另一个包含”':`第 ${S4.k+1} / 2 题：自己安排三个圆，使结论不得不成立，松手保持 1 秒`,W*0.6,H-14,'#445',13);}
+
+/* ======== 调度 ======== */
+const INIT={1:init1,2:init2,3:init3,4:init4},TICK={1:t1,2:t2,3:t3,4:t4};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!SAVE.done[t.dataset.l]);});}
+function go(n){L=n;tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);DRAG=null;strain=0;INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{INIT[L]();toast('已重置本关（已点亮的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

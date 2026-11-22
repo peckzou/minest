@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 诺齐克体验机器 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .core{padding:5px 10px 0;font-size:13px;color:#1f2b38}
+#side .core b{color:#a0620a}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+#side .edge{padding:2px 10px 8px;font-size:11.5px;color:#667}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 36%)}#side{height:36%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>诺齐克 · 体验机器</b>
+  <button class="tab on" data-l="1">① 插上机器</button>
+  <button class="tab" data-l="2">② 做与体验</button>
+  <button class="tab" data-l="3">③ 成为某种人</button>
+  <button class="tab" data-l="4">④ 接触现实</button>
+  <button class="tab" data-l="5">⑤ 应用练习：醒来</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side">
+  <div class="tt" id="sTitle"></div>
+  <div class="core"><b>核心问题：</b>如果快乐的体验是唯一的好，为什么我们不愿意插上一台能给我们任何美好体验的机器？</div>
+  <div class="bd" id="sBody"></div>
+  <div class="edge">适用边界：机器、仪表和数值只是教学比喻。诺齐克的论证诉诸读者自己的直觉判断，“快乐的量”并不能真的被测量；第 5 关的百分比来自维基百科对 De Brigard（2010）实验的概述，不是诺齐克本人的内容。</div>
+</div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+function meter(x,y,w,v,col,t,lc){ctx.fillStyle='rgba(255,255,255,.92)';ctx.fillRect(x,y,w,10);ctx.fillStyle=col;ctx.fillRect(x,y,w*clamp(v,0,1),10);ctx.strokeStyle='#777';ctx.lineWidth=1;ctx.strokeRect(x,y,w,10);txt(t,x,y-4,lc||'#334',12,'left');}
+function person(x,y,s,col,a){ctx.globalAlpha=a==null?1:a;ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y-s*1.55,s*0.32,0,7);ctx.fill();ctx.beginPath();ctx.moveTo(x-s*0.45,y);ctx.quadraticCurveTo(x,y-s*1.5,x+s*0.45,y);ctx.closePath();ctx.fill();ctx.globalAlpha=1;}
+function block(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(x-w/2,y-h/2,w,h);ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=1;ctx.strokeRect(x-w/2,y-h/2,w,h);}
+
+/* ======== 保存与恢复 ======== */
+const KEY='minest_nozick_v1',MEM={};
+function loadState(){try{const v=localStorage.getItem(KEY);return v?JSON.parse(v):null;}catch(e){return MEM[KEY]||null;}}
+var A1,A2,A3,A4,A5;
+const saved=loadState()||{};
+const done=saved.done||{};const LIT=new Set(saved.lit||[]);
+function saveState(){const v={done,lit:[...LIT],L,tries:A5?A5.tries:(saved.tries||null)};try{localStorage.setItem(KEY,JSON.stringify(v));}catch(e){MEM[KEY]=v;}}
+
+/* ======== 原文（诺齐克《无政府、国家与乌托邦》1974，pp.42–45 受版权保护：只用维基百科“Experience machine”词条中引用的短句，并逐字核对） ======== */
+const NZ='诺齐克《无政府、国家与乌托邦》（1974），据维基百科“Experience machine”词条转引';
+const MAP={
+1:[["按住：插上机器，快乐涨满","插上体验机器，比不插，我们会体验到更多的快乐。","We will experience more pleasure if we plug into the experience machine than if we do not plug into the experience machine.","维基百科对论证的重构，前提 2（编者重构，非诺齐克原话）"],
+   ["一直插着：做、是、接触现实三条在流失","如果尽可能多地体验快乐就是我们在乎的一切，那么我们就没有理由不插上体验机器。","If experiencing as much pleasure as we can is all that matters to us, then we have no reason not to plug into the experience machine.","维基百科对论证的重构，结论 1（编者重构）"]],
+2:[["左边亲手叠出 5 层塔","对于某些体验，正是因为我们首先想做那些事，我们才想要做那些事的体验，或想到自己做过的体验。","it is only because first we want to do the actions that we want the experiences of doing them or thinking we’ve done them",NZ+"，p.43"],
+   ["右边按住：体验满格，与真做的一样","（可是，我们为什么想去做那些活动，而不只是体验它们？）","(But why do we want to do the activities rather than merely to experience them?)",NZ+"（词条注释 a）"]],
+3:[["按住：他在缸里漂浮，轮廓化成一团","漂浮在缸里的人是一团无定形之物。","Someone floating in a tank is an indeterminate blob",NZ+"，p.43"],
+   ["把品格词拖到缸里的人身上：贴不住","他根本就没有“是怎样的人”。插进机器是一种自杀。","there’s no way he is. Plugging into the machine is a form of suicide.",NZ+"，p.43"]],
+4:[["向外推：手碰到机器世界的边界","那里没有与任何更深实在的真实接触，尽管对它的体验可以被模拟。","There is no actual contact with any deeper reality, though the experience of it can be simulated.",NZ+"，p.43"],
+   ["一直推：风景露出被渲染的网格","插进体验机器把我们限制在人造的现实里（限制在我们能制造的东西之内）。","Plugging into an experience machine limits us to a man-made reality (it limits us to what we can make).","维基百科对诺齐克第三条理由的概述（转述性质，非原话）"]],
+5:[["按住“拔出”：你其实已经在机器里","如果你选择继续你的程序，你会回到你所熟悉的生活，并且不会记得这次中断。","if you choose to continue with your program you will return to your life as you know it with no recollection of this interruption","Joshua Greene 的改写，据维基百科转引（de Lazari-Radek & Singer 2014，p.257）"],
+   ["把外面的生活设成“囚犯”，再拔一次","被告知自己（在外面）是囚犯的人中，只有 13% 想断开。","Of those who were told they were prisoners, only 13% wished to disconnect.","维基百科对 De Brigard（2010）实验的概述"]]};
+const TITLE={1:'① 插上机器 · 按住画面戴上体验机器，并一直按着',2:'② 做与体验 · 左：把木块亲手叠成塔；右：按住，塔自己长出来',3:'③ 成为某种人 · 按住右半边让他在缸里漂浮；把下方品格词拖到他身上',4:'④ 接触现实 · 按住并向外拖，去碰机器世界的尽头',5:'⑤ 应用练习：醒来 · 拖动下方滑块设定外面的生活；按住右下角把自己拔出来'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr${LIT.has(l+'_'+i)?' on':''}" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const k=l+'_'+i;if(LIT.has(k))return;LIT.add(k);const e=$('mr'+l+'_'+i);if(e){e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});}
+  if(MAP[l].every((_,j)=>LIT.has(l+'_'+j))&&!done[l]){done[l]=1;tabs();toast('本关完成 ✓');}saveState();}
+
+/* ======== 输入 ======== */
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y};cv.setPointerCapture(e.pointerId);HD[L]&&HD[L].down&&HD[L].down(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]&&HD[L].move&&HD[L].move(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]&&HD[L].up&&HD[L].up();});
+addEventListener('pointercancel',()=>{PT=null;HD[L]&&HD[L].up&&HD[L].up();});
+
+/* ================= 第 1 关：插上机器 ================= */
+function init1(){A1={k:0,hold:false,drain:0};}
+HD[1]={down(){A1.hold=true;},up(){A1.hold=false;}};
+function t1(dt){const a=A1;
+  a.k=clamp(a.k+(a.hold?0.5:-0.35)*dt,0,1);
+  if(a.k>0.9)a.drain=clamp(a.drain+dt*0.1,0,1);else a.drain=clamp(a.drain-dt*0.04,0,1);
+  const g=a.drain;
+  ctx.fillStyle=`rgb(${lerp(214,120,g)|0},${lerp(222,124,g)|0},${lerp(230,130,g)|0})`;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#9aa3ad';ctx.fillRect(0,H*0.8,W,H*0.2);
+  // 窗外的真实世界
+  const wx=W*0.05,wy=H*0.1,ww=W*0.18,wh=H*0.32;
+  const sg=ctx.createLinearGradient(0,wy,0,wy+wh);sg.addColorStop(0,'#7cc3ee');sg.addColorStop(1,'#d9f0d0');ctx.fillStyle=sg;ctx.fillRect(wx,wy,ww,wh);
+  ctx.fillStyle='#ffe58a';ctx.beginPath();ctx.arc(wx+ww*0.75,wy+wh*0.25,12,0,7);ctx.fill();
+  ctx.fillStyle='#4f8a3a';ctx.beginPath();ctx.arc(wx+ww*0.3,wy+wh*0.6,wh*0.16,0,7);ctx.fill();ctx.fillStyle='#6b4a2a';ctx.fillRect(wx+ww*0.29,wy+wh*0.7,6,wh*0.3);
+  person(wx+ww*0.65,wy+wh*0.98,wh*0.13,'#3a6f99');
+  ctx.fillStyle=`rgba(20,22,28,${g*0.85})`;ctx.fillRect(wx,wy,ww,wh);
+  ctx.strokeStyle='#556';ctx.lineWidth=4;ctx.strokeRect(wx,wy,ww,wh);txt('窗外：真实的世界',wx+ww/2,wy+wh+18,'#334',12);
+  // 椅子与人
+  const cx=W*0.38,s=H*0.13,headY=H*0.78-s*1.55;
+  ctx.fillStyle='#55606c';ctx.fillRect(cx-s*0.7,H*0.62,s*1.4,H*0.18);ctx.fillRect(cx-s*0.75,H*0.55,s*0.2,H*0.25);
+  person(cx,H*0.78,s,`rgb(${lerp(59,110,g)|0},${lerp(74,110,g)|0},${lerp(90,112,g)|0})`);
+  // 机器头盔
+  const hy=lerp(H*0.02,headY-s*0.05,a.k);
+  ctx.strokeStyle='#333';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(cx,0);ctx.lineTo(cx,hy-s*0.3);ctx.stroke();
+  ctx.fillStyle='#8a94a0';ctx.beginPath();ctx.arc(cx,hy,s*0.42,Math.PI,0);ctx.fill();ctx.fillRect(cx-s*0.42,hy,s*0.84,s*0.08);
+  if(a.k>0.6){ctx.fillStyle=`rgba(140,200,255,${(a.k-0.6)*1.5*(0.6+0.4*Math.sin(T*6))})`;ctx.beginPath();ctx.arc(cx,hy,s*0.5,Math.PI,0);ctx.fill();}
+  // 体验气泡
+  if(a.k>0.03){const bx=W*0.68,by=H*0.34,rx=W*0.21,ry=H*0.24;ctx.save();ctx.globalAlpha=a.k;
+    ctx.beginPath();ctx.ellipse(bx,by,rx,ry,0,0,7);ctx.clip();
+    const bg=ctx.createLinearGradient(0,by-ry,0,by+ry);bg.addColorStop(0,'#ff9a5a');bg.addColorStop(0.6,'#ffd27a');bg.addColorStop(1,'#5aa0d0');ctx.fillStyle=bg;ctx.fillRect(bx-rx,by-ry,rx*2,ry*2);
+    ctx.fillStyle='#fff3b0';ctx.beginPath();ctx.arc(bx,by+ry*0.25,ry*0.3,0,7);ctx.fill();
+    for(let i=0;i<30;i++){const px=bx-rx+((i*97+T*40)%(rx*2)),py=by-ry+((i*53+T*25*(1+i%3))%(ry*2));ctx.fillStyle=`hsla(${i*37%360},90%,70%,.9)`;ctx.fillRect(px,py,4,4);}
+    txt('掌声、爱、成功……任何你想要的体验',bx,by-ry*0.45,'#5a2a00',13,'center',true);
+    ctx.restore();ctx.globalAlpha=a.k;ctx.strokeStyle='rgba(255,255,255,.8)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(bx,by,rx,ry,0,0,7);ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.8)';[[0.55,0.1],[0.5,0.18]].forEach(([u,v],i)=>{ctx.beginPath();ctx.arc(W*u,H*v+H*0.12+i*14,5-i*1.5,0,7);ctx.fill();});ctx.globalAlpha=1;}
+  // 仪表
+  const mx=W*0.6,mw=W*0.34;
+  meter(mx,H*0.68,mw,a.k,'#f3a52b','快乐的体验');
+  meter(mx,H*0.76,mw,1-g,'#3a6f99','真的在做事');
+  meter(mx,H*0.84,mw,1-g*0.95,'#7a4fc9','成为某种人');
+  meter(mx,H*0.92,mw,1-Math.min(1,g*1.05),'#3f8a35','接触真实');
+  const hintT=a.k<0.05?'按住画面：把体验机器戴上':a.drain<0.7?(a.k>0.9?'快乐已经满了……继续按住，看看另外三条仪表':'继续按住……'):'快乐始终满格；可你什么也没做，没有成为谁，也没碰到真实';
+  txt(hintT,W*0.5,22,'#223',14,'center',true);
+  if(a.k>=0.98)hit(1,0);if(a.drain>=0.7&&a.k>0.9)hit(1,1);}
+
+/* ================= 第 2 关：做与体验 ================= */
+const BW=()=>Math.min(W*0.07,60),BH=()=>Math.min(H*0.06,28);
+function g2(){return{gy:H*0.82,cx:W*0.27,rx:W*0.75};}
+function init2(){const pool=[];for(let i=0;i<8;i++)pool.push({x:0.05+i*0.052,inTower:false});A2={pool,tower:[],drag:null,exp:0,hold:false,falls:[]};}
+HD[2]={down(x,y){const g=g2();if(x<W/2){for(const b of A2.pool){if(b.inTower)continue;const bx=W*b.x,by=g.gy+BH()*0.7;if(Math.abs(x-bx)<BW()/2+8&&Math.abs(y-by)<BH()){A2.drag={b,x,y};return;}}}else A2.hold=true;},
+ move(x,y){if(A2.drag){A2.drag.x=x;A2.drag.y=y;}},
+ up(){A2.hold=false;const d=A2.drag;A2.drag=null;if(!d)return;const g=g2();const n=A2.tower.length;const topY=g.gy-n*BH();
+  if(Math.abs(d.x-g.cx)<BW()*0.8&&d.y<topY+BH()&&d.y>topY-BH()*4){A2.tower.push({off:d.x-g.cx});d.b.inTower=true;
+    const avg=A2.tower.reduce((s,t)=>s+t.off,0)/A2.tower.length;
+    if(A2.tower.length>=2&&Math.abs(avg)>BW()*0.35){A2.tower.forEach((t,i)=>A2.falls.push({x:g.cx+t.off,y:g.gy-(i+0.5)*BH(),vx:(Math.random()-.5)*220+avg*3,vy:-Math.random()*120,r:0,vr:(Math.random()-.5)*6,l:2}));
+      A2.tower=[];A2.pool.forEach(b=>b.inTower=false);toast('塔倒了：真做的事，是会失败的');}}
+  else toast('没放稳，木块掉回地上');}};
+function t2(dt){const g=g2(),bw=BW(),bh=BH();
+  if(A2.hold)A2.exp=Math.min(1,A2.exp+dt*0.22);
+  ctx.fillStyle='#e9eef2';ctx.fillRect(0,0,W/2,H);ctx.fillStyle='#2a2140';ctx.fillRect(W/2,0,W/2,H);
+  ctx.fillStyle='#b9a98a';ctx.fillRect(0,g.gy,W/2,H-g.gy);ctx.fillStyle='rgba(255,255,255,.08)';ctx.fillRect(W/2,g.gy,W/2,H-g.gy);
+  txt('现实：亲手盖一座塔',14,24,'#223',15,'left',true);txt('机器里：体验“盖好了一座塔”',W/2+14,24,'#e8dcff',15,'left',true);
+  ctx.strokeStyle='rgba(0,0,0,.3)';ctx.setLineDash([4,4]);ctx.strokeRect(g.cx-bw/2,g.gy-(A2.tower.length+1)*bh,bw,bh);ctx.setLineDash([]);
+  A2.pool.forEach(b=>{if(b.inTower||(A2.drag&&A2.drag.b===b))return;block(W*b.x,g.gy+bh*0.7,bw,bh,'#c9a06a');});
+  A2.tower.forEach((t,i)=>block(g.cx+t.off,g.gy-(i+0.5)*bh,bw,bh,'#b07b3c'));
+  if(A2.drag)block(A2.drag.x,A2.drag.y,bw,bh,'#d8b07a');
+  A2.falls.forEach(f=>{f.vy+=900*dt;f.x+=f.vx*dt;f.y+=f.vy*dt;f.r+=f.vr*dt;f.l-=dt;if(f.y>g.gy-bh/2){f.y=g.gy-bh/2;f.vy*=-0.3;f.vx*=0.7;f.vr*=0.6;}ctx.save();ctx.translate(f.x,f.y);ctx.rotate(f.r);block(0,0,bw,bh,'#b07b3c');ctx.restore();});
+  A2.falls=A2.falls.filter(f=>f.l>0);
+  const fn=Math.floor(A2.exp*7);for(let i=0;i<fn;i++)block(g.rx,g.gy-(i+0.5)*bh,bw,bh,`hsl(${40+i*8},80%,65%)`);
+  if(A2.hold)for(let i=0;i<5;i++){ctx.fillStyle='rgba(255,240,170,.9)';ctx.fillRect(g.rx+(Math.random()-.5)*bw*2.4,g.gy-Math.random()*Math.max(1,fn)*bh,3,3);}
+  const real=Math.min(1,A2.tower.length/6);
+  meter(W*0.04,H*0.13,W*0.2,real,'#f3a52b','体验到“我盖了塔”');meter(W*0.04,H*0.22,W*0.2,real,'#3f8a35','真的盖了塔');
+  meter(W*0.54,H*0.13,W*0.2,A2.exp,'#f3a52b','体验到“我盖了塔”','#e8dcff');meter(W*0.54,H*0.22,W*0.2,0,'#3f8a35','真的盖了塔','#e8dcff');
+  txt(A2.tower.length<5?`从地上拖木块，叠到虚线位置（${A2.tower.length}/5）· 叠歪会倒`:'你真的盖了一座塔',W*0.25,H-10,'#223',12);
+  txt(A2.exp<1?'按住右半边：塔自己长出来，体验一样好':'体验满格：和真盖的感觉一模一样',W*0.75,H-10,'#e8dcff',12);
+  if(A2.tower.length>=5)hit(2,0);if(A2.exp>=1&&A2.tower.length>=3)hit(2,1);}
+
+/* ================= 第 3 关：成为某种人 ================= */
+const TRAITS=['勇敢','善良','聪明','风趣','有爱心'];
+function g3(){return{lx:W*0.2,ly:H*0.72,tx:W*0.76,ty:H*0.5,tr:Math.min(W*0.1,H*0.2)};}
+function init3(){A3={fl:0,hold:false,chips:TRAITS.map((t,i)=>({t,x:0.3+i*0.1,y:0.92,hx:0.3+i*0.1,hy:0.92,stuck:null,slide:null})),drag:null,slid:0};}
+HD[3]={down(x,y){for(const c of A3.chips){if(c.stuck||c.slide)continue;if(Math.abs(x-W*c.x)<36&&Math.abs(y-H*c.y)<16){A3.drag=c;return;}}if(x>W*0.55)A3.hold=true;},
+ move(x,y){if(A3.drag){A3.drag.x=x/W;A3.drag.y=y/H;}},
+ up(){A3.hold=false;const c=A3.drag;A3.drag=null;if(!c)return;const g=g3();const X=W*c.x,Y=H*c.y;
+  if(Math.abs(X-g.tx)<g.tr*1.2&&Y<g.ty+g.tr*1.7&&Y>g.ty-g.tr*1.9){if(A3.fl<0.5){toast('先按住右半边，让他在缸里漂浮一阵');c.x=c.hx;c.y=c.hy;return;}
+    c.slide={t:0,x:X,y:Y};A3.slid++;toast(`“${c.t}”贴不上去：缸里的人没有“是怎样”`);}
+  else if(Math.hypot(X-g.lx,Y-(g.ly-H*0.12))<H*0.2){c.stuck={dx:X-g.lx,dy:Y-g.ly};toast(`“${c.t}”：他此刻做的事，让这个词有了着落`);}
+  else{c.x=c.hx;c.y=c.hy;}}};
+function t3(dt){const g=g3(),a=A3;
+  a.fl=clamp(a.fl+(a.hold?0.15:-0.02)*dt,0,1);
+  ctx.fillStyle='#efe4cf';ctx.fillRect(0,0,W/2,H);ctx.fillStyle='#0f1a22';ctx.fillRect(W/2,0,W/2,H);
+  ctx.fillStyle='#b9a07a';ctx.fillRect(0,H*0.72,W/2,H*0.28);
+  txt('现实：他扶起摔倒的人',14,24,'#5a3b1e',15,'left',true);txt('缸里：他什么都体验过',W/2+14,24,'#bfe3ef',15,'left',true);
+  // 左：扶人
+  const ph=(Math.sin(T*1.2)+1)/2;person(g.lx,g.ly,H*0.12,'#3a6f99');
+  ctx.save();ctx.translate(g.lx+H*0.12,g.ly);ctx.rotate(-1.2*(1-ph));person(0,0,H*0.1,'#a0522d');ctx.restore();
+  ctx.strokeStyle='#3a6f99';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(g.lx+H*0.03,g.ly-H*0.12);ctx.lineTo(g.lx+H*0.1,g.ly-H*0.1*(0.4+ph*0.6));ctx.stroke();
+  // 右：缸
+  const tw=g.tr*1.1,th=g.tr*1.7;
+  const fg=ctx.createLinearGradient(0,g.ty-th,0,g.ty+th);fg.addColorStop(0,'rgba(80,200,180,.35)');fg.addColorStop(1,'rgba(20,90,110,.6)');ctx.fillStyle=fg;ctx.fillRect(g.tx-tw,g.ty-th,tw*2,th*2);
+  for(let i=0;i<10;i++){const by=g.ty+th-((T*40+i*37)%(th*2));ctx.strokeStyle='rgba(200,255,250,.5)';ctx.beginPath();ctx.arc(g.tx-tw*0.6+((i*29)%(tw*1.2)),by,2+i%3,0,7);ctx.stroke();}
+  const b=a.fl,bob=Math.sin(T*1.5)*6;
+  person(g.tx,g.ty+th*0.5+bob,g.tr*0.6,'#d9c7b0',1-b);
+  if(b>0.02){ctx.fillStyle=`rgba(217,199,176,${b})`;ctx.beginPath();for(let i=0;i<=24;i++){const an=i/24*6.283,rr=g.tr*0.42*(1+0.18*Math.sin(an*3+T*2)+0.1*Math.cos(an*5-T));const px=g.tx+Math.cos(an)*rr,py=g.ty+bob+Math.sin(an)*rr*1.2;i?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.fill();}
+  ctx.strokeStyle='rgba(200,240,255,.8)';ctx.lineWidth=3;ctx.strokeRect(g.tx-tw,g.ty-th,tw*2,th*2);
+  ctx.strokeStyle='#556';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(g.tx,g.ty-th);ctx.lineTo(g.tx,8);ctx.stroke();
+  meter(W*0.56,H*0.1,W*0.16,b,'#7fd8c8','轮廓溶解','#bfe3ef');
+  // 品格词
+  a.chips.forEach(c=>{let X=W*c.x,Y=H*c.y,al=1;
+    if(c.slide){c.slide.t+=dt;X=c.slide.x+Math.sin(c.slide.t*6)*4;Y=c.slide.y+c.slide.t*c.slide.t*260;al=Math.max(0,1-c.slide.t/1.4);if(c.slide.t>1.6){c.slide=null;c.x=c.hx;c.y=c.hy;}}
+    if(c.stuck){X=g.lx+c.stuck.dx;Y=g.ly+c.stuck.dy;}
+    ctx.globalAlpha=al;ctx.fillStyle=c.stuck?'#f3a52b':'#fff';ctx.strokeStyle='#3a6f99';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(X-32,Y-13,64,26,13);ctx.fill();ctx.stroke();txt(c.t,X,Y+5,'#223',13,'center',true);ctx.globalAlpha=1;});
+  txt(b<0.8?'按住右半边：让他在缸里一直漂浮':a.slid<2?'把下方的品格词拖到缸里的人身上':'他没有“是怎样的人”：拖到左边的人身上试试',W*0.5,H*0.84,b<0.8?'#223':'#a0620a',13);
+  if(b>=0.8)hit(3,0);if(a.slid>=2&&b>=0.8)hit(3,1);}
+
+/* ================= 第 4 关：接触现实 ================= */
+function init4(){A4={px:W/2,py:H/2,down:false,press:0,reveal:0};}
+HD[4]={down(x,y){A4.down=true;A4.px=x;A4.py=y;},move(x,y){A4.px=x;A4.py=y;},up(){A4.down=false;}};
+function t4(dt){const a=A4,cx=W/2,cy=H*0.5,rx=W*0.44,ry=H*0.42;
+  const dx=(a.px-cx)/rx,dy=(a.py-cy)/ry,d=Math.hypot(dx,dy);let hx=a.px,hy=a.py,touching=false;
+  if(a.down&&d>1){hx=cx+dx/d*rx;hy=cy+dy/d*ry;touching=true;a.press+=dt;a.reveal=Math.min(1,a.reveal+dt*0.12);}
+  const al=1-a.reveal*0.85;ctx.globalAlpha=al;
+  const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#5aa8e8');sky.addColorStop(1,'#f6e0b0');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#fff1a0';ctx.beginPath();ctx.arc(W*0.7,H*0.25,30,0,7);ctx.fill();
+  ctx.fillStyle='#5e9c4a';ctx.beginPath();ctx.moveTo(0,H*0.75);for(let x=0;x<=W;x+=20)ctx.lineTo(x,H*0.68+Math.sin(x*0.01)*H*0.06);ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.fill();
+  ctx.fillStyle='#4a8fc8';ctx.beginPath();ctx.moveTo(W*0.4,H);ctx.quadraticCurveTo(W*0.5,H*0.8,W*0.62,H*0.72);ctx.lineTo(W*0.66,H*0.72);ctx.quadraticCurveTo(W*0.56,H*0.85,W*0.52,H);ctx.fill();
+  for(let i=0;i<6;i++){ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(((i*170+T*12)%(W+120))-60,H*0.12+i%3*22,26,9,0,0,7);ctx.fill();}
+  ctx.globalAlpha=a.reveal;ctx.strokeStyle='#3ff0ff';ctx.lineWidth=1;
+  for(let x=0;x<=W;x+=28){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}for(let y=0;y<=H;y+=28){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  if(a.reveal>0.3)txt('RENDER  ·  MAN-MADE  ·  SIMULATED',W/2,H*0.5,'#3ff0ff',16,'center',true);
+  ctx.globalAlpha=1;
+  ctx.fillStyle='#0b0f16';ctx.beginPath();ctx.rect(0,0,W,H);ctx.ellipse(cx,cy,rx,ry,0,0,7);ctx.fill('evenodd');
+  ctx.strokeStyle=`rgba(63,240,255,${0.1+Math.min(1,a.press)*0.8})`;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,7);ctx.stroke();
+  if(touching){ctx.strokeStyle='rgba(255,255,255,.85)';ctx.lineWidth=1.5;for(let i=0;i<6;i++){const an=Math.random()*6.283,len=10+Math.random()*30*Math.min(1,a.press);ctx.beginPath();ctx.moveTo(hx,hy);ctx.lineTo(hx+Math.cos(an)*len,hy+Math.sin(an)*len);ctx.stroke();}}
+  if(a.down){ctx.fillStyle='rgba(240,217,181,.95)';ctx.beginPath();ctx.arc(hx,hy,14,0,7);ctx.fill();ctx.strokeStyle='#a07a50';ctx.lineWidth=2;ctx.stroke();}
+  const hintT=a.press<0.05?'这是机器里的世界。按住并向外拖，去摸一摸它的尽头':a.press<1.5?'碰到了……继续往外推':a.reveal<0.9?'越推，越看出它是被造出来的':'你能碰到的，只有我们能制造的东西';
+  txt(hintT,W/2,22,'#e8ecf4',14,'center',true);
+  if(a.press>1.5)hit(4,0);if(a.reveal>=0.9)hit(4,1);}
+
+/* ================= 第 5 关：应用练习·醒来 ================= */
+const ZONES=[{k:'prison',n:'囚犯',need:6},{k:'none',n:'一无所知',need:3},{k:'rich',n:'摩纳哥富有艺术家',need:3}];
+function init5(){const prev=(A5&&A5.tries)||saved.tries||{prison:0,none:0,rich:0};A5={life:0.5,dragK:false,hold:false,out:0,freeT:0,tries:prev};}
+HD[5]={down(x,y){if(y>H*0.84&&x<W*0.62){A5.dragK=true;A5.life=clamp((x-W*0.08)/(W*0.5),0,0.999);return;}if(x>W*0.64&&y>H*0.64&&A5.freeT<=0){A5.hold=true;hit(5,0);}},
+ move(x){if(A5.dragK)A5.life=clamp((x-W*0.08)/(W*0.5),0,0.999);},up(){A5.dragK=false;A5.hold=false;}};
+function t5(dt){const a=A5,z=ZONES[Math.floor(a.life*3)];
+  if(a.freeT>0){a.freeT-=dt;if(a.freeT<=0)a.out=0;}
+  else{if(a.hold)a.out+=dt/z.need;else a.out=Math.max(0,a.out-dt*0.6);
+    if(a.out>=1){a.out=1;a.hold=false;a.freeT=2.4;a.tries[z.k]++;toast(`你拔了出来（外面：${z.n}）`);saveState();if(a.tries.prison>=1&&(a.tries.none+a.tries.rich)>=1)hit(5,1);}}
+  ctx.fillStyle='#f4f6f8';ctx.fillRect(0,0,W,H);ctx.fillStyle='#e1e5ea';ctx.fillRect(0,H*0.78,W,H*0.22);
+  // 机器
+  const mx=W*0.56,my=H*0.14;ctx.fillStyle='#8a94a0';ctx.fillRect(mx-30,my-24,60,48);ctx.fillStyle=`rgba(80,200,255,${0.5+0.5*Math.sin(T*4)})`;ctx.fillRect(mx-20,my-10,40,8);
+  // 躺椅与人
+  const cx=W*0.38,s=H*0.12,lean=a.out;
+  ctx.fillStyle='#c7ccd3';ctx.save();ctx.translate(cx,H*0.78);ctx.rotate(-0.35);ctx.fillRect(-s*0.9,-s*0.25,s*1.9,s*0.3);ctx.restore();
+  const px=cx+lean*s*0.6,py=H*0.76;person(px,py,s,'#3b4a5a');
+  const hx=px,hy=py-s*1.55;ctx.fillStyle='#9aa4ae';ctx.beginPath();ctx.arc(hx,hy-s*0.05,s*0.38,Math.PI,0);ctx.fill();
+  const tens=a.out;ctx.strokeStyle=`rgb(${lerp(60,220,tens)|0},${lerp(60,60,tens)|0},${lerp(70,60,tens)|0})`;ctx.lineWidth=2+tens*3;
+  if(a.freeT<=0){ctx.beginPath();ctx.moveTo(hx,hy-s*0.4);ctx.quadraticCurveTo((hx+mx)/2,lerp(hy-s*1.4,hy-s*0.6,tens),mx-30,my);ctx.stroke();}
+  // 白大褂
+  const wx=W*0.14;person(wx,H*0.78,s*1.05,'#ffffff');ctx.strokeStyle='#aab';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(wx,H*0.78-s*1.05*1.55,s*1.05*0.32,0,7);ctx.stroke();
+  ctx.fillStyle='#fff';ctx.strokeStyle='#3a6f99';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(W*0.03,H*0.36,W*0.27,H*0.13,10);ctx.fill();ctx.stroke();
+  txt('“你一直在机器里。要继续吗？”',W*0.165,H*0.44,'#223',12.5);
+  // 外面的生活
+  const ox=W*0.66,oy=H*0.06,ow=W*0.3,oh=H*0.42;ctx.fillStyle='#fff';ctx.fillRect(ox,oy,ow,oh);ctx.strokeStyle='#99a';ctx.strokeRect(ox,oy,ow,oh);
+  if(z.k==='prison'){ctx.fillStyle='#6b6f76';ctx.fillRect(ox+4,oy+4,ow-8,oh-8);ctx.fillStyle='#2b2e33';for(let i=0;i<7;i++)ctx.fillRect(ox+ow*0.1+i*ow*0.12,oy+8,5,oh-16);person(ox+ow*0.5,oy+oh*0.9,oh*0.18,'#c8b8a0');}
+  else if(z.k==='rich'){const gg=ctx.createLinearGradient(0,oy,0,oy+oh);gg.addColorStop(0,'#7cc3ee');gg.addColorStop(1,'#2a7fb8');ctx.fillStyle=gg;ctx.fillRect(ox+4,oy+4,ow-8,oh-8);ctx.fillStyle='#fff';ctx.beginPath();ctx.moveTo(ox+ow*0.3,oy+oh*0.72);ctx.lineTo(ox+ow*0.75,oy+oh*0.72);ctx.lineTo(ox+ow*0.65,oy+oh*0.82);ctx.lineTo(ox+ow*0.38,oy+oh*0.82);ctx.fill();ctx.fillStyle='#ffe58a';ctx.beginPath();ctx.arc(ox+ow*0.8,oy+oh*0.2,12,0,7);ctx.fill();}
+  else{txt('？',ox+ow/2,oy+oh*0.62,'#99a',60,'center',true);}
+  txt('机器外等着你的真实生活：'+z.n,ox+ow/2,oy+oh+16,'#334',12);
+  // 拔出按钮
+  const bx=W*0.81,by=H*0.8,br=Math.min(W,H)*0.1;ctx.fillStyle=a.hold?'#ffe1b0':'#fff';ctx.beginPath();ctx.arc(bx,by,br,0,7);ctx.fill();ctx.strokeStyle='#c0392b';ctx.lineWidth=3;ctx.stroke();
+  ctx.strokeStyle='#c0392b';ctx.lineWidth=8;ctx.beginPath();ctx.arc(bx,by,br-6,-Math.PI/2,-Math.PI/2+6.283*a.out);ctx.stroke();
+  txt(a.freeT>0?'已拔出':'按住：拔出',bx,by+5,'#c0392b',14,'center',true);
+  // 滑块
+  const x0=W*0.08,x1=W*0.58,ty=H*0.9;ZONES.forEach((zz,i)=>{const sx=lerp(x0,x1,i/3),ex=lerp(x0,x1,(i+1)/3);ctx.fillStyle=['#8a8f96','#c9d1da','#7cc3ee'][i];ctx.fillRect(sx,ty-4,ex-sx-3,8);txt(zz.n,(sx+ex)/2,ty+20,'#334',11.5);});
+  const kx=lerp(x0,x1,a.life);ctx.fillStyle='#f3a52b';ctx.beginPath();ctx.arc(kx,ty,10,0,7);ctx.fill();
+  txt(`你拔出过：囚犯 ${a.tries.prison} 次 · 一无所知 ${a.tries.none} 次 · 富有 ${a.tries.rich} 次`,W*0.33,H*0.82,'#334',12);
+  if(LIT.has('5_1')){const rx=W*0.03,ry=H*0.06,rw=W*0.27;txt('De Brigard 实验中想断开的比例（据维基百科）',rx,ry+10,'#334',11.5,'left');
+    [['一无所知',0.54],['囚犯',0.13],['富有艺术家',0.5]].forEach(([n,v],i)=>{const yy=ry+24+i*22;ctx.fillStyle='#dfe5ec';ctx.fillRect(rx,yy,rw,12);ctx.fillStyle='#3a6f99';ctx.fillRect(rx,yy,rw*v,12);txt(`${n} ${i===2?'约一半':Math.round(v*100)+'%'}`,rx+rw+6,yy+11,'#334',11,'left');});}
+  if(a.freeT>0){const k=Math.min(1,(2.4-a.freeT)/0.6)*Math.min(1,a.freeT/0.4);ctx.fillStyle=`rgba(255,255,255,${k*0.85})`;ctx.fillRect(0,0,W,H);txt('你醒来，走出白色房间：外面是'+z.n,W/2,H*0.5,`rgba(30,40,50,${k})`,18,'center',true);}
+  txt('拖动下方滑块设定外面的生活；按住右下角把自己拔出来，松手会被拉回去',W*0.5,22,'#223',13.5,'center',true);}
+
+/* ======== 调度 ======== */
+const INIT={1:init1,2:init2,3:init3,4:init4,5:init5},TICK={1:t1,2:t2,3:t3,4:t4,5:t5};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!done[t.dataset.l]);});}
+function go(n){L=n;tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();saveState();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{if(L===5)A5=null;INIT[L]();saveState();toast('已重置（已对应的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(saved.L&&TICK[saved.L]?saved.L:1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

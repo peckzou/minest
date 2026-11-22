@@ -32,12 +32,19 @@ footer{padding:0 32px 30px;color:#6f8297;font-size:12px;line-height:1.7}
 <body>
 <header>
   <h1>Minest · 哲学交互模型</h1>
-  <p>13 个实时交互模型 · 按住、拖动、亲手操作 · 每个操作对应一条经过核对的原文</p>
+  <p>46 个实时交互模型 · 按住、拖动、亲手操作 · 每个操作对应一条经过核对的原文</p>
 </header>
 <div class="filters" id="filters">
   <button class="on" data-f="all">全部</button>
   <button data-f="1">第一批</button>
   <button data-f="2">第二批</button>
+  <button data-f="3">第三轮</button>
+  <button data-f="4">第四轮</button>
+  <button data-f="5">第五轮</button>
+  <button data-f="社会">社会</button>
+  <button data-f="中国哲学">中国哲学</button>
+  <button data-f="逻辑">逻辑</button>
+  <button data-f="语言">语言</button>
   <button data-f="知识论">知识论</button>
   <button data-f="形而上学">形而上学</button>
   <button data-f="伦理学">伦理学</button>
@@ -63,10 +70,43 @@ const M=[
  {f:'minest_leibniz',n:'莱布尼茨 · 单子论',b:2,t:['形而上学'],lv:'没有部分 · 没有窗户 · 宇宙之镜 · 前定和谐',src:'《单子论》',q:19,g:'monad'},
  {f:'minest_kant_moral',n:'康德 · 道德法则',b:2,t:['伦理学'],lv:'普遍化准则 · 虚假承诺 · 人是目的 · 善良意志',src:'《道德形而上学奠基》',q:20,g:'moral'},
  {f:'minest_gettier',n:'盖梯尔问题',b:2,t:['知识论'],lv:'知识三条件 · 十枚硬币 · 巴塞罗那',src:'Gettier 1963',q:12,g:'gettier'},
- {f:'minest_freewill',n:'自由意志与决定论',b:2,t:['形而上学','伦理学'],lv:'拉普拉斯妖 · 锁链与动机 · 遮住的原因 · 三种解释',src:'拉普拉斯、休谟、斯宾诺莎',q:17,g:'free'}];
+ {f:'minest_freewill',n:'自由意志与决定论',b:2,t:['形而上学','伦理学'],lv:'拉普拉斯妖 · 锁链与动机 · 遮住的原因 · 三种解释',src:'拉普拉斯、休谟、斯宾诺莎',q:17,g:'free'},
+{f:'minest_syllogism',n:'亚里士多德 · 三段论',b:3,t:['逻辑'],lv:'必然随之而来 · 反例世界 · 格与化归 · 应用练习',src:'《前分析篇》',q:16,g:'kant'},
+{f:'minest_wittgenstein',n:'维特根斯坦 · 语言游戏',b:3,t:['语言'],lv:'建筑者的游戏 · 同一个词 · 家族相似 · 应用练习',src:'《哲学研究》（短引）',q:10,g:'hegel'},
+{f:'minest_popper',n:'波普尔 · 证伪主义',b:3,t:['知识论'],lv:'天鹅 · 大胆的假说 · 解释一切的理论 · 特设的拯救 · 应用练习',src:'《猜想与反驳》（短引）',q:15,g:'gettier'},
+{f:'minest_peirce',n:'皮尔士 · 溯因推理',b:3,t:['逻辑', '知识论'],lv:'豆子袋 · 三种推理 · 侦探 · 应用练习',src:'《演绎、归纳与假设》1878',q:16,g:'locke'},
+{f:'minest_utilitarian',n:'功利主义 · 伦理天平',b:3,t:['伦理学'],lv:'两位主人 · 快乐的计算 · 共同体之和 · 质与量 · 应用练习',src:'边沁、密尔',q:23,g:'moral'},
+{f:'minest_rawls',n:'罗尔斯 · 无知之幕',b:3,t:['伦理学'],lv:'幕后立规 · 抽签过一生 · 最大最小 vs 平均 · 差别原则 · 应用练习',src:'《正义论》（据 SEP 转引）',q:13,g:'free'},
+{f:'minest_kant_transcendental',n:'康德 · 先验认识结构',b:3,t:['知识论'],lv:'空间 · 时间 · 感性与知性 · 现象与物自身 · 应用练习',src:'《纯粹理性批判》',q:15,g:'four'},
+{f:'minest_plato_soul',n:'柏拉图 · 灵魂三分说',b:4,t:['伦理学'],lv:'实时交互 · 应用练习',src:'《理想国》IV、《斐德罗》',q:17,g:'kant'},
+{f:'minest_spinoza_substance',n:'斯宾诺莎 · 实体论',b:4,t:['形而上学'],lv:'实时交互 · 应用练习',src:'《伦理学》第一部分',q:18,g:'hume'},
+{f:'minest_leibniz_reason',n:'莱布尼茨 · 充足理由律',b:4,t:['形而上学'],lv:'实时交互 · 应用练习',src:'《单子论》§31–39',q:16,g:'hegel'},
+{f:'minest_husserl',n:'胡塞尔 · 现象学还原',b:4,t:['知识论'],lv:'实时交互 · 应用练习',src:'据 SEP 转引',q:0,g:'cave'},
+{f:'minest_kuhn',n:'库恩 · 范式转换',b:4,t:['知识论'],lv:'实时交互 · 应用练习',src:'据 SEP 转引',q:0,g:'four'},
+{f:'minest_heidegger',n:'海德格尔 · 此在分析',b:4,t:['形而上学'],lv:'实时交互 · 应用练习',src:'据 SEP 转引',q:14,g:'ship'},
+{f:'minest_sartre',n:'萨特 · 存在主义选择',b:4,t:['伦理学'],lv:'实时交互 · 应用练习',src:'《存在主义是一种人道主义》',q:0,g:'desc'},
+{f:'minest_nietzsche',n:'尼采 · 价值谱系学',b:4,t:['伦理学'],lv:'实时交互 · 应用练习',src:'《道德的谱系》第一篇',q:23,g:'forms'},
+{f:'minest_marx',n:'马克思 · 历史唯物主义',b:4,t:['社会'],lv:'实时交互 · 应用练习',src:'1859 序言',q:15,g:'locke'},
+{f:'minest_foucault',n:'福柯 · 权力与规训',b:4,t:['社会'],lv:'实时交互 · 应用练习',src:'边沁；据词条转引',q:18,g:'monad'},
+{f:'minest_habermas',n:'哈贝马斯 · 交往理性',b:4,t:['社会'],lv:'实时交互 · 应用练习',src:'据 SEP 转引',q:16,g:'moral'},
+{f:'minest_mill_liberty',n:'密尔 · 自由原则',b:4,t:['伦理学'],lv:'实时交互 · 应用练习',src:'《论自由》',q:21,g:'gettier'},
+{f:'minest_nozick_machine',n:'诺齐克 · 体验机器',b:4,t:['伦理学'],lv:'实时交互 · 应用练习',src:'据维基百科转引',q:0,g:'free'},
+{f:'minest_parfit',n:'帕菲特 · 人格同一性',b:4,t:['形而上学'],lv:'实时交互 · 应用练习',src:'据 SEP 转引；洛克',q:17,g:'kant'},
+{f:'minest_zhuangzi',n:'庄子 · 齐物论',b:4,t:['中国哲学'],lv:'实时交互 · 应用练习',src:'《齐物论》原文；Giles 英译',q:20,g:'hume'},
+{f:'minest_wangyangming',n:'王阳明 · 知行合一',b:4,t:['中国哲学'],lv:'实时交互 · 应用练习',src:'《传习录》徐爱录；Henke 英译',q:17,g:'hegel'},
+{f:'minest_bacon_idols',n:'培根 · 四假相',b:5,t:['知识论'],lv:'实时交互 · 应用练习',src:'《新工具》',q:23,g:'kant'},
+{f:'minest_quine_web',n:'奎因 · 信念之网',b:5,t:['知识论'],lv:'实时交互 · 应用练习',src:'《经验论的两个教条》短引',q:13,g:'hume'},
+{f:'minest_dewey',n:'杜威 · 探究理论',b:5,t:['知识论'],lv:'实时交互 · 应用练习',src:'《我们如何思维》',q:25,g:'hegel'},
+{f:'minest_polanyi',n:'波兰尼 · 默会知识',b:5,t:['知识论'],lv:'实时交互 · 应用练习',src:'据维基百科转引',q:12,g:'cave'},
+{f:'minest_carnap',n:'卡尔纳普 · 语言框架',b:5,t:['语言'],lv:'实时交互 · 应用练习',src:'《经验论、语义学与本体论》短引',q:23,g:'four'},
+{f:'minest_tarski',n:'塔尔斯基 · 真理理论',b:5,t:['逻辑', '语言'],lv:'实时交互 · 应用练习',src:'《语义真理观》1944',q:15,g:'ship'},
+{f:'minest_frege',n:'弗雷格 · 意义与指称',b:5,t:['语言'],lv:'实时交互 · 应用练习',src:'《论意义与指称》1892',q:17,g:'desc'},
+{f:'minest_russell_descriptions',n:'罗素 · 摹状词理论',b:5,t:['逻辑', '语言'],lv:'实时交互 · 应用练习',src:'《论指称》1905',q:22,g:'forms'},
+{f:'minest_kripke',n:'克里普克 · 可能世界',b:5,t:['形而上学', '语言'],lv:'实时交互 · 应用练习',src:'据 SEP 转引',q:13,g:'locke'},
+{f:'minest_goodman_grue',n:'古德曼 · 新归纳之谜',b:5,t:['知识论'],lv:'实时交互 · 应用练习',src:'据 SEP 转引',q:12,g:'monad'}];
 const grid=document.getElementById('grid');
 M.forEach(m=>{const a=document.createElement('a');a.className='card';a.href=P(m.f);a.dataset.b=m.b;a.dataset.t=m.t.join(',');
-  a.innerHTML=`<canvas data-g="${m.g}"></canvas><div class="body"><div class="top"><b>${m.n}</b><span class="batch">第${m.b===1?'一':'二'}批</span></div><div class="levels">${m.lv}</div><div class="meta"><span>原文 <b>${m.q}</b> 条</span><span>${m.t.join(' · ')}</span></div><div class="src">${m.src}</div></div>`;grid.appendChild(a);});
+  a.innerHTML=`<canvas data-g="${m.g}"></canvas><div class="body"><div class="top"><b>${m.n}</b><span class="batch">${m.b===1?'第一批':m.b===2?'第二批':m.b===3?'第三轮':m.b===4?'第四轮':'第五轮'}</span></div><div class="levels">${m.lv}</div><div class="meta">${m.q?`<span>原文 <b>${m.q}</b> 条</span>`:''}<span>${m.t.join(' · ')}</span></div><div class="src">${m.src}</div></div>`;grid.appendChild(a);});
 document.querySelectorAll('#filters button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#filters button').forEach(x=>x.classList.toggle('on',x===b));const f=b.dataset.f;
   document.querySelectorAll('a.card').forEach(c=>c.classList.toggle('hide',!(f==='all'||c.dataset.b===f||c.dataset.t.split(',').includes(f))));});
 /* 缩略动画：每张卡一个极简动态图形 */

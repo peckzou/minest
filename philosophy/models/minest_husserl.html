@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 胡塞尔现象学还原 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .q0{padding:4px 10px;font-size:12.5px;color:#2c3e50;background:#fff7e0;border-bottom:1px solid #eadfba}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+#side .lim{padding:4px 10px 8px;font-size:11.5px;color:#6a7280}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>胡塞尔 · 现象学还原</b>
+  <button class="tab on" data-l="1">① 自然态度与悬置</button>
+  <button class="tab" data-l="2">② 侧显</button>
+  <button class="tab" data-l="3">③ 意向活动与意向对象</button>
+  <button class="tab" data-l="4">④ 应用练习</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="q0"><b>核心问题：</b>如果不再把“世界确实存在”当作理所当然，我们还剩下什么可以研究？</div><div class="bd" id="sBody"></div><div class="lim"><b>适用边界：</b>括号、骰子、光线都是教学比喻；悬置不是怀疑或否定世界，胡塞尔本人的还原是一种反思态度的转变，不是可视的操作。</div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+const STORE='minest_husserl_v1';let SAVE={done:{},lit:{}};
+try{const s=localStorage.getItem(STORE);if(s)SAVE=JSON.parse(s);}catch(e){}
+function persist(){try{localStorage.setItem(STORE,JSON.stringify(SAVE));}catch(e){}}
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ======== 原文：均据斯坦福哲学百科 Zahavi「Edmund Husserl」词条转引（含词条所标 Husserliana 卷页）；中文为编译 ======== */
+const SEP='据 SEP「Edmund Husserl」词条转引';
+const MAP={
+1:[["一个苹果：理所当然地“在那里”","在日常生活中，我们如此沉浸于世界，以致于把它的实在当作理所当然；……胡塞尔称之为自然态度。（词条概述）","we simply take its reality for granted … Husserl calls it the natural attitude","SEP §3（转述·词条概述）"],
+   ["拖动括号，把“存在”括起来","我们保留它，以便能研究它，但我们把它的有效性加上括号。这一程序就叫作悬置。（词条概述）","we bracket its validity. It is this procedure that is known by the name of epoché.","SEP §3（转述·词条概述）"],
+   ["括起来之后：苹果一点也没少","“世界”并没有因悬置而失去。悬置绝不是对世界存在的悬搁……","“The” world is not lost as a result of the epoché.","Hua 15/366，"+SEP],
+   ["悬置不是怀疑：苹果没有被打碎","悬置的目的不是怀疑、忽视、放弃或排除实在，而是悬搁或中和对实在的某种独断态度。（词条概述）","The purpose of the epoché is not to doubt, neglect, abandon, or exclude reality from our research","SEP §3（转述·词条概述）"],
+   ["被排除的只是一种素朴","被悬置所排除的唯一东西，是某种素朴：把世界当作理所当然、从而忽视意识之贡献的素朴。（词条概述）","the only thing that is excluded as a result of the epoché is a certain naivety","Hua 27/173，SEP §3（转述）"]],
+2:[["拖动旋转骰子：每次只见几面","空间对象以透视的方式显现。我们感知一个对象时，它从不整体地显现，而总是从某个有限的视角显现。（词条概述）","When we perceive an object, it never appears in its totality, but always from a certain limited perspective.","SEP §5（转述·词条概述）"],
+   ["绕着它走：各个侧面被综合","当我绕着一棵树走动以获得更完整的知觉呈现时，树的各个侧面——正面、侧面与背面——被知觉为综合统一的环节。（词条概述）","the various profiles of the tree—its front, sides, and back—are perceived as synthetically integrated moments","SEP §4（转述·词条概述）"],
+   ["“我”在哪里，视角就从哪里出发","根本没有纯粹的观点，也没有无处之见，只有具身的观点。（词条概述）","There is no pure point of view and there is no view from nowhere, there is only an embodied point of view.","SEP §5（转述·词条概述）"]],
+3:[["切换意向方式：同一个对象，不同的“如何”","每个意向体验都属于特定类型——希望、欲求、后悔、肯定、怀疑……——每一种都以特定的方式指向一个对象。（词条概述）","each of these experiences is characterized by being of or about or directed at an object in a particular and distinctive way","SEP §2（转述·词条概述）"],
+   ["左侧：意向活动；右侧：意向对象","现象学研究不仅要分析意识的活动，即意向活动，也要分析意识的相关项，即意向对象。（词条概述）","the act of consciousness, the noesis, but also of the correlate of consciousness, the noema","Hua 5/84，SEP §3（转述）"],
+   ["从“空的意指”到“被充实”","被意指的对象始终是同一个，但它被给予的方式不同：是“空的”还是在直观中“被充实”的。（词条概述）","The object that is intended remains one and the same, but the how of its givenness differs","SEP §2（转述·词条概述）"]],
+4:[["新情境：一座“幽灵”般的建筑","真正的方法遵循被研究事物的本性，而不是我们的成见和先入之见。","The true method follows the nature of the things to be investigated and not our prejudices and preconceptions","Hua 25/26，"+SEP],
+   ["括起成见，只描述显现","“面向事情本身”的格言可以看作主张：研究应由事情本身引导，而不是由我们的理论预设引导。（词条概述）","Husserl’s dictum “to the things themselves”","SEP §6（转述·词条概述）"],
+   ["世界作为意向相关项被重新获得","我们并没有因悬置而失去世界，但从此以后，它必须仅仅被看作意向相关项。（词条概述）","We do not lose the world as a result of the epoché, but from now on it must be considered solely as an intentional correlate","Hua 34/58，SEP §3（转述）"]]};
+const TITLE={1:'① 自然态度与悬置 · 拖动左右两个括号，把苹果的“存在”括起来',2:'② 侧显 · 按住拖动旋转骰子；拖动“我”绕着它走',3:'③ 意向活动与意向对象 · 把光束拖向对象；按住改变意向方式',4:'④ 应用练习 · 把成见气泡拖进括号，只留下显现'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr ${SAVE.lit[l+'_'+i]?'on':''}" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const e=$('mr'+l+'_'+i);if(!e||e.classList.contains('on'))return;e.classList.add('on');SAVE.lit[l+'_'+i]=1;e.scrollIntoView({block:'nearest',behavior:'smooth'});
+  if(MAP[l].every((_,k)=>$('mr'+l+'_'+k).classList.contains('on'))){SAVE.done[l]=1;tabs();}persist();}
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]?.move?.(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]?.up?.();});
+
+/* ================= 第 1 关：悬置 ================= */
+let A;
+function init1(){A={lx:0.12,rx:0.88,drag:null,brk:0,naive:1,smash:0,hold:0};}
+function apple(x,y,r,detail){const g=ctx.createRadialGradient(x-r*.35,y-r*.35,r*.1,x,y,r);g.addColorStop(0,'#ff8c7a');g.addColorStop(1,'#b5221a');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();
+  ctx.strokeStyle='#5a3b1e';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x,y-r*0.9);ctx.lineTo(x+4,y-r*1.25);ctx.stroke();ctx.fillStyle='#3f8a35';ctx.beginPath();ctx.ellipse(x+16,y-r*1.15,14,7,-0.4,0,7);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.45)';ctx.beginPath();ctx.ellipse(x-r*0.35,y-r*0.35,r*0.18,r*0.1,-0.6,0,7);ctx.fill();
+  if(detail){ctx.fillStyle='rgba(60,20,10,.4)';for(let i=0;i<8;i++){const a=i*0.8;ctx.fillRect(x+Math.cos(a)*r*0.6,y+Math.sin(a)*r*0.5,2,2);}}}
+function bracket(x,y,h,left,col){ctx.strokeStyle=col;ctx.lineWidth=8;ctx.lineCap='round';ctx.beginPath();const w=h*0.18*(left?1:-1);ctx.moveTo(x+w,y-h/2);ctx.quadraticCurveTo(x-w*0.6,y-h/2,x-w*0.4,y);ctx.quadraticCurveTo(x-w*0.6,y+h/2,x+w,y+h/2);ctx.stroke();ctx.lineCap='butt';}
+HD[1]={down(x,y){if(Math.abs(x-W*A.lx)<44)A.drag='l';else if(Math.abs(x-W*A.rx)<44)A.drag='r';else if(Math.hypot(x-W/2,y-H*0.5)<Math.min(W,H)*0.18)A.drag='apple';},
+ move(x,y,dx){if(A.drag==='l')A.lx=clamp(x/W,0.05,0.48);if(A.drag==='r')A.rx=clamp(x/W,0.52,0.95);if(A.drag==='apple'&&A.brk>0.9){A.smash+=Math.abs(dx);if(A.smash>200){hit(1,3);toast('苹果没有被打碎：悬置不是怀疑或否定，它只是不再被“当真”');A.smash=0;}}},
+ up(){A.drag=null;}};
+function t1(dt){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#eaf0f5');g.addColorStop(1,'#d3dde6');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#b8a888';ctx.fillRect(0,H*0.72,W,H*0.28);ctx.fillStyle='#9d8c6b';ctx.fillRect(W*0.3,H*0.66,W*0.4,H*0.06);
+  if(T>1)hit(1,0);
+  const span=(A.rx-A.lx);const tight=clamp((0.76-span)/(0.76-0.34),0,1);A.brk=lerp(A.brk,tight>0.95?1:tight*0.7,dt*4);
+  const cx=W/2,cy=H*0.5,r=Math.min(W,H)*0.16;
+  // 自然态度：一根“存在”锚线从苹果连到地面，以及标签“确实存在”
+  const k=A.brk;
+  ctx.strokeStyle=`rgba(80,80,80,${0.7*(1-k)})`;ctx.lineWidth=2;ctx.setLineDash([]);for(let i=-1;i<=1;i++){ctx.beginPath();ctx.moveTo(cx+i*r*0.5,cy+r);ctx.lineTo(cx+i*r*0.7,H*0.72);ctx.stroke();}
+  ctx.fillStyle=`rgba(40,60,90,${1-k})`;ctx.fillRect(cx-60,cy-r-64,120,26);txt('“确实存在”',cx,cy-r-46,`rgba(255,255,255,${1-k})`,13,'center',true);
+  if(k>0.1){ctx.save();ctx.globalAlpha=k;ctx.setLineDash([4,4]);ctx.strokeStyle='#3a6f99';ctx.strokeRect(cx-60,cy-r-64,120,26);ctx.setLineDash([]);txt('（存在：暂不表态）',cx,cy-r-46,'#3a6f99',12);ctx.restore();}
+  // 苹果：始终完整
+  apple(cx,cy,r,true);
+  // 括起后：显现之光，标出“作为显现”
+  if(k>0.5){ctx.strokeStyle=`rgba(243,165,43,${(k-0.5)*1.6})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,cy,r*1.25+Math.sin(T*2)*3,0,7);ctx.stroke();
+    ['红','圆','光泽','叶','香气'].forEach((s,i)=>{const a=i/5*6.28+T*0.2;txt(s,cx+Math.cos(a)*r*1.55,cy+Math.sin(a)*r*1.3+4,'#a0620a',12);});}
+  bracket(W*A.lx,cy,H*0.62,true,k>0.95?'#3a6f99':'#556');bracket(W*A.rx,cy,H*0.62,false,k>0.95?'#3a6f99':'#556');
+  if(k>0.95){hit(1,1);setTimeout(()=>hit(1,2),1200);A.hold+=dt;if(A.hold>4)hit(1,4);}else A.hold=0;
+  txt(k<0.3?'把左右括号向中间拖，括起苹果的“存在”':k<0.95?'再靠近一些……':'存在被加上括号——苹果的颜色、形状、光泽一样不少。试着用力拖它',W/2,24,'#223',13);
+  ctx.fillStyle='rgba(0,0,0,.08)';ctx.fillRect(W*0.3,H*0.92,W*0.4,8);ctx.fillStyle='#f3a52b';ctx.fillRect(W*0.3,H*0.92,W*0.4*(1-k),8);txt('素朴（把世界当作理所当然）',W/2,H*0.985,'#555',11);}
+
+/* ================= 第 2 关：侧显 ================= */
+let B;
+function init2(){B={rx:-0.4,ry:0.6,drag:null,seen:new Set(),me:0.25,walk:0,syn:0};}
+const FACES=[[0,0,1],[0,0,-1],[1,0,0],[-1,0,0],[0,1,0],[0,-1,0]];const PIPS=[1,6,3,4,5,2];
+function rot(v,rx,ry){let [x,y,z]=v;let c=Math.cos(ry),s=Math.sin(ry);[x,z]=[x*c+z*s,-x*s+z*c];c=Math.cos(rx);s=Math.sin(rx);[y,z]=[y*c-z*s,y*s+z*c];return[x,y,z];}
+HD[2]={down(x,y){if(y>H*0.82)B.drag='me';else B.drag='die';},
+ move(x,y,dx,dy){if(B.drag==='die'){B.ry+=dx*0.01;B.rx+=dy*0.01;}if(B.drag==='me'){B.me=clamp(x/W,0.05,0.95);B.ry+=dx*0.012;B.walk+=Math.abs(dx);if(B.walk>400)hit(2,2);}},up(){B.drag=null;}};
+function t2(dt){ctx.fillStyle='#e9eef2';ctx.fillRect(0,0,W,H);
+  const cx=W*0.42,cy=H*0.46,s=Math.min(W,H)*0.17;
+  const verts=[];for(const a of[-1,1])for(const b of[-1,1])for(const c of[-1,1])verts.push([a,b,c]);
+  const faces=FACES.map((n,i)=>{const N=rot(n,B.rx,B.ry);return{i,N};});
+  faces.filter(f=>f.N[2]>0.02).sort((a,b)=>a.N[2]-b.N[2]).forEach(f=>{const n=FACES[f.i];
+    const ax=n[0]?[0,1,0]:[1,0,0],bx=[n[1]*ax[2]-n[2]*ax[1],n[2]*ax[0]-n[0]*ax[2],n[0]*ax[1]-n[1]*ax[0]];
+    const P=(u,v)=>{const p=rot([n[0]+ax[0]*u+bx[0]*v,n[1]+ax[1]*u+bx[1]*v,n[2]+ax[2]*u+bx[2]*v],B.rx,B.ry);return[cx+p[0]*s,cy+p[1]*s];};
+    const sh=0.55+0.45*f.N[2];ctx.fillStyle=`rgb(${Math.round(250*sh)},${Math.round(248*sh)},${Math.round(240*sh)})`;ctx.beginPath();[[-1,-1],[1,-1],[1,1],[-1,1]].forEach(([u,v],k)=>{const q=P(u,v);k?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]);});ctx.closePath();ctx.fill();ctx.strokeStyle='#666';ctx.lineWidth=1.5;ctx.stroke();
+    const pip=PIPS[f.i];const pts={1:[[0,0]],2:[[-.5,-.5],[.5,.5]],3:[[-.5,-.5],[0,0],[.5,.5]],4:[[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]],5:[[-.5,-.5],[.5,-.5],[0,0],[-.5,.5],[.5,.5]],6:[[-.5,-.6],[.5,-.6],[-.5,0],[.5,0],[-.5,.6],[.5,.6]]}[pip];
+    ctx.fillStyle=pip===1?'#c0392b':'#222';pts.forEach(([u,v])=>{const q=P(u,v);ctx.beginPath();ctx.arc(q[0],q[1],s*0.11*sh,0,7);ctx.fill();});
+    if(f.N[2]>0.25&&!B.seen.has(pip)){B.seen.add(pip);}});
+  if(B.seen.size>=2)hit(2,0);
+  // 被意指却未被看见的面：虚线标签
+  const unseen=[1,2,3,4,5,6].filter(p=>!faces.some(f=>f.N[2]>0.25&&PIPS[f.i]===p));
+  txt(`此刻看见：${[1,2,3,4,5,6].filter(p=>!unseen.includes(p)).join('、')} 点`,cx,cy+s*2.1,'#223',14,'center',true);
+  txt(`未被看见、却一同被意指：${unseen.join('、')} 点`,cx,cy+s*2.1+20,'#7a6a9a',12);
+  // 综合记录
+  B.syn=lerp(B.syn,B.seen.size/6,dt*2);const gx=W*0.76,gw=W*0.2;ctx.fillStyle='#fff';ctx.fillRect(gx,H*0.12,gw,H*0.5);txt('综合：已经历过的侧面',gx+gw/2,H*0.1,'#334',12);
+  [1,2,3,4,5,6].forEach((p,k)=>{const on=B.seen.has(p);ctx.fillStyle=on?'#3a6f99':'#e3e6ea';ctx.fillRect(gx+10,H*0.15+k*H*0.075,gw-20,H*0.06);txt(`${p} 点面`,gx+gw/2,H*0.15+k*H*0.075+H*0.042,on?'#fff':'#999',12);});
+  if(B.seen.size===6){hit(2,1);txt('六个面从未同时出现——“这一个骰子”却始终是同一个',gx+gw/2,H*0.7,'#1f5e2f',12);}
+  // “我”的位置条
+  ctx.fillStyle='rgba(0,0,0,.08)';ctx.fillRect(W*0.08,H*0.88,W*0.84,10);const mx=W*(0.08+0.84*B.me);ctx.fillStyle='#f3a52b';ctx.beginPath();ctx.arc(mx,H*0.88+5,12,0,7);ctx.fill();txt('我',mx,H*0.88+10,'#222',12,'center',true);
+  txt('按住拖动骰子旋转；拖动底部“我”绕着它走',W*0.42,24,'#223',13);}
+
+/* ================= 第 3 关：意向活动 / 意向对象 ================= */
+let C;
+const MODES=[['知觉','#f3a52b'],['回忆','#7a8cc2'],['想象','#b48cff'],['期待','#3f8a35'],['怀疑','#c0392b']];
+function init3(){C={beam:{x:0.15,y:0.5},drag:false,mode:0,holdT:0,holding:false,modesSeen:new Set(),fill:0,onTarget:false};}
+HD[3]={down(x,y){if(Math.hypot(x-W*C.beam.x,y-H*C.beam.y)<40)C.drag=true;else C.holding=true;},move(x,y){if(C.drag){C.beam.x=clamp(x/W,0.05,0.6);C.beam.y=clamp(y/H,0.15,0.85);}},up(){C.drag=false;C.holding=false;C.holdT=0;}};
+function t3(dt){ctx.fillStyle='#1c2233';ctx.fillRect(0,0,W*0.5,H);ctx.fillStyle='#f2efe6';ctx.fillRect(W*0.5,0,W*0.5,H);
+  txt('意向活动（意识如何指向）',W*0.25,24,'#cfd6e6',13,'center',true);txt('意向对象（作为被意指者）',W*0.75,24,'#334',13,'center',true);
+  const ox=W*0.75,oy=H*0.5,R=Math.min(W,H)*0.13;
+  if(C.holding){C.holdT+=dt;if(C.holdT>1.1){C.holdT=0;C.mode=(C.mode+1)%MODES.length;C.modesSeen.add(C.mode);if(C.modesSeen.size>=2)hit(3,0);toast('意向方式：'+MODES[C.mode][0]);}}
+  const bx=W*C.beam.x,by=H*C.beam.y,col=MODES[C.mode][1];
+  // 意识的“光源”
+  ctx.fillStyle=col;ctx.beginPath();ctx.arc(bx,by,22,0,7);ctx.fill();txt(MODES[C.mode][0],bx,by+42,'#fff',13,'center',true);
+  // 光束
+  const ang=Math.atan2(oy-by,ox-bx),dist=Math.hypot(ox-bx,oy-by);const aim=Math.abs(Math.atan2(oy-by,ox-bx))<0.6;C.onTarget=aim;
+  const g=ctx.createLinearGradient(bx,by,ox,oy);g.addColorStop(0,col);g.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=g;ctx.globalAlpha=0.35;ctx.beginPath();ctx.moveTo(bx,by);ctx.lineTo(ox+Math.cos(ang+1.57)*R,oy+Math.sin(ang+1.57)*R);ctx.lineTo(ox-Math.cos(ang+1.57)*R,oy-Math.sin(ang+1.57)*R);ctx.fill();ctx.globalAlpha=1;
+  if(aim)hit(3,1);
+  // 对象：同一棵树；其“如何被给予”随方式改变
+  const m=MODES[C.mode][0];C.fill=lerp(C.fill,m==='知觉'&&aim?1:m==='回忆'?0.55:m==='想象'?0.4:m==='期待'?0.25:0.15,dt*2);
+  if(m==='知觉'&&aim&&C.fill>0.9)hit(3,2);
+  ctx.save();ctx.globalAlpha=0.25+0.75*C.fill;ctx.fillStyle='#6b4a2a';ctx.fillRect(ox-8,oy,16,R*1.2);ctx.fillStyle=m==='想象'?'#b48cff':'#3f8a35';ctx.beginPath();ctx.arc(ox,oy-R*0.2,R*0.8,0,7);ctx.fill();ctx.restore();
+  if(C.fill<0.5){ctx.strokeStyle='rgba(0,0,0,.35)';ctx.setLineDash([5,5]);ctx.beginPath();ctx.arc(ox,oy-R*0.2,R*0.82,0,7);ctx.stroke();ctx.setLineDash([]);}
+  txt('“这棵树”',ox,oy+R*1.55,'#223',15,'center',true);
+  const how={知觉:'在场、被直观充实',回忆:'曾在、被再现',想象:'仿佛如此、中立',期待:'将至、尚空',怀疑:'也许不是这样'}[m];txt('如何被给予：'+how,ox,oy+R*1.55+22,'#556',12);
+  meter2(W*0.58,H*0.88,W*0.34,C.fill,'直观充实度');
+  txt('拖动左侧光源对准树；在空白处按住，切换意向方式',W*0.25,H-12,'#cfd6e6',12);}
+function meter2(x,y,w,v,t){ctx.fillStyle='#fff';ctx.fillRect(x,y,w,9);ctx.fillStyle='#3a6f99';ctx.fillRect(x,y,w*v,9);ctx.strokeStyle='#888';ctx.strokeRect(x,y,w,9);txt(t,x+w/2,y-4,'#334',11);}
+
+/* ================= 第 4 关：应用练习 ================= */
+let D;
+const BIAS=['“它一定是古代的”','“这是幻觉”','“建筑师想表达……”','“它值很多钱”','“科学会解释它”'];
+function init4(){D={bubbles:BIAS.map((b,i)=>({t:b,x:0.1+0.18*(i%5),y:0.18+0.12*(i%2),vx:(Math.random()-.5)*0.03,vy:(Math.random()-.5)*0.02,in:false})),drag:null,desc:[],descT:0,lx:0.62,rx:0.97,ok:false};}
+HD[4]={down(x,y){for(const b of D.bubbles){if(!b.in&&Math.hypot(x-W*b.x,y-H*b.y)<60){D.drag=b;return;}}},move(x,y){if(D.drag){D.drag.x=x/W;D.drag.y=y/H;}},
+ up(){if(D.drag){const b=D.drag;if(b.x>D.lx&&b.x<D.rx){b.in=true;toast('括起：'+b.t);if(D.bubbles.filter(q=>q.in).length===1)hit(4,1);}D.drag=null;}}};
+function t4(dt){ctx.fillStyle='#e8ecef';ctx.fillRect(0,0,W,H);
+  if(T>0.5)hit(4,0);
+  const bx=W*0.32,by=H*0.6;const free=D.bubbles.filter(b=>!b.in).length;
+  // 奇异的建筑：成见遮蔽它（未括起的气泡越多，建筑越被遮挡）
+  ctx.fillStyle='#8a8f98';ctx.beginPath();ctx.moveTo(bx-90,by);ctx.lineTo(bx-60,by-150);ctx.lineTo(bx,by-190);ctx.lineTo(bx+70,by-130);ctx.lineTo(bx+90,by);ctx.fill();
+  ctx.fillStyle='#5e646e';for(let i=0;i<5;i++)ctx.fillRect(bx-70+i*30,by-70-(i%2)*30,14,22);
+  ctx.fillStyle=`rgba(120,120,130,${free/BIAS.length*0.75})`;ctx.fillRect(bx-130,by-230,260,260);
+  // 气泡
+  D.bubbles.forEach(b=>{if(!b.in&&D.drag!==b){b.x+=b.vx*dt*10;b.y+=b.vy*dt*10;if(b.x<0.05||b.x>0.55)b.vx*=-1;if(b.y<0.1||b.y>0.8)b.vy*=-1;}
+    if(b.in){const k=D.bubbles.filter(q=>q.in).indexOf(b);b.x=lerp(b.x,(D.lx+D.rx)/2,dt*3);b.y=lerp(b.y,0.2+k*0.13,dt*3);}
+    ctx.fillStyle=b.in?'rgba(58,111,153,.15)':'rgba(255,255,255,.95)';ctx.strokeStyle=b.in?'#3a6f99':'#999';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(W*b.x-75,H*b.y-16,150,32,16);ctx.fill();ctx.stroke();txt(b.t,W*b.x,H*b.y+5,b.in?'#3a6f99':'#333',12);});
+  bracket(W*D.lx,H*0.5,H*0.8,true,'#3a6f99');bracket(W*D.rx,H*0.5,H*0.8,false,'#3a6f99');txt('（悬置区）',W*(D.lx+D.rx)/2,H*0.95,'#3a6f99',12);
+  // 描述：随着成见被括起，逐条浮现的“显现”描述
+  if(free===0){D.descT+=dt;const lines=['灰色，表面粗糙','从这里只看到两面，背面被一同意指','高处的窗在阴影里','它显现为“陌生的”'];const n=Math.min(lines.length,Math.floor(D.descT/1.2)+1);
+    lines.slice(0,n).forEach((l,i)=>txt('· '+l,bx-120,by+30+i*20,'#1f5e2f',13,'left'));if(n===lines.length){hit(4,2);}}
+  txt(free?`把漂浮的成见拖进右边的括号（剩 ${free}）`:'成见都已括起：现在只描述它如何显现',W*0.32,24,'#223',13);}
+
+/* ======== 调度 ======== */
+const INIT={1:init1,2:init2,3:init3,4:init4},TICK={1:t1,2:t2,3:t3,4:t4};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!SAVE.done[t.dataset.l]);});}
+function go(n){L=n;tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();try{localStorage.setItem(STORE+'_lvl',String(L));}catch(e){}}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{INIT[L]();toast('已重置（已对应的原文保留）');};
+let startL=1;try{startL=+localStorage.getItem(STORE+'_lvl')||1;}catch(e){}
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(startL);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

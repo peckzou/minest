@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 康德先验认识结构 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .q{padding:4px 10px 0;font-size:12.5px;color:#2c3e50}
+#side .q b{color:#a0522d}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>康德 · 先验认识结构</b>
+  <button class="tab on" data-l="1">① 空间</button>
+  <button class="tab" data-l="2">② 时间</button>
+  <button class="tab" data-l="3">③ 感性与知性</button>
+  <button class="tab" data-l="4">④ 现象与物自身</button>
+  <button class="tab" data-l="5">⑤ 应用练习</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div>
+  <div class="q"><b>核心问题：</b>我们认识的对象，有哪些是我们自己的认识方式加给它的？　<b>适用边界：</b>网格、时间轴和“透镜”只是教学比喻；康德说的空间和时间是直观的形式，不是可以看见的东西或眼镜。</div>
+  <div class="bd" id="sBody"></div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ======== 原文：Meiklejohn 英译《纯粹理性批判》（Gutenberg #4280）；中文为编译；出处按 Meiklejohn 本的章节编号 ======== */
+const AE='先验感性论',LG='先验逻辑 · 导言 I';
+const MAP={
+1:[["按住一个物体：颜色、软硬、重量逐层剥去","把一个物体概念中一切出自感觉经验的东西逐渐去掉……物体就消失了，但它所占据的空间仍然留着，在思想中根本不可能取消。","the space which it occupied still remains, and this it is utterly impossible to annihilate in thought","导言 · 二"],
+   ["清空所有物体，再按住空间想抹掉它：抹不掉","我们永远不能想象或表象空间不存在，虽然很容易想到空间中没有任何对象。","We never can imagine or make a representation to ourselves of the non-existence of space, though we may easily enough think that no objects are found in it.",AE+" §2"],
+   ["把物体拖到网格边缘：空间随它延伸","空间不过是外感官一切现象的形式，即感性的主观条件，唯有在它之下外直观才可能。","Space is nothing else than the form of all phenomena of the external sense, that is, the subjective condition of the sensibility, under which alone external intuition is possible.",AE+" §4"]],
+2:[["把事件一个个拖下时间轴：时间照常流过","我们不能把时间从现象中思维掉……但完全可以表象一段没有现象的时间。","we cannot think away time from them, and represent them to ourselves as out of and unconnected with time, but we can quite well represent to ourselves time void of phenomena",AE+" §5"],
+   ["按住时间轴想让它停下：停不住","现象可以在思想中全部取消，但时间本身作为它们可能的普遍条件，不能被这样取消。","These may all be annihilated in thought, but time itself, as the universal condition of their possibility, cannot be so annulled.",AE+" §5"],
+   ["把一个“念头”拖进空间：它没有位置，只落在时间上","时间不过是内感官的形式，即我们对自己和内部状态的直观的形式。","Time is nothing else than the form of the internal sense, that is, of the intuitions of self and of our internal state.",AE+" §7"]],
+3:[["按住左侧：感觉材料涌入（松手渐渐停止）","我们把心灵在某种方式上受到刺激时接受印象的这种接受性，称为感性。","We apply the term sensibility to the receptivity of the mind for impressions, in so far as it is in some way affected",LG],
+   ["只拖入概念、没有材料：只有空框","没有感性，就不会有对象被给予我们；没有知性，就不会有对象被思维。","Without the sensuous faculty no object would be given to us, and without the understanding no object would be thought.",LG],
+   ["只有材料、没有概念：粒子盲目乱转","思维无内容是空的，直观无概念是盲的。","Thoughts without content are void; intuitions without conceptions, blind.",LG],
+   ["材料正在涌入时放下概念：对象成形","知性不能直观，感官不能思维。唯有二者联合起来，才能产生知识。","Understanding cannot intuite, and the sensuous faculty cannot think. In no other way than from the united operation of both, can knowledge arise.",LG]],
+4:[["移动透镜：凡进入其中的都带上网格与时刻","空间和时间是它的纯形式，感觉是它的质料。","Space and time are the pure forms thereof; sensation the matter.",AE+" §9"],
+   ["按住透镜外的暗处，想看物自身：只有“？”","对象作为物自身、不涉及我们感性的接受性时是什么，我们完全不知道。","What may be the nature of objects considered as things in themselves and without reference to the receptivity of our sensibility is quite unknown to us.",AE+" §9"],
+   ["用力把透镜拖离：一拉开，空间与时间一起消失","如果去掉主体，甚至只去掉我们感官的主观性状，那么……连空间和时间本身都会消失。","if we take away the subject, or even only the subjective constitution of our senses in general, then not only the nature and relations of objects in space and time, but even space and time themselves disappear",AE+" §9"]],
+5:[["把石头、钟声、悲伤、数字 7 拖到相应的区域","我们只知道自己知觉它们的方式，这方式是我们特有的，不一定属于每个有生命的存在者，但属于全人类。","our mode of perceiving them, which is peculiar to us, and which, though not of necessity pertaining to every animated being, is so to the whole human race",AE+" §9"],
+   ["把“物自身”拖向任何区域：哪里都放不进去","空间并不表象物自身的任何属性。","Space does not represent any property of objects as things in themselves",AE+" §4"]]};
+const TITLE={1:'① 空间 · 按住物体剥去它的性质；清空后按住网格；把物体拖到边缘',2:'② 时间 · 把事件拖下时间轴；按住时间轴；把“念头”拖进上方空间',3:'③ 感性与知性 · 按住左半边接收材料；把右侧概念拖到中央',4:'④ 现象与物自身 · 拖动透镜；按住暗处；用力把透镜拖到画面外',5:'⑤ 应用练习 · 把每张卡片拖进它所属的直观形式'};
+let lit={},done={};
+/* 保存与恢复：localStorage 不可用时静默改用内存 */
+const KEY='minest_kant_transcendental_v1';
+function save(){try{localStorage.setItem(KEY,JSON.stringify({lit,done,L}));}catch(e){}}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s){lit=s.lit||{};done=s.done||{};return s.L||1;}}catch(e){}return 1;}
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr${lit[l+'_'+i]?' on':''}" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——康德《纯粹理性批判》${r[3]}</div></div></div>`).join('');}
+function hit(l,i){if(lit[l+'_'+i])return;lit[l+'_'+i]=1;const e=$('mr'+l+'_'+i);if(e){e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});}
+  if(MAP[l].every((_,k)=>lit[l+'_'+k])){done[l]=1;tabs();}save();}
+
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};const ptrs=new Map();
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);ptrs.set(e.pointerId,{x,y});PT={x,y,id:e.pointerId};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y,e.pointerId);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const p=ptrs.get(e.pointerId);const dx=p?x-p.x:0,dy=p?y-p.y:0;if(p){p.x=x;p.y=y;}HD[L]?.move?.(x,y,dx,dy,!!p,e.pointerId);});
+const up=e=>{ptrs.delete(e.pointerId);if(!ptrs.size)PT=null;HD[L]?.up?.(e.pointerId);};
+cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+
+/* 通用：空间网格 */
+function grid(x0,y0,w,h,alpha,step){ctx.strokeStyle=`rgba(120,190,255,${alpha})`;ctx.lineWidth=1;const s=step||32;ctx.beginPath();
+  for(let x=x0;x<=x0+w+0.5;x+=s){ctx.moveTo(x,y0);ctx.lineTo(x,y0+h);}for(let y=y0;y<=y0+h+0.5;y+=s){ctx.moveTo(x0,y);ctx.lineTo(x0+w,y);}ctx.stroke();}
+function shape(k,x,y,s,col,a){ctx.save();ctx.globalAlpha=a==null?1:a;ctx.fillStyle=col;ctx.beginPath();
+  if(k==='stone'){ctx.ellipse(x,y,s*.6,s*.42,0.2,0,7);}else if(k==='tree'){ctx.arc(x,y-s*.35,s*.42,0,7);ctx.rect(x-s*.08,y,s*.16,s*.55);}else if(k==='house'){ctx.rect(x-s*.45,y-s*.2,s*.9,s*.7);ctx.moveTo(x-s*.55,y-s*.2);ctx.lineTo(x,y-s*.7);ctx.lineTo(x+s*.55,y-s*.2);}else{ctx.arc(x,y,s*.45,0,7);}
+  ctx.fill();ctx.restore();}
+
+/* ================= 第 1 关：空间 ================= */
+let A;
+function init1(){A={objs:[{k:'stone',n:'石头',c:'#8a8f96',x:.25,y:.6},{k:'tree',n:'树',c:'#3f8a35',x:.45,y:.45},{k:'house',n:'房子',c:'#b07b3c',x:.65,y:.62}].map(o=>({...o,peel:0,gone:0,hold:false})),drag:null,erase:0,eraseHold:false,stretch:0,ext:0};}
+function g1(){return{x0:W*.08,y0:H*.08,w:W*.84,h:H*.8};}
+HD[1]={down(x,y){const g=g1();for(const o of A.objs){if(o.gone>=1)continue;if(Math.hypot(x-W*o.x,y-H*o.y)<50){o.hold=true;A.drag={o,x0:x,y0:y,moved:0};return;}}
+  if(A.objs.every(o=>o.gone>=1)){A.eraseHold=true;}},
+ move(x,y,dx,dy){if(A.drag){const o=A.drag.o;A.drag.moved+=Math.hypot(dx,dy);if(A.drag.moved>12){o.hold=false;o.x=clamp(x/W,0.02,0.98);o.y=clamp(y/H,0.05,0.95);}}},
+ up(){if(A.drag){A.drag.o.hold=false;A.drag=null;}A.eraseHold=false;}};
+function t1(dt){const g=g1();ctx.fillStyle='#0d1420';ctx.fillRect(0,0,W,H);
+  // 空间随物体延伸：物体超出网格时扩展
+  let ex=0;A.objs.forEach(o=>{if(o.gone>=1)return;const ox=W*o.x,oy=H*o.y;ex=Math.max(ex,g.x0-ox+40,ox-(g.x0+g.w)+40,g.y0-oy+40,oy-(g.y0+g.h)+40);});
+  A.ext=lerp(A.ext,Math.max(0,ex),dt*6);if(A.ext>20){A.stretch+=dt;if(A.stretch>0.6)hit(1,2);}
+  const E=A.ext;
+  // 擦除空间的尝试：网格闪烁，但被拉回
+  if(A.eraseHold)A.erase=Math.min(0.85,A.erase+dt*0.5);else A.erase=Math.max(0,A.erase-dt*0.8);
+  if(A.erase>0.6)hit(1,1);
+  const ga=0.35*(1-A.erase)+0.12+Math.sin(T*30)*0.05*A.erase;
+  grid(g.x0-E,g.y0-E,g.w+2*E,g.h+2*E,ga,32);
+  ctx.strokeStyle=`rgba(120,190,255,${0.5*(1-A.erase*0.6)})`;ctx.strokeRect(g.x0-E,g.y0-E,g.w+2*E,g.h+2*E);
+  // 物体：按住 → 性质逐层剥离（颜色→软硬→重量→形状）
+  A.objs.forEach(o=>{const ox=W*o.x,oy=H*o.y,s=Math.min(W,H)*.16;
+    if(o.hold&&o.gone<1){o.peel=Math.min(1,o.peel+dt*0.35);if(o.peel>=1){o.gone=1;hit(1,0);toast(`“${o.n}”消失了，它占据的空间还在`);}}
+    if(o.gone>=1){ctx.strokeStyle='rgba(255,230,160,.55)';ctx.setLineDash([5,5]);ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(ox,oy,s*.55,s*.5,0,0,7);ctx.stroke();ctx.setLineDash([]);txt('（空出的空间）',ox,oy+4,'rgba(255,230,160,.6)',11);return;}
+    const p=o.peel;const col=p<0.25?o.c:'#999';const a=1-Math.max(0,p-0.75)*4;
+    shape(o.k,ox,oy,s*(1-Math.max(0,p-0.5)*0.3),col,a);
+    if(p>0.5){ctx.strokeStyle='rgba(255,255,255,.7)';ctx.setLineDash([3,3]);ctx.beginPath();ctx.ellipse(ox,oy,s*.55,s*.5,0,0,7);ctx.stroke();ctx.setLineDash([]);}
+    const lab=p<0.01?o.n:p<0.25?'去掉颜色……':p<0.5?'去掉软硬……':p<0.75?'去掉重量……':'去掉形状……';txt(lab,ox,oy+s*.75,'#e8ecf4',12);});
+  const all=A.objs.every(o=>o.gone>=1);
+  txt(all?(A.eraseHold?'试着把空间本身也抹掉……':'物体都没了。现在按住画面，试着把空间也抹掉'):'按住一个物体，剥去它的性质；或把物体拖到网格边缘',W/2,22,'#ffe7b5',13);
+  if(A.eraseHold&&A.erase>0.6)txt('网格一松就回来：可以想没有物体的空间，却想不出没有空间',W/2,H-14,'#ffb0b0',13);}
+
+/* ================= 第 2 关：时间 ================= */
+let B;
+const EVS=['钟声','闪电','雨声','脚步','一句话','花开'];
+function init2(){B={evs:EVS.map((n,i)=>({n,u:i/EVS.length,off:false,y:0,vy:0})),drag:null,hold:false,holdT:0,thought:{x:.15,y:.35,state:'free'},flow:0};}
+const TLY=()=>H*.72;
+function evX(e){return ((e.u+B.flow)%1)*W*1.1-W*.05;}
+HD[2]={down(x,y){const ty=TLY();const th=B.thought;if(Math.hypot(x-W*th.x,y-H*th.y)<36){B.drag={th:true};return;}
+  for(const e of B.evs){if(!e.off&&Math.hypot(x-evX(e),y-(ty-30))<30){B.drag={e};return;}}
+  if(Math.abs(y-ty)<26)B.hold=true;},
+ move(x,y){if(!B.drag)return;if(B.drag.th){B.thought.x=clamp(x/W,0.02,0.98);B.thought.y=clamp(y/H,0.05,0.95);B.thought.state='drag';}else{const e=B.drag.e;e.dx=x;e.dy=y;}},
+ up(){const d=B.drag;B.drag=null;B.hold=false;if(!d)return;const ty=TLY();
+  if(d.e){const e=d.e;if(e.dy!=null&&Math.abs(e.dy-ty)>70){e.off=true;e.fx=e.dx;e.fy=e.dy;toast(`“${e.n}”被拿掉了，时间照常流过`);if(B.evs.filter(v=>v.off).length>=3)hit(2,0);}e.dx=e.dy=null;}
+  if(d.th){const th=B.thought;if(th.y*H<ty-60){th.state='fall';hit(2,2);toast('念头在空间里找不到位置：没有形状，也没有方位');}else th.state='free';}}};
+function t2(dt){const ty=TLY();ctx.fillStyle='#0f1220';ctx.fillRect(0,0,W,H);
+  // 上方：空间（外感官）区域
+  grid(W*.05,H*.06,W*.9,ty-H*.2,0.18,30);txt('空间（外感官的形式）',W*.08,H*.06+16,'rgba(120,190,255,.8)',12,'left');
+  // 时间流：按住时尝试“停下”，速度几乎不减
+  if(B.hold){B.holdT+=dt;if(B.holdT>1.5)hit(2,1);}else B.holdT=Math.max(0,B.holdT-dt);
+  const sp=0.04*(B.hold?0.97:1);B.flow=(B.flow+dt*sp)%1;
+  ctx.strokeStyle=B.hold?'#ffb0b0':'#f3c46b';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(0,ty);ctx.lineTo(W,ty);ctx.stroke();
+  for(let i=0;i<40;i++){const x=((i/40+B.flow)%1)*W;ctx.fillStyle='rgba(243,196,107,.7)';ctx.fillRect(x-1,ty-6,2,12);}
+  txt('时间（内感官的形式）→',W-10,ty+26,'rgba(243,196,107,.9)',12,'right');
+  // 事件
+  B.evs.forEach(e=>{if(e.off){e.vy=(e.vy||0)+300*dt;e.fy+=e.vy*dt;if(e.fy<H+40){ctx.globalAlpha=.5;txt(e.n,e.fx,e.fy,'#aaa',13);ctx.globalAlpha=1;}return;}
+    const x=e.dx!=null?e.dx:evX(e),y=e.dy!=null?e.dy:ty-30;ctx.fillStyle='#e8dcff';ctx.beginPath();ctx.roundRect(x-34,y-14,68,28,10);ctx.fill();txt(e.n,x,y+5,'#3a2a70',13,'center',true);
+    if(e.dy==null){ctx.strokeStyle='rgba(232,220,255,.5)';ctx.beginPath();ctx.moveTo(x,y+14);ctx.lineTo(x,ty);ctx.stroke();}});
+  // 念头：拖进空间则失去位置，飘落回时间轴
+  const th=B.thought;let tx=W*th.x,tyy=H*th.y;
+  if(th.state==='fall'){th.y=lerp(th.y,(ty-24)/H,dt*1.5);th.x=lerp(th.x,th.x,1);if(Math.abs(th.y*H-(ty-24))<3)th.state='free';}
+  if(tyy<ty-60&&th.state!=='free'){ctx.save();ctx.globalAlpha=.4+.3*Math.sin(T*8);ctx.setLineDash([3,4]);ctx.strokeStyle='#fff';ctx.beginPath();ctx.arc(tx,tyy,30+6*Math.sin(T*5),0,7);ctx.stroke();ctx.restore();txt('“我在想……”',tx+(Math.random()-.5)*6,tyy+5,'#fff',13);txt('位置？形状？——没有',tx,tyy+48,'#ffb0b0',11);}
+  else{ctx.fillStyle='#c79bff';ctx.beginPath();ctx.ellipse(tx,tyy,46,22,0,0,7);ctx.fill();txt('“我在想……”',tx,tyy+5,'#2a1650',13,'center',true);}
+  const left=B.evs.filter(e=>!e.off).length;
+  txt(left?'把事件拖离时间轴；按住时间轴试着让它停下；把紫色的“念头”拖进上方空间':'所有现象都拿掉了：时间仍在流',W/2,22,'#ffe7b5',13);
+  if(B.hold)txt('停不下来：时间不是你拿着的一件东西',W/2,ty+52,'#ffb0b0',13);}
+
+/* ================= 第 3 关：感性与知性 ================= */
+let C;
+const CONCEPTS=['圆','树','一个','原因'];
+function init3(){C={parts:[],recv:0,holdRecv:false,concepts:CONCEPTS.map((n,i)=>({n,x:.86,y:.18+i*.19,hx:.86,hy:.18+i*.19})),drag:null,objs:[],empties:[],blindT:0,seenVoid:false,seenBlind:false};}
+HD[3]={down(x,y,id){if(x<W*.33){C.holdRecv=true;C.recvId=id;return;}for(const c of C.concepts){if(Math.hypot(x-W*c.x,y-H*c.y)<34){C.drag={c,id};return;}}},
+ move(x,y,dx,dy,d,id){if(C.drag&&C.drag.id===id){C.drag.c.x=x/W;C.drag.c.y=y/H;}},
+ up(id){if(id===C.recvId)C.holdRecv=false;if(C.drag&&C.drag.id===id){const c=C.drag.c;C.drag=null;const cx=W*c.x,cy=H*c.y;
+   if(cx>W*.34&&cx<W*.76){const near=C.parts.filter(p=>Math.hypot(p.x-cx,p.y-cy)<120).length;
+     if(C.recv>0.25&&near>=10){C.objs.push({n:c.n,x:cx,y:cy,t:0});C.parts.forEach(p=>{if(Math.hypot(p.x-cx,p.y-cy)<120)p.bind={x:cx,y:cy};});hit(3,3);toast(`材料与概念“${c.n}”结合：一个对象被认识了`);}
+     else{C.empties.push({n:c.n,x:cx,y:cy,a:1});C.seenVoid=true;hit(3,1);toast(`只有概念“${c.n}”，没有被给予的材料：空的`);chk3();}}
+   c.x=c.hx;c.y=c.hy;}}};
+function chk3(){if(C.seenVoid&&C.seenBlind)hit(3,2);}
+function t3(dt){ctx.fillStyle='#14121c';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(120,190,255,.07)';ctx.fillRect(0,0,W*.33,H);txt('感性：按住这里接受刺激',W*.165,22,'rgba(160,210,255,.9)',13);
+  ctx.fillStyle='rgba(243,165,43,.07)';ctx.fillRect(W*.77,0,W*.23,H);txt('知性：概念',W*.885,22,'rgba(255,210,140,.9)',13);
+  if(C.holdRecv){C.recv=Math.min(1,C.recv+dt*0.8);hit(3,0);}else C.recv=Math.max(0,C.recv-dt*0.35);
+  if(Math.random()<C.recv*dt*40)C.parts.push({x:W*.05+Math.random()*W*.2,y:Math.random()*H,vx:60+Math.random()*90,vy:(Math.random()-.5)*80,h:Math.random()*360,l:6});
+  C.parts.forEach(p=>{if(p.bind){p.x=lerp(p.x,p.bind.x+Math.cos(p.h)*40,dt*3);p.y=lerp(p.y,p.bind.y+Math.sin(p.h)*30,dt*3);}else{p.vx+=(Math.random()-.5)*200*dt;p.vy+=(Math.random()-.5)*200*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;if(p.x>W*.76)p.vx=-Math.abs(p.vx);if(p.y<0||p.y>H)p.vy*=-1;}p.l-=dt*(p.bind?0.05:0.6);
+    ctx.fillStyle=`hsla(${p.h},70%,62%,${clamp(p.l/3,0,1)})`;ctx.beginPath();ctx.arc(p.x,p.y,3,0,7);ctx.fill();});
+  C.parts=C.parts.filter(p=>p.l>0).slice(-400);
+  const free=C.parts.filter(p=>!p.bind).length;
+  if(free>60&&!C.drag){C.blindT+=dt;if(C.blindT>3&&!C.seenBlind){C.seenBlind=true;toast('有大量材料，却没有概念：一片盲目的杂多');chk3();}}else C.blindT=Math.max(0,C.blindT-dt*0.5);
+  if(free>60)txt('（材料在乱转，没有任何对象）',W*.55,H-14,'rgba(200,200,220,.7)',12);
+  C.empties.forEach(e=>{e.a-=dt*0.2;ctx.globalAlpha=Math.max(0,e.a);ctx.strokeStyle='#ffd27a';ctx.setLineDash([6,5]);ctx.lineWidth=2;ctx.beginPath();ctx.arc(e.x,e.y,42,0,7);ctx.stroke();ctx.setLineDash([]);txt(e.n+'（空）',e.x,e.y+5,'#ffd27a',13);ctx.globalAlpha=1;});C.empties=C.empties.filter(e=>e.a>0);
+  C.objs.forEach(o=>{o.t+=dt;const k=Math.min(1,o.t);ctx.strokeStyle=`rgba(125,255,176,${k})`;ctx.lineWidth=3;ctx.beginPath();ctx.arc(o.x,o.y,46,0,7);ctx.stroke();txt(o.n,o.x,o.y+6,`rgba(125,255,176,${k})`,16,'center',true);txt('被认识的对象',o.x,o.y+66,'rgba(125,255,176,.7)',11);});
+  C.concepts.forEach(c=>{const x=W*c.x,y=H*c.y;ctx.fillStyle='#ffd27a';ctx.beginPath();ctx.roundRect(x-32,y-18,64,36,10);ctx.fill();txt(c.n,x,y+6,'#3a2600',15,'center',true);});
+  meter3();}
+function meter3(){const x=W*.36,y=36,w=W*.38;ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(x,y,w,8);ctx.fillStyle='#78beff';ctx.fillRect(x,y,w*C.recv,8);txt('接受性（材料的流入）',x+w/2,y-4,'#cfe4ff',11);
+  txt('触屏可两指同时操作；鼠标可先按住左侧，松手后材料还会持续一会儿',W*.55,y+26,'rgba(255,231,181,.75)',11);}
+
+/* ================= 第 4 关：现象与物自身 ================= */
+let D;
+function init4(){D={lx:.5,ly:.5,ax:.5,ay:.5,drag:false,pull:0,darkHold:0,darkOn:false,items:[{k:'stone',x:.25,y:.4},{k:'tree',x:.55,y:.62},{k:'house',x:.78,y:.35},{k:'ball',x:.4,y:.75}].map(o=>({...o,seen:false})),seenCount:0,flick:0};}
+const LR=()=>Math.min(W,H)*.22;
+HD[4]={down(x,y){if(Math.hypot(x-W*D.lx,y-H*D.ly)<LR()){D.drag=true;}else D.darkOn=true;},
+ move(x,y){if(D.drag){D.ax=x/W;D.ay=y/H;}},
+ up(){D.drag=false;D.darkOn=false;}};
+function t4(dt){const R=LR();ctx.fillStyle='#07080c';ctx.fillRect(0,0,W,H);
+  // 透镜：跟随，但离开画面会被拉回（不能摘下）
+  const tx=clamp(D.ax,0.08,0.92),ty=clamp(D.ay,0.1,0.9);const over=Math.hypot((D.ax-tx)*W,(D.ay-ty)*H);
+  if(D.drag){D.pull=Math.min(1,over/(Math.min(W,H)*.25));}else{D.pull=Math.max(0,D.pull-dt*2);D.ax=lerp(D.ax,tx,dt*6);D.ay=lerp(D.ay,ty,dt*6);}
+  D.lx=lerp(D.lx,tx+(D.ax-tx)*0.25,dt*10);D.ly=lerp(D.ly,ty+(D.ay-ty)*0.25,dt*10);
+  if(D.pull>0.8){hit(4,2);}
+  const lx=W*D.lx,ly=H*D.ly;
+  // 暗处：物自身——没有形状，只有“？”
+  for(let i=0;i<18;i++){const x=((i*137)%97)/97*W,y=((i*59)%89)/89*H;if(Math.hypot(x-lx,y-ly)>R)txt('?',x,y,'rgba(255,255,255,.12)',22);}
+  if(D.darkOn&&!D.drag){D.darkHold+=dt;if(D.darkHold>1.2)hit(4,1);ctx.fillStyle='rgba(255,255,255,.03)';ctx.fillRect(0,0,W,H);txt('物自身是什么？……没有任何直观给出它',W/2,H-14,'#cfd6e6',13);}
+  // 透镜内：空间网格 + 时间刻度 + 物体（现象）
+  const fade=1-D.pull;
+  ctx.save();ctx.beginPath();ctx.arc(lx,ly,R,0,7);ctx.clip();
+  ctx.fillStyle=`rgba(20,34,56,${0.9*fade})`;ctx.fillRect(lx-R,ly-R,2*R,2*R);grid(lx-R,ly-R,2*R,2*R,0.35*fade,24);
+  D.items.forEach(o=>{const ox=W*o.x,oy=H*o.y;if(Math.hypot(ox-lx,oy-ly)<R+20){shape(o.k,ox,oy,R*.55,['#8a8f96','#3f8a35','#b07b3c','#d9342b'][['stone','tree','house','ball'].indexOf(o.k)],fade);
+      txt(`(x ${Math.round(ox)}, y ${Math.round(oy)})  t=${T.toFixed(1)}s`,ox,oy+R*.42,`rgba(243,196,107,${fade})`,10);if(!o.seen){o.seen=true;D.seenCount++;if(D.seenCount>=2)hit(4,0);}}});
+  ctx.restore();
+  ctx.strokeStyle=`rgba(120,190,255,${0.9*fade+0.1})`;ctx.lineWidth=4;ctx.beginPath();ctx.arc(lx,ly,R,0,7);ctx.stroke();
+  ctx.strokeStyle='rgba(243,196,107,.8)';ctx.lineWidth=3;ctx.beginPath();ctx.arc(lx,ly,R+5,-Math.PI/2,-Math.PI/2+((T*0.3)%1)*6.283);ctx.stroke();
+  txt('空间 · 时间',lx,ly-R-12,'#cfe4ff',12);
+  if(D.pull>0.05){ctx.strokeStyle=`rgba(255,150,150,${D.pull})`;ctx.lineWidth=2;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(W*D.ax,H*D.ay);ctx.stroke();ctx.setLineDash([]);
+    txt(D.pull>0.8?'没有了这面透镜，连空间和时间本身也消失了':'透镜拉不下来……',W/2,H*0.12,'#ffb0b0',14,'center',true);}
+  if(!D.drag&&!D.darkOn)txt('按住透镜拖动去看物体；按住暗处；或用力把透镜拖出画面',W/2,22,'#ffe7b5',13);}
+
+/* ================= 第 5 关：应用练习 ================= */
+let E5;
+const CARDS=[{n:'石头',z:'st'},{n:'钟声',z:'st'},{n:'一阵悲伤',z:'t'},{n:'数到 7',z:'t'},{n:'远处的山',z:'st'},{n:'物自身',z:'x'}];
+function init5(){E5={cards:CARDS.map((c,i)=>({...c,x:.08+i*.15,y:.88,hx:.08+i*.15,hy:.88,placed:false,shake:0})),drag:null,xTries:0};}
+const Z=()=>({st:{x:W*.04,y:H*.08,w:W*.44,h:H*.62},t:{x:W*.52,y:H*.08,w:W*.44,h:H*.62}});
+HD[5]={down(x,y){for(const c of E5.cards){if(!c.placed&&Math.hypot(x-W*c.x,y-H*c.y)<38){E5.drag=c;return;}}},
+ move(x,y){if(E5.drag){E5.drag.x=x/W;E5.drag.y=y/H;}},
+ up(){const c=E5.drag;E5.drag=null;if(!c)return;const z=Z(),x=W*c.x,y=H*c.y;
+   const inZ=k=>x>z[k].x&&x<z[k].x+z[k].w&&y>z[k].y&&y<z[k].y+z[k].h;const where=inZ('st')?'st':inZ('t')?'t':null;
+   if(!where){c.x=c.hx;c.y=c.hy;return;}
+   if(c.z==='x'){c.shake=1;E5.xTries++;c.x=c.hx;c.y=c.hy;toast('“物自身”进不了任何直观形式：它不显现为在空间或时间中');if(E5.xTries>=2)hit(5,1);return;}
+   if(c.z===where){c.placed=where;c.x=x/W;c.y=y/H;if(E5.cards.filter(k=>k.z!=='x').every(k=>k.placed))hit(5,0);}
+   else{c.shake=1;c.x=c.hx;c.y=c.hy;toast(c.z==='t'?`“${c.n}”是内心状态：它在时间中，却没有空间位置`:`“${c.n}”是外部对象：它在空间中，也在时间中`);}}};
+function t5(dt){ctx.fillStyle='#10141c';ctx.fillRect(0,0,W,H);const z=Z();
+  ctx.fillStyle='rgba(120,190,255,.06)';ctx.fillRect(z.st.x,z.st.y,z.st.w,z.st.h);grid(z.st.x,z.st.y,z.st.w,z.st.h,0.2,28);
+  ctx.strokeStyle='rgba(243,196,107,.8)';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(z.st.x,z.st.y+z.st.h-6);ctx.lineTo(z.st.x+z.st.w,z.st.y+z.st.h-6);ctx.stroke();
+  txt('空间 ＋ 时间（外感官）',z.st.x+z.st.w/2,z.st.y+18,'#cfe4ff',13,'center',true);
+  ctx.fillStyle='rgba(243,196,107,.05)';ctx.fillRect(z.t.x,z.t.y,z.t.w,z.t.h);ctx.strokeStyle='rgba(243,196,107,.8)';ctx.beginPath();ctx.moveTo(z.t.x,z.t.y+z.t.h-6);ctx.lineTo(z.t.x+z.t.w,z.t.y+z.t.h-6);ctx.stroke();
+  for(let i=0;i<20;i++){const x=z.t.x+((i/20+T*0.03)%1)*z.t.w;ctx.fillStyle='rgba(243,196,107,.6)';ctx.fillRect(x,z.t.y+z.t.h-11,2,10);}
+  txt('只在时间中（内感官）',z.t.x+z.t.w/2,z.t.y+18,'#ffe0a8',13,'center',true);
+  E5.cards.forEach(c=>{c.shake=Math.max(0,c.shake-dt*2);const x=W*c.x+Math.sin(T*50)*8*c.shake,y=H*c.y;const isX=c.z==='x';
+    ctx.fillStyle=isX?'#3a3f4a':c.placed?'#7dffb0':'#e8ecf4';ctx.beginPath();ctx.roundRect(x-44,y-18,88,36,10);ctx.fill();txt(isX?'物自身 ?':c.n,x,y+5,isX?'#cfd6e6':'#222',13,'center',true);});
+  const left=E5.cards.filter(c=>c.z!=='x'&&!c.placed).length;
+  txt(left?'把下方卡片拖进它所属的直观形式；放错会被弹回':'五张都放好了。再试试“物自身”',W/2,H*.78,'#ffe7b5',13);}
+
+/* ======== 调度 ======== */
+const INIT={1:init1,2:init2,3:init3,4:init4,5:init5},TICK={1:t1,2:t2,3:t3,4:t4,5:t5};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!done[t.dataset.l]);});}
+function go(n){L=n;tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();save();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{INIT[L]();toast('已重置本关（已对应的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(load());requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

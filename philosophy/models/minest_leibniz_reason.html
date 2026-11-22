@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 莱布尼茨充足理由律 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .q0{padding:4px 10px;font-size:12.5px;color:#2c3e50;background:#fff7e0;border-bottom:1px solid #eadfba}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+#side .lim{padding:4px 10px 8px;font-size:11.5px;color:#777}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>莱布尼茨 · 充足理由律</b>
+  <button class="tab on" data-l="1">① 矛盾律</button>
+  <button class="tab" data-l="2">② 追问为什么</button>
+  <button class="tab" data-l="3">③ 跳出序列</button>
+  <button class="tab" data-l="4">④ 无理由则无事</button>
+  <button class="tab" data-l="5">⑤ 应用练习</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div>
+  <div class="q0"><b>核心问题：</b>任何事情为什么是这样而不是别样？理由的链条能在哪里停下？</div>
+  <div class="bd" id="sBody"></div>
+  <div class="lim"><b>适用边界：</b>树、天平、气泡都是教学比喻；莱布尼茨讲的是真理与存在的理由，并非物理机械，第④关的对称天平取自通常的“布里丹之驴”式设想，不是《单子论》原文中的例子。</div>
+</div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+const STORE='minest_leibniz_reason_v1';let MEM={};
+function load(){try{return JSON.parse(localStorage.getItem(STORE)||'{}');}catch(e){return MEM;}}
+function save(o){MEM=o;try{localStorage.setItem(STORE,JSON.stringify(o));}catch(e){}}
+const SV=Object.assign({lit:{},done:{}},load());
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ======== 原文：《单子论》（1714）英译，marxists.org 版（据 Duncan 本与 uh.edu 电子文本）；中文编译 ======== */
+const SRC='莱布尼茨《单子论》';
+const MAP={
+1:[["把“A”与“非 A”同时放上台座：被弹开","我们的推理建立在两大原则上：第一是矛盾律，凭借它，我们判定包含矛盾的为假。","Our reasoning is based upon two great principles: first, that of contradiction, by means of which we decide that to be false which involves contradiction","§31"],
+   ["推理之真：反面被拖入即碎","推理的真理是必然的，它们的反面是不可能的。","The truths of reasoning are necessary, and their opposite is impossible.","§33"],
+   ["事实之真：反面也能稳稳站住","事实的真理则是偶然的，它们的反面是可能的。","Those of fact, however, are contingent, and their opposite is possible.","§33"],
+   ["按住分析：必然真理一路拆到原初真理","当一个真理是必然的，可以通过分析，把它分解为更简单的观念和真理，直到原初的真理。","When a truth is necessary, the reason can be found by analysis in resolving it into simpler ideas and into simpler truths until we reach those which are primary.","§33"]],
+2:[["按住“为什么？”：理由向后生长","第二是充足理由律，凭借它，我们认为任何事实都不能是真实的……除非有一个充足理由说明它为何如此而非别样。","the principle of sufficient reason, in virtue of which we believe that no fact can be real or existing and no statement true unless it has a sufficient reason why it should be thus and not otherwise","§32"],
+   ["理由太多，大多看不清","然而这些理由在大多数情况下是我们无法知道的。","Most frequently, however, these reasons cannot be known by us.","§32"],
+   ["分支无限展开：动力因与目的因","有无限的形状和运动……进入我此刻书写的动力因；在它的目的因中，有我灵魂无限细微的倾向与习性。","There is an infinity of figures and of movements, present and past, which enter into the efficient cause of my present writing","§36"],
+   ["按得再久也到不了尽头","这一切细节又牵涉更细的偶然事物，每一个又需要同样的分析……所以并没有真正的进展。","each of which again has need of a similar analysis in order to find its explanation, no real advance has been made","§37"]],
+3:[["把探照框拖出序列的边界","因此，充足的或最终的理由必定在这些偶然细节的序列之外，无论它们多么无穷。","Therefore, the sufficient or ultimate reason must needs be outside of the sequence or series of these details of contingencies, however infinite they may be.","§37"],
+   ["序列外的源头：必然的实体","因此，事物的最终理由必定是一个必然的实体，其中变化的细节只是潜在地存在，如同在源泉之中；这个实体我们称为上帝。","the ultimate reason for things must be a necessary substance, in which the detail of the changes shall be present merely potentially, as in the fountainhead, and this substance we call God","§38"],
+   ["所有分支汇到同一处","既然这个实体是上述一切细节的充足理由……所以只有一个上帝，而这个上帝是充足的。","there is but one God, and this God is sufficient","§39"],
+   ["它的理由在自身之中","偶然的存在者……只能在必然存在者中有其最终和充足的理由，而必然存在者在自身中有存在的理由。","contingent beings exist which can have their ultimate and sufficient reason only in the necessary being which, in turn, has the reason for existence in itself","§45"]],
+4:[["完全对称：小球一动不动","任何事实都不能是真实的……除非有一个充足理由说明它为何如此而非别样。（对称情境为教学设想）","unless it has a sufficient reason why it should be thus and not otherwise","§32"],
+   ["拖动一侧：一点点不对称就足够","每个现存状态都是前一状态的自然结果，以至于它的现在孕育着它的未来。","Every present state of a simple substance is a natural consequence of its preceding state, in such a way that its present is big with its future.","§22"]],
+5:[["众多可能世界在上帝的观念中","既然在上帝的观念中有无限个可能的宇宙，而只能有一个存在，那么上帝的选择必定有一个充足理由。","as there are an infinity of possible universes in the ideas of God, and but one of them can exist, there must be a sufficient reason' for the choice of God","§53"],
+   ["拖动“多样”与“秩序”：完满度实时变化","这个理由只能在这些世界所具有的适宜性或完满程度中找到。","this reason is to be found only in the fitness or in the degree of perfection which these worlds possess","§54"],
+   ["多样与秩序兼得：被选中","由此获得了尽可能大的多样性，以及尽可能大的秩序；也就是获得了尽可能大的完满。","Through this means has been obtained the greatest possible variety, together with the greatest order that may be","§58"]]};
+const TITLE={1:'① 矛盾律 · 把命题卡拖到台座上；再把它的“反面”拖上去；按住必然真理进行分析',2:'② 追问为什么 · 按住“为什么？”，理由树从事件向后生长',3:'③ 跳出序列 · 把金色探照框拖到序列的边界之外',4:'④ 无理由则无事 · 小球在两个完全相同的吸引子之间；拖动一侧打破对称',5:'⑤ 应用练习 · 拖动每个可能世界的“多样”与“秩序”，看哪一个被选中'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr${SV.lit[l+'_'+i]?' on':''}" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——${SRC} ${r[3]}</div></div></div>`).join('');}
+function hit(l,i){SV.lit[l+'_'+i]=1;const e=$('mr'+l+'_'+i);if(e&&!e.classList.contains('on')){e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});}
+  if(MAP[l].every((_,k)=>SV.lit[l+'_'+k])){SV.done[l]=1;tabs();}save(SV);}
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]?.move?.(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]?.up?.();});
+
+/* ================= 第 1 关：矛盾律 ================= */
+const CARDS=[{t:'2 + 2 = 4',neg:'2 + 2 ≠ 4',nec:true,parts:['2 = 1+1','4 = 1+1+1+1','加法定义','同一律']},
+ {t:'三角形内角和 180°',neg:'内角和 ≠ 180°',nec:true,parts:['平行公理','三角形定义','角的定义','同一律']},
+ {t:'今天巴黎下雨',neg:'今天巴黎没下雨',nec:false},
+ {t:'凯撒渡过了卢比孔河',neg:'凯撒没有渡河',nec:false}];
+let A;
+function init1(){A={cards:CARDS.flatMap((c,i)=>[{...c,id:i,x:0.1+i*0.2,y:0.8,hx:0.1+i*0.2,hy:0.8,neg:false},{...c,id:i,x:0.1+i*0.2,y:0.93,hx:0.1+i*0.2,hy:0.93,neg:true}]),drag:null,ped:[null,null],shards:[],anal:0,holdAnal:false,analOf:null};}
+const PED=()=>[{x:W*0.33,y:H*0.42},{x:W*0.67,y:H*0.42}];
+HD[1]={down(x,y){const P=PED();
+  for(let k=0;k<2;k++){const c=A.ped[k];if(c&&c.nec&&!c.neg&&Math.hypot(x-P[k].x,y-P[k].y)<60){A.holdAnal=true;A.analOf=c;return;}}
+  for(const c of A.cards){const cx=W*c.x,cy=H*c.y;if(Math.abs(x-cx)<W*0.09&&Math.abs(y-cy)<22){A.drag={c,ox:x-cx,oy:y-cy};return;}}},
+ move(x,y){if(A.drag){A.drag.c.x=(x-A.drag.ox)/W;A.drag.c.y=(y-A.drag.oy)/H;}},
+ up(){A.holdAnal=false;const d=A.drag;A.drag=null;if(!d)return;const c=d.c,P=PED();
+  A.ped=A.ped.map(p=>p===c?null:p);
+  for(let k=0;k<2;k++){if(Math.hypot(W*c.x-P[k].x,H*c.y-P[k].y)<70){
+     const other=A.ped[1-k];
+     if(other&&other.id===c.id&&other.neg!==c.neg){ // 命题与其反面同时上台
+       hit(1,0);
+       if(c.nec){shatter(P[k],c);toast('矛盾：必然真理的反面不可能——被击碎');hit(1,1);c.x=c.hx;c.y=c.hy;return;}
+       else{toast('事实真理：反面也站得住。两者都“可能”，只是只有一个是现实的');hit(1,2);A.ped[k]=c;c.x=P[k].x/W;c.y=P[k].y/H;return;}}
+     if(A.ped[k]){const o=A.ped[k];o.x=o.hx;o.y=o.hy;}
+     A.ped[k]=c;c.x=P[k].x/W;c.y=P[k].y/H;return;}}
+  c.x=c.hx;c.y=c.hy;}};
+function shatter(p,c){for(let i=0;i<40;i++)A.shards.push({x:p.x,y:p.y,vx:(Math.random()-.5)*400,vy:-Math.random()*300,l:1});}
+function card(c,x,y,hl){const w=W*0.17,h=40;ctx.fillStyle=c.neg?'#3b2633':(c.nec?'#1f3a55':'#3a4a2a');ctx.strokeStyle=hl?'#f3a52b':'rgba(255,255,255,.35)';ctx.lineWidth=hl?3:1.5;
+  ctx.beginPath();ctx.roundRect(x-w/2,y-h/2,w,h,8);ctx.fill();ctx.stroke();txt(c.neg?CARDS[c.id].neg:c.t,x,y+5,'#fff',13,'center',true);
+  txt(c.nec?'推理之真':'事实之真',x,y+h/2+14,c.nec?'#8fc3ff':'#b9d98a',11);}
+function t1(dt){ctx.fillStyle='#16202b';ctx.fillRect(0,0,W,H);const P=PED();
+  // 台座
+  P.forEach((p,k)=>{ctx.fillStyle='#2b3a4a';ctx.beginPath();ctx.ellipse(p.x,p.y+34,W*0.11,14,0,0,7);ctx.fill();ctx.strokeStyle='rgba(243,165,43,.4)';ctx.setLineDash([5,5]);ctx.strokeRect(p.x-W*0.1,p.y-30,W*0.2,60);ctx.setLineDash([]);});
+  txt('真理的台座',W/2,26,'#cfd6e6',14,'center',true);
+  txt('上排：命题　下排：它的反面',W*0.5,H*0.72,'#6f8297',11);
+  // 分析
+  if(A.holdAnal&&A.analOf){A.anal=Math.min(1,A.anal+dt*0.45);}else A.anal=Math.max(0,A.anal-dt*0.6);
+  A.cards.forEach(c=>{if(A.ped.includes(c))return;card(c,W*c.x,H*c.y,A.drag&&A.drag.c===c);});
+  A.ped.forEach((c,k)=>{if(!c)return;card(c,P[k].x,P[k].y,true);
+    if(A.analOf===c&&A.anal>0){const n=c.parts.length;c.parts.forEach((s,i)=>{const k2=clamp(A.anal*n-i,0,1);if(k2<=0)return;const ax=P[k].x+(i-(n-1)/2)*W*0.08,ay=P[k].y+60+k2*50;
+      ctx.strokeStyle=`rgba(143,195,255,${k2})`;ctx.beginPath();ctx.moveTo(P[k].x,P[k].y+22);ctx.lineTo(ax,ay-12);ctx.stroke();ctx.globalAlpha=k2;ctx.fillStyle='#2a4c6e';ctx.fillRect(ax-W*0.038,ay-12,W*0.076,24);txt(s,ax,ay+4,'#fff',11);ctx.globalAlpha=1;});
+      if(A.anal>=1){txt('已到原初真理：同一律',P[k].x,P[k].y+150,'#7dffb0',13,'center',true);hit(1,3);}}});
+  A.shards.forEach(s=>{s.vy+=800*dt;s.x+=s.vx*dt;s.y+=s.vy*dt;s.l-=dt;ctx.fillStyle=`rgba(255,120,120,${s.l})`;ctx.fillRect(s.x,s.y,4,4);});A.shards=A.shards.filter(s=>s.l>0);
+  txt('把一个命题和它的反面分别拖上两个台座；按住台上的必然真理进行分析',W/2,H-10,'#9fb0c3',12);}
+
+/* ================= 第 2 关：追问为什么 ================= */
+let B;
+function init2(){B={nodes:[{x:0,y:0,d:0,label:'我此刻在写字',p:-1,a:1}],hold:false,acc:0,depth:0,maxDepth:0,seen:0};}
+const WHY=['手在动','想写','纸在桌上','光照进窗','肌肉收缩','昨天的念头','树长成木','太阳升起','营养','习惯','墨水流动','笔被造出','地球转动','有人教我写字','血液循环','细胞分裂','矿石冶炼','雨水落下','更早的天气','更早的念头'];
+HD[2]={down(x,y){if(x>W*0.78&&y>H*0.78){B.hold=true;}},up(){B.hold=false;}};
+function t2(dt){ctx.fillStyle='#0f1620';ctx.fillRect(0,0,W,H);
+  if(B.hold){B.acc+=dt*(2+B.nodes.length*0.05);}
+  while(B.acc>=1){B.acc-=1;const leaves=B.nodes.filter(n=>!n.kids);const par=leaves[Math.floor(Math.random()*leaves.length)];if(!par)break;par.kids=0;
+    const k=1+Math.floor(Math.random()*3);for(let i=0;i<k;i++){B.nodes.push({x:0,y:0,d:par.d+1,label:WHY[(B.nodes.length*7)%WHY.length],p:B.nodes.indexOf(par),a:0});}
+    par.kids=k;B.maxDepth=Math.max(B.maxDepth,par.d+1);}
+  // 布局：事件在右，向左（过去）生长
+  const byD={};B.nodes.forEach(n=>{(byD[n.d]=byD[n.d]||[]).push(n);});
+  const dx=Math.min(110,W*0.8/Math.max(4,B.maxDepth+1));
+  Object.entries(byD).forEach(([d,arr])=>arr.forEach((n,i)=>{const tx=W*0.88-d*dx,ty=H*0.5+(i-(arr.length-1)/2)*Math.min(34,H*0.85/arr.length);n.x=n.x?lerp(n.x,tx,dt*4):tx;n.y=n.y?lerp(n.y,ty,dt*4):ty;n.a=Math.min(1,n.a+dt*2);}));
+  B.nodes.forEach(n=>{if(n.p>=0){const p=B.nodes[n.p];ctx.strokeStyle=`rgba(143,195,255,${0.3*n.a})`;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(n.x,n.y);ctx.stroke();}});
+  const tiny=B.nodes.length>40;
+  B.nodes.forEach(n=>{ctx.globalAlpha=n.a*(n.d>4?Math.max(0.25,1-(n.d-4)*0.15):1);ctx.fillStyle=n.d===0?'#f3a52b':'#8fc3ff';ctx.beginPath();ctx.arc(n.x,n.y,n.d===0?10:4,0,7);ctx.fill();
+    if(n.d<=3||(!tiny&&n.d<=5))txt(n.d>3?'？':n.label,n.x,n.y-9,'#dfe9f5',11);ctx.globalAlpha=1;});
+  // 左边缘：雾——序列继续，看不到头
+  const g=ctx.createLinearGradient(0,0,W*0.25,0);g.addColorStop(0,'rgba(15,22,32,1)');g.addColorStop(1,'rgba(15,22,32,0)');ctx.fillStyle=g;ctx.fillRect(0,0,W*0.25,H);
+  txt('← 更早、更细的理由……',W*0.12,H*0.08,'#6f8297',12);
+  const n=B.nodes.length;if(n>4)hit(2,0);if(n>12)hit(2,1);if(B.maxDepth>=4&&n>20)hit(2,2);if(B.maxDepth>=8){hit(2,3);txt(`已追问 ${n} 个理由，深度 ${B.maxDepth}：链条依然没有尽头`,W/2,H*0.08,'#ffb0b0',14,'center',true);}
+  else txt(`已找到理由 ${n-1} 个 · 深度 ${B.maxDepth}`,W/2,H*0.08,'#cfd6e6',13);
+  ctx.fillStyle=B.hold?'#f3a52b':'rgba(255,255,255,.9)';ctx.beginPath();ctx.roundRect(W*0.79,H*0.8,W*0.19,H*0.15,12);ctx.fill();txt('按住：为什么？',W*0.885,H*0.89,'#222',15,'center',true);}
+
+/* ================= 第 3 关：跳出序列 ================= */
+let C;
+function init3(){C={fx:0.5,fy:0.5,drag:false,out:0,found:false,beams:0,inT:0};}
+const FR=()=>({x:W*0.08,y:H*0.18,w:W*0.62,h:H*0.64});
+HD[3]={down(x,y){if(Math.hypot(x-W*C.fx,y-H*C.fy)<50)C.drag=true;},move(x,y){if(C.drag){C.fx=clamp(x/W,0.03,0.97);C.fy=clamp(y/H,0.08,0.95);}},up(){C.drag=false;}};
+function t3(dt){ctx.fillStyle='#0f1620';ctx.fillRect(0,0,W,H);const f=FR();
+  // 序列：一条无限延伸的偶然链（向左滚动）
+  ctx.strokeStyle='rgba(143,195,255,.35)';ctx.lineWidth=1.5;ctx.strokeRect(f.x,f.y,f.w,f.h);txt('偶然事物的序列（无论多么无穷）',f.x+f.w/2,f.y-10,'#8fc3ff',13);
+  ctx.save();ctx.beginPath();ctx.rect(f.x,f.y,f.w,f.h);ctx.clip();
+  for(let r=0;r<5;r++){const yy=f.y+f.h*(0.15+r*0.18);const off=(T*40*(1+r*0.2))%60;for(let i=-1;i<f.w/60+2;i++){const xx=f.x+f.w-i*60+off;ctx.fillStyle='rgba(143,195,255,.6)';ctx.beginPath();ctx.arc(xx,yy,4,0,7);ctx.fill();ctx.strokeStyle='rgba(143,195,255,.25)';ctx.beginPath();ctx.moveTo(xx,yy);ctx.lineTo(xx-60,yy+Math.sin(i+r)*6);ctx.stroke();}}
+  ctx.restore();
+  // 源泉（序列之外，只有当探照框真正出框后才显现）
+  const sx=W*0.86,sy=H*0.5;
+  const inside=W*C.fx>f.x&&W*C.fx<f.x+f.w&&H*C.fy>f.y&&H*C.fy<f.y+f.h;
+  if(inside){C.inT+=dt;C.out=Math.max(0,C.out-dt);}else{C.out=Math.min(1,C.out+dt*0.5);}
+  if(!inside&&C.drag)hit(3,0);
+  const reveal=C.out*(Math.hypot(W*C.fx-sx,H*C.fy-sy)<W*0.2?1:0.35);
+  if(reveal>0.05){const gg=ctx.createRadialGradient(sx,sy,4,sx,sy,120);gg.addColorStop(0,`rgba(255,230,150,${reveal})`);gg.addColorStop(1,'rgba(255,230,150,0)');ctx.fillStyle=gg;ctx.fillRect(sx-130,sy-130,260,260);
+    ctx.fillStyle=`rgba(255,240,180,${reveal})`;ctx.beginPath();ctx.arc(sx,sy,22+Math.sin(T*2)*3,0,7);ctx.fill();
+    if(reveal>0.6){C.found=true;hit(3,1);txt('必然的实体',sx,sy+44,'#ffe7b5',13,'center',true);txt('理由在自身之中',sx,sy+62,'#ffe7b5',11);}}
+  if(C.found){C.beams=Math.min(1,C.beams+dt*0.4);for(let r=0;r<5;r++){const yy=f.y+f.h*(0.15+r*0.18);ctx.strokeStyle=`rgba(255,220,120,${0.5*C.beams})`;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(sx-20,sy);ctx.quadraticCurveTo((sx+f.x+f.w)/2,yy,f.x+f.w*(1-C.beams*0.9),yy);ctx.stroke();}
+    if(C.beams>0.9){hit(3,2);txt('所有分支都汇到同一个源头',W/2,H*0.95,'#ffe7b5',13);setTimeout(()=>hit(3,3),1500);}}
+  // 探照框
+  const fx=W*C.fx,fy=H*C.fy;ctx.strokeStyle='#f3a52b';ctx.lineWidth=3;ctx.strokeRect(fx-40,fy-30,80,60);txt(inside?'在序列内':'序列之外',fx,fy+48,'#f3a52b',12);
+  if(inside&&C.inT>3&&!C.found)txt('在序列里，每一处都只找到另一个偶然的理由',W/2,H*0.95,'#ffb0b0',13);
+  else if(!C.found)txt('把金色探照框拖出蓝色边框',W/2,H*0.95,'#cfd6e6',13);}
+
+/* ================= 第 4 关：无理由则无事 ================= */
+let D;
+function init4(){D={wl:1,wr:1,x:0,v:0,drag:null,still:0,moved:false};}
+HD[4]={down(x,y){if(Math.abs(y-H*0.55)<80){if(Math.abs(x-W*0.2)<60)D.drag='l';else if(Math.abs(x-W*0.8)<60)D.drag='r';}},
+ move(x,y,dx,dy){if(D.drag==='l')D.wl=clamp(D.wl-dy/120,0.3,2.5);if(D.drag==='r')D.wr=clamp(D.wr-dy/120,0.3,2.5);},up(){D.drag=null;}};
+function t4(dt){ctx.fillStyle='#16202b';ctx.fillRect(0,0,W,H);const cy=H*0.55,lx=W*0.2,rx=W*0.8;
+  const diff=D.wr-D.wl;
+  if(Math.abs(diff)<0.02){D.v*=0.9;D.still+=dt;if(D.still>3)hit(4,0);}else{D.still=0;D.v+=diff*dt*0.6;}
+  D.x=clamp(D.x+D.v*dt,-1,1);if(Math.abs(D.x)>=1){D.v=0;if(!D.moved){D.moved=true;hit(4,1);toast('一点点不对称，就是它往这边走的理由');}}
+  [[lx,D.wl,'左'],[rx,D.wr,'右']].forEach(([x,w,s])=>{const r=24+w*14;const gg=ctx.createRadialGradient(x,cy,4,x,cy,r*2);gg.addColorStop(0,'rgba(143,195,255,.6)');gg.addColorStop(1,'rgba(143,195,255,0)');ctx.fillStyle=gg;ctx.fillRect(x-r*2,cy-r*2,r*4,r*4);
+    ctx.fillStyle='#3a6f99';ctx.beginPath();ctx.arc(x,cy,r,0,7);ctx.fill();txt(`${s}：${w.toFixed(2)}`,x,cy+r+20,'#cfd6e6',13);txt('上下拖动改变强度',x,cy-r-12,'#6f8297',11);});
+  ctx.strokeStyle='rgba(255,255,255,.15)';ctx.beginPath();ctx.moveTo(lx,cy);ctx.lineTo(rx,cy);ctx.stroke();
+  const bx=lerp(W/2,D.x<0?lx+40:rx-40,Math.abs(D.x));ctx.fillStyle='#f3a52b';ctx.beginPath();ctx.arc(bx,cy,14,0,7);ctx.fill();
+  txt(Math.abs(diff)<0.02?`两边完全一样：小球已静止 ${D.still.toFixed(1)} 秒——没有理由往哪边`:diff>0?'向右的理由更强':'向左的理由更强',W/2,H*0.15,'#ffe7b5',15,'center',true);}
+
+/* ================= 第 5 关：应用练习 · 最好的可能世界 ================= */
+let E;
+function init5(){E={w:[0,1,2,3].map(i=>({v:0.2+Math.random()*0.6,o:0.2+Math.random()*0.6,x:0.15+i*0.23})),drag:null,chosen:-1,tune:0};}
+const perf=w=>w.v*w.o; // 教学设定：多样×秩序
+HD[5]={down(x,y){E.w.forEach((w,i)=>{if(Math.abs(x-W*w.x)<W*0.09&&y>H*0.2&&y<H*0.85)E.drag={i,x,y};});},
+ move(x,y,dx,dy){if(!E.drag)return;const w=E.w[E.drag.i];w.v=clamp(w.v+dx/200,0.02,1);w.o=clamp(w.o-dy/200,0.02,1);E.tune+=Math.abs(dx)+Math.abs(dy);if(E.tune>200)hit(5,1);},
+ up(){E.drag=null;}};
+function t5(dt){ctx.fillStyle='#0f1620';ctx.fillRect(0,0,W,H);hit(5,0);
+  txt('上帝观念中的可能世界：拖动气泡——左右改变“多样”，上下改变“秩序”',W/2,24,'#cfd6e6',13);
+  const best=E.w.reduce((b,w,i)=>perf(w)>perf(E.w[b])?i:b,0);
+  E.w.forEach((w,i)=>{const cx=W*w.x,cy=H*0.52,r=Math.min(W*0.09,H*0.22);const isB=i===best;
+    ctx.save();ctx.beginPath();ctx.arc(cx,cy,r,0,7);ctx.clip();ctx.fillStyle=isB?'#2a3b22':'#1d2733';ctx.fillRect(cx-r,cy-r,2*r,2*r);
+    const n=Math.round(4+w.v*30);for(let k=0;k<n;k++){const a=k/n*6.283,rr=r*(0.2+0.7*((k*37%11)/11));const jit=(1-w.o)*r*0.5;
+      const px=cx+Math.cos(a*(1+Math.floor(w.v*3)))*rr+Math.sin(T*2+k)*jit*0.3+((k*13%7)/7-0.5)*jit,py=cy+Math.sin(a)*rr+Math.cos(T*1.7+k)*jit*0.3+((k*7%5)/5-0.5)*jit;
+      ctx.fillStyle=`hsl(${(k*360/n)*w.v+200*(1-w.v)},60%,60%)`;ctx.beginPath();ctx.arc(px,py,3,0,7);ctx.fill();}
+    ctx.restore();ctx.strokeStyle=isB?'#ffd96b':'rgba(255,255,255,.3)';ctx.lineWidth=isB?4:1.5;ctx.beginPath();ctx.arc(cx,cy,r,0,7);ctx.stroke();
+    txt(`多样 ${(w.v*100|0)} · 秩序 ${(w.o*100|0)}`,cx,cy+r+18,'#cfd6e6',12);txt(`完满度 ${(perf(w)*100).toFixed(0)}`,cx,cy+r+34,isB?'#ffd96b':'#9fb0c3',12,'center',isB);
+    if(isB)txt('将被选中',cx,cy-r-10,'#ffd96b',13,'center',true);});
+  const b=E.w[best];if(b.v>0.8&&b.o>0.8){hit(5,2);txt('多样与秩序兼得：最大的完满',W/2,H*0.95,'#ffd96b',14,'center',true);}
+  else txt('试着造出一个既最多样又最有秩序的世界',W/2,H*0.95,'#9fb0c3',12);}
+
+/* ======== 调度 ======== */
+const INIT={1:init1,2:init2,3:init3,4:init4,5:init5},TICK={1:t1,2:t2,3:t3,4:t4,5:t5};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!SV.done[t.dataset.l]);});}
+function go(n){L=n;SV.cur=n;save(SV);tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{INIT[L]();toast('已重置（已对应的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(SV.cur||1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

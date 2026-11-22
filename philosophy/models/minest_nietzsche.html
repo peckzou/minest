@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 尼采价值谱系学 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .core{padding:4px 10px 0;font-size:12.5px;color:#7a4f00;font-weight:600}
+#side .bound{padding:2px 10px 8px;font-size:11px;color:#777}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>尼采 · 价值谱系学</b>
+  <button class="tab on" data-l="1">① 词语的谱系</button>
+  <button class="tab" data-l="2">② 羔羊与猛禽</button>
+  <button class="tab" data-l="3">③ 闪电与闪光</button>
+  <button class="tab" data-l="4">④ 理想的作坊</button>
+  <button class="tab" data-l="5">⑤ 应用练习</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div>
+  <div class="core">核心问题：“好／坏”与“善／恶”这些价值从何而来？——这些价值本身又有什么价值？</div>
+  <div class="bd" id="sBody"></div>
+  <div class="bound">适用边界：时间轴、羊与猛禽、“作坊”都是教学比喻；尼采的谱系学是一种关于价值起源的历史—心理学假说，并非史实记录。原书中涉及种族与民族的论断极具争议，本模型只呈现其论证结构，不代表认同。</div>
+</div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+const ss=(a,b,t)=>{const k=clamp((t-a)/(b-a),0,1);return k*k*(3-2*k);};
+const lerpC=(a,b,k)=>`rgb(${a.map((v,i)=>Math.round(v+(b[i]-v)*k)).join(',')})`;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ===== 保存与恢复 ===== */
+const KEY='minest_nietzsche_v1';
+let store={lit:{},done:{},L:1};
+try{const s=localStorage.getItem(KEY);if(s)store=Object.assign(store,JSON.parse(s));}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}}
+
+/* ===== 原文：Horace B. Samuel 英译《道德的谱系》(1913)，Gutenberg #52319；中文为编译 ===== */
+const MAP={
+1:[
+ [`拖动时间：贵族先给自己命名为“好”`,`“好”这一判断并非起源于那些受到善待的人；而是“好人”自己——高贵者、有力者——感到自己是好的。`,`the judgment "good" did not originate among those to whom goodness was shown`,`§2`],
+ [`高台与平地之间：距离的激情`,`正是出于这种距离的激情，他们才首先僭取了为自己创造价值、为价值命名的权利。`,`It was out of this pathos of distance that they first arrogated the right to create values for their own profit`,`§2`],
+ [`“好”与“坏”的对立由此生成`,`……这就是“好”与“坏”这一对立的起源。`,`this is the origin of the antithesis of good and bad`,`§2`],
+ [`“朴素的”一词渐渐变成“坏的”`,`……“粗俗的”“平民的”“低下的”最终都变成了“坏的”。`,`"vulgar," "plebeian," "low," are made to change finally into "bad."`,`§4`],
+ [`前后对照：同一群人被称作“坏”与“恶”`,`“坏”与“恶”这两个词，标示出多么大的差异！`,`these two words "bad" and "evil," how great a difference do they mark`,`§11`],
+ [`拖到尽头：两种价值的千年之战`,`“好与坏”“善与恶”这两种对立的价值，在世上进行了一场可怕的千年之战。`,`have fought a dreadful, thousand-year fight in the world`,`§16`]],
+2:[
+ [`按住羊群：怨恨积聚`,`羔羊对大猛禽怀恨在心，这并不奇怪。`,`It is not surprising that the lambs should bear a grudge against the great birds of prey`,`§13`],
+ [`羊群的低语`,`“这些猛禽是恶的；谁离猛禽最远、与之相反，是一只羔羊——他难道不是善的吗？”`,`"These birds of prey are evil, and he who is as far removed from being a bird of prey, who is rather its opposite, a lamb,--is he not good?"`,`§13`],
+ [`把“怨恨”拖到羊群上：价值开始翻转`,`道德上的奴隶起义，始于怨恨本身变得具有创造性、并产生价值之时。`,`The revolt of the slaves in morals begins in the very principle of resentment becoming creative and giving birth to values`,`§10`],
+ [`先出现的是“恶”：对外说“不”`,`奴隶道德从一开始就对“外在的”“不同的”“非我的”说“不”：这个“不”就是它的创造行为。`,`the slave morality says "no" from the very outset to what is "outside itself," "different from itself," and "not itself": and this "no" is its creative deed`,`§10`],
+ [`“善”是从“恶”反推出来的`,`它的行动从根本上说是一种反应。`,`its action is fundamentally a reaction`,`§10`],
+ [`先构想“恶敌”，再得出“善者”——自己`,`他构想出了“恶的敌人”“恶者”……并由此演化出一个与之相对的“善者”——他自己。`,`he has conceived "the evil enemy," the "evil one," … a "good one," himself`,`§10`]],
+3:[
+ [`试着把“闪电”从闪光里拖出来`,`在作为、行动、生成背后并没有什么“存在”；“行动者”只是附加给行动的。行动就是一切。`,`there is no "being" behind doing, working, becoming; "the doer" is a mere appanage to the action. The action is everything.`,`§13`],
+ [`把“选择做羔羊”拖给猛禽`,`……仿佛强者有选择软弱的自由，猛禽有选择成为羔羊的自由。`,`that the strong has the option of being weak, and the bird of prey of being a lamb`,`§13`],
+ [`按住羊群：“无力”被改写成“自由选择”`,`……把软弱解释为自由。`,`the interpretation of weakness as freedom`,`§13`]],
+4:[
+ [`把“无能”“卑怯”压成“善良”“谦卑”`,`不还击的无能被改称为“善良”，卑怯的低劣被改称为“谦卑”。`,`And the impotence which requites not, is turned to 'goodness,' craven baseness to meekness`,`§14`],
+ [`把“无力报复”压成“不愿报复”`,`不能报复，被叫做不愿报复。`,`not being able to avenge one's self, is called not wishing to avenge one's self`,`§14`],
+ [`四件全部压完：价值的彻底重估`,`……对其敌人和压迫者取得满足的唯一方法，就是彻底地重估价值。`,`the one method of effecting satisfaction on its enemies and tyrants was by means of a radical transvaluation of values`,`§7`],
+ [`作坊门口挂出的新招牌`,`“唯有可怜者才是善的；穷人、弱者、卑贱者才是善的……”`,`the wretched are alone the good; the poor, the weak, the lowly, are alone the good`,`§7`],
+ [`招牌的另一面`,`“……而你们，你们这些贵族、有权势的人，你们永远是恶的……”`,`you aristocrats, you men of power, you are to all eternity the evil`,`§7`]],
+5:[
+ [`按住“骄傲”“慷慨”：它们自己就能长`,`贵族的价值体系自发地行动和生长；它寻找对立面，只是为了更感激、更欢欣地对自己说“是”。`,`it acts and grows spontaneously, it merely seeks its antithesis in order to pronounce a more grateful and exultant "yes" to its own self`,`§10`],
+ [`没有“他者”时，“谦卑”“温顺”长不起来`,`奴隶道德需要一个外在的、对象性的世界，作为它存在的条件。`,`the slave-morality requires as the condition of its existence an external and objective world`,`§10`],
+ [`两种价值都追溯完：追问价值的价值`,`这些“价值”的价值一向被视为不容置疑的事实，被认为超出一切疑问。`,`The value of these "values" was taken for granted as an indisputable fact, which was beyond all question.`,`序言 §6`]]};
+const TITLE={1:'① 词语的谱系 · 在画面上按住左右拖动，穿越时间，看“好／坏”“善／恶”的标签如何漂移、翻转',2:'② 羔羊与猛禽 · 按住下方羊群积聚怨恨；再把右上角的“怨恨”拖到羊群上',3:'③ 闪电与闪光 · 按住闪电向外拖；把“选择做羔羊”拖给猛禽；按住羊群',4:'④ 理想的作坊 · 把左侧的“原料”拖进压机，按住右侧压杆把它压成新名字',5:'⑤ 应用练习 · 按住种子让它生长；拖动右上角的“他者”靠近或远离'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr${store.lit[l+'_'+i]?' on':''}" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——尼采《道德的谱系》${r[3].startsWith('序言')?'':'第一篇 '}${r[3]}</div></div></div>`).join('');}
+function hit(l,i){if(store.lit[l+'_'+i])return;store.lit[l+'_'+i]=1;const e=$('mr'+l+'_'+i);if(e){e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});}
+  if(MAP[l].every((_,k)=>store.lit[l+'_'+k])){store.done[l]=1;tabs();}save();}
+
+/* ===== 输入 ===== */
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y};cv.setPointerCapture(e.pointerId);HD[L]&&HD[L].down&&HD[L].down(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]&&HD[L].move&&HD[L].move(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]&&HD[L].up&&HD[L].up();});
+
+/* ===== 绘制工具 ===== */
+function fig(x,y,s,col,o){o=o||{};ctx.save();ctx.translate(x,y);if(o.rot)ctx.rotate(o.rot);ctx.globalAlpha=o.a==null?1:o.a;ctx.fillStyle=col;
+  ctx.beginPath();ctx.arc(0,-s*2.1,s*.42,0,7);ctx.fill();
+  ctx.beginPath();ctx.moveTo(-s*.55,0);ctx.quadraticCurveTo(-s*.6,-s*1.7,0,-s*1.72);ctx.quadraticCurveTo(s*.6,-s*1.7,s*.55,0);ctx.closePath();ctx.fill();
+  if(o.crown){ctx.fillStyle='#e0b020';ctx.beginPath();ctx.moveTo(-s*.32,-s*2.45);ctx.lineTo(-s*.32,-s*2.8);ctx.lineTo(-s*.1,-s*2.6);ctx.lineTo(0,-s*2.9);ctx.lineTo(s*.1,-s*2.6);ctx.lineTo(s*.32,-s*2.8);ctx.lineTo(s*.32,-s*2.45);ctx.fill();}
+  if(o.robe){ctx.fillStyle='#f4f0e6';ctx.fillRect(-s*.08,-s*1.6,s*.16,s*1.3);}
+  ctx.restore();}
+function tag(x,y,t,bg,fg,a){if(a<=0.01)return;ctx.save();ctx.globalAlpha=a;ctx.font='bold 15px sans-serif';const w=ctx.measureText(t).width+22;ctx.fillStyle=bg;ctx.beginPath();ctx.roundRect(x-w/2,y-14,w,28,14);ctx.fill();ctx.fillStyle=fg;ctx.textAlign='center';ctx.fillText(t,x,y+5);ctx.restore();}
+function lamb(x,y,s,f,col){ctx.save();ctx.translate(x+(f?Math.sin(T*40)*3*f:0),y);ctx.fillStyle=col||'#f6f3ea';ctx.beginPath();ctx.ellipse(0,0,s,s*.62,0,0,7);ctx.fill();ctx.strokeStyle='rgba(0,0,0,.15)';ctx.stroke();
+  ctx.fillStyle='#333';ctx.beginPath();ctx.ellipse(s*.95,-s*.25,s*.32,s*.24,0,0,7);ctx.fill();ctx.fillRect(-s*.6,s*.4,s*.14,s*.5);ctx.fillRect(s*.4,s*.4,s*.14,s*.5);ctx.restore();}
+function bird(x,y,s,flap){ctx.save();ctx.translate(x,y);ctx.fillStyle='#2b2420';const w=Math.sin(flap)*s*.5;ctx.beginPath();ctx.moveTo(-s*1.4,-w);ctx.quadraticCurveTo(-s*.5,-s*.2,0,0);ctx.quadraticCurveTo(s*.5,-s*.2,s*1.4,-w);ctx.quadraticCurveTo(s*.5,s*.25,0,s*.35);ctx.quadraticCurveTo(-s*.5,s*.25,-s*1.4,-w);ctx.fill();
+  ctx.fillStyle='#e0a020';ctx.beginPath();ctx.moveTo(0,s*.3);ctx.lineTo(s*.12,s*.55);ctx.lineTo(-s*.12,s*.55);ctx.fill();ctx.restore();}
+function card(x,y,t,bg,fg){ctx.save();ctx.font='bold 14px sans-serif';const w=ctx.measureText(t).width+26;ctx.fillStyle=bg;ctx.shadowColor='rgba(0,0,0,.35)';ctx.shadowBlur=8;ctx.beginPath();ctx.roundRect(x-w/2,y-17,w,34,8);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle=fg;ctx.textAlign='center';ctx.fillText(t,x,y+5);ctx.restore();}
+
+/* ================= 第 1 关：词语的谱系 ================= */
+let A1;
+function init1(){A1={t:store.t1||0,drag:false,early:false,late:false};}
+const tOf=x=>clamp((x-W*0.08)/(W*0.84),0,1);
+HD[1]={down(x){A1.drag=true;A1.t=tOf(x);},move(x,y,dx,dy,d){if(A1.drag){A1.t=tOf(x);store.t1=A1.t;}},up(){A1.drag=false;save();}};
+function t1(dt){const t=A1.t,s=Math.min(W,H)*0.052,gy=H*0.74;
+  const late=ss(0.55,0.75,t);const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,lerpC([236,218,165],[66,66,92],late));g.addColorStop(1,lerpC([248,238,212],[146,146,168],late));ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=lerpC([186,160,110],[90,88,104],late);ctx.fillRect(0,gy,W,H-gy);
+  // 距离：贵族的高台
+  const ph=H*0.13*ss(0.15,0.26,t)*(1-ss(0.6,0.8,t));
+  ctx.fillStyle=lerpC([150,120,70],[80,78,92],late);ctx.fillRect(W*0.12,gy-ph,W*0.26,ph);
+  const nx=[0.18,0.25,0.32].map(v=>v*W),cx=[0.58,0.65,0.72,0.79,0.86].map(v=>v*W);
+  nx.forEach((x,i)=>fig(x,gy-ph,s,'#3a5f8f',{crown:true,rot:Math.sin(T*1.5+i)*0.02}));
+  cx.forEach((x,i)=>fig(x,gy,s*0.92,'#8a6a48',{rot:Math.sin(T*1.3+i)*0.02}));
+  // 祭司
+  const pa=ss(0.47,0.55,t);if(pa>0.01){fig(W*0.46,gy,s,'#5a4a6a',{a:pa,robe:true});txt('祭司',W*0.46,gy+18,`rgba(40,30,60,${pa})`,12);
+    if(t>0.58&&t<0.68){const k=(t-0.58)/0.1;ctx.strokeStyle=`rgba(180,40,60,${1-k})`;ctx.lineWidth=3;ctx.beginPath();ctx.arc(W*0.46,gy-s*2,30+k*W*0.3,0,7);ctx.stroke();}}
+  // 距离的激情
+  const da=ss(0.18,0.26,t)*(1-ss(0.55,0.64,t));if(da>0.01){const y=gy-ph-s*1.2;ctx.strokeStyle=`rgba(120,80,20,${da})`;ctx.lineWidth=2;ctx.setLineDash([6,5]);ctx.beginPath();ctx.moveTo(W*0.38,y);ctx.lineTo(W*0.54,gy-s*1.2);ctx.stroke();ctx.setLineDash([]);
+    txt('距离的激情',W*0.46,y-8,`rgba(120,80,20,${da})`,13,'center',true);}
+  // 标签
+  const nyTop=gy-ph-s*3.5,cyTop=gy-s*3.4;
+  const ga=ss(0.12,0.18,t),kg=ss(0.6,0.75,t);
+  const gx=lerp(W*0.25,W*0.72,kg),gyy=lerp(nyTop,cyTop,kg)-Math.sin(kg*Math.PI)*H*0.2;
+  tag(gx,gyy,kg<0.5?'好 · good':'善 · good',kg<0.5?'#e0b020':'#9fd0ff','#1b2333',ga);
+  const ba=ss(0.12,0.18,t)*(1-ss(0.58,0.66,t)),cr=ss(0.35,0.43,t);
+  tag(W*0.72,cyTop,'朴素的 · schlicht','#d8cdb6','#3b3020',ba*(1-cr));
+  tag(W*0.72,cyTop,'坏 · schlecht / bad','#7a6a55','#fff',ba*cr);
+  const ea=ss(0.62,0.66,t),ke=ss(0.64,0.78,t);
+  const ex=lerp(W*0.72,W*0.25,ke),ey=lerp(cyTop+34,nyTop,ke)+Math.sin(ke*Math.PI)*H*0.12;
+  tag(ex,ey,'恶 · evil','#b02a3a','#fff',ea);
+  if(ea>0.01&&ke<1){ctx.strokeStyle=`rgba(176,42,58,${0.4*ea})`;ctx.setLineDash([3,5]);ctx.beginPath();ctx.moveTo(W*0.72,cyTop+30);ctx.lineTo(ex,ey);ctx.stroke();ctx.setLineDash([]);}
+  // 时代标题
+  const era=t<0.12?'命名之前':t<0.47?'贵族的评价：好与坏':t<0.6?'祭司的评价':t<0.82?'奴隶起义：善与恶':'千年之战（至今未决）';
+  txt(era,16,28,late>0.5?'#eef':'#3b2a10',16,'left',true);
+  if(t>0.84){txt('“好与坏” ⟷ “善与恶”',W/2,H*0.14,'rgba(255,240,200,.95)',18,'center',true);}
+  // 时间轴
+  const ty=H-22,x0=W*0.08,x1=W*0.92;ctx.fillStyle='rgba(0,0,0,.25)';ctx.fillRect(x0,ty-3,x1-x0,6);
+  [[0.15,'命名'],[0.25,'距离'],[0.4,'schlecht'],[0.52,'祭司'],[0.62,'起义'],[0.86,'千年之战']].forEach(([v,n])=>{const x=lerp(x0,x1,v);ctx.fillStyle='rgba(0,0,0,.4)';ctx.fillRect(x-1,ty-8,2,16);txt(n,x,ty-12,late>0.5?'#dde':'#3b2a10',11);});
+  ctx.fillStyle='#f3a52b';ctx.beginPath();ctx.arc(lerp(x0,x1,t),ty,9,0,7);ctx.fill();
+  if(!A1.drag&&t<0.02)txt('← 在画面上按住，左右拖动穿越时间 →',W/2,H*0.5,'#3b2a10',15);
+  // 触发
+  if(t>0.15)hit(1,0);if(t>0.26&&da>0.5)hit(1,1);if(t>0.33)hit(1,2);if(t>0.43)hit(1,3);
+  if(t>0.43&&t<0.58)A1.early=true;if(t>0.78)A1.late=true;if(A1.early&&A1.late)hit(1,4);if(t>0.86)hit(1,5);}
+
+/* ================= 第 2 关：羔羊与猛禽 ================= */
+let A2;const CARD0={x:.88,y:.15};
+function init2(){A2={grudge:store.g2||0,hold:false,card:{...CARD0},drag:false,flip:false,ft:0,birds:[0,2.1,4.2].map(p=>({p,sw:0,tx:0,ty:0})),lambs:[...Array(6)].map((_,i)=>({x:.22+i*.1,y:.8+((i*37)%7-3)*.008,f:0})),next:3,said:false};}
+HD[2]={down(x,y){if(!A2.flip&&Math.hypot(x-W*A2.card.x,y-H*A2.card.y)<55){A2.drag=true;return;}if(y>H*.58)A2.hold=true;},
+ move(x,y){if(A2.drag){A2.card.x=x/W;A2.card.y=y/H;}},
+ up(){A2.hold=false;if(A2.drag){A2.drag=false;if(A2.card.y>.6){if(A2.grudge>=.5){A2.flip=true;A2.ft=0;hit(2,2);toast('怨恨变得有创造力了');}else{toast('怨恨还不够深：先按住羊群，让它积聚');A2.card={...CARD0};}}else A2.card={...CARD0};}store.g2=A2.grudge;save();}};
+function t2(dt){const s=Math.min(W,H)*0.04,gy=H*0.7;
+  const sky=ctx.createLinearGradient(0,0,0,gy);sky.addColorStop(0,'#7fb0d8');sky.addColorStop(1,'#d8ecf4');ctx.fillStyle=sky;ctx.fillRect(0,0,W,gy);
+  ctx.fillStyle='#7aa35a';ctx.fillRect(0,gy,W,H-gy);
+  // 猛禽：盘旋并不时俯冲
+  A2.next-=dt;if(A2.next<=0){const b=A2.birds[Math.floor(Math.random()*3)];if(!b.sw){const l=A2.lambs[Math.floor(Math.random()*A2.lambs.length)];b.sw=0.001;b.tx=l.x*W;b.ty=l.y*H-s;l.f=1;if(A2.hold)A2.grudge=Math.min(1,A2.grudge+0.06);}A2.next=3.5+Math.random()*2;}
+  A2.birds.forEach((b,i)=>{const ox=W*0.5+Math.cos(T*0.5+b.p)*W*0.3,oy=H*0.2+Math.sin(T*0.9+b.p)*H*0.06;let x=ox,y=oy;
+    if(b.sw){b.sw+=dt*0.7;const k=b.sw<0.5?ss(0,0.5,b.sw):1-ss(0.5,1,b.sw);x=lerp(ox,b.tx,k);y=lerp(oy,b.ty,k);if(b.sw>=1)b.sw=0;}
+    b.x=x;b.y=y;bird(x,y,s*1.2,T*6+i);});
+  // 羊群
+  if(A2.hold)A2.grudge=Math.min(1,A2.grudge+dt*0.2);else A2.grudge=Math.max(0,A2.grudge-dt*0.02);
+  A2.lambs.forEach(l=>{l.f=Math.max(0,l.f-dt*1.5);lamb(l.x*W,l.y*H,s,l.f,A2.grudge>0.3?lerpC([246,243,234],[214,196,214],A2.grudge):null);});
+  if(A2.hold){for(let i=0;i<6;i++){const l=A2.lambs[i];txt('……',l.x*W+Math.sin(T*3+i)*6,l.y*H-s*1.3,'rgba(90,60,110,.8)',14);}}
+  if(A2.grudge>0.3)hit(2,0);
+  if(A2.grudge>0.6&&!A2.flip){ctx.fillStyle='rgba(255,255,255,.92)';ctx.strokeStyle='#7a4fc9';ctx.lineWidth=2;const bx=W*0.47,by=H*0.52;ctx.beginPath();ctx.roundRect(bx-W*0.27,by-24,W*0.54,40,16);ctx.fill();ctx.stroke();
+    txt('“这些猛禽是恶的……而我们，它的反面，不正是善的吗？”',bx,by+2,'#4a2a80',13);hit(2,1);}
+  // 怨恨计
+  ctx.fillStyle='rgba(255,255,255,.85)';ctx.fillRect(14,14,170,12);ctx.fillStyle='#7a4fc9';ctx.fillRect(14,14,170*A2.grudge,12);ctx.strokeStyle='#666';ctx.strokeRect(14,14,170,12);txt('羊群的怨恨',99,42,'#2b2240',12);
+  // 卡片
+  if(!A2.flip)card(W*A2.card.x,H*A2.card.y,'怨恨 · ressentiment','#5a3b7a','#fff');
+  // 翻转
+  if(A2.flip){A2.ft+=dt;const ft=A2.ft;const bx=W*0.5,by=H*0.2-s*2.4,lx=W*0.47,ly=H*0.8-s*2.6;
+    const ea=ss(0,0.6,ft);if(ea>0){ctx.strokeStyle=`rgba(176,42,58,${ea*(1-ss(1.2,2,ft))})`;ctx.lineWidth=3;ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(bx,by);ctx.stroke();ctx.setLineDash([]);}
+    A2.birds.forEach(b=>tag(b.x,b.y-s*1.8,'恶','#b02a3a','#fff',ea));
+    if(ft>0.6)hit(2,3);
+    const ga=ss(1.2,1.8,ft);if(ga>0){ctx.strokeStyle=`rgba(80,120,200,${ga})`;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(bx,by+16);ctx.quadraticCurveTo(W*0.75,H*0.5,lx+40,ly-10);ctx.stroke();txt('反推',W*0.68,H*0.46,`rgba(60,90,170,${ga})`,13,'center',true);
+      A2.lambs.forEach(l=>tag(l.x*W,l.y*H-s*1.6,'善','#9fd0ff','#123',ga));}
+    if(ft>1.8)hit(2,4);
+    if(ft>2.8){txt('先有“恶的敌人”，然后才有“善者”——羊群自己',W/2,H*0.62,'#1b2333',15,'center',true);hit(2,5);}}
+  else txt(A2.grudge<0.5?'按住下方羊群：让怨恨积聚（猛禽俯冲时更快）':'把右上角的“怨恨”拖到羊群上',W/2,H*0.62,'#1b2333',13);}
+
+/* ================= 第 3 关：闪电与闪光 ================= */
+let A3;const C3={x:.55,y:.86};
+function init3(){A3={drag:false,gx:0,gy:0,pulls:0,counted:false,c:{...C3},cdrag:false,shake:0,hold:0,holding:false};}
+const BX=()=>W*0.24;
+HD[3]={down(x,y){if(Math.hypot(x-W*A3.c.x,y-H*A3.c.y)<60){A3.cdrag=true;return;}
+  if(x<W*0.45&&Math.abs(x-BX())<70&&y<H*0.7){A3.drag=true;A3.gx=x;A3.gy=y;A3.counted=false;return;}
+  if(x>W*0.62&&y>H*0.6){A3.holding=true;}},
+ move(x,y){if(A3.drag){A3.gx=x;A3.gy=y;const d=Math.abs(x-BX());if(d>W*0.14&&!A3.counted){A3.counted=true;A3.pulls++;toast('离开了闪光，这里什么也没有');if(A3.pulls>=2)hit(3,0);}}if(A3.cdrag){A3.c.x=x/W;A3.c.y=y/H;}},
+ up(){A3.drag=false;A3.holding=false;if(A3.cdrag){A3.cdrag=false;if(Math.hypot(W*A3.c.x-W*0.72,H*A3.c.y-H*0.26)<90){A3.shake=1;hit(3,1);toast('猛禽“选择”不了成为羔羊：它的存在就是它的行动');}A3.c={...C3};}}};
+function bolt(x0,y0,y1,a,w){ctx.save();ctx.strokeStyle=`rgba(255,250,210,${a})`;ctx.lineWidth=w;ctx.shadowColor='#fff8b0';ctx.shadowBlur=20*a;ctx.beginPath();ctx.moveTo(x0,y0);let x=x0;const n=8;for(let i=1;i<=n;i++){x=x0+((i*53)%7-3)*8;ctx.lineTo(x,lerp(y0,y1,i/n));}ctx.stroke();ctx.restore();}
+function t3(dt){const s=Math.min(W,H)*0.04;
+  ctx.fillStyle='#1a1f2e';ctx.fillRect(0,0,W/2,H);ctx.fillStyle='#cfe0ea';ctx.fillRect(W/2,0,W/2,H);ctx.fillStyle='#7aa35a';ctx.fillRect(W/2,H*0.72,W/2,H*0.28);
+  txt('闪电',16,28,'#cfd6e6',15,'left',true);txt('猛禽与羔羊',W/2+16,28,'#223',15,'left',true);
+  // 闪光周期
+  const ph=T%2.4,fa=ph<0.6?1-ph/0.6:0;const a=A3.drag?Math.max(0.55,fa):fa;
+  if(a>0.02){ctx.fillStyle=`rgba(200,210,255,${a*0.12})`;ctx.fillRect(0,0,W/2,H);bolt(BX(),H*0.06,H*0.7,a,4);}
+  if(A3.drag){const d=Math.abs(A3.gx-BX());const k=clamp(d/(W*0.14),0,1);
+    ctx.strokeStyle='rgba(255,255,255,.35)';ctx.setLineDash([4,6]);ctx.beginPath();ctx.moveTo(BX(),A3.gy);ctx.lineTo(A3.gx,A3.gy);ctx.stroke();
+    ctx.strokeStyle=`rgba(255,255,255,${0.9-0.5*k})`;ctx.strokeRect(A3.gx-34,A3.gy-46,68,92);ctx.setLineDash([]);
+    txt('“闪电本身”',A3.gx,A3.gy-54,'#cfd6e6',12);if(k>0.6)txt('（空的）',A3.gx,A3.gy+4,'#ffb0b0',13,'center',true);}
+  else if(A3.pulls<2)txt('按住闪电，向旁边拖：把“闪电”从“闪光”里拉出来',W*0.25,H*0.92,'#cfd6e6',12);
+  // 猛禽
+  A3.shake=Math.max(0,A3.shake-dt*0.6);const bxp=W*0.72+Math.sin(T*30)*8*A3.shake,byp=H*0.26+Math.sin(T*1.2)*6;
+  if(A3.shake>0.3){ctx.strokeStyle=`rgba(255,255,255,${A3.shake})`;ctx.lineWidth=6;ctx.beginPath();ctx.ellipse(bxp,byp,s*2,s*1.2,0,0,7);ctx.stroke();}
+  bird(bxp,byp,s*1.6,T*5);
+  card(W*A3.c.x,H*A3.c.y,'选择做羔羊','#f4f0e6','#3b3020');
+  // 羔羊
+  if(A3.holding)A3.hold=Math.min(1.6,A3.hold+dt);else A3.hold=Math.max(0,A3.hold-dt*0.3);
+  const mk=clamp(A3.hold/1.5,0,1);[0.68,0.78,0.88].forEach((x,i)=>lamb(W*x,H*0.8,s,0));
+  tag(W*0.78,H*0.8-s*2.2,'无力 · 软弱','#8a8a8a','#fff',1-mk);tag(W*0.78,H*0.8-s*2.2,'自由选择 · 功德','#9fd0ff','#123',mk);
+  if(mk>=1){hit(3,2);txt('“我们不报复，是因为我们选择了不报复”',W*0.75,H*0.66,'#2b3a55',12);}
+  else txt('按住羊群',W*0.78,H*0.95,'#2b3a55',12);}
+
+/* ================= 第 4 关：理想的作坊 ================= */
+let A4;const RAW=[{r:'不还击的无能',o:'善良',q:0},{r:'卑怯',o:'谦卑',q:0},{r:'无力报复',o:'不愿报复 · 宽恕',q:1},{r:'不得不等待',o:'耐心 · 美德',q:-1}];
+function init4(){A4={items:RAW.map((b,i)=>({...b,x:.13,y:.2+i*.17,st:'raw',hx:.13,hy:.2+i*.17})),drag:null,inP:null,press:0,hold:false,n:0,endT:-1,smoke:[]};}
+const PX=()=>W*0.48,PY=()=>H*0.58;
+HD[4]={down(x,y){for(const it of A4.items){if(it.st==='raw'&&Math.abs(x-W*it.x)<W*0.1&&Math.abs(y-H*it.y)<22){A4.drag=it;return;}}
+  if(x>W*0.6&&x<W*0.7&&y>H*0.25&&y<H*0.8)A4.hold=true;},
+ move(x,y){if(A4.drag){A4.drag.x=x/W;A4.drag.y=y/H;}},
+ up(){A4.hold=false;const it=A4.drag;A4.drag=null;if(!it)return;
+  if(Math.abs(W*it.x-PX())<W*0.1&&Math.abs(H*it.y-PY())<H*0.12&&!A4.inP){A4.inP=it;it.st='press';it.x=PX()/W;it.y=PY()/H;}else{it.x=it.hx;it.y=it.hy;}}};
+function t4(dt){ctx.fillStyle='#2a221c';ctx.fillRect(0,0,W,H);
+  for(let i=0;i<14;i++){ctx.fillStyle='rgba(255,255,255,.03)';ctx.fillRect(((i*97)%100)/100*W,0,2,H);}
+  txt('原料',W*0.13,H*0.09,'#cdb89a',14,'center',true);txt('新名字',W*0.86,H*0.09,'#cfe6ff',14,'center',true);
+  // 压机
+  const px=PX(),py=PY();ctx.fillStyle='#4a3f36';ctx.fillRect(px-W*0.11,py+30,W*0.22,16);ctx.fillRect(px-W*0.1,H*0.12,12,py-H*0.12+30);ctx.fillRect(px+W*0.1-12,H*0.12,12,py-H*0.12+30);
+  if(A4.hold&&A4.inP)A4.press=Math.min(1,A4.press+dt*0.8);else A4.press=Math.max(0,A4.press-dt*1.6);
+  const plateY=lerp(H*0.16,py-26,A4.press);ctx.fillStyle='#8a7a6a';ctx.fillRect(px-W*0.09,plateY,W*0.18,22);ctx.fillStyle='#6a5a4a';ctx.fillRect(px-4,H*0.12,8,plateY-H*0.12);
+  ctx.strokeStyle='rgba(255,255,255,.2)';ctx.setLineDash([5,5]);ctx.strokeRect(px-W*0.1,py-26,W*0.2,52);ctx.setLineDash([]);
+  // 压杆
+  ctx.fillStyle=A4.hold?'#f3a52b':'#a08870';ctx.fillRect(W*0.62,H*0.3,W*0.06,H*0.45);txt('按住',W*0.65,H*0.53,'#222',13,'center',true);txt('压杆',W*0.65,H*0.57,'#222',12);
+  if(A4.inP&&A4.press>=1){const it=A4.inP;it.st='out';it.x=.86;it.y=.2+A4.n*.17;A4.n++;A4.inP=null;A4.press=0;
+    if(it.q>=0)hit(4,it.q);for(let i=0;i<12;i++)A4.smoke.push({x:px,y:py,vx:(Math.random()-.5)*60,vy:-40-Math.random()*40,l:1.5});
+    toast(`“${it.r}”被改名为“${it.o}”`);if(A4.n===4){A4.endT=0;hit(4,2);}}
+  A4.smoke.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.l-=dt;ctx.fillStyle=`rgba(200,190,170,${Math.max(0,p.l)*0.25})`;ctx.beginPath();ctx.arc(p.x,p.y,14,0,7);ctx.fill();});A4.smoke=A4.smoke.filter(p=>p.l>0);
+  A4.items.forEach(it=>{const x=W*it.x,y=H*it.y;if(it.st==='out')card(x,y,it.o,'#f4f8ff','#1b3a66');else if(it.st==='press'){ctx.save();ctx.globalAlpha=1-A4.press*0.5;card(x,y+A4.press*6,it.r,'#7a6a55','#fff');ctx.restore();}else card(x,y,it.r,'#7a6a55','#fff');});
+  if(A4.endT>=0){A4.endT+=dt;const a1=ss(1,1.6,A4.endT),a2=ss(2,2.6,A4.endT);
+    tag(W*0.5,H*0.06+12,'“唯有可怜者才是善的”','#f4f0e6','#3b3020',a1);if(a1>0.5)hit(4,3);
+    tag(W*0.5,H*0.94,'“你们强者，永远是恶的”','#b02a3a','#fff',a2);if(a2>0.5)hit(4,4);}
+  else txt(A4.inP?'按住右侧压杆，直到压板压到底':'把左侧一块“原料”拖进中间的压机',W*0.5,H*0.95,'#cdb89a',13);}
+
+/* ================= 第 5 关：应用练习 ================= */
+let A5;const SEEDS=[{n:'骄傲',act:true},{n:'慷慨',act:true},{n:'谦卑',act:false},{n:'温顺',act:false}];
+function init5(){A5={s:SEEDS.map((d,i)=>({...d,x:.14+i*.18,g:0,fail:0,warned:false})),en:{x:.88,y:.22},edrag:false,hi:-1};}
+HD[5]={down(x,y){if(Math.hypot(x-W*A5.en.x,y-H*A5.en.y)<60){A5.edrag=true;return;}
+  A5.s.forEach((s,i)=>{if(Math.abs(x-W*s.x)<W*0.07&&y>H*0.35)A5.hi=i;});},
+ move(x,y){if(A5.edrag){A5.en.x=clamp(x/W,.05,.95);A5.en.y=clamp(y/H,.1,.6);}},
+ up(){A5.edrag=false;A5.hi=-1;}};
+function t5(dt){const gy=H*0.78,s=Math.min(W,H)*0.045;
+  const g=ctx.createLinearGradient(0,0,0,gy);g.addColorStop(0,'#e9eef5');g.addColorStop(1,'#f7f3ea');ctx.fillStyle=g;ctx.fillRect(0,0,W,gy);ctx.fillStyle='#8a6a48';ctx.fillRect(0,gy,W,H-gy);
+  const ex=W*A5.en.x,ey=H*A5.en.y;fig(ex,ey+s*1.2,s,'#3a3a4a',{crown:true});txt('他者 · 强者（可拖动）',ex,ey+s*1.2+18,'#334',12);
+  A5.s.forEach((sd,i)=>{const x=W*sd.x;
+    if(A5.hi===i){const d=Math.hypot(ex-x,ey-gy);if(sd.act||d<W*0.32){sd.g=Math.min(1,sd.g+dt*0.35);}else{sd.fail+=dt;if(sd.fail>1&&!sd.warned){sd.warned=true;hit(5,1);toast('它找不到可以说“不”的对象：没有他者，它长不起来');}}}
+    const wob=(A5.hi===i&&!sd.act&&sd.g<0.02)?Math.sin(T*30)*3:0;
+    ctx.fillStyle='#5a3b1e';ctx.beginPath();ctx.ellipse(x+wob,gy+4,10,6,0,0,7);ctx.fill();
+    if(sd.g>0){const hgt=sd.g*H*0.42;ctx.strokeStyle=sd.act?'#3f8a35':'#6a7aa8';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x,gy);
+      let tx,ty;if(sd.act){tx=x;ty=gy-hgt;ctx.lineTo(tx,ty);}else{const ang=Math.atan2(ey-gy,ex-x);tx=x+Math.cos(ang)*hgt*0.9;ty=gy+Math.sin(ang)*hgt*0.9;ctx.quadraticCurveTo(x,gy-hgt*0.5,tx,ty);}
+      ctx.stroke();
+      for(let k=1;k<=3;k++){const lk=k/4;if(sd.g<lk)continue;const lx=lerp(x,tx,lk),ly=lerp(gy,ty,lk);ctx.fillStyle=sd.act?'#4aa040':'#8a9ac8';ctx.beginPath();ctx.ellipse(lx+(k%2?10:-10),ly,10,5,k%2?0.5:-0.5,0,7);ctx.fill();}
+      if(sd.g>=1){if(sd.act){ctx.fillStyle='#f3c24b';ctx.beginPath();ctx.arc(tx,ty,9,0,7);ctx.fill();txt('“是！”',tx,ty-14,'#3f6a20',12,'center',true);}else{txt('“不！”',tx,ty-10,'#4a5a88',12,'center',true);}}}
+    txt(sd.n,x,gy+26,'#fff',14,'center',true);});
+  const actDone=A5.s.some(s=>s.act&&s.g>=1),reDone=A5.s.some(s=>!s.act&&s.g>=1);
+  if(actDone)hit(5,0);if(actDone&&reDone){hit(5,2);txt('一种价值从“是”中长出，一种价值从对他者的“不”中长出',W/2,H*0.1,'#2b2240',14,'center',true);}
+  else txt('按住一颗种子让它生长；把“他者”拖近或拖远，看哪些价值离不开它',W/2,H*0.1,'#2b2240',13);}
+
+/* ===== 调度 ===== */
+const INIT={1:init1,2:init2,3:init3,4:init4,5:init5},TICK={1:t1,2:t2,3:t3,4:t4,5:t5};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!store.done[t.dataset.l]);});}
+function go(n){L=n;store.L=n;save();tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{if(L===1)store.t1=0;if(L===2)store.g2=0;save();INIT[L]();toast('已重置（已对应的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(store.L||1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

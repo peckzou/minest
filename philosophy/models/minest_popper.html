@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 波普尔证伪主义 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .q0{padding:4px 10px;font-size:12.5px;color:#2c3e50;background:#e7edf3;border-bottom:1px solid #d5d8de}
+#side .q0 i{font-style:normal;color:#8a5a00}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>波普尔 · 证伪主义</b>
+  <button class="tab on" data-l="1">① 天鹅</button>
+  <button class="tab" data-l="2">② 大胆的假说</button>
+  <button class="tab" data-l="3">③ 解释一切的理论</button>
+  <button class="tab" data-l="4">④ 特设的拯救</button>
+  <button class="tab" data-l="5">⑤ 应用练习</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="q0"><b>核心问题：</b>什么使一个理论成为“科学的”？是被证实得多，还是可能被驳倒？　<i>适用边界：</i>天鹅、星座等是教学类比；波普尔的标准针对理论的逻辑形式与检验态度，并非简单的“见一反例即弃”。</div><div class="bd" id="sBody"></div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+const KEY='minest_popper_v1';
+let SAVE={done:{},lit:{},stats:{}};
+try{const s=localStorage.getItem(KEY);if(s)SAVE=Object.assign(SAVE,JSON.parse(s));}catch(e){}
+const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(SAVE));}catch(e){}};
+const done=SAVE.done;
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+function bar(x,y,w,v,col,label){ctx.fillStyle='rgba(255,255,255,.85)';ctx.fillRect(x,y,w,10);ctx.fillStyle=col;ctx.fillRect(x,y,w*clamp(v,0,1),10);ctx.strokeStyle='#888';ctx.strokeRect(x,y,w,10);txt(label,x+w/2,y-4,'#223',12);}
+
+/* ======== 原文 ========
+   波普尔《科学：猜想与反驳》（1953 年讲演，收入《猜想与反驳》1963 第 1 章）——受版权保护，仅短引；底本：web.stanford.edu/~paulsko/papers/Popper_CandR.pdf
+   休谟《人类理智研究》Gutenberg #9662 */
+const CR='波普尔《猜想与反驳》第1章 §I',HU='休谟《人类理智研究》§30';
+const MAP={
+1:[["按住：一只只白天鹅被观察到","如果我们去寻找证实，那么几乎每个理论都很容易得到证实或证明。","It is easy to obtain confirmations, or verifications, for nearly every theory-if we look for confirmations",CR+"（结论 1）"],
+   ["观察到一千只，“已证明”仍为 0","设想自然进程可能改变，并不包含矛盾。","it implies no contradiction that the course of nature may change",HU],
+   ["把黑天鹅拖进湖里：定律倒下","一个全称陈述无论被多少实例支持都无法被证明，而一个反例就足以驳倒它。（转述）","（转述，非原文）","据《猜想与反驳》第1章论证要旨"],
+   ["主动去找黑天鹅","对一个理论的每一次真正检验，都是试图证伪它或驳倒它。","Every genuine test of a theory is an attempt to falsify it, or to refute it",CR+"（结论 5）"]],
+2:[["拖动边界：让假说禁止更多","每个“好的”科学理论都是一种禁令：它禁止某些事情发生。理论禁止得越多，就越好。","it forbids certain things to happen. The more a theory forbids, the better it is",CR+"（结论 3）"],
+   ["按住做实验：大胆的假说冒着被驳倒的风险","有些理论比别的理论更可检验，更暴露于反驳之下；可以说，它们冒着更大的风险。","some theories are more testable, more exposed to refutation, than others; they take, as it were, greater risks",CR+"（结论 5）"],
+   ["大胆的预言经受住了检验","证实只有在作为冒险预言的结果时才应当算数。","Confirmations should count only if they are the result of risky predictions",CR+"（结论 2）"],
+   ["什么都不禁止：永远不会错，也什么都没说","这个理论与某些可能的观察结果不相容。（爱因斯坦光线偏折之例）","The theory is incompatible with certain possible results of observation",CR]],
+3:[["把观察扔向理论：它变形吞下每一个","每一个可以设想的情形，都能用阿德勒的理论、同样也能用弗洛伊德的理论来解释。","every conceivable case could be interpreted in the light of Adler's theory, or equally of Freud's",CR],
+   ["“已证实”计数只增不减","正是这一事实——它们总是吻合，总是被证实——在崇拜者看来构成了最有力的论据。","that they always fitted, that they were always confirmed",CR],
+   ["把相反的两种观察都扔进去：都被吸收","不可反驳性并不是理论的优点（如人们常以为的那样），而是缺点。","Irrefutability is not a virtue of a theory (as people often think) but a vice",CR+"（结论 4）"]],
+4:[["反例击中预言：理论本应被驳倒","有些真正可检验的理论被发现为假之后，仍被崇拜者坚持——例如特设地引入某个辅助假设。","introducing ad hoc some auxiliary assumption",CR+"（结论 7）"],
+   ["按住打补丁：理论活下来，可检验性缩水","这种做法总是可能的，但它使理论免于反驳的代价，是摧毁或至少降低它的科学地位。","rescues the theory from refutation only at the price of destroying, or at least lowering, its scientific status",CR+"（结论 7）"]],
+5:[["把三条主张拖上检验台，按住寻找反驳","一个理论的科学地位的标准，是它的可证伪性、可反驳性或可检验性。","the criterion of the scientific status of a theory is its falsifiability, or refutability, or testability",CR+"（结论 7 之后）"],
+   ["找到能驳倒它的可能观察：可证伪","每一次真正的检验都是试图证伪它。","Every genuine test of a theory is an attempt to falsify it",CR+"（结论 5）"],
+   ["怎样都找不到：它不是科学主张","不可反驳性……不是优点，而是缺点。","Irrefutability is not a virtue of a theory",CR+"（结论 4）"]]};
+const TITLE={1:'① 天鹅 · 按住观察天鹅；把右下角的黑天鹅拖进湖里',2:'② 大胆的假说 · 拖动边界决定假说禁止什么；按住做实验',3:'③ 解释一切的理论 · 把左右两边的观察拖向中间的理论',4:'④ 特设的拯救 · 按住发射检验；反例命中后按住“补丁”拯救理论',5:'⑤ 应用练习 · 把主张卡拖上检验台，按住寻找能驳倒它的观察'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr${SAVE.lit[l+'_'+i]?' on':''}" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const e=$('mr'+l+'_'+i);if(!e||e.classList.contains('on'))return;e.classList.add('on');SAVE.lit[l+'_'+i]=1;e.scrollIntoView({block:'nearest',behavior:'smooth'});
+  if(MAP[l].every((_,k)=>$('mr'+l+'_'+k).classList.contains('on'))){done[l]=1;tabs();}persist();}
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]?.move?.(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]?.up?.();});
+
+function swan(x,y,s,col,flip){ctx.save();ctx.translate(x,y);if(flip)ctx.scale(-1,1);ctx.fillStyle=col;ctx.beginPath();ctx.ellipse(0,0,s,s*0.55,0,0,7);ctx.fill();
+  ctx.lineWidth=s*0.22;ctx.strokeStyle=col;ctx.beginPath();ctx.moveTo(s*0.7,-s*0.1);ctx.quadraticCurveTo(s*1.2,-s*0.6,s*0.95,-s*1.25);ctx.stroke();
+  ctx.fillStyle='#f3a52b';ctx.beginPath();ctx.moveTo(s*0.95,-s*1.3);ctx.lineTo(s*1.3,-s*1.18);ctx.lineTo(s*0.95,-s*1.12);ctx.fill();ctx.restore();}
+
+/* ================= 第 1 关：天鹅 ================= */
+let A;
+function init1(){A={swans:[],seen:SAVE.stats.seen||0,hold:false,spawn:0,law:1,fallen:false,bx:0,by:0,drag:false,search:0,lookHold:0};}
+HD[1]={down(x,y){const bx=W*0.9,by=H*0.82;if(!A.fallen&&Math.hypot(x-bx,y-by)<36){A.drag=true;A.bx=x;A.by=y;return;}A.hold=true;},
+ move(x,y){if(A.drag){A.bx=x;A.by=y;}},
+ up(){A.hold=false;if(A.drag){A.drag=false;if(A.by>H*0.45&&A.by<H*0.9&&A.bx<W*0.8){A.fallen=true;A.black={x:A.bx,y:A.by};hit(1,2);toast('一只黑天鹅：“凡天鹅皆白”被驳倒了');}}}};
+function t1(dt){const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#bfe0f3');sky.addColorStop(1,'#eef7fb');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+  const lake=H*0.5;ctx.fillStyle='#4f97c9';ctx.beginPath();ctx.ellipse(W*0.42,H*0.72,W*0.4,H*0.24,0,0,7);ctx.fill();
+  // 持续流入
+  A.spawn-=dt*(A.hold?6:0.6);if(A.spawn<=0){A.spawn=1;A.swans.push({x:-20,y:lake+Math.random()*H*0.38,v:40+Math.random()*50,s:10+Math.random()*6,ph:Math.random()*6});if(A.hold||true){A.seen++;}}
+  A.swans.forEach(s=>{s.x+=s.v*dt*(A.hold?2.5:1);swan(s.x,s.y+Math.sin(T*2+s.ph)*2,s.s,'#fff');});A.swans=A.swans.filter(s=>s.x<W*0.86);
+  SAVE.stats.seen=A.seen;
+  if(A.seen>20)hit(1,0);if(A.seen>200)hit(1,1);
+  // 定律牌
+  A.law=A.fallen?Math.max(0,A.law-dt*0.6):1;
+  ctx.save();ctx.translate(W*0.42,H*0.16);ctx.rotate((1-A.law)*1.2);ctx.globalAlpha=0.3+0.7*A.law;ctx.fillStyle='#fff';ctx.strokeStyle='#3a6f99';ctx.lineWidth=3;ctx.fillRect(-150,-24,300,48);ctx.strokeRect(-150,-24,300,48);txt('定律：凡天鹅皆白',0,7,A.fallen?'#c0392b':'#1f2b38',18,'center',true);ctx.restore();
+  // 计数
+  ctx.fillStyle='rgba(255,255,255,.85)';ctx.fillRect(10,10,210,70);txt(`已观察白天鹅：${A.seen}`,20,32,'#223',14,'left',true);txt(`支持度：${A.fallen?'—':'不断上升'}`,20,52,'#3a6f99',13,'left');txt(`已证明：${A.fallen?'已被驳倒':'0%（永远是 0%）'}`,20,72,A.fallen?'#c0392b':'#8a5a00',13,'left');
+  // 黑天鹅
+  if(!A.fallen){const bx=A.drag?A.bx:W*0.9,by=A.drag?A.by:H*0.82;swan(bx,by,14,'#111',true);if(!A.drag){txt('黑天鹅（拖动）',W*0.9,H*0.82+30,'#223',12);
+      // 主动搜寻：按住右侧远处的寻找区
+      }}
+  else{swan(A.black.x,A.black.y+Math.sin(T*2)*2,14,'#111',true);ctx.strokeStyle='#c0392b';ctx.lineWidth=2;ctx.beginPath();ctx.arc(A.black.x,A.black.y,28+Math.sin(T*4)*3,0,7);ctx.stroke();}
+  // “去找黑天鹅”：在湖右侧芦苇区按住寻找
+  ctx.fillStyle='rgba(60,110,60,.5)';for(let i=0;i<9;i++){ctx.fillRect(W*0.78+i*8,H*0.5-((i*7)%18),3,H*0.25);}
+  if(A.hold&&PT&&PT.x>W*0.74&&PT.x<W*0.86){A.search+=dt;if(A.search>1.2){hit(1,3);if(!A._s){A._s=1;toast('真正的检验：不是再找一只白天鹅，而是去芦苇丛里找黑天鹅');}}}
+  txt(A.fallen?'无论之前看到多少白天鹅，一个反例就够了':A.seen<30?'按住画面：更多白天鹅游过（在右侧芦苇丛按住＝主动寻找反例）':'再多也证明不了“凡天鹅皆白”。把黑天鹅拖进湖里',W*0.45,H-12,'#123',13);}
+
+/* ================= 第 2 关：大胆的假说 ================= */
+// 结果空间：x∈[0,1] 代表实验结果（如偏折角）。真实世界：结果≈0.62±0.03。假说＝允许区间 [lo,hi]，其余为“禁止”。
+let B;
+function init2(){B={lo:0.05,hi:0.95,drag:null,shots:[],hold:false,fire:0,alive:true,survived:0,refuted:false};}
+const TRUE_MU=0.62,TRUE_SD=0.025;
+function gauss(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+const BX=()=>({x0:W*0.08,x1:W*0.92,y:H*0.55});
+HD[2]={down(x,y){const g=BX();const lx=lerp(g.x0,g.x1,B.lo),hx=lerp(g.x0,g.x1,B.hi);
+  if(Math.abs(y-g.y)<60&&Math.abs(x-lx)<18){B.drag='lo';return;}if(Math.abs(y-g.y)<60&&Math.abs(x-hx)<18){B.drag='hi';return;}
+  if(y<g.y-70){B.hold=true;}},
+ move(x){const g=BX();if(!B.drag)return;const v=clamp((x-g.x0)/(g.x1-g.x0),0,1);if(B.drag==='lo')B.lo=Math.min(v,B.hi-0.02);else B.hi=Math.max(v,B.lo+0.02);B.alive=true;B.refuted=false;B.survived=0;B.shots=[];hit(2,0);},
+ up(){B.drag=null;B.hold=false;}};
+function t2(dt){ctx.fillStyle='#f4f1ea';ctx.fillRect(0,0,W,H);const g=BX();
+  const forbid=1-(B.hi-B.lo);
+  // 发射实验
+  if(B.hold){B.fire-=dt;if(B.fire<=0){B.fire=0.25;const r=clamp(TRUE_MU+gauss()*TRUE_SD,0,1);B.shots.push({x:r,y:-10,v:0,land:false});}}
+  B.shots.forEach(s=>{if(!s.land){s.v+=900*dt;s.y+=s.v*dt;if(s.y>=g.y){s.y=g.y;s.land=true;const ok=s.x>=B.lo&&s.x<=B.hi;
+        if(ok){B.survived++;if(forbid>0.75&&B.survived>=5)hit(2,2);if(forbid>0.5)hit(2,1);}else if(!B.refuted){B.refuted=true;toast('落在禁区：假说被驳倒');if(forbid>0.5)hit(2,1);}}}});
+  B.shots=B.shots.slice(-60);
+  if(forbid<0.03&&B.shots.length>8)hit(2,3);
+  // 结果轴
+  ctx.fillStyle='rgba(192,57,43,.18)';ctx.fillRect(g.x0,g.y-50,(g.x1-g.x0)*B.lo,100);ctx.fillRect(lerp(g.x0,g.x1,B.hi),g.y-50,(g.x1-g.x0)*(1-B.hi),100);
+  ctx.fillStyle='rgba(58,111,153,.15)';ctx.fillRect(lerp(g.x0,g.x1,B.lo),g.y-50,(g.x1-g.x0)*(B.hi-B.lo),100);
+  txt('禁止',lerp(g.x0,g.x1,B.lo/2),g.y-58,'#c0392b',12);txt('允许',lerp(g.x0,g.x1,(B.lo+B.hi)/2),g.y-58,'#3a6f99',12);txt('禁止',lerp(g.x0,g.x1,(1+B.hi)/2),g.y-58,'#c0392b',12);
+  ctx.strokeStyle='#333';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(g.x0,g.y);ctx.lineTo(g.x1,g.y);ctx.stroke();
+  [B.lo,B.hi].forEach(v=>{const x=lerp(g.x0,g.x1,v);ctx.fillStyle='#f3a52b';ctx.fillRect(x-6,g.y-54,12,108);});
+  B.shots.forEach(s=>{const x=lerp(g.x0,g.x1,s.x);const ok=s.x>=B.lo&&s.x<=B.hi;ctx.fillStyle=s.land?(ok?'#2f9e57':'#c0392b'):'#555';ctx.beginPath();ctx.arc(x,s.y,5,0,7);ctx.fill();});
+  // 仪表
+  bar(W*0.08,24,W*0.24,forbid,'#c0392b','禁止的范围（内容）');bar(W*0.38,24,W*0.24,forbid,'#8a5a00','可检验性 / 风险');
+  txt(B.refuted?'状态：已被驳倒':`状态：经受住 ${B.survived} 次检验`,W*0.8,34,B.refuted?'#c0392b':'#1f5e2f',14,'center',true);
+  txt(forbid<0.05?'它什么都不禁止：永远不会错，但也没告诉你任何东西':forbid>0.8&&!B.refuted&&B.survived>=5?'大胆而未被驳倒：这样的证实才算数':'拖动橙色边界；在上方空白处按住发射实验（真实结果由世界决定）',W/2,H-14,'#123',13);}
+
+/* ================= 第 3 关：解释一切的理论 ================= */
+let C;
+const OBS=[{t:'推孩子下水',s:-1},{t:'跳水救孩子',s:1},{t:'很勇敢',s:1},{t:'很懦弱',s:-1},{t:'说了实话',s:1},{t:'撒了谎',s:-1}];
+function init3(){C={blob:[],items:OBS.map((o,i)=>({...o,x:i%2?W*0.88:W*0.12,y:H*(0.2+Math.floor(i/2)*0.25),hx:0,hy:0,used:false})),drag:null,conf:0,both:new Set(),pulses:[]};
+  C.items.forEach(o=>{o.hx=o.x;o.hy=o.y;});for(let i=0;i<40;i++)C.blob.push(1);}
+HD[3]={down(x,y){C.items.forEach(o=>{if(!o.used&&Math.hypot(x-o.x,y-o.y)<40)C.drag=o;});},move(x,y){if(C.drag){C.drag.x=x;C.drag.y=y;}},
+ up(){const o=C.drag;C.drag=null;if(!o)return;const cx=W/2,cy=H*0.5;if(Math.hypot(o.x-cx,o.y-cy)<Math.min(W,H)*0.22){o.used=true;C.conf++;C.both.add(o.s);
+   const a=Math.atan2(o.y-cy,o.x-cx);const k=Math.round(((a+6.283)%6.283)/6.283*40)%40;for(let j=-4;j<=4;j++)C.blob[(k+j+40)%40]+=0.35*(1-Math.abs(j)/5);C.pulses.push({a,t:0,txt:o.t});
+   hit(3,0);if(C.conf>=3)hit(3,1);if(C.both.size===2)hit(3,2);toast(`“${o.t}”——也正好证实了这个理论`);}else{o.x=o.hx;o.y=o.hy;}}};
+function t3(dt){ctx.fillStyle='#211c2c';ctx.fillRect(0,0,W,H);const cx=W/2,cy=H*0.5,R=Math.min(W,H)*0.16;
+  C.blob=C.blob.map(v=>lerp(v,1+0.12*Math.sin(T*2),dt*0.3)+0*0);
+  const g=ctx.createRadialGradient(cx,cy,10,cx,cy,R*2);g.addColorStop(0,'rgba(180,140,255,.9)');g.addColorStop(1,'rgba(180,140,255,0)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#b48cff';ctx.beginPath();C.blob.forEach((v,i)=>{const a=i/40*6.283;const r=R*v*(1+0.05*Math.sin(T*3+i));const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.closePath();ctx.fill();
+  txt('万能理论',cx,cy+6,'#2a1a4a',17,'center',true);
+  C.pulses.forEach(p=>{p.t+=dt;ctx.strokeStyle=`rgba(255,220,120,${1-p.t})`;ctx.lineWidth=3;ctx.beginPath();ctx.arc(cx,cy,R*(1+p.t),p.a-0.5,p.a+0.5);ctx.stroke();});C.pulses=C.pulses.filter(p=>p.t<1);
+  C.items.forEach(o=>{if(o.used)return;ctx.fillStyle=o.s>0?'#2f9e57':'#c0392b';ctx.beginPath();ctx.roundRect(o.x-56,o.y-16,112,32,10);ctx.fill();txt(o.t,o.x,o.y+5,'#fff',13,'center',true);});
+  ctx.fillStyle='rgba(255,255,255,.9)';ctx.fillRect(10,10,200,46);txt(`“已证实”：${C.conf} 次`,20,30,'#223',14,'left',true);txt('被驳倒：0 次（不可能）',20,48,'#8a5a00',12,'left');
+  txt(C.both.size===2?'相反的行为都“证实”它——这正是它的弱点':'把左右两边的观察拖进中间的理论',W/2,H-14,'#e8dcff',13);}
+
+/* ================= 第 4 关：特设的拯救 ================= */
+let D;
+function init4(){D={shots:[],hold:false,fire:0,hitBad:false,patch:0,patchHold:false,testab:1,patches:[]};}
+HD[4]={down(x,y){if(x>W*0.75&&y>H*0.7){D.patchHold=true;return;}D.hold=true;},up(){D.hold=false;D.patchHold=false;}};
+function t4(dt){ctx.fillStyle='#eef2f5';ctx.fillRect(0,0,W,H);const cx=W*0.45,cy=H*0.48,R=Math.min(W,H)*0.17;
+  // 理论：预言“所有样本落在蓝色环内”
+  if(D.hold){D.fire-=dt;if(D.fire<=0){D.fire=0.35;const bad=Math.random()<0.25;const a=Math.random()*6.283;const r=bad?R*(1.25+Math.random()*0.3):R*Math.random()*0.85;D.shots.push({tx:cx+Math.cos(a)*r,ty:cy+Math.sin(a)*r,x:W*0.02,y:H*0.1,t:0,bad});}}
+  D.shots.forEach(s=>{s.t=Math.min(1,s.t+dt*1.6);s.cx=lerp(s.x,s.tx,s.t);s.cy=lerp(s.y,s.ty,s.t);if(s.t>=1&&!s.done){s.done=true;if(s.bad){const covered=D.patches.some(p=>Math.hypot(p.x-s.tx,p.y-s.ty)<p.r);if(!covered){D.hitBad=true;hit(4,0);toast('反例落在预言之外：理论本应被驳倒');}}}});
+  D.shots=D.shots.slice(-40);
+  if(D.patchHold&&D.hitBad){D.patch+=dt;if(D.patch>0.5){D.patch=0;const bad=D.shots.filter(s=>s.bad&&s.done&&!D.patches.some(p=>Math.hypot(p.x-s.tx,p.y-s.ty)<p.r));
+      if(bad.length){const s=bad[bad.length-1];D.patches.push({x:s.tx,y:s.ty,r:22,lab:['仪器误差','观测者偏见','特殊条件','反常个例','尚未成熟'][D.patches.length%5]});D.testab=Math.max(0.05,D.testab*0.78);hit(4,1);}}}
+  ctx.fillStyle='rgba(58,111,153,.18)';ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.fill();ctx.strokeStyle='#3a6f99';ctx.lineWidth=3;ctx.stroke();
+  D.patches.forEach(p=>{ctx.fillStyle='rgba(243,165,43,.35)';ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill();ctx.strokeStyle='#f3a52b';ctx.lineWidth=2;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);
+    ctx.strokeStyle='rgba(243,165,43,.7)';ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(cx+(p.x-cx)*0.7,cy+(p.y-cy)*0.7);ctx.stroke();txt(p.lab,p.x,p.y-p.r-4,'#8a5a00',11);});
+  D.shots.forEach(s=>{ctx.fillStyle=s.bad?'#c0392b':'#2f9e57';ctx.beginPath();ctx.arc(s.cx,s.cy,5,0,7);ctx.fill();});
+  txt('理论预言：样本都在蓝圈内',cx,cy-R-12,'#3a6f99',13,'center',true);
+  bar(W*0.72,30,W*0.24,D.testab,'#3a6f99','科学地位（可检验性）');txt(`补丁：${D.patches.length}`,W*0.84,62,'#8a5a00',13);
+  ctx.fillStyle=D.patchHold?'#f3a52b':'rgba(255,255,255,.95)';ctx.fillRect(W*0.76,H*0.74,W*0.22,H*0.2);txt('按住：打补丁',W*0.87,H*0.85,'#222',14,'center',true);
+  txt(!D.hitBad?'在画面中部按住，向理论发射检验样本':D.patches.length<3?'红点落在圈外。按住右下角，用辅助假设把它“解释掉”':'理论活了下来，但它禁止的越来越少',W*0.4,H-14,'#123',13);}
+
+/* ================= 第 5 关：应用练习 ================= */
+let E;
+const CLAIMS=[{t:'明天正午这里会下雨',ok:true,obs:'明天正午，这里是晴天'},{t:'所有金属受热都会膨胀',ok:true,obs:'某块金属加热后收缩'},{t:'今天你会遇到某种变化',ok:false,obs:null}];
+function init5(){E={cards:CLAIMS.map((c,i)=>({...c,x:W*(0.15+i*0.18),y:H*0.2,hx:0,hy:0,res:null})),drag:null,onBench:null,search:0,hold:false,probes:[]};E.cards.forEach(c=>{c.hx=c.x;c.hy=c.y;});}
+HD[5]={down(x,y){if(E.onBench&&Math.hypot(x-W*0.72,y-H*0.62)<Math.min(W,H)*0.22){E.hold=true;return;}E.cards.forEach(c=>{if(Math.abs(x-c.x)<90&&Math.abs(y-c.y)<24)E.drag=c;});},
+ move(x,y){if(E.drag){E.drag.x=x;E.drag.y=y;}},
+ up(){E.hold=false;const c=E.drag;E.drag=null;if(!c)return;if(Math.hypot(c.x-W*0.72,c.y-H*0.62)<Math.min(W,H)*0.25){if(E.onBench&&E.onBench!==c){E.onBench.x=E.onBench.hx;E.onBench.y=E.onBench.hy;}E.onBench=c;c.x=W*0.72;c.y=H*0.38;E.search=0;E.probes=[];hit(5,0);}else{c.x=c.hx;c.y=c.hy;}}};
+function t5(dt){ctx.fillStyle='#f4f1ea';ctx.fillRect(0,0,W,H);const bx=W*0.72,by=H*0.62,R=Math.min(W,H)*0.2;
+  ctx.fillStyle='#d9d2c3';ctx.beginPath();ctx.ellipse(bx,by+R*0.6,R*1.2,R*0.25,0,0,7);ctx.fill();ctx.strokeStyle='#8a7d6a';ctx.lineWidth=2;ctx.beginPath();ctx.arc(bx,by,R,0,7);ctx.stroke();txt('检验台',bx,by+R+20,'#5a4a3a',13,'center',true);
+  const c=E.onBench;
+  if(c&&E.hold&&!c.res){E.search+=dt;if(Math.random()<dt*8){const a=Math.random()*6.283;E.probes.push({a,r:R*Math.random(),t:0});}
+    if(c.ok&&E.search>1.5){c.res='可证伪';hit(5,1);toast(`找到了可能驳倒它的观察：“${c.obs}”`);}
+    if(!c.ok&&E.search>4){c.res='不可证伪';hit(5,2);toast('怎样的观察都与它相容：它没有禁止任何事');}}
+  E.probes.forEach(p=>{p.t+=dt;const x=bx+Math.cos(p.a)*p.r,y=by+Math.sin(p.a)*p.r;ctx.fillStyle=`rgba(58,111,153,${1-p.t})`;ctx.beginPath();ctx.arc(x,y,4+p.t*8,0,7);ctx.fill();});E.probes=E.probes.filter(p=>p.t<1);
+  E.cards.forEach(k=>{ctx.fillStyle=k.res==='可证伪'?'#2f9e57':k.res==='不可证伪'?'#8a7d6a':'#3a6f99';ctx.beginPath();ctx.roundRect(k.x-90,k.y-20,180,40,10);ctx.fill();txt(k.t,k.x,k.y+5,'#fff',13,'center',true);if(k.res)txt(k.res,k.x,k.y+36,k.res==='可证伪'?'#1f5e2f':'#5a4a3a',13,'center',true);});
+  if(c&&c.res==='可证伪'){ctx.fillStyle='#fff';ctx.strokeStyle='#c0392b';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(bx-R,by-14,R*2,28,8);ctx.fill();ctx.stroke();txt('禁止：'+c.obs,bx,by+5,'#c0392b',12);}
+  if(c&&E.hold&&!c.res)bar(bx-R,by-R-24,R*2,clamp(E.search/(c.ok?1.5:4),0,1),'#3a6f99','寻找能驳倒它的可能观察……');
+  txt(!c?'把一张主张卡拖到右侧检验台':c.res?'换一张主张卡再试':'按住检验台：寻找一个能驳倒它的可能观察',W/2,H-14,'#123',13);}
+
+/* ======== 调度 ======== */
+const INIT={1:init1,2:init2,3:init3,4:init4,5:init5},TICK={1:t1,2:t2,3:t3,4:t4,5:t5};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!done[t.dataset.l]);});}
+function go(n){L=n;tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{if(L===1)SAVE.stats.seen=0;INIT[L]();persist();toast('已重置（已对应的原文保留）');};
+tabs();
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);if(Math.floor(T)!==Math.floor(T-dt))persist();requestAnimationFrame(loop);}
+go(1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

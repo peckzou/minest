@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 库恩范式转换 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .q{padding:4px 10px;font-size:13px;color:#2c3e50;background:#fff7e0;border-bottom:1px solid #f0d08a}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+#side .lim{padding:4px 10px 8px;font-size:11.5px;color:#667}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>库恩 · 范式转换</b>
+  <button class="tab on" data-l="1">① 常规科学</button>
+  <button class="tab" data-l="2">② 反常与危机</button>
+  <button class="tab" data-l="3">③ 格式塔转换</button>
+  <button class="tab" data-l="4">④ 不同的世界</button>
+  <button class="tab" data-l="5">⑤ 应用练习</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side">
+  <div class="tt" id="sTitle"></div>
+  <div class="q"><b>核心问题：</b>科学是一点点累积真理，还是会在“范式”之间发生断裂式的转换？</div>
+  <div class="bd" id="sBody"></div>
+  <div class="lim"><b>适用边界：</b>拼图、鸭兔图、单摆和速度滑杆都只是教学类比。库恩本人也说不确定格式塔转换只是类比，还是揭示了心灵运作的一般方式；画面中的数值规则是演示假设，不是库恩的理论内容。</div>
+</div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ===== 保存与恢复 ===== */
+const KEY='minest_kuhn_v1';let MEM=null;
+function load(){try{const s=localStorage.getItem(KEY);if(s)return JSON.parse(s);}catch(e){}return MEM||{lit:[],done:{},lv:1};}
+function save(){const st={lit:LIT,done:DONE,lv:L};MEM=st;try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}}
+const ST=load();let LIT=ST.lit||[],DONE=ST.done||{};
+
+/* ===== 原文：均据 Stanford Encyclopedia of Philosophy “Thomas Kuhn” 词条（Bird，2025 修订）转引；
+   库恩原话标注词条所给的《科学革命的结构》页码（1962/1970a），词条作者的概述句标“词条概述” ===== */
+const SEP='据 SEP“Thomas Kuhn”词条（A. Bird）';
+const MAP={
+1:[["拼图从上方落下：范式供给谜题","范式的功能是为科学家提供要解的谜题，并提供解谜的工具。","The functions of a paradigm are to supply puzzles for scientists to solve and to provide the tools for their solution.",SEP+" §1 · 词条概述"],
+   ["拖拼图贴合范例曲线","在每一种情形中，与范例的相似性就是科学家的向导。","In each case it is similarity to the exemplar that is the scientists’ guide.",SEP+" §3 · 词条概述"],
+   ["解出 6 个谜题：常规科学在累积","库恩把常规科学描述为“解谜”。","Kuhn describes normal science as ‘puzzle-solving’ (1962/1970a, 35–42).",SEP+" §2 · 词条概述（页码为词条所给）"]],
+2:[["把红色反常拖进“搁置”抽屉","反常尽可能被忽略，或被解释掉。","Rather, anomalies are ignored or explained away if at all possible.",SEP+" §2 · 词条概述"],
+   ["反常堆积：范例曲线出现裂纹","只有特别棘手的反常的累积，才对现有学科基质构成严重问题。","It is only the accumulation of particularly troublesome anomalies that poses a serious problem for the existing disciplinary matrix.",SEP+" §2 · 词条概述"],
+   ["信心归零：危机","这种普遍的信心丧失，库恩称之为“危机”。","A widespread failure in such confidence Kuhn calls a ‘crisis’ (1962/1970a, 66–76).",SEP+" §2 · 词条概述（页码为词条所给）"]],
+3:[["按住：鸭变成兔","当人先把鸭兔图看成鸭、再看成兔时发生的格式塔转换。","the Gestalt-switch that occurs when one sees the duck-rabbit diagram first as (representing) a duck then as (representing) a rabbit",SEP+" §4.2 · 词条概述"],
+   ["两次转换所需时间不同：没有规则","没有规则可以决定一个谜题的重要性，也没有规则可以权衡谜题及其解答。","there are no rules for deciding the significance of a puzzle and for weighing puzzles and their solutions against one another",SEP+" §2 · 词条概述"],
+   ["旧解答搬进新范式：有些被弹回","在一场革命中，前一时期常规科学的成就并非全部得到保存。","Not all the achievements of the preceding period of normal science are preserved in a revolution",SEP+" §2 · 词条概述（“库恩损失”）"]],
+4:[["拖动分界线：同一个摆，两种看法","在某种我无法进一步说明的意义上，相互竞争的范式的拥护者在不同的世界里从事他们的工作。","the proponents of competing paradigms practice their trades in different worlds","库恩 1962/1970a, 150 · "+SEP+"转引"],
+   ["摆锤穿过分界线","在不同世界中工作的两群科学家，从同一点朝同一方向看时，看到的是不同的东西。","Practicing in different worlds, the two groups of scientists see different things when they look from the same point in the same direction","库恩 1962/1970a, 150 · "+SEP+"转引"],
+   ["拖尺子跨过分界线：刻度对不上","当理论没有共同的尺度时，它们就是不可通约的。","Theories are incommensurable when they share no common measure.",SEP+" §4 · 词条概述"]],
+5:[["低速区停留：两种“质量”读数相同","牛顿的质量是守恒的；爱因斯坦的质量可以与能量相互转换。","Newtonian mass is conserved; Einsteinian is convertible with energy.","库恩 1962/1970a, 102 · "+SEP+"转引"],
+   ["再推到高速：读数分开，但仍能比较","库恩强调，不可通约并不意味着不可比较。","Kuhn stressed that incommensurability did not mean non-comparability",SEP+" §4 · 词条概述"]]};
+const TITLE={1:'① 常规科学 · 把落下的拼图拖到范例曲线上它对应的位置',2:'② 反常与危机 · 红色反常贴不上曲线；把它们拖进右下角抽屉搁置，看信心如何变化',3:'③ 格式塔转换 · 按住画面让图像翻转；然后把旧解答拖进新范式',4:'④ 不同的世界 · 拖动竖直分界线；再把底部的尺子拖过分界线',5:'⑤ 应用练习 · 拖动速度把手，比较两种“质量”'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr${LIT.includes(l+'_'+i)?' on':''}" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const k=l+'_'+i;if(LIT.includes(k))return;LIT.push(k);const e=$('mr'+k);if(e){e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});}
+  if(MAP[l].every((_,j)=>LIT.includes(l+'_'+j))){DONE[l]=1;tabs();}save();}
+
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y};cv.setPointerCapture(e.pointerId);HD[L]&&HD[L].down&&HD[L].down(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]&&HD[L].move&&HD[L].move(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]&&HD[L].up&&HD[L].up();});
+
+/* ===== 第 1、2 关共享：范例曲线 + 拼图 ===== */
+const curve=(u,shift)=>0.75-0.55*Math.sin(u*Math.PI*0.9+(shift||0))*u; // u∈[0,1] → 高度比例
+function gArea(){return{x0:W*0.06,x1:W*0.78,y0:H*0.08,y1:H*0.9};}
+function slotXY(u,v){const a=gArea();return[lerp(a.x0,a.x1,u),lerp(a.y0,a.y1,v)];}
+let P={};
+function initPuzzle(anom){P={pieces:[],solved:[],spawn:0,drag:null,drawer:[],pressure:0,crack:[],anom,t:0,missed:0};}
+function spawnPiece(){const u=0.05+Math.random()*0.9;const isAnom=P.anom&&Math.random()<clamp(0.25+P.t*0.012,0,0.7);
+  const v=isAnom?clamp(curve(u)+(Math.random()<0.5?-1:1)*(0.18+Math.random()*0.15),0.05,0.95):curve(u);
+  P.pieces.push({u,v,x:lerp(gArea().x0,gArea().x1,Math.random()),y:-20,vy:28+Math.random()*16,anom:isAnom,rot:Math.random()*6,bounce:0});}
+function puzzleDown(x,y){for(let i=P.pieces.length-1;i>=0;i--){const p=P.pieces[i];if(Math.hypot(x-p.x,y-p.y)<22){P.drag=p;return;}}}
+function puzzleMove(x,y){if(P.drag){P.drag.x=x;P.drag.y=y;}}
+function puzzleUp(){const p=P.drag;P.drag=null;if(!p)return;const [sx,sy]=slotXY(p.u,p.v),[cx,cy]=slotXY(p.u,curve(p.u));
+  if(L===2&&p.x>W*0.8&&p.y>H*0.62){P.pieces.splice(P.pieces.indexOf(p),1);P.drawer.push(p);hit(2,0);toast('搁置起来：先不管它，继续做常规研究');return;}
+  if(!p.anom&&Math.hypot(p.x-sx,p.y-sy)<30){P.pieces.splice(P.pieces.indexOf(p),1);P.solved.push(p);hit(1,1);if(P.solved.length>=6)hit(1,2);return;}
+  if(p.anom&&Math.hypot(p.x-cx,p.y-cy)<40){p.bounce=1;p.vy=-180;toast('贴不上：它不符合范例');}}
+function drawGraph(alpha,shift,col){const a=gArea();ctx.strokeStyle=col||`rgba(58,111,153,${alpha})`;ctx.lineWidth=4;ctx.beginPath();
+  for(let i=0;i<=80;i++){const u=i/80;const [x,y]=slotXY(u,curve(u,shift));i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();}
+function puzzleTick(dt){P.t+=dt;P.spawn-=dt;if(P.spawn<=0&&P.pieces.length<9){spawnPiece();P.spawn=1.6-Math.min(0.9,P.t*0.01);}
+  const a=gArea();ctx.fillStyle='#f4f1ea';ctx.fillRect(0,0,W,H);ctx.strokeStyle='#d6d0c4';ctx.lineWidth=1;
+  for(let i=0;i<=10;i++){const x=lerp(a.x0,a.x1,i/10);ctx.beginPath();ctx.moveTo(x,a.y0);ctx.lineTo(x,a.y1);ctx.stroke();}
+  const conf=1-P.pressure;drawGraph(0.35+0.65*conf);
+  // 裂纹
+  P.crack.forEach(c=>{ctx.strokeStyle='rgba(150,40,30,.8)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(c[0],c[1]);ctx.lineTo(c[0]+c[2],c[1]+c[3]);ctx.lineTo(c[0]+c[2]*1.6,c[1]+c[3]*0.4);ctx.stroke();});
+  // 已解
+  P.solved.forEach(p=>{const [x,y]=slotXY(p.u,curve(p.u));ctx.fillStyle='#3a6f99';ctx.beginPath();ctx.arc(x,y,7,0,7);ctx.fill();});
+  // 下落中
+  P.pieces.forEach(p=>{if(P.drag!==p){p.vy+=(p.bounce?400:0)*dt;p.y+=p.vy*dt;if(p.bounce&&p.vy>30)p.bounce=0;}
+    const [sx,sy]=slotXY(p.u,p.v);
+    if(P.drag===p&&!p.anom){ctx.strokeStyle='rgba(58,111,153,.5)';ctx.setLineDash([4,4]);ctx.beginPath();ctx.arc(sx,sy,14,0,7);ctx.stroke();ctx.setLineDash([]);}
+    ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot+T*0.5);ctx.fillStyle=p.anom?'#c0392b':'#f3a52b';
+    ctx.beginPath();ctx.moveTo(-12,-12);ctx.lineTo(-3,-12);ctx.arc(0,-12,4,Math.PI,0);ctx.lineTo(12,-12);ctx.lineTo(12,12);ctx.lineTo(-12,12);ctx.closePath();ctx.fill();ctx.restore();});
+  P.pieces=P.pieces.filter(p=>{if(p.y>H+20){P.missed++;if(p.anom)P.pressure=Math.min(1,P.pressure+0.07);return false;}return true;});
+  if(L===2){const stored=P.drawer.length;const target=clamp(stored*0.055+P.missed*0.0,0,1);P.pressure=Math.max(P.pressure,target);
+    if(P.pressure>0.45&&P.crack.length<Math.floor(P.pressure*14)){const u=Math.random();const [x,y]=slotXY(u,curve(u));P.crack.push([x,y,(Math.random()-.5)*40,(Math.random()-.5)*40]);}
+    if(P.pressure>0.5)hit(2,1);
+    if(P.pressure>=0.85){hit(2,2);if(!P.crisis){P.crisis=1;toast('危机：大家不再相信这条曲线能解出谜题了');}}
+    // 抽屉
+    ctx.fillStyle='rgba(60,60,70,.12)';ctx.fillRect(W*0.8,H*0.62,W*0.18,H*0.34);ctx.strokeStyle='#888';ctx.strokeRect(W*0.8,H*0.62,W*0.18,H*0.34);
+    txt('搁置的反常',W*0.89,H*0.62+18,'#444',12);P.drawer.forEach((p,i)=>{ctx.fillStyle='#c0392b';ctx.fillRect(W*0.81+(i%6)*W*0.027,H*0.66+Math.floor(i/6)*18,14,14);});
+    // 信心条
+    ctx.fillStyle='#fff';ctx.fillRect(W*0.81,H*0.1,W*0.16,12);ctx.fillStyle=P.pressure>0.85?'#c0392b':'#3a6f99';ctx.fillRect(W*0.81,H*0.1,W*0.16*(1-P.pressure),12);ctx.strokeStyle='#888';ctx.strokeRect(W*0.81,H*0.1,W*0.16,12);
+    txt('对范式的信心',W*0.89,H*0.1-5,'#334',12);
+    if(P.crisis&&Math.sin(T*12)>0)drawGraph(0.2,0,'rgba(192,57,43,.4)');}
+  txt(`已解谜题：${P.solved.length}`,W*0.89,H*0.32,'#3a6f99',15,'center',true);
+  if(L===1)txt('范例（已公认的成功解法）',W*0.89,H*0.38,'#667',11);}
+HD[1]={down:puzzleDown,move:puzzleMove,up:puzzleUp};HD[2]={down:puzzleDown,move:puzzleMove,up:puzzleUp};
+function init1(){initPuzzle(false);setTimeout(()=>{if(L===1)hit(1,0);},1200);}
+function init2(){initPuzzle(true);}
+
+/* ===== 第 3 关：格式塔转换 ===== */
+let G3={};
+const OLD=['行星位置表','日食预报','潮汐计算','“以太”的弹性','落体时间','光的折射'];
+function init3(){G3={hold:false,prog:0,state:0,need:1.5+Math.random()*2,flips:[],tHold:0,chips:OLD.map((n,i)=>({n,x:W*0.08+i*W*0.13,y:H*0.86,lost:(i===3),placed:false})),drag:null};}
+HD[3]={down(x,y){for(const c of G3.chips){if(G3.state===1&&!c.placed&&Math.abs(x-c.x)<W*0.06&&Math.abs(y-c.y)<16){G3.drag=c;return;}}G3.hold=true;G3.tHold=0;},
+ move(x,y){if(G3.drag){G3.drag.x=x;G3.drag.y=y;}},
+ up(){G3.hold=false;const c=G3.drag;G3.drag=null;if(c){if(c.y<H*0.7&&c.x>W*0.55){if(c.lost){c.x=W*0.08+OLD.indexOf(c.n)*W*0.13;c.y=H*0.86;c.rej=1;hit(3,2);toast('新范式里这个问题不再有解：库恩损失');}else{c.placed=true;}}}}};
+function duckRabbit(cx,cy,s,mode){ // mode 0 鸭 1 兔：同一线条，朝向与标注由观看决定
+  ctx.strokeStyle='#222';ctx.lineWidth=4;ctx.fillStyle='#fffdf5';
+  ctx.beginPath();ctx.ellipse(cx,cy,s*0.42,s*0.32,0,0,7);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-s*0.36,cy-s*0.12);ctx.quadraticCurveTo(cx-s*0.95,cy-s*0.28,cx-s*0.98,cy-s*0.02);ctx.quadraticCurveTo(cx-s*0.7,cy+0.02*s,cx-s*0.4,cy+s*0.04);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-s*0.3,cy-s*0.22);ctx.quadraticCurveTo(cx-s*0.85,cy-s*0.5,cx-s*0.9,cy-s*0.3);ctx.quadraticCurveTo(cx-s*0.6,cy-s*0.2,cx-s*0.34,cy-s*0.16);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#222';ctx.beginPath();ctx.arc(cx-s*0.12,cy-s*0.08,s*0.04,0,7);ctx.fill();
+  ctx.beginPath();ctx.moveTo(cx+s*0.36,cy+s*0.12);ctx.quadraticCurveTo(cx+s*0.42,cy+s*0.02,cx+s*0.38,cy-s*0.06);ctx.stroke();
+}
+function t3(dt){ctx.fillStyle='#ece8df';ctx.fillRect(0,0,W,H);
+  if(G3.hold&&G3.state===0){G3.tHold+=dt;G3.prog=Math.min(1,G3.prog+dt/G3.need);}else if(G3.state===0)G3.prog=Math.max(0,G3.prog-dt*0.6);
+  if(G3.hold&&G3.state===1&&G3.flips.length<2){G3.tHold+=dt;G3.prog=Math.max(0,G3.prog-dt/G3.need);}else if(G3.state===1&&G3.flips.length<2&&!G3.hold)G3.prog=Math.min(1,G3.prog+dt*0.6);
+  if(G3.state===0&&G3.prog>=1){G3.state=1;G3.flips.push(G3.tHold);hit(3,0);toast(`翻转了：这次按了 ${G3.tHold.toFixed(1)} 秒`);G3.need=1.5+Math.random()*2;G3.tHold=0;}
+  if(G3.state===1&&G3.flips.length===1&&G3.prog<=0){G3.flips.push(G3.tHold);hit(3,1);toast(`又翻回去了：这次按了 ${G3.tHold.toFixed(1)} 秒——没有固定规则`);G3.state=1;G3.prog=1;}
+  const k=G3.prog,cx=W*0.33,cy=H*0.4,s=Math.min(W*0.32,H*0.6);
+  // 同一时刻只能看到一种：中间状态模糊
+  const mid=1-Math.abs(k-0.5)*2;ctx.save();ctx.filter=`blur(${Math.round(mid*8)}px)`;
+  ctx.translate(cx,cy);ctx.scale(k<0.5?1:-1,1);ctx.translate(-cx,-cy);duckRabbit(cx,cy,s,k<0.5?0:1);ctx.restore();
+  const lab=k<0.35?'鸭':k>0.65?'兔':'……';txt(lab,cx,cy+s*0.55,'#223',22,'center',true);
+  txt(G3.state===0?'按住画面：试着看出另一种东西':G3.flips.length<2?'再按住一次，看能不能翻回去':'把下方旧解答拖进右侧“新范式”',W/2,24,'#223',14);
+  // 新范式区
+  if(G3.state===1){ctx.fillStyle='rgba(58,111,153,.08)';ctx.fillRect(W*0.58,H*0.1,W*0.38,H*0.6);ctx.strokeStyle='#3a6f99';ctx.strokeRect(W*0.58,H*0.1,W*0.38,H*0.6);txt('新范式',W*0.77,H*0.1+20,'#3a6f99',14,'center',true);
+    const ok=G3.chips.filter(c=>c.placed);ok.forEach((c,i)=>{ctx.fillStyle='#3a6f99';ctx.fillRect(W*0.6+(i%2)*W*0.18,H*0.18+Math.floor(i/2)*36,W*0.16,26);txt(c.n,W*0.68+(i%2)*W*0.18,H*0.18+Math.floor(i/2)*36+18,'#fff',12);});
+    txt(`搬入 ${ok.length} 项`,W*0.77,H*0.66,'#3a6f99',12);}
+  G3.chips.forEach(c=>{if(c.placed)return;ctx.fillStyle=c.rej?'#bbb':'#fff';ctx.strokeStyle='#888';ctx.fillRect(c.x-W*0.06,c.y-14,W*0.12,28);ctx.strokeRect(c.x-W*0.06,c.y-14,W*0.12,28);txt(c.n+(c.rej?' ✗':''),c.x,c.y+5,c.rej?'#777':'#222',12);});
+  txt('旧范式的解答',W*0.08,H*0.86-24,'#667',11,'left');}
+
+/* ===== 第 4 关：不同的世界 ===== */
+let G4={};
+function init4(){G4={div:0.5,dragDiv:false,ruler:{x:0.15},dragR:false,ang:0.9,vel:0,cross:0,lastSide:null,swings:0,lastSign:1,amp:0.9};}
+HD[4]={down(x,y){if(Math.abs(x-W*G4.div)<24&&y<H*0.8){G4.dragDiv=true;return;}if(y>H*0.82&&Math.abs(x-W*G4.ruler.x)<W*0.18)G4.dragR=true;},
+ move(x,y,dx){if(G4.dragDiv){G4.div=clamp(x/W,0.1,0.9);hit(4,0);}if(G4.dragR)G4.ruler.x=clamp(G4.ruler.x+dx/W,0.1,0.9);},
+ up(){G4.dragDiv=false;G4.dragR=false;}};
+function t4(dt){const px=W*0.5,py=H*0.1,Lr=H*0.55,dv=W*G4.div;
+  // 摆的物理（轻微阻尼，两种解读看同一运动）
+  G4.vel+=-9.8/ (Lr/120) *Math.sin(G4.ang)*dt*0.35;G4.vel*=0.9995;G4.ang+=G4.vel*dt;
+  const s=Math.sign(G4.vel);if(s!==G4.lastSign&&s!==0){G4.swings++;G4.lastSign=s;}
+  ctx.fillStyle='#efe6d4';ctx.fillRect(0,0,dv,H);ctx.fillStyle='#dfe9f2';ctx.fillRect(dv,0,W-dv,H);
+  txt('亚里士多德主义者',dv/2,24,'#7a4f27',14,'center',true);txt('伽利略',dv+(W-dv)/2,24,'#2c5a85',14,'center',true);
+  const bx=px+Math.sin(G4.ang)*Lr,by=py+Math.cos(G4.ang)*Lr;
+  ctx.strokeStyle='#444';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(bx,by);ctx.stroke();ctx.fillStyle='#555';ctx.fillRect(px-30,py-6,60,6);
+  ctx.fillStyle='#8a8f96';ctx.beginPath();ctx.arc(bx,by,18,0,7);ctx.fill();
+  const side=bx<dv?'A':'G';
+  if(side==='A'){ctx.strokeStyle='#a0522d';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(bx,by+22);ctx.lineTo(px,py+Lr+10);ctx.stroke();txt('受约束的下落：趋向最低点，终将静止',Math.max(130,Math.min(dv-10,bx)),by+50,'#7a4f27',12);}
+  else{ctx.strokeStyle='#2c5a85';ctx.setLineDash([4,4]);ctx.beginPath();ctx.arc(px,py,Lr,Math.PI/2-0.9,Math.PI/2+0.9);ctx.stroke();ctx.setLineDash([]);txt(`周而复始的摆动 · 第 ${Math.floor(G4.swings/2)} 次往复`,Math.min(W-130,Math.max(dv+10,bx)),by+50,'#2c5a85',12);}
+  if(G4.lastSide&&G4.lastSide!==side){G4.cross++;if(G4.cross>=2&&LIT.includes('4_0'))hit(4,1);}G4.lastSide=side;
+  ctx.fillStyle='#f3a52b';ctx.fillRect(dv-3,0,6,H*0.8);ctx.beginPath();ctx.arc(dv,H*0.4,12,0,7);ctx.fill();
+  // 尺子
+  const rx=W*G4.ruler.x,rw=W*0.3,ry=H*0.88;const cross=rx-rw/2<dv&&rx+rw/2>dv;
+  ctx.fillStyle='#f5e7b8';ctx.fillRect(rx-rw/2,ry-12,rw,24);ctx.strokeStyle='#8a7a40';ctx.strokeRect(rx-rw/2,ry-12,rw,24);
+  for(let i=0;i<=20;i++){const x=rx-rw/2+rw*i/20;const left=x<dv;const off=left?0:(cross?6:0);ctx.strokeStyle=left?'#7a4f27':'#2c5a85';ctx.beginPath();ctx.moveTo(x+off,ry-12);ctx.lineTo(x+off,ry-(i%5?4:-2));ctx.stroke();}
+  txt(cross?'刻度在分界线处对不上：没有共同尺度':'拖动尺子',rx,ry+28,cross?'#b00020':'#555',12);
+  if(cross){hit(4,2);}
+  txt('拖动橙色分界线',dv,H*0.8+16,'#a0620a',11);}
+
+/* ===== 第 5 关：应用练习 ===== */
+let G5={};
+function init5(){G5={v:0.05,drag:false,lowT:0,visitedHigh:false};}
+HD[5]={down(x,y){if(y>H*0.7)G5.drag=true;},move(x){if(G5.drag)G5.v=clamp((x-W*0.1)/(W*0.8),0,0.98);},up(){G5.drag=false;}};
+function t5(dt){ctx.fillStyle='#f3efe6';ctx.fillRect(0,0,W,H);const v=G5.v,g=1/Math.sqrt(1-v*v);
+  ctx.fillStyle='#efe6d4';ctx.fillRect(0,0,W/2,H*0.66);ctx.fillStyle='#dfe9f2';ctx.fillRect(W/2,0,W/2,H*0.66);
+  txt('牛顿范式中的“质量”',W*0.25,26,'#7a4f27',14,'center',true);txt('爱因斯坦范式中的“质量”',W*0.75,26,'#2c5a85',14,'center',true);
+  const r1=40,r2=40*Math.sqrt(g);ctx.fillStyle='#a0522d';ctx.beginPath();ctx.arc(W*0.25,H*0.34,r1,0,7);ctx.fill();
+  ctx.fillStyle='#3a6f99';ctx.beginPath();ctx.arc(W*0.75,H*0.34,Math.min(r2,H*0.25),0,7);ctx.fill();
+  txt('1.000（守恒）',W*0.25,H*0.58,'#7a4f27',16,'center',true);txt(`${g.toFixed(3)}（随能量变化）`,W*0.75,H*0.58,'#2c5a85',16,'center',true);
+  // 速度条
+  ctx.fillStyle='#ddd';ctx.fillRect(W*0.1,H*0.8,W*0.8,10);ctx.fillStyle='rgba(125,200,140,.6)';ctx.fillRect(W*0.1,H*0.8,W*0.8*0.1,10);
+  ctx.fillStyle='#f3a52b';ctx.beginPath();ctx.arc(W*0.1+W*0.8*v,H*0.8+5,14,0,7);ctx.fill();
+  txt(`速度 = ${(v).toFixed(2)} c`,W*0.1+W*0.8*v,H*0.8-14,'#333',13);txt('低速区',W*0.14,H*0.8+30,'#3a7a4a',11);
+  const same=Math.abs(g-1)<0.005;
+  if(v<0.1&&G5.drag){G5.lowT+=dt;}if(G5.lowT>2)hit(5,0);
+  if(v>0.8){G5.visitedHigh=true;}if(G5.visitedHigh&&LIT.includes('5_0'))hit(5,1);
+  txt(same?'低速时两者测得一样——但它们仍是不同的概念':'读数分开了：可以比较，却不能互相翻译',W/2,H*0.72,same?'#3a7a4a':'#b00020',13);
+  txt(G5.lowT<2?'拖住把手在低速区停留 2 秒':!G5.visitedHigh?'再把速度推到 0.8c 以上':'',W/2,H*0.97,'#555',12);}
+
+/* ===== 调度 ===== */
+const INIT={1:init1,2:init2,3:init3,4:init4,5:init5},TICK={1:puzzleTick,2:puzzleTick,3:t3,4:t4,5:t5};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!DONE[t.dataset.l]);});}
+function go(n){L=n;tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();save();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{INIT[L]();toast('已重置本关（已对应的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(ST.lv&&TICK[ST.lv]?ST.lv:1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>
