@@ -9,7 +9,11 @@
      double-tap a node → focus (it comes to the centre, the rest fades; double-tap empty space or ✕ to leave) ·
      long-press a node → pull its card out of the nebula · drag the card back near its place → it snaps home ·
      double-tap a pulled card → back · tap a pulled card → open it in the five cards · level slider → show levels 1–4.
-   Two separate histories: the VIEW history here (back / forward); knowledge edits keep their own (none in P0). */
+   Two separate histories: the VIEW history (back / forward) and the EDIT history (undo / redo of links made here).
+   P1 (on pulled cards): drag the card's ✦ handle onto another node → choose a relation → confirm (only then it is
+   written, provenance 'user', source 'nebula') · Path mode: tap two nodes → the chain that joins them lights up ·
+   drop zones while carrying a card: Read (a wiki-style knowledge page) · Compare (two cards side by side with a
+   comparison structure) · Project (the thinking models and experiments for it, opened in the toolkit). */
 (function (root) {
   'use strict';
   var COLS = ['philosophy', 'knowledge', 'nature', 'psychology', 'society', 'systems', 'life'];
@@ -74,13 +78,19 @@
 
     var ov = document.createElement('div'); ov.className = 'nb-ov'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Holographic Knowledge Workbench');
     ov.innerHTML = '<div class="nb-stage"><div class="nb-glow"></div><div class="nb-layer"></div><svg class="nb-lines" aria-hidden="true"></svg></div>' +
-      '<header class="nb-top"><div><b>Holographic Workbench</b><small>Knowledge nebula · view only</small></div>' +
-      '<div class="nb-hist"><button type="button" data-hb title="View back" aria-label="View back">↶</button><button type="button" data-hf title="View forward" aria-label="View forward">↷</button></div>' +
+      '<svg class="nb-tmp" aria-hidden="true"></svg>' +
+      '<header class="nb-top"><div><b>Holographic Workbench</b><small>Knowledge nebula</small></div>' +
+      '<div class="nb-tools"><button type="button" data-links class="on" title="Show links">Links</button><button type="button" data-path title="Trace a path between two nodes">Path</button></div>' +
+      '<div class="nb-hist" title="View history"><span>View</span><button type="button" data-hb title="View back" aria-label="View back">↶</button><button type="button" data-hf title="View forward" aria-label="View forward">↷</button></div>' +
+      '<div class="nb-hist nb-edits" title="Edit history"><span>Edits</span><button type="button" data-eu title="Undo edit" aria-label="Undo edit">⟲</button><button type="button" data-er title="Redo edit" aria-label="Redo edit">⟳</button></div>' +
       '<button type="button" class="nb-x" aria-label="Close">×</button></header>' +
       '<div class="nb-levels" role="group" aria-label="Levels"><span>Levels</span>' + [1, 2, 3, 4].map(function (l) { return '<button type="button" data-lv="' + l + '">' + ['Domains', 'Places', 'Thoughts', 'Concepts'][l - 1] + '</button>'; }).join('') + '</div>' +
       '<div class="nb-focus" hidden><span></span><button type="button" data-unfocus aria-label="Leave focus">✕</button></div>' +
       '<div class="nb-hand"></div><button type="button" class="nb-backall" hidden>↺ Put all back</button>' +
       '<p class="nb-help">Drag to rotate · pinch to zoom · tap a cluster to open it · double-tap to focus · long-press to pull a card out</p>' +
+      '<div class="nb-pathbar" hidden><span></span><button type="button" data-pathclear aria-label="Clear path">✕</button></div>' +
+      '<div class="nb-zones" aria-hidden="true"><div class="nb-zone" data-zone="read"><b>📖</b><span>Read</span></div><div class="nb-zone" data-zone="compare"><b>⚖</b><span>Compare</span><em></em></div><div class="nb-zone" data-zone="project"><b>🔮</b><span>Project</span></div></div>' +
+      '<aside class="nb-panel" hidden></aside><div class="nb-confirm" hidden></div>' +
       (nodes.length <= 1 ? '<div class="nb-empty"><b>Your nebula is empty</b><p>Explore a thought in the toolkit first — each one becomes a star here.</p></div>' : '');
     document.body.appendChild(ov);
     var stage = ov.querySelector('.nb-stage'), layer = ov.querySelector('.nb-layer'), lines = ov.querySelector('.nb-lines'), hand = ov.querySelector('.nb-hand');
@@ -89,6 +99,32 @@
       e.innerHTML = '<i></i><span>' + esc(tr(n.label)) + (n.children.length && n.depth > 0 ? '<em>' + n.children.length + '</em>' : '') + '</span>';
       e._n = n; n.el = e; layer.appendChild(e);
     });
+
+    // ---------------------------------------------------------------- P1 state: links, path, edits
+    var showLinks = true, pathMode = false, pathA = null, path = null, edits = [], redone = [], cmp = [];
+    var tmp = ov.querySelector('.nb-tmp'), panel = ov.querySelector('.nb-panel'), confirmBox = ov.querySelector('.nb-confirm');
+    function refOf(n) { if (!n) return null; if (n.kind === 'concept') return 'cc:' + n.concept; if (n.kind === 'thought') { var k = ks.object(n.ko); return k && k.root_concept ? 'cc:' + k.root_concept : null; } return null; }
+    var byRef = {};
+    function buildRefs() { byRef = {}; nodes.forEach(function (n) { var r = refOf(n); if (r) (byRef[r] = byRef[r] || []).push(n); }); }
+    buildRefs();
+    function linkRels() { return ks.relations().filter(function (r) { return byRef[r.from] && byRef[r.to]; }); }
+    function shown(n) { return n.alpha > 0.05 && !n.pulled; }
+    function pick(ref) { var L = byRef[ref] || []; for (var i = 0; i < L.length; i++) if (shown(L[i])) return L[i]; return null; }
+    function heldOf(ref) { for (var i = 0; i < held.length; i++) if (refOf(held[i].n) === ref) return held[i]; return null; }
+    // the chain between two nodes: tree edges, the same concept under several thoughts, and every typed relation
+    function findPath(a, b) {
+      var adj = {};
+      function link(x, y, label, back) { (adj[x.id] = adj[x.id] || []).push({ to: y, label: label }); (adj[y.id] = adj[y.id] || []).push({ to: x, label: back }); }
+      nodes.forEach(function (n) { if (n.parent && n.parent.depth > 0) link(n, n.parent, 'belongs to', 'contains'); });
+      Object.keys(byRef).forEach(function (r) { var L = byRef[r]; for (var i = 1; i < L.length; i++) link(L[0], L[i], 'same concept', 'same concept'); });
+      linkRels().forEach(function (r) { var R = ks.RELBY[r.type]; byRef[r.from].forEach(function (x) { byRef[r.to].forEach(function (y) { link(x, y, R.label, R.inverse); }); }); });
+      var prev = {}, seen = {}, q = [a]; seen[a.id] = 1;
+      while (q.length) { var x = q.shift(); if (x === b) break; (adj[x.id] || []).forEach(function (e) { if (!seen[e.to.id]) { seen[e.to.id] = 1; prev[e.to.id] = { from: x, label: e.label }; q.push(e.to); } }); }
+      if (!seen[b.id]) return null;
+      var steps = [{ n: b }], c = b; while (c !== a) { var pv = prev[c.id]; steps[0].via = pv.label; steps.unshift({ n: pv.from }); c = pv.from; }
+      return steps;
+    }
+    function inPath(n) { return !path || path.some(function (st) { return st.n === n; }); }
 
     // ---------------------------------------------------------------- visibility, focus, projection
     function visible(n) { if (n.depth === 0) return true; if (n.pulled) return false; var p = n.parent; while (p) { if (p.depth > 0 && !view.expanded[p.id]) return false; if (p.depth === 0 && !view.expanded.root) return false; p = p.parent; } return true; }
@@ -108,7 +144,7 @@
       var moving = Math.abs(vy) > 0.0001 || Math.abs(vp) > 0.0001;
       if (moving && !drag) { view.yaw += vy; view.pitch = clampP(view.pitch + vp); vy *= 0.93; vp *= 0.93; dirty = true; }
       nodes.forEach(function (n) {
-        var tv = visible(n) ? 1 : 0, ta = tv * (inFocus(n) ? 1 : 0.1);
+        var tv = (visible(n) || (path && inPath(n) && !n.pulled)) ? 1 : 0, ta = tv * (inFocus(n) ? 1 : 0.1) * (inPath(n) ? 1 : 0.12);
         var tgt = tv ? n.home : (n.parent ? n.parent.pos : n.home), k = reduce ? 1 : 0.18;
         for (var i = 0; i < 3; i++) { var d = tgt[i] - n.pos[i]; if (Math.abs(d) > 0.05) { n.pos[i] += d * k; dirty = true; } else n.pos[i] = tgt[i]; }
         if (Math.abs(ta - n.alpha) > 0.01) { n.alpha += (ta - n.alpha) * (reduce ? 1 : 0.2); dirty = true; } else n.alpha = ta;
@@ -136,6 +172,23 @@
         if (n.parent && n.depth > 1 && a > 0.05) { var q = n.parent.pr; L += '<line x1="' + q.x.toFixed(1) + '" y1="' + q.y.toFixed(1) + '" x2="' + pr.x.toFixed(1) + '" y2="' + pr.y.toFixed(1) + '" style="stroke:' + (n.hue || '#9fb4ff') + ';opacity:' + (a * 0.45).toFixed(2) + '"/>'; }
         else if (n.depth === 1 && a > 0.05) { var r0 = T.root.pr; L += '<line x1="' + r0.x.toFixed(1) + '" y1="' + r0.y.toFixed(1) + '" x2="' + pr.x.toFixed(1) + '" y2="' + pr.y.toFixed(1) + '" class="l1" style="stroke:' + n.hue + ';opacity:' + (a * 0.25).toFixed(2) + '"/>'; }
       });
+      // relation beams (typed light between the nodes they join; a pulled card keeps its beams)
+      if (showLinks) {
+        var rels = linkRels(), few = rels.length <= 14;
+        rels.forEach(function (r) {
+          var A = pick(r.from), B = pick(r.to), ha = heldOf(r.from), hb = heldOf(r.to);
+          var pa = A ? A.pr : ha ? { x: ha.x, y: ha.y } : null, pb = B ? B.pr : hb ? { x: hb.x, y: hb.y } : null;
+          if (!pa || !pb) return;
+          var al = Math.min(A ? A.alpha : 1, B ? B.alpha : 1); if (al < 0.05) return;
+          var R = ks.RELBY[r.type] || { color: '#9fb4ff', label: r.type }, mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2 - Math.min(60, Math.hypot(pb.x - pa.x, pb.y - pa.y) * 0.18);
+          var onPath = path && path.some(function (st, i) { return i && ((st.n === A && path[i - 1].n === B) || (st.n === B && path[i - 1].n === A)); });
+          L += '<path class="nb-beam t-' + r.type + (r.provenance !== 'user' ? ' sug' : '') + (r.__new ? ' new' : '') + (onPath ? ' onpath' : '') + '" d="M' + pa.x.toFixed(1) + ' ' + pa.y.toFixed(1) + ' Q' + mx.toFixed(1) + ' ' + my.toFixed(1) + ' ' + pb.x.toFixed(1) + ' ' + pb.y.toFixed(1) + '" style="stroke:' + R.color + ';opacity:' + (al * (path && !onPath ? 0.15 : 0.9)).toFixed(2) + '"/>';
+          if (few || onPath) L += '<text class="nb-bl" x="' + mx.toFixed(1) + '" y="' + (my + 2).toFixed(1) + '" style="fill:' + R.color + ';opacity:' + (al * (path && !onPath ? 0.2 : 1)).toFixed(2) + '">' + esc(tr(R.label)) + '</text>';
+        });
+      }
+      if (path) path.forEach(function (st, i) { if (!i) return; var a = st.n.pr, b = path[i - 1].n.pr; if (a && b) L += '<line class="nb-pathline" x1="' + a.x.toFixed(1) + '" y1="' + a.y.toFixed(1) + '" x2="' + b.x.toFixed(1) + '" y2="' + b.y.toFixed(1) + '"/>'; });
+      nodes.forEach(function (n) { n.el.classList.toggle('pathsel', pathA === n || (path && (path[0].n === n || path[path.length - 1].n === n))); });
+      ov.querySelector('[data-eu]').disabled = !edits.length; ov.querySelector('[data-er]').disabled = !redone.length;
       lines.setAttribute('viewBox', '0 0 ' + W + ' ' + H); lines.innerHTML = L;
       ov.querySelectorAll('[data-lv]').forEach(function (b) { b.classList.toggle('on', +b.getAttribute('data-lv') === view.level); });
       var f = view.focus && T.by[view.focus], fb2 = ov.querySelector('.nb-focus'); fb2.hidden = !f; if (f) fb2.querySelector('span').textContent = tr('Focus') + ': ' + tr(f.label);
@@ -194,7 +247,7 @@
       }
       if (lastTap.n === d.n && now - lastTap.t < 330) { clearTimeout(tapTimer); lastTap = { n: null, t: 0, bg: 0 }; focus(d.n); return; }   // double-tap wins
       lastTap = { n: d.n, t: now, bg: 0 }; var n = d.n;
-      clearTimeout(tapTimer); tapTimer = setTimeout(function () { lastTap.n = null; if (n.children.length) toggle(n); else peek(n); }, 300);
+      clearTimeout(tapTimer); tapTimer = setTimeout(function () { lastTap.n = null; if (pathMode) return pathPick(n); if (n.children.length) toggle(n); else peek(n); }, 300);
     }
     stage.addEventListener('pointerup', up); stage.addEventListener('pointercancel', up);
     stage.addEventListener('wheel', function (e) { e.preventDefault(); view.zoom = Math.max(0.35, Math.min(4, view.zoom * (e.deltaY < 0 ? 1.1 : 0.91))); dirty = true; }, { passive: false });
@@ -207,7 +260,7 @@
       if (n.kind === 'thought') { var ko = ks.object(n.ko); var pl = ko && TK.placement(ko); extra = '<p>' + esc(pl && pl.primary ? C.pathNames(pl.primary).map(tr).join(' › ') : tr('Not placed yet')) + '</p><p class="dim">' + ks.conceptsOf(n.ko).length + ' ' + tr('concepts') + ' · ' + ks.relations({ ko: n.ko }).length + ' ' + tr('links') + '</p>'; }
       if (n.kind === 'concept') { var rs = ks.relations({ node: 'cc:' + n.concept }); extra = '<p class="dim">' + rs.length + ' ' + tr('links') + '</p>'; }
       if (n.children.length) extra += '<p class="dim">' + n.children.length + ' ' + tr('inside') + '</p>';
-      return '<small>' + esc(sub) + '</small><b>' + esc(tr(n.label)) + '</b>' + extra + '<span class="nb-cact">' + (n.ko ? '<em>' + tr('Tap: open in the five cards') + '</em>' : '') + '<em>' + tr('Double-tap or drag home: put back') + '</em></span>';
+      return (refOf(n) ? '<i class="nb-handle" title="' + esc(tr('Drag to connect')) + '" aria-label="' + esc(tr('Drag to connect')) + '">✦</i>' : '') + '<small>' + esc(sub) + '</small><b>' + esc(tr(n.label)) + '</b>' + extra + '<span class="nb-cact">' + (n.ko ? '<em>' + tr('Tap: open in the five cards') + '</em>' : '') + '<em>' + tr('Double-tap or drag home: put back') + '</em></span>';
     }
     function pull(n, x, y, pid) {
       if (n.pulled) return;
@@ -219,11 +272,11 @@
       wireCard(it);
       if (pid < 0) return;   // opened by a tap: no finger to follow
       // keep following the finger that pulled it
-      var mv = function (e) { if (e.pointerId !== pid) return; it.x = e.clientX - b.left; it.y = e.clientY - b.top; place(it); };
-      var en = function (e) { if (e.pointerId !== pid) return; window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', en); window.removeEventListener('pointercancel', en); maybeHome(it); };
+      var mv = function (e) { if (e.pointerId !== pid) return; it.x = e.clientX - b.left; it.y = e.clientY - b.top; place(it); ov.classList.add('carrying'); zoneHover(e.clientX, e.clientY); };
+      var en = function (e) { if (e.pointerId !== pid) return; window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', en); window.removeEventListener('pointercancel', en); ov.classList.remove('carrying'); drop(it, e.clientX, e.clientY); };
       window.addEventListener('pointermove', mv); window.addEventListener('pointerup', en); window.addEventListener('pointercancel', en);
     }
-    function place(it) { it.el.style.transform = 'translate(' + it.x.toFixed(0) + 'px,' + it.y.toFixed(0) + 'px) translate(-50%,-50%)'; }
+    function place(it) { it.el.style.transform = 'translate(' + it.x.toFixed(0) + 'px,' + it.y.toFixed(0) + 'px) translate(-50%,-50%)' + (it.el.classList.contains('docked') ? ' scale(.62)' : ''); }
     function homeXY(n) { var c = center(); var pr = project(n.home, c); return pr; }
     function maybeHome(it) { var h = homeXY(it.n); if (Math.hypot(h.x - it.x, h.y - it.y) < 70) putBack(it); }
     function putBack(it) {
@@ -234,11 +287,23 @@
     }
     function wireCard(it) {
       var p0 = null, last = 0;
-      it.el.addEventListener('pointerdown', function (e) { e.stopPropagation(); p0 = { x: e.clientX, y: e.clientY, ox: it.x, oy: it.y, t: performance.now(), id: e.pointerId }; try { it.el.setPointerCapture(e.pointerId); } catch (x) {} held.splice(held.indexOf(it), 1); held.push(it); hand.appendChild(it.el); });
-      it.el.addEventListener('pointermove', function (e) { if (!p0 || e.pointerId !== p0.id) return; it.x = p0.ox + e.clientX - p0.x; it.y = p0.oy + e.clientY - p0.y; place(it); });
+      var cn = null;   // connecting from the ✦ handle
+      it.el.addEventListener('pointerdown', function (e) {
+        e.stopPropagation(); try { it.el.setPointerCapture(e.pointerId); } catch (x) {}
+        if (e.target.closest('.nb-handle')) { cn = { id: e.pointerId }; it.el.classList.add('linking'); return; }
+        p0 = { x: e.clientX, y: e.clientY, ox: it.x, oy: it.y, t: performance.now(), id: e.pointerId }; held.splice(held.indexOf(it), 1); held.push(it); hand.appendChild(it.el);
+      });
+      it.el.addEventListener('pointermove', function (e) {
+        if (cn && e.pointerId === cn.id) { var b0 = ov.getBoundingClientRect(), x = e.clientX - b0.left, y = e.clientY - b0.top, t = targetAt(e.clientX, e.clientY, it);
+          tmp.setAttribute('viewBox', '0 0 ' + b0.width + ' ' + b0.height); tmp.innerHTML = '<line x1="' + it.x + '" y1="' + it.y + '" x2="' + x + '" y2="' + y + '"/>' + (t ? '<circle cx="' + x + '" cy="' + y + '" r="16"/>' : '');
+          ov.querySelectorAll('.nb-n.target').forEach(function (z) { z.classList.remove('target'); }); if (t && t.el && !t.pulled) t.el.classList.add('target'); return; }
+        if (!p0 || e.pointerId !== p0.id) return; it.x = p0.ox + e.clientX - p0.x; it.y = p0.oy + e.clientY - p0.y; place(it);
+        if (Math.hypot(e.clientX - p0.x, e.clientY - p0.y) > 10) { ov.classList.add('carrying'); zoneHover(e.clientX, e.clientY); }
+      });
       it.el.addEventListener('pointerup', function (e) {
-        if (!p0) return; var moved = Math.hypot(e.clientX - p0.x, e.clientY - p0.y), q = p0; p0 = null;
-        if (moved > 10) return maybeHome(it);
+        if (cn) { cn = null; it.el.classList.remove('linking'); tmp.innerHTML = ''; ov.querySelectorAll('.nb-n.target').forEach(function (z) { z.classList.remove('target'); }); var t = targetAt(e.clientX, e.clientY, it); if (t) confirmLink(it.n, t); else toast(tr('Drop the light on another concept or thought')); return; }
+        if (!p0) return; var moved = Math.hypot(e.clientX - p0.x, e.clientY - p0.y), q = p0; p0 = null; ov.classList.remove('carrying');
+        if (moved > 10) return drop(it, e.clientX, e.clientY);
         var now = performance.now();
         if (now - last < 330) { last = 0; clearTimeout(it.t); return putBack(it); }
         last = now; clearTimeout(it.t); it.t = setTimeout(function () { last = 0; if (it.n.ko) { close(); TK.open(it.n.kind === 'concept' ? 'graph' : null, { objectId: it.n.ko, concept: it.n.concept }); } }, 340);
@@ -246,18 +311,155 @@
     }
     function peek(n) { var pr = n.pr || homeXY(n), b = stage.getBoundingClientRect(); pull(n, pr.x + b.left + 80, pr.y + b.top, -1); }
 
+    // ---------------------------------------------------------------- P1: targets, zones, link confirm, panels
+    function toast(m) { if (TK.toast) TK.toast(m); }
+    function targetAt(x, y, it) {
+      var prev = it.el.style.pointerEvents; it.el.style.pointerEvents = 'none';
+      var el = document.elementFromPoint(x, y); it.el.style.pointerEvents = prev;
+      var ne = el && el.closest('.nb-n'), ce = el && el.closest('.nb-card'), n = ne ? ne._n : null;
+      if (!n && ce) { for (var i = 0; i < held.length; i++) if (held[i].el === ce) n = held[i].n; }
+      if (!n || n === it.n || !refOf(n) || refOf(n) === refOf(it.n)) return null;
+      return n;
+    }
+    function zoneAt(x, y) { var z = null; ov.querySelectorAll('.nb-zone').forEach(function (el) { var r = el.getBoundingClientRect(); if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) z = el.getAttribute('data-zone'); }); return z; }
+    function zoneHover(x, y) { var z = zoneAt(x, y); ov.querySelectorAll('.nb-zone').forEach(function (el) { el.classList.toggle('hot', el.getAttribute('data-zone') === z); }); }
+    function drop(it, x, y) {
+      var z = zoneAt(x, y); ov.querySelectorAll('.nb-zone').forEach(function (el) { el.classList.remove('hot'); });
+      if (z === 'read') return openRead(it.n);
+      if (z === 'project') return openProject(it.n);
+      if (z === 'compare') {
+        if (cmp.indexOf(it) < 0) cmp.push(it); if (cmp.length > 2) { cmp.shift().el.classList.remove('docked'); }
+        var zr = ov.querySelector('[data-zone=compare]').getBoundingClientRect(), ob = ov.getBoundingClientRect();   // dock the card beside the zone
+        cmp.forEach(function (c, i) { c.el.classList.add('docked'); c.x = zr.right - ob.left + 95; c.y = zr.top - ob.top + 20 + i * 46; place(c); });
+        paintCmp(); if (cmp.length === 2) openCompare(cmp[0].n, cmp[1].n); else toast(tr('Now drop a second card on Compare')); return; }
+      maybeHome(it);
+    }
+    function paintCmp() { var em = ov.querySelector('[data-zone=compare] em'); em.textContent = cmp.length ? cmp.length + '/2' : ''; }
+    function koOf(n) { return n.ko ? ks.object(n.ko) : null; }
+    function relExists(a, b, type) { return ks.relations().some(function (r) { return r.type === type && ((r.from === a && r.to === b) || (ks.RELBY[type].sym && r.from === b && r.to === a)); }); }
+    function confirmLink(a, b) {
+      var ra = refOf(a), rb = refOf(b), from = a, to = b;
+      function body() {
+        confirmBox.innerHTML = '<h4>' + esc(tr('New link')) + '</h4><p><b>' + esc(tr(from.label)) + '</b> → <b>' + esc(tr(to.label)) + '</b></p>' +
+          '<label>' + esc(tr('Type')) + '<select>' + ks.REL.map(function (r) { return '<option value="' + r.id + '">' + esc(tr(r.label)) + '</option>'; }).join('') + '</select></label>' +
+          '<label>' + esc(tr('Note (optional)')) + '<input maxlength="200"></label><p class="dim">' + esc(tr('Nothing is saved until you confirm.')) + '</p>' +
+          '<div class="row"><button type="button" class="primary" data-ok>' + esc(tr('Confirm and save')) + '</button><button type="button" data-rev>' + esc(tr('Reverse')) + '</button><button type="button" data-no>' + esc(tr('Cancel')) + '</button></div>';
+      }
+      body(); confirmBox.hidden = false;
+      confirmBox.onclick = function (e) {
+        var bt = e.target.closest('button'); if (!bt) return;
+        if (bt.hasAttribute('data-rev')) { var t = from; from = to; to = t; var keep = confirmBox.querySelector('select').value; body(); confirmBox.querySelector('select').value = keep; return; }
+        if (bt.hasAttribute('data-ok')) {
+          var type = confirmBox.querySelector('select').value, note = confirmBox.querySelector('input').value.trim(), fr = refOf(from), tt = refOf(to);
+          if (relExists(fr, tt, type)) { toast(tr('These two are already linked that way')); confirmBox.hidden = true; return; }
+          var ko = koOf(from) || koOf(to), r;
+          TK.silently(function () { r = ks.relate(fr, tt, type, { ko: ko ? ko.id : null, provenance: 'user', source_ref: 'nebula', note: note }); });
+          edits.push({ op: 'relate', r: r }); redone = []; r.__new = 1; setTimeout(function () { r.__new = 0; dirty = true; }, 1600);
+          toast(tr('Link saved')); dirty = true;
+        }
+        confirmBox.hidden = true;
+      };
+    }
+    function undoEdit() { var e = edits.pop(); if (!e) return; TK.silently(function () { ks.unrelate(e.r.id); }); redone.push(e); toast(tr('Edit undone')); dirty = true; }
+    function redoEdit() { var e = redone.pop(); if (!e) return; var r = e.r, r2; TK.silently(function () { r2 = ks.relate(r.from, r.to, r.type, { ko: r.ko, provenance: 'user', source_ref: 'nebula', note: r.note }); }); e.r = r2; edits.push(e); toast(tr('Edit redone')); dirty = true; }
+    function pathPick(n) {
+      if (!pathA) { pathA = n; path = null; setPathBar(tr('Path: now tap a second node')); dirty = true; return; }
+      if (n === pathA) return;
+      var p2 = findPath(pathA, n); remember();
+      if (!p2) { setPathBar(tr('No path between these two yet')); pathA = null; dirty = true; return; }
+      path = p2; pathA = null;
+      p2.forEach(function (st) { var p = st.n.parent; while (p) { if (p.depth > 0) view.expanded[p.id] = true; p = p.parent; } });
+      setPathBar(p2.map(function (st, i) { return (i ? ' —' + tr(st.via) + '→ ' : '') + tr(st.n.label); }).join(''));
+      dirty = true;
+    }
+    function setPathBar(t) { var pb = ov.querySelector('.nb-pathbar'); pb.hidden = !t; pb.querySelector('span').textContent = t || ''; }
+    function clearPath() { path = null; pathA = null; setPathBar(''); dirty = true; }
+
+    // panels: Read (knowledge page) · Compare · Project
+    function openPanel(html, cls) { panel.className = 'nb-panel ' + (cls || ''); panel.innerHTML = '<button type="button" class="nb-pclose" data-pclose aria-label="Close">×</button>' + html; panel.hidden = false; }
+    function relList(ref) {
+      var rs = ks.relations({ node: ref }); if (!rs.length) return '<p class="dim">' + esc(tr('No links yet.')) + '</p>';
+      var by = {}; rs.forEach(function (r) { var out = r.from === ref, R = ks.RELBY[r.type], k = out ? R.label : R.inverse; (by[k] = by[k] || []).push({ r: r, other: out ? r.to : r.from, color: R.color }); });
+      return Object.keys(by).map(function (k) { return '<h5 style="color:' + by[k][0].color + '">' + esc(tr(k)) + '</h5><ul>' + by[k].map(function (x) { var o = x.other.indexOf('cc:') === 0 ? ks.label(x.other.slice(3)) : x.other; return '<li>' + esc(o) + ' <small>' + esc(tr(ks.PROV[x.r.provenance] || '')) + (x.r.note ? ' · ' + esc(x.r.note) : '') + '</small></li>'; }).join('') + '</ul>'; }).join('');
+    }
+    function openRead(n) {
+      var h = '<small class="nb-pk">' + esc(tr('Knowledge page')) + '</small>';
+      if (n.kind === 'concept' || (n.kind === 'thought' && refOf(n))) {
+        var cid = (refOf(n) || '').slice(3), c = ks.getConcept(cid);
+        if (n.kind === 'concept' && c) {
+          var ck = ks.contentKind(c);
+          h += '<h2>' + esc(ks.label(c)) + '</h2>' + (c.labels.zh && c.labels.en ? '<p class="dim">' + esc(c.labels.zh) + ' · ' + esc(c.labels.en) + '</p>' : '') +
+            '<p><span class="ck ck-' + esc(ck) + '">' + esc(tr(ks.CONTENT[ck] || '')) + '</span> ' + esc(tr(ks.KINDS[c.kind] || '')) + (c.review === 'pending' ? ' · <span class="pill sug">' + esc(tr('review pending')) + '</span>' : '') + '</p>' +
+            (c.definition ? '<p>' + esc(c.definition) + '</p>' : '') + '<h4>' + esc(tr('Links')) + '</h4>' + relList('cc:' + cid) +
+            '<h4>' + esc(tr('Appears in')) + '</h4><ul>' + ks.objects().filter(function (o) { return o.concept_ids.indexOf(cid) >= 0; }).map(function (o) { return '<li>' + esc(o.title) + '</li>'; }).join('') + '</ul>';
+          return openPanel(h, 'read');
+        }
+      }
+      if (n.kind === 'thought') {
+        var ko = ks.object(n.ko), pl = TK.placement(ko);
+        h += '<h2>' + esc(ko.title) + '</h2><p class="dim">' + esc(pl.primary ? C.pathNames(pl.primary).map(tr).join(' › ') : tr('Not placed yet')) + ' · ' + esc(tr(pl.confirmed ? 'confirmed by you' : 'suggested')) + '</p>' +
+          '<h4>' + esc(tr('Concepts')) + '</h4><p>' + ks.conceptsOf(ko.id).map(function (c) { return '<span class="tag">' + esc(ks.label(c)) + '</span>'; }).join(' ') + '</p>' +
+          (ks.frameworksOf(ko.id).length ? '<h4>' + esc(tr('Frameworks')) + '</h4><ul>' + ks.frameworksOf(ko.id).map(function (f) { return '<li>' + esc(tr(f.title)) + ' <small>' + f.nodes.filter(function (x) { return x.role === 'item'; }).length + '</small></li>'; }).join('') + '</ul>' : '') +
+          (ko.notes.length ? '<h4>' + esc(tr('Notes')) + '</h4><ul>' + ko.notes.map(function (x) { return '<li><span class="ck ck-' + esc(x.content_kind || 'view') + '">' + esc(tr(ks.CONTENT[x.content_kind || 'view'])) + '</span> ' + esc(x.text) + (x.source ? ' <small>— ' + esc(x.source) + '</small>' : '') + '</li>'; }).join('') + '</ul>' : '') +
+          (ks.modelRunsOf(ko.id).length ? '<h4>' + esc(tr('Thinking Models')) + '</h4><ul>' + ks.modelRunsOf(ko.id).map(function (m) { return '<li>' + esc(tr(m.title || m.model_id)) + '</li>'; }).join('') + '</ul>' : '') +
+          (ks.labRunsOf(ko.id).length ? '<h4>' + esc(tr('Experiments')) + '</h4><ul>' + ks.labRunsOf(ko.id).map(function (l) { var d = TK.M.get(l.interaction_id); return '<li>' + esc(tr(d ? d.title : l.interaction_id)) + '</li>'; }).join('') + '</ul>' : '') +
+          (refOf(n) ? '<h4>' + esc(tr('Links')) + '</h4>' + relList(refOf(n)) : '') +
+          '<div class="row"><button type="button" data-openko="' + ko.id + '">' + esc(tr('Open in the five cards')) + '</button></div>';
+        return openPanel(h, 'read');
+      }
+      h += '<h2>' + esc(tr(n.label)) + '</h2><ul>' + n.children.map(function (c) { return '<li>' + esc(tr(c.label)) + (c.children.length ? ' <small>' + c.children.length + '</small>' : '') + '</li>'; }).join('') + '</ul>';
+      openPanel(h, 'read');
+    }
+    function conceptSet(n) { if (n.kind === 'thought') return ks.object(n.ko).concept_ids.slice(); if (n.kind === 'concept') { var s0 = ['' + n.concept]; ks.relations({ node: 'cc:' + n.concept }).forEach(function (r) { [r.from, r.to].forEach(function (x) { if (x.indexOf('cc:') === 0 && s0.indexOf(x.slice(3)) < 0) s0.push(x.slice(3)); }); }); return s0; } return n.children.map(function (c) { return c.concept; }).filter(Boolean); }
+    function openCompare(a, b) {
+      var A = conceptSet(a), B = conceptSet(b), both = A.filter(function (x) { return B.indexOf(x) >= 0; }), oa = A.filter(function (x) { return B.indexOf(x) < 0; }), ob = B.filter(function (x) { return A.indexOf(x) < 0; });
+      var ra = refOf(a), rb = refOf(b), direct = ks.relations().filter(function (r) { return (r.from === ra && r.to === rb) || (r.from === rb && r.to === ra); });
+      var pth = findPath(a, b);
+      function col(n, only) { return '<div class="nb-cc"><small>' + esc(tr(n.kind === 'thought' ? 'Thought' : n.kind === 'concept' ? 'Concept' : n.kind === 'place' ? 'Place' : 'Domain')) + '</small><b>' + esc(tr(n.label)) + '</b><h5>' + esc(tr('Only here')) + '</h5><p>' + (only.length ? only.map(function (x) { return '<span class="tag">' + esc(ks.label(x)) + '</span>'; }).join(' ') : '<span class="dim">—</span>') + '</p></div>'; }
+      openPanel('<small class="nb-pk">' + esc(tr('Compare')) + '</small><div class="nb-cmp">' + col(a, oa) +
+        '<div class="nb-cmid"><h5>' + esc(tr('Shared')) + '</h5><p>' + (both.length ? both.map(function (x) { return '<span class="tag">' + esc(ks.label(x)) + '</span>'; }).join(' ') : '<span class="dim">' + esc(tr('Nothing shared yet')) + '</span>') + '</p>' +
+        '<h5>' + esc(tr('Direct links')) + '</h5><p>' + (direct.length ? direct.map(function (r) { return esc(tr(ks.RELBY[r.type].label)); }).join(', ') : '<span class="dim">' + esc(tr('None')) + '</span>') + '</p>' +
+        '<h5>' + esc(tr('Path')) + '</h5><p>' + (pth ? esc(pth.map(function (st, i) { return (i ? ' —' + tr(st.via) + '→ ' : '') + tr(st.n.label); }).join('')) : '<span class="dim">' + esc(tr('No path between these two yet')) + '</span>') + '</p></div>' + col(b, ob) + '</div>' +
+        '<div class="row">' + (ra && rb ? '<button type="button" class="primary" data-cmplink>' + esc(tr('Link them…')) + '</button>' : '') + ((a.ko || b.ko) ? '<button type="button" data-cmpmodel>' + esc(tr('Analyse in Thinking Models')) + '</button>' : '') + '</div>', 'compare');
+      panel._cmp = [a, b];
+    }
+    function openProject(n) {
+      var ko = koOf(n);
+      if (!ko) return openPanel('<small class="nb-pk">' + esc(tr('Project')) + '</small><h2>' + esc(tr(n.label)) + '</h2><p class="dim">' + esc(tr('Pull a thought or a concept to project it into a thinking model.')) + '</p>', 'project');
+      var ms = (TK.recommendModels ? TK.recommendModels(ko) : []).slice(0, 4); if (!ms.length) ms = TK.data.models.slice(0, 3);
+      var ls = (TK.recommendLabs ? TK.recommendLabs(ko) : []).filter(function (x) { return x.s > 0; }).slice(0, 3).map(function (x) { return x.d; });
+      openPanel('<small class="nb-pk">' + esc(tr('Project')) + '</small><h2>' + esc(tr(n.label)) + '</h2>' +
+        '<h4>' + esc(tr('Thinking Models')) + '</h4><div class="nb-proj">' + ms.map(function (m) { return '<button type="button" class="nb-pj" data-pm="' + m.id + '"><b>' + esc(tr(m.title)) + '</b><span>' + esc(tr(m.principle)) + '</span></button>'; }).join('') + '</div>' +
+        (ls.length ? '<h4>' + esc(tr('Experiments')) + '</h4><div class="nb-proj">' + ls.map(function (d) { return '<button type="button" class="nb-pj lab" data-pl="' + d.interaction_id + '"><b>' + esc(tr(d.title)) + '</b><span>' + esc(tr(d.subtitle || '')) + '</span></button>'; }).join('') + '</div>' : ''), 'project');
+      panel._ko = ko.id;
+    }
+    panel.addEventListener('click', function (e) {
+      var b = e.target.closest('button'); if (!b) return;
+      if (b.hasAttribute('data-pclose')) { panel.hidden = true; if (panel.classList.contains('compare')) { cmp.forEach(function (c) { c.el.classList.remove('docked'); }); cmp = []; paintCmp(); } return; }
+      if (b.hasAttribute('data-openko')) { var id = b.getAttribute('data-openko'); close(); TK.open(null, { objectId: id }); return; }
+      if (b.hasAttribute('data-pm')) { var k1 = panel._ko, m = b.getAttribute('data-pm'); close(); TK.open('models', { objectId: k1, model: m }); return; }
+      if (b.hasAttribute('data-pl')) { var k2 = panel._ko, l = b.getAttribute('data-pl'); close(); TK.open('lab', { objectId: k2, lab: l }); return; }
+      if (b.hasAttribute('data-cmplink')) { confirmLink(panel._cmp[0], panel._cmp[1]); return; }
+      if (b.hasAttribute('data-cmpmodel')) { var pr = panel._cmp, k3 = pr[0].ko || pr[1].ko; close(); TK.open('models', { objectId: k3, model: 'perspectives' }); return; }
+    });
+
     // ---------------------------------------------------------------- controls
     ov.addEventListener('click', function (e) {
       var b = e.target.closest('button'); if (!b) return;
       if (b.classList.contains('nb-x')) return close();
       if (b.hasAttribute('data-lv')) { remember(); var L = +b.getAttribute('data-lv'); view.expanded = { root: true }; nodes.forEach(function (n) { if (n.depth >= 1 && n.depth < L && n.children.length) view.expanded[n.id] = true; }); view.level = L; view.focus = null; dirty = true; fit(); return; }
       if (b.hasAttribute('data-unfocus')) return focus(null);
+      if (b.hasAttribute('data-links')) { showLinks = !showLinks; b.classList.toggle('on', showLinks); dirty = true; return; }
+      if (b.hasAttribute('data-path')) { pathMode = !pathMode; b.classList.toggle('on', pathMode); if (!pathMode) clearPath(); else setPathBar(tr('Path: tap the first node')); return; }
+      if (b.hasAttribute('data-pathclear')) { clearPath(); pathMode = false; ov.querySelector('[data-path]').classList.remove('on'); return; }
+      if (b.hasAttribute('data-eu')) return undoEdit();
+      if (b.hasAttribute('data-er')) return redoEdit();
       if (b.hasAttribute('data-hb')) { if (!hist.length) return; fut.push(snap()); restore(hist.pop()); return; }
       if (b.hasAttribute('data-hf')) { if (!fut.length) return; hist.push(snap()); restore(fut.pop()); return; }
       if (b.classList.contains('nb-backall')) { held.slice().forEach(putBack); return; }
     });
     function key(e) {
-      if (e.key === 'Escape') { if (view.focus) focus(null); else close(); }
+      if (e.key === 'Escape') { if (!confirmBox.hidden) { confirmBox.hidden = true; return; } if (!panel.hidden) { panel.hidden = true; return; } if (path || pathMode) { clearPath(); pathMode = false; ov.querySelector('[data-path]').classList.remove('on'); return; } if (view.focus) focus(null); else close(); }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); ov.querySelector(e.shiftKey ? '[data-hf]' : '[data-hb]').click(); }
     }
     document.addEventListener('keydown', key);
@@ -268,7 +470,7 @@
     view.expanded = { root: true }; nodes.forEach(function (n) { if (n.depth === 1 && n.children.length) view.expanded[n.id] = true; });
     size(); requestAnimationFrame(function () { ov.classList.add('on'); size(); fit(); frame(); });
     if (root.ResizeObserver) { var ro = new ResizeObserver(function () { size(); dirty = true; }); ro.observe(stage); }   // measured again when the frame or tab gets its real size
-    return { close: close, view: view, tree: T, toggle: toggle, focus: focus, pull: pull, held: held };
+    return { close: close, view: view, tree: T, toggle: toggle, focus: focus, pull: pull, held: held, findPath: findPath, confirmLink: confirmLink, undoEdit: undoEdit, redoEdit: redoEdit, openRead: openRead, openCompare: openCompare, openProject: openProject, drop: drop, pathPick: pathPick, edits: edits };
   }
 
   var api = { tree: tree, layout: layout, open: open };

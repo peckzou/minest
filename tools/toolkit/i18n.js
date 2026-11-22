@@ -73,11 +73,17 @@
     'Too large to sync': '数据太大，无法同步', 'The cloud refused to save (permission denied)': '云端拒绝保存（没有权限）', 'The cloud refused to read (permission denied)': '云端拒绝读取（没有权限）', 'Try again?': '要重试吗？',
     'Turn cloud sync off on this device? Your records stay here and in the cloud.': '要在这台设备上关闭云同步吗？你的记录会保留在本机和云端。',
     'Sign in to Minest in the app to sync': '请先在 App 里登录 Minest 以同步', 'From My World': '从 My World 选取', 'Add to My World': '加入 My World', 'Think about something from My World': '从 My World 里选一样东西来思考', 'Search your worlds…': '搜索你的世界…', 'Nothing matches.': '没有匹配的。', 'Your worlds are empty.': '你的世界还是空的。', 'My World’s Quick Capture is not available here': '这里没有 My World 的快速添加', 'The Minest app did not answer': 'Minest App 没有回应',
-    'Nebula': '星云', 'Holographic Workbench': '全息知识台', 'Knowledge nebula · view only': '知识星云 · 仅浏览', 'View back': '视图后退', 'View forward': '视图前进', 'Levels': '层级', 'Domains': '领域', 'Places': '分类', 'Thoughts': '想法', 'Concepts': '概念',
+    'Nebula': '星云', 'Holographic Workbench': '全息知识台', 'Knowledge nebula · view only': '知识星云 · 仅浏览', 'Knowledge nebula': '知识星云', 'View back': '视图后退', 'View forward': '视图前进', 'Levels': '层级', 'Domains': '领域', 'Places': '分类', 'Thoughts': '想法', 'Concepts': '概念',
     '↺ Put all back': '↺ 全部放回', 'Drag to rotate · pinch to zoom · tap a cluster to open it · double-tap to focus · long-press to pull a card out': '拖动旋转 · 双指缩放 · 单击星团展开 · 双击聚焦 · 长按抽出卡片',
     'Your nebula is empty': '你的星云还是空的', 'Explore a thought in the toolkit first — each one becomes a star here.': '先在工具箱里探索一个想法——每个想法都会成为这里的一颗星。', 'My knowledge': '我的知识',
     'Not placed yet': '尚未定位', 'Unplaced thoughts': '未定位的想法', 'General': '通用', 'Domain': '领域', 'Place': '分类', 'Thought': '想法', 'Focus': '聚焦', 'concepts': '个概念', 'inside': '个子项',
     'Tap: open in the five cards': '单击：在五张卡中打开', 'Double-tap or drag home: put back': '双击或拖回原处：放回', 'Leave focus': '退出聚焦',
+    'Links': '连接', 'Path': '路径', 'Show links': '显示连接', 'Trace a path between two nodes': '追踪两个节点之间的路径', 'View history': '视图历史', 'Edit history': '编辑历史', 'View': '视图', 'Edits': '编辑', 'Undo edit': '撤销编辑', 'Redo edit': '重做编辑',
+    'Read': '资料', 'Project': '投射', 'Drag to connect': '拖动以建立连接', 'Drop the light on another concept or thought': '把光线拖到另一个概念或想法上', 'Now drop a second card on Compare': '再拖一张卡到“比较”', 'Nothing is saved until you confirm.': '确认之前不会保存任何内容。', 'Confirm and save': '确认并保存',
+    'These two are already linked that way': '这两个已经有这种连接了', 'Edit undone': '已撤销编辑', 'Edit redone': '已重做编辑', 'Path: now tap a second node': '路径：再点第二个节点', 'Path: tap the first node': '路径：点第一个节点', 'No path between these two yet': '这两个之间还没有路径', 'Clear path': '清除路径',
+    'Knowledge page': '知识页面', 'No links yet.': '还没有连接。', 'Appears in': '出现在', 'Notes': '笔记', 'Open in the five cards': '在五张卡中打开', 'Only here': '只在这里', 'Shared': '共同', 'Nothing shared yet': '还没有共同点', 'Direct links': '直接连接', 'None': '无', 'Link them…': '连接它们…',
+    'Analyse in Thinking Models': '用思维模型分析', 'Pull a thought or a concept to project it into a thinking model.': '抽出一个想法或概念，才能把它投射成思维模型。',
+    'belongs to': '属于', 'contains': '包含', 'same concept': '同一概念',
     '中文': '中文'
   };
   var PAT = [
