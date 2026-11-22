@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#05070f">
+<title>动态卡片 2.0 · Dynamic Cards MK II</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="v2.css">
+</head>
+<body class="mode-coverflow theme-dark v2">
+<!-- 动态卡片 2.0: 1.0's engine (../tools/cover-modes/cover-modes.js, card-styles.js, explode.js) loaded unchanged;
+     v2-data.js (the cards it shows), v2.css and v2.js are the whole upgrade -->
+<div class="sf-slot perspective-stage" data-sf-view="coverflow"></div>
+<div id="v2-top">
+  <button id="v2-board" type="button" aria-haspopup="dialog"><i>◈</i><span><b>动态卡片 2.0</b><small id="v2-sub"></small></span><em>▾</em></button>
+</div>
+<div id="v2-panel" role="dialog" aria-label="选择看板和列表" hidden></div>
+<div id="v2-cap" aria-live="polite"></div>
+<div id="v2-empty" hidden><b>这里还没有卡片</b><small>换一个看板或列表试试</small></div>
+<nav id="v2-deck" aria-label="动态卡片模式"><div id="v2-modes" role="tablist"></div><button id="v2-tour" type="button" title="巡演：自动轮播每一种模式 (T)"><i></i><span>巡演</span></button></nav>
+<div id="v2-ghosts" aria-hidden="true"></div>
+<script>/* 2.0 remembers its own mode, speed, card shape and card style, apart from Minest's (same origin, same keys in the 1.0 scripts) */
+(function () { var P = Storage.prototype, g = P.getItem, s = P.setItem, r = P.removeItem;
+  function k2(k) { return /^minest\.(cover|cardStyle)/.test(k) ? 'minest.cards2.' + String(k).slice(7) : k; }
+  P.getItem = function (k) { return g.call(this, k2(k)); }; P.setItem = function (k, v) { return s.call(this, k2(k), v); }; P.removeItem = function (k) { return r.call(this, k2(k)); }; })();</script>
+<script>window.__cmStandalone = 1;   /* the 1.0 engine draws 3D 封面 itself here, as on the students' page */</script>
+<script src="v2-data.js"></script>
+<script src="../tools/cover-modes/card-styles.js"></script>
+<script src="../tools/cover-modes/cover-modes.js"></script>
+<script src="../tools/cover-modes/explode.js"></script>
+<script src="v2.js"></script>
+</body>
+</html>
