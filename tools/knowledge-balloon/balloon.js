@@ -496,12 +496,12 @@
       var big = .62 + (fv % 62) / 100;                      // .62 - 1.23
       var fg = makeBalloon({ R: 3.0 * big, H: 7.0 * big, gores: 16 + (fv % 9), simple: true, shift: fi });
       scene.add(fg);
-      var esc = fi < FEST_ESCORT;
+      var escort = fi < FEST_ESCORT;
       var fmt = FEST_ESC[fi % FEST_ESC.length];
       festival.push({
-        g: fg, shift: fi, escort: esc, rnd: K.rng(fv),
+        g: fg, shift: fi, escort: escort, rnd: K.rng(fv),
         s: 0, lat: 0, alt: 0, F: {}, stop: null, flare: 0,
-        along: esc ? fmt[0] : 120, elat: esc ? fmt[1] : 0, ealt: 14 + ((fv >> 19) % 42),
+        along: escort ? fmt[0] : 120, elat: escort ? fmt[1] : 0, ealt: 14 + ((fv >> 19) % 42),
         vel: ((fv >> 7) % 100) / 100 * 1.6 - .8, latW: 3 + ((fv >> 17) % 12), altW: 2 + ((fv >> 5) % 6),
         w: .00035 + ((fv >> 3) % 60) / 100 * .0009, ph: ((fv >> 13) % 100) / 100 * 6.283,
         tx: 0, ty: 0, tz: 0, yaw: 0, tilt: 0
