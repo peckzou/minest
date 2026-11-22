@@ -126,7 +126,7 @@
     for (i = 0; i < 7; i++) { var tr = new THREE.Mesh(new THREE.SphereGeometry(1.5 + (i % 3) * 0.4, 12, 9), hedge); tr.position.set(-10.5 + i * 3.5, 2.4 + (i % 2) * 0.7, Z0 - 6.5); back.add(tr); }
 
     /* ── the Persian carpet and, on it, the Study's pedestal desk and buttoned chair ── */
-    var cp = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 3.3), M.carpet); cp.rotation.x = -PI / 2; cp.position.set(0, 0.006, -0.9); cp.receiveShadow = true; g.add(cp);
+    var cp = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 3.3), M.carpet); cp.rotation.x = -PI / 2; cp.position.set(0, 0.006, -0.95); cp.receiveShadow = true; g.add(cp);
     var ticks = [];
     function piece(kind, x, z, ry) {
       var F = root.SpatialFurniture || {}, o = null; try { o = F[kind] && F[kind](THREE); } catch (e) {}
@@ -135,9 +135,11 @@
       o.group.traverse(function (m) { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
       g.add(o.group); if (typeof o.tick === 'function') ticks.push(o); return o;
     }
-    var DZ = -0.9, top = 0.784;
-    if (!piece('vic-desk', 0, DZ, PI)) { box(g, M.dark, 0, 0.39, DZ, 1.7, 0.74, 0.9); box(g, M.leather, 0, 0.77, DZ, 1.6, 0.02, 0.8); }
-    piece('vic-exec', 0, DZ - 0.9, 0);
+    /* the desk looks to the glass (the north light on the work), the chair on the room side: Spatial Home walks the
+       figure to a spot 0.5 m behind the seat on the +z side (app.js seatSpot), so that side has to be the open floor */
+    var DZ = -1.3, top = 0.784;
+    if (!piece('vic-desk', 0, DZ, 0)) { box(g, M.dark, 0, 0.39, DZ, 1.7, 0.74, 0.9); box(g, M.leather, 0, 0.77, DZ, 1.6, 0.02, 0.8); }
+    piece('vic-exec', 0, DZ + 0.8, PI);
 
     /* ── the drafting table under the glass: a raked board on a walnut trestle, a sheet, a T-square, a brass lamp ── */
     (function (x, z) {
@@ -253,29 +255,29 @@
 
     /* anchors: where each thing of Spatial Home goes in the Atelier (y = the surface it stands on) */
     var anchors = {
-      'desk.left': { p: [-0.12, top, DZ - 0.2], ry: PI }, 'desk.right': { p: [0.3, top, DZ + 0.06], ry: PI },
-      'desk.quill': { p: [-0.42, top, DZ - 0.26], ry: PI + 0.25 }, 'desk.mochi': { p: [0.68, top, DZ - 0.24], ry: PI - 0.3 },
-      'desk.key': { p: [0.0, top, DZ + 0.28], ry: PI + 0.3 }, 'desk.book': { p: [-0.87, 0.655, 2.5], ry: PI },          // the reading stand on the round table
+      'desk.left': { p: [-0.3, top, DZ + 0.04], ry: 0 }, 'desk.right': { p: [0.42, top, DZ + 0.1], ry: 0 },
+      'desk.quill': { p: [-0.66, top, DZ + 0.16], ry: 0.25 }, 'desk.mochi': { p: [0.7, top, DZ + 0.2], ry: -0.3 },
+      'desk.key': { p: [0.1, top, DZ + 0.27], ry: 0.3 }, 'desk.book': { p: [-0.87, 0.655, 2.5], ry: PI },          // the reading stand on the round table
       'sill.left': { p: [-1.2, WIN.y0 + 0.046, Z0 + 0.1], ry: 0 },
       'corner.window': { p: [4.05, 0, -3.42], ry: 0 },                                                                 // Octo's aquarium in the north-east corner, in the light
       'wall.left': { p: [X0 + 0.06, 1.85, -0.5], ry: PI / 2 },                                                          // the EC–6 board on the west wall
       'cabinet.left': { p: [X1 - 0.29, 0.836, 0.62], ry: -PI / 2 }, 'shelf.mid': { p: [X1 - 0.29, 0.836, 1.2], ry: -PI / 2 },
       'cabinet.top': { p: [X1 - 0.29, 0.836, 1.9], ry: -PI / 2 }, 'cabinet.right': { p: [X1 - 0.29, 0.836, 2.6], ry: -PI / 2 },
       'wall.right': { p: [X1 - 0.03, 2.95, 1.55], ry: -PI / 2 },
-      'floor.pack': { p: [-1.35, 0, DZ + 0.15], ry: 0.45 }, 'floor.gramo': { p: [4.22, 0, -0.3], ry: -PI / 2 },
+      'floor.pack': { p: [-1.35, 0, DZ + 0.1], ry: 0.45 }, 'floor.gramo': { p: [4.22, 0, -0.3], ry: -PI / 2 },
       'floor.film': { p: [2.35, 0, 1.9], ry: 0 }, 'floor.portal': { p: [-3.3, 0, Z1 - 0.28], ry: PI },
-      'floor.holo': { p: [-0.6, 0, 1.5], ry: PI },
+      'floor.holo': { p: [-2.6, 0, 1.2], ry: PI / 2 },
       'floor.window': { p: [0, WIN.y0, Z0 - 0.17], ry: 0, w: WIN.x1 - WIN.x0, h: WIN.y1 - WIN.y0 }     // the Scenic Window IS the studio glass: its view, behind the iron grid
     };
-    var solids = [[-0.95, DZ - 1.3, 0.95, DZ + 0.5], [-4.15, Z0, -2.25, -2.3], [1.85, -3.35, 2.85, -2.45], [X1 - 0.45, -2.75, X1, -0.65], [X1 - 0.6, 0.05, X1, 3.05],
+    var solids = [[-0.95, DZ - 0.5, 0.95, DZ + 0.47], [-0.4, DZ + 0.5, 0.4, DZ + 1.0], [-4.15, Z0, -2.25, -2.3], [1.85, -3.35, 2.85, -2.45], [X1 - 0.45, -2.75, X1, -0.65], [X1 - 0.6, 0.05, X1, 3.05],
       [X0, 1.3, X0 + 0.75, 3.6], [-2.15, 2.3, 0.45, 3.45], [0.9, Z1 - 0.55, 1.6, Z1], [-2.2, -3.8, -1.2, -2.8], [3.5, Z0, 4.6, -3.1]];
 
     return {
       id: 'studio', name: 'The Atelier · Studio Room', group: g, holder: holder, far: 80, size: { W: X1, D: Z1, H: H }, realistic: true,
       anchors: anchors, avatar: PT.avatar, backdrop: [sky, back],                       // hidden when a window view is chosen (views.js)
-      start: { pos: [1.1, 1.55, 2.6], yaw: 0.2, pitch: -0.07 }, startV: 1,
-      seat: { x: 0, z: DZ - 0.9, yaw: 0, approach: [0.9, DZ - 0.85], y: 0.46 },
-      desk: { pos: [0, 1.5, DZ - 1.1], look: [0, 0.78, DZ + 1.1] },
+      start: { pos: [1.5, 1.55, 2.5], yaw: 0.3, pitch: -0.08 }, startV: 1,
+      seat: { x: 0, z: DZ + 0.8, yaw: PI, approach: [0.7, DZ + 0.9], y: 0.46 },
+      desk: { pos: [0, 1.42, DZ + 1.06], look: [0, 0.95, DZ - 0.3] },                    // in the desk chair, facing the glass
       solids: solids,
       setTime: function (m) { mode = m || 'auto'; apply(); },
       tick: function (t, dt) {
