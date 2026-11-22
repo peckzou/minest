@@ -40,7 +40,12 @@
   var st = load();
   function rec(id) { return st[id] || (st[id] = {}); }
   // only the model that changed is written over what is stored now: another open tab's notes on other models stay
-  function save(id) { var r = st[id]; st = load(); if (r) st[id] = r; try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
+  // (what could not be written — storage full or refused — stays in memory and is tried again with the next save)
+  var unsaved = {};
+  function save(id) {
+    var mem = st; unsaved[id] = 1; st = load(); Object.keys(unsaved).forEach(function (k) { if (mem[k]) st[k] = mem[k]; });
+    try { localStorage.setItem(KEY, JSON.stringify(st)); unsaved = {}; } catch (e) {}
+  }
   function $(s, r) { return (r || document).querySelector(s); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function norm(s) { return String(s || '').toLowerCase().trim(); }
