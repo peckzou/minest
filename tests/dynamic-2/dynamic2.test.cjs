@@ -45,9 +45,18 @@ function storage() { const m = new Map(); class Storage { getItem(k) { return m.
 }
 
 // ---------------------------------------------------------------- 3 · the cards: Minest's boards (read only), else the samples
-function dataPage(stored, search) {
+// Minest's IndexedDB, as far as the page reads it: { name: { store: { key: value } } }; every transaction asked for is noted
+function fakeIDB(dbs, modes) {
+  const later = fn => Promise.resolve().then(fn);
+  return { open(name) { const req = {}; later(() => {
+    if (!dbs[name]) { req.transaction = { abort() {} }; if (req.onupgradeneeded) req.onupgradeneeded(); if (req.onerror) req.onerror(); return; }
+    req.result = { objectStoreNames: { contains: s => s in dbs[name] }, close() {}, transaction(s, mode) { modes.push(mode); const ask = v => { const g = {}; later(() => { g.result = v; g.onsuccess(); }); return g; };
+      return { objectStore: () => ({ get: k => ask(dbs[name][s][k]), getAll: () => ask(Object.values(dbs[name][s])) }) }; } };
+    req.onsuccess(); }); return req; } };
+}
+function dataPage(stored, search, dbs) {
   const s = storage(); Object.keys(stored || {}).forEach(k => s.raw.set(k, stored[k])); let writes = 0; const set = s.ls.setItem.bind(s.ls); s.ls.setItem = (k, v) => { writes++; set(k, v); };
-  const w = { location: { search: search || '' }, localStorage: s.ls, dispatchEvent() {}, CustomEvent: function () {}, indexedDB: null }; w.window = w;
+  const w = { location: { search: search || '' }, localStorage: s.ls, dispatchEvent() {}, CustomEvent: function () {}, indexedDB: null, modes: [] }; w.window = w; if (dbs) { w.indexedDB = fakeIDB(dbs, w.modes); w.URL = { createObjectURL: b => 'blob:here/' + b.n }; }
   vm.runInNewContext(data, w); return { D: w.Dyn2Data, writes: () => writes, w };
 }
 {
@@ -92,6 +101,24 @@ function three() {
   assert.deepStrictEqual(JSON.parse(JSON.stringify(FX.get())), { look: 'off', air: 'none', scale: 1 }); assert.strictEqual(FX.looks[0].id, 'off'); assert.strictEqual(FX.airs[0].id, 'none'); assert(FX.looks.length >= 6 && FX.airs.length >= 5);
   const r = new T.WebGLRenderer({}), scene = new Obj(), inside = new Obj(), cam = { isPerspectiveCamera: true, fov: 60, getWorldPosition: v => v }, frame = async () => { r.autoClear = true; r.render(scene, cam); r.autoClear = false; r.render(inside, cam); r.autoClear = true; await null; await null; };
   assert(r instanceof First);
+  // Minest's fuller IndexedDB copy, its stored pictures, and a copy with no cards left
+  {
+    const ls = JSON.stringify([{ id: 'b1', title: 'Old', columns: [{ id: 'c1', title: 'L', cards: [{ id: 'k1', title: 'A' }] }] }]);
+    const full = [{ id: 'b1', title: 'New', columns: [{ id: 'c1', title: 'L', cards: [{ id: 'k1', title: 'A', cover: { type: 'image', value: 'blob:minest/gone', size: 'banner' }, userImage: { localAssetId: 'a1' } }, { id: 'k2', title: 'B', cover: { type: 'image', value: 'https://x/y.png' } },
+      { id: 'k3', title: 'C', cover: { type: 'image', value: 'blob:minest/lost' }, userImage: { localAssetId: 'nope' }, stack: [{ id: 'k4', title: 'D', userImage: { localAssetId: 'a1' } }] }] }] }];
+    const p = dataPage({ focusboard_boards_v7_2: ls }, '', { focusboard_idb_v1: { kv: { boards: full } }, 'minest-visual-assets': { images: { a1: { id: 'a1', blob: { n: 'a1' } } } } });
+    assert.strictEqual(p.D.boards()[0].title, 'Old', 'localStorage first'); await new Promise(ok => p.D.ready(ok));
+    const c = p.D.boards()[0].columns[0].cards; assert.strictEqual(p.D.boards()[0].title, 'New', 'then the IndexedDB copy');
+    assert.strictEqual(c[0].cover.value, 'blob:here/a1', 'a picture chosen from the device is read from Minest\'s image store'); assert.strictEqual(c[0].cover.size, 'banner'); assert.strictEqual(c[3 - 1].stack[0].cover.value, 'blob:here/a1', 'in a stack too');
+    assert.strictEqual(c[1].cover.value, 'https://x/y.png', 'other pictures are left alone'); assert.strictEqual(c[2].cover.value, '', 'a picture that is gone is not asked for');
+    assert(p.w.modes.length >= 2 && p.w.modes.every(m => m === 'readonly'), 'both stores are only read'); assert.strictEqual(p.writes(), 0);
+    const e = dataPage({ focusboard_boards_v7_2: ls }, '', { focusboard_idb_v1: { kv: { boards: [{ id: 'b1', title: 'New', columns: [{ id: 'c1', title: 'L', cards: [] }] }] } } }); await new Promise(ok => e.D.ready(ok));
+    assert(e.D.sample(), 'a full copy with no cards left: the deleted cards do not come back from localStorage');
+    const n = dataPage({ focusboard_boards_v7_2: ls }, '', { focusboard_idb_v1: { kv: {} } }); await new Promise(ok => n.D.ready(ok)); assert(!n.D.sample() && n.D.boards()[0].title === 'Old', 'no IndexedDB copy yet: localStorage stands');
+    const none = dataPage({ focusboard_boards_v7_2: ls }, '', {}); await new Promise(ok => none.D.ready(ok)); assert.strictEqual(none.D.boards()[0].title, 'Old', 'Minest\'s databases are not created here');
+  }
+  // the Galaxy keeps its place by a planet's number: it is given the boards in their own order, whichever board is chosen
+  assert(/planets: 1/.test(v2) && /provider: Dt\.provider, fresh:/.test(v2) && !/function provider\(/.test(v2), 'every presentation reads the boards as they are');
   // 原片 + 无: the two passes of a 1.0 frame reach the screen as they are, and nothing is added to the scene
   await frame(); assert.deepStrictEqual(log.map(l => [l.scene, l.target, l.clear]), [[scene, null, true], [inside, null, false]]); assert.strictEqual(scene.children.length, 0); assert.strictEqual(FX.live()[0].on, false);
   // a look: both passes go to one buffer, and the finished frame is drawn to the screen once, after them
