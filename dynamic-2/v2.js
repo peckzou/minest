@@ -63,14 +63,9 @@
     if (all() && !API[id].oneBoard) return { type: 'workspace' };
     return l && !all() ? { type: 'list', bid: b.id, col: l.id } : { type: 'board', bid: b.id };
   }
-  function provider(id) {   // the Galaxy takes no source: every board is a planet, as in 1.0; here the chosen board is the first one on the route
-    var b = board(), B = boards();
-    if (!API[id].planets || !b || B[0] === b) return Dt.provider;
-    return { boards: function () { var L = boards(), c = board(); return c ? [c].concat(L.filter(function (x) { return x !== c; })) : L; }, openCard: null };
-  }
   function tally(id) {   // [lists, cards] in that presentation's own words
     var A = API[id], src = source(id); if (!src) return [0, 0];
-    if (A.planets) { var B = provider(id).boards(); return [B.length, B.reduce(function (n, b) { return n + Dt.count(b); }, 0)]; }
+    if (A.planets) { var B = boards(); return [B.length, B.reduce(function (n, b) { return n + Dt.count(b); }, 0)]; }   // the Galaxy takes no source: every board is a planet, in the boards' own order, as in 1.0 (it keeps its place by a planet's number)
     try { var roads = DR.plan(src, Dt.provider).roads.slice(0, A.max || 1e9); return [roads.length, roads.reduce(function (n, r) { return n + r.items.length; }, 0)]; } catch (e) { return [0, 0]; }
   }
   function ready(id) { return !!API[id].api() && tally(id)[1] > 0; }
@@ -157,7 +152,7 @@
   function shut() { var i = inst; inst = null; if (!i) return; switching = true; try { if (i.close) i.close(); } catch (e) {} switching = false; }
   function open(id) {
     var A = API[id], api = A.api(), my = ++token, style = st.style[id] || '';
-    var o = { source: source(id), provider: provider(id), fresh: /[?&]fresh\b/.test(location.search), onExit: function () { if (my === token && !switching) home(true); } };
+    var o = { source: source(id), provider: Dt.provider, fresh: /[?&]fresh\b/.test(location.search), onExit: function () { if (my === token && !switching) home(true); } };
     if (id === 'metro') { o.maxLines = A.max; if (style) try { var a = read('minest.metro.v1', {}), k = DR.plan(o.source, o.provider).key; a[k] = a[k] || {}; a[k].theme = style; write('minest.metro.v1', a); } catch (e) {} }   // (the Metro reads its station style from its own saved place, as in 1.0)
     else if (A.opt) o[A.opt] = style || (A.first ? A.styles()[0].id : undefined);
     if (touring && (id === 'drive' || id === 'roadtrip')) o.intro = false;   // on tour the car is already rolling
