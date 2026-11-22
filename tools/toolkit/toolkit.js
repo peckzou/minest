@@ -177,6 +177,7 @@
       var r = e.target.closest('[data-ko]'); if (r) { TK.open(null, { objectId: r.getAttribute('data-ko') }); }
     });
     $('#tk-new').onclick = home;
+    $('#tk-nebula').onclick = function () { TK.nebula(); };
     $('#tk-export').onclick = function () {
       if (!TK.ko) return; var data = ks.exportObject(TK.ko.id), blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'minest-knowledge-' + TK.ko.id + '.json'; a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
@@ -218,11 +219,13 @@
     (k.notes || []).filter(function (n) { return n.content_kind === 'view'; }).slice(-3).forEach(function (n) { lines.push('· ' + n.text); });
     host('capture', { text: lines.join('\n') }).then(function (r) { if (!r || !r.ok) toast('My World’s Quick Capture is not available here'); }).catch(function (e) { toast(e.message); });
   }
+  TK.nebula = function () { if (window.MinestNebula) TK.nebulaView = MinestNebula.open(TK, { onClose: function () { TK.nebulaView = null; renderRecent(); if (TK.ko) render(); } }); };
   function route() {
     var h = {}; location.hash.slice(1).split('&').forEach(function (p) { var kv = p.split('='); if (kv[0]) h[kv[0]] = decodeURIComponent(kv[1] || ''); });
     if (h.ko && ks.object(h.ko)) TK.open(h.card || null, { objectId: h.ko, lab: h.lab, model: h.model });
     else if (h.input) TK.open(h.card || null, { input: h.input, lab: h.lab, model: h.model });
     else render();
+    if (h.nebula) setTimeout(TK.nebula, 50);
   }
 
   var COLS = ['philosophy', 'knowledge', 'nature', 'psychology', 'society', 'systems', 'life'];

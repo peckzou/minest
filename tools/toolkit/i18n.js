@@ -73,6 +73,11 @@
     'Too large to sync': '数据太大，无法同步', 'The cloud refused to save (permission denied)': '云端拒绝保存（没有权限）', 'The cloud refused to read (permission denied)': '云端拒绝读取（没有权限）', 'Try again?': '要重试吗？',
     'Turn cloud sync off on this device? Your records stay here and in the cloud.': '要在这台设备上关闭云同步吗？你的记录会保留在本机和云端。',
     'Sign in to Minest in the app to sync': '请先在 App 里登录 Minest 以同步', 'From My World': '从 My World 选取', 'Add to My World': '加入 My World', 'Think about something from My World': '从 My World 里选一样东西来思考', 'Search your worlds…': '搜索你的世界…', 'Nothing matches.': '没有匹配的。', 'Your worlds are empty.': '你的世界还是空的。', 'My World’s Quick Capture is not available here': '这里没有 My World 的快速添加', 'The Minest app did not answer': 'Minest App 没有回应',
+    'Nebula': '星云', 'Holographic Workbench': '全息知识台', 'Knowledge nebula · view only': '知识星云 · 仅浏览', 'View back': '视图后退', 'View forward': '视图前进', 'Levels': '层级', 'Domains': '领域', 'Places': '分类', 'Thoughts': '想法', 'Concepts': '概念',
+    '↺ Put all back': '↺ 全部放回', 'Drag to rotate · pinch to zoom · tap a cluster to open it · double-tap to focus · long-press to pull a card out': '拖动旋转 · 双指缩放 · 单击星团展开 · 双击聚焦 · 长按抽出卡片',
+    'Your nebula is empty': '你的星云还是空的', 'Explore a thought in the toolkit first — each one becomes a star here.': '先在工具箱里探索一个想法——每个想法都会成为这里的一颗星。', 'My knowledge': '我的知识',
+    'Not placed yet': '尚未定位', 'Unplaced thoughts': '未定位的想法', 'General': '通用', 'Domain': '领域', 'Place': '分类', 'Thought': '想法', 'Focus': '聚焦', 'concepts': '个概念', 'inside': '个子项',
+    'Tap: open in the five cards': '单击：在五张卡中打开', 'Double-tap or drag home: put back': '双击或拖回原处：放回', 'Leave focus': '退出聚焦',
     '中文': '中文'
   };
   var PAT = [
@@ -83,6 +88,7 @@
     [/^Situations tried: (\d+) of 4( \(try at least 3\))?$/, function (m) { return '试过的情况：' + m[1] + ' / 4' + (m[2] ? '（至少试 3 种）' : ''); }],
     [/^(\d+) of (\d+) steps · built only from what you entered$/, function (m) { return '已完成 ' + m[1] + ' / ' + m[2] + ' 步 · 只根据你填写的内容生成'; }],
     [/^From My World: “(.+)”$/, function (m) { return '来自 My World：“' + m[1] + '”'; }],
+    [/^Focus: (.+)$/, function (m) { return '聚焦：' + t(m[1]); }],
     [/^Synced · (.+)$/, function (m) { return '已同步 · ' + m[1]; }],
     [/^(\d+) items?( · review pending)?$/, function (m) { return m[1] + ' 个条目' + (m[2] ? ' · 待审核' : ''); }],
     [/^(\d+) frameworks? · (\d+) items$/, function (m) { return m[1] + ' 个框架 · ' + m[2] + ' 个条目'; }],

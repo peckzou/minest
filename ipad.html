@@ -184120,6 +184120,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     if (o.lab) h.push('lab=' + encodeURIComponent(o.lab));
     if (o.model) h.push('model=' + encodeURIComponent(o.model));
     if (o.input) h.push('input=' + encodeURIComponent(o.input));
+    if (o.nebula) h.push('nebula=1');
     ov = document.createElement('div'); ov.className = 'mn-tk-ov'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Cognitive Toolkit');
     ov.innerHTML = '<iframe title="Cognitive Toolkit" src="' + PAGE + '#' + h.join('&') + '"></iframe><button type="button" class="mn-tk-x" aria-label="Close">×</button>';
     document.body.appendChild(ov); frame = ov.querySelector('iframe');
@@ -184183,6 +184184,10 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     b.innerHTML = '<span>🧠</span><div><b>Cognitive Toolkit</b><small>Think it through · Compass · Framework · Models · Lab · Graph</small></div><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
     b.onclick = function (e) { e.stopPropagation(); open({}); };
     fw.after(b);
+    var nb = document.createElement('button'); nb.type = 'button'; nb.className = 'mw-portal'; nb.setAttribute('data-nebula', '');
+    nb.innerHTML = '<span>🌌</span><div><b>Knowledge Nebula</b><small>Holographic workbench · rotate, open, focus, pull out</small></div><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
+    nb.onclick = function (e) { e.stopPropagation(); open({ nebula: true }); };
+    b.after(nb);
   }
   function watch() {
     addEntry();
@@ -184195,7 +184200,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   css.textContent = '.mn-tk-ov{position:fixed;inset:0;z-index:2147483600;background:rgba(10,8,24,.55);opacity:0;transition:opacity .2s}.mn-tk-ov.on{opacity:1}' +
     '.mn-tk-ov iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#14121f}' +
     '.mn-tk-x{position:absolute;top:calc(env(safe-area-inset-top,0px) + 10px);right:12px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.9);color:#1d1838;font:600 22px/1 system-ui;box-shadow:0 4px 14px rgba(0,0,0,.3);cursor:pointer}' +
-    'html.student-mode .mw-portal[data-toolkit]{display:none}';
+    'html.student-mode .mw-portal[data-toolkit],html.student-mode .mw-portal[data-nebula]{display:none}';
   (document.head || document.documentElement).appendChild(css);
 
   window.MinestToolkitHost = { open: open, close: close, isOpen: function () { return !!ov; }, items: items };

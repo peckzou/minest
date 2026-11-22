@@ -162,3 +162,27 @@ assert.strictEqual(ks2.frameworksOf(ko2.id).length, 1);
 assert(ks2.relations({ ko: ko2.id }).every(r => !String(r.from + r.to).includes(ko.id)), 'object ids remapped');
 assert(ks2.object(ko2.id).notes.length === 1 && ks2.labRunsOf(ko2.id).length === 1);
 console.log('toolkit: ok');
+
+// ---------------------------------------------------------------- 8 · the knowledge nebula (tree + layout, view-only)
+{
+  const NB = require(path.join(R, 'tools/toolkit/nebula.js'));
+  const b3 = backend(), k3 = KS.create(b3);
+  C.load({ taxonomy: tax, ext, frameworks: fws, store: backend() });
+  const mk = (q, place, concepts) => { const o = k3.createObject(q, { topic: concepts[0] }); concepts.slice(1).forEach(c => k3.addToObject(o.id, k3.concept(c))); k3.updateObject(o.id, { placement: { suggested: { primary: place }, confirmed: null } }); return o; };
+  mk('What is freedom?', 'philosophy.political', ['Freedom', 'Autonomy', 'Negative liberty']);
+  mk('Why do habits stick?', 'psychology.learning', ['Habit']);
+  const unplaced = k3.createObject('asdf', {});
+  const before = JSON.stringify(b3._m);
+  const T = NB.layout(NB.tree(k3, C));
+  assert.strictEqual(JSON.stringify(b3._m), before, 'building the nebula writes nothing');
+  const at = d => Object.values(T.by).filter(n => n.depth === d);
+  assert.deepStrictEqual(at(1).map(n => n.domain).sort(), ['philosophy', 'psychology', 'unplaced']);
+  assert(at(2).some(n => n.place === 'philosophy.political') && at(2).some(n => n.label === 'Unplaced thoughts'));
+  assert.strictEqual(at(3).length, 3);
+  const fr = at(3).find(n => n.label === 'What is freedom?');
+  assert.deepStrictEqual(fr.children.map(c => c.label).sort(), ['Autonomy', 'Freedom', 'Negative liberty']);
+  assert(fr.children.find(c => c.label === 'Freedom').topic, 'the topic concept is marked');
+  Object.values(T.by).forEach(n => { assert(n.home && n.home.every(Number.isFinite), n.id + ' has a place'); if (n.parent && n.depth > 1) assert(Math.hypot(n.home[0] - n.parent.home[0], n.home[1] - n.parent.home[1], n.home[2] - n.parent.home[2]) > 30, n.id + ' sits away from its parent'); });
+  assert(unplaced);
+}
+console.log('nebula: ok');
