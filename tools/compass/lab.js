@@ -12,7 +12,11 @@
     keys: function (p) { var out = []; try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k.indexOf(PFX + p) === 0) out.push(k.slice(PFX.length)); } } catch (e) {} return out; }
   };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-  function j(u) { return fetch(u, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error(u + ' ' + r.status); return r.json(); }); }
+  function j(u, n) {   // a simple static server can drop one of several parallel requests — retry a couple of times
+    n = n == null ? 3 : n;
+    return fetch(u, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error(u + ' ' + r.status); return r.json(); })
+      .catch(function (e) { if (n <= 0) throw e; return new Promise(function (ok) { setTimeout(ok, 250); }).then(function () { return j(u, n - 1); }); });
+  }
 
   var EXAMPLES = ['Why does one event happening after another not mean it was caused by it?', '为什么两个事件先后发生，并不一定意味着存在因果关系？', '喝咖啡之后我的成绩变好了', 'Ice cream sales and drownings rise together', 'I want to learn to control my emotions', 'What is the essence of the universe?'];
   var KIND = { philosophical: ['Philosophical position', 'Not a scientific fact — a way of thinking about the question.'], method: ['Method', 'A way of testing or working.'], model: ['Descriptive model', 'Useful, with limits.'], classification: ['Classification', 'A way of sorting things.'] };
@@ -21,7 +25,9 @@
   var COLS = ['philosophy', 'knowledge', 'nature', 'psychology', 'society', 'systems', 'life'];
   var HUE = { philosophy: '#9b5de5', knowledge: '#5e9cff', nature: '#30b45a', psychology: '#f08c3a', society: '#00a6a6', systems: '#e8566c', life: '#c9a227' };
 
-  Promise.all([j('taxonomy.json'), j('frameworks-ext.json'), j('micro/kant-causality.json')].concat(COLS.map(function (c) { return j('../knowledge/frameworks/' + c + '.json'); })))
+  // one file at a time: python's simple static server can reset parallel connections
+  var URLS = ['taxonomy.json', 'frameworks-ext.json', 'micro/kant-causality.json'].concat(COLS.map(function (c) { return '../knowledge/frameworks/' + c + '.json'; }));
+  URLS.reduce(function (p, u) { return p.then(function (acc) { return j(u).then(function (d) { acc.push(d); return acc; }); }); }, Promise.resolve([]))
     .then(function (all) {
       var fws = []; all.slice(3).forEach(function (col) { fws = fws.concat(col.frameworks || []); });
       C.load({ taxonomy: all[0], ext: all[1], frameworks: fws, store: store });
