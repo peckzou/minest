@@ -13,7 +13,12 @@
    P1 (on pulled cards): drag the card's ✦ handle onto another node → choose a relation → confirm (only then it is
    written, provenance 'user', source 'nebula') · Path mode: tap two nodes → the chain that joins them lights up ·
    drop zones while carrying a card: Read (a wiki-style knowledge page) · Compare (two cards side by side with a
-   comparison structure) · Project (the thinking models and experiments for it, opened in the toolkit). */
+   comparison structure) · Project (the thinking models and experiments for it, opened in the toolkit).
+   P2: Explode handle (levels move apart in space; only this handle explodes — pinch always zooms) · Slice (show
+   any chosen levels, e.g. only thoughts) · Combine (carry a card next to another node: a magnetic preview, then
+   choose how — inside it, around it, related, or a new group — and confirm; undoable) · ⧉ on a pulled card: its
+   exploded layers · Time (drag back in time: what existed then — records have no history of deletions) ·
+   the view (angle, zoom, levels, open clusters) is remembered on this device. */
 (function (root) {
   'use strict';
   var COLS = ['philosophy', 'knowledge', 'nature', 'psychology', 'society', 'systems', 'life'];
@@ -36,12 +41,13 @@
       var d1 = add(rootN, 'd:' + top, 'domain', top === 'unplaced' ? 'Not placed yet' : (C.node(top) || {}).en || top, { domain: top, hue: HUE[top] || '#9aa4c7' });
       var p2 = path[1] || null;
       var d2 = add(d1, 'p:' + (p2 || top + ':general'), 'place', p2 ? (C.node(p2) || {}).en : (top === 'unplaced' ? 'Unplaced thoughts' : 'General'), { domain: top, hue: d1.hue, place: p2 });
-      var t3 = add(d2, 'ko:' + ko.id, 'thought', ko.title, { domain: top, hue: d1.hue, ko: ko.id, confirmed: !!p.confirmed });
+      var t3 = add(d2, 'ko:' + ko.id, 'thought', ko.title, { domain: top, hue: d1.hue, ko: ko.id, confirmed: !!p.confirmed, t: ko.created_at || 0 });
       ks.conceptsOf(ko.id).forEach(function (c) {
-        add(t3, 'cc:' + c.id + '@' + ko.id, 'concept', ks.label(c), { domain: top, hue: d1.hue, ko: ko.id, concept: c.id, ckind: c.kind, topic: c.id === ko.root_concept });
+        add(t3, 'cc:' + c.id + '@' + ko.id, 'concept', ks.label(c), { domain: top, hue: d1.hue, ko: ko.id, concept: c.id, ckind: c.kind, topic: c.id === ko.root_concept, t: Math.max(c.created_at || 0, ko.created_at || 0) });
       });
     });
     rootN.children.sort(function (a, b) { return COLS.indexOf(a.domain) - COLS.indexOf(b.domain); });
+    (function stamp(n) { n.children.forEach(stamp); if (n.t == null) n.t = n.children.length ? Math.min.apply(0, n.children.map(function (c) { return c.t; })) : 0; })(rootN);   // a cluster exists from its first thought
     return { root: rootN, by: by };
   }
 
@@ -80,7 +86,7 @@
     ov.innerHTML = '<div class="nb-stage"><div class="nb-glow"></div><div class="nb-layer"></div><svg class="nb-lines" aria-hidden="true"></svg></div>' +
       '<svg class="nb-tmp" aria-hidden="true"></svg>' +
       '<header class="nb-top"><div><b>Holographic Workbench</b><small>Knowledge nebula</small></div>' +
-      '<div class="nb-tools"><button type="button" data-links class="on" title="Show links">Links</button><button type="button" data-path title="Trace a path between two nodes">Path</button></div>' +
+      '<div class="nb-tools"><button type="button" data-links class="on" title="Show links">Links</button><button type="button" data-path title="Trace a path between two nodes">Path</button><button type="button" data-xp title="Explode the levels apart">Explode</button><button type="button" data-slice title="Show only the levels you choose">Slice</button><button type="button" data-time title="Go back in time">Time</button></div>' +
       '<div class="nb-hist" title="View history"><span>View</span><button type="button" data-hb title="View back" aria-label="View back">↶</button><button type="button" data-hf title="View forward" aria-label="View forward">↷</button></div>' +
       '<div class="nb-hist nb-edits" title="Edit history"><span>Edits</span><button type="button" data-eu title="Undo edit" aria-label="Undo edit">⟲</button><button type="button" data-er title="Redo edit" aria-label="Redo edit">⟳</button></div>' +
       '<button type="button" class="nb-x" aria-label="Close">×</button></header>' +
@@ -91,17 +97,33 @@
       '<div class="nb-pathbar" hidden><span></span><button type="button" data-pathclear aria-label="Clear path">✕</button></div>' +
       '<div class="nb-zones" aria-hidden="true"><div class="nb-zone" data-zone="read"><b>📖</b><span>Read</span></div><div class="nb-zone" data-zone="compare"><b>⚖</b><span>Compare</span><em></em></div><div class="nb-zone" data-zone="project"><b>🔮</b><span>Project</span></div></div>' +
       '<aside class="nb-panel" hidden></aside><div class="nb-confirm" hidden></div>' +
+      '<div class="nb-xpbar" hidden><span>Explode handle</span><input type="range" min="0" max="100" value="0" aria-label="Explode handle"></div>' +
+      '<div class="nb-timebar" hidden><span>Time</span><input type="range" min="0" max="1000" value="1000" aria-label="Time"><b></b></div>' +
       (nodes.length <= 1 ? '<div class="nb-empty"><b>Your nebula is empty</b><p>Explore a thought in the toolkit first — each one becomes a star here.</p></div>' : '');
     document.body.appendChild(ov);
     var stage = ov.querySelector('.nb-stage'), layer = ov.querySelector('.nb-layer'), lines = ov.querySelector('.nb-lines'), hand = ov.querySelector('.nb-hand');
-    nodes.forEach(function (n) {
-      var e = document.createElement('div'); e.className = 'nb-n k-' + n.kind + (n.topic ? ' topic' : ''); e.style.setProperty('--h', n.hue || '#c9b8ff');
-      e.innerHTML = '<i></i><span>' + esc(tr(n.label)) + (n.children.length && n.depth > 0 ? '<em>' + n.children.length + '</em>' : '') + '</span>';
-      e._n = n; n.el = e; layer.appendChild(e);
-    });
+    function makeEls() {
+      layer.innerHTML = '';
+      nodes.forEach(function (n) {
+        var e = document.createElement('div'); e.className = 'nb-n k-' + n.kind + (n.topic ? ' topic' : ''); e.style.setProperty('--h', n.hue || '#c9b8ff');
+        e.innerHTML = '<i></i><span>' + esc(tr(n.label)) + (n.children.length && n.depth > 0 ? '<em>' + n.children.length + '</em>' : '') + '</span>';
+        e._n = n; n.el = e; layer.appendChild(e);
+      });
+    }
+    makeEls();
+    // after a confirmed change the nebula is rebuilt in place (ids are stable, so open clusters stay open)
+    function rebuild() {
+      var old = {}; nodes.forEach(function (n) { old[n.id] = n; });
+      T = layout(tree(ks, C)); nodes = Object.keys(T.by).map(function (k) { return T.by[k]; });
+      nodes.forEach(function (n) { var o = old[n.id]; n.pos = o ? o.pos.slice() : (n.parent && old[n.parent.id] ? old[n.parent.id].pos.slice() : n.home.slice()); n.alpha = o ? o.alpha : 0; n.pulled = o ? o.pulled : false; });
+      held.forEach(function (it) { var nn = T.by[it.n.id]; if (nn) { nn.pulled = true; it.n = nn; } });
+      makeEls(); buildRefs(); dirty = true;
+    }
 
     // ---------------------------------------------------------------- P1 state: links, path, edits
     var showLinks = true, pathMode = false, pathA = null, path = null, edits = [], redone = [], cmp = [];
+    var xp = 0, slice = null, timeT = null, magnet = null;
+    var tMin = Math.min.apply(0, nodes.filter(function (n) { return n.t; }).map(function (n) { return n.t; }).concat([Date.now()])), tMax = Date.now();
     var tmp = ov.querySelector('.nb-tmp'), panel = ov.querySelector('.nb-panel'), confirmBox = ov.querySelector('.nb-confirm');
     function refOf(n) { if (!n) return null; if (n.kind === 'concept') return 'cc:' + n.concept; if (n.kind === 'thought') { var k = ks.object(n.ko); return k && k.root_concept ? 'cc:' + k.root_concept : null; } return null; }
     var byRef = {};
@@ -127,7 +149,7 @@
     function inPath(n) { return !path || path.some(function (st) { return st.n === n; }); }
 
     // ---------------------------------------------------------------- visibility, focus, projection
-    function visible(n) { if (n.depth === 0) return true; if (n.pulled) return false; var p = n.parent; while (p) { if (p.depth > 0 && !view.expanded[p.id]) return false; if (p.depth === 0 && !view.expanded.root) return false; p = p.parent; } return true; }
+    function visible(n) { if (n.depth === 0) return true; if (n.pulled) return false; if (timeT && n.t > timeT) return false; if (slice && !slice[n.depth]) return false; var p = n.parent; while (p) { if (p.depth > 0 && !view.expanded[p.id]) return false; if (p.depth === 0 && !view.expanded.root) return false; p = p.parent; } return true; }
     function inFocus(n) { if (!view.focus) return true; var f = T.by[view.focus]; if (!f) return true; var p = n; while (p) { if (p === f) return true; p = p.parent; } p = f; while (p) { if (p === n) return true; p = p.parent; } return false; }
     view.expanded.root = true;
     function center() { var f = view.focus && T.by[view.focus]; return f ? f.pos : [0, 0, 0]; }
@@ -145,7 +167,7 @@
       if (moving && !drag) { view.yaw += vy; view.pitch = clampP(view.pitch + vp); vy *= 0.93; vp *= 0.93; dirty = true; }
       nodes.forEach(function (n) {
         var tv = (visible(n) || (path && inPath(n) && !n.pulled)) ? 1 : 0, ta = tv * (inFocus(n) ? 1 : 0.1) * (inPath(n) ? 1 : 0.12);
-        var tgt = tv ? n.home : (n.parent ? n.parent.pos : n.home), k = reduce ? 1 : 0.18;
+        var hx = xp ? exploded(n) : n.home, tgt = tv ? hx : (n.parent ? n.parent.pos : n.home), k = reduce ? 1 : 0.18;
         for (var i = 0; i < 3; i++) { var d = tgt[i] - n.pos[i]; if (Math.abs(d) > 0.05) { n.pos[i] += d * k; dirty = true; } else n.pos[i] = tgt[i]; }
         if (Math.abs(ta - n.alpha) > 0.01) { n.alpha += (ta - n.alpha) * (reduce ? 1 : 0.2); dirty = true; } else n.alpha = ta;
         n.vis = tv;
@@ -155,6 +177,9 @@
       raf = requestAnimationFrame(frame); clearTimeout(fb); fb = setTimeout(function () { if (alive) frame(); }, 60);
     }
     var fb = 0;
+    // the explode handle: every level moves outward by its own amount, so the clusters separate layer by layer
+    function exploded(n) { var f = 1 + xp * 0.7 * n.depth; return [n.home[0] * f, n.home[1] * f, n.home[2] * f]; }
+    function visParent(n) { var p = n.parent; while (p && p.depth > 0 && p.alpha < 0.05) p = p.parent; return p; }
     function clampP(p) { return Math.max(-1.35, Math.min(1.35, p)); }
     function draw() {
       if (!W) size();
@@ -169,12 +194,13 @@
         e.style.opacity = (a * Math.max(0.25, Math.min(1, pr.s * 1.1))).toFixed(3);
         e.style.zIndex = String(1000 - Math.round(pr.z));
         e.classList.toggle('open', !!view.expanded[n.id]);
-        if (n.parent && n.depth > 1 && a > 0.05) { var q = n.parent.pr; L += '<line x1="' + q.x.toFixed(1) + '" y1="' + q.y.toFixed(1) + '" x2="' + pr.x.toFixed(1) + '" y2="' + pr.y.toFixed(1) + '" style="stroke:' + (n.hue || '#9fb4ff') + ';opacity:' + (a * 0.45).toFixed(2) + '"/>'; }
+        var vpN = visParent(n);
+        if (vpN && vpN.depth > 0 && n.depth > 1 && a > 0.05) { var q = vpN.pr; L += '<line x1="' + q.x.toFixed(1) + '" y1="' + q.y.toFixed(1) + '" x2="' + pr.x.toFixed(1) + '" y2="' + pr.y.toFixed(1) + '" style="stroke:' + (n.hue || '#9fb4ff') + ';opacity:' + (a * 0.45).toFixed(2) + '"/>'; }
         else if (n.depth === 1 && a > 0.05) { var r0 = T.root.pr; L += '<line x1="' + r0.x.toFixed(1) + '" y1="' + r0.y.toFixed(1) + '" x2="' + pr.x.toFixed(1) + '" y2="' + pr.y.toFixed(1) + '" class="l1" style="stroke:' + n.hue + ';opacity:' + (a * 0.25).toFixed(2) + '"/>'; }
       });
       // relation beams (typed light between the nodes they join; a pulled card keeps its beams)
       if (showLinks) {
-        var rels = linkRels(), few = rels.length <= 14;
+        var rels = linkRels().filter(function (r) { return !timeT || (r.created_at || 0) <= timeT; }), few = rels.length <= 14;
         rels.forEach(function (r) {
           var A = pick(r.from), B = pick(r.to), ha = heldOf(r.from), hb = heldOf(r.to);
           var pa = A ? A.pr : ha ? { x: ha.x, y: ha.y } : null, pb = B ? B.pr : hb ? { x: hb.x, y: hb.y } : null;
@@ -187,10 +213,11 @@
         });
       }
       if (path) path.forEach(function (st, i) { if (!i) return; var a = st.n.pr, b = path[i - 1].n.pr; if (a && b) L += '<line class="nb-pathline" x1="' + a.x.toFixed(1) + '" y1="' + a.y.toFixed(1) + '" x2="' + b.x.toFixed(1) + '" y2="' + b.y.toFixed(1) + '"/>'; });
+      nodes.forEach(function (n) { n.el.classList.toggle('magnet', magnet === n); });
       nodes.forEach(function (n) { n.el.classList.toggle('pathsel', pathA === n || (path && (path[0].n === n || path[path.length - 1].n === n))); });
       ov.querySelector('[data-eu]').disabled = !edits.length; ov.querySelector('[data-er]').disabled = !redone.length;
       lines.setAttribute('viewBox', '0 0 ' + W + ' ' + H); lines.innerHTML = L;
-      ov.querySelectorAll('[data-lv]').forEach(function (b) { b.classList.toggle('on', +b.getAttribute('data-lv') === view.level); });
+      ov.querySelectorAll('[data-lv]').forEach(function (b) { var l = +b.getAttribute('data-lv'); b.classList.toggle('on', slice ? !!slice[l] : l === view.level); });
       var f = view.focus && T.by[view.focus], fb2 = ov.querySelector('.nb-focus'); fb2.hidden = !f; if (f) fb2.querySelector('span').textContent = tr('Focus') + ': ' + tr(f.label);
       ov.querySelector('[data-hb]').disabled = !hist.length; ov.querySelector('[data-hf]').disabled = !fut.length;
     }
@@ -260,7 +287,7 @@
       if (n.kind === 'thought') { var ko = ks.object(n.ko); var pl = ko && TK.placement(ko); extra = '<p>' + esc(pl && pl.primary ? C.pathNames(pl.primary).map(tr).join(' › ') : tr('Not placed yet')) + '</p><p class="dim">' + ks.conceptsOf(n.ko).length + ' ' + tr('concepts') + ' · ' + ks.relations({ ko: n.ko }).length + ' ' + tr('links') + '</p>'; }
       if (n.kind === 'concept') { var rs = ks.relations({ node: 'cc:' + n.concept }); extra = '<p class="dim">' + rs.length + ' ' + tr('links') + '</p>'; }
       if (n.children.length) extra += '<p class="dim">' + n.children.length + ' ' + tr('inside') + '</p>';
-      return (refOf(n) ? '<i class="nb-handle" title="' + esc(tr('Drag to connect')) + '" aria-label="' + esc(tr('Drag to connect')) + '">✦</i>' : '') + '<small>' + esc(sub) + '</small><b>' + esc(tr(n.label)) + '</b>' + extra + '<span class="nb-cact">' + (n.ko ? '<em>' + tr('Tap: open in the five cards') + '</em>' : '') + '<em>' + tr('Double-tap or drag home: put back') + '</em></span>';
+      return '<button type="button" class="nb-cx" title="' + esc(tr('Explode into layers')) + '" aria-label="' + esc(tr('Explode into layers')) + '">⧉</button>' + (refOf(n) ? '<i class="nb-handle" title="' + esc(tr('Drag to connect')) + '" aria-label="' + esc(tr('Drag to connect')) + '">✦</i>' : '') + '<small>' + esc(sub) + '</small><b>' + esc(tr(n.label)) + '</b>' + extra + '<span class="nb-cact">' + (n.ko ? '<em>' + tr('Tap: open in the five cards') + '</em>' : '') + '<em>' + tr('Double-tap or drag home: put back') + '</em></span>';
     }
     function pull(n, x, y, pid) {
       if (n.pulled) return;
@@ -272,7 +299,7 @@
       wireCard(it);
       if (pid < 0) return;   // opened by a tap: no finger to follow
       // keep following the finger that pulled it
-      var mv = function (e) { if (e.pointerId !== pid) return; it.x = e.clientX - b.left; it.y = e.clientY - b.top; place(it); ov.classList.add('carrying'); zoneHover(e.clientX, e.clientY); };
+      var mv = function (e) { if (e.pointerId !== pid) return; it.x = e.clientX - b.left; it.y = e.clientY - b.top; place(it); ov.classList.add('carrying'); zoneHover(e.clientX, e.clientY); magnetHover(it); };
       var en = function (e) { if (e.pointerId !== pid) return; window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', en); window.removeEventListener('pointercancel', en); ov.classList.remove('carrying'); drop(it, e.clientX, e.clientY); };
       window.addEventListener('pointermove', mv); window.addEventListener('pointerup', en); window.addEventListener('pointercancel', en);
     }
@@ -288,8 +315,10 @@
     function wireCard(it) {
       var p0 = null, last = 0;
       var cn = null;   // connecting from the ✦ handle
+      it.el.addEventListener('click', function (e) { if (e.target.closest('.nb-cx')) { e.stopPropagation(); openLayers(it); } });
       it.el.addEventListener('pointerdown', function (e) {
         e.stopPropagation(); try { it.el.setPointerCapture(e.pointerId); } catch (x) {}
+        if (e.target.closest('.nb-cx')) return;
         if (e.target.closest('.nb-handle')) { cn = { id: e.pointerId }; it.el.classList.add('linking'); return; }
         p0 = { x: e.clientX, y: e.clientY, ox: it.x, oy: it.y, t: performance.now(), id: e.pointerId }; held.splice(held.indexOf(it), 1); held.push(it); hand.appendChild(it.el);
       });
@@ -298,7 +327,7 @@
           tmp.setAttribute('viewBox', '0 0 ' + b0.width + ' ' + b0.height); tmp.innerHTML = '<line x1="' + it.x + '" y1="' + it.y + '" x2="' + x + '" y2="' + y + '"/>' + (t ? '<circle cx="' + x + '" cy="' + y + '" r="16"/>' : '');
           ov.querySelectorAll('.nb-n.target').forEach(function (z) { z.classList.remove('target'); }); if (t && t.el && !t.pulled) t.el.classList.add('target'); return; }
         if (!p0 || e.pointerId !== p0.id) return; it.x = p0.ox + e.clientX - p0.x; it.y = p0.oy + e.clientY - p0.y; place(it);
-        if (Math.hypot(e.clientX - p0.x, e.clientY - p0.y) > 10) { ov.classList.add('carrying'); zoneHover(e.clientX, e.clientY); }
+        if (Math.hypot(e.clientX - p0.x, e.clientY - p0.y) > 10) { ov.classList.add('carrying'); zoneHover(e.clientX, e.clientY); magnetHover(it); }
       });
       it.el.addEventListener('pointerup', function (e) {
         if (cn) { cn = null; it.el.classList.remove('linking'); tmp.innerHTML = ''; ov.querySelectorAll('.nb-n.target').forEach(function (z) { z.classList.remove('target'); }); var t = targetAt(e.clientX, e.clientY, it); if (t) confirmLink(it.n, t); else toast(tr('Drop the light on another concept or thought')); return; }
@@ -323,8 +352,54 @@
     }
     function zoneAt(x, y) { var z = null; ov.querySelectorAll('.nb-zone').forEach(function (el) { var r = el.getBoundingClientRect(); if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) z = el.getAttribute('data-zone'); }); return z; }
     function zoneHover(x, y) { var z = zoneAt(x, y); ov.querySelectorAll('.nb-zone').forEach(function (el) { el.classList.toggle('hot', el.getAttribute('data-zone') === z); }); }
+    // combine: a card carried next to another node is pulled in (magnetic preview)
+    function magnetAt(it) {
+      var h = homeXY(it.n); if (Math.hypot(h.x - it.x, h.y - it.y) < 70) return null;   // near home = put back
+      var best = null, bd = 56;
+      nodes.forEach(function (n) { if (n === it.n || !n.pr || n.alpha < 0.3 || n.pulled || !refOf(n) || refOf(n) === refOf(it.n)) return; var d = Math.hypot(n.pr.x - it.x, n.pr.y - it.y); if (d < bd) { bd = d; best = n; } });
+      held.forEach(function (o) { if (o === it || !refOf(o.n) || refOf(o.n) === refOf(it.n)) return; var d = Math.hypot(o.x - it.x, o.y - it.y); if (d < 70 && d < bd + 14) { bd = d; best = o.n; } });
+      return best;
+    }
+    function magnetHover(it) { var m = refOf(it.n) ? magnetAt(it) : null; if (m !== magnet) { magnet = m; held.forEach(function (o) { o.el.classList.toggle('magnet', o.n === m); }); it.el.classList.toggle('magnetic', !!m); dirty = true; } }
+    function chooseCombine(a, b) {
+      var name = tr(a.label) + ' & ' + tr(b.label);
+      confirmBox.innerHTML = '<h4>' + esc(tr('Combine')) + '</h4><p><b>' + esc(tr(a.label)) + '</b> + <b>' + esc(tr(b.label)) + '</b></p>' +
+        '<label class="kl-chk"><input type="radio" name="cb" value="in" checked> ' + esc(tr('Put the first inside the second (belongs to)')) + '</label>' +
+        '<label class="kl-chk"><input type="radio" name="cb" value="out"> ' + esc(tr('Put the second inside the first')) + '</label>' +
+        '<label class="kl-chk"><input type="radio" name="cb" value="rel"> ' + esc(tr('Keep them side by side (related)')) + '</label>' +
+        '<label class="kl-chk"><input type="radio" name="cb" value="group"> ' + esc(tr('Make a new group for both')) + '</label>' +
+        '<label class="nb-gname" hidden>' + esc(tr('Group name')) + '<input maxlength="80" value="' + esc(name) + '"></label><p class="dim">' + esc(tr('Nothing is saved until you confirm.')) + '</p>' +
+        '<div class="row"><button type="button" class="primary" data-ok>' + esc(tr('Confirm and save')) + '</button><button type="button" data-no>' + esc(tr('Cancel')) + '</button></div>';
+      confirmBox.hidden = false;
+      confirmBox.onchange = function () { confirmBox.querySelector('.nb-gname').hidden = confirmBox.querySelector('[name=cb]:checked').value !== 'group'; };
+      confirmBox.onclick = function (e) {
+        var bt = e.target.closest('button'); if (!bt) return;
+        if (bt.hasAttribute('data-ok')) {
+          var how = confirmBox.querySelector('[name=cb]:checked').value, ra = refOf(a), rb = refOf(b), ko = koOf(a) || koOf(b), koId = ko ? ko.id : null, made = [], newC = null;
+          TK.silently(function () {
+            function rel(f, t, ty) { if (relExists(f, t, ty)) return; made.push(ks.relate(f, t, ty, { ko: koId, provenance: 'user', source_ref: 'nebula', note: tr('Combined in the nebula') })); }
+            if (how === 'in') rel(ra, rb, 'belongs-to');
+            else if (how === 'out') rel(rb, ra, 'belongs-to');
+            else if (how === 'rel') rel(ra, rb, 'related');
+            else {
+              var gname = (confirmBox.querySelector('.nb-gname input').value || name).trim(), existed = !!ks.findConcept(gname), cid = ks.concept(gname, { kind: 'concept', provenance: 'user' });
+              var before = ko ? ko.concept_ids.indexOf(cid) >= 0 : true; if (koId) ks.addToObject(koId, cid);
+              newC = { id: cid, ko: koId, created: !existed, wasIn: before };
+              rel(ra, 'cc:' + cid, 'belongs-to'); rel(rb, 'cc:' + cid, 'belongs-to');
+            }
+          });
+          if (!made.length && !newC) { toast(tr('These two are already linked that way')); confirmBox.hidden = true; return; }
+          edits.push({ op: 'batch', rels: made, concept: newC }); redone = [];
+          made.forEach(function (r) { r.__new = 1; setTimeout(function () { r.__new = 0; dirty = true; }, 1600); });
+          rebuild(); toast(tr('Combined and saved'));
+        }
+        confirmBox.hidden = true;
+      };
+    }
     function drop(it, x, y) {
       var z = zoneAt(x, y); ov.querySelectorAll('.nb-zone').forEach(function (el) { el.classList.remove('hot'); });
+      var mg = !z && refOf(it.n) ? magnetAt(it) : null; magnet = null; held.forEach(function (o) { o.el.classList.remove('magnet'); }); it.el.classList.remove('magnetic'); dirty = true;
+      if (mg) return chooseCombine(it.n, mg);
       if (z === 'read') return openRead(it.n);
       if (z === 'project') return openProject(it.n);
       if (z === 'compare') {
@@ -360,8 +435,26 @@
         confirmBox.hidden = true;
       };
     }
-    function undoEdit() { var e = edits.pop(); if (!e) return; TK.silently(function () { ks.unrelate(e.r.id); }); redone.push(e); toast(tr('Edit undone')); dirty = true; }
-    function redoEdit() { var e = redone.pop(); if (!e) return; var r = e.r, r2; TK.silently(function () { r2 = ks.relate(r.from, r.to, r.type, { ko: r.ko, provenance: 'user', source_ref: 'nebula', note: r.note }); }); e.r = r2; edits.push(e); toast(tr('Edit redone')); dirty = true; }
+    function undoEdit() {
+      var e = edits.pop(); if (!e) return;
+      TK.silently(function () {
+        if (e.op === 'relate') ks.unrelate(e.r.id);
+        else { e.rels.forEach(function (r) { ks.unrelate(r.id); }); var c = e.concept; if (c) { if (c.ko && !c.wasIn) { var k = ks.object(c.ko); if (k) ks.updateObject(c.ko, { concept_ids: k.concept_ids.filter(function (x) { return x !== c.id; }) }); } } }   // a group concept stays in the store (unused), so redo can bring it back
+      });
+      redone.push(e); if (e.op === 'batch') rebuild(); toast(tr('Edit undone')); dirty = true;
+    }
+    function redoEdit() {
+      var e = redone.pop(); if (!e) return;
+      function again(r) { var r2; TK.silently(function () { r2 = ks.relate(r.from, r.to, r.type, { ko: r.ko, provenance: 'user', source_ref: 'nebula', note: r.note }); }); return r2; }
+      if (e.op === 'relate') e.r = again(e.r);
+      else {
+        var c = e.concept;
+        if (c && c.ko && !c.wasIn) TK.silently(function () { ks.addToObject(c.ko, c.id); });
+        e.rels = e.rels.map(again);
+        rebuild();
+      }
+      edits.push(e); toast(tr('Edit redone')); dirty = true;
+    }
     function pathPick(n) {
       if (!pathA) { pathA = n; path = null; setPathBar(tr('Path: now tap a second node')); dirty = true; return; }
       if (n === pathA) return;
@@ -443,15 +536,58 @@
       if (b.hasAttribute('data-cmpmodel')) { var pr = panel._cmp, k3 = pr[0].ko || pr[1].ko; close(); TK.open('models', { objectId: k3, model: 'perspectives' }); return; }
     });
 
+    // ⧉ the card's exploded view: its knowledge in layers, fanned in depth (tap a layer to bring it forward)
+    function layersOf(n) {
+      var L = [], tagz = function (arr) { return arr.length ? arr.map(function (x) { return '<span class="tag">' + esc(x) + '</span>'; }).join(' ') : '<span class="dim">—</span>'; };
+      var ref = refOf(n);
+      if (n.kind === 'concept') {
+        var c = ks.getConcept(n.concept) || { labels: {} }, rs = ks.relations({ node: 'cc:' + n.concept });
+        L.push([tr('Identity'), '<b>' + esc(ks.label(c)) + '</b>' + (c.labels.zh && c.labels.en ? '<p>' + esc(c.labels.zh) + ' · ' + esc(c.labels.en) + '</p>' : '') + '<p>' + esc(tr(ks.KINDS[c.kind] || '')) + ' · ' + esc(tr(ks.CONTENT[ks.contentKind(c)] || '')) + '</p>']);
+        L.push([tr('Structure'), '<h5>' + esc(tr('Belongs to')) + '</h5>' + tagz(rs.filter(function (r) { return r.type === 'belongs-to' && r.from === 'cc:' + n.concept; }).map(function (r) { return ks.label(r.to.slice(3)); })) + '<h5>' + esc(tr('Contains')) + '</h5>' + tagz(rs.filter(function (r) { return r.type === 'belongs-to' && r.to === 'cc:' + n.concept; }).map(function (r) { return ks.label(r.from.slice(3)); }))]);
+        L.push([tr('Links'), relList('cc:' + n.concept)]);
+        L.push([tr('Appears in'), tagz(ks.objects().filter(function (o) { return o.concept_ids.indexOf(n.concept) >= 0; }).map(function (o) { return o.title; }))]);
+      } else if (n.kind === 'thought') {
+        var ko = ks.object(n.ko), pl = TK.placement(ko);
+        L.push([tr('Question'), '<b>' + esc(ko.title) + '</b><p>' + esc(pl.primary ? C.pathNames(pl.primary).map(tr).join(' › ') : tr('Not placed yet')) + '</p>']);
+        L.push([tr('Concepts'), tagz(ks.conceptsOf(ko.id).map(function (c) { return ks.label(c); }))]);
+        L.push([tr('Links'), ref ? relList(ref) : '<span class="dim">—</span>']);
+        L.push([tr('Notes'), ko.notes.length ? '<ul>' + ko.notes.map(function (x) { return '<li>' + esc(x.text) + '</li>'; }).join('') + '</ul>' : '<span class="dim">—</span>']);
+        L.push([tr('Analyses & experiments'), tagz(ks.modelRunsOf(ko.id).map(function (m) { return tr(m.title || m.model_id); }).concat(ks.labRunsOf(ko.id).map(function (l) { var d = TK.M.get(l.interaction_id); return tr(d ? d.title : l.interaction_id); })))]);
+      } else {
+        L.push([tr(n.label), tagz(n.children.map(function (c) { return tr(c.label); }))]);
+      }
+      return L;
+    }
+    function openLayers(it) {
+      var old = ov.querySelector('.nb-layers'); if (old) old.remove();
+      var L = layersOf(it.n), box = document.createElement('div'); box.className = 'nb-layers';
+      box.innerHTML = '<button type="button" class="nb-lyx" aria-label="Close">×</button>' + L.map(function (l, i) { return '<section class="nb-ly" data-i="' + i + '" style="--h:' + (it.n.hue || '#9fb4ff') + '"><small>' + (i + 1) + ' · ' + esc(l[0]) + '</small><div>' + l[1] + '</div></section>'; }).join('');
+      ov.appendChild(box);
+      var order = L.map(function (_, i) { return i; });
+      function lay() { order.forEach(function (idx, k) { var el = box.querySelector('[data-i="' + idx + '"]'); el.style.transform = 'translate3d(' + (k * 26) + 'px,' + (-k * 30) + 'px,' + (-k * 70) + 'px) rotateY(-14deg)'; el.style.zIndex = String(50 - k); el.classList.toggle('front', k === 0); }); }
+      requestAnimationFrame(function () { box.classList.add('on'); lay(); });
+      box.addEventListener('click', function (e) {
+        if (e.target.closest('.nb-lyx')) { box.classList.remove('on'); setTimeout(function () { box.remove(); }, 250); return; }
+        var sec = e.target.closest('.nb-ly'); if (!sec) return; var i = +sec.getAttribute('data-i'); order = [i].concat(order.filter(function (x) { return x !== i; })); lay();
+      });
+    }
+
     // ---------------------------------------------------------------- controls
+    ov.querySelector('.nb-xpbar input').addEventListener('input', function (e) { xp = +e.target.value / 100; dirty = true; });
+    ov.querySelector('.nb-timebar input').addEventListener('input', function (e) { var v = +e.target.value; timeT = v >= 1000 ? null : tMin + (tMax - tMin) * v / 1000; paintTime(); dirty = true; });
+    function paintTime() { var b = ov.querySelector('.nb-timebar b'); b.textContent = timeT ? new Date(timeT).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : tr('Now'); }
     ov.addEventListener('click', function (e) {
       var b = e.target.closest('button'); if (!b) return;
       if (b.classList.contains('nb-x')) return close();
+      if (b.hasAttribute('data-lv') && slice) { remember(); var Ls = +b.getAttribute('data-lv'); slice[Ls] = !slice[Ls]; if (!Object.keys(slice).some(function (k) { return slice[k]; })) slice[Ls] = true; nodes.forEach(function (n) { if (n.children.length && n.depth >= 1) view.expanded[n.id] = true; }); dirty = true; fit(); return; }
       if (b.hasAttribute('data-lv')) { remember(); var L = +b.getAttribute('data-lv'); view.expanded = { root: true }; nodes.forEach(function (n) { if (n.depth >= 1 && n.depth < L && n.children.length) view.expanded[n.id] = true; }); view.level = L; view.focus = null; dirty = true; fit(); return; }
       if (b.hasAttribute('data-unfocus')) return focus(null);
       if (b.hasAttribute('data-links')) { showLinks = !showLinks; b.classList.toggle('on', showLinks); dirty = true; return; }
       if (b.hasAttribute('data-path')) { pathMode = !pathMode; b.classList.toggle('on', pathMode); if (!pathMode) clearPath(); else setPathBar(tr('Path: tap the first node')); return; }
       if (b.hasAttribute('data-pathclear')) { clearPath(); pathMode = false; ov.querySelector('[data-path]').classList.remove('on'); return; }
+      if (b.hasAttribute('data-xp')) { var xb = ov.querySelector('.nb-xpbar'); xb.hidden = !xb.hidden; b.classList.toggle('on', !xb.hidden); if (xb.hidden) { xp = 0; xb.querySelector('input').value = 0; dirty = true; } return; }
+      if (b.hasAttribute('data-slice')) { remember(); slice = slice ? null : { 1: true, 2: true, 3: true, 4: true }; b.classList.toggle('on', !!slice); ov.querySelector('.nb-levels').classList.toggle('slicing', !!slice); if (slice) nodes.forEach(function (n) { if (n.children.length && n.depth >= 1) view.expanded[n.id] = true; }); dirty = true; fit(); toast(slice ? tr('Slice: tap levels to show or hide them') : tr('Slice off')); return; }
+      if (b.hasAttribute('data-time')) { var tb = ov.querySelector('.nb-timebar'); tb.hidden = !tb.hidden; b.classList.toggle('on', !tb.hidden); if (tb.hidden) { timeT = null; tb.querySelector('input').value = 1000; dirty = true; } else paintTime(); return; }
       if (b.hasAttribute('data-eu')) return undoEdit();
       if (b.hasAttribute('data-er')) return redoEdit();
       if (b.hasAttribute('data-hb')) { if (!hist.length) return; fut.push(snap()); restore(hist.pop()); return; }
@@ -465,12 +601,15 @@
     document.addEventListener('keydown', key);
     function onResize() { size(); dirty = true; }
     window.addEventListener('resize', onResize);
-    function close() { alive = false; if (typeof ro !== 'undefined' && ro) ro.disconnect(); cancelAnimationFrame(raf); clearTimeout(fb); document.removeEventListener('keydown', key); window.removeEventListener('resize', onResize); ov.classList.add('out'); setTimeout(function () { ov.remove(); }, reduce ? 0 : 200); if (opts.onClose) opts.onClose(); }
+    function saveView() { try { localStorage.setItem('minest.nebula.view', JSON.stringify({ yaw: view.yaw, pitch: view.pitch, zoom: view.zoom, level: view.level, expanded: view.expanded })); } catch (e) {} }
+    function close() { saveView(); alive = false; if (typeof ro !== 'undefined' && ro) ro.disconnect(); cancelAnimationFrame(raf); clearTimeout(fb); document.removeEventListener('keydown', key); window.removeEventListener('resize', onResize); ov.classList.add('out'); setTimeout(function () { ov.remove(); }, reduce ? 0 : 200); if (opts.onClose) opts.onClose(); }
     // the level slider starts at 2 (domains + places)
     view.expanded = { root: true }; nodes.forEach(function (n) { if (n.depth === 1 && n.children.length) view.expanded[n.id] = true; });
-    size(); requestAnimationFrame(function () { ov.classList.add('on'); size(); fit(); frame(); });
+    var memo = null; try { memo = JSON.parse(localStorage.getItem('minest.nebula.view') || 'null'); } catch (e) {}   // the layout remembered on this device
+    if (memo && !opts.fresh) { view.yaw = memo.yaw; view.pitch = memo.pitch; view.zoom = memo.zoom; view.level = memo.level || 2; view.expanded = { root: true }; Object.keys(memo.expanded || {}).forEach(function (k) { if (T.by[k] && memo.expanded[k]) view.expanded[k] = true; }); }
+    size(); requestAnimationFrame(function () { ov.classList.add('on'); size(); if (!memo || opts.fresh) fit(); frame(); });
     if (root.ResizeObserver) { var ro = new ResizeObserver(function () { size(); dirty = true; }); ro.observe(stage); }   // measured again when the frame or tab gets its real size
-    return { close: close, view: view, tree: T, toggle: toggle, focus: focus, pull: pull, held: held, findPath: findPath, confirmLink: confirmLink, undoEdit: undoEdit, redoEdit: redoEdit, openRead: openRead, openCompare: openCompare, openProject: openProject, drop: drop, pathPick: pathPick, edits: edits };
+    return { close: close, view: view, tree: T, toggle: toggle, focus: focus, pull: pull, held: held, findPath: findPath, confirmLink: confirmLink, undoEdit: undoEdit, redoEdit: redoEdit, openRead: openRead, openCompare: openCompare, openProject: openProject, drop: drop, pathPick: pathPick, edits: edits, chooseCombine: chooseCombine, rebuild: rebuild, setExplode: function (v) { xp = v; dirty = true; }, setTime: function (t) { timeT = t; dirty = true; }, setSlice: function (s) { slice = s; dirty = true; }, nodesNow: function () { return nodes; }, magnetAt: magnetAt, openLayers: function (it) { openLayers(it); } };
   }
 
   var api = { tree: tree, layout: layout, open: open };

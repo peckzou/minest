@@ -84,6 +84,9 @@
     'Knowledge page': '知识页面', 'No links yet.': '还没有连接。', 'Appears in': '出现在', 'Notes': '笔记', 'Open in the five cards': '在五张卡中打开', 'Only here': '只在这里', 'Shared': '共同', 'Nothing shared yet': '还没有共同点', 'Direct links': '直接连接', 'None': '无', 'Link them…': '连接它们…',
     'Analyse in Thinking Models': '用思维模型分析', 'Pull a thought or a concept to project it into a thinking model.': '抽出一个想法或概念，才能把它投射成思维模型。',
     'belongs to': '属于', 'contains': '包含', 'same concept': '同一概念',
+    'Explode': '拆解', 'Slice': '切片', 'Time': '时间', 'Explode the levels apart': '把各层级拆开', 'Show only the levels you choose': '只显示你选的层级', 'Go back in time': '回到过去', 'Explode handle': '拆解控制柄', 'Now': '现在',
+    'Slice: tap levels to show or hide them': '切片：点层级来显示或隐藏', 'Slice off': '切片已关闭', 'Combine': '组合', 'Put the first inside the second (belongs to)': '把第一个放进第二个（属于）', 'Put the second inside the first': '把第二个放进第一个', 'Keep them side by side (related)': '并列放置（相关）', 'Make a new group for both': '为两者建一个新组', 'Group name': '组名',
+    'Combined in the nebula': '在星云中组合', 'Combined and saved': '已组合并保存', 'Explode into layers': '拆成多层', 'Identity': '身份', 'Structure': '结构', 'Analyses & experiments': '分析与实验',
     '中文': '中文'
   };
   var PAT = [

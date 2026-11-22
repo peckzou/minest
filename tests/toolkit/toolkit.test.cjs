@@ -184,5 +184,9 @@ console.log('toolkit: ok');
   assert(fr.children.find(c => c.label === 'Freedom').topic, 'the topic concept is marked');
   Object.values(T.by).forEach(n => { assert(n.home && n.home.every(Number.isFinite), n.id + ' has a place'); if (n.parent && n.depth > 1) assert(Math.hypot(n.home[0] - n.parent.home[0], n.home[1] - n.parent.home[1], n.home[2] - n.parent.home[2]) > 30, n.id + ' sits away from its parent'); });
   assert(unplaced);
+  // time: every node knows when it came into being; a cluster exists from its first thought
+  Object.values(T.by).forEach(n => assert(typeof n.t === 'number', n.id + ' has a time'));
+  at(1).forEach(d => assert.strictEqual(d.t, Math.min(...d.children.map(c => c.t)), d.id + ' time = its first child'));
+  at(4).forEach(c => assert(c.t >= c.parent.t, c.id + ' not before its thought'));
 }
 console.log('nebula: ok');
