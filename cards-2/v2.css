@@ -1,0 +1,102 @@
+/* 动态卡片 2.0 — everything here sits over the unchanged 1.0 engine (tools/cover-modes) */
+:root { color-scheme: dark; --v2-acc: #5cc8ff; --v2-glass: rgba(12,16,28,.66); --v2-line: rgba(255,255,255,.12); }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #05070f; color: #e8eefb; overscroll-behavior: none; -webkit-text-size-adjust: 100%;
+  font-family: -apple-system, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", system-ui, sans-serif; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+body { position: fixed; inset: 0; }
+button { font: inherit; color: inherit; cursor: pointer; }
+.sf-slot[data-sf-view="coverflow"] { position: absolute; inset: 0; overflow: hidden; }
+
+/* ── the stage: star dust and a floor glow in the colour of the mode, under the cards ── */
+#v2-stage { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; transition: background 0.6s;
+  background: radial-gradient(70% 42% at 50% 112%, color-mix(in srgb, var(--v2-acc) 34%, transparent), transparent 72%), radial-gradient(60% 36% at 50% -14%, color-mix(in srgb, var(--v2-acc) 16%, transparent), transparent 70%); }
+#cm-ov.stream #v2-stage, #cm-ov.bg-light #v2-stage { background: radial-gradient(70% 42% at 50% 112%, color-mix(in srgb, var(--v2-acc) 22%, transparent), transparent 72%); }
+#cm-ov.flow .cm-orb { -webkit-box-reflect: below 8px linear-gradient(transparent 58%, rgba(255,255,255,.22)); }
+
+/* ── the card in front: a rim of light in the mode's colour and a slow sheen ── */
+#cm-ov .cm-c > .v2-rim { display: none; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 30; overflow: hidden;
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--v2-acc) 72%, #fff), inset 0 0 26px color-mix(in srgb, var(--v2-acc) 34%, transparent); }
+#cm-ov .cm-c.act > .v2-rim { display: block; }
+#cm-ov .cm-c > .v2-rim::after { content: ""; position: absolute; inset: -20% -70%; background: linear-gradient(105deg, transparent 43%, rgba(255,255,255,.2) 50%, transparent 57%); animation: v2-sheen 4.2s ease-in-out infinite; }
+@keyframes v2-sheen { 0%, 50% { transform: translateX(-55%); } 100% { transform: translateX(55%); } }
+
+/* ── formation change: the cards fly from one mode's formation to the next ── */
+#cm-ov #cm-fr { transition: opacity .26s ease-out; }
+body.v2-morph #cm-ov #cm-fr { opacity: 0; transition: none; }
+#cm-ov #cm-det, #cm-ov #cm-head, #cm-ov #cm-pills { transition: opacity .3s; }
+body.v2-morph #cm-ov #cm-det, body.v2-morph #cm-ov #cm-head, body.v2-morph #cm-ov #cm-pills { opacity: 0; }
+#v2-ghosts { position: fixed; inset: 0; z-index: 1700; pointer-events: none; overflow: hidden; }
+.v2-g { position: absolute; box-sizing: border-box; overflow: hidden; transform-origin: 0 0; will-change: transform, opacity; border: 1px solid rgba(255,255,255,.22); background-color: #161b24; background-size: cover; background-position: center;
+  box-shadow: 0 14px 34px rgba(0,0,0,.42), 0 0 22px color-mix(in srgb, var(--v2-acc) 30%, transparent); }
+.v2-g > i { position: absolute; inset: 0; background-size: cover; background-position: center; }
+.v2-g > b { position: absolute; left: 8%; right: 8%; bottom: 8%; font-size: 13px; line-height: 1.2; font-weight: 700; color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,.7); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-align: center; }
+
+/* ── the 1.0 key bar keeps its tools (play, speed, card shape, card style, hologram); the modes move to the deck below ── */
+body.v2 #cm-bar { left: auto !important; right: calc(env(safe-area-inset-right, 0px) + 10px); top: calc(env(safe-area-inset-top, 0px) + 10px) !important; transform: none !important; max-width: 56vw; }
+body.v2 #cm-bar button[data-m], body.v2 #cm-bar > .sep { display: none !important; }
+body.v2 #cm-ov .cm-gbar { bottom: calc(env(safe-area-inset-bottom, 0px) + 96px) !important; }
+body.v2 #cm-ov .cm-hback { bottom: calc(env(safe-area-inset-bottom, 0px) + 96px) !important; }
+
+/* ── top left: which board and list ── */
+#v2-top { position: fixed; z-index: 1800; left: calc(env(safe-area-inset-left, 0px) + 10px); top: calc(env(safe-area-inset-top, 0px) + 10px); max-width: calc(44vw - 14px); }
+#v2-board { display: flex; align-items: center; gap: 8px; max-width: 100%; padding: 6px 12px 6px 9px; border-radius: 14px; border: 1px solid var(--v2-line); background: var(--v2-glass); text-align: left;
+  -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%); box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 10px 30px -8px rgba(0,0,0,.45); }
+#v2-board > i { font-style: normal; font-size: 17px; color: var(--v2-acc); text-shadow: 0 0 12px var(--v2-acc); transition: color .5s; }
+#v2-board > span { min-width: 0; display: flex; flex-direction: column; }
+#v2-board b { font-size: 13px; font-weight: 750; letter-spacing: .02em; white-space: nowrap; }
+#v2-board small { font-size: 10.5px; color: rgba(214,226,246,.68); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#v2-board em { font-style: normal; font-size: 10px; opacity: .6; }
+#v2-panel { position: fixed; z-index: 1900; left: calc(env(safe-area-inset-left, 0px) + 10px); top: calc(env(safe-area-inset-top, 0px) + 62px); width: min(330px, calc(100vw - 20px)); max-height: calc(100% - 190px); overflow-y: auto; box-sizing: border-box;
+  padding: 10px; border-radius: 18px; border: 1px solid var(--v2-line); background: rgba(10,14,24,.9); -webkit-backdrop-filter: blur(22px) saturate(160%); backdrop-filter: blur(22px) saturate(160%); box-shadow: 0 24px 60px -12px rgba(0,0,0,.6); animation: v2-in .22s ease-out; }
+#v2-panel[hidden] { display: none; }
+@keyframes v2-in { from { opacity: 0; transform: translateY(-8px) scale(.98); } to { opacity: 1; transform: none; } }
+#v2-panel h4 { margin: 4px 6px 6px; font-size: 11px; font-weight: 650; letter-spacing: .08em; color: rgba(214,226,246,.55); }
+#v2-panel .note { margin: 2px 6px 8px; padding: 7px 9px; border-radius: 10px; font-size: 11.5px; line-height: 1.4; background: rgba(255,196,64,.14); color: #ffd98a; }
+#v2-panel .bd { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 9px; border: 0; border-radius: 11px; background: none; text-align: left; }
+#v2-panel .bd b { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#v2-panel .bd small { font-size: 11px; color: rgba(214,226,246,.55); flex: none; }
+#v2-panel .bd.on { background: color-mix(in srgb, var(--v2-acc) 20%, transparent); }
+#v2-panel .ls { display: flex; flex-wrap: wrap; gap: 5px; padding: 4px 6px 8px; }
+#v2-panel .ls button { border: 1px solid var(--v2-line); background: rgba(255,255,255,.05); border-radius: 999px; padding: 5px 10px; font-size: 12px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#v2-panel .ls button.on { background: var(--v2-acc); color: #04121d; border-color: transparent; font-weight: 700; }
+
+/* ── the name of the mode, shown as the formation changes ── */
+#v2-cap { position: fixed; z-index: 1750; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 68px); transform: translateX(-50%); pointer-events: none; text-align: center; opacity: 0; white-space: nowrap; }
+#v2-cap b { display: block; font-size: 26px; font-weight: 800; letter-spacing: .12em; color: #fff; text-shadow: 0 0 22px var(--v2-acc), 0 2px 10px rgba(0,0,0,.6); }
+#v2-cap small { display: block; margin-top: 2px; font-size: 10.5px; letter-spacing: .42em; text-indent: .42em; color: var(--v2-acc); text-transform: uppercase; }
+#v2-cap.on { animation: v2-cap 1.5s ease-out both; }
+@keyframes v2-cap { 0% { opacity: 0; transform: translateX(-50%) translateY(8px) scale(.94); } 16% { opacity: 1; transform: translateX(-50%); } 70% { opacity: 1; } 100% { opacity: 0; transform: translateX(-50%) translateY(-6px); } }
+body.v2-light #v2-cap b { color: #10203a; text-shadow: 0 0 18px #fff; }
+#v2-empty { position: fixed; z-index: 1600; left: 50%; top: 46%; transform: translate(-50%,-50%); text-align: center; padding: 18px 26px; border-radius: 18px; border: 1px solid var(--v2-line); background: var(--v2-glass); }
+#v2-empty[hidden] { display: none; }
+#v2-empty b { display: block; font-size: 16px; } #v2-empty small { display: block; margin-top: 4px; font-size: 12px; color: rgba(214,226,246,.6); }
+
+/* ── the mode deck: every mode by name, one tap (or 1-9, 0, -) away ── */
+#v2-deck { position: fixed; z-index: 1800; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); transform: translateX(-50%); display: flex; align-items: stretch; gap: 4px; max-width: calc(100vw - 16px); box-sizing: border-box;
+  padding: 5px; border-radius: 20px; border: 1px solid var(--v2-line); background: var(--v2-glass); -webkit-backdrop-filter: blur(20px) saturate(160%); backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 14px 36px -10px rgba(0,0,0,.55); transition: opacity .25s, transform .25s; }
+#v2-modes { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; scroll-behavior: smooth; overscroll-behavior: contain; min-width: 0; }
+#v2-modes::-webkit-scrollbar { display: none; }
+#v2-modes button, #v2-tour { flex: none; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 58px; height: 56px; padding: 0 6px; border: 0; border-radius: 15px; background: none; color: rgba(222,232,248,.7); transition: background .2s, color .2s; }
+#v2-modes button svg, #v2-tour i { width: 21px; height: 21px; display: block; }
+#v2-modes button span, #v2-tour span { font-size: 11px; font-weight: 650; letter-spacing: .04em; white-space: nowrap; }
+#v2-modes button.on { color: #fff; background: linear-gradient(180deg, color-mix(in srgb, var(--v2-acc) 34%, transparent), color-mix(in srgb, var(--v2-acc) 12%, transparent)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--v2-acc) 60%, transparent), 0 0 18px -4px var(--v2-acc); }
+#v2-modes button.on svg { filter: drop-shadow(0 0 6px var(--v2-acc)); }
+#v2-modes button kbd { position: absolute; top: 3px; right: 6px; font: 600 9px/1 ui-monospace, Menlo, monospace; color: rgba(222,232,248,.34); }
+@media (hover: none) { #v2-modes button kbd { display: none; } }
+#v2-tour { border-left: 1px solid var(--v2-line); border-radius: 0 15px 15px 0; padding-left: 9px; min-width: 56px; }
+#v2-tour i { border-radius: 50%; box-sizing: border-box; border: 2px solid currentColor; border-right-color: transparent; }
+#v2-tour.on { color: var(--v2-acc); } #v2-tour.on i { animation: v2-spin 1.4s linear infinite; }
+@keyframes v2-spin { to { transform: rotate(360deg); } }
+@media (hover: hover) { #v2-modes button:hover, #v2-tour:hover, #v2-panel .bd:hover { background-color: rgba(255,255,255,.07); } }
+/* out of the way while a card is open (the 1.0 exploded card, a card picked up) */
+body:has(#xl) #v2-deck, body:has(#xl) #v2-top, body:has(#cm-ov .cm-hand .cm-c) #v2-deck { opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(12px); }
+body:has(#xl) #v2-top { transform: none; }
+body.v2:has(#xl) #cm-bar { opacity: 0; pointer-events: none; }
+body.v2 #xl [data-a="card"] { display: none; }   /* 打开原卡 opens Minest's own card editor, which is not on this page */
+
+@media (max-width: 520px) {
+  #v2-cap b { font-size: 22px; } #v2-modes button, #v2-tour { min-width: 52px; height: 52px; }
+  body.v2 #cm-bar input[type=range] { display: none; }
+  body.v2 #cm-ov.fan .cm-gbar { bottom: calc(env(safe-area-inset-bottom, 0px) + 138px) !important; }   /* clear of the list pills */
+}
+@media (prefers-reduced-motion: reduce) { #cm-ov .cm-c > .v2-rim::after, #v2-tour.on i { animation: none; } #v2-cap.on { animation-duration: .01s; animation-fill-mode: none; } }
