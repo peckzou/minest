@@ -52,8 +52,12 @@
   }
   window.addEventListener('message', function (e) {
     var m = e.data, f = frame(); if (!m || m.type !== 'minest-ws2') return;
-    if (m.action === 'models-close') return closeOver();
-    if (m.action === 'think') { closeOver(); return MinestOmni.openCard(CARD_IDS.indexOf(m.card) >= 0 ? m.card : 'compass', String(m.input || '').slice(0, 200)); }
+    var of = overEl && overEl.querySelector('iframe');
+    if (of && e.source === of.contentWindow && e.origin === location.origin) {   // 模型馆 2.0, on top
+      if (m.action === 'models-close') return closeOver();
+      if (m.action === 'think') { closeOver(); return MinestOmni.openCard(CARD_IDS.indexOf(m.card) >= 0 ? m.card : 'compass', String(m.input || '').slice(0, 200)); }
+      return;
+    }
     if (!f || e.source !== f.contentWindow) return;
     if (m.action === 'phil') return openModel(m.id);
     if (m.action === 'island') return over(BASE + '../philosophers-island/philosophers.html', '哲学家小岛 · Philosophers’ Island', true);
