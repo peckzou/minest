@@ -21,6 +21,7 @@
     '<label>Rings 勋章<select id="sh-optMedal"><option value="box">桌边木质勋章盒</option><option value="wall">墙面勋章展示板</option></select></label>' +
     (EMBED ? '' : '<label class="row"><input type="checkbox" id="sh-optPreload"> 进入后在后台预载 Minest 功能</label>') +
     '<div class="sh-build"><span id="sh-hostDot"></span><span id="sh-hostText"></span></div><ul id="sh-featList"></ul>' +
+    '<div class="sh-build"><span id="sh-syncText"></span></div><button type="button" class="sh-btn" id="sh-defaultsBtn">🏠 每个房间的默认物件…</button>' +
     '<button type="button" class="sh-btn ghost" id="sh-resetLayout">恢复这个环境的默认摆放</button><button type="button" class="sh-btn" id="sh-setClose">好</button>' + (EMBED ? '<button type="button" class="sh-btn ghost" id="sh-setExit">进入完整的 Minest</button>' : '') + '</div>' +
     '<div id="sh-edit" hidden><b id="sh-editName"></b><span id="sh-editHint"></span><div class="row"><button type="button" data-e="rot" title="转 90°">⟲90</button><button type="button" data-e="rot15" title="转 15°">↻15</button><button type="button" data-e="stash" class="del" title="从房间移除（可在背包里找回） · Delete">移除</button><button type="button" data-e="cancel" title="取消">✕</button><button type="button" data-e="ok" class="pri" title="放好了 (Enter)">✓</button></div></div>' +
     '<div id="sh-card" hidden></div><div id="sh-toast" hidden></div><div id="sh-credit"></div>';
@@ -823,7 +824,9 @@
   $('viewBtn').addEventListener('click', function () { setView(S.view === '1p' ? '3p' : '1p'); sitBtnShow(); });
   $('sitBtn').addEventListener('click', sitToggle);
   var setEl = $('settings');
+  function renderSync() { var t = $('syncText'), M = window.MinestHomeStore; if (t) t.textContent = M ? '摆放与默认物件 · ' + M.status().text : '摆放只存在本机'; }
   function renderSettings() {
+    renderSync();
     $('optDefault').value = S.def; $('optDesk').value = S.deskStyle || 'classic'; $('optTime').value = S.tod || 'auto'; $('optMedal').value = S.medal === 'wall' ? 'wall' : 'box'; $('optMotion').checked = !!S.motion; if ($('optPreload')) $('optPreload').checked = !!S.preload; if ($('optBoot')) $('optBoot').checked = typeof S.boot === 'boolean' ? S.boot : window.__SPATIAL_HOME_BOOT_DEFAULT__ !== false;
     var st = B.state(), dot = $('hostDot');
     dot.className = st === 'ready' ? 'ok' : (st === 'loading' ? 'wait' : '');
@@ -863,10 +866,18 @@
     if (o.focusL) o.focus = Wf(o.focusL); if (o.focus2L) o.focus2 = Wf(o.focus2L);
   }
   /* layouts per environment: MinestKnowledge 'bp:home:<env>' (synced with the account, like the rest of My World); S.layouts is the local copy */
-  var LCACHE = {};
+  var LCACHE = {}, LJSON = {}, DEFS = window.SpatialHomeDefaults;
+  /* the room's defaults, when you set them (home-defaults.js): newer than the layout → the room is set out by them */
+  function defCtx() { return { known: knownKind, spot: spotFor, upV: room.upgrade ? room.upgrade.v : 0, movable: !!room.movable }; }
   function layoutOf(env) {
+    var v = layoutOf0(env);
+    if (DEFS && room && room.envId === env) { var n = DEFS.apply(env, v, defCtx()); if (n) { LCACHE[env] = n; saveLayout(env, n); return n; } }
+    return v;
+  }
+  function layoutOf0(env) {
     if (LCACHE[env]) return LCACHE[env];
     var BPs = window.MinestBackpack && window.MinestBackpack.store, v = BPs ? BPs.get('bp:home:' + env) : null;
+    if (v && typeof v === 'object') LJSON[env] = JSON.stringify(v);
     if (!v || typeof v !== 'object') { if (!S.layouts || typeof S.layouts !== 'object') S.layouts = {}; v = S.layouts[env] || {}; }
     if (room && room.envId === env && room.defaultLayout && !v.showroom) {              // a showroom room is furnished once (later changes are yours)
       var d0 = room.defaultLayout(); v = JSON.parse(JSON.stringify(v)); v.extras = (v.extras || []).concat((d0.extras || []).filter(function (e) { return !(v.extras || []).some(function (x) { return x.uid === e.uid; }); }));
@@ -878,7 +889,28 @@
     if (LCACHE[env] === v) return v;
     return (LCACHE[env] = JSON.parse(JSON.stringify(v)));
   }
-  function saveLayout(env, v) { LCACHE[env] = v; if (!S.layouts || typeof S.layouts !== 'object') S.layouts = {}; S.layouts[env] = v; var BPs = window.MinestBackpack && window.MinestBackpack.store; if (BPs) BPs.set('bp:home:' + env, v); }
+  /* a layout goes to the synced store only when it changed: every save() passes here, and a fresh time on an unchanged
+     layout would make a device that only looked round the room win over the moves made on another one */
+  function saveLayout(env, v) {
+    LCACHE[env] = v; if (!S.layouts || typeof S.layouts !== 'object') S.layouts = {}; S.layouts[env] = v;
+    var BPs = window.MinestBackpack && window.MinestBackpack.store, js = JSON.stringify(v);
+    if (BPs && LJSON[env] !== js) { LJSON[env] = js; BPs.set('bp:home:' + env, v); }
+  }
+  function knownKind(k) { return !!(window.SpatialFurniture && typeof window.SpatialFurniture[k] === 'function') || /^(pedestal|wallshelf|vitrine)$/.test(k); }
+  function spotFor() { var s = room.start.pos; return [+(s[0] - Math.sin(room.start.yaw) * 1.4).toFixed(2), 0, +(s[2] - Math.cos(room.start.yaw) * 1.4).toFixed(2)]; }
+  /* another device moved things, or changed the defaults (the store merged it in): the room shown follows */
+  var DEFT = {};
+  var remoteT = 0;
+  function remoteCheck() {
+    clearTimeout(remoteT);
+    if (!room) return;
+    if (edit || busy) { remoteT = setTimeout(remoteCheck, 800); return; }        // after the move or the transition
+    var env = room.envId, BPs = window.MinestBackpack && window.MinestBackpack.store, v = BPs ? BPs.get('bp:home:' + env) : null, js = v && typeof v === 'object' ? JSON.stringify(v) : null;
+    var dt = DEFS ? DEFS.time(env) : 0, d0 = DEFT[env]; DEFT[env] = dt;
+    if ((js && LJSON[env] && js !== LJSON[env]) || (d0 !== undefined && dt !== d0)) { delete LCACHE[env]; placeAll(); refreshHotbar(); if (DEFS) DEFS.edited(); }
+    if (!setEl.hidden) renderSync();
+  }
+  if (window.MinestHomeStore) window.MinestHomeStore.onChange(remoteCheck);
   function layout() { return layoutOf(room.envId); }
   function rebuildHits() { hits.length = 0; objects.forEach(function (o) { if (!o.stashed) hits.push(o.hit); }); }
   function placeAll() {
@@ -1191,9 +1223,9 @@
       if (E.x && E.isNew) {
         var ue = E.x.e; L.extras = (L.extras || []).filter(function (e) { return e !== ue; });
         if (ue.ref && BP.owned && ue.uid in pendingReg) { var pr = pendingReg[ue.uid]; delete pendingReg[ue.uid]; if (pr) BP.owned.set(ue.ref, pr); else BP.owned.clear(ue.ref); }
-        buildExtras(); save(); refreshHotbar(); return;
+        buildExtras(); save(); refreshHotbar(); if (DEFS) DEFS.edited(how); return;
       }
-      g.position.copy(E.p0); g.rotation.y = E.ry0; if (E.o) { E.o.stashed = E.wasStashed; g.visible = !E.wasStashed; settle(E.o); } refreshHotbar(); return;
+      g.position.copy(E.p0); g.rotation.y = E.ry0; if (E.o) { E.o.stashed = E.wasStashed; g.visible = !E.wasStashed; settle(E.o); } refreshHotbar(); if (DEFS) DEFS.edited(how); return;
     }
     if (E.o) {
       if (how === 'stash') { L[E.o.id] = { p: pos, ry: ry, stashed: true }; E.o.stashed = true; g.visible = false; toast(E.o.name + ' 已收回背包 · 功能仍可从下方入口进入'); }
@@ -1204,7 +1236,7 @@
       else { E.x.e.p = pos; E.x.e.ry = ry; delete pendingReg[E.x.e.uid]; if (E.x.e.ref && BP.owned) BP.owned.set(E.x.e.ref, { w: 'home', env: room.envId, uid: E.x.e.uid }); }
       buildExtras();
     }
-    save(); refreshHotbar();
+    save(); refreshHotbar(); if (DEFS) DEFS.edited(how);
   }
   ['pointerdown', 'pointermove', 'wheel'].forEach(function (t) { editBar.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
   editBar.addEventListener('click', function (e) {
@@ -1349,6 +1381,36 @@
     nu.chip.innerHTML = '<b>' + ico(nu) + '</b><span>' + nu.name + '</span>'; nu.chip.onclick = function () { activate(nu); };
     objects[i] = nu; placeAll();
   }
+  var defHost = {
+    mount: body, toast: toast,
+    rooms: function () { return window.SpatialRoom.envs().map(function (e) { return { id: e.id, name: e.zh || e.name, group: '这个页面的房间' }; }); },
+    current: function () { return room.envId; },
+    go: function (id) { setEnv(id); },
+    known: knownKind,
+    fnObjects: function () { return objects.map(function (o) { return { id: o.id, name: o.name, icon: o.icon, startStashed: !!o.startStashed }; }); },
+    catalog: function () { return (BP && BP.catalog ? BP.catalog(host) : []).filter(function (c) { return c.cat === 'fixtures' && c.kind === 'template' && c.spec && c.spec.kind !== 'machine'; }).map(function (c) { return { kind: c.spec.kind, name: c.name, icon: c.icon }; }); },
+    openClun: function () { if (window.MinestSpatialHome && window.MinestSpatialHome.house) window.MinestSpatialHome.house(); else location.href = (/\/rooms\.html$/.test(location.pathname) ? '' : '') + 'clun-2/?scene=valley&inside=1'; },
+    openRooms: function (id) { var u = 'spatial-home/rooms.html?room=' + encodeURIComponent(id); if (window.MinestV2Routes) window.MinestV2Routes.open(u, 'Spatial Home 2.0'); else location.href = (/spatial-home\//.test(location.pathname) ? '' : 'spatial-home/') + 'rooms.html?room=' + encodeURIComponent(id); },
+    live: {
+      state: function () { return DEFS.capture(layout(), objects); },
+      stamp: function (d) { var L = layout(); L.defAt = d ? d.at : 0; if (room.upgrade) { L.defUp = room.upgrade.v; } DEFT[room.envId] = d ? d.at : 0; saveLayout(room.envId, L); },
+      setFn: function (id, on) {
+        var o = objects.filter(function (q) { return q.id === id; })[0]; if (!o) return; var L = layout();
+        if (on) { var a = room.anchors[o.anchor] || REF[o.anchor] || room.anchors['desk.left'], l = L[id]; L[id] = l && l.p ? { p: l.p, ry: l.ry } : { p: a.p.slice(), ry: a.ry }; }
+        else L[id] = { p: [o.group.position.x, o.group.position.y, o.group.position.z].map(function (n) { return +n.toFixed(3); }), ry: +o.group.rotation.y.toFixed(4), stashed: true };
+        saveLayout(room.envId, L); placeAll(); refreshHotbar();
+      },
+      removeExtra: function (uid) { var L = layout(); L.extras = (L.extras || []).filter(function (e) { return e.uid !== uid; }); saveLayout(room.envId, L); buildExtras(); },
+      addExtra: function (kind, name) { spawn({ kind: kind, title: name }); },
+      move: function (q) {
+        if (q.fn) { var o = objects.filter(function (x) { return x.id === q.fn; })[0]; if (o) startEdit(o); return; }
+        var x = XS.filter(function (z) { return z.e.uid === q.uid; })[0]; if (x) startEdit(x); else DEFS.edited('cancel');
+      },
+      reapply: function () { var L = layout(); L.defAt = 0; delete LCACHE[room.envId]; saveLayout(room.envId, L); delete LCACHE[room.envId]; placeAll(); refreshHotbar(); toast('已按默认重新摆放 ' + room.name); },
+      restore: function () { saveLayout(room.envId, {}); delete LCACHE[room.envId]; placeAll(); refreshHotbar(); toast('已恢复 ' + room.name + ' 原来的摆设'); }
+    }
+  };
+  if ($('defaultsBtn')) $('defaultsBtn').addEventListener('click', function () { if (!DEFS) { toast('默认物件设置没有载入'); return; } setEl.hidden = true; DEFS.open(defHost); });
   $('resetLayout').addEventListener('click', function () { if (busy || edit) return; saveLayout(room.envId, {}); placeAll(); refreshHotbar(); toast('已恢复 ' + room.name + ' 的默认摆放 · 收回的作品回到背包'); });
   /* the hotbar shows only over the room itself */
   setInterval(function () { var hb = document.getElementById('mn-hotbar'); if (hb && hb.childElementCount) hb.hidden = !host.hotbarVisible(); }, 400);

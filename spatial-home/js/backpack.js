@@ -19,7 +19,8 @@
   'use strict';
   if (root.MinestBackpack) return;
   var VERSION = '1.0';
-  function KN() { if (root.MinestKnowledge) return root.MinestKnowledge; try { var w = root.SpatialBridge && root.SpatialBridge.hostWindow(); return (w && w.MinestKnowledge) || null; } catch (e) { return null; } }
+  function KN() { if (root.MinestHomeStore) return root.MinestHomeStore.kn(); if (root.MinestKnowledge) return root.MinestKnowledge;   // home-store.js: Minest's own store, or the same keys on a page of its own
+ try { var w = root.SpatialBridge && root.SpatialBridge.hostWindow(); return (w && w.MinestKnowledge) || null; } catch (e) { return null; } }
   function HW() { try { return (root.SpatialBridge && root.SpatialBridge.hostWindow()) || root; } catch (e) { return root; } }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function lsGet(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }

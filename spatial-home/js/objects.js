@@ -304,5 +304,5 @@
     });
     return list;
   }
-  root.SpatialObjects = { build: build };
+  root.SpatialObjects = { build: build, make: { typewriter: typewriter, planner: planner, board: board, album: album, projector: projector, ornament: ornament } };   // make: one thing's model alone (Clun 2.0 sets them out in its rooms)
 })(window);

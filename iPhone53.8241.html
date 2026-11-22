@@ -190223,7 +190223,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     });
     return list;
   }
-  root.SpatialObjects = { build: build };
+  root.SpatialObjects = { build: build, make: { typewriter: typewriter, planner: planner, board: board, album: album, projector: projector, ornament: ornament } };   // make: one thing's model alone (Clun 2.0 sets them out in its rooms)
 })(window);
 
 /* Minest · Spatial Home — the entry update (2026-11-12): Octo aquarium (replaces the fishing rod), magic quill → 3D Type (type3d/),
@@ -192118,7 +192118,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   'use strict';
   if (root.MinestBackpack) return;
   var VERSION = '1.0';
-  function KN() { if (root.MinestKnowledge) return root.MinestKnowledge; try { var w = root.SpatialBridge && root.SpatialBridge.hostWindow(); return (w && w.MinestKnowledge) || null; } catch (e) { return null; } }
+  function KN() { if (root.MinestHomeStore) return root.MinestHomeStore.kn(); if (root.MinestKnowledge) return root.MinestKnowledge;   // home-store.js: Minest's own store, or the same keys on a page of its own
+ try { var w = root.SpatialBridge && root.SpatialBridge.hostWindow(); return (w && w.MinestKnowledge) || null; } catch (e) { return null; } }
   function HW() { try { return (root.SpatialBridge && root.SpatialBridge.hostWindow()) || root; } catch (e) { return root; } }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function lsGet(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
@@ -193313,6 +193314,432 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     force: function (m) { try { if (m) localStorage.setItem('minest.fold.force', m); else localStorage.removeItem('minest.fold.force'); } catch (e) {} apply(); } };
 })(window);
 
+/* Minest · Spatial Home — where the room keeps what you set (2026-11-22).
+   One synced store for the rooms' layouts ('bp:home:<room>') and the rooms' default things ('sh:def:<room>'), on every
+   page that shows a room. It is Minest's own cloud channel, not a new one: Minest Knowledge (minest.knowledge.v1 →
+   the cloud doc users/<uid>/focusboard/data, field `knowledge`, every key { v, t } merged by time).
+     · host   — Minest itself is this page, or a same-origin window next to it (the opener, the page this frame is in,
+                the app Spatial Home loaded): its MinestKnowledge is used as it is. Its own upload carries the keys.
+     · bridge — a frame from another origin inside Minest (the iOS app is a file: page and shows Clun 2.0 from the live
+                site): the keys go to the Minest page by postMessage and come back from it. That page answers below.
+     · lite   — a page of its own (spatial-home/rooms.html, clun-2/ opened by itself): the same minest.knowledge.v1 in this
+                origin's storage (on the website: the same one Minest uses), and the same cloud field, written the way
+                Minest Knowledge writes it ({ knowledge: { x: { key: { v, t } } } }, merge). Sign-in is Minest's own
+                (Firebase keeps it per site); signed out it stays on this device.
+   Offline: every change is kept here first, with its time, in an outbox; it goes up when the network and the account
+   are there, and the newer of two changes to one key wins (the same rule the rest of My World uses). After every read
+   of the cloud, a key that is newer here than there is sent again (another device's full upload may have dropped it). */
+(function (root) {
+  'use strict';
+  if (root.MinestHomeStore) return;
+  var KN_KEY = 'minest.knowledge.v1', OUT_KEY = 'minest.homeStore.outbox.v1';
+  var MINE = /^(bp:home:|sh:def:|sh:)/;                          // the keys this store (and a frame through the bridge) may write
+  var SITE = 'https://minest-app.vercel.app';
+  var FB_CFG = { apiKey: 'AIzaSyBH-SonlmNnTLRYUtvnZ9EEiFQSflo1cX8', authDomain: 'minest-33761.firebaseapp.com', databaseURL: 'https://minest-33761-default-rtdb.firebaseio.com', projectId: 'minest-33761', storageBucket: 'minest-33761.firebasestorage.app' };
+  var FB_SDK = ['app', 'auth', 'firestore'].map(function (n) { return 'https://www.gstatic.com/firebasejs/10.8.0/firebase-' + n + '-compat.js'; });
+  var listeners = [], st = { mode: 'lite', user: null, email: '', synced: 0, error: '', bridge: false };
+
+  function lsGet(k) { try { return JSON.parse(root.localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
+  function lsSet(k, v) { try { root.localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
+  function emit(keys) { listeners.forEach(function (f) { try { f(keys || null); } catch (e) { if (root.console) console.warn('home store listener', e); } }); }
+  function clone(v) { return v == null ? null : JSON.parse(JSON.stringify(v)); }
+
+  /* ---------------------------------------------------------------- host: a Minest Knowledge we can reach */
+  function knOf(w) { try { var K = w && w.MinestKnowledge; return K && typeof K.get === 'function' && typeof K._cloud === 'function' ? K : null; } catch (e) { return null; } }
+  var hostSeen = null;
+  function host() {
+    var ws = [root];
+    try { if (root.parent && root.parent !== root) ws.push(root.parent); } catch (e) {}
+    try { if (root.top && root.top !== root) ws.push(root.top); } catch (e) {}
+    try { if (root.opener) ws.push(root.opener); } catch (e) {}
+    try { if (root.SpatialBridge && root.SpatialBridge.hostWindow) ws.push(root.SpatialBridge.hostWindow()); } catch (e) {}
+    for (var i = 0; i < ws.length; i++) { var K = knOf(ws[i]); if (K) { if (hostSeen !== K) { hostSeen = K; hookHost(K, ws[i]); } return { K: K, w: ws[i] }; } }
+    return null;
+  }
+  function hookHost(K, w) {
+    st.mode = 'host';
+    /* what was set here before Minest was there (the outbox): handed to it, the newer of each key wins */
+    try {
+      var x = kl().x, hx = K._cloud().x || {};
+      Object.keys(outbox).forEach(function (k) { var a = x[k], b = hx[k]; if (a && (!b || (b.t || 0) < (a.t || 0))) K.set(k, a.v, true); });
+      outbox = {}; outSave();
+    } catch (e) {}
+    try { K.onChange(function () { emit(null); }); } catch (e) {}
+    try { var fb = w.firebase; if (fb && fb.auth) fb.auth().onAuthStateChanged(function (u) { st.user = u ? u.uid : null; st.email = u ? (u.email || '') : ''; emit(null); }); } catch (e) {}
+    emit(null);
+  }
+
+  /* ---------------------------------------------------------------- the local copy (lite and bridge) */
+  var KL = null;
+  function kLoad() { var v = lsGet(KN_KEY); if (!v || typeof v !== 'object') v = {}; ['h', 'off', 'o', 'm', 't', 'x'].forEach(function (m) { if (!v[m] || typeof v[m] !== 'object') v[m] = {}; }); return (KL = v); }
+  function kl() { return KL || kLoad(); }
+  root.addEventListener('storage', function (e) { if (e.key === KN_KEY) { KL = null; emit(null); } });
+  function kWrite(key, rec) {                                         // re-read first: Minest may be open in another tab of this site
+    var v = kLoad(); v.x[key] = rec; if (!lsSet(KN_KEY, v)) st.error = '本机存储已满'; KL = v;
+  }
+  var outbox = lsGet(OUT_KEY) || {};
+  function outSave() { lsSet(OUT_KEY, outbox); }
+  function pending() { return Object.keys(outbox).length; }
+  /* records from the cloud (or from Minest through the bridge): the newer of each key wins */
+  function mergeIn(R) {
+    if (!R || typeof R !== 'object') return [];
+    var v = kLoad(), changed = [];
+    ['h', 'off', 'o', 'm', 't', 'x'].forEach(function (m) {
+      var src = R[m] || {};
+      Object.keys(src).forEach(function (id) { var a = v[m][id], b = src[id]; if (b && typeof b === 'object' && (!a || (b.t || 0) > (a.t || 0))) { v[m][id] = b; if (m === 'x') changed.push(id); } });
+    });
+    if (changed.length || Object.keys(R).length) { lsSet(KN_KEY, v); KL = v; }
+    return changed;
+  }
+  /* after a read: a key of ours that is newer here than in what came back is sent again */
+  function resend(cloudX) {
+    var x = kl().x, n = 0;
+    Object.keys(x).forEach(function (k) { if (!MINE.test(k)) return; var a = x[k], b = cloudX && cloudX[k]; if (a && (!b || (a.t || 0) > (b.t || 0)) && !outbox[k]) { outbox[k] = a.t || Date.now(); n++; } });
+    if (n) outSave();
+    return n;
+  }
+
+  /* ---------------------------------------------------------------- lite: Minest's own Firebase project and sign-in */
+  var fb = null, db = null, unsub = null, flushing = false;
+  function loadScript(src) { return new Promise(function (ok, no) { var s = document.createElement('script'); s.src = src; s.async = false; s.onload = ok; s.onerror = no; document.head.appendChild(s); }); }
+  function b64bytes(b64) { var s = atob(b64), a = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) a[i] = s.charCodeAt(i); return a; }
+  function gunzip(b64) {
+    if (typeof DecompressionStream === 'undefined') return Promise.resolve(null);
+    var stream = new Blob([b64bytes(b64)]).stream().pipeThrough(new DecompressionStream('gzip'));
+    return new Response(stream).text().then(function (t) { return JSON.parse(t); });
+  }
+  function cloudKnowledge(data) {                                       // the plain copy (older clients, and our own writes) and the compressed one, merged by time
+    var parts = [data && data.knowledge ? Promise.resolve(data.knowledge) : null, data && typeof data.knowledgeGz === 'string' ? gunzip(data.knowledgeGz).catch(function () { return null; }) : null].filter(Boolean);
+    return Promise.all(parts).then(function (rs) {
+      var out = { x: {} };
+      rs.forEach(function (R) { if (!R) return; ['h', 'off', 'o', 'm', 't', 'x'].forEach(function (m) { out[m] = out[m] || {}; Object.keys(R[m] || {}).forEach(function (id) { var a = out[m][id], b = R[m][id]; if (b && (!a || (b.t || 0) > (a.t || 0))) out[m][id] = b; }); }); });
+      return out;
+    });
+  }
+  function ref() { return db.collection('users').doc(st.user).collection('focusboard').doc('data'); }
+  function take(doc) {
+    var data = doc && doc.exists ? doc.data() : null;
+    return cloudKnowledge(data).then(function (R) {
+      var ch = mergeIn(R).filter(function (k) { return MINE.test(k) || /^mtw:item:/.test(k); });
+      st.synced = Date.now(); st.error = '';
+      var again = resend(R.x);
+      if (ch.length) emit(ch); else emit(null);
+      if (again) flush();
+    });
+  }
+  function startLite() {
+    if (fb || st.mode !== 'lite') return;
+    var ready = root.firebase && root.firebase.firestore ? Promise.resolve() : FB_SDK.reduce(function (p, s) { return p.then(function () { return loadScript(s); }); }, Promise.resolve());
+    ready.then(function () {
+      fb = root.firebase; if (!fb.apps.length) fb.initializeApp(FB_CFG);
+      db = fb.firestore();
+      fb.auth().onAuthStateChanged(function (u) {
+        if (unsub) { unsub(); unsub = null; }
+        st.user = u ? u.uid : null; st.email = u ? (u.email || '') : ''; emit(null);
+        if (!u) return;
+        unsub = ref().onSnapshot(function (d) { if (!d.metadata || !d.metadata.hasPendingWrites) take(d).catch(function (e) { st.error = String(e && e.message || e); emit(null); }); }, function (e) { st.error = (e && e.code) || '读取云端失败'; emit(null); });
+        flush();
+      });
+    }).catch(function () { st.error = '连不上云端（离线？）· 改动先存在本机'; emit(null); });
+  }
+  function flush() {
+    if (st.mode === 'bridge') return bridgeFlush();
+    if (st.mode !== 'lite' || !db || !st.user || flushing || !pending()) return;
+    if (root.navigator && root.navigator.onLine === false) return;
+    var x = kl().x, send = {}, sent = {};
+    Object.keys(outbox).forEach(function (k) { if (x[k]) { send[k] = x[k]; sent[k] = outbox[k]; } else delete outbox[k]; });
+    if (!Object.keys(send).length) { outSave(); return; }
+    flushing = true;
+    ref().set({ knowledge: { x: send } }, { merge: true }).then(function () {
+      Object.keys(sent).forEach(function (k) { if (outbox[k] === sent[k]) delete outbox[k]; });
+      outSave(); flushing = false; st.synced = Date.now(); st.error = ''; emit(null);
+      if (pending()) flush();
+    }).catch(function (e) { flushing = false; st.error = (e && e.code) || '上传失败 · 稍后再试'; emit(null); });
+  }
+  root.addEventListener('online', function () { flush(); });
+  setInterval(function () { if (pending()) flush(); }, 15000);
+
+  /* ---------------------------------------------------------------- bridge: a frame of another origin inside Minest */
+  var bseq = 0, bwait = {};
+  function bpost(msg) { msg.mnHome = msg.mnHome || 'set'; try { root.parent.postMessage(msg, '*'); } catch (e) {} }
+  function bridgeFlush() {
+    if (!pending()) return;
+    var x = kl().x, send = {}, id = ++bseq;
+    Object.keys(outbox).forEach(function (k) { if (x[k]) send[k] = x[k]; else delete outbox[k]; });
+    bwait[id] = clone(outbox); bpost({ mnHome: 'set', id: id, x: send });
+  }
+  root.addEventListener('message', function (e) {
+    var m = e.data; if (!m || typeof m.mnHome !== 'string' || e.source !== root.parent || root.parent === root) return;
+    if (m.mnHome === 'hi' || m.mnHome === 'push') {
+      if (st.mode === 'lite' && !fb) st.mode = 'bridge';
+      if (st.mode !== 'bridge') return;
+      st.bridge = true; st.user = m.user || null; st.email = m.email || ''; st.synced = Date.now();
+      var ch = mergeIn({ x: m.x || {} }); resend(m.x || {});
+      emit(ch.length ? ch : null); bridgeFlush();
+    } else if (m.mnHome === 'ok' && bwait[m.id]) {
+      var w = bwait[m.id]; delete bwait[m.id];
+      Object.keys(w).forEach(function (k) { if (outbox[k] === w[k]) delete outbox[k]; }); outSave(); emit(null);
+    }
+  });
+
+  /* ---------------------------------------------------------------- the Minest side of the bridge (this page is Minest) */
+  function frameOf(src) { var fs = document.getElementsByTagName('iframe'); for (var i = 0; i < fs.length; i++) if (fs[i].contentWindow === src) return true; return false; }
+  var children = [], took = {};
+  function ours() { var K = knOf(root); if (!K) return {}; var x = K._cloud().x || {}, o = {}; Object.keys(x).forEach(function (k) { if (MINE.test(k)) o[k] = x[k]; }); return o; }
+  function who() { try { var u = root.firebase && root.firebase.auth && root.firebase.auth().currentUser; return u ? { user: u.uid, email: u.email || '' } : { user: null, email: '' }; } catch (e) { return { user: null, email: '' }; } }
+  root.addEventListener('message', function (e) {
+    var m = e.data, K = knOf(root); if (!m || typeof m.mnHome !== 'string' || !K || !frameOf(e.source)) return;
+    if (!(e.origin === location.origin || e.origin === SITE || (root.__MN_HOME_TRUST__ || []).indexOf(e.origin) >= 0)) return;   // __MN_HOME_TRUST__: a test page's own list (another origin standing in for the live site)
+    var src = e.source, w = who();
+    if (m.mnHome === 'hello') {
+      if (children.indexOf(src) < 0) children.push(src);
+      src.postMessage({ mnHome: 'hi', x: ours(), user: w.user, email: w.email }, '*');
+    } else if (m.mnHome === 'set' && m.x && typeof m.x === 'object') {
+      var x = K._cloud().x || {}, ok = [];
+      /* the newer wins; a value this page took from a frame carries this page's time, so it is compared by the frame's own */
+      Object.keys(m.x).forEach(function (k) {
+        var r = m.x[k]; if (!MINE.test(k) || !r || typeof r !== 'object') return;
+        var a = x[k], fromFrame = a && took[k] && took[k].at === a.t;
+        if (!a || (a.t || 0) < (r.t || 0) || (fromFrame && took[k].t < (r.t || 0))) { K.set(k, r.v == null ? null : r.v, true); var n = (K._cloud().x || {})[k]; took[k] = { t: r.t || 0, at: n ? n.t : 0 }; }
+        ok.push(k);
+      });
+      src.postMessage({ mnHome: 'ok', id: m.id, keys: ok }, '*');
+    }
+  });
+  function pushChildren() { if (!children.length) return; var w = who(), x = ours(); children = children.filter(function (c) { try { c.postMessage({ mnHome: 'push', x: x, user: w.user, email: w.email }, '*'); return true; } catch (e) { return false; } }); }
+  (function watchHost() { var K = knOf(root); if (K) { try { K.onChange(pushChildren); } catch (e) {} } else setTimeout(watchHost, 1000); })();
+
+  /* ---------------------------------------------------------------- the store */
+  function liteK() {
+    return {
+      get: function (key) { var r = kl().x[key]; return r && r.v != null ? clone(r.v) : null; },
+      set: function (key, v) { var t = Date.now(); kWrite(key, { v: v == null ? null : clone(v), t: t }); if (MINE.test(key)) { outbox[key] = t; outSave(); flush(); } },
+      keys: function (prefix) { var x = kl().x; return Object.keys(x).filter(function (k) { return k.indexOf(prefix) === 0 && x[k] && x[k].v != null; }); }
+    };
+  }
+  var LITE = liteK();
+  var S = root.MinestHomeStore = {
+    version: '1.0',
+    /* the Minest Knowledge-shaped store the room uses (get / set / keys) */
+    kn: function () { var h = host(); return h ? h.K : LITE; },
+    get: function (key) { var h = host(); return h ? clone(h.K.get(key)) : LITE.get(key); },
+    set: function (key, v) { var h = host(); if (h) h.K.set(key, v, true); else LITE.set(key, v); },
+    keys: function (prefix) { return S.kn().keys(prefix); },
+    time: function (key) { var h = host(), r = h ? (h.K._cloud().x || {})[key] : kl().x[key]; return r ? r.t || 0 : 0; },
+    onChange: function (fn) { listeners.push(fn); },
+    flush: flush,
+    status: function () {
+      var h = host(), on = !(root.navigator && root.navigator.onLine === false), mode = h ? 'host' : st.mode;
+      var text = !on ? '离线 · 改动先存在本机，联网后自动上传' + (pending() ? '（' + pending() + ' 项待上传）' : '')
+        : mode === 'host' ? (st.user ? '跟着 Minest 同步 · ' + st.email : '跟着 Minest 存在本机（登录 Minest 后上云）')
+        : !st.user ? (mode === 'bridge' ? '跟着 Minest · 未登录，只在本机' : '未登录 · 只在本机（在同一浏览器里登录 Minest 就会同步）')
+        : pending() ? '正在上传 ' + pending() + ' 项…' : '已同步 · ' + st.email;
+      return { mode: mode, online: on, user: st.user, email: st.email, pending: pending(), synced: st.synced, error: st.error, text: st.error && on ? text + ' · ' + st.error : text };
+    }
+  };
+  /* which kind of page this is: Minest (or next to it), a frame of another origin inside Minest, or a page of its own */
+  function boot() {
+    if (host()) return;
+    var framed = false; try { framed = root.parent && root.parent !== root; } catch (e) { framed = true; }
+    if (framed) {
+      bpost({ mnHome: 'hello' });
+      setTimeout(function () { if (!st.bridge && !host()) startLite(); }, 1500);   // nobody answered: on our own
+    } else startLite();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else setTimeout(boot, 0);
+})(window);
+
+/* Minest · Spatial Home — the default things of every room, set by you (2026-11-22).
+   A room's defaults: 'sh:def:<room>' in the synced store (home-store.js) =
+     { v: 1, at: <when set>, fn: { <thing id>: { on: 1 | 0, p: [x, y, z], ry } }, extras: [ { uid, kind, title, p, ry } ] }
+     · fn      the things that are the apps (typewriter, board, planner …): in the room or not, and where
+     · extras  the furniture and fittings (desk, piano, organ …) — templates, any number of each
+   Rooms: every Spatial Home environment ('victorian', 'santorini', 'studio', 'church' …) and each room of the Clun house
+   ('clun:drawing', 'clun:study' …). A room opens as its defaults say; what you move afterwards is your layout
+   ('bp:home:<room>', synced too). When the defaults change (here or on another device), the room is set out by them again
+   the next time it is shown: the furniture and the things become the defaults; your works, My World things and display
+   machines stay where you put them (they are content, not furniture). No defaults set = the room's own furnishing.
+   The editor is one panel for every room. A host gives it the room it shows (Spatial Home's app.js, Clun 2.0's
+   v2-objects.js); the other rooms are edited as lists here and set out when they are next opened. */
+(function (root) {
+  'use strict';
+  if (root.SpatialHomeDefaults) return;
+  var PFX = 'sh:def:';
+  function store() { return root.MinestHomeStore || null; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function clone(v) { return v == null ? null : JSON.parse(JSON.stringify(v)); }
+  function r3(n) { return Math.round((+n || 0) * 1000) / 1000; }
+
+  /* the rooms the editor knows even when this page cannot show them */
+  var ROOMS2 = [['studio', '音乐工作室 · Studio', 'The Studio'], ['living', '会客室 · 维多利亚客厅', 'The Drawing Room'], ['yard', '前庭 · 花园与草坪', 'The Front Yard'], ['yard-back', '后院 · 泳池与菜园', 'The Back Yard'], ['church', '大教堂 · 巴黎圣母院式', 'The Cathedral']];
+  var CLUN = [['drawing', '客厅', 'Drawing Room'], ['hall', '门厅', 'Entrance Hall'], ['dining', '餐厅', 'Dining Room'], ['corridor', '后走廊', 'Rear Hall'], ['wc', '卫生间', 'Cloakroom'], ['snug', '小起居室', 'Snug'],
+    ['kitchen', '厨房', 'Kitchen'], ['sun', '阳光房', 'Sun Room'], ['landing', '二楼平台', 'Landing'], ['bed2', '卧室 2', 'Bedroom 2'], ['study', '书房', 'Study'], ['bed1', '卧室 1', 'Bedroom 1'], ['bath', '浴室', 'Bathroom'],
+    ['ensuite', '主卫', 'En-suite'], ['atticHall', '阁楼平台', 'Attic Landing'], ['bed4', '卧室 4', 'Bedroom 4'], ['bed3', '卧室 3 · 儿童房', 'Bedroom 3'], ['atticBath', '阁楼浴室', 'Attic Bathroom']];
+  /* the things that are the apps, and furniture names for rooms this page cannot build (the page's own catalog comes first) */
+  var FN = [['typewriter', '打字机', '⌨️'], ['planner', '日程本', '📘'], ['board', '布告栏', '📌'], ['album', '收藏册', '📔'], ['projector', '全息投影仪', '🔮'], ['ornament', '魔法摆件', '🌀']];
+  var KINDS = { 'vic-desk': ['维多利亚书桌', '▣'], 'vic-chair': ['维多利亚书桌椅', '▣'], 'vic-exec-desk': ['总统书桌', '▣'], 'kh-desk': ['书桌', '▭'], 'kh-table': ['巴洛克长桌', '▭'], 'kh-chair': ['高背椅', '♙'],
+    'vic-piano': ['三角钢琴', '🎹'], 'church-organ': ['管风琴', '🎶'], 'vic-globe': ['地球仪', '🌐'], 'vic-clock': ['落地钟', '🕰'], 'vic-tufted': ['拉扣沙发', '🛋'], 'vic-thinker': ['思想者雕像', '🗿'], 'vic-armour': ['盔甲', '🛡'],
+    'kh-plinth': ['大理石柱台', '🏛'], 'kh-carpet': ['地毯', '▦'], 'kh-girandole': ['烛台', '🕯'], pedestal: ['展示台', '🏛'], wallshelf: ['墙面置物架', '🪵'], vitrine: ['玻璃展柜', '🔲'], 'tea-table': ['茶桌', '☕'], 'tea-chair': ['茶椅', '🪑'] };
+  function kindName(k) { var c = (root.SpatialFurnitureCatalog || []).filter(function (x) { return x.id === k; })[0]; return (c && c.name) || (KINDS[k] && KINDS[k][0]) || k; }
+  function kindIcon(k) { var c = (root.SpatialFurnitureCatalog || []).filter(function (x) { return x.id === k; })[0]; return (KINDS[k] && KINDS[k][1]) || (c && c.icon) || '▫'; }
+  function isContent(e) { return !!(e && (e.ref || /^(neon|thing|machine)$/.test(e.kind))); }
+
+  /* ---------------------------------------------------------------- the records */
+  var CACHE = {};
+  if (store()) store().onChange(function () { CACHE = {}; });
+  function get(room) { if (room in CACHE) return CACHE[room]; var s = store(), v = s ? s.get(PFX + room) : null; v = v && typeof v === 'object' && v.v ? v : null; CACHE[room] = v; return v; }
+  function put(room, rec) {
+    var s = store(); if (!s) return null;
+    var v = rec ? { v: 1, at: Date.now(), fn: rec.fn || {}, extras: (rec.extras || []).map(function (e) { var o = { uid: e.uid || (Date.now() % 1e9 + Math.floor(Math.random() * 1e4)), kind: e.kind, p: e.p ? e.p.map(r3) : null, ry: r3(e.ry) }; if (e.title) o.title = e.title; return o; }) } : null;
+    s.set(PFX + room, v); CACHE[room] = v; return v;
+  }
+  /* the room as it stands now → defaults (furniture and things; content stays out) */
+  function capture(L, objects) {
+    var fn = {}, ex = [];
+    (objects || []).forEach(function (o) {
+      var l = L[o.id], g = o.group, st = l ? !!l.stashed : !!o.startStashed;
+      fn[o.id] = st ? { on: 0 } : { on: 1, p: [r3(g.position.x), r3(g.position.y), r3(g.position.z)], ry: r3(g.rotation.y) };
+    });
+    (L.extras || []).forEach(function (e) { if (!isContent(e)) ex.push({ uid: e.uid, kind: e.kind, title: e.title, p: e.p, ry: e.ry || 0 }); });
+    return { fn: fn, extras: ex };
+  }
+  /* a layout set out by the defaults, when they are newer than it (or the room's own furnishing has run again since).
+     ctx: { known(kind) the page can build it, spot(kind) where a thing without a place stands, upV the room's furnishing version, movable } */
+  function apply(room, L, ctx) {
+    var d = get(room); if (!d) return null;
+    var upV = ctx && ctx.upV || 0;
+    if ((L.defAt || 0) >= d.at && (!upV || L.defUp === upV)) return null;
+    var N = clone(L) || {};
+    Object.keys(d.fn || {}).forEach(function (id) {
+      var r = d.fn[id];
+      if (!r || !r.on) N[id] = { stashed: true }; else if (r.p) N[id] = { p: r.p.slice(), ry: r.ry || 0 }; else if (ctx && ctx.spotFn) N[id] = { p: ctx.spotFn(id), ry: 0 }; else delete N[id];
+    });
+    var keep = (L.extras || []).filter(isContent), mine = [];
+    (d.extras || []).forEach(function (e) {
+      if (ctx && ctx.known && !ctx.known(e.kind)) return;                 // a kind this page cannot build stays in the defaults, not in the room
+      var o = { uid: e.uid, kind: e.kind, p: e.p ? e.p.slice() : (ctx && ctx.spot ? ctx.spot(e.kind) : [0, 0, 0]), ry: e.ry || 0 }; if (e.title) o.title = e.title; mine.push(o);
+    });
+    N.extras = mine.concat(keep); N.defAt = d.at; N.showroom = 1;
+    if (upV) { N.up = upV; N.defUp = upV; }
+    if (ctx && ctx.movable) N.furnished = 1;
+    return N;
+  }
+
+  /* ---------------------------------------------------------------- the editor */
+  var CSS = '#shd{position:fixed;z-index:2147483600;right:12px;top:calc(env(safe-area-inset-top,0px) + 56px);width:min(360px,calc(100vw - 24px));max-height:calc(100% - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 140px);overflow:auto;' +
+    'background:rgba(253,251,247,.97);color:#2a2622;border:1px solid rgba(60,50,40,.16);border-radius:16px;box-shadow:0 14px 44px rgba(30,20,10,.22);font:13px/1.45 -apple-system,"PingFang SC","Helvetica Neue",sans-serif;padding:12px 14px 14px;-webkit-user-select:none;user-select:none;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}' +
+    '#shd[hidden]{display:none}#shd h3{margin:0;font:600 15px/1.3 "Iowan Old Style",Georgia,"Songti SC",serif;flex:1}#shd .hd{display:flex;align-items:center;gap:8px;margin-bottom:8px}' +
+    '#shd h4{margin:12px 0 4px;font-size:11px;letter-spacing:.08em;color:#8a8178;font-weight:600}#shd select{width:100%;font:inherit;padding:6px 8px;border-radius:10px;border:1px solid rgba(60,50,40,.2);background:#fff;color:inherit}' +
+    '#shd button{font:inherit;color:inherit;background:#fff;border:1px solid rgba(60,50,40,.18);border-radius:10px;padding:5px 10px;cursor:pointer}#shd button.pri{background:#b8553f;border-color:#b8553f;color:#fff}#shd button.x{border:0;background:none;font-size:16px;padding:2px 6px;color:#8a8178}' +
+    '#shd ul{list-style:none;margin:0;padding:0}#shd li{display:flex;align-items:center;gap:8px;padding:5px 2px;border-bottom:1px solid rgba(60,50,40,.07)}#shd li label{display:flex;align-items:center;gap:8px;flex:1;min-width:0;cursor:pointer}' +
+    '#shd li .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#shd li small{color:#8a8178;font-variant-numeric:tabular-nums;white-space:nowrap}#shd li input{accent-color:#b8553f;width:16px;height:16px;margin:0}#shd li.off .nm{color:#a59d94;text-decoration:line-through}' +
+    '#shd .add{display:flex;gap:6px;margin-top:8px}#shd .add select{flex:1}#shd .btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}#shd .sync{margin:6px 0 0;padding:6px 9px;border-radius:9px;background:rgba(60,50,40,.05);color:#6f675f;font-size:12px}' +
+    '#shd .sync.ok::before{content:"☁ ";color:#3c8c5a}#shd .sync.wait::before{content:"⏳ "}#shd .sync.local::before{content:"⌂ "}#shd .note{color:#8a8178;font-size:12px;margin:8px 0 0}#shd .tag{font-size:10.5px;padding:1px 6px;border-radius:8px;background:rgba(184,85,63,.12);color:#b8553f;margin-left:4px;white-space:nowrap}' +
+    '@media (prefers-color-scheme: dark){#shd{background:rgba(32,30,28,.96);color:#eee6dc;border-color:rgba(255,255,255,.12)}#shd select,#shd button{background:#2c2926;color:#eee6dc;border-color:rgba(255,255,255,.16)}#shd .sync{background:rgba(255,255,255,.06);color:#c9c0b5}#shd li{border-color:rgba(255,255,255,.07)}}';
+  var el = null, H = null, cur = null, away = false;   // away: hidden while a thing is being moved from here
+  function fmtP(p) { return p ? '(' + (+p[0]).toFixed(1) + ', ' + (+p[2 - (H && H.zUp ? 1 : 0)]).toFixed(1) + ')' : '自动'; }
+  function deg(r) { return Math.round(((+r || 0) * 180 / Math.PI % 360 + 360) % 360) + '°'; }
+  function rooms() {
+    var out = [], have = {};
+    ((H && H.rooms && H.rooms()) || []).forEach(function (r) { have[r.id] = 1; out.push(r); });
+    ROOMS2.forEach(function (q) { if (!have[q[0]]) out.push({ id: q[0], name: q[1], group: 'Spatial Home 2.0 房间', remote: 'rooms' }); });
+    CLUN.forEach(function (q) { var id = 'clun:' + q[0]; if (!have[id]) out.push({ id: id, name: q[1] + ' · ' + q[2], group: 'Clun 住宅', remote: 'clun' }); });
+    return out;
+  }
+  function roomOf(id) { return rooms().filter(function (r) { return r.id === id; })[0] || { id: id, name: id }; }
+  function catalog() {
+    var seen = {}, out = [];
+    ((H && H.catalog && H.catalog()) || []).forEach(function (c) { if (!seen[c.kind]) { seen[c.kind] = 1; out.push(c); } });
+    Object.keys(KINDS).forEach(function (k) { if (!seen[k]) { seen[k] = 1; out.push({ kind: k, name: KINDS[k][0], icon: KINDS[k][1], away: !(H && H.known && H.known(k)) }); } });
+    return out;
+  }
+  function fnList(live) { return live && H.fnObjects ? H.fnObjects() : FN.map(function (q) { return { id: q[0], name: q[1], icon: q[2] }; }); }
+  function syncLine() {
+    var s = store(); if (!s) return '<p class="sync local">这个页面没有接上同步存储</p>';
+    var t = s.status(), cls = !t.online || t.pending ? 'wait' : (t.user ? 'ok' : 'local');
+    return '<p class="sync ' + cls + '">' + esc(t.text) + '</p>';
+  }
+  function render() {
+    if (!el || el.hidden) return;
+    var id = cur || (H && H.current && H.current()) || 'victorian', live = !!(H && H.current && H.current() === id && H.live), R = roomOf(id), d = get(id);
+    var groups = {}, order = [];
+    rooms().forEach(function (r) { var g = r.group || '这个页面的房间'; if (!groups[g]) { groups[g] = []; order.push(g); } groups[g].push(r); });
+    var sel = '<select data-a="room">' + order.map(function (g) { return '<optgroup label="' + esc(g) + '">' + groups[g].map(function (r) { return '<option value="' + esc(r.id) + '"' + (r.id === id ? ' selected' : '') + '>' + esc(r.name) + (get(r.id) ? ' ✓' : '') + '</option>'; }).join('') + '</optgroup>'; }).join('') + '</select>';
+    var h = '<div class="hd"><h3>每个房间的默认物件</h3><button class="x" data-a="close" title="关闭">✕</button></div>' + sel + syncLine();
+    var fn, ex;
+    if (live) { var now = H.live.state(); fn = now.fn; ex = now.extras; }
+    else { fn = (d && d.fn) || {}; ex = (d && d.extras) || []; }
+    h += '<h4>功能物件</h4><ul>' + fnList(live).map(function (o) {
+      var r = fn[o.id], on = r ? !!r.on : !o.startStashed;
+      return '<li class="' + (on ? '' : 'off') + '"><label><input type="checkbox" data-a="fn" data-id="' + esc(o.id) + '"' + (on ? ' checked' : '') + '><span class="nm">' + (o.icon || '') + ' ' + esc(o.name) + '</span></label><small>' + (on && r && r.p ? fmtP(r.p) + ' ' + deg(r.ry) : '') + '</small>' +
+        (live && on ? '<button data-a="movefn" data-id="' + esc(o.id) + '" title="在房间里挪">挪</button>' : '') + '</li>';
+    }).join('') + '</ul>';
+    h += '<h4>家具与摆设</h4>' + (ex.length ? '<ul>' + ex.map(function (e) {
+      return '<li><span class="nm" style="flex:1">' + kindIcon(e.kind) + ' ' + esc(e.title || kindName(e.kind)) + (H && H.known && !H.known(e.kind) ? '<span class="tag">在别的页面显示</span>' : '') + '</span><small>' + fmtP(e.p) + ' ' + deg(e.ry) + '</small>' +
+        (live ? '<button data-a="movex" data-uid="' + e.uid + '" title="在房间里挪">挪</button>' : '') + '<button class="x" data-a="delx" data-uid="' + e.uid + '" title="从默认里去掉">✕</button></li>';
+    }).join('') + '</ul>' : '<p class="note">' + (d || live ? '没有家具。' : '还没有设过：这个房间用它原来的摆设。') + '</p>');
+    var cat = catalog().filter(function (c) { return live ? !c.away : true; });
+    h += '<div class="add"><select data-a="kind">' + cat.map(function (c) { return '<option value="' + esc(c.kind) + '">' + (c.icon || '') + ' ' + esc(c.name) + '</option>'; }).join('') + '</select><button data-a="add">＋ 添加</button></div>';
+    h += '<div class="btns">' + (live ? '<button class="pri" data-a="save">把现在的摆放存为默认</button>' : '') + (d ? '<button data-a="apply">按默认重新摆放</button><button data-a="reset">恢复出厂默认</button>' : '') +
+      (!live && R.remote === 'clun' && H && H.openClun ? '<button data-a="go">去 Clun 里摆</button>' : '') + (!live && R.remote === 'rooms' && H && H.openRooms ? '<button data-a="go">打开这个房间</button>' : '') + '</div>';
+    h += '<p class="note">' + (live ? '勾选、添加、去掉会马上存为这个房间的默认。在房间里挪动位置后，点「把现在的摆放存为默认」。' : '这里改的是默认清单；位置留空的会摆在房间中间，打开那个房间后可以挪好再存。') + ' 默认和你挪过的位置都跟着账号同步，在 Duo、iPhone、iPad 和网页上都一样。</p>';
+    el.innerHTML = h;
+  }
+  /* the room shown: change it there and keep the result as the defaults */
+  function saveLive(silent) { var id = H.current(); var v = put(id, H.live.state()); if (H.live.stamp) H.live.stamp(v); if (!silent && H.toast) H.toast('已存为「' + roomOf(id).name + '」的默认'); render(); }
+  function editList(id, fn) { var d = get(id) || { fn: {}, extras: [] }; d = clone(d); d.fn = d.fn || {}; d.extras = d.extras || []; fn(d); put(id, d); render(); }
+  function onClick(e) {
+    var b = e.target.closest('[data-a]'); if (!b || b.tagName === 'SELECT' || b.tagName === 'INPUT') return;
+    var a = b.getAttribute('data-a'), id = cur || H.current(), live = H.current() === id && H.live;
+    if (a === 'close') { close(); return; }
+    if (a === 'save') { saveLive(); return; }
+    if (a === 'movefn' && live) { away = true; el.hidden = true; H.live.move({ fn: b.getAttribute('data-id') }); return; }
+    if (a === 'movex' && live) { away = true; el.hidden = true; H.live.move({ uid: +b.getAttribute('data-uid') }); return; }
+    if (a === 'delx') { var uid = +b.getAttribute('data-uid'); if (live) { H.live.removeExtra(uid); saveLive(true); } else editList(id, function (d) { d.extras = d.extras.filter(function (x) { return x.uid !== uid; }); }); return; }
+    if (a === 'add') {
+      var k = el.querySelector('[data-a="kind"]').value; if (!k) return;
+      if (live) { away = true; el.hidden = true; H.live.addExtra(k, kindName(k)); return; }
+      editList(id, function (d) { d.extras.push({ kind: k, title: kindName(k), p: null, ry: 0 }); }); return;
+    }
+    if (a === 'apply') { if (live) H.live.reapply(); else if (H.toast) H.toast('下次打开这个房间时按默认摆放'); render(); return; }
+    if (a === 'reset') { var nm = roomOf(id).name; if (!root.confirm('「' + nm + '」恢复出厂默认？\n你设的默认清单会去掉，房间回到它原来的摆设（你的作品和 My World 物品会回到背包）。')) return; put(id, null); if (live) H.live.restore(); render(); return; }
+    if (a === 'go') { var R = roomOf(id); close(); if (R.remote === 'clun') H.openClun(id.slice(5)); else H.openRooms(id); }
+  }
+  function onChange(e) {
+    var t = e.target, a = t.getAttribute('data-a'), id = cur || H.current(), live = H.current() === id && H.live;
+    if (a === 'room') { cur = t.value; var r = roomOf(cur); if (H.go && !r.remote && cur !== H.current()) H.go(cur); render(); return; }
+    if (a === 'fn') {
+      var fid = t.getAttribute('data-id'), on = t.checked;
+      if (live) { H.live.setFn(fid, on); saveLive(true); }
+      else editList(id, function (d) { var r = d.fn[fid] || {}; r.on = on ? 1 : 0; d.fn[fid] = r; });
+    }
+  }
+  function open(host, room) {
+    H = host || H;
+    if (!el) {
+      if (!document.getElementById('shd-css')) { var s = document.createElement('style'); s.id = 'shd-css'; s.textContent = CSS; document.head.appendChild(s); }
+      el = document.createElement('div'); el.id = 'shd'; el.hidden = true; (H.mount || document.body).appendChild(el);
+      el.addEventListener('click', onClick); el.addEventListener('change', onChange);
+      ['pointerdown', 'pointermove', 'pointerup', 'touchstart', 'touchmove', 'wheel', 'keydown'].forEach(function (t) { el.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
+      if (store()) store().onChange(function () { if (el && !el.hidden && !el.contains(document.activeElement)) render(); });
+      setInterval(function () { if (el && !el.hidden && !el.contains(document.activeElement)) { var p = el.querySelector('.sync'), s = store(); if (p && s) p.textContent = s.status().text; } }, 3000);
+    }
+    cur = room || (H.current && H.current()) || null; el.hidden = false; render();
+  }
+  function close() { if (el) el.hidden = true; if (H && H.onClose) H.onClose(); }
+
+  root.SpatialHomeDefaults = {
+    version: '1.0', get: get, put: put, capture: capture, apply: apply, isContent: isContent, kindName: kindName, rooms: rooms, CLUN: CLUN,
+    time: function (room) { var d = get(room); return d ? d.at : 0; },
+    open: open, close: close, isOpen: function () { return !!(el && !el.hidden); }, refresh: render,
+    /* the host's room changed under the editor (a thing was moved, the room was switched): show it again */
+    edited: function (how) {
+      if (away) { away = false; if (el) el.hidden = false; if (how === 'ok' || how === 'stash') saveLive(true); }   // a move begun here ends: kept as the defaults
+      if (el && !el.hidden) render();
+    }
+  };
+})(window);
+
 /* Minest · Spatial Home — the bridge to the features that already exist.
    Nothing is re-made here. The Minest app (index.html, the same build the user already has) runs in one frame that
    stays loaded behind the room; a thing in the room calls that app's own entry function and shows the frame. Leaving
@@ -193651,6 +194078,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     '<label>Rings 勋章<select id="sh-optMedal"><option value="box">桌边木质勋章盒</option><option value="wall">墙面勋章展示板</option></select></label>' +
     (EMBED ? '' : '<label class="row"><input type="checkbox" id="sh-optPreload"> 进入后在后台预载 Minest 功能</label>') +
     '<div class="sh-build"><span id="sh-hostDot"></span><span id="sh-hostText"></span></div><ul id="sh-featList"></ul>' +
+    '<div class="sh-build"><span id="sh-syncText"></span></div><button type="button" class="sh-btn" id="sh-defaultsBtn">🏠 每个房间的默认物件…</button>' +
     '<button type="button" class="sh-btn ghost" id="sh-resetLayout">恢复这个环境的默认摆放</button><button type="button" class="sh-btn" id="sh-setClose">好</button>' + (EMBED ? '<button type="button" class="sh-btn ghost" id="sh-setExit">进入完整的 Minest</button>' : '') + '</div>' +
     '<div id="sh-edit" hidden><b id="sh-editName"></b><span id="sh-editHint"></span><div class="row"><button type="button" data-e="rot" title="转 90°">⟲90</button><button type="button" data-e="rot15" title="转 15°">↻15</button><button type="button" data-e="stash" class="del" title="从房间移除（可在背包里找回） · Delete">移除</button><button type="button" data-e="cancel" title="取消">✕</button><button type="button" data-e="ok" class="pri" title="放好了 (Enter)">✓</button></div></div>' +
     '<div id="sh-card" hidden></div><div id="sh-toast" hidden></div><div id="sh-credit"></div>';
@@ -194453,7 +194881,9 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   $('viewBtn').addEventListener('click', function () { setView(S.view === '1p' ? '3p' : '1p'); sitBtnShow(); });
   $('sitBtn').addEventListener('click', sitToggle);
   var setEl = $('settings');
+  function renderSync() { var t = $('syncText'), M = window.MinestHomeStore; if (t) t.textContent = M ? '摆放与默认物件 · ' + M.status().text : '摆放只存在本机'; }
   function renderSettings() {
+    renderSync();
     $('optDefault').value = S.def; $('optDesk').value = S.deskStyle || 'classic'; $('optTime').value = S.tod || 'auto'; $('optMedal').value = S.medal === 'wall' ? 'wall' : 'box'; $('optMotion').checked = !!S.motion; if ($('optPreload')) $('optPreload').checked = !!S.preload; if ($('optBoot')) $('optBoot').checked = typeof S.boot === 'boolean' ? S.boot : window.__SPATIAL_HOME_BOOT_DEFAULT__ !== false;
     var st = B.state(), dot = $('hostDot');
     dot.className = st === 'ready' ? 'ok' : (st === 'loading' ? 'wait' : '');
@@ -194493,10 +194923,18 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     if (o.focusL) o.focus = Wf(o.focusL); if (o.focus2L) o.focus2 = Wf(o.focus2L);
   }
   /* layouts per environment: MinestKnowledge 'bp:home:<env>' (synced with the account, like the rest of My World); S.layouts is the local copy */
-  var LCACHE = {};
+  var LCACHE = {}, LJSON = {}, DEFS = window.SpatialHomeDefaults;
+  /* the room's defaults, when you set them (home-defaults.js): newer than the layout → the room is set out by them */
+  function defCtx() { return { known: knownKind, spot: spotFor, upV: room.upgrade ? room.upgrade.v : 0, movable: !!room.movable }; }
   function layoutOf(env) {
+    var v = layoutOf0(env);
+    if (DEFS && room && room.envId === env) { var n = DEFS.apply(env, v, defCtx()); if (n) { LCACHE[env] = n; saveLayout(env, n); return n; } }
+    return v;
+  }
+  function layoutOf0(env) {
     if (LCACHE[env]) return LCACHE[env];
     var BPs = window.MinestBackpack && window.MinestBackpack.store, v = BPs ? BPs.get('bp:home:' + env) : null;
+    if (v && typeof v === 'object') LJSON[env] = JSON.stringify(v);
     if (!v || typeof v !== 'object') { if (!S.layouts || typeof S.layouts !== 'object') S.layouts = {}; v = S.layouts[env] || {}; }
     if (room && room.envId === env && room.defaultLayout && !v.showroom) {              // a showroom room is furnished once (later changes are yours)
       var d0 = room.defaultLayout(); v = JSON.parse(JSON.stringify(v)); v.extras = (v.extras || []).concat((d0.extras || []).filter(function (e) { return !(v.extras || []).some(function (x) { return x.uid === e.uid; }); }));
@@ -194508,7 +194946,28 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     if (LCACHE[env] === v) return v;
     return (LCACHE[env] = JSON.parse(JSON.stringify(v)));
   }
-  function saveLayout(env, v) { LCACHE[env] = v; if (!S.layouts || typeof S.layouts !== 'object') S.layouts = {}; S.layouts[env] = v; var BPs = window.MinestBackpack && window.MinestBackpack.store; if (BPs) BPs.set('bp:home:' + env, v); }
+  /* a layout goes to the synced store only when it changed: every save() passes here, and a fresh time on an unchanged
+     layout would make a device that only looked round the room win over the moves made on another one */
+  function saveLayout(env, v) {
+    LCACHE[env] = v; if (!S.layouts || typeof S.layouts !== 'object') S.layouts = {}; S.layouts[env] = v;
+    var BPs = window.MinestBackpack && window.MinestBackpack.store, js = JSON.stringify(v);
+    if (BPs && LJSON[env] !== js) { LJSON[env] = js; BPs.set('bp:home:' + env, v); }
+  }
+  function knownKind(k) { return !!(window.SpatialFurniture && typeof window.SpatialFurniture[k] === 'function') || /^(pedestal|wallshelf|vitrine)$/.test(k); }
+  function spotFor() { var s = room.start.pos; return [+(s[0] - Math.sin(room.start.yaw) * 1.4).toFixed(2), 0, +(s[2] - Math.cos(room.start.yaw) * 1.4).toFixed(2)]; }
+  /* another device moved things, or changed the defaults (the store merged it in): the room shown follows */
+  var DEFT = {};
+  var remoteT = 0;
+  function remoteCheck() {
+    clearTimeout(remoteT);
+    if (!room) return;
+    if (edit || busy) { remoteT = setTimeout(remoteCheck, 800); return; }        // after the move or the transition
+    var env = room.envId, BPs = window.MinestBackpack && window.MinestBackpack.store, v = BPs ? BPs.get('bp:home:' + env) : null, js = v && typeof v === 'object' ? JSON.stringify(v) : null;
+    var dt = DEFS ? DEFS.time(env) : 0, d0 = DEFT[env]; DEFT[env] = dt;
+    if ((js && LJSON[env] && js !== LJSON[env]) || (d0 !== undefined && dt !== d0)) { delete LCACHE[env]; placeAll(); refreshHotbar(); if (DEFS) DEFS.edited(); }
+    if (!setEl.hidden) renderSync();
+  }
+  if (window.MinestHomeStore) window.MinestHomeStore.onChange(remoteCheck);
   function layout() { return layoutOf(room.envId); }
   function rebuildHits() { hits.length = 0; objects.forEach(function (o) { if (!o.stashed) hits.push(o.hit); }); }
   function placeAll() {
@@ -194821,9 +195280,9 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       if (E.x && E.isNew) {
         var ue = E.x.e; L.extras = (L.extras || []).filter(function (e) { return e !== ue; });
         if (ue.ref && BP.owned && ue.uid in pendingReg) { var pr = pendingReg[ue.uid]; delete pendingReg[ue.uid]; if (pr) BP.owned.set(ue.ref, pr); else BP.owned.clear(ue.ref); }
-        buildExtras(); save(); refreshHotbar(); return;
+        buildExtras(); save(); refreshHotbar(); if (DEFS) DEFS.edited(how); return;
       }
-      g.position.copy(E.p0); g.rotation.y = E.ry0; if (E.o) { E.o.stashed = E.wasStashed; g.visible = !E.wasStashed; settle(E.o); } refreshHotbar(); return;
+      g.position.copy(E.p0); g.rotation.y = E.ry0; if (E.o) { E.o.stashed = E.wasStashed; g.visible = !E.wasStashed; settle(E.o); } refreshHotbar(); if (DEFS) DEFS.edited(how); return;
     }
     if (E.o) {
       if (how === 'stash') { L[E.o.id] = { p: pos, ry: ry, stashed: true }; E.o.stashed = true; g.visible = false; toast(E.o.name + ' 已收回背包 · 功能仍可从下方入口进入'); }
@@ -194834,7 +195293,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       else { E.x.e.p = pos; E.x.e.ry = ry; delete pendingReg[E.x.e.uid]; if (E.x.e.ref && BP.owned) BP.owned.set(E.x.e.ref, { w: 'home', env: room.envId, uid: E.x.e.uid }); }
       buildExtras();
     }
-    save(); refreshHotbar();
+    save(); refreshHotbar(); if (DEFS) DEFS.edited(how);
   }
   ['pointerdown', 'pointermove', 'wheel'].forEach(function (t) { editBar.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
   editBar.addEventListener('click', function (e) {
@@ -194979,6 +195438,36 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     nu.chip.innerHTML = '<b>' + ico(nu) + '</b><span>' + nu.name + '</span>'; nu.chip.onclick = function () { activate(nu); };
     objects[i] = nu; placeAll();
   }
+  var defHost = {
+    mount: body, toast: toast,
+    rooms: function () { return window.SpatialRoom.envs().map(function (e) { return { id: e.id, name: e.zh || e.name, group: '这个页面的房间' }; }); },
+    current: function () { return room.envId; },
+    go: function (id) { setEnv(id); },
+    known: knownKind,
+    fnObjects: function () { return objects.map(function (o) { return { id: o.id, name: o.name, icon: o.icon, startStashed: !!o.startStashed }; }); },
+    catalog: function () { return (BP && BP.catalog ? BP.catalog(host) : []).filter(function (c) { return c.cat === 'fixtures' && c.kind === 'template' && c.spec && c.spec.kind !== 'machine'; }).map(function (c) { return { kind: c.spec.kind, name: c.name, icon: c.icon }; }); },
+    openClun: function () { if (window.MinestSpatialHome && window.MinestSpatialHome.house) window.MinestSpatialHome.house(); else location.href = (/\/rooms\.html$/.test(location.pathname) ? '' : '') + 'clun-2/?scene=valley&inside=1'; },
+    openRooms: function (id) { var u = 'spatial-home/rooms.html?room=' + encodeURIComponent(id); if (window.MinestV2Routes) window.MinestV2Routes.open(u, 'Spatial Home 2.0'); else location.href = (/spatial-home\//.test(location.pathname) ? '' : 'spatial-home/') + 'rooms.html?room=' + encodeURIComponent(id); },
+    live: {
+      state: function () { return DEFS.capture(layout(), objects); },
+      stamp: function (d) { var L = layout(); L.defAt = d ? d.at : 0; if (room.upgrade) { L.defUp = room.upgrade.v; } DEFT[room.envId] = d ? d.at : 0; saveLayout(room.envId, L); },
+      setFn: function (id, on) {
+        var o = objects.filter(function (q) { return q.id === id; })[0]; if (!o) return; var L = layout();
+        if (on) { var a = room.anchors[o.anchor] || REF[o.anchor] || room.anchors['desk.left'], l = L[id]; L[id] = l && l.p ? { p: l.p, ry: l.ry } : { p: a.p.slice(), ry: a.ry }; }
+        else L[id] = { p: [o.group.position.x, o.group.position.y, o.group.position.z].map(function (n) { return +n.toFixed(3); }), ry: +o.group.rotation.y.toFixed(4), stashed: true };
+        saveLayout(room.envId, L); placeAll(); refreshHotbar();
+      },
+      removeExtra: function (uid) { var L = layout(); L.extras = (L.extras || []).filter(function (e) { return e.uid !== uid; }); saveLayout(room.envId, L); buildExtras(); },
+      addExtra: function (kind, name) { spawn({ kind: kind, title: name }); },
+      move: function (q) {
+        if (q.fn) { var o = objects.filter(function (x) { return x.id === q.fn; })[0]; if (o) startEdit(o); return; }
+        var x = XS.filter(function (z) { return z.e.uid === q.uid; })[0]; if (x) startEdit(x); else DEFS.edited('cancel');
+      },
+      reapply: function () { var L = layout(); L.defAt = 0; delete LCACHE[room.envId]; saveLayout(room.envId, L); delete LCACHE[room.envId]; placeAll(); refreshHotbar(); toast('已按默认重新摆放 ' + room.name); },
+      restore: function () { saveLayout(room.envId, {}); delete LCACHE[room.envId]; placeAll(); refreshHotbar(); toast('已恢复 ' + room.name + ' 原来的摆设'); }
+    }
+  };
+  if ($('defaultsBtn')) $('defaultsBtn').addEventListener('click', function () { if (!DEFS) { toast('默认物件设置没有载入'); return; } setEl.hidden = true; DEFS.open(defHost); });
   $('resetLayout').addEventListener('click', function () { if (busy || edit) return; saveLayout(room.envId, {}); placeAll(); refreshHotbar(); toast('已恢复 ' + room.name + ' 的默认摆放 · 收回的作品回到背包'); });
   /* the hotbar shows only over the room itself */
   setInterval(function () { var hb = document.getElementById('mn-hotbar'); if (hb && hb.childElementCount) hb.hidden = !host.hotbarVisible(); }, 400);

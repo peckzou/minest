@@ -27,11 +27,11 @@ MIRRORS = ['iPhoneDuo.html', 'iPhoneDuo69.html', 'iphone.html', 'ios/Minest/Mine
            'ios/Minest/Minest/index.html', 'ios/Minest/Minest/ipad.html', 'ios/Minest/Minest/iphone.html',
            'ios/Minest/Minest/iphone18.0.html']
 # main: different pages, each patched by itself (as tools/hermes/patch_hermes.py does)
-MAIN_PAGES = ['iPhoneDuo.html', 'iPhoneDuo69.html', 'iphone.html', 'iPhone53.8241.html', 'index.html', 'ipad.html',
+MAIN_PAGES = ['iPhoneDuo.html', 'iPhoneDuo69.html', 'iPhoneDuo70.html', 'iphone.html', 'iPhone53.8241.html', 'index.html', 'ipad.html',
               'ios/Minest/Minest/iPhoneDuo.html', 'ios/Minest/Minest/index.html', 'ios/Minest/Minest/ipad.html',
               'ios/Minest/Minest/iphone.html', 'ios/Minest/Minest/iphone18.0.html', 'ios/MinestProject/MyApp/iphone.html']
 SRC = ROOT / 'spatial-home'
-JS = ['voxel.js', 'room.js', 'env-manhattan.js', 'env-alpine.js', 'env-train.js', 'study/world.js', 'study/textures.js', 'study/scene.js', 'env-study.js', 'env-glb.js', 'pixicons.js', 'furniture.js', 'laptop.js', 'realistic.js', 'scenic-window.js', 'objects.js', 'entries.js', 'board-ec6.js', 'mochi-day.js', 'backpack.js', 'media.js', 'portal-tsq.js', 'views.js', 'holo-lab.js', 'fold.js', 'bridge.js', 'app.js']
+JS = ['voxel.js', 'room.js', 'env-manhattan.js', 'env-alpine.js', 'env-train.js', 'study/world.js', 'study/textures.js', 'study/scene.js', 'env-study.js', 'env-glb.js', 'pixicons.js', 'furniture.js', 'laptop.js', 'realistic.js', 'scenic-window.js', 'objects.js', 'entries.js', 'board-ec6.js', 'mochi-day.js', 'backpack.js', 'media.js', 'portal-tsq.js', 'views.js', 'holo-lab.js', 'fold.js', 'home-store.js', 'home-defaults.js', 'bridge.js', 'app.js']
 CSS_OPEN, JS_OPEN = '<style id="mn-spatial-home-css">\n', '<script id="mn-spatial-home">\n'
 
 
@@ -63,10 +63,12 @@ def opt(args, name):
 
 
 def patched(s, remove, boot_default):
+    # already in: replaced where it stands (other blocks after it keep running after it); else put in before </body>
+    i = s.find(CSS_OPEN)
     s, _ = cut(s, CSS_OPEN, '</style>')
     s, _ = cut(s, JS_OPEN, '</script>')
     if not remove:
-        k = s.rindex('</body>')
+        k = i if i >= 0 else s.rindex('</body>')
         s = s[:k] + blocks(boot_default) + s[k:]
     return s
 

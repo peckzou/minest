@@ -201,3 +201,23 @@ python3 tools/spatial-home/port_main_modules.py --remove
 - 入口物件不再有文字标签，改为小星光闪烁。
 - 验收（预览浏览器，main 的 iPhoneDuo.html）：A 旋转明信片架放置并转动 ✓；B 装载 16 张卡的 List，抽出一张、放回原槽 ✓；C DREAM 霓虹字装到桌面并点亮 ✓；D 收回后作品记录不变 ✓；E 再放不复制（按钮变「移动」，始终 1 件）✓；F 打字机从背包移动后仍进入 Hermes ✓；G 刷新后展架（含 List）和作品位置都在 ✓；H 与 My World / 圣托里尼共用背包 ✗ 未做。
 - 未做：H；其余 7 种装置（陈列引擎里本来就没做）；云同步只验证到写入 MinestKnowledge，没有用登录账户跨设备验证；真机只安装了 Duo，没有在设备上逐项操作。
+
+## 每个房间的默认物件 + 云同步（2026-11-22）
+
+- **默认物件**：房间里 ⚙ 设置 →「🏠 每个房间的默认物件…」。一个面板管所有房间：这个页面能建的房间（维多利亚书房、圣托里尼 Atelier、2.0 的工作室 / 客厅 / 前院 / 后院 / 大教堂……）
+  直接在房间里改；别的页面的房间（主应用里的 2.0 房间、Clun 住宅的 18 间）按清单改，打开那个房间时生效。
+  - 勾选功能物件（打字机、布告栏、日程本……）、添加 / 去掉家具（书桌、钢琴、管风琴……），马上存为这个房间的默认；
+    「挪」或在房间里拖动后点「把现在的摆放存为默认」调位置；「按默认重新摆放」「恢复出厂默认」。
+  - 规则（`js/home-defaults.js`）：默认比房间现在的摆放新 → 房间按默认重新摆（家具和功能物件按默认；你的作品、My World 物品、陈列装置是内容，不动）。之后你再挪的是你的摆放。
+- **同步**（`js/home-store.js`）：默认 `sh:def:<房间>`、摆放 `bp:home:<房间>`（Clun：`sh:def:clun:<房间>`、`bp:home:clun:<房间>`），都在 Minest Knowledge 里
+  （`minest.knowledge.v1` → 云端 `users/<uid>/focusboard/data` 的 `knowledge`，每个键 `{v, t}` 按时间合并）——就是 My World 已经在用的通道，没有新开。
+  - 主应用里、或同源的页面（独立页会在后台载入 Minest）：直接用 Minest 的 `MinestKnowledge`。
+  - iOS App（file: 页面）里从线上地址打开的 Clun：postMessage 交给 Minest 页面，Minest 页面写进它自己的存储并转发更新。
+  - 自己单独打开、旁边没有 Minest：同一份本机存储 + 同一个云端字段（Minest 的 Firebase 项目和登录），离线先进待发队列，联网补传；每次读到云端，本机更新的键会再发一次。
+  - 摆放只在**真的变了**时才写（以前每次 save 都重写，会给没动过的摆放盖新时间，让只是看了看的设备覆盖别的设备的挪动）。别的设备的改动合并进来后，正在看的房间马上跟着变（在挪东西或转场时等它结束）。
+- Clun 2.0：`clun-2/v2-objects.js`，进屋后右下「🪑 摆放」。
+
+```bash
+node tests/clun-2/clun2.test.cjs
+python3 tools/spatial-home/patch_spatial_home.py --pages main --boot-default on && python3 tools/v2-routes/patch_v2_routes.py   # 块原地替换；2.0 路由的地址替换要在它之后再跑
+```

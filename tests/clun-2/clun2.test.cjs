@@ -10,8 +10,10 @@ const html = rd('spatial-home/clun-2/index.html'), html1 = rd('spatial-home/clun
 const srcs = h => [...h.matchAll(/<script src="([^"?]+)/g)].map(m => m[1]);
 const ONE = srcs(html1), TWO = srcs(html);
 assert(/<base href="\.\.\/clun\/">/.test(html), 'relative addresses resolve in the 1.0 folder, so its scripts and pictures load as they are');
-assert.deepStrictEqual(TWO.filter(s => !/clun-2/.test(s)), ONE, 'every 1.0 script, in the 1.0 order');
-assert.deepStrictEqual(TWO.filter(s => /clun-2/.test(s)), ['../clun-2/v2-kit.js', '../clun-2/v2-rooms.js', '../clun-2/v2-live.js']);
+assert.deepStrictEqual(TWO.filter(s => !/clun-2|^\.\.\/js\//.test(s)), ONE, 'every 1.0 script, in the 1.0 order');
+assert.deepStrictEqual(TWO.filter(s => /^\.\.\/js\//.test(s)), ['../js/home-store.js', '../js/home-defaults.js'], 'the rooms\' synced store and the default things editor (shared with Spatial Home)');
+assert.deepStrictEqual(TWO.filter(s => /clun-2/.test(s)), ['../clun-2/v2-kit.js', '../clun-2/v2-rooms.js', '../clun-2/v2-objects.js', '../clun-2/v2-live.js']);
+assert(TWO.indexOf('../clun-2/v2-objects.js') < TWO.indexOf('js/app.js') && TWO.indexOf('../js/home-defaults.js') < TWO.indexOf('../clun-2/v2-objects.js'), 'the things layer comes before the 1.0 app (it notes the canvas and camera the app makes), after the store and editor');
 assert(TWO.indexOf('js/furnish.js') < TWO.indexOf('../clun-2/v2-kit.js') && TWO.indexOf('../clun-2/v2-rooms.js') < TWO.indexOf('js/model.js') && TWO.indexOf('js/app.js') < TWO.indexOf('../clun-2/v2-live.js'),
   '2.0 wraps the furnishing before the model is built, and adds its live layer after the app starts');
 TWO.forEach(s => assert(fs.existsSync(path.join(R, 'spatial-home/clun', s)), s + ' exists'));
