@@ -333,12 +333,13 @@
     left.addEventListener('click', function (e) { e.stopImmediatePropagation(); e.preventDefault(); try { localStorage.setItem(TOP, '1'); } catch (er) {} bottom.click(); sides(); }, true);
     [].forEach.call(items, function (b) { if (b !== left) b.addEventListener('click', function () { try { localStorage.setItem(TOP, '0'); } catch (er) {} setTimeout(sides, 0); }, true); });
   }
-  /* drag the Dock anywhere (2026-11-22, the user: "长按拖着移动，不然有的时候会挡住"): hold ~0.45 s, then move — the
-     Dock follows the finger and stays where it is let go (kept on this device as a fraction of the screen). A short tap
-     still presses a key, a hold without moving still opens the Dock menu, which also has 复位 Reset position. */
+  /* drag the Dock anywhere (2026-11-22, the user: "长按拖着移动" → then "拉着它就要可以拖到"): press and move — no hold
+     needed; the Dock follows the finger and stays where it is let go (kept on this device as a fraction of the screen).
+     A tap still presses a key, a hold without moving still opens the Dock menu, which also has 复位 Reset position. */
   var FREE = 'minest.dockFree.v1', dg = null;
   function freeGet() { try { return JSON.parse(localStorage.getItem(FREE) || 'null'); } catch (e) { return null; } }
   function freeApply() {
+    if (dg && dg.on) return;   // mid-drag: the finger owns the position (the page's re-layouts must not snap it back)
     var f = freeGet(), d = dock(); R.classList.toggle('mn-dock-free', !!f); if (!f || !d) return;
     var r = d.getBoundingClientRect(), w = r.width || 60, h = r.height || 60;
     R.style.setProperty('--mn-fx', Math.round(Math.max(6, Math.min(innerWidth - w - 6, f.x * innerWidth))) + 'px');
@@ -352,15 +353,16 @@
     dg = { x: e.clientX, y: e.clientY, id: e.pointerId, d: d, held: false, on: false };
     dg.tm = setTimeout(function () { if (dg) { dg.held = true; d.classList.add('mn-dock-ready'); } }, 450);
   }, true);
-  document.addEventListener('pointermove', function (e) {
+  // on window, capture, registered at load: ahead of the board's own swipe handlers (added per press), which would
+  // otherwise take the move as a lane scroll and stop it before the Dock sees it
+  window.addEventListener('pointermove', function (e) {
     if (!dg || e.pointerId !== dg.id) return;
     if (!dg.on) {
-      if (Math.hypot(e.clientX - dg.x, e.clientY - dg.y) < 10) return;
-      if (!dg.held) { clearTimeout(dg.tm); dg = null; return; }   // moved before the hold: not a Dock drag
+      if (Math.hypot(e.clientX - dg.x, e.clientY - dg.y) < 6) return;
       var r0 = dg.d.getBoundingClientRect(); dg.ox = r0.left - dg.x; dg.oy = r0.top - dg.y; dg.on = true;   // measured from where the finger went down, so the Dock keeps up with it
       R.classList.add('mn-dock-free', 'mn-dock-moving'); closeDockMenu(); haptic();
     }
-    e.preventDefault(); e.stopPropagation();
+    e.preventDefault(); e.stopImmediatePropagation();
     var r = dg.d.getBoundingClientRect();
     R.style.setProperty('--mn-fx', Math.round(Math.max(6, Math.min(innerWidth - r.width - 6, e.clientX + dg.ox))) + 'px');
     R.style.setProperty('--mn-fy', Math.round(Math.max(6, Math.min(innerHeight - r.height - 6, e.clientY + dg.oy))) + 'px');
@@ -368,7 +370,7 @@
   function dockDragEnd(e) {
     if (!dg || e.pointerId !== dg.id) return; clearTimeout(dg.tm); dg.d.classList.remove('mn-dock-ready');
     if (dg.on) {
-      e.preventDefault(); e.stopPropagation(); closeDockMenu();
+      e.preventDefault(); e.stopImmediatePropagation(); closeDockMenu();
       var x = parseFloat(R.style.getPropertyValue('--mn-fx')) || 0, y = parseFloat(R.style.getPropertyValue('--mn-fy')) || 0;
       try { localStorage.setItem(FREE, JSON.stringify({ x: x / innerWidth, y: y / innerHeight })); } catch (er) {}
       R.classList.remove('mn-dock-moving');
@@ -378,7 +380,7 @@
     }
     dg = null;
   }
-  document.addEventListener('pointerup', dockDragEnd, true); document.addEventListener('pointercancel', dockDragEnd, true);
+  window.addEventListener('pointerup', dockDragEnd, true); window.addEventListener('pointercancel', dockDragEnd, true);
   function freeMenu(m) {
     if (m.__mnFree || !freeGet()) return; m.__mnFree = 1;
     var b = document.createElement('button'); b.type = 'button'; b.innerHTML = '<i>⤺</i>复位 Reset position';
