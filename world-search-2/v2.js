@@ -207,9 +207,9 @@
     if (r.k === 'phil') return openModel(r.h.id);
     if (r.k === 'think') return MinestOmni.openCard('compass', q);
     if (KIND[r.k] && KIND[r.k].card) {   // into the card that holds it, on the thought in the bar
-      var card = KIND[r.k].card; MinestOmni.openCard(card, q);
-      if (r.k === 'model' || r.k === 'lab') send({ cmd: 'open2', card: card, input: q, model: r.k === 'model' ? r.h.id : null, lab: r.k === 'lab' ? r.h.id : null });
-      return;
+      var card = KIND[r.k].card;
+      if (r.k === 'model' || r.k === 'lab') send({ cmd: 'open2', card: card, input: q, model: r.k === 'model' ? r.h.id : null, lab: r.k === 'lab' ? r.h.id : null });   // first: 1.0's open follows
+      return MinestOmni.openCard(card, q);
     }
     if (!inApp()) {   // this page on its own: there is no app behind the bar
       if (r.k === 'home') { window.open(BASE + '../iphone.html', '_blank'); return; }

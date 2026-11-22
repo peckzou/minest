@@ -2,7 +2,7 @@
    Answers the 2.0 search box (v2.js) over postMessage, next to 1.0's own commands:
      search2 → what the knowledge engine makes of the text (place, confidence, candidates), everything it knows that
                matches (engine2.js search) and what each of the five cards has for it
-     open2   → the open card switches to one thinking model / experiment picked in the results
+     open2   → the card about to open lands on one thinking model / experiment picked in the results
    and hands two things to the page instead of 1.0's host: a philosophy model opens in 模型馆 2.0, the island from here.
    The open tool also shows the engine's confidence under its title. */
 (function () {
@@ -47,15 +47,20 @@
       } catch (x) { out.error = String(x && x.message || x); }
       post(out);
     });
-    else if (m.cmd === 'open2') ready(function () {   // after 1.0's own “open” has made / found the object for the text
-      var n = 0, input = String(m.input || '').trim();
-      (function wait() {
-        var k = TK.ko && TK.ks.object(TK.ko.id);
-        if (k && (!input || k.original_input === input) && TK.card === m.card) return TK.open(m.card, { objectId: k.id, model: m.model, lab: m.lab });
-        if (++n < 40) setTimeout(wait, 100);
-      })();
-    });
+    else if (m.cmd === 'open2') {   // sent just before 1.0's own “open” for the same card and text: that open then lands on the picked model / experiment
+      var p = pick = { card: m.card, input: String(m.input || '').trim(), model: m.model || null, lab: m.lab || null };
+      setTimeout(function () { if (pick === p) pick = null; }, 4000);
+    }
   });
+  var pick = null, open1 = TK.open;
+  TK.open = function (card, o) {
+    o = o || {};
+    if (pick && card === pick.card && !o.model && !o.lab) {
+      var k = o.objectId && TK.ks.object(o.objectId), text = o.input != null ? String(o.input).trim() : k ? k.original_input : null;
+      if (text === pick.input) { if (pick.model) o.model = pick.model; if (pick.lab) o.lab = pick.lab; pick = null; }
+    }
+    return open1.call(TK, card, o);
+  };
 
   // philosophy models and the island: the 2.0 page opens them (1.0's host would look for them next to this folder)
   TK.openPhil = function (id) { post({ action: 'phil', id: id }); };
