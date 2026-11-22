@@ -146,7 +146,7 @@
   })(0);
   function tour(on) {
     if (on === touring) return; touring = on; tourBtn.classList.toggle('on', on); clearInterval(tourT);
-    if (on) { played = !!CM.play(); CM.play(true);
+    if (on) { var pl = document.querySelector('#cm-bar .pl'); played = !!(pl && pl.classList.contains('on')); CM.play(true);   // (play() tells nothing: the 1.0 key shows whether it was already playing)
       tourT = setInterval(function () { var i = MODES.indexOf(info(CM.get())); go(MODES[(i + 1) % MODES.length][0]); }, 6500);
       var i0 = MODES.indexOf(info(CM.get())); go(MODES[(i0 + 1) % MODES.length][0]);
     } else if (!played) CM.play(false);
