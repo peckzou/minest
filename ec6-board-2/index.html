@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#17110d">
+<title>EC–6 布告栏 2.0 · Study Studio MK II</title>
+<link rel="icon" href="data:,">
+<script>/* the files beside this page are addressed relatively: the address needs its last slash */
+if (!/\/$|\.html$/.test(location.pathname)) location.replace(location.pathname + '/' + location.search + location.hash);</script>
+<link rel="stylesheet" href="v2.css">
+</head>
+<body class="v2">
+<!-- EC–6 布告栏 2.0: 1.0's board (../spatial-home/js/board-ec6.js) loaded unchanged; v2.css + v2.js are the whole upgrade -->
+<div id="board"></div>
+<nav id="rail" aria-label="布告栏工具 Board tools"></nav>
+<button id="unzen" type="button" hidden>退出全屏</button>
+<div id="sample" hidden>示例内容 · 在 Minest 里登录后，这里显示你的看板</div>
+<iframe id="host" title="Minest" allow="camera; microphone; fullscreen; autoplay; clipboard-write" tabindex="-1"></iframe>
+<button id="toBoard" type="button" hidden>↩ 回到布告栏</button>
+<script>/* 2.0 keeps its own board, apart from 1.0's (same origin, same key in board-ec6.js). The first time, it starts from 1.0's board as it is now.
+   ?demo=1 is the sample board: its board and its word records (1.0 writes those to the study store) go to keys of their own, never to yours. */
+(function () {
+  var demo = /[?&]demo=1\b/.test(location.search), K = 'minest.ec6board.v1', G = 'minest.gptstudy.v1';
+  var MAP = {}; MAP[K] = demo ? 'minest.ec6board2.demo' : 'minest.ec6board2.v1'; if (demo) MAP[G] = 'minest.gptstudy.demo';
+  var K2 = MAP[K], g = Storage.prototype.getItem, s = Storage.prototype.setItem, to = function (k) { return Object.prototype.hasOwnProperty.call(MAP, k) ? MAP[k] : k; };
+  try { if (g.call(localStorage, K2) == null) { window.EC6V2_FRESH = true; var v1 = demo ? null : g.call(localStorage, K); if (v1) s.call(localStorage, K2, v1); } } catch (e) {}
+  Storage.prototype.getItem = function (k) { return g.call(this, to(k)); };
+  Storage.prototype.setItem = function (k, v) { return s.call(this, to(k), v); };
+  window.EC6V2_DEMO = demo;
+})();</script>
+<script src="../spatial-home/js/board-ec6.js"></script>
+<script src="v2.js"></script>
+</body>
+</html>

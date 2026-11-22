@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cognitive Toolkit 2.0 · Minest</title>
+<link rel="icon" href="data:,">
+<script src="store2.js"></script>
+<script>
+/* The toolkit for World Search 2.0. 1.0's page (../toolkit.html, built from tools/toolkit/) is read as it is deployed and
+   written into this frame unchanged, with two additions around it:
+     before its scripts   engine2.js adds 2.0's lexicon to the taxonomy the compass is about to load
+     after them           toolkit2.js answers World Search 2.0 (search, confidence, the 2.0 philosophy models)
+   So 2.0 always runs on the latest 1.0 toolkit and never edits it. */
+(function () {
+  fetch('../toolkit.html', { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); }).then(function (html) {
+    var at = html.indexOf('window.__TK_DATA'), end = at < 0 ? -1 : html.indexOf('<\/script>', at);
+    if (end < 0) throw new Error('the 1.0 toolkit page has no data in it');
+    end += 9;
+    html = html.slice(0, end) + '\n<script src="store2.js"><\/script><script src="engine2.js"><\/script><script>MinestEngine2.extend(window.__TK_DATA["../compass/taxonomy.json"]);<\/script>' + html.slice(end);
+    var close = html.lastIndexOf('<\/body>'); if (close < 0) close = html.length;
+    html = html.slice(0, close) + '<script src="toolkit2.js"><\/script>\n' + html.slice(close);
+    document.open(); document.write(html); document.close();
+  }).catch(function (e) {
+    document.body.innerHTML = '<p style="font:14px/1.5 -apple-system,sans-serif;color:#fff;background:#14121f;padding:24px;margin:0;height:100vh;box-sizing:border-box">工具箱没有加载出来 · The toolkit could not load (' + String(e && e.message || e).replace(/[<&]/g, '') + ')</p>';
+  });
+})();
+</script>
+</head>
+<body></body>
+</html>
