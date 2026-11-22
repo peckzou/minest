@@ -83,7 +83,8 @@
       if (fresh || !db.objectStoreNames.contains('kv')) { db.close(); finish(); return; }
       try {
         var g = db.transaction('kv', 'readonly').objectStore('kv').get('boards');
-        g.onsuccess = function () { var v = clean(g.result); db.close(); if (v.length) use(v, false); finish(); };
+        g.onsuccess = function () { var v = clean(g.result); db.close(); if (v.length) use(v, false); else if (g.result != null && !isSample) use(sampleBoards(), true);   // (a full copy with no cards left: the older localStorage one is out of date)
+          finish(); };
         g.onerror = function () { db.close(); finish(); };
       } catch (e) { db.close(); finish(); }
     };
