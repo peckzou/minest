@@ -122,7 +122,7 @@ export const STAGES: Record<string, StageSpec> = {
     motes: [dust('#ffd9a0', { count: 90, opacity: 0.3, size: 0.04, vel: [0.05, -0.03, 0] })],
     camera: { sweep: 6 },
     key: { sparks: 0, light: 0 },
-    build: (scene) => void skyline(scene, { z: -34, y: -11.5, width: 130, height: 7.5, window: '#b8bcd8' }),
+    build: (scene) => void skyline(scene, { z: -34, y: -17, width: 130, height: 13, window: '#b8bcd8' }),
   },
   /* 13 */ skywriting: {
     look: { exposure: 1.15, bloom: { strength: 0.3, threshold: 0.8 }, shadow: [0.95, 0.98, 1.1] },

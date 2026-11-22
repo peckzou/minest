@@ -74,7 +74,7 @@ export function skyline(scene: THREE.Scene, opts: { z: number; y: number; width:
     let x = 0;
     while (x < w) {
       const bw = 26 + Math.random() * 70;
-      const bh = h * (0.18 + Math.pow(Math.random(), 1.8) * 0.78);
+      const bh = h * (0.46 + Math.pow(Math.random(), 1.8) * 0.5); // the lower half is below the frame
       g.fillStyle = `rgb(${6 + Math.random() * 6},${7 + Math.random() * 6},${12 + Math.random() * 8})`;
       g.fillRect(x, h - bh, bw, bh);
       if (Math.random() < 0.25) g.fillRect(x + bw * 0.45, h - bh - 16 - Math.random() * 26, 2, 44);
