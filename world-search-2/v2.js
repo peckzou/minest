@@ -113,9 +113,10 @@
     root.addEventListener('keydown', function (e) {
       if (overEl) return;
       if (e.altKey && /^Digit[1-5]$/.test(e.code)) { e.preventDefault(); e.stopPropagation(); var q = input.value.trim(); remember(q); return MinestOmni.openCard(CARD_IDS[+e.code.slice(5) - 1], q); }
+      if (e.target === input && e.key === 'Enter' && (e.isComposing || e.keyCode === 229)) return e.stopPropagation();   // confirming 中文 input: the IME's Enter, not the bar's (1.0 would act on it)
       if (root.classList.contains('has-panel') || e.target !== input) return;   // a tool is open: Enter is 1.0's (it re-runs the tool)
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); if (rows.length) { sel = (sel + (e.key === 'ArrowDown' ? 1 : -1) + rows.length) % rows.length; paintSel(true); } }
-      else if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); e.stopPropagation(); act(rows[sel]); }
+      else if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); act(rows[sel]); }
       else if (e.key === 'Tab' && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); e.stopPropagation(); var i = SCOPES.map(function (s) { return s[0]; }).indexOf(scope); setScope(SCOPES[(i + (e.shiftKey ? -1 : 1) + SCOPES.length) % SCOPES.length][0]); }
     }, true);
     return true;
