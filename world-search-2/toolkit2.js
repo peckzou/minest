@@ -11,7 +11,7 @@
   var ZH = (window.__TK_DATA && window.__TK_DATA['i18n/zh.json'] && window.__TK_DATA['i18n/zh.json'].strings) || {};
   function zh(x) { return ZH[x] || x; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-  function post(m) { try { window.parent.postMessage(Object.assign({ type: 'minest-ws2' }, m), '*'); } catch (e) {} }
+  function post(m) { try { window.parent.postMessage(Object.assign({ type: 'minest-ws2' }, m), location.origin); } catch (e) {} }   // this site's pages only
   var TYPE = { question: '问题', concept: '概念', goal: '目标', hypothesis: '假设', opinion: '观点', statement: '陈述' };
   var ix = null;
   function index() { return ix || (ix = E.buildIndex({ phil: TK.philModels || [], frameworks: C.frameworks(), templates: TK.data.templates, models: TK.data.models, labs: TK.data.labs, nodes: C.nodes(), zh: zh })); }
@@ -33,7 +33,7 @@
     };
   }
   window.addEventListener('message', function (e) {
-    var m = e.data; if (!m || m.type !== 'minest-toolkit-cmd' || e.source !== window.parent) return;
+    var m = e.data; if (!m || m.type !== 'minest-toolkit-cmd' || e.source !== window.parent || e.origin !== location.origin) return;
     if (m.cmd === 'search2') ready(function () {
       var q = String(m.input || '').trim(), out = { action: 'results', id: m.id, q: q, size: index().length, phil: (TK.philModels || []).length };
       try {
