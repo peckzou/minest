@@ -14,6 +14,35 @@
   }
   function use(list, sample) { boards = list; isSample = !!sample; window.dispatchEvent(new CustomEvent('dyn2:data')); }
 
+  /* a picture chosen from this device lives in Minest's own image store (minest-visual-assets); the card keeps its id, and a
+     blob: address that ended with Minest's last visit. Here the stored picture gets an address of this page's own. */
+  var assets = null;
+  function loadAssets(cb) {
+    if (assets || !window.indexedDB || !window.URL || !URL.createObjectURL) return cb();
+    assets = {};
+    try {
+      var req = indexedDB.open('minest-visual-assets'), fresh = false;
+      req.onupgradeneeded = function () { fresh = true; try { req.transaction.abort(); } catch (e) {} };   // Minest has not made it yet: leave it that way
+      req.onerror = function () { cb(); };
+      req.onsuccess = function () {
+        var db = req.result;
+        if (fresh || !db.objectStoreNames.contains('images')) { db.close(); cb(); return; }
+        try {
+          var g = db.transaction('images', 'readonly').objectStore('images').getAll();
+          g.onsuccess = function () { (g.result || []).forEach(function (a) { if (a && a.id && a.blob) try { assets[a.id] = URL.createObjectURL(a.blob); } catch (e) {} }); db.close(); cb(); };
+          g.onerror = function () { db.close(); cb(); };
+        } catch (e) { db.close(); cb(); }
+      };
+    } catch (e) { cb(); }
+  }
+  function mend(list) {   // (on this page's own copy of the boards)
+    list.forEach(function (b) { (b.columns || []).forEach(function (col) { (col.cards || []).forEach(function (c) { [c].concat(c.stack || []).forEach(function (k) {
+      var id = k && k.userImage && k.userImage.localAssetId; if (!id) return;
+      var u = assets && assets[id] || '', cv = {}; for (var f in k.cover || {}) cv[f] = k.cover[f];
+      cv.type = 'image'; cv.value = u; cv.url = u; k.cover = cv;
+    }); }); }); });
+  }
+
   /* the sample boards: every picture is drawn here, nothing is fetched */
   function art(h, kind, i) {
     var a = 'hsl(' + h + ',72%,56%)', b = 'hsl(' + ((h + 48) % 360) + ',70%,30%)', c = 'hsl(' + ((h + 320) % 360) + ',88%,74%)', body = '', k, pts;
@@ -72,7 +101,8 @@
   var forceSample = /[?&]sample\b/.test(location.search), own = [];
   if (!forceSample) try { own = clean(localStorage.getItem(LS_BOARDS)); } catch (e) {}
   if (own.length) use(own, false); else use(sampleBoards(), true);
-  function finish() { done = true; waiting.splice(0).forEach(function (fn) { try { fn(); } catch (e) {} }); }
+  function ready() { done = true; waiting.splice(0).forEach(function (fn) { try { fn(); } catch (e) {} }); }
+  function finish() { if (isSample) return ready(); loadAssets(function () { mend(boards); window.dispatchEvent(new CustomEvent('dyn2:data')); ready(); }); }
   if (forceSample || !window.indexedDB) { finish(); return; }
   try {
     var req = indexedDB.open(IDB), fresh = false;
