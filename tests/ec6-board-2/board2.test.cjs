@@ -54,5 +54,6 @@ assert.deepStrictEqual(['ela', 'math', 'sci', 'ss', 'other'].map(s => p.w.Spatia
   .forEach(h => assert(v1.includes(h), '1.0 hook: ' + h));
 assert(p.w.SpatialEC6.open && p.w.SpatialEC6._.S && p.w.SpatialEC6._.daysLeft, '1.0 API');
 [...v2.matchAll(/bar\('([a-z]+)'\)/g)].forEach(m => assert(v1.includes('data-b="' + m[1] + '"'), '2.0 presses a key 1.0 has: ' + m[1]));
+assert(!/useSample|sampleWin\(\)[^\n]*45000/.test(v2) && /45000\) \{[^\n]*searchParams\.set\('demo', '1'\)[^\n]*location\.replace/.test(v2), 'when Minest does not come up the sample opens as its own page, not over your board');
 new vm.Script(v2);                                                                    // 2.0 parses
 console.log('ec6-board-2: ok');

@@ -53,14 +53,21 @@
     } };
   }
   var hostP = new Promise(function (res) {
-    function useSample() { sample = true; doc.getElementById('sample').hidden = false; hostFrame.remove(); hostWin = sampleWin(); res(hostWin); }
-    if (window.EC6V2_DEMO) { useSample(); return; }
+    if (window.EC6V2_DEMO) {
+      var badge = doc.getElementById('sample'); sample = true; badge.hidden = false; hostFrame.remove(); hostWin = sampleWin(); res(hostWin);
+      if (/[?&]late=1\b/.test(location.search)) {                       // sent here because Minest did not come up: one tap tries again
+        badge.textContent = 'Minest 没有加载出来 · 现在是示例内容 · 点这里重试'; badge.classList.add('v2-retry');
+        badge.addEventListener('click', function () { var u = new URL(location.href); u.searchParams.delete('demo'); u.searchParams.delete('late'); location.replace(u.href); });
+      }
+      return;
+    }
     hostFrame.src = appUrl();
     var t0 = Date.now(), iv = setInterval(function () {
       var w = null, ok = false;
       try { w = hostFrame.contentWindow; ok = !!(w && w.document && w.document.readyState === 'complete' && w.document.getElementById('root') && w.MinestAI && w.MinestAI.boards); } catch (e) {}
       if (ok) { clearInterval(iv); hostWin = w; res(w); }
-      else if (Date.now() - t0 > 45000) { clearInterval(iv); useSample(); }
+      /* Minest never came up: the sample board, as its own page, so sample cards are never written into your board */
+      else if (Date.now() - t0 > 45000) { clearInterval(iv); var u = new URL(location.href); u.searchParams.set('demo', '1'); u.searchParams.set('late', '1'); location.replace(u.href); }
     }, 250);
   });
   /* a card of the sample board, opened */
