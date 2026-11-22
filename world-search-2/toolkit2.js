@@ -73,7 +73,8 @@
     '.e2-strip .m{position:relative;width:64px;height:6px;border-radius:3px;background:rgba(128,128,160,.28);overflow:hidden}.e2-strip .m i{position:absolute;inset:0 auto 0 0;border-radius:3px;background:linear-gradient(90deg,#f08c3a,#1fbf75)}' +
     '.e2-strip span{padding:2px 7px;border-radius:999px;background:rgba(128,128,160,.2)}.e2-strip span.new{box-shadow:inset 0 0 0 1px #5e9cff}.e2-strip span.m{padding:0}' +
     /* inside the search bar's dark panel the thought's title and its buttons are light (1.0 leaves them dark on dark) */
-    'html.tk-panel .tk-obj h2{color:#f2f4ff}html.tk-panel .tk-obj h2 small,html.tk-panel .tk-place{color:rgba(220,225,255,.66)}html.tk-panel .tk-objact .ghost{color:#e8eaff;border-color:rgba(255,255,255,.3)}';
+    'html.tk-panel .tk-obj h2{color:#f2f4ff}html.tk-panel .tk-obj h2 small,html.tk-panel .tk-place{color:rgba(220,225,255,.66)}html.tk-panel .tk-objact .ghost{color:#e8eaff;border-color:rgba(255,255,255,.3)}' +
+    'html.tk-panel .tk-stage>*>h2,html.tk-panel .tk-stage>h2{color:#f2f4ff}html.tk-panel .tk-stage>*>h2+p.dim,html.tk-panel .tk-stage>*>p.dim{color:rgba(220,225,255,.7)}';
   document.head.appendChild(css);
   function strip() {
     var h = document.getElementById('tk-title'), k = TK.ko && TK.ks.object(TK.ko.id); if (!h || !k || h.querySelector('.e2-strip')) return;
