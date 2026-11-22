@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0b0d18">
+<title>My World 搜索 2.0 · 知识引擎 2.0 · Minest</title>
+<link rel="icon" href="data:,">
+<style>
+  html, body { margin: 0; min-height: 100%; background: #0b0d18; color: #f2f4ff; font: 15px/1.5 -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Segoe UI", sans-serif; }
+  body { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; overflow-x: hidden; }
+  #sky { position: fixed; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse 70% 50% at 20% 10%, rgba(155, 93, 229, .34), transparent 60%), radial-gradient(ellipse 60% 45% at 85% 20%, rgba(94, 156, 255, .28), transparent 60%),
+      radial-gradient(ellipse 70% 50% at 60% 100%, rgba(0, 166, 166, .22), transparent 60%), #0b0d18; }
+  #sky::after { content: ""; position: absolute; inset: 0; opacity: .5;
+    background-image: radial-gradient(1px 1px at 12% 22%, #fff, transparent), radial-gradient(1px 1px at 31% 71%, #fff, transparent), radial-gradient(1.5px 1.5px at 52% 14%, #fff, transparent), radial-gradient(1px 1px at 68% 58%, #fff, transparent),
+      radial-gradient(1px 1px at 81% 33%, #fff, transparent), radial-gradient(1.5px 1.5px at 92% 82%, #fff, transparent), radial-gradient(1px 1px at 7% 88%, #fff, transparent), radial-gradient(1px 1px at 44% 44%, #fff, transparent); }
+  main { position: relative; width: min(880px, calc(100vw - 32px)); padding: 40px 0 56px; box-sizing: border-box; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: .08em; color: rgba(220, 225, 255, .7); }
+  .eyebrow b { font: 800 11px/1 ui-monospace, monospace; padding: 5px 8px; border-radius: 999px; color: #14122a; background: linear-gradient(90deg, #d4b8ff, #bcd6ff 50%, #a9efc6); }
+  h1 { margin: 14px 0 8px; font-size: clamp(30px, 6vw, 52px); line-height: 1.08; letter-spacing: -.01em; }
+  h1 span { background: linear-gradient(90deg, #d4b8ff, #bcd6ff 45%, #a9efc6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  p.lead { margin: 0 0 22px; max-width: 620px; color: rgba(225, 230, 255, .78); font-size: 16px; }
+  #open { display: flex; align-items: center; gap: 12px; width: 100%; height: 60px; padding: 0 18px; box-sizing: border-box; border-radius: 20px; border: 1px solid rgba(255, 255, 255, .16); background: rgba(22, 20, 40, .78);
+    color: rgba(220, 225, 255, .6); font: 500 18px/1 inherit; font-family: inherit; cursor: text; text-align: left; box-shadow: 0 20px 50px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .12); }
+  #open:hover { border-color: rgba(188, 214, 255, .6); } #open:focus-visible { outline: 2px solid #bcd6ff; outline-offset: 3px; }
+  #open svg { width: 24px; height: 24px; flex: none; fill: none; stroke: #cfd6ff; stroke-width: 2; stroke-linecap: round; }
+  #open span { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  kbd { font: 600 11px/1 ui-monospace, monospace; padding: 5px 7px; border-radius: 7px; background: rgba(255, 255, 255, .08); color: rgba(230, 235, 255, .7); }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 22px 0; }
+  .tile { display: block; padding: 16px; border-radius: 18px; border: 1px solid rgba(255, 255, 255, .1); background: rgba(22, 20, 40, .6); color: inherit; text-decoration: none; text-align: left; font: inherit; cursor: pointer; transition: border-color .2s, transform .2s; }
+  .tile:hover { border-color: var(--c); transform: translateY(-2px); } .tile:focus-visible { outline: 2px solid var(--c); outline-offset: 3px; }
+  .tile i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--c); box-shadow: 0 0 12px var(--c); }
+  .tile b { display: block; margin: 8px 0 4px; font-size: 16px; } .tile small { display: block; color: rgba(215, 220, 250, .68); font-size: 13px; line-height: 1.45; }
+  .tries { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: rgba(215, 220, 250, .6); font-size: 13px; }
+  .tries button { border: 1px solid rgba(255, 255, 255, .14); background: rgba(255, 255, 255, .05); color: #e8eaff; padding: 7px 12px; border-radius: 999px; font: inherit; cursor: pointer; }
+  .tries button:hover { background: rgba(255, 255, 255, .12); }
+  footer { margin-top: 26px; font-size: 12.5px; color: rgba(205, 210, 240, .55); } footer a { color: #bcd6ff; }
+  @media (max-width: 640px) { .tiles { grid-template-columns: 1fr; } main { padding-top: 24px; } #open kbd { display: none; } }
+</style>
+<link rel="stylesheet" href="v2.css">
+</head>
+<body>
+<div id="sky" aria-hidden="true"></div>
+<main>
+  <div class="eyebrow"><b>2.0</b>MINEST · MY WORLD SEARCH MK II</div>
+  <h1>My World <span>搜索 2.0</span></h1>
+  <p class="lead">同一个搜索框，新的一版：它现在也搜索知识本身。知识引擎 2.0、五张卡片和哲学模型馆 2.0 都在这里试，原版 1.0 一行没改。</p>
+  <button type="button" id="open" aria-label="打开搜索 Open search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.6-4.6"/></svg><span>搜索世界、知识与哲学模型…</span><kbd>⌘K</kbd></button>
+  <div class="tiles">
+    <button type="button" class="tile" style="--c:#9b5de5" data-q="人工智能会取代老师吗"><i></i><b>知识引擎 2.0</b><small>认得更多领域（物理、数学、AI、历史、健康…），给出置信度和候选位置。</small></button>
+    <button type="button" class="tile" style="--c:#5e9cff" data-q="自由"><i></i><b>搜索框 2.0</b><small>世界、哲学模型、知识框架、思维模型、实验一起搜；分组、范围、最近搜索、键盘。</small></button>
+    <a class="tile" style="--c:#f08c3a" href="models/"><i></i><b>哲学模型馆 2.0</b><small>46 个可以动手的模型：搜索、时间线、七条学习路径、进度和笔记。</small></a>
+  </div>
+  <div class="tries"><span>试试</span><button type="button" data-q="什么是自由？">什么是自由？</button><button type="button" data-q="因果">因果</button><button type="button" data-q="为什么天是蓝的">为什么天是蓝的</button><button type="button" data-q="柏拉图">柏拉图</button><button type="button" data-q="nietzche">nietzche（拼错也行）</button></div>
+  <footer>这一页单独运行，「我的世界」里是示例内容；做出来的思考只存在这台设备的 2.0 记录里。 · <a href="../iphone.html">原版 Minest</a></footer>
+</main>
+
+<script>
+/* On its own this page has no worlds behind it: a few sample ones, so the search has something of yours to find. */
+window.MinestWorld = window.MinestWorld || { sample: true, worlds: function () { return [
+  { id: 's-phil', title: '哲学入门', columns: [
+    { id: 's-phil-1', title: '大问题', cards: [{ id: 's1', title: '什么是自由？' }, { id: 's2', title: '我怎么知道我不是在做梦' }, { id: 's3', title: '正义是什么' }] },
+    { id: 's-phil-2', title: '读过的哲学家', cards: [{ id: 's4', title: '柏拉图 · 洞穴' }, { id: 's5', title: '康德 · 道德法则' }, { id: 's6', title: '庄子 · 蝴蝶' }] }] },
+  { id: 's-sci', title: '为什么？科学笔记', columns: [
+    { id: 's-sci-1', title: '天空与光', cards: [{ id: 's7', title: '为什么天是蓝的' }, { id: 's8', title: '彩虹怎么来的' }] },
+    { id: 's-sci-2', title: '因果', cards: [{ id: 's9', title: '相关不等于因果' }, { id: 's10', title: '吃早餐和成绩' }] }] },
+  { id: 's-habit', title: '习惯养成', columns: [
+    { id: 's-habit-1', title: '正在练', cards: [{ id: 's11', title: '每天读 20 分钟' }, { id: 's12', title: '学会游泳' }] }] },
+  { id: 's-ai', title: 'AI 与学习', columns: [
+    { id: 's-ai-1', title: '想不明白的', cards: [{ id: 's13', title: '人工智能会取代老师吗' }, { id: 's14', title: '机器会思考吗' }] }] }
+]; } };
+</script>
+<script src="../tools/toolkit/host.js"></script>
+<script src="../tools/toolkit/omni.js"></script>
+<script src="v2.js"></script>
+<script>
+(function () {
+  function open(q) { MinestWorldSearch2.open(q == null ? undefined : q); }
+  document.getElementById('open').onclick = function () { open(); };
+  [].forEach.call(document.querySelectorAll('button[data-q]'), function (b) { b.onclick = function () { open(b.getAttribute('data-q')); }; });
+  var h = {}; location.hash.slice(1).split('&').forEach(function (p) { var kv = p.split('='); if (kv[0]) { try { h[kv[0]] = decodeURIComponent(kv[1] || ''); } catch (e) {} } });
+  if (h.card) MinestWorldSearch2.open(h.q || '', h.card); else open(h.q != null ? h.q : undefined);   // #q=自由 · #q=自由&card=compass
+})();
+</script>
+</body>
+</html>
