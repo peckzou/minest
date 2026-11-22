@@ -230,11 +230,18 @@
 
   /* ───────────────────────── every frame ───────────────────────── */
   var last = performance.now(), starsK = 0, fps = 60, fAcc = 0, fN = 0, teleT = 0, hudOn = false;
+  // the star the console is locked on: the one in focus, else the one whose data panel is open (a single tap opens it without focusing)
+  function lockOf() {
+    if (S.focus >= 0) return S.focus;
+    var it = HL.detail.item; if (!it || !detEl.classList.contains('on')) return -1;
+    for (var i = 0; i < S.nodes.length; i++) if (S.nodes[i].it === it) return i;
+    return -1;
+  }
   function fmt(v, w, d) { var s = Math.abs(v).toFixed(d); while (s.length < w) s = '0' + s; return (v < 0 ? '−' : '+') + s; }
   function tick(ms) {
     requestAnimationFrame(tick);
     var dt = clamp((ms - last) / 1000, 0, 0.05); last = ms; var t = HL.now, rd = reduce();
-    var on = HL.boot.state === 'idle' ? 0 : U.uRise.value, br = HL.layout().settings.bright, st = inStars();
+    var on = HL.boot.state === 'idle' ? 0 : U.uRise.value, br = HL.layout().settings.bright, st = inStars(), lockI = st ? lockOf() : -1;
     starsK += ((st ? 1 : 0) - starsK) * (rd ? 1 : 0.07);
     var near = clamp((HL.cam.dist / HL.cam.homeDist - 0.5) / 0.4, 0.12, 1);   // moved in on a star: the cage steps back
     for (var i = 0; i < mats.length; i++) mats[i][0].opacity = mats[i][1] * on * br * (mats[i][2] ? starsK * near : 1) * U.uFlick.value;
@@ -260,20 +267,20 @@
       var az = ((HL.cam.az - (S.root && st ? S.root.rotation.y : 0)) * 180 / Math.PI) % 360; if (az > 180) az -= 360; if (az < -180) az += 360;
       setText(K.az, fmt(az, 5, 1) + '°'); setText(K.el, fmt(HL.cam.el * 180 / Math.PI, 4, 1) + '°'); setText(K.z, HL.cam.dist.toFixed(2)); setText(K.fps, String(Math.round(fps)));
       setText(K.hd, 'MK II · ' + ((HL.active && HL.active.en) || 'CONSOLE'));
-      var f = st && S.focus >= 0 && S.nodes[S.focus] ? S.nodes[S.focus] : null;
+      var f = lockI >= 0 && S.nodes[lockI] ? S.nodes[lockI] : null;
       setText(K.foc, f ? '◉ LOCK · ' + (f.it.title || '') : st ? '○ STANDBY · 点一颗星 tap a star' : '');
       for (i = 0; i < barEls.length; i++) barEls[i].style.height = (3 + 19 * Math.abs(Math.sin(t * 1.7 + i * 0.6) * Math.sin(t * 0.9 + i * 1.3))).toFixed(0) + 'px';
       ruleI.style.top = (clamp((HL.cam.dist - 2.4) / (HL.cam.homeDist * 1.6 - 2.4), 0, 1) * 100).toFixed(1) + '%';
     }
     if (ms - lastPlan > 450 || planFocus !== S.focus) plan(ms);
 
-    // reticle: the pressed star, else the hovered one, else the one in focus
-    var ri = st ? (pressI >= 0 ? pressI : hoverI >= 0 ? hoverI : S.focus) : -1, R0 = ri >= 0 && S.nodes[ri] && vis(ri) > 0.3 ? S.nodes[ri] : null, rs = null;
+    // reticle: the pressed star, else the hovered one, else the locked one
+    var ri = st ? (pressI >= 0 ? pressI : hoverI >= 0 ? hoverI : lockI) : -1, R0 = ri >= 0 && S.nodes[ri] && vis(ri) > 0.3 ? S.nodes[ri] : null, rs = null;
     if (R0) { rs = HL.screenOf(S.world(ri)); if (rs.behind) R0 = null; }
     ret.classList.toggle('on', !!R0);
-    if (R0) { var k = clamp((R0.hub ? 0.34 : 0.22) * rs.ppu / 42, 0.5, 1.5); ret.style.transform = 'translate(' + rs.x.toFixed(1) + 'px,' + rs.y.toFixed(1) + 'px) scale(' + k.toFixed(2) + ')'; ret.classList.toggle('lock', ri === S.focus || ri === pressI); }
+    if (R0) { var k = clamp((R0.hub ? 0.34 : 0.22) * rs.ppu / 42, 0.5, 1.5); ret.style.transform = 'translate(' + rs.x.toFixed(1) + 'px,' + rs.y.toFixed(1) + 'px) scale(' + k.toFixed(2) + ')'; ret.classList.toggle('lock', ri === lockI || ri === pressI); }
     // peek card while hovering (mouse)
-    var pk = R0 && ri === hoverI && ri !== S.focus && !tags.some(function (tg) { return tg.i === ri; });
+    var pk = R0 && ri === hoverI && ri !== lockI && !tags.some(function (tg) { return tg.i === ri; });
     if (pk) { if (peek._i !== ri) { peek._i = ri; fillTag(peek, R0); } var px = rs.x + 46, py = rs.y - 24; if (px + 220 > innerWidth) px = rs.x - 46 - 210; peek.style.transform = 'translate(' + px.toFixed(0) + 'px,' + py.toFixed(0) + 'px)'; }
     peek.classList.toggle('on', !!pk);
 
@@ -296,7 +303,8 @@
       var ex = tg.x + W / 2 < s.x ? tg.x + W : tg.x, ey = clamp(s.y, tg.y + 6, tg.y + tg.el.offsetHeight - 1);
       tg.ln.setAttribute('x1', s.x.toFixed(1)); tg.ln.setAttribute('y1', s.y.toFixed(1)); tg.ln.setAttribute('x2', ex.toFixed(1)); tg.ln.setAttribute('y2', ey.toFixed(1)); tg.ln.setAttribute('opacity', ok ? 1 : 0);
     });
-    if (fs && dr && dr.left > fs.x + 30) { var ly = clamp(fs.y, dr.top + 24, dr.bottom - 24), mx = Math.max(fs.x + 24, dr.left - 46); lead.setAttribute('points', (fs.x + 12).toFixed(1) + ',' + fs.y.toFixed(1) + ' ' + mx.toFixed(1) + ',' + ly.toFixed(1) + ' ' + dr.left.toFixed(1) + ',' + ly.toFixed(1)); lead.style.display = ''; }
+    var ls = fs; if (!ls && lockI >= 0 && S.nodes[lockI] && vis(lockI) > 0.3) { ls = HL.screenOf(S.world(lockI)); if (ls.behind) ls = null; }
+    if (ls && dr && dr.left > ls.x + 30) { var ly = clamp(ls.y, dr.top + 24, dr.bottom - 24), mx = Math.max(ls.x + 24, dr.left - 46); lead.setAttribute('points', (ls.x + 12).toFixed(1) + ',' + ls.y.toFixed(1) + ' ' + mx.toFixed(1) + ',' + ly.toFixed(1) + ' ' + dr.left.toFixed(1) + ',' + ly.toFixed(1)); lead.style.display = ''; }
     else lead.style.display = 'none';
   }
   requestAnimationFrame(tick);
