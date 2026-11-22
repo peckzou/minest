@@ -237,8 +237,8 @@ export class Renderer2 {
   }
 
   private buildComposer() {
-    this.composer?.renderTarget1.dispose();
-    this.composer?.renderTarget2.dispose();
+    // the composer frees only its own two targets; each pass (bloom has eleven) frees its own
+    for (const pass of this.composer?.passes ?? []) pass.dispose();
     this.composer?.dispose();
     this.sceneRT?.dispose();
     this.composer = null;
