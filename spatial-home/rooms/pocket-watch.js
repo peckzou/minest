@@ -159,11 +159,10 @@
     }
     return best || fallback;
   }
+  function give(room) { var A = room && room.anchors; if (A && !A['desk.watch']) { var w = spot(A); if (w) A['desk.watch'] = w; } return room; }
+  var SR = root.SpatialRoom, roomBuild0 = SR && SR.build;                                   // every room built, the first and the ones you change to (app.js setEnv)
+  if (roomBuild0) SR.build = function () { return give(roomBuild0.apply(this, arguments)); };
   var build0 = SO.build;
-  SO.build = function (room) {
-    var A = room && room.anchors;
-    if (A && !A['desk.watch']) { var w = spot(A); if (w) A['desk.watch'] = w; }
-    return build0.apply(this, arguments);
-  };
+  SO.build = function (room) { give(room); return build0.apply(this, arguments); };
   root.SpatialPocketWatch = { make: pocketWatch };
 })(window);
