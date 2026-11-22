@@ -63,7 +63,7 @@
             s += '<path class="cp-seg' + (on ? ' on' : '') + (isPlace ? ' place' : '') + (isRel ? ' rel' : '') + '" data-ring="' + r + '" data-i="' + i + '" style="--h:' + hue + '" d="' + arc(rr[0], rr[1], a0 + 0.012, a1 - 0.012) + '"/>';
             var am = a0 + sg / 2, x = Math.sin(am) * mid, y = -Math.cos(am) * mid, deg = am * 180 / Math.PI;   // upright when the segment sits under the pointer
             var maxc = Math.max(6, Math.floor(sg * mid / (r === 'inner' ? 5.6 : 6.2)));
-            s += '<text class="cp-lab' + (on ? ' on' : '') + '" transform="translate(' + x + ' ' + y + ') rotate(' + deg + ')">' + esc(short(it.label, maxc)) + '</text>';
+            s += '<text class="cp-lab' + (on ? ' on' : '') + '" transform="translate(' + x + ' ' + y + ') rotate(' + deg + ')">' + esc(short(window.MinestI18n ? MinestI18n.t(it.label) : it.label, window.MinestI18n && MinestI18n.lang() === 'zh' ? Math.max(4, Math.round(maxc / 1.8)) : maxc)) + '</text>';
           });
           s += '</g>';
         });

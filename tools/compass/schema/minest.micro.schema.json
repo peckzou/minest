@@ -1,27 +1,158 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "minest.micro/1",
-  "title": "Minest micro-interaction definition",
-  "type": "object",
-  "required": ["format", "interaction_id", "framework_id", "interaction_type", "learning_objective", "steps", "initial_state", "user_actions", "state_transitions", "feedback_rules", "completion_criteria", "result_schema", "version"],
-  "properties": {
-    "format": { "const": "minest.micro/1" },
-    "interaction_id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
-    "framework_id": { "type": "string" },
-    "also_for": { "type": "array", "items": { "type": "string" } },
-    "concept_id": { "type": "string" },
-    "interaction_type": { "enum": ["concept-reveal", "cause-effect", "perspective-shift", "concept-deconstruction", "relationship-mapping", "thought-experiment", "framework-comparison", "scenario-application"] },
-    "version": { "type": "string" },
-    "title": { "type": "string" }, "subtitle": { "type": "string" },
-    "learning_objective": { "type": "string" },
-    "disclaimer": { "type": "string" },
-    "steps": { "type": "array", "minItems": 1, "items": { "type": "object", "required": ["id", "title", "scene"] } },
-    "initial_state": { "type": "object" },
-    "user_actions": { "type": "array", "items": { "type": "object", "required": ["id", "label"] } },
-    "state_transitions": { "type": "array", "items": { "type": "object", "required": ["from", "on"], "properties": { "set": { "type": "object" }, "inc": { "type": "object" }, "merge": {}, "advance": { "type": "integer" } } } },
-    "feedback_rules": { "type": "array", "items": { "type": "object", "required": ["step", "when", "say"], "properties": { "tone": { "enum": ["info", "good", "warn"] } } } },
-    "completion_criteria": { "type": "object", "required": ["interaction"], "description": "One condition per step id (gates Next) + 'interaction' (the whole run counts as completed). Conditions: all / any / truthy / gte / eq." },
-    "content": { "type": "object" },
-    "result_schema": { "type": "object" }
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "minest.micro/1",
+ "title": "Minest micro-interaction definition",
+ "type": "object",
+ "required": [
+  "format",
+  "interaction_id",
+  "framework_id",
+  "interaction_type",
+  "learning_objective",
+  "steps",
+  "initial_state",
+  "user_actions",
+  "state_transitions",
+  "feedback_rules",
+  "completion_criteria",
+  "result_schema",
+  "version",
+  "content_review_status"
+ ],
+ "properties": {
+  "format": {
+   "const": "minest.micro/1"
+  },
+  "interaction_id": {
+   "type": "string",
+   "pattern": "^[a-z0-9-]+$"
+  },
+  "framework_id": {
+   "type": "string"
+  },
+  "also_for": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   }
+  },
+  "concept_id": {
+   "type": "string"
+  },
+  "interaction_type": {
+   "enum": [
+    "concept-reveal",
+    "cause-effect",
+    "perspective-shift",
+    "concept-deconstruction",
+    "relationship-mapping",
+    "thought-experiment",
+    "framework-comparison",
+    "scenario-application"
+   ]
+  },
+  "version": {
+   "type": "string"
+  },
+  "title": {
+   "type": "string"
+  },
+  "subtitle": {
+   "type": "string"
+  },
+  "learning_objective": {
+   "type": "string"
+  },
+  "disclaimer": {
+   "type": "string"
+  },
+  "steps": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "type": "object",
+    "required": [
+     "id",
+     "title",
+     "scene"
+    ]
+   }
+  },
+  "initial_state": {
+   "type": "object"
+  },
+  "user_actions": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "id",
+     "label"
+    ]
+   }
+  },
+  "state_transitions": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "from",
+     "on"
+    ],
+    "properties": {
+     "set": {
+      "type": "object"
+     },
+     "inc": {
+      "type": "object"
+     },
+     "merge": {},
+     "advance": {
+      "type": "integer"
+     }
+    }
+   }
+  },
+  "feedback_rules": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "step",
+     "when",
+     "say"
+    ],
+    "properties": {
+     "tone": {
+      "enum": [
+       "info",
+       "good",
+       "warn"
+      ]
+     }
+    }
+   }
+  },
+  "completion_criteria": {
+   "type": "object",
+   "required": [
+    "interaction"
+   ],
+   "description": "One condition per step id (gates Next) + 'interaction' (the whole run counts as completed). Conditions: all / any / truthy / gte / eq."
+  },
+  "content": {
+   "type": "object",
+   "description": "Scene data. content.layers[].kind: summary (Minest’s own summary) · interpretation (a reading scholars hold or dispute) · open-question."
+  },
+  "result_schema": {
+   "type": "object"
+  },
+  "content_review_status": {
+   "enum": [
+    "pending",
+    "reviewed"
+   ],
+   "description": "Whether the philosophy content has had a content review. Hosts show ‘review pending’ until it is ‘reviewed’ (or the reviewer marks it so)."
   }
+ }
 }

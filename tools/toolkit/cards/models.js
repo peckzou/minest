@@ -78,7 +78,7 @@
         el.querySelector('.md-runs').innerHTML = runs.length ? runs.map(function (r) { var m = model(r.model_id); return '<div class="md-run' + (r.id === runId ? ' on' : '') + '"><label><input type="checkbox" data-cmp="' + r.id + '"' + (compare.indexOf(r.id) >= 0 ? ' checked' : '') + '> </label><button type="button" data-run="' + r.id + '"><b>' + esc(m ? m.title : r.model_id) + '</b><small>' + new Date(r.updated_at || r.at).toLocaleString() + '</small></button></div>'; }).join('') +
           '<button type="button" class="small" data-compare' + (compare.length < 2 ? ' disabled' : '') + '>Compare selected (' + compare.length + ')</button>' : '<p class="dim">None yet.</p>';
       }
-      function btn(m, rec) { return '<button type="button" class="md-m' + (cur && cur.id === m.id && !runId ? ' on' : '') + '" data-model="' + m.id + '"><b>' + esc(m.title) + '</b>' + (rec ? '<small>' + esc(m.principle.split('.')[0]) + '.</small>' : '') + '</button>'; }
+      function btn(m, rec) { return '<button type="button" class="md-m' + (cur && cur.id === m.id && !runId ? ' on' : '') + '" data-model="' + m.id + '"><b>' + esc(m.title) + '</b>' + (rec ? '<small class="md-pr">' + esc(m.principle) + '</small>' : '') + '</button>'; }
 
       function open(m, run) {
         cur = m; runId = run ? run.id : null; inp = run ? JSON.parse(JSON.stringify(run.inputs)) : seedInputs(m);

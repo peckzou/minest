@@ -171,15 +171,25 @@
   }
 
   var COLS = ['philosophy', 'knowledge', 'nature', 'psychology', 'society', 'systems', 'life'];
-  var URLS = ['../compass/taxonomy.json', '../compass/frameworks-ext.json', '../compass/micro/kant-causality.json', 'labs/locke-room.json', 'data/templates.json', 'data/seeds.json', 'data/models.json']
+  var LABS = ['../compass/micro/kant-causality.json', 'labs/locke-room.json', 'labs/plato-cave.json', 'labs/aristotle-causes.json', 'labs/hegel-concept.json'];
+  var URLS = ['../compass/taxonomy.json', '../compass/frameworks-ext.json', 'data/templates.json', 'data/seeds.json', 'data/models.json'].concat(LABS).concat(['i18n/zh.json'])
     .concat(COLS.map(function (c) { return '../knowledge/frameworks/' + c + '.json'; }));
   URLS.reduce(function (p, u) { return p.then(function (acc) { return j(u).then(function (d) { acc.push(d); return acc; }); }); }, Promise.resolve([]))
     .then(function (all) {
-      var fws = []; all.slice(7).forEach(function (col) { fws = fws.concat(col.frameworks || []); });
+      var n = 5 + LABS.length, fws = []; all.slice(n + 1).forEach(function (col) { fws = fws.concat(col.frameworks || []); });
+      // Chinese: the toolkit's own content, plus the Chinese names the data already carries (places, frameworks)
+      var I = window.MinestI18n;
+      if (I) {
+        I.add(all[n].strings);
+        var names = {}; (all[0].nodes || []).forEach(function (x) { if (x.en && x.name) names[x.en] = x.name; });
+        var ext = all[1].frameworks || {}; fws.forEach(function (f) { if (ext[f.id] && ext[f.id].zh) names[f.name] = ext[f.id].zh; });
+        Object.keys(ext).forEach(function (id) { if (ext[id].name && ext[id].zh) names[ext[id].name] = ext[id].zh; });
+        I.add(names);
+        I.onChange(function () { if (TK.ko) render(); });
+      }
       C.load({ taxonomy: all[0], ext: all[1], frameworks: fws, store: backend });
-      M.register(all[2]); M.register(all[3]);
-      TK.data.templates = all[4].templates; TK.data.seeds = all[5].seeds; TK.data.models = all[6].models; TK.data.angles = all[6].angles;
-      TK.data.labs = [all[2], all[3]];
-      wire(); route();
+      TK.data.templates = all[2].templates; TK.data.seeds = all[3].seeds; TK.data.models = all[4].models; TK.data.angles = all[4].angles;
+      TK.data.labs = all.slice(5, n); TK.data.labs.forEach(function (d) { M.register(d); });
+      wire(); route(); if (window.MinestI18n) MinestI18n.start();
     }).catch(function (e) { document.body.insertAdjacentHTML('afterbegin', '<p class="err">Could not load the toolkit data: ' + esc(e.message) + '</p>'); });
 })();

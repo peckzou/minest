@@ -63,7 +63,7 @@
   var TYPES = [   // a hypothesis is often phrased as a question (“如果…会怎样？”), so it is checked first
     { id: 'hypothesis', label: 'Hypothesis', re: [/^(如果|假如|假设|要是|也许|可能)/, /(会不会|说不定)/, /^(if|suppose|maybe|perhaps)\b/i] },
     { id: 'question', label: 'Question', re: [/[?？]\s*$/, /^(为什么|为何|怎么|如何|是不是|是否|能不能|有没有|什么是)/, /(吗|呢)[?？]?\s*$/, /(是什么|为什么|怎么办|怎么样|会怎样|对吗)[?？]?\s*$/, /^(why|how|what|is|are|can|does|do|should)\b/i] },
-    { id: 'goal', label: 'Goal', re: [/^(我)?(想要?|希望|打算|计划|准备|要学|目标是)/, /(学会|掌握|提高|做到)/, /^(i want|i'd like|i plan|my goal|i hope)\b/i] },
+    { id: 'goal', label: 'Goal', re: [/^(我)?(想要?|希望|打算|计划|准备|要学|目标是)/, /^(我|要|想)?.{0,3}(学会|掌握|做到)/, /^(i want|i'd like|i plan|my goal|i hope)\b/i] },
     { id: 'opinion', label: 'Opinion', re: [/(我觉得|我认为|我相信|在我看来|应该|最好|不应该)/, /\b(i think|i believe|i feel|should)\b/i] }
   ];
   function inputType(raw) {
@@ -79,11 +79,12 @@
   function fixes() { return store ? store.keys('cn:fix:').map(function (k) { return store.get(k); }).filter(Boolean) : []; }
 
   function classify(raw) {
-    var text = norm(raw), reasons = [], raws = {}, cuesBy = {}, allCues = [];
+    var text = norm(raw), reasons = [], raws = {}, cuesBy = {}, allCues = [], structural = null;
     TAX.nodes.forEach(function (n) {
       var s = 0, got = [];
       (n.terms || []).forEach(function (t) { if (hit(text, t)) { s += weight(t); got.push(t); } });
       (n.weak || []).forEach(function (t) { if (hit(text, t)) { s += weight(t, true); got.push(t); } });
+      (n.patterns || []).forEach(function (re) { var m = text.match(new RegExp(re, 'i')); if (m) { s += 3.2; got.push(m[0].trim()); structural = structural || n.id; } });   // phrasing cues such as “X 后 Y 提高”
       if (s) { raws[n.id] = s; cuesBy[n.id] = got; allCues = allCues.concat(got); }
     });
     // frameworks' own cues also point at their primary place
@@ -107,6 +108,10 @@
     var ids = Object.keys(raws).sort(function (a, b) { return (raws[b] - raws[a]) || (depth(b) - depth(a)); });
     var primary = ids[0] || null;
     if (primary) ids.forEach(function (id) { if (id !== primary && raws[id] >= raws[primary] * 0.9 && depth(id) > depth(primary) && path(id).indexOf(primary) >= 0) primary = id; });
+    // what the user corrected before wins; otherwise the way the sentence is built (a cause-and-effect claim) wins over topic words
+    var bestFix = fixHits.filter(function (h) { return h.fix.node && TAX.by[h.fix.node]; }).sort(function (x, y) { return y.ov - x.ov; })[0];
+    if (bestFix) primary = bestFix.fix.node;
+    else if (structural) { primary = structural; reasons.push('Phrased as a cause-and-effect claim (“' + uniq(cuesBy[structural] || []).filter(function (c) { return c.length > 3; })[0] + '”) — the topic words become a related place'); }
     var top = primary ? raws[primary] : 0, onPath = primary ? path(primary) : [], seeAlso = [];
     // "see also" links in the taxonomy (e.g. causation ↔ causal inference) always come along as related places
     if (primary) onPath.forEach(function (p) { (TAX.by[p].see_also || []).forEach(function (sa) { if (TAX.by[sa] && onPath.indexOf(sa) < 0) { seeAlso.push(sa); raws[sa] = Math.max(raws[sa] || 0, top * 0.5); if (ids.indexOf(sa) < 0) ids.push(sa); } }); });

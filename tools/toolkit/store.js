@@ -26,6 +26,9 @@
   var RELBY = {}; REL.forEach(function (r) { RELBY[r.id] = r; });
   var KINDS = { concept: 'Concept', philosopher: 'Philosopher', theory: 'Theory', question: 'Question', case: 'Case', note: 'Note', 'model-run': 'Model analysis', 'lab-run': 'Experiment' };
   var PROV = { user: 'You', rule: 'Suggested (local rules)', 'ai-suggested': 'Suggested by AI', 'ai-accepted': 'AI suggestion you accepted', library: 'Minest library' };
+  // what kind of content a record is — kept apart so a quotation, a scholar's reading, AI output and your own view never blur
+  var CONTENT = { quote: 'Quotation (with source)', interpretation: 'Scholarly interpretation', summary: 'Minest summary', ai: 'AI / engine suggestion', view: 'My view', evidence: 'Evidence', question: 'My question' };
+  function contentKind(rec) { if (!rec) return null; if (rec.content_kind) return rec.content_kind; return { user: 'view', library: 'summary', rule: 'ai', 'ai-suggested': 'ai', 'ai-accepted': 'ai' }[rec.provenance] || null; }
 
   function rid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
   function norm(s) { return String(s || '').toLowerCase().replace(/[\s　·,.;:!?？！。，、"“”'’]+/g, ' ').trim(); }
@@ -94,7 +97,11 @@
       return id;
     }
     function getConcept(id) { return get('cc:' + id); }
-    function label(c) { if (typeof c === 'string') c = getConcept(c); return c ? (c.labels.en || c.labels.zh || 'Untitled') : '—'; }
+    function label(c) {   // in Chinese mode a concept shows its Chinese name when it has one
+      if (typeof c === 'string') c = getConcept(c); if (!c) return '—';
+      var zh = root.MinestI18n && root.MinestI18n.lang() === 'zh';
+      return (zh ? c.labels.zh || c.labels.en : c.labels.en || c.labels.zh) || 'Untitled';
+    }
     function updateConcept(id, patch) { var c = getConcept(id); if (!c) return null; Object.keys(patch).forEach(function (k) { c[k] = patch[k]; }); return put('cc:' + id, c, 'cc'); }
     function addToObject(koId, conceptId) { var ko = object(koId); if (ko && ko.concept_ids.indexOf(conceptId) < 0) { ko.concept_ids.push(conceptId); updateObject(koId, { concept_ids: ko.concept_ids }); } }
     function conceptsOf(koId) { var ko = object(koId); return ko ? ko.concept_ids.map(getConcept).filter(Boolean) : []; }
@@ -132,7 +139,7 @@
     // ---------------------------------------------------------------- notes (the user's understanding, from any card)
     function addNote(koId, text, o) {
       o = o || {}; var ko = object(koId); if (!ko || !String(text || '').trim()) return null;
-      var n = { id: rid(), text: String(text).trim(), from: o.from || 'user', ref: o.ref || null, provenance: 'user', at: now() };
+      var n = { id: rid(), text: String(text).trim(), from: o.from || 'user', ref: o.ref || null, provenance: 'user', content_kind: CONTENT[o.kind] ? o.kind : 'view', source: o.source || '', at: now() };
       ko.notes.push(n); updateObject(koId, { notes: ko.notes });
       if (o.about) relate('note:' + koId + ':' + n.id, o.about, 'illustrates', { ko: koId, provenance: 'user', source_ref: o.ref || ('note:' + n.id) });
       return n;
@@ -189,8 +196,11 @@
       return object(id);
     }
 
+    // content review: Minest's status in the data, overridden by the reviewer's own decision ('rv:<kind>:<id>')
+    function reviewStatus(kind, id, dflt) { var v = get('rv:' + kind + ':' + id); return v && v.status ? v.status : (dflt || null); }
+    function setReview(kind, id, status) { return put('rv:' + kind + ':' + id, { status: status, at: now() }, 'rv'); }
     return {
-      REL: REL, RELBY: RELBY, KINDS: KINDS, PROV: PROV, norm: norm,
+      REL: REL, RELBY: RELBY, KINDS: KINDS, PROV: PROV, CONTENT: CONTENT, contentKind: contentKind, reviewStatus: reviewStatus, setReview: setReview, norm: norm,
       on: function (f) { subs.push(f); return function () { subs = subs.filter(function (x) { return x !== f; }); }; },
       createObject: createObject, object: object, objects: objects, updateObject: updateObject, deleteObject: deleteObject,
       concept: concept, findConcept: findConcept, getConcept: getConcept, updateConcept: updateConcept, label: label, addToObject: addToObject, conceptsOf: conceptsOf, maybeDrop: maybeDrop,

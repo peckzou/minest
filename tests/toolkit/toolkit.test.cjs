@@ -11,6 +11,7 @@ const fws = COLS.flatMap(c => rd('tools/knowledge/frameworks/' + c + '.json').fr
 const tax = rd('tools/compass/taxonomy.json'), ext = rd('tools/compass/frameworks-ext.json');
 const T = rd('tools/toolkit/data/templates.json').templates, S = rd('tools/toolkit/data/seeds.json').seeds, MD = rd('tools/toolkit/data/models.json');
 const locke = rd('tools/toolkit/labs/locke-room.json'), kant = rd('tools/compass/micro/kant-causality.json');
+const LABS = [kant].concat(fs.readdirSync(path.join(R, 'tools/toolkit/labs')).filter(f => f.endsWith('.json')).map(f => rd('tools/toolkit/labs/' + f)));
 
 // ---------------------------------------------------------------- 1 · store
 let b = backend(), ks = KS.create(b), events = [];
@@ -53,13 +54,27 @@ MD.models.forEach(m => {
   m.result.forEach(r => assert(ids.has(r.from), m.id + ' result ' + r.from));
 });
 const schema = rd('tools/compass/schema/minest.micro.schema.json');
-[kant, locke].forEach(d => {
+assert.deepStrictEqual(LABS.map(d => d.interaction_id).sort(), ['aristotle-causes', 'hegel-concept', 'kant-causality', 'locke-room', 'plato-cave']);
+LABS.forEach(d => {
   schema.required.forEach(k => assert(k in d, d.interaction_id + ' lacks ' + k));
+  assert(['pending', 'reviewed'].includes(d.content_review_status), d.interaction_id + ' review status');
+  d.content.layers.forEach(l => assert(['summary', 'interpretation', 'open-question'].includes(l.kind), d.interaction_id + '/' + l.id + ' content kind'));
+  assert(/not|doesn’t|reading aid/.test(d.disclaimer), d.interaction_id + ' disclaimer');
   const st = d.steps.map(s => s.id), acts = new Set(d.user_actions.map(a => a.id));
   d.state_transitions.forEach(t => { assert(acts.has(t.on), d.interaction_id + ': transition on unknown action ' + t.on); assert(t.from === '*' || st.includes(t.from)); });
   st.forEach(s => assert(d.completion_criteria[s], d.interaction_id + ': no criterion for ' + s));
 });
-Object.values(ext.frameworks).forEach(x => (x.interaction_ids || []).forEach(i => assert([kant.interaction_id, locke.interaction_id].includes(i), 'unknown interaction ' + i)));
+Object.values(ext.frameworks).forEach(x => (x.interaction_ids || []).forEach(i => assert(LABS.some(d => d.interaction_id === i), 'unknown interaction ' + i)));
+assert(/thesis–antithesis–synthesis/.test(LABS.find(d => d.interaction_id === 'hegel-concept').content.layers.map(l => l.body).join(' ')), 'Hegel lab explains the triad misreading');
+assert(LABS.find(d => d.interaction_id === 'aristotle-causes').content.objects.statue.cards.filter(c => c.slot === 'none').length === 2, 'two distractor cards');
+// every data string the toolkit shows has a Chinese translation
+const ZH = rd('tools/toolkit/i18n/zh.json').strings;
+const need = [];
+T.forEach(t => { need.push(t.title, t.scope, t.caution); t.sections.forEach(x => need.push(x.label)); });
+MD.models.forEach(m => { need.push(m.title, m.principle, m.limits); m.steps.forEach(x => { need.push(x.title, x.prompt); (x.options || []).forEach(o => need.push(o[1])); }); (m.rules || []).forEach(r => need.push(r.say)); });
+LABS.forEach(d => { need.push(d.title, d.subtitle, d.learning_objective, d.disclaimer); d.steps.forEach(x => { need.push(x.title, x.prompt); (x.options || []).forEach(o => need.push(o[1])); }); d.feedback_rules.forEach(r => need.push(r.say)); d.content.layers.forEach(l => need.push(l.title, l.body)); });
+const missing = need.filter(x => x && !ZH[x]);
+assert.strictEqual(missing.length, 0, 'untranslated: ' + missing.slice(0, 5).join(' | '));
 
 // ---------------------------------------------------------------- 3 · classification for the test case
 C.load({ taxonomy: tax, ext, frameworks: fws, store: backend() });

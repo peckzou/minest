@@ -1,0 +1,521 @@
+{
+ "format": "minest.micro/1",
+ "interaction_type": "thought-experiment",
+ "version": "0.1.0",
+ "interaction_id": "plato-cave",
+ "framework_id": "plato",
+ "fits": [
+  "philosophy.epistemology",
+  "philosophy.metaphysics",
+  "philosophy"
+ ],
+ "title": "Plato’s Cave",
+ "subtitle": "Shadows, light and where you stand",
+ "learning_objective": "Tell apart what you see from what makes you believe it: shadows depend on a light, an object and where you stand. Connect this to Plato’s distinction between opinion and knowledge.",
+ "disclaimer": "A teaching version of a philosophical allegory — it is not a scientific experiment about perception and does not prove Plato’s theory of Forms.",
+ "steps": [
+  {
+   "id": "observe",
+   "title": "Observe",
+   "scene": "cave",
+   "prompt": "You are chained facing a wall. Shapes move across it. This is all you have ever seen."
+  },
+  {
+   "id": "judge",
+   "title": "Judge",
+   "scene": "judge",
+   "prompt": "What is the shape moving on the wall?",
+   "field": "judge1",
+   "options": [
+    [
+     "horse",
+     "A horse"
+    ],
+    [
+     "shadow",
+     "A shadow of something"
+    ],
+    [
+     "unsure",
+     "Not sure"
+    ]
+   ]
+  },
+  {
+   "id": "probe",
+   "title": "Experiment",
+   "scene": "cave-probe",
+   "prompt": "Move the fire, move the object, turn around, go outside. Watch what happens to the shadow."
+  },
+  {
+   "id": "rejudge",
+   "title": "Judge again",
+   "scene": "judge",
+   "prompt": "Could the shadow alone tell you what the horse is really like?",
+   "field": "judge2",
+   "options": [
+    [
+     "yes",
+     "Yes"
+    ],
+    [
+     "partly",
+     "Only partly"
+    ],
+    [
+     "no",
+     "No"
+    ]
+   ]
+  },
+  {
+   "id": "explain",
+   "title": "Explain",
+   "scene": "layers",
+   "prompt": "Three ways to read what you saw."
+  },
+  {
+   "id": "apply",
+   "title": "Apply",
+   "scene": "apply-fields",
+   "prompt": "Find a ‘shadow’ in your own life."
+  },
+  {
+   "id": "save",
+   "title": "Keep",
+   "scene": "save-generic",
+   "prompt": "Keep what you understood and what you still wonder about."
+  }
+ ],
+ "initial_state": {
+  "step": "observe",
+  "seen": 0,
+  "judge1": null,
+  "judge2": null,
+  "fireX": 380,
+  "fireY": 120,
+  "objX": 240,
+  "view": "wall",
+  "tried": [],
+  "layers": 0,
+  "apply": null,
+  "note": "",
+  "question": "",
+  "last": null,
+  "saved": false
+ },
+ "user_actions": [
+  {
+   "id": "seen",
+   "label": "Watch the wall",
+   "step": "observe"
+  },
+  {
+   "id": "judge",
+   "label": "Choose an answer",
+   "payload": "value",
+   "step": [
+    "judge",
+    "rejudge"
+   ]
+  },
+  {
+   "id": "move-fire",
+   "label": "Move the fire",
+   "payload": "value",
+   "step": "probe"
+  },
+  {
+   "id": "move-object",
+   "label": "Move the object",
+   "payload": "value",
+   "step": "probe"
+  },
+  {
+   "id": "face-wall",
+   "label": "Face the wall",
+   "step": "probe"
+  },
+  {
+   "id": "turn-around",
+   "label": "Turn around",
+   "step": "probe"
+  },
+  {
+   "id": "go-outside",
+   "label": "Go outside",
+   "step": "probe"
+  },
+  {
+   "id": "record",
+   "label": "Record what was tried",
+   "payload": "list",
+   "step": "probe"
+  },
+  {
+   "id": "flip",
+   "label": "Turn over the next layer",
+   "step": "explain"
+  },
+  {
+   "id": "apply",
+   "label": "Submit an example",
+   "payload": "record",
+   "step": "apply"
+  },
+  {
+   "id": "note",
+   "label": "Write what you understood",
+   "payload": "fields",
+   "step": "save"
+  },
+  {
+   "id": "next",
+   "label": "Next"
+  },
+  {
+   "id": "back",
+   "label": "Back"
+  }
+ ],
+ "state_transitions": [
+  {
+   "from": "observe",
+   "on": "seen",
+   "inc": {
+    "seen": 1
+   }
+  },
+  {
+   "from": "judge",
+   "on": "judge",
+   "set": {
+    "judge1": "$value"
+   }
+  },
+  {
+   "from": "probe",
+   "on": "move-fire",
+   "set": {
+    "fireY": "$value",
+    "last": "fire"
+   }
+  },
+  {
+   "from": "probe",
+   "on": "move-object",
+   "set": {
+    "objX": "$value",
+    "last": "object"
+   }
+  },
+  {
+   "from": "probe",
+   "on": "face-wall",
+   "set": {
+    "view": "wall",
+    "last": "wall"
+   }
+  },
+  {
+   "from": "probe",
+   "on": "turn-around",
+   "set": {
+    "view": "fire",
+    "last": "turn"
+   }
+  },
+  {
+   "from": "probe",
+   "on": "go-outside",
+   "set": {
+    "view": "outside",
+    "last": "outside"
+   }
+  },
+  {
+   "from": "probe",
+   "on": "record",
+   "set": {
+    "tried": "$value"
+   }
+  },
+  {
+   "from": "rejudge",
+   "on": "judge",
+   "set": {
+    "judge2": "$value"
+   }
+  },
+  {
+   "from": "explain",
+   "on": "flip",
+   "inc": {
+    "layers": 1
+   }
+  },
+  {
+   "from": "apply",
+   "on": "apply",
+   "set": {
+    "apply": "$value"
+   }
+  },
+  {
+   "from": "save",
+   "on": "note",
+   "merge": "$value"
+  },
+  {
+   "from": "*",
+   "on": "next",
+   "advance": 1
+  },
+  {
+   "from": "*",
+   "on": "back",
+   "advance": -1
+  }
+ ],
+ "completion_criteria": {
+  "observe": {
+   "gte": {
+    "seen": 1
+   }
+  },
+  "judge": {
+   "truthy": [
+    "judge1"
+   ]
+  },
+  "probe": {
+   "gte": {
+    "tried.length": 3
+   }
+  },
+  "rejudge": {
+   "truthy": [
+    "judge2"
+   ]
+  },
+  "explain": {
+   "gte": {
+    "layers": 3
+   }
+  },
+  "apply": {
+   "truthy": [
+    "apply"
+   ]
+  },
+  "save": {
+   "truthy": []
+  },
+  "interaction": {
+   "all": [
+    {
+     "truthy": [
+      "judge1",
+      "judge2",
+      "apply"
+     ]
+    },
+    {
+     "gte": {
+      "layers": 3
+     }
+    }
+   ]
+  }
+ },
+ "feedback_rules": [
+  {
+   "step": "observe",
+   "when": {
+    "gte": {
+     "seen": 1
+    }
+   },
+   "say": "To you, these shapes are simply the world. You have nothing else to compare them with.",
+   "tone": "info"
+  },
+  {
+   "step": "judge",
+   "when": {
+    "eq": {
+     "judge1": "horse"
+    }
+   },
+   "say": "That is what anyone in the chains would say. Keep it — next, look at what makes the shape.",
+   "tone": "info"
+  },
+  {
+   "step": "judge",
+   "when": {
+    "eq": {
+     "judge1": "shadow"
+    }
+   },
+   "say": "You already suspect there is more behind the wall. Let’s find out what.",
+   "tone": "info"
+  },
+  {
+   "step": "judge",
+   "when": {
+    "eq": {
+     "judge1": "unsure"
+    }
+   },
+   "say": "Not sure is fair — you have only ever seen the wall.",
+   "tone": "info"
+  },
+  {
+   "step": "probe",
+   "when": {
+    "eq": {
+     "last": "fire"
+    }
+   },
+   "say": "Move the light and the same object casts a different shadow — higher, lower, stretched.",
+   "tone": "info"
+  },
+  {
+   "step": "probe",
+   "when": {
+    "eq": {
+     "last": "object"
+    }
+   },
+   "say": "Closer to the fire, the shadow grows; closer to the wall, it shrinks. The object itself did not change size.",
+   "tone": "info"
+  },
+  {
+   "step": "probe",
+   "when": {
+    "eq": {
+     "last": "turn"
+    }
+   },
+   "say": "Turned around, you see the fire and the carved figures. The ‘horse’ was a puppet — the shadow of a copy.",
+   "tone": "good"
+  },
+  {
+   "step": "probe",
+   "when": {
+    "eq": {
+     "last": "outside"
+    }
+   },
+   "say": "Outside, in daylight, you see a real horse. In the allegory this stands for understanding what things truly are.",
+   "tone": "good"
+  },
+  {
+   "step": "probe",
+   "when": {
+    "eq": {
+     "last": "wall"
+    }
+   },
+   "say": "Back facing the wall: the shadows look exactly as before — but now you know what makes them.",
+   "tone": "info"
+  },
+  {
+   "step": "rejudge",
+   "when": {
+    "eq": {
+     "judge2": "no"
+    }
+   },
+   "say": "Right — the shadow depends on the light, the puppet and your position. It can’t show what a horse is.",
+   "tone": "good"
+  },
+  {
+   "step": "rejudge",
+   "when": {
+    "eq": {
+     "judge2": "partly"
+    }
+   },
+   "say": "Partly: the outline carries some information, but you couldn’t know which parts — without leaving the chains.",
+   "tone": "info"
+  },
+  {
+   "step": "rejudge",
+   "when": {
+    "eq": {
+     "judge2": "yes"
+    }
+   },
+   "say": "Think back: the same puppet gave tall, short and stretched shadows. Which one is ‘the horse’?",
+   "tone": "warn"
+  }
+ ],
+ "content": {
+  "layers": [
+   {
+    "id": "allegory",
+    "title": "① What the allegory shows",
+    "tag": "Allegory · Republic VII",
+    "body": "Prisoners who have only seen shadows take them for reality. One is freed, turns to the fire, climbs out and finally sees things in sunlight. Returning, he is not believed.",
+    "source": "Plato, Republic VII, 514a–520a — check the line numbers against your edition",
+    "maps_to": "The wall · turning around · going outside",
+    "kind": "summary"
+   },
+   {
+    "id": "divided",
+    "title": "② Opinion and knowledge",
+    "tag": "Philosophical claim",
+    "body": "Plato separates opinion (about appearances) from knowledge (of what things truly are, which he calls Forms). The Divided Line in Republic VI orders these levels: images, things, then mathematics and the Forms. The ascent from the cave is often read alongside it, and the sun stands for the Form of the Good.",
+    "source": "Plato, Republic VI, 509d–511e (the Divided Line)",
+    "maps_to": "From ‘what I see’ to ‘why I believe it’",
+    "kind": "interpretation"
+   },
+   {
+    "id": "limits",
+    "title": "③ What it is not",
+    "tag": "Reading carefully",
+    "body": "The cave is a philosophical allegory about knowledge and education, not a scientific account of vision. Plato’s theory of Forms is one position; many philosophers reject it. The experiment helps you ask “what makes me believe this?” — it does not show that Forms exist.",
+    "source": "See e.g. Stanford Encyclopedia of Philosophy, “Plato” and “Plato’s Middle Period Metaphysics and Epistemology”",
+    "maps_to": "The whole experiment",
+    "kind": "interpretation"
+   }
+  ],
+  "map_note": "Keep two questions apart: what did I see? — and why do I believe it?",
+  "apply_fields": [
+   {
+    "id": "saw",
+    "label": "Something I believed because of how it looked",
+    "placeholder": "e.g. a photo online",
+    "required": true
+   },
+   {
+    "id": "why",
+    "label": "Why I believed it",
+    "placeholder": "e.g. it looked real",
+    "required": true
+   },
+   {
+    "id": "check",
+    "label": "How I could check what is really behind it",
+    "placeholder": "e.g. find the original source"
+   }
+  ],
+  "apply_case": "saw",
+  "apply_ok": "Kept as your own example."
+ },
+ "result_schema": {
+  "interaction_id": "string",
+  "framework_id": "string",
+  "version": "string",
+  "completed": "boolean",
+  "judge1": "string",
+  "judge2": "string",
+  "changedMind": "boolean",
+  "probes": "object",
+  "apply": "{ saw, why, check, case }",
+  "note": "string",
+  "question": "string",
+  "log": "[]"
+ },
+ "content_review_status": "pending"
+}

@@ -1,0 +1,618 @@
+{
+ "format": "minest.micro/1",
+ "interaction_type": "thought-experiment",
+ "version": "0.1.0",
+ "interaction_id": "aristotle-causes",
+ "framework_id": "aristotle",
+ "fits": [
+  "philosophy.metaphysics",
+  "philosophy.epistemology.causation",
+  "philosophy"
+ ],
+ "title": "Aristotle’s Four Causes",
+ "subtitle": "Four kinds of ‘because’",
+ "learning_objective": "See that ‘why does this exist?’ has four different kinds of answer in Aristotle — material, formal, efficient and final cause — and that they are kinds of explanation, not modern forces or variables.",
+ "disclaimer": "A teaching version of Aristotle’s four causes. It shows how he sorted explanations; it does not claim that every thing has a purpose.",
+ "steps": [
+  {
+   "id": "observe",
+   "title": "Choose",
+   "scene": "causes-pick",
+   "prompt": "Pick a thing to explain."
+  },
+  {
+   "id": "judge",
+   "title": "Judge",
+   "scene": "judge",
+   "prompt": "Why does it exist? Choose the one best answer.",
+   "field": "judge1",
+   "options": [
+    [
+     "made",
+     "Because of what it’s made of"
+    ],
+    [
+     "maker",
+     "Because someone or something made it"
+    ],
+    [
+     "for",
+     "Because of what it’s for"
+    ],
+    [
+     "shape",
+     "Because of its form"
+    ]
+   ]
+  },
+  {
+   "id": "probe",
+   "title": "Experiment",
+   "scene": "causes-bench",
+   "prompt": "Tap a card, then tap the kind of cause it answers. Two cards don’t belong at all."
+  },
+  {
+   "id": "rejudge",
+   "title": "Judge again",
+   "scene": "judge",
+   "prompt": "How many ‘becauses’ does a full explanation need, for Aristotle?",
+   "field": "judge2",
+   "options": [
+    [
+     "one",
+     "One — the real one"
+    ],
+    [
+     "four",
+     "Four kinds, each answering a different question"
+    ],
+    [
+     "depends",
+     "It depends on the thing"
+    ]
+   ]
+  },
+  {
+   "id": "explain",
+   "title": "Explain",
+   "scene": "layers",
+   "prompt": "What the four causes are — and are not."
+  },
+  {
+   "id": "apply",
+   "title": "Apply",
+   "scene": "apply-fields",
+   "prompt": "Explain something of your own with all four."
+  },
+  {
+   "id": "save",
+   "title": "Keep",
+   "scene": "save-generic",
+   "prompt": "Keep what you understood and what you still wonder about."
+  }
+ ],
+ "initial_state": {
+  "step": "observe",
+  "obj": null,
+  "judge1": null,
+  "judge2": null,
+  "placed": {},
+  "correct": 0,
+  "wrongs": 0,
+  "lastResult": null,
+  "layers": 0,
+  "apply": null,
+  "note": "",
+  "question": "",
+  "last": null,
+  "saved": false
+ },
+ "user_actions": [
+  {
+   "id": "pick",
+   "label": "Pick a thing",
+   "payload": "value",
+   "step": "observe"
+  },
+  {
+   "id": "judge",
+   "label": "Choose an answer",
+   "payload": "value",
+   "step": [
+    "judge",
+    "rejudge"
+   ]
+  },
+  {
+   "id": "place",
+   "label": "Place a card on a cause",
+   "payload": "record",
+   "step": "probe"
+  },
+  {
+   "id": "flip",
+   "label": "Turn over the next layer",
+   "step": "explain"
+  },
+  {
+   "id": "apply",
+   "label": "Submit an example",
+   "payload": "record",
+   "step": "apply"
+  },
+  {
+   "id": "note",
+   "label": "Write what you understood",
+   "payload": "fields",
+   "step": "save"
+  },
+  {
+   "id": "next",
+   "label": "Next"
+  },
+  {
+   "id": "back",
+   "label": "Back"
+  }
+ ],
+ "state_transitions": [
+  {
+   "from": "observe",
+   "on": "pick",
+   "set": {
+    "obj": "$value",
+    "placed": {},
+    "correct": 0
+   }
+  },
+  {
+   "from": "judge",
+   "on": "judge",
+   "set": {
+    "judge1": "$value"
+   }
+  },
+  {
+   "from": "probe",
+   "on": "place",
+   "merge": "$value"
+  },
+  {
+   "from": "rejudge",
+   "on": "judge",
+   "set": {
+    "judge2": "$value"
+   }
+  },
+  {
+   "from": "explain",
+   "on": "flip",
+   "inc": {
+    "layers": 1
+   }
+  },
+  {
+   "from": "apply",
+   "on": "apply",
+   "set": {
+    "apply": "$value"
+   }
+  },
+  {
+   "from": "save",
+   "on": "note",
+   "merge": "$value"
+  },
+  {
+   "from": "*",
+   "on": "next",
+   "advance": 1
+  },
+  {
+   "from": "*",
+   "on": "back",
+   "advance": -1
+  }
+ ],
+ "completion_criteria": {
+  "observe": {
+   "truthy": [
+    "obj"
+   ]
+  },
+  "judge": {
+   "truthy": [
+    "judge1"
+   ]
+  },
+  "probe": {
+   "gte": {
+    "correct": 4
+   }
+  },
+  "rejudge": {
+   "truthy": [
+    "judge2"
+   ]
+  },
+  "explain": {
+   "gte": {
+    "layers": 3
+   }
+  },
+  "apply": {
+   "truthy": [
+    "apply"
+   ]
+  },
+  "save": {
+   "truthy": []
+  },
+  "interaction": {
+   "all": [
+    {
+     "truthy": [
+      "judge1",
+      "judge2",
+      "apply"
+     ]
+    },
+    {
+     "gte": {
+      "layers": 3
+     }
+    },
+    {
+     "gte": {
+      "correct": 4
+     }
+    }
+   ]
+  }
+ },
+ "feedback_rules": [
+  {
+   "step": "observe",
+   "when": {
+    "truthy": [
+     "obj"
+    ]
+   },
+   "say": "Good. Now try to give the single reason it exists.",
+   "tone": "info"
+  },
+  {
+   "step": "judge",
+   "when": {
+    "truthy": [
+     "judge1"
+    ]
+   },
+   "say": "You picked one kind of answer. Aristotle would say the others are also answers — to different questions.",
+   "tone": "info"
+  },
+  {
+   "step": "probe",
+   "when": {
+    "eq": {
+     "lastResult": "right"
+    }
+   },
+   "say": "Yes — that card answers that kind of ‘why’.",
+   "tone": "good"
+  },
+  {
+   "step": "probe",
+   "when": {
+    "eq": {
+     "lastResult": "wrong"
+    }
+   },
+   "say": "That card answers a different kind of ‘why’. Ask: made of? form? made by? for what?",
+   "tone": "warn"
+  },
+  {
+   "step": "probe",
+   "when": {
+    "eq": {
+     "lastResult": "none"
+    }
+   },
+   "say": "That one isn’t any of the four causes — it comes from modern science.",
+   "tone": "warn"
+  },
+  {
+   "step": "probe",
+   "when": {
+    "gte": {
+     "correct": 4
+    }
+   },
+   "say": "All four in place. Each answers a different question about the same thing.",
+   "tone": "good"
+  },
+  {
+   "step": "rejudge",
+   "when": {
+    "eq": {
+     "judge2": "four"
+    }
+   },
+   "say": "That is Aristotle’s view: a full explanation can involve all four kinds of cause.",
+   "tone": "good"
+  },
+  {
+   "step": "rejudge",
+   "when": {
+    "eq": {
+     "judge2": "one"
+    }
+   },
+   "say": "Today we often look for one cause — but Aristotle counts four kinds, each answering its own question.",
+   "tone": "warn"
+  },
+  {
+   "step": "rejudge",
+   "when": {
+    "eq": {
+     "judge2": "depends"
+    }
+   },
+   "say": "Partly right: for natural things, form and purpose often coincide — but the four questions can always be asked.",
+   "tone": "info"
+  }
+ ],
+ "content": {
+  "objects": {
+   "statue": {
+    "label": "A bronze statue",
+    "note": "Aristotle’s own example",
+    "cards": [
+     {
+      "id": "bronze",
+      "text": "The bronze it is cast from",
+      "slot": "material"
+     },
+     {
+      "id": "shape",
+      "text": "The shape of the figure it shows",
+      "slot": "formal"
+     },
+     {
+      "id": "sculptor",
+      "text": "The sculptor’s skill and work",
+      "slot": "efficient"
+     },
+     {
+      "id": "honour",
+      "text": "To honour someone / to be admired",
+      "slot": "final"
+     },
+     {
+      "id": "gravity",
+      "text": "Gravity (a physical force)",
+      "slot": "none",
+      "why": "A modern physical force — not one of Aristotle’s four kinds of explanation."
+     },
+     {
+      "id": "variable",
+      "text": "An experimental variable you could change",
+      "slot": "none",
+      "why": "An idea from modern experimental method, not one of the four causes."
+     }
+    ]
+   },
+   "house": {
+    "label": "A house",
+    "note": "",
+    "cards": [
+     {
+      "id": "bricks",
+      "text": "Bricks, wood and stone",
+      "slot": "material"
+     },
+     {
+      "id": "plan",
+      "text": "The plan — walls, roof, rooms arranged as a house",
+      "slot": "formal"
+     },
+     {
+      "id": "builder",
+      "text": "The builders",
+      "slot": "efficient"
+     },
+     {
+      "id": "shelter",
+      "text": "To shelter people",
+      "slot": "final"
+     },
+     {
+      "id": "gravity",
+      "text": "Gravity (a physical force)",
+      "slot": "none",
+      "why": "A modern physical force — not one of Aristotle’s four kinds of explanation."
+     },
+     {
+      "id": "variable",
+      "text": "An experimental variable you could change",
+      "slot": "none",
+      "why": "An idea from modern experimental method, not one of the four causes."
+     }
+    ]
+   },
+   "chair": {
+    "label": "A chair",
+    "note": "",
+    "cards": [
+     {
+      "id": "wood",
+      "text": "Wood and nails",
+      "slot": "material"
+     },
+     {
+      "id": "chairshape",
+      "text": "A seat raised on legs with a back",
+      "slot": "formal"
+     },
+     {
+      "id": "carpenter",
+      "text": "The carpenter",
+      "slot": "efficient"
+     },
+     {
+      "id": "sit",
+      "text": "For sitting on",
+      "slot": "final"
+     },
+     {
+      "id": "gravity",
+      "text": "Gravity (a physical force)",
+      "slot": "none",
+      "why": "A modern physical force — not one of Aristotle’s four kinds of explanation."
+     },
+     {
+      "id": "variable",
+      "text": "An experimental variable you could change",
+      "slot": "none",
+      "why": "An idea from modern experimental method, not one of the four causes."
+     }
+    ]
+   },
+   "acorn": {
+    "label": "An oak tree",
+    "note": "a natural thing",
+    "cards": [
+     {
+      "id": "cells",
+      "text": "Wood, sap, leaves",
+      "slot": "material"
+     },
+     {
+      "id": "oakform",
+      "text": "The form of an oak — what makes it an oak and not a pine",
+      "slot": "formal"
+     },
+     {
+      "id": "parent",
+      "text": "A parent oak (through the acorn)",
+      "slot": "efficient"
+     },
+     {
+      "id": "flourish",
+      "text": "To grow into a mature, flourishing oak",
+      "slot": "final"
+     },
+     {
+      "id": "gravity",
+      "text": "Gravity (a physical force)",
+      "slot": "none",
+      "why": "A modern physical force — not one of Aristotle’s four kinds of explanation."
+     },
+     {
+      "id": "variable",
+      "text": "An experimental variable you could change",
+      "slot": "none",
+      "why": "An idea from modern experimental method, not one of the four causes."
+     }
+    ]
+   }
+  },
+  "slots": [
+   {
+    "id": "material",
+    "label": "Material cause",
+    "q": "What is it made of?"
+   },
+   {
+    "id": "formal",
+    "label": "Formal cause",
+    "q": "What form makes it what it is?"
+   },
+   {
+    "id": "efficient",
+    "label": "Efficient cause",
+    "q": "What brought it about?"
+   },
+   {
+    "id": "final",
+    "label": "Final cause",
+    "q": "What is it for?"
+   }
+  ],
+  "layers": [
+   {
+    "id": "four",
+    "title": "① Four kinds of explanation",
+    "tag": "Aristotle · Physics II.3",
+    "body": "For Aristotle, knowing a thing means knowing its ‘why’, and there are four kinds: what it is made of (material), the form or structure that makes it what it is (formal), what brought it about (efficient), and what it is for (final).",
+    "source": "Aristotle, Physics II.3; Metaphysics V.2 (Δ.2) — check against your edition",
+    "maps_to": "The four slots",
+    "kind": "summary"
+   },
+   {
+    "id": "nature",
+    "title": "② Purpose in nature",
+    "tag": "Philosophical claim · debated",
+    "body": "Aristotle applied final causes to natural things too: an acorn grows towards being an oak. For living things, form and purpose often coincide. Whether nature really has purposes (teleology) is one of the most debated parts of his view.",
+    "source": "Aristotle, Physics II.8",
+    "maps_to": "The oak tree",
+    "kind": "interpretation"
+   },
+   {
+    "id": "modern",
+    "title": "③ Not modern forces",
+    "tag": "Reading carefully",
+    "body": "The four causes are kinds of explanation, not physical forces and not experimental variables. Modern science mostly keeps the efficient cause (and the material), and talks about function in its own terms. That is why ‘gravity’ and ‘a variable’ had no slot.",
+    "source": "See e.g. Stanford Encyclopedia of Philosophy, “Aristotle on Causality”",
+    "maps_to": "The two cards with no slot",
+    "kind": "interpretation"
+   }
+  ],
+  "map_note": "One thing, four questions: made of? form? made by? for what?",
+  "apply_fields": [
+   {
+    "id": "thing",
+    "label": "A thing of my own",
+    "placeholder": "e.g. my school bag",
+    "required": true
+   },
+   {
+    "id": "material",
+    "label": "Material cause — made of",
+    "required": true
+   },
+   {
+    "id": "formal",
+    "label": "Formal cause — its form",
+    "required": true
+   },
+   {
+    "id": "efficient",
+    "label": "Efficient cause — made by",
+    "required": true
+   },
+   {
+    "id": "final",
+    "label": "Final cause — for",
+    "required": true
+   }
+  ],
+  "apply_case": "thing",
+  "apply_ok": "Kept as your own analysis."
+ },
+ "result_schema": {
+  "interaction_id": "string",
+  "framework_id": "string",
+  "version": "string",
+  "completed": "boolean",
+  "judge1": "string",
+  "judge2": "string",
+  "changedMind": "boolean",
+  "probes": "{ obj, placed, correct, wrongs }",
+  "apply": "{ thing, material, formal, efficient, final, case }",
+  "note": "string",
+  "question": "string",
+  "log": "[]"
+ },
+ "content_review_status": "pending"
+}

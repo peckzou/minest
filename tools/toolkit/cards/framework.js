@@ -71,6 +71,7 @@
     return fi;
   }
 
+  function pend(t) { return !!t.content_review_status && TK.ks.reviewStatus('tpl', t.id, t.content_review_status) === 'pending'; }
   TK.frameworkOps = { build: build, sync: sync, kids: kids, rootOf: rootOf };   // for tests and future hosts
   TK.card({
     id: 'framework', en: 'Framework Card', zh: '知识框架卡', color: '#5e9cff', line: 'Organise ideas into a structure you can edit.',
@@ -90,9 +91,10 @@
       function load() {
         var fs = ks.frameworksOf(ko.id);
         if (!fi || !ks.framework(fi.id)) fi = fs[0] || null; else fi = ks.framework(fi.id);
-        list.innerHTML = fs.map(function (f) { var t = tpl(f.template_id); return '<button type="button" class="fw-li' + (fi && f.id === fi.id ? ' on' : '') + '" data-fi="' + f.id + '"><b>' + esc(f.title) + '</b><small>' + f.nodes.filter(function (n) { return n.role === 'item'; }).length + ' items' + (t && t.review ? ' · review pending' : '') + '</small></button>'; }).join('') || '<p class="dim">No framework yet.</p>';
+        list.innerHTML = fs.map(function (f) { var t = tpl(f.template_id); return '<button type="button" class="fw-li' + (fi && f.id === fi.id ? ' on' : '') + '" data-fi="' + f.id + '"><b>' + esc(f.title) + '</b><small>' + f.nodes.filter(function (n) { return n.role === 'item'; }).length + ' items' + (t && pend(t) ? ' · review pending' : '') + '</small></button>'; }).join('') || '<p class="dim">No framework yet.</p>';
         var ns = (ks.object(ko.id).notes || []);
-        notes.innerHTML = ns.length ? ns.slice().reverse().map(function (n) { return '<div class="fw-note"><p>' + esc(n.text) + '</p><small class="dim">from ' + esc(n.from) + '</small>' + (fi ? '<button type="button" class="small" data-notein="' + n.id + '">Add to framework</button>' : '') + '</div>'; }).join('') : '<p class="dim">Understandings saved in the Lab or Models appear here.</p>';
+        notes.innerHTML = (ns.length ? ns.slice().reverse().map(function (n) { var ck = n.content_kind || 'view'; return '<div class="fw-note"><span class="ck ck-' + ck + '">' + esc(ks.CONTENT[ck]) + '</span><p>' + esc(n.text) + '</p>' + (n.source ? '<small class="dim">Source: ' + esc(n.source) + '</small><br>' : '') + '<small class="dim">from ' + esc(n.from) + '</small>' + (fi ? '<button type="button" class="small" data-notein="' + n.id + '">Add to framework</button>' : '') + '</div>'; }).join('') : '<p class="dim">Understandings saved in the Lab or Models appear here.</p>') +
+          '<div class="fw-addnote"><select aria-label="Kind of note"><option value="view">My view</option><option value="evidence">Evidence</option><option value="quote">Quotation (with source)</option><option value="question">My question</option></select><textarea rows="2" placeholder="Add a note…"></textarea><input placeholder="Source (needed for a quotation or evidence)"><button type="button" class="small" data-addnote>Add note</button></div>';
         if (!fi) return chooser(true);
         paint();
       }
@@ -105,7 +107,7 @@
           (seed ? '<label class="fw-seed"><input type="checkbox" checked data-useseed> Start with Minest’s starter content for “' + esc(TK.rootLabel(ks.object(ko.id))) + '” <span class="pill sug">review pending</span></label>' : '') +
           '<div class="fw-tpls">' + TK.data.templates.map(function (t) {
             var rec = seed && seed.template === t.id;
-            return '<button type="button" class="fw-tpl' + (rec ? ' rec' : '') + '" data-tpl="' + t.id + '"><b>' + esc(t.title) + (rec ? ' <span class="pill ok">fits</span>' : '') + (t.review ? ' <span class="pill sug">review pending</span>' : '') + '</b><span>' + esc(t.scope) + '</span><em>' + esc(t.caution) + '</em>' + (t.source ? '<small>' + esc(t.source) + '</small>' : '') + '</button>';
+            return '<button type="button" class="fw-tpl' + (rec ? ' rec' : '') + '" data-tpl="' + t.id + '"><b>' + esc(t.title) + (rec ? ' <span class="pill ok">fits</span>' : '') + (pend(t) ? ' <span class="pill sug">review pending</span>' : (t.content_review_status ? ' <span class="pill ok">reviewed</span>' : '')) + '</b><span>' + esc(t.scope) + '</span><em>' + esc(t.caution) + '</em>' + (t.source ? '<small>' + esc(t.source) + '</small>' : '') + '</button>';
           }).join('') + '</div>' + (inline ? '' : '<button type="button" data-close>Cancel</button>') + '</div>';
         if (inline) { main.innerHTML = h; } else { modal.innerHTML = '<div class="fw-modal-card">' + h + '</div>'; modal.hidden = false; }
       }
@@ -120,7 +122,7 @@
         main.innerHTML = '<header class="fw-hd"><input class="fw-title" value="' + esc(fi.title) + '" aria-label="Framework name"><div class="fw-views">' +
           [['outline', 'Outline'], ['tree', 'Tree'], ['levels', 'Levels'], ['cards', 'Cards']].map(function (v) { return '<button type="button" data-view="' + v[0] + '" class="' + (fi.view === v[0] ? 'on' : '') + '">' + v[1] + '</button>'; }).join('') +
           '</div><button type="button" class="ghost small" data-delfw>Delete framework</button></header>' +
-          (t.caution ? '<p class="fw-caution">' + (t.review ? '<span class="pill sug">review pending</span> ' : '') + esc(t.caution) + (t.source ? ' <span class="dim">· ' + esc(t.source) + '</span>' : '') + '</p>' : '') +
+          (t.caution ? '<p class="fw-caution">' + (t.content_review_status ? (pend(t) ? '<span class="pill sug">review pending</span> ' : '<span class="pill ok">reviewed</span> ') + '<button type="button" class="small ghost" data-review="' + t.id + '">' + (pend(t) ? 'Mark reviewed' : 'Mark pending') + '</button> ' : '') + esc(t.caution) + (t.source ? ' <span class="dim">· ' + esc(t.source) + '</span>' : '') + '</p>' : '') +
           '<div class="fw-body"></div>';
         var body = main.querySelector('.fw-body');
         if (fi.view === 'tree') tree(body); else if (fi.view === 'levels') levels(body); else if (fi.view === 'cards') cards(body); else outline(body);
@@ -193,6 +195,8 @@
         if (b.hasAttribute('data-fi')) { fi = ks.framework(b.getAttribute('data-fi')); return load(); }
         if (b.hasAttribute('data-view')) { fi.view = b.getAttribute('data-view'); save(true); return paint(); }
         if (b.hasAttribute('data-delfw')) { if (confirm('Delete the framework “' + fi.title + '”? Its links are removed; concepts used elsewhere stay.')) { var id = fi.id; fi = null; ks.removeFramework(id); load(); } return; }
+        if (b.hasAttribute('data-review')) { var tid = b.getAttribute('data-review'), tt = tpl(tid); TK.silently(function () { ks.setReview('tpl', tid, pend(tt) ? 'reviewed' : 'pending'); }); TK.toast(pend(tt) ? 'Marked as review pending' : 'Marked as reviewed by you'); return paint(); }
+        if (b.hasAttribute('data-addnote')) { var box = b.closest('.fw-addnote'), txt = box.querySelector('textarea').value.trim(); if (!txt) return; var kind = box.querySelector('select').value, src = box.querySelector('input').value.trim(); if ((kind === 'quote' || kind === 'evidence') && !src) { TK.toast('Add the source for a quotation or evidence'); return; } TK.silently(function () { var k0 = ks.object(ko.id); ks.addNote(ko.id, txt, { from: 'Framework Card', kind: kind, source: src, about: k0.root_concept ? 'cc:' + k0.root_concept : null }); }); return load(); }
         if (b.hasAttribute('data-notein')) { var nt = (ks.object(ko.id).notes || []).filter(function (x) { return x.id === b.getAttribute('data-notein'); })[0]; var mine = fi.nodes.filter(function (x) { return x.role === 'section' && x.kind === 'text' && /understanding|mine/i.test(x.label + x.key); })[0] || rootOf(fi); var nn = addChild(mine.id, nt.text); nn.from_note = nt.id; return commit(nn); }
         var row = b.closest('[data-id]'); if (!row) return; var n = node(fi, row.getAttribute('data-id')); if (!n) return;
         sel = n.id;

@@ -1,0 +1,474 @@
+{
+ "format": "minest.micro/1",
+ "interaction_type": "thought-experiment",
+ "version": "0.1.0",
+ "interaction_id": "hegel-concept",
+ "framework_id": "hegel",
+ "fits": [
+  "philosophy.metaphysics",
+  "philosophy.logic",
+  "philosophy"
+ ],
+ "title": "Hegel: Being, Nothing, Becoming",
+ "subtitle": "A concept that moves on its own",
+ "learning_objective": "Follow the opening move of Hegel’s Logic: pure being, without any determination, cannot be told apart from nothing — and their truth is the movement of each into the other, becoming. See why this is not a thesis–antithesis–synthesis template.",
+ "disclaimer": "A simplified reading aid for the opening of Hegel’s Science of Logic, pending content review. Hegel scholars read this passage in different ways.",
+ "steps": [
+  {
+   "id": "observe",
+   "title": "Strip away",
+   "scene": "hegel-strip",
+   "prompt": "Here is something with many features. Remove every feature, one by one."
+  },
+  {
+   "id": "judge",
+   "title": "Judge",
+   "scene": "judge",
+   "prompt": "What is left — something, or nothing?",
+   "field": "judge1",
+   "options": [
+    [
+     "something",
+     "Something: pure being"
+    ],
+    [
+     "nothing",
+     "Nothing"
+    ],
+    [
+     "unsure",
+     "I can’t tell"
+    ]
+   ]
+  },
+  {
+   "id": "probe",
+   "title": "Experiment",
+   "scene": "hegel-compare",
+   "prompt": "Try to name a difference between pure being and pure nothing. Then watch the two."
+  },
+  {
+   "id": "rejudge",
+   "title": "Judge again",
+   "scene": "judge",
+   "prompt": "Pure being and pure nothing — what is their relation?",
+   "field": "judge2",
+   "options": [
+    [
+     "same",
+     "They can’t be told apart"
+    ],
+    [
+     "different",
+     "They are simply different"
+    ],
+    [
+     "moving",
+     "Each passes into the other"
+    ]
+   ]
+  },
+  {
+   "id": "explain",
+   "title": "Explain",
+   "scene": "layers",
+   "prompt": "What Hegel claims — and what he doesn’t."
+  },
+  {
+   "id": "apply",
+   "title": "Apply",
+   "scene": "apply-fields",
+   "prompt": "Follow a concept of your own through an inner tension."
+  },
+  {
+   "id": "save",
+   "title": "Keep",
+   "scene": "save-generic",
+   "prompt": "Keep what you understood and what you still wonder about."
+  }
+ ],
+ "initial_state": {
+  "step": "observe",
+  "left": 7,
+  "judge1": null,
+  "judge2": null,
+  "tried": [],
+  "watched": false,
+  "layers": 0,
+  "apply": null,
+  "note": "",
+  "question": "",
+  "last": null,
+  "saved": false
+ },
+ "user_actions": [
+  {
+   "id": "strip",
+   "label": "Remove a feature",
+   "payload": "record",
+   "step": "observe"
+  },
+  {
+   "id": "judge",
+   "label": "Choose an answer",
+   "payload": "value",
+   "step": [
+    "judge",
+    "rejudge"
+   ]
+  },
+  {
+   "id": "try-diff",
+   "label": "Try a difference",
+   "payload": "record",
+   "step": "probe"
+  },
+  {
+   "id": "watch",
+   "label": "Watch being and nothing",
+   "step": "probe"
+  },
+  {
+   "id": "flip",
+   "label": "Turn over the next layer",
+   "step": "explain"
+  },
+  {
+   "id": "apply",
+   "label": "Submit an example",
+   "payload": "record",
+   "step": "apply"
+  },
+  {
+   "id": "note",
+   "label": "Write what you understood",
+   "payload": "fields",
+   "step": "save"
+  },
+  {
+   "id": "next",
+   "label": "Next"
+  },
+  {
+   "id": "back",
+   "label": "Back"
+  }
+ ],
+ "state_transitions": [
+  {
+   "from": "observe",
+   "on": "strip",
+   "merge": "$value"
+  },
+  {
+   "from": "judge",
+   "on": "judge",
+   "set": {
+    "judge1": "$value"
+   }
+  },
+  {
+   "from": "probe",
+   "on": "try-diff",
+   "merge": "$value"
+  },
+  {
+   "from": "probe",
+   "on": "watch",
+   "set": {
+    "watched": true,
+    "last": "watch"
+   }
+  },
+  {
+   "from": "rejudge",
+   "on": "judge",
+   "set": {
+    "judge2": "$value"
+   }
+  },
+  {
+   "from": "explain",
+   "on": "flip",
+   "inc": {
+    "layers": 1
+   }
+  },
+  {
+   "from": "apply",
+   "on": "apply",
+   "set": {
+    "apply": "$value"
+   }
+  },
+  {
+   "from": "save",
+   "on": "note",
+   "merge": "$value"
+  },
+  {
+   "from": "*",
+   "on": "next",
+   "advance": 1
+  },
+  {
+   "from": "*",
+   "on": "back",
+   "advance": -1
+  }
+ ],
+ "completion_criteria": {
+  "observe": {
+   "eq": {
+    "left": 0
+   }
+  },
+  "judge": {
+   "truthy": [
+    "judge1"
+   ]
+  },
+  "probe": {
+   "all": [
+    {
+     "gte": {
+      "tried.length": 2
+     }
+    },
+    {
+     "truthy": [
+      "watched"
+     ]
+    }
+   ]
+  },
+  "rejudge": {
+   "truthy": [
+    "judge2"
+   ]
+  },
+  "explain": {
+   "gte": {
+    "layers": 3
+   }
+  },
+  "apply": {
+   "truthy": [
+    "apply"
+   ]
+  },
+  "save": {
+   "truthy": []
+  },
+  "interaction": {
+   "all": [
+    {
+     "truthy": [
+      "judge1",
+      "judge2",
+      "apply"
+     ]
+    },
+    {
+     "gte": {
+      "layers": 3
+     }
+    }
+   ]
+  }
+ },
+ "feedback_rules": [
+  {
+   "step": "observe",
+   "when": {
+    "eq": {
+     "left": 0
+    }
+   },
+   "say": "Every feature is gone. What remains has no ‘what’ at all — Hegel calls it pure being.",
+   "tone": "info"
+  },
+  {
+   "step": "judge",
+   "when": {
+    "eq": {
+     "judge1": "something"
+    }
+   },
+   "say": "You say something remains: pure being. Next: can you say how it differs from nothing?",
+   "tone": "info"
+  },
+  {
+   "step": "judge",
+   "when": {
+    "eq": {
+     "judge1": "nothing"
+    }
+   },
+   "say": "You say nothing remains. Hold on — next you’ll see why Hegel finds both answers right.",
+   "tone": "info"
+  },
+  {
+   "step": "judge",
+   "when": {
+    "eq": {
+     "judge1": "unsure"
+    }
+   },
+   "say": "‘I can’t tell’ is exactly where Hegel’s Logic begins.",
+   "tone": "good"
+  },
+  {
+   "step": "probe",
+   "when": {
+    "eq": {
+     "last": "diff"
+    }
+   },
+   "say": "Each difference you name brings back a feature you removed.",
+   "tone": "warn"
+  },
+  {
+   "step": "probe",
+   "when": {
+    "eq": {
+     "last": "watch"
+    }
+   },
+   "say": "Being vanishes into nothing, nothing into being — ceasing-to-be and coming-to-be. Hegel calls this movement becoming.",
+   "tone": "good"
+  },
+  {
+   "step": "rejudge",
+   "when": {
+    "eq": {
+     "judge2": "moving"
+    }
+   },
+   "say": "That is close to Hegel: their truth is the movement of each into the other — becoming.",
+   "tone": "good"
+  },
+  {
+   "step": "rejudge",
+   "when": {
+    "eq": {
+     "judge2": "same"
+    }
+   },
+   "say": "Hegel agrees they can’t be told apart — and adds that they are still not simply the same: each passes over into the other.",
+   "tone": "info"
+  },
+  {
+   "step": "rejudge",
+   "when": {
+    "eq": {
+     "judge2": "different"
+    }
+   },
+   "say": "Try to say how — every difference you named brought back a feature.",
+   "tone": "warn"
+  }
+ ],
+ "content": {
+  "features": [
+   "Red",
+   "Round",
+   "Heavy",
+   "Here",
+   "Now",
+   "An apple",
+   "One"
+  ],
+  "differences": [
+   {
+    "id": "exists",
+    "text": "Being exists; nothing doesn’t.",
+    "reply": "‘Exists’ already says more than pure being: it adds a determination (being there, being something). Pure being has none."
+   },
+   {
+    "id": "content",
+    "text": "Being has some content; nothing is empty.",
+    "reply": "Which content? Every content you name is a determination you just stripped away. Pure being is just as empty."
+   },
+   {
+    "id": "think",
+    "text": "I can think of being, but not of nothing.",
+    "reply": "Try it: thinking pure being, with no ‘what’ at all, is thinking nothing in particular — the same emptiness."
+   },
+   {
+    "id": "positive",
+    "text": "Being is positive, nothing is negative.",
+    "reply": "‘Positive’ and ‘negative’ are themselves determinations. Without them, the two can’t be told apart."
+   }
+  ],
+  "layers": [
+   {
+    "id": "opening",
+    "title": "① Being, nothing, becoming",
+    "tag": "Hegel · Science of Logic",
+    "body": "Hegel’s Logic begins with pure being: with no determination at all, it is ‘in fact nothing’. Pure nothing, thought through, is the same empty thought. Their truth is the movement in which each has already passed into the other — becoming, as coming-to-be and ceasing-to-be.",
+    "source": "Hegel, Science of Logic (1812/1832), Doctrine of Being, ch. 1; Encyclopaedia Logic §§86–88 — check against your edition",
+    "maps_to": "Stripping the features · watching the two",
+    "kind": "interpretation"
+   },
+   {
+    "id": "notriad",
+    "title": "② Not thesis–antithesis–synthesis",
+    "tag": "Reading carefully",
+    "body": "Hegel did not present his method as ‘thesis–antithesis–synthesis’; that formula is linked more with Fichte and later popular summaries. The point is that a concept, thought through, turns into another by itself (immanently) — not that a third idea is added from outside.",
+    "source": "See e.g. Stanford Encyclopedia of Philosophy, “Hegel’s Dialectics”",
+    "maps_to": "The differences that kept failing",
+    "kind": "interpretation"
+   },
+   {
+    "id": "debate",
+    "title": "③ An open debate",
+    "tag": "Interpretation · contested",
+    "body": "What this opening proves, and how to read it, is debated among scholars. This experiment is a reading aid: it lets you feel the move, not decide what it means for all of Hegel.",
+    "source": "Pending content review",
+    "maps_to": "The whole experiment",
+    "kind": "open-question"
+   }
+  ],
+  "map_note": "Watch for concepts that change by thinking them through — not because someone adds a new idea.",
+  "apply_fields": [
+   {
+    "id": "concept",
+    "label": "A concept I hold",
+    "placeholder": "e.g. freedom, friendship, fairness",
+    "required": true
+   },
+   {
+    "id": "first",
+    "label": "What I first thought it meant",
+    "required": true
+   },
+   {
+    "id": "tension",
+    "label": "A tension inside that meaning",
+    "required": true
+   },
+   {
+    "id": "after",
+    "label": "What it became — what is kept, what changed"
+   }
+  ],
+  "apply_case": "concept",
+  "apply_ok": "Kept as your own analysis."
+ },
+ "result_schema": {
+  "interaction_id": "string",
+  "framework_id": "string",
+  "version": "string",
+  "completed": "boolean",
+  "judge1": "string",
+  "judge2": "string",
+  "changedMind": "boolean",
+  "probes": "{ left, tried, watched }",
+  "apply": "{ concept, first, tension, after, case }",
+  "note": "string",
+  "question": "string",
+  "log": "[]"
+ },
+ "content_review_status": "pending"
+}

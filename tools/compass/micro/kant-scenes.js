@@ -117,7 +117,7 @@
     var L = c.content.layers || [], w = h('div', 'kl-layers');
     w.innerHTML = L.map(function (l, i) {
       return '<button type="button" class="kl-layer" data-i="' + i + '"><span class="kl-back">' + esc(l.title) + '<small>tap to turn over</small></span>' +
-        '<span class="kl-face"><b>' + esc(l.title) + '</b><em>' + esc(l.tag) + '</em><span>' + esc(l.body) + '</span>' +
+        '<span class="kl-face"><b>' + esc(l.title) + '</b><em>' + esc(l.tag) + '</em>' + (l.kind ? '<i class="kl-kind k-' + esc(l.kind) + '">' + esc(({ summary: 'Minest summary', interpretation: 'Scholarly interpretation', 'open-question': 'Open question' })[l.kind] || l.kind) + '</i>' : '') + '<span>' + esc(l.body) + '</span>' +
         (l.maps_to ? '<small class="kl-map">In the experiment: ' + esc(l.maps_to) + '</small>' : '') + (l.source ? '<small class="kl-src">Source: ' + esc(l.source) + '</small>' : '') + '</span></button>';
     }).join('') + '<p class="kl-note">' + esc(c.content.map_note || '') + '</p>';
     c.el.appendChild(w);
