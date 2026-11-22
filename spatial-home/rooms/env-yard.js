@@ -2,7 +2,7 @@
    One garden round the brick house of the Victorian Study, entered at two places:
      · yard       前庭: the gate in the picket fence, a flagstone walk to the porch round a stone fountain, mown lawns in
                   stripes, tulip borders and round flower beds, hydrangeas under the windows, a bench under the oak
-     · yard-back  后院: the terrace under a wisteria pergola (the garden table is this place's desk), the swimming pool
+     · yard-back  后院: the terrace under a wisteria pergola (its garden table is the desk there; the front yard has a table of its own on the lawn by the gate), the swimming pool
                   with its loungers, the kitchen garden in raised beds (tomatoes, cabbages, lettuces, carrots, pumpkins,
                   corn, beans, a greenhouse), an apple tree, lavender and sunflowers along the hedge
    A clipped hedge and a belt of trees go round the whole lot; beyond the fence a planted strip, the pavement and the road.
@@ -219,7 +219,18 @@
     })(9.9, -0.4);
 
     /* ── the back yard: the terrace and its pergola ── */
-    var DX = -3.1, DZ = -5.7, top = 0.76;
+    var DX = -3.1, DZ = -5.7, top = 0.76, FX = -4.4, FZ = 13.1;          // the two garden tables: on the terrace, and on the front lawn by the gate
+    var back = id === 'yard-back', KX = back ? DX : FX, KZ = back ? DZ : FZ;   // the desk is the table of the side you came in by: its chair is always a straight walk away
+    function table(x, z) {
+      box(g, M.deck, x, top - 0.025, z, 1.9, 0.05, 0.95); [[-0.85, -0.38], [0.85, -0.38], [-0.85, 0.38], [0.85, 0.38]].forEach(function (q) { box(g, M.white, x + q[0], (top - 0.05) / 2, z + q[1], 0.07, top - 0.05, 0.07); });
+      box(g, M.white, x, top - 0.1, z, 1.78, 0.07, 0.83);
+      (function (x, z) { box(g, M.deck, x, 0.46, z, 0.5, 0.04, 0.5); box(g, M.cloth, x, 0.5, z, 0.46, 0.05, 0.46); box(g, M.deck, x, 0.84, z + 0.25, 0.5, 0.5, 0.04); [[-0.22, -0.22], [0.22, -0.22], [-0.22, 0.22], [0.22, 0.22]].forEach(function (q) { box(g, M.white, x + q[0], 0.23, z + q[1], 0.045, 0.46, 0.045); }); })(x, z + 0.82);
+      if (x === KX) return;                                            // the other table is laid for tea: a pot, two cups, a jug of flowers
+      cyl(g, M.white, x - 0.3, top + 0.09, z, 0.1, 0.12, 0.18, 16); ball(g, M.white, x - 0.3, top + 0.19, z, 0.1, 0.5, 12); ball(g, M.brass, x - 0.3, top + 0.25, z, 0.022); box(g, M.white, x - 0.45, top + 0.12, z, 0.14, 0.03, 0.03, 0, 0.5);
+      [[0.02, 0.16], [0.3, -0.12]].forEach(function (q) { cyl(g, M.white, x + q[0], top + 0.006, z + q[1], 0.075, 0.06, 0.012, 16); cyl(g, M.white, x + q[0], top + 0.04, z + q[1], 0.045, 0.032, 0.06, 14); });
+      cyl(g, M.tile, x + 0.62, top + 0.1, z + 0.05, 0.06, 0.08, 0.2, 14); [[0xe23d4f, -0.05, 0.02], [0xf2c230, 0.04, -0.03], [0xffffff, 0.01, 0.06], [0xf07ab0, -0.02, -0.06]].forEach(function (q, n) { cyl(g, M.leafB, x + 0.62 + q[1], top + 0.3, z + 0.05 + q[2], 0.008, 0.008, 0.24, 5).castShadow = false; ball(g, std({ color: q[0], roughness: 0.7 }), x + 0.62 + q[1] * 1.3, top + 0.42 + n * 0.012, z + 0.05 + q[2] * 1.3, 0.05); });
+    }
+    table(FX, FZ);
     flat(g, M.pave, 0, 0.02, -5.55, 2 * HX + 1, 4.1);
     (function () {
       var x0 = -5.6, x1 = -0.6, z0 = -7.3, z1 = -3.75, y = 2.7, x, z;
@@ -229,10 +240,8 @@
       var vine = M.leafC, wis = [0xa98ae0, 0xc3a6f0, 0x8f72d0];        // wisteria over the beams: leaves, and flowers hanging in bunches
       for (i = 0; i < 26; i++) { var vx = x0 + r() * (x1 - x0), vz = z0 + r() * (z1 - z0); ball(g, vine, vx, y + 0.3, vz, 0.3 + r() * 0.2, 0.4, 8).castShadow = i % 2 === 0; for (k = 0; k < 4; k++) FL.push([vx + (r() - 0.5) * 0.3, y + 0.05 - k * 0.1, vz + (r() - 0.5) * 0.3, 0.075 - k * 0.012, wis[(r() * 3) | 0]]); }
       cyl(g, M.bark, x0 + 0.1, 1.35, z0 + 0.14, 0.035, 0.05, 2.7, 6);
-      /* the garden table (the desk of this place) and its chair on the house side */
-      box(g, M.deck, DX, top - 0.025, DZ, 1.9, 0.05, 0.95); [[-0.85, -0.38], [0.85, -0.38], [-0.85, 0.38], [0.85, 0.38]].forEach(function (q) { box(g, M.white, DX + q[0], (top - 0.05) / 2, DZ + q[1], 0.07, top - 0.05, 0.07); });
-      box(g, M.white, DX, top - 0.1, DZ, 1.78, 0.07, 0.83);
-      (function (x, z) { box(g, M.deck, x, 0.46, z, 0.5, 0.04, 0.5); box(g, M.cloth, x, 0.5, z, 0.46, 0.05, 0.46); box(g, M.deck, x, 0.84, z + 0.25, 0.5, 0.5, 0.04); [[-0.22, -0.22], [0.22, -0.22], [-0.22, 0.22], [0.22, 0.22]].forEach(function (q) { box(g, M.white, x + q[0], 0.23, z + q[1], 0.045, 0.46, 0.045); }); })(DX, DZ + 0.82);
+      /* the garden table and its chair on the house side: the desk of the back yard (the front yard's is on its own lawn) */
+      table(DX, DZ);
       /* against the house wall: a potting bench (the things that stand on a cabinet), a lemon tree in a pot, the grill */
       box(g, M.deck, 3.4, 0.86, -HZ - 0.36, 2.9, 0.06, 0.6); box(g, M.deck, 3.4, 0.3, -HZ - 0.36, 2.8, 0.04, 0.54); [[2.05, -0.12], [4.75, -0.12], [2.05, -0.6], [4.75, -0.6]].forEach(function (q) { box(g, M.white, q[0], 0.43, -HZ + q[1], 0.07, 0.86, 0.07); });
       [2.4, 2.9, 4.3].forEach(function (x, n) { cyl(g, std({ color: 0xb5643c }), x, 0.4, -HZ - 0.36, 0.11 + n * 0.02, 0.08, 0.16, 12); });
@@ -336,9 +345,9 @@
 
     /* anchors: where each thing of Spatial Home goes in the garden — most of them on and round the terrace */
     var BW = -HZ - 0.36, anchors = {
-      'desk.left': { p: [DX - 0.3, top, DZ - 0.06], ry: 0 }, 'desk.right': { p: [DX + 0.45, top, DZ - 0.02], ry: 0 },
-      'desk.quill': { p: [DX - 0.75, top, DZ + 0.1], ry: 0.25 }, 'desk.mochi': { p: [DX + 0.78, top, DZ + 0.22], ry: -0.3 },
-      'desk.key': { p: [DX + 0.36, top, DZ + 0.3], ry: 0.3 }, 'desk.watch': { p: [DX - 0.36, top, DZ + 0.28], ry: 0.2 },
+      'desk.left': { p: [KX - 0.3, top, KZ - 0.06], ry: 0 }, 'desk.right': { p: [KX + 0.45, top, KZ - 0.02], ry: 0 },
+      'desk.quill': { p: [KX - 0.75, top, KZ + 0.1], ry: 0.25 }, 'desk.mochi': { p: [KX + 0.78, top, KZ + 0.22], ry: -0.3 },
+      'desk.key': { p: [KX + 0.36, top, KZ + 0.3], ry: 0.3 }, 'desk.watch': { p: [KX - 0.36, top, KZ + 0.28], ry: 0.2 },
       'desk.book': { p: [POOL[0] + 4.2, 0.43, POOL[3] + 2.7], ry: PI },                                            // the reading stand on the little table between the loungers
       'sill.left': { p: [2.0, 0.89, BW], ry: PI },
       'corner.window': { p: [5.2, 0, -5.6], ry: -PI / 2 },                                                               // Octo's aquarium at the end of the terrace
@@ -346,24 +355,23 @@
       'cabinet.left': { p: [2.65, 0.89, BW], ry: PI }, 'shelf.mid': { p: [3.3, 0.89, BW], ry: PI },
       'cabinet.top': { p: [3.95, 0.89, BW], ry: PI }, 'cabinet.right': { p: [4.6, 0.89, BW], ry: PI },
       'wall.right': { p: [1.9, 3.0, -HZ - 0.05], ry: PI },
-      'floor.pack': { p: [DX + 1.6, 0, DZ + 0.7], ry: 0.5 }, 'floor.gramo': { p: [-5.1, 0, -4.3], ry: PI },
+      'floor.pack': { p: [KX + 1.6, 0, KZ + 0.7], ry: 0.5 }, 'floor.gramo': { p: [-5.1, 0, -4.3], ry: PI },
       'floor.film': { p: [-10.1, 0, -5.6], ry: PI / 2 }, 'floor.portal': { p: [-8.9, 0, -4.2], ry: PI },              // the archway stands over the west walk, on the way round the house
       'floor.holo': { p: [0.4, 0, -6.4], ry: PI },
       'floor.window': { p: [(POOL[0] + POOL[2]) / 2, 0, -D + 0.42], ry: 0, w: POOL[2] - POOL[0] - 3.2, h: 2.9 }        // the Scenic Window fills the gap in the back hedge: the view beyond the pool
     };
     var solids = [[-HX, -HZ, HX, HZ + 0.9], [DOOR - 1.4, HZ, DOOR + 1.4, HZ + 1.8], [DOOR - 1.3, PLZ - 1.3, DOOR + 1.3, PLZ + 1.3],
-      [POOL[0], POOL[1], POOL[2], POOL[3]], [DX - 0.95, DZ - 0.5, DX + 0.95, DZ + 0.45], [DX - 0.3, DZ + 0.55, DX + 0.3, DZ + 1.1], [1.9, -HZ - 0.7, 4.9, -HZ],
+      [POOL[0], POOL[1], POOL[2], POOL[3]], [DX - 0.95, DZ - 0.5, DX + 0.95, DZ + 0.45], [DX - 0.3, DZ + 0.55, DX + 0.3, DZ + 1.1], [FX - 0.95, FZ - 0.5, FX + 0.95, FZ + 0.45], [FX - 0.3, FZ + 0.55, FX + 0.3, FZ + 1.1], [1.9, -HZ - 0.7, 4.9, -HZ],
       [8.7, -1.8, 11, 1.0], [-10.6, -15.2, -7.8, -12.8], [-10.3, -11, -7.7, -9.6], [-7.2, -11, -4.6, -9.6], [-4.2, -11, -1.6, -9.6], [-7.2, -13.2, -4.6, -11.8], [-4.2, -13.2, -1.6, -11.8], [-7.2, -15.4, -4.6, -14], [-4.2, -15.4, -1.6, -14],
       [-9.1, 8.6, -7.3, 9.2], [POOL[0] + 2.8, POOL[3] + 1.1, POOL[0] + 5.6, POOL[3] + 3.3], [5.65, -7.45, 6.35, -6.75], [5.25, -HZ - 0.85, 5.95, -HZ],
       [-6.2, 9.4, -4.2, 11.4], [6.6, 9.4, 8.6, 11.4], [-8.6, 6.2, -7.8, 7.0], [-9.0, -7.6, -8.2, -6.8]];
-    var back = id === 'yard-back';
 
     return {
       id: id, name: back ? 'The Back Yard' : 'The Front Yard', group: g, holder: holder, far: 420, size: { W: W - 0.9, D: D - 0.9, H: 9 }, realistic: true,
       anchors: anchors, avatar: PT.avatar, backdrop: [sky, clouds],
-      start: back ? { pos: [1.4, 1.6, -4.3], yaw: 0.12, pitch: -0.1 } : { pos: [-3.6, 1.6, 15.2], yaw: -0.36, pitch: -0.02 }, startV: 1,
-      seat: { x: DX, z: DZ + 0.82, yaw: PI, approach: [DX + 0.8, DZ + 0.95], y: 0.5 },
-      desk: { pos: [DX, 1.42, DZ + 1.1], look: [DX, 0.9, DZ - 0.4] },                  // at the garden table, looking over it to the kitchen garden and the pool
+      start: back ? { pos: [1.4, 1.6, -4.3], yaw: 0.12, pitch: -0.1 } : { pos: [-1.6, 1.6, 15.4], yaw: -0.3, pitch: -0.04 }, startV: 1,
+      seat: { x: KX, z: KZ + 0.82, yaw: PI, approach: [KX + 0.8, KZ + 0.95], y: 0.5 },
+      desk: { pos: [KX, 1.42, KZ + 1.1], look: [KX, 0.9, KZ - 0.4] },                  // at the garden table: over it to the kitchen garden and the pool, or to the fountain and the house
       solids: solids,
       areas: [[DOOR - 0.75, D - 1.3, DOOR + 0.75, D + 3.0], [-W + 0.5, D + 1.5, W - 0.5, D + 3.0]],   // out of the gate, onto the pavement
       setTime: function (m) { mode = m || 'auto'; apply(); },
