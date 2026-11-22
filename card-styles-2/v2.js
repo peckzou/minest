@@ -47,7 +47,7 @@
   ];
   var byId = {}; STYLES.forEach(function (s) { byId[s.id] = s; });
   var calm = false; try { calm = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
-  var narrow = { matches: false }; try { narrow = matchMedia('(max-width:899px)'); } catch (e) {}
+  var narrow = { matches: false }; try { narrow = matchMedia('(max-width:899px) and (min-height:521px)'); } catch (e) {}   // the stacked layout of v2.css
 
   function $(s, p) { return (p || doc).querySelector(s); }
   function $$(s, p) { return [].slice.call((p || doc).querySelectorAll(s)); }
@@ -153,6 +153,7 @@
       var c = panel.classList.contains('v2-compact');
       if (!c && grid.scrollTop > 56) panel.classList.add('v2-compact'); else if (c && grid.scrollTop < 6) panel.classList.remove('v2-compact');
     }, { passive: true });
+    if (narrow.addEventListener) narrow.addEventListener('change', function () { if (!narrow.matches) panel.classList.remove('v2-compact'); });   // e.g. the phone is turned
     left.addEventListener('click', function (e) {
       if (!panel.classList.contains('v2-compact') || (e.target.closest && e.target.closest('#v2-acts'))) return;
       e.stopPropagation(); panel.classList.remove('v2-compact'); try { grid.scrollTo({ top: 0, behavior: calm ? 'auto' : 'smooth' }); } catch (x) { grid.scrollTop = 0; }

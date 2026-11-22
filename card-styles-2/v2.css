@@ -35,7 +35,7 @@ html[data-cs2] #v2-card{position:relative;width:var(--v2-w);height:calc(var(--v2
 html[data-cs2] #v2-card>.cs-prev{position:absolute!important;inset:0;width:100%!important;height:100%!important;margin:0!important;box-sizing:border-box;backface-visibility:hidden;-webkit-backface-visibility:hidden;transition:none!important}
 html[data-cs2] #cs-hero{transform:translateZ(calc(var(--v2-d)/2))!important;padding:calc(var(--v2-w)*.09)!important}
 html[data-cs2] #cs-hero .cs-pt{font-size:calc(var(--v2-w)*.118)!important}
-html[data-cs2] #cs-hero .cs-pl{font-size:max(8.5px,calc(var(--v2-w)*.048))!important}
+html[data-cs2] #cs-hero .cs-pl{font-size:max(8.5px,calc(var(--v2-w)*.048))!important;white-space:nowrap}
 html[data-cs2] #v2-back{transform:rotateY(180deg) translateZ(calc(var(--v2-d)/2));flex-direction:column;align-items:center!important;justify-content:center!important;text-align:center;padding:calc(var(--v2-w)*.09)}
 html[data-cs2] #v2-back .v2-b-no{font-size:max(8px,calc(var(--v2-w)*.045))!important;letter-spacing:.16em!important;opacity:.75}
 html[data-cs2] #v2-back .v2-b-zh{font-size:calc(var(--v2-w)*.14)!important;line-height:1.15;margin-top:calc(var(--v2-w)*.05)}
@@ -136,10 +136,20 @@ html[data-cs2] #v2-toast{position:fixed;left:50%;bottom:calc(22px + env(safe-are
 html[data-cs2] #v2-toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
 html[data-cs2] #v2-toast a{color:#0369a1;margin-left:8px;white-space:nowrap}
 
-@media (min-width:900px){html[data-cs2] #cs-stage{position:sticky;top:0;z-index:4}}
+@media (min-width:900px),(max-height:520px){html[data-cs2] #cs-stage{position:sticky;top:0;z-index:4}}
+@media (max-height:520px){
+  html[data-cs2]{--v2-sh:clamp(170px,56vh,300px)}
+  html[data-cs2] #cs-head{padding:10px 16px 8px!important}
+  html[data-cs2] #cs-head h3{font-size:19px!important}
+  html[data-cs2] #v2-left{width:clamp(250px,40vw,400px);padding:0 8px 14px 16px}
+  html[data-cs2] #cs-tabs{padding:0 16px 10px 8px!important}
+  html[data-cs2] #cs-grid{padding:4px 16px calc(20px + env(safe-area-inset-bottom,0px)) 8px!important;grid-template-columns:repeat(auto-fill,minmax(112px,1fr))!important;gap:10px!important}
+  html[data-cs2] #v2-acts{flex-wrap:wrap}
+}
 
-/* phones and narrow windows: the stage on top, the gallery scrolls under it and the stage steps back as it does */
-@media (max-width:899px){
+/* phones and narrow windows: the stage on top, the gallery scrolls under it and the stage steps back as it does
+   (a phone on its side is too low for that: it keeps the two sides, below) */
+@media (max-width:899px) and (min-height:521px){
   html[data-cs2]{--v2-sh:clamp(210px,33vh,300px);--v2-w:calc(var(--v2-sh)*.52)}
   html[data-cs2] #cs-head{padding:12px 16px 10px!important}
   html[data-cs2] #cs-head h3{font-size:20px!important}
