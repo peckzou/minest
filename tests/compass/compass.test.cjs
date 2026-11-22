@@ -64,12 +64,13 @@ assert(core.interactions.some(i => i.interaction_id === 'kant-causality'), 'core
 assert(C.classify('asdfgh').uncertain, 'nonsense must be uncertain');
 
 // ---------------------------------------------------------------- 2 · shared protocol
+const MICRO = new Set(['tools/compass/micro', 'tools/toolkit/labs'].flatMap(d => fs.existsSync(path.join(R, d)) ? fs.readdirSync(path.join(R, d)).filter(f => f.endsWith('.json')).map(f => rd(d + '/' + f).interaction_id) : []));
 const nodeIds = new Set(tax.nodes.map(n => n.id)), fwIds = new Set(fws.map(f => f.id).concat(Object.keys(ext.frameworks).filter(k => ext.frameworks[k].labOnly)));
 tax.nodes.forEach(n => { assert(!n.parent || nodeIds.has(n.parent), 'bad parent ' + n.id); (n.see_also || []).forEach(s => assert(nodeIds.has(s), 'bad see_also ' + s)); });
 Object.entries(ext.frameworks).forEach(([id, x]) => {
   assert(fwIds.has(id), 'sidecar names unknown framework ' + id);
   (x.taxonomy_path || []).forEach(p => assert(nodeIds.has(p), id + ': unknown taxonomy node ' + p));
-  (x.interaction_ids || []).forEach(i => assert.strictEqual(i, kant.interaction_id, id + ': unknown interaction ' + i));
+  (x.interaction_ids || []).forEach(i => assert(MICRO.has(i), id + ': unknown interaction ' + i));
 });
 fws.forEach(f => assert(ext.frameworks[f.id], 'no sidecar entry for ' + f.id));
 const schema = rd('tools/compass/schema/minest.micro.schema.json');

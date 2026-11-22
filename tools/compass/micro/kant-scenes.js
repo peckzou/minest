@@ -51,7 +51,7 @@
 
   // ------------------------------------------------------------------ 2 / 4 · judge
   M.scene('judge', function (c) {
-    var f = c.step.field, opts = [['yes', 'Yes, A caused B'], ['no', 'No'], ['unsure', 'Not sure']];
+    var f = c.step.field, opts = c.step.options || [['yes', 'Yes, A caused B'], ['no', 'No'], ['unsure', 'Not sure']];
     var w = h('div', 'kl-judge', (f === 'judge2' && c.st.judge1 ? '<p class="kl-was">First you said: <b>' + esc(label(c.st.judge1)) + '</b></p>' : '') +
       '<div class="kl-opts">' + opts.map(function (o) { return '<button type="button" data-v="' + o[0] + '">' + o[1] + '</button>'; }).join('') + '</div>');
     c.el.appendChild(w);

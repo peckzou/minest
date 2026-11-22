@@ -53,7 +53,8 @@
       limitations: x.limits || f.limits || '',
       interaction_ids: x.interaction_ids || [], concept_for_interaction: x.concept_for_interaction || {},
       summary: f.summary || '', labOnly: !!x.labOnly, version: f.version || '0.1.0',
-      cues: (x.terms || []).concat([f.name, f.author || ''].filter(Boolean)).concat((f.concepts || []).map(function (k) { return k.name; }).filter(function (n) { return n && n.length > 3; }))
+      cues: (x.terms || []).concat([f.name, f.author || ''].filter(Boolean)),
+      ccues: (f.concepts || []).map(function (k) { return k.name; }).filter(function (n) { return n && n.length > 3; })   // concept names: weaker, and they don't move the place
     };
     FW.push(c); FWBY[f.id] = c;
   }
@@ -90,7 +91,9 @@
     FW.forEach(function (f) {
       var s = 0, got = [];
       f.cues.forEach(function (t) { if (t && hit(text, t)) { s += weight(t) * 1.2; got.push(t); } });
-      if (s) { fwRaw[f.framework_id] = { s: s, cues: got }; allCues = allCues.concat(got); var p = f.taxonomy_path[0]; if (p) raws[p] = (raws[p] || 0) + s * 0.5; }
+      var placeS = s;
+      (f.ccues || []).forEach(function (t) { if (hit(text, t)) { s += weight(t) * 0.5; got.push(t); } });
+      if (s) { fwRaw[f.framework_id] = { s: s, cues: got }; allCues = allCues.concat(got); var p = f.taxonomy_path[0]; if (p && placeS) raws[p] = (raws[p] || 0) + placeS * 0.5; }
     });
     // what the user corrected before
     var fixHits = [];

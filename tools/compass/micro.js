@@ -51,13 +51,15 @@
     function feedback() {
       return def.feedback_rules.filter(function (r) { return r.step === st.step && test(r.when, st); });
     }
+    var STD = ['step', 'judge1', 'judge2', 'apply', 'note', 'question', 'last', 'saved', 'layers'];
+    function probes() { var o = {}; Object.keys(def.initial_state).forEach(function (k) { if (STD.indexOf(k) < 0) o[k] = clone(st[k] == null ? null : st[k]); }); return o; }
     function result() {
       return {
         interaction_id: def.interaction_id, framework_id: def.framework_id, concept_id: def.concept_id || null, version: def.version,
         query_id: (ctx && ctx.query_id) || null, startedAt: startedAt, finishedAt: Date.now(),
         completed: test(def.completion_criteria.interaction, st),
         judge1: st.judge1, judge2: st.judge2, changedMind: !!(st.judge1 && st.judge2 && st.judge1 !== st.judge2),
-        probes: { pressA: st.pressA, curtain: st.curtain, stopped: st.stopped, houseOrders: st.houseOrders, shipTries: st.shipTries, shipWrong: st.shipWrong },
+        probes: probes(),
         apply: st.apply, note: st.note || '', question: st.question || '', log: log.slice()
       };
     }
@@ -100,6 +102,7 @@
     function mount() {
       if (cur && cur.destroy) cur.destroy(); stage.innerHTML = '';
       var step = s.step(), fn = SCENES[step.scene];
+      curStep = step.id; cur = null;   // set first: a scene may act() while it mounts
       prompt.textContent = step.prompt || '';
       cur = fn ? fn({ el: stage, st: s.state, def: def, step: step, act: act, content: def.content || {}, context: opt.context || {},
         save: function () { savedRec = save(opt.store, s); if (opt.onSaved) opt.onSaved(savedRec); paint(); return savedRec; }, saved: function () { return savedRec; } }) : null;

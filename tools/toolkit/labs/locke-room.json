@@ -1,0 +1,529 @@
+{
+ "format": "minest.micro/1",
+ "interaction_id": "locke-room",
+ "framework_id": "locke-liberty",
+ "also_for": [
+  "berlin-liberty"
+ ],
+ "interaction_type": "thought-experiment",
+ "version": "0.1.0",
+ "review": "pending",
+ "fits": [
+  "philosophy.political",
+  "philosophy.metaphysics.free-will",
+  "philosophy.ethics"
+ ],
+ "title": "The Locked Room",
+ "subtitle": "Staying willingly vs. being free to leave",
+ "learning_objective": "Tell apart doing something voluntarily (I want to stay) from being at liberty (I could leave if I wanted) — Locke’s distinction — and connect it to Berlin’s negative and positive liberty.",
+ "disclaimer": "A teaching version of Locke’s example; it illustrates his distinction and does not settle the free-will debate.",
+ "steps": [
+  {
+   "id": "observe",
+   "title": "Observe",
+   "scene": "room",
+   "prompt": "A man is carried, asleep, into a room. The door is locked. He wakes up, finds good company, and is glad to stay."
+  },
+  {
+   "id": "judge",
+   "title": "Judge",
+   "scene": "judge",
+   "prompt": "He stays because he wants to. Is he free?",
+   "field": "judge1",
+   "options": [
+    [
+     "yes",
+     "Yes, he is free"
+    ],
+    [
+     "no",
+     "No, he is not free"
+    ],
+    [
+     "unsure",
+     "Partly / not sure"
+    ]
+   ]
+  },
+  {
+   "id": "probe",
+   "title": "Experiment",
+   "scene": "room-probe",
+   "prompt": "Change the conditions. Watch the two gauges: ‘does what he wants’ and ‘could do otherwise’."
+  },
+  {
+   "id": "rejudge",
+   "title": "Judge again",
+   "scene": "judge",
+   "prompt": "Is the man in the locked room — who wants to stay — free?",
+   "field": "judge2",
+   "options": [
+    [
+     "yes",
+     "Yes, he is free"
+    ],
+    [
+     "no",
+     "No, he is not free to leave"
+    ],
+    [
+     "unsure",
+     "Partly / not sure"
+    ]
+   ]
+  },
+  {
+   "id": "explain",
+   "title": "Explain",
+   "scene": "layers",
+   "prompt": "Three ways to describe what you saw."
+  },
+  {
+   "id": "apply",
+   "title": "Apply",
+   "scene": "apply-free",
+   "prompt": "Find the same distinction in your own life."
+  },
+  {
+   "id": "save",
+   "title": "Keep",
+   "scene": "save-free",
+   "prompt": "Keep what you understood and what you still wonder about."
+  }
+ ],
+ "initial_state": {
+  "step": "observe",
+  "seen": 0,
+  "judge1": null,
+  "judge2": null,
+  "locked": true,
+  "wish": "stay",
+  "knows": false,
+  "tried": [],
+  "layers": 0,
+  "apply": null,
+  "note": "",
+  "question": "",
+  "last": null,
+  "saved": false
+ },
+ "user_actions": [
+  {
+   "id": "seen",
+   "label": "Watch the scene",
+   "step": "observe"
+  },
+  {
+   "id": "judge",
+   "label": "Choose an answer",
+   "payload": "value",
+   "step": [
+    "judge",
+    "rejudge"
+   ]
+  },
+  {
+   "id": "toggle-lock",
+   "label": "Lock / unlock the door",
+   "step": "probe"
+  },
+  {
+   "id": "toggle-wish",
+   "label": "He wants to stay / leave",
+   "step": "probe"
+  },
+  {
+   "id": "toggle-knows",
+   "label": "He knows / doesn’t know about the lock",
+   "step": "probe"
+  },
+  {
+   "id": "record",
+   "label": "Record which combinations were tried",
+   "payload": "list",
+   "step": "probe"
+  },
+  {
+   "id": "flip",
+   "label": "Turn over the next layer",
+   "step": "explain"
+  },
+  {
+   "id": "apply",
+   "label": "Submit an example",
+   "payload": "record",
+   "step": "apply"
+  },
+  {
+   "id": "note",
+   "label": "Write what you understood",
+   "payload": "fields",
+   "step": "save"
+  },
+  {
+   "id": "next",
+   "label": "Next"
+  },
+  {
+   "id": "back",
+   "label": "Back"
+  }
+ ],
+ "state_transitions": [
+  {
+   "from": "observe",
+   "on": "seen",
+   "inc": {
+    "seen": 1
+   }
+  },
+  {
+   "from": "judge",
+   "on": "judge",
+   "set": {
+    "judge1": "$value"
+   }
+  },
+  {
+   "from": "probe",
+   "on": "toggle-lock",
+   "set": {
+    "locked": "$value",
+    "last": "lock"
+   }
+  },
+  {
+   "from": "probe",
+   "on": "toggle-wish",
+   "set": {
+    "wish": "$value",
+    "last": "wish"
+   }
+  },
+  {
+   "from": "probe",
+   "on": "toggle-knows",
+   "set": {
+    "knows": "$value",
+    "last": "knows"
+   }
+  },
+  {
+   "from": "probe",
+   "on": "record",
+   "set": {
+    "tried": "$value"
+   }
+  },
+  {
+   "from": "rejudge",
+   "on": "judge",
+   "set": {
+    "judge2": "$value"
+   }
+  },
+  {
+   "from": "explain",
+   "on": "flip",
+   "inc": {
+    "layers": 1
+   }
+  },
+  {
+   "from": "apply",
+   "on": "apply",
+   "set": {
+    "apply": "$value"
+   }
+  },
+  {
+   "from": "save",
+   "on": "note",
+   "merge": "$value"
+  },
+  {
+   "from": "*",
+   "on": "next",
+   "advance": 1
+  },
+  {
+   "from": "*",
+   "on": "back",
+   "advance": -1
+  }
+ ],
+ "completion_criteria": {
+  "observe": {
+   "gte": {
+    "seen": 1
+   }
+  },
+  "judge": {
+   "truthy": [
+    "judge1"
+   ]
+  },
+  "probe": {
+   "gte": {
+    "tried.length": 3
+   }
+  },
+  "rejudge": {
+   "truthy": [
+    "judge2"
+   ]
+  },
+  "explain": {
+   "gte": {
+    "layers": 3
+   }
+  },
+  "apply": {
+   "truthy": [
+    "apply"
+   ]
+  },
+  "save": {
+   "truthy": []
+  },
+  "interaction": {
+   "all": [
+    {
+     "truthy": [
+      "judge1",
+      "judge2",
+      "apply"
+     ]
+    },
+    {
+     "gte": {
+      "layers": 3
+     }
+    }
+   ]
+  }
+ },
+ "feedback_rules": [
+  {
+   "step": "observe",
+   "when": {
+    "gte": {
+     "seen": 1
+    }
+   },
+   "say": "He does exactly what he wants — but notice the lock he doesn’t know about.",
+   "tone": "info"
+  },
+  {
+   "step": "judge",
+   "when": {
+    "eq": {
+     "judge1": "yes"
+    }
+   },
+   "say": "You say he is free: he does what he wants. Keep that — next, change the conditions.",
+   "tone": "info"
+  },
+  {
+   "step": "judge",
+   "when": {
+    "eq": {
+     "judge1": "no"
+    }
+   },
+   "say": "You say he isn’t free, even though he is doing what he wants. What exactly is missing? Let’s look.",
+   "tone": "info"
+  },
+  {
+   "step": "judge",
+   "when": {
+    "eq": {
+     "judge1": "unsure"
+    }
+   },
+   "say": "‘Partly’ is a good instinct — the next step separates two things that both get called freedom.",
+   "tone": "info"
+  },
+  {
+   "step": "probe",
+   "when": {
+    "all": [
+     {
+      "eq": {
+       "locked": true
+      }
+     },
+     {
+      "eq": {
+       "wish": "stay"
+      }
+     }
+    ]
+   },
+   "say": "Locked and wanting to stay: he acts voluntarily, but he could not leave if he wanted to.",
+   "tone": "info"
+  },
+  {
+   "step": "probe",
+   "when": {
+    "all": [
+     {
+      "eq": {
+       "locked": true
+      }
+     },
+     {
+      "eq": {
+       "wish": "leave"
+      }
+     }
+    ]
+   },
+   "say": "Now he wants to leave and can’t. The lock was there all along — wanting to leave only made it visible.",
+   "tone": "warn"
+  },
+  {
+   "step": "probe",
+   "when": {
+    "all": [
+     {
+      "eq": {
+       "locked": false
+      }
+     },
+     {
+      "eq": {
+       "wish": "stay"
+      }
+     }
+    ]
+   },
+   "say": "Unlocked and staying: he does what he wants and could do otherwise. Both gauges are full.",
+   "tone": "good"
+  },
+  {
+   "step": "probe",
+   "when": {
+    "all": [
+     {
+      "eq": {
+       "locked": false
+      }
+     },
+     {
+      "eq": {
+       "wish": "leave"
+      }
+     }
+    ]
+   },
+   "say": "Unlocked and wanting to leave: he walks out. Doing what he wants and being able to are the same here.",
+   "tone": "good"
+  },
+  {
+   "step": "probe",
+   "when": {
+    "eq": {
+     "last": "knows"
+    }
+   },
+   "say": "Knowing about the lock changes what he feels, not whether he could leave.",
+   "tone": "info"
+  },
+  {
+   "step": "rejudge",
+   "when": {
+    "all": [
+     {
+      "eq": {
+       "judge1": "yes"
+      }
+     },
+     {
+      "eq": {
+       "judge2": "no"
+      }
+     }
+    ]
+   },
+   "say": "You changed your mind: staying voluntarily turned out to be different from being free to leave.",
+   "tone": "good"
+  },
+  {
+   "step": "rejudge",
+   "when": {
+    "eq": {
+     "judge2": "no"
+    }
+   },
+   "say": "This is Locke’s answer: he stays voluntarily, but he is not at liberty to leave.",
+   "tone": "good"
+  },
+  {
+   "step": "rejudge",
+   "when": {
+    "eq": {
+     "judge2": "yes"
+    }
+   },
+   "say": "You still call him free. Many people do — in the sense that he acts on his own wishes. The next step names that sense and the other one.",
+   "tone": "info"
+  },
+  {
+   "step": "rejudge",
+   "when": {
+    "eq": {
+     "judge2": "unsure"
+    }
+   },
+   "say": "‘Partly’ fits: he is free in one sense and not in another.",
+   "tone": "info"
+  }
+ ],
+ "content": {
+  "layers": [
+   {
+    "id": "locke",
+    "title": "① Locke: voluntary ≠ free",
+    "tag": "Philosophical claim · historical",
+    "body": "Locke used this kind of case to separate two things. Staying is voluntary — he prefers it. But liberty, for Locke, is the power to act or not act as one chooses; since he could not leave if he chose to, he is not at liberty to leave.",
+    "source": "John Locke, An Essay Concerning Human Understanding (1689), Book II, ch. xxi (the locked-room example) — check the section against your edition",
+    "maps_to": "The lock gauge vs. the wish gauge"
+   },
+   {
+    "id": "berlin",
+    "title": "② Berlin: two concepts of liberty",
+    "tag": "Philosophical analysis · political",
+    "body": "Isaiah Berlin distinguished negative liberty — how far others leave me unobstructed (the lock) — from positive liberty — being my own master, acting from my own reasons (the wish). The room shows them coming apart.",
+    "source": "Isaiah Berlin, “Two Concepts of Liberty” (1958)",
+    "maps_to": "Locked door = negative liberty · own wish = positive liberty"
+   },
+   {
+    "id": "open",
+    "title": "③ What the room leaves open",
+    "tag": "Open question",
+    "body": "The room is about acting freely. Whether his wish itself is free — whether anything he wants is ultimately up to him — is the separate free-will debate (determinism, compatibilism, libertarianism). The experiment does not answer it.",
+    "source": "See: free will and determinism (e.g. Stanford Encyclopedia of Philosophy, “Free Will”)",
+    "maps_to": "Not shown by the gauges"
+   }
+  ],
+  "map_note": "The room separates two senses of freedom; it is a thinking tool, not evidence for any one theory of freedom."
+ },
+ "result_schema": {
+  "interaction_id": "string",
+  "framework_id": "string",
+  "version": "string",
+  "query_id": "string|null",
+  "startedAt": "number",
+  "finishedAt": "number",
+  "completed": "boolean",
+  "judge1": "yes|no|unsure",
+  "judge2": "yes|no|unsure",
+  "changedMind": "boolean",
+  "probes": "object",
+  "apply": "{ situation, voluntary, couldOtherwise, kind, note }",
+  "note": "string",
+  "question": "string",
+  "log": "[]"
+ }
+}

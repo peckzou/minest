@@ -1,0 +1,614 @@
+{
+ "format": "minest.models/1",
+ "version": "0.1.0",
+ "angles": [
+  {
+   "id": "define",
+   "label": "Define",
+   "hint": "What is it?"
+  },
+  {
+   "id": "compare",
+   "label": "Compare",
+   "hint": "How do views differ?"
+  },
+  {
+   "id": "cause",
+   "label": "Cause",
+   "hint": "Why does it happen?"
+  },
+  {
+   "id": "value",
+   "label": "Value",
+   "hint": "Is it good or right?"
+  },
+  {
+   "id": "system",
+   "label": "System",
+   "hint": "How do parts interact?"
+  },
+  {
+   "id": "experience",
+   "label": "Experience",
+   "hint": "Try it in an experiment"
+  }
+ ],
+ "models": [
+  {
+   "id": "causal-analysis",
+   "title": "Cause-and-effect analysis",
+   "angle": "cause",
+   "principle": "Coming first is not causing. Check common causes, reverse causation and chance, and ask what evidence would settle it.",
+   "fits": {
+    "places": [
+     "philosophy.epistemology.causation",
+     "nature.method.causal-inference",
+     "systems",
+     "society"
+    ],
+    "words": [
+     "why",
+     "为什么",
+     "because",
+     "导致",
+     "cause",
+     "effect",
+     "结果"
+    ]
+   },
+   "steps": [
+    {
+     "id": "claim",
+     "title": "The claim",
+     "prompt": "Write the cause-and-effect claim: A leads to B.",
+     "input": "text"
+    },
+    {
+     "id": "checks",
+     "title": "Check it",
+     "prompt": "Which of these could be going on?",
+     "input": "multi",
+     "options": [
+      [
+       "order",
+       "I only know A came before B"
+      ],
+      [
+       "common",
+       "A third factor could cause both"
+      ],
+      [
+       "reverse",
+       "B could cause A"
+      ],
+      [
+       "chance",
+       "It could be chance"
+      ],
+      [
+       "intervene",
+       "Someone could change A and watch B"
+      ]
+     ]
+    },
+    {
+     "id": "alternatives",
+     "title": "Other explanations",
+     "prompt": "List other things that could explain B.",
+     "input": "list"
+    },
+    {
+     "id": "evidence",
+     "title": "Evidence that would settle it",
+     "prompt": "What would you need to see?",
+     "input": "list"
+    },
+    {
+     "id": "verdict",
+     "title": "Your judgment",
+     "prompt": "For now, I think…",
+     "input": "choice",
+     "options": [
+      [
+       "causal",
+       "A probably causes B"
+      ],
+      [
+       "correlated",
+       "They are probably only correlated"
+      ],
+      [
+       "unsure",
+       "Not sure yet"
+      ]
+     ]
+    }
+   ],
+   "result": [
+    {
+     "label": "Claim",
+     "from": "claim"
+    },
+    {
+     "label": "Possible issues",
+     "from": "checks"
+    },
+    {
+     "label": "Other explanations",
+     "from": "alternatives"
+    },
+    {
+     "label": "Evidence needed",
+     "from": "evidence"
+    },
+    {
+     "label": "Judgment",
+     "from": "verdict"
+    }
+   ],
+   "rules": [
+    {
+     "when": {
+      "all": [
+       {
+        "has": [
+         "checks",
+         "order"
+        ]
+       },
+       {
+        "eq": {
+         "verdict": "causal"
+        }
+       }
+      ]
+     },
+     "say": "You only know the order but judged it causal — order alone is not evidence.",
+     "tone": "warn"
+    },
+    {
+     "when": {
+      "all": [
+       {
+        "minItems": {
+         "alternatives": 1
+        }
+       },
+       {
+        "minItems": {
+         "evidence": 1
+        }
+       }
+      ]
+     },
+     "say": "You named other explanations and the evidence that would decide — that is the core of a causal analysis.",
+     "tone": "good"
+    }
+   ],
+   "limits": "Good for empirical claims. It does not answer philosophical questions about what causation is."
+  },
+  {
+   "id": "systems-thinking",
+   "title": "Systems thinking (feedback loops)",
+   "angle": "system",
+   "principle": "Outcomes often come from loops: parts that affect each other in circles. Reinforcing loops amplify, balancing loops hold things steady.",
+   "fits": {
+    "places": [
+     "systems",
+     "society",
+     "nature",
+     "psychology"
+    ],
+    "words": [
+     "system",
+     "系统",
+     "循环",
+     "cycle",
+     "policy",
+     "政策",
+     "keeps",
+     "总是"
+    ]
+   },
+   "steps": [
+    {
+     "id": "parts",
+     "title": "Parts",
+     "prompt": "List the parts or quantities involved (at least 2).",
+     "input": "list"
+    },
+    {
+     "id": "links",
+     "title": "Links",
+     "prompt": "Connect parts: when the first goes up, does the second go up (+) or down (−)?",
+     "input": "links",
+     "from": "parts"
+    },
+    {
+     "id": "leverage",
+     "title": "Where to intervene",
+     "prompt": "Which link or part would you change, and why?",
+     "input": "text"
+    }
+   ],
+   "result": [
+    {
+     "label": "Parts",
+     "from": "parts"
+    },
+    {
+     "label": "Links",
+     "from": "links"
+    },
+    {
+     "label": "Loops found",
+     "from": "links",
+     "compute": "loops"
+    },
+    {
+     "label": "Intervention",
+     "from": "leverage"
+    }
+   ],
+   "rules": [
+    {
+     "when": {
+      "minItems": {
+       "links": 2
+      }
+     },
+     "say": "Look at the loops below: a loop with an even number of ‘−’ links is reinforcing, an odd number is balancing.",
+     "tone": "info"
+    }
+   ],
+   "limits": "A loop diagram is a simplification; real systems have delays and more parts than any sketch."
+  },
+  {
+   "id": "incentives",
+   "title": "Incentive analysis",
+   "angle": "system",
+   "principle": "People respond to what they are rewarded and punished for — which may differ from what a rule intends.",
+   "fits": {
+    "places": [
+     "society.economy",
+     "society",
+     "systems.decision"
+    ],
+    "words": [
+     "policy",
+     "政策",
+     "rule",
+     "规则",
+     "reward",
+     "奖励",
+     "incentive",
+     "没有达到",
+     "didn't work"
+    ]
+   },
+   "steps": [
+    {
+     "id": "goal",
+     "title": "Intended goal",
+     "prompt": "What is the rule or plan supposed to achieve?",
+     "input": "text"
+    },
+    {
+     "id": "actors",
+     "title": "Who is involved",
+     "prompt": "List the people or groups affected.",
+     "input": "list"
+    },
+    {
+     "id": "grid",
+     "title": "What each actor wants and is rewarded for",
+     "prompt": "Fill in what you can.",
+     "input": "matrix",
+     "rows": "actors",
+     "cols": [
+      "Wants",
+      "Rewarded for",
+      "Punished for"
+     ]
+    },
+    {
+     "id": "gap",
+     "title": "Mismatch",
+     "prompt": "Where does what people are rewarded for differ from the goal?",
+     "input": "text"
+    }
+   ],
+   "result": [
+    {
+     "label": "Goal",
+     "from": "goal"
+    },
+    {
+     "label": "Actors",
+     "from": "actors"
+    },
+    {
+     "label": "Incentives",
+     "from": "grid"
+    },
+    {
+     "label": "Mismatch",
+     "from": "gap"
+    }
+   ],
+   "rules": [
+    {
+     "when": {
+      "minItems": {
+       "actors": 2
+      }
+     },
+     "say": "Compare the rows: the same rule can push different actors in different directions.",
+     "tone": "info"
+    }
+   ],
+   "limits": "People also act from values, habits and identity, not only incentives."
+  },
+  {
+   "id": "perspectives",
+   "title": "Multiple perspectives",
+   "angle": "compare",
+   "principle": "The same issue looks different from different standpoints. Laying them side by side shows what each one notices and misses.",
+   "fits": {
+    "places": [
+     "philosophy.ethics",
+     "philosophy.political",
+     "society",
+     "philosophy"
+    ],
+    "words": [
+     "should",
+     "应该",
+     "fair",
+     "公平",
+     "right",
+     "对错",
+     "freedom",
+     "自由"
+    ]
+   },
+   "steps": [
+    {
+     "id": "issue",
+     "title": "The issue",
+     "prompt": "State the issue or question.",
+     "input": "text"
+    },
+    {
+     "id": "views",
+     "title": "Perspectives",
+     "prompt": "Add 2–4 standpoints (people, groups or theories).",
+     "input": "list",
+     "suggest": [
+      "An individual",
+      "Society as a whole",
+      "A philosopher’s view",
+      "Someone who disagrees with me"
+     ]
+    },
+    {
+     "id": "grid",
+     "title": "Compare",
+     "prompt": "What does each perspective see and value?",
+     "input": "matrix",
+     "rows": "views",
+     "cols": [
+      "Sees the issue as",
+      "Values most",
+      "Would recommend"
+     ]
+    },
+    {
+     "id": "synthesis",
+     "title": "What I take from this",
+     "prompt": "Where do they agree or clash, and where do you stand now?",
+     "input": "text"
+    }
+   ],
+   "result": [
+    {
+     "label": "Issue",
+     "from": "issue"
+    },
+    {
+     "label": "Perspectives",
+     "from": "grid"
+    },
+    {
+     "label": "My conclusion",
+     "from": "synthesis"
+    }
+   ],
+   "rules": [
+    {
+     "when": {
+      "minItems": {
+       "views": 3
+      }
+     },
+     "say": "Three or more perspectives — check whether one of them is one you disagree with.",
+     "tone": "info"
+    }
+   ],
+   "limits": "Choosing which perspectives to include already shapes the result."
+  },
+  {
+   "id": "socratic",
+   "title": "Socratic definition",
+   "angle": "define",
+   "principle": "Propose a definition, test it against examples and counterexamples, and revise it.",
+   "fits": {
+    "places": [
+     "philosophy",
+     "*"
+    ],
+    "words": [
+     "what is",
+     "什么是",
+     "mean",
+     "意思",
+     "define",
+     "定义"
+    ]
+   },
+   "steps": [
+    {
+     "id": "def",
+     "title": "First definition",
+     "prompt": "X is…",
+     "input": "text"
+    },
+    {
+     "id": "examples",
+     "title": "Examples",
+     "prompt": "Cases that fit your definition and really are X.",
+     "input": "list"
+    },
+    {
+     "id": "counter",
+     "title": "Counterexamples",
+     "prompt": "Cases that fit the definition but are not X — or are X but don’t fit.",
+     "input": "list"
+    },
+    {
+     "id": "revised",
+     "title": "Revised definition",
+     "prompt": "Improve the definition to handle the counterexamples.",
+     "input": "text"
+    }
+   ],
+   "result": [
+    {
+     "label": "First definition",
+     "from": "def"
+    },
+    {
+     "label": "Examples",
+     "from": "examples"
+    },
+    {
+     "label": "Counterexamples",
+     "from": "counter"
+    },
+    {
+     "label": "Revised",
+     "from": "revised"
+    }
+   ],
+   "rules": [
+    {
+     "when": {
+      "all": [
+       {
+        "minItems": {
+         "counter": 1
+        }
+       },
+       {
+        "empty": [
+         "revised"
+        ]
+       }
+      ]
+     },
+     "say": "You found a counterexample — try revising the definition.",
+     "tone": "warn"
+    },
+    {
+     "when": {
+      "all": [
+       {
+        "minItems": {
+         "counter": 1
+        }
+       },
+       {
+        "filled": [
+         "revised"
+        ]
+       }
+      ]
+     },
+     "say": "Definition revised after a counterexample. You can test the new one again.",
+     "tone": "good"
+    }
+   ],
+   "limits": "Some concepts may not have a neat definition at all; that can be a finding too."
+  },
+  {
+   "id": "conditions",
+   "title": "Necessary & sufficient conditions",
+   "angle": "define",
+   "principle": "A necessary condition must hold for something to be X; a sufficient condition guarantees it is X. Test them on cases.",
+   "fits": {
+    "places": [
+     "philosophy.logic",
+     "philosophy",
+     "*"
+    ],
+    "words": [
+     "what is",
+     "什么是",
+     "condition",
+     "条件",
+     "always",
+     "must"
+    ]
+   },
+   "steps": [
+    {
+     "id": "necessary",
+     "title": "Necessary conditions",
+     "prompt": "Without these, it can’t be X.",
+     "input": "list"
+    },
+    {
+     "id": "sufficient",
+     "title": "Sufficient conditions",
+     "prompt": "If these hold, it is definitely X.",
+     "input": "list"
+    },
+    {
+     "id": "cases",
+     "title": "Test cases",
+     "prompt": "Add cases; mark whether they meet your conditions and whether they really are X.",
+     "input": "cases",
+     "cols": [
+      "Meets my conditions",
+      "Really is X"
+     ]
+    }
+   ],
+   "result": [
+    {
+     "label": "Necessary",
+     "from": "necessary"
+    },
+    {
+     "label": "Sufficient",
+     "from": "sufficient"
+    },
+    {
+     "label": "Cases",
+     "from": "cases",
+     "compute": "mismatch"
+    }
+   ],
+   "rules": [
+    {
+     "when": {
+      "mismatch": "cases"
+     },
+     "say": "At least one case doesn’t match — your conditions need another look.",
+     "tone": "warn"
+    }
+   ],
+   "limits": "Many everyday concepts work by family resemblance rather than strict conditions."
+  }
+ ]
+}
