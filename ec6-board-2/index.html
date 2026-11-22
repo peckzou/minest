@@ -19,18 +19,34 @@ if (!/\/$|\.html$/.test(location.pathname)) location.replace(location.pathname +
 <div id="sample" hidden>示例内容 · 在 Minest 里登录后，这里显示你的看板</div>
 <iframe id="host" title="Minest" allow="camera; microphone; fullscreen; autoplay; clipboard-write" tabindex="-1"></iframe>
 <button id="toBoard" type="button" hidden>↩ 回到布告栏</button>
-<script>/* 2.0 keeps its own board, apart from 1.0's (same origin, same key in board-ec6.js). The first time, it starts from 1.0's board as it is now.
-   ?demo=1 is the sample board: its board and its word records (1.0 writes those to the study store) go to keys of their own, never to yours. */
+<script src="../v2-bridge/bridge.js"></script>
+<script>/* 2.0 shows 1.0's own board (the same key, minest.ec6board.v1): the room's board in Spatial Home and this page are one board.
+   ?demo=1 is the sample board: its board and its word records (1.0 writes those to the study store) go to keys of their own, never to yours.
+   Inside Minest's frame (../v2-bridge/bridge.js) the board and the word records come from Minest, and every change goes back to it:
+   in the app Minest and this page share no storage. 1.0's script is loaded after that answer, so it starts from Minest's copy. */
 (function () {
   var demo = /[?&]demo=1\b/.test(location.search), K = 'minest.ec6board.v1', G = 'minest.gptstudy.v1';
-  var MAP = {}; MAP[K] = demo ? 'minest.ec6board2.demo' : 'minest.ec6board2.v1'; if (demo) MAP[G] = 'minest.gptstudy.demo';
-  var K2 = MAP[K], g = Storage.prototype.getItem, s = Storage.prototype.setItem, to = function (k) { return Object.prototype.hasOwnProperty.call(MAP, k) ? MAP[k] : k; };
-  try { if (g.call(localStorage, K2) == null) { window.EC6V2_FRESH = true; var v1 = demo ? null : g.call(localStorage, K); if (v1) s.call(localStorage, K2, v1); } } catch (e) {}
+  var MAP = {}; if (demo) { MAP[K] = 'minest.ec6board2.demo'; MAP[G] = 'minest.gptstudy.demo'; }
+  var SYNC = {}; SYNC[K] = 1; SYNC[G] = 1;
+  var g = Storage.prototype.getItem, s = Storage.prototype.setItem, rm = Storage.prototype.removeItem, to = function (k) { return Object.prototype.hasOwnProperty.call(MAP, k) ? MAP[k] : k; };
+  try { if (g.call(localStorage, 'minest.ec6board2.seen') == null) { window.EC6V2_FRESH = true; s.call(localStorage, 'minest.ec6board2.seen', '1'); } } catch (e) {}
   Storage.prototype.getItem = function (k) { return g.call(this, to(k)); };
-  Storage.prototype.setItem = function (k, v) { return s.call(this, to(k), v); };
+  Storage.prototype.setItem = function (k, v) {
+    var r = s.call(this, to(k), v);
+    if (!demo && SYNC[k] && window.EC6V2_HOST && this === window.localStorage) window.MinestV2Bridge.send('ls', { key: k, value: String(v) });
+    return r;
+  };
   window.EC6V2_DEMO = demo;
+  function add(src, cb) { var e = document.createElement('script'); e.src = src; e.onload = e.onerror = function () { if (cb) cb(); }; document.body.appendChild(e); }
+  function go() { add('../spatial-home/js/board-ec6.js', function () { add('v2.js'); }); }
+  var B = window.MinestV2Bridge;
+  if (!demo && B && B.embedded) B.hello().then(function (r) {
+    if (r) {
+      window.EC6V2_HOST = r;
+      try { Object.keys(SYNC).forEach(function (k) { var v = r.ls && r.ls[k]; if (v != null) s.call(localStorage, k, v); else rm.call(localStorage, k); }); } catch (e) {}
+    }
+    go();
+  }); else go();
 })();</script>
-<script src="../spatial-home/js/board-ec6.js"></script>
-<script src="v2.js"></script>
 </body>
 </html>

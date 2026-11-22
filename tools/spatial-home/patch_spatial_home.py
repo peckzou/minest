@@ -104,5 +104,14 @@ def main():
     for m in differ: print('  left alone (it differed from index.html before):', m)
 
 
+def check_v2_routes():
+    """the pages this script writes also carry the 2.0 routes (tools/v2-routes): say so when one lost them"""
+    import subprocess
+    chk = ROOT / 'tools/v2-routes/patch_v2_routes.py'
+    if chk.exists() and subprocess.run([sys.executable, str(chk), '--check'], cwd=ROOT).returncode:
+        print('!! 2.0 routes missing on some pages: run  python3 tools/v2-routes/patch_v2_routes.py')
+
+
 if __name__ == '__main__':
     main()
+    check_v2_routes()

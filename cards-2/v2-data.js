@@ -81,11 +81,21 @@
     ready: function (fn) { if (done) fn(); else waiting.push(fn); }
   };
 
+  /* inside Minest's frame (../v2-bridge/bridge.js): Minest's own boards, on the board you were on; else this site's copy */
+  var BR = window.MinestV2Bridge;
+  if (BR && BR.embedded && !/[?&]sample\b/.test(location.search)) {
+    BR.hello().then(function (r) {
+      var v = r && clean(r.boards);
+      if (v && v.length) { if (r.active) mem({ b: r.active, l: '' }); use(v, false); finish(); } else load();
+    });
+    return;
+  }
+  load();
+  function load() {
   /* load: localStorage first (what Minest paints from), then its IndexedDB copy (the full one) */
   var own = []; try { own = clean(localStorage.getItem(LS_BOARDS)); } catch (e) {}
   if (/[?&]sample\b/.test(location.search)) own = [];
   if (own.length) use(own, false); else use(sampleBoards(), true);
-  function finish() { done = true; waiting.splice(0).forEach(function (fn) { try { fn(); } catch (e) {} }); }
   if (/[?&]sample\b/.test(location.search) || !window.indexedDB) { finish(); return; }
   try {
     var req = indexedDB.open(IDB), fresh = false;
@@ -101,4 +111,6 @@
       } catch (e) { db.close(); finish(); }
     };
   } catch (e) { finish(); }
+  }
+  function finish() { done = true; waiting.splice(0).forEach(function (fn) { try { fn(); } catch (e) {} }); }
 })();

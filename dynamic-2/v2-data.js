@@ -97,12 +97,19 @@
     ready: function (fn) { if (done) fn(); else waiting.push(fn); }
   };
 
+  /* inside Minest's frame (../v2-bridge/bridge.js): Minest's own boards; else this site's copy */
+  var forceSample = /[?&]sample\b/.test(location.search), BR = window.MinestV2Bridge;
+  if (BR && BR.embedded && !forceSample) {
+    BR.hello().then(function (r) {
+      var v = r && clean(r.boards);
+      if (v && v.length) { use(v, false); finish(); } else load();
+    });
+  } else load();
+  function load() {
   /* load: localStorage first (what Minest paints from), then its IndexedDB copy (the full one) */
-  var forceSample = /[?&]sample\b/.test(location.search), own = [];
+  var own = [];
   if (!forceSample) try { own = clean(localStorage.getItem(LS_BOARDS)); } catch (e) {}
   if (own.length) use(own, false); else use(sampleBoards(), true);
-  function ready() { done = true; waiting.splice(0).forEach(function (fn) { try { fn(); } catch (e) {} }); }
-  function finish() { if (isSample) return ready(); loadAssets(function () { mend(boards); window.dispatchEvent(new CustomEvent('dyn2:data')); ready(); }); }
   if (forceSample || !window.indexedDB) { finish(); return; }
   try {
     var req = indexedDB.open(IDB), fresh = false;
@@ -119,4 +126,7 @@
       } catch (e) { db.close(); finish(); }
     };
   } catch (e) { finish(); }
+  }
+  function ready() { done = true; waiting.splice(0).forEach(function (fn) { try { fn(); } catch (e) {} }); }
+  function finish() { if (isSample) return ready(); loadAssets(function () { mend(boards); window.dispatchEvent(new CustomEvent('dyn2:data')); ready(); }); }
 })();

@@ -2,7 +2,8 @@
 """Minest · 2.0 routes: the app's entries open the 2.0 pages in place of 1.0.
 
     python3 tools/v2-routes/patch_v2_routes.py            # patch every main page
-    python3 tools/v2-routes/patch_v2_routes.py --check    # only report
+    python3 tools/v2-routes/patch_v2_routes.py --check    # only report; exits 1 when a page lost a 2.0 route
+                                                          # (another script rewrote it: run this again without flags)
     python3 tools/v2-routes/patch_v2_routes.py --remove   # back to 1.0
 
 1. Pages Minest already shows in a frame get their 2.0 address: Holo Lab → holo-lab-2/, 3D Type → type3d-2/,
@@ -43,16 +44,37 @@ def patch(s, remove):
     return s
 
 
+def missing():
+    """pages that should carry the 2.0 routes and do not (addresses of the frames they have, or the script)"""
+    js = (ROOT / 'tools/v2-routes/v2-routes.js').read_text(encoding='utf-8')
+    out = []
+    for p in PAGES:
+        f = ROOT / p
+        if not f.exists():
+            continue
+        s = f.read_text(encoding='utf-8')
+        old = [a for a, b in SWAPS if a in s]
+        m = BLOCK.search(s)
+        if old or not m:
+            out.append('%s: %s' % (p, ', '.join((['1.0 address ' + a[:48] for a in old]) + ([] if m else ['no mn-v2-routes script']))))
+        elif js not in m.group(0):
+            out.append('%s: mn-v2-routes script is out of date' % p)
+    return out
+
+
 def main():
     check, remove = '--check' in sys.argv, '--remove' in sys.argv
+    if check:
+        bad = missing()
+        for b in bad:
+            print('MISSING  ', b)
+        print('2.0 routes: %s' % ('%d page(s) need the patch again' % len(bad) if bad else 'all %d pages ok' % len([p for p in PAGES if (ROOT / p).exists()])))
+        sys.exit(1 if bad else 0)
     for p in PAGES:
         f = ROOT / p
         if not f.exists():
             print('missing  ', p); continue
         s = f.read_text(encoding='utf-8')
-        state = [s.count(b) for a, b in SWAPS] + [1 if BLOCK.search(s) else 0]
-        if check:
-            print('%-42s 2.0 addresses %s · routes %s' % (p, state[:4], 'in' if state[4] else 'not in')); continue
         out = patch(s, remove)
         if out != s:
             f.write_text(out, encoding='utf-8')

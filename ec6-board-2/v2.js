@@ -52,7 +52,22 @@
       openCard: function (id) { var x = find(id); if (x) cardSheet(x); return !!x; }
     } };
   }
+  /* inside Minest's frame: Minest itself is the host, through the bridge (no second copy of the app in a frame here) */
+  function bridgeWin(r) {
+    var B = window.MinestV2Bridge, boards = r.boards || [];
+    function find(id) { var out = null; boards.some(function (b) { return (b.columns || []).some(function (c) { return (c.cards || []).some(function (x) {
+      if (x.id === id) { out = x; return true; } return (x.stack || []).some(function (y) { if (y && y.id === id) { out = y; return true; } return false; }); }); }); }); return out; }
+    return { MinestAI: {
+      boards: function () { return boards; },
+      patchCard: function (id, p) { var x = find(id); if (x) Object.assign(x, p); B.send('patchCard', { id: id, patch: p }); },
+      rateCard: function (id, m) { var x = find(id); if (x) x.mastery = m; B.send('rateCard', { id: id, m: m }); },
+      updateBoard: function (id, fn) { boards = boards.map(function (b) { if (b.id !== id) return b; var nb = fn(b); B.send('setBoard', { board: nb }); return nb; }); },
+      openCard: function (id) { B.close({ openCard: id }); return true; }
+    } };
+  }
+  var embedded = !!window.EC6V2_HOST;
   var hostP = new Promise(function (res) {
+    if (embedded) { hostFrame.remove(); hostWin = bridgeWin(window.EC6V2_HOST); res(hostWin); return; }
     if (window.EC6V2_DEMO) {
       var badge = doc.getElementById('sample'); sample = true; badge.hidden = false; hostFrame.remove(); hostWin = sampleWin(); res(hostWin);
       if (/[?&]late=1\b/.test(location.search)) {                       // sent here because Minest did not come up: one tap tries again
@@ -110,6 +125,12 @@
   function closed(res) {
     if (obs) obs.disconnect(); if (clsObs) clsObs.disconnect(); el = null; cork = null;
     if (leaving) { leave(); return; }
+    if (embedded && res && res.feature === 'kanban') {                 // Minest puts the page away and opens the card / the Kanban
+      var asked = false, B = window.MinestV2Bridge, o = B.close; B.close = function (x) { asked = true; return o.call(B, x); };
+      try { res.after && res.after(hostWin); } catch (e) {}
+      setTimeout(function () { B.close = o; if (!asked) B.close({ kanban: true }); }, 400);
+      return;
+    }
     if (res && res.feature === 'kanban') {
       if (sample) {
         openBoard(); try { res.after && res.after(hostWin); } catch (e) {}
@@ -118,6 +139,7 @@
     } else openBoard();
   }
   function leave() {
+    if (embedded && window.MinestV2Bridge.close()) return;
     var same = false; try { same = !!doc.referrer && new URL(doc.referrer).origin === location.origin; } catch (e) {}
     if (same && history.length > 1) history.back(); else location.href = '../';
   }
