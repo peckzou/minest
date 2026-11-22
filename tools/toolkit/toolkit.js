@@ -9,9 +9,16 @@
   'use strict';
   var C = window.MinestCompass, M = window.MinestMicro, KS = window.MinestKS;
   var PFX = 'minest.lab.kw.';
+  // every write is stamped (minest.toolkit.meta: key → time) so cloud sync can merge per record, newest first
+  var META = 'minest.toolkit.meta', meta = (function () { try { return JSON.parse(localStorage.getItem(META) || '{}') || {}; } catch (e) { return {}; } })();
+  function saveMeta() { try { localStorage.setItem(META, JSON.stringify(meta)); } catch (e) {} }
+  function raw(k, v) { try { if (v == null) localStorage.removeItem(PFX + k); else localStorage.setItem(PFX + k, JSON.stringify(v)); } catch (e) { toast('Could not save in this browser: ' + e.message); } }
   var backend = {
     get: function (k) { try { var v = localStorage.getItem(PFX + k); return v ? JSON.parse(v) : null; } catch (e) { return null; } },
-    set: function (k, v) { try { if (v == null) localStorage.removeItem(PFX + k); else localStorage.setItem(PFX + k, JSON.stringify(v)); } catch (e) { toast('Could not save in this browser: ' + e.message); } },
+    set: function (k, v) { raw(k, v); meta[k] = Math.max(Date.now(), (meta[k] || 0) + 1); saveMeta(); if (window.MinestToolkitCloud) MinestToolkitCloud.touch(k); },
+    applyRemote: function (k, v, t) { raw(k, v); meta[k] = t; saveMeta(); },
+    metaOf: function (k) { return meta[k] || 0; },
+    allMeta: function () { var ks0 = {}; Object.keys(meta).forEach(function (k) { ks0[k] = 1; }); this.keys('').forEach(function (k) { if (!meta[k]) { meta[k] = 1; ks0[k] = 1; } }); return Object.keys(ks0).map(function (k) { return { k: k, t: meta[k] }; }); },
     keys: function (p) { var out = []; try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf(PFX + p) === 0) out.push(k.slice(PFX.length)); } } catch (e) {} return out; }
   };
   var ks = KS.create(backend);
@@ -191,5 +198,6 @@
       TK.data.templates = all[2].templates; TK.data.seeds = all[3].seeds; TK.data.models = all[4].models; TK.data.angles = all[4].angles;
       TK.data.labs = all.slice(5, n); TK.data.labs.forEach(function (d) { M.register(d); });
       wire(); route(); if (window.MinestI18n) MinestI18n.start();
+      if (window.MinestToolkitCloud) MinestToolkitCloud.init(backend, function () { if (TK.ko && !ks.object(TK.ko.id)) TK.ko = null; render(); });
     }).catch(function (e) { document.body.insertAdjacentHTML('afterbegin', '<p class="err">Could not load the toolkit data: ' + esc(e.message) + '</p>'); });
 })();

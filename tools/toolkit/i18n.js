@@ -69,6 +69,9 @@
     'You': '你', 'Suggested (local rules)': '建议（本地规则）', 'Suggested by AI': 'AI 建议', 'AI suggestion you accepted': '你采纳的 AI 建议', 'Minest library': 'Minest 资料库', 'Made in the Graph': '在图谱中建立', 'Topic of this object': '这个对象的主题', 'Suggested / library (dashed)': '建议 / 资料库（虚线）',
     'Mind the mapping: the lamps belong to layer ② (experience and method). The house and the ship are Kant’s own example for layer ③.': '注意对应关系：灯的实验对应第 ② 层（经验与方法）；房子与船才是康德本人用来说明第 ③ 层的例子。',
     'nodes ·': '个节点 ·', 'links': '条连接', 'Untitled': '未命名', 'Switch to English': 'Switch to English', '一键切换中文': '一键切换中文',
+    'Cloud sync: off — this browser only': '云同步：关闭——仅在本浏览器', 'Connecting…': '正在连接…', 'Sign in with Google to sync': '用 Google 登录以同步', 'Syncing…': '正在同步…', 'Synced': '已同步', 'Sync problem': '同步出错',
+    'Too large to sync': '数据太大，无法同步', 'The cloud refused to save (permission denied)': '云端拒绝保存（没有权限）', 'The cloud refused to read (permission denied)': '云端拒绝读取（没有权限）', 'Try again?': '要重试吗？',
+    'Turn cloud sync off on this device? Your records stay here and in the cloud.': '要在这台设备上关闭云同步吗？你的记录会保留在本机和云端。',
     '中文': '中文'
   };
   var PAT = [
@@ -78,6 +81,7 @@
     [/^Rounds watched: (\d+)( \(watch at least 3\))?$/, function (m) { return '已看轮数：' + m[1] + (m[2] ? '（至少看 3 轮）' : ''); }],
     [/^Situations tried: (\d+) of 4( \(try at least 3\))?$/, function (m) { return '试过的情况：' + m[1] + ' / 4' + (m[2] ? '（至少试 3 种）' : ''); }],
     [/^(\d+) of (\d+) steps · built only from what you entered$/, function (m) { return '已完成 ' + m[1] + ' / ' + m[2] + ' 步 · 只根据你填写的内容生成'; }],
+    [/^Synced · (.+)$/, function (m) { return '已同步 · ' + m[1]; }],
     [/^(\d+) items?( · review pending)?$/, function (m) { return m[1] + ' 个条目' + (m[2] ? ' · 待审核' : ''); }],
     [/^(\d+) frameworks? · (\d+) items$/, function (m) { return m[1] + ' 个框架 · ' + m[2] + ' 个条目'; }],
     [/^(\d+) analys[ie]s saved$/, function (m) { return '已保存 ' + m[1] + ' 个分析'; }],
