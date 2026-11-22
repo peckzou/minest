@@ -35,10 +35,12 @@
   ];
   PATHS.forEach(function (p) { p.ids = p.ids.filter(function (id) { return BY[id]; }); });
 
-  var KEY = 'minest.ws2.models', st = {};
-  try { st = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { st = {}; }
+  var KEY = 'minest.ws2.models';
+  function load() { try { var o = JSON.parse(localStorage.getItem(KEY) || '{}'); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } }
+  var st = load();
   function rec(id) { return st[id] || (st[id] = {}); }
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
+  // only the model that changed is written over what is stored now: another open tab's notes on other models stay
+  function save(id) { var r = st[id]; st = load(); if (r) st[id] = r; try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
   function $(s, r) { return (r || document).querySelector(s); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function norm(s) { return String(s || '').toLowerCase().trim(); }
@@ -119,7 +121,7 @@
     var m = BY[id]; if (!m) return;
     cur = m; pathId = path && PATHS.filter(function (p) { return p.id === path && p.ids.indexOf(id) >= 0; })[0] ? path : null;
     if (pathId) order = PATHS.filter(function (p) { return p.id === pathId; })[0].ids.slice(); else if (order.indexOf(id) < 0) order = M.map(function (x) { return x.id; });
-    var r = rec(id); r.seen = r.seen || Date.now(); save();
+    var r = rec(id); r.seen = r.seen || Date.now(); save(id);
     $('#app').hidden = true; player.hidden = false;
     $('#p-name').textContent = m.zh; $('#p-sub').textContent = m.en + ' · ' + year(id);
     if (frame.getAttribute('data-id') !== id) { frame.setAttribute('data-id', id); frame.src = '../../philosophy/models/' + m.file; }
@@ -139,7 +141,7 @@
       '<div class="g-h"><span class="tag">' + b[2] + ' · ' + b[3] + '</span><h2>' + esc(m.zh) + '</h2><small>' + esc(m.who) + ' · ' + year(m.id) + '</small></div>' +
       '<h3>关卡 <em>Levels · 走过一关就勾一关</em></h3><div class="g-lv" id="g-lv"></div>' +
       '<h3>出处 <em>Source</em></h3><p class="src">' + esc(m.src) + '</p>' +
-      '<h3>我的笔记 <em>Notes · 只存在这台设备</em></h3><textarea id="note" rows="5" placeholder="这个模型让我想到…">' + esc(r.note || '') + '</textarea>' +
+      '<h3>我的笔记 <em>Notes · 只存在这台设备</em></h3><textarea id="note" rows="5" maxlength="4000" placeholder="这个模型让我想到…">' + esc(r.note || '') + '</textarea>' +
       '<h3>带着它去思考 <em>Think with it</em></h3><div class="g-think"><button type="button" class="pill" data-think="compass">思想罗盘：「' + esc(topicOf(m)) + '」在哪里</button><button type="button" class="pill" data-think="models">用思维模型分析它</button><button type="button" class="pill" data-think="graph">看它连向哪里</button></div>' +
       '<h3>相关模型 <em>Related</em></h3><div class="g-rel">' + related(m).map(function (x) { return '<button type="button" data-open="' + x.id + '"><i style="background:' + branch(x)[4] + '"></i><b>' + esc(x.zh) + '</b>' + ((st[x.id] || {}).done ? '<em>✓</em>' : '') + '</button>'; }).join('') + '</div>';
     paintLevels();
@@ -157,17 +159,18 @@
     if ((b = t.closest('[data-open]'))) return open(b.getAttribute('data-open'), b.getAttribute('data-path'));
     if ((b = t.closest('[data-view]'))) { view = b.getAttribute('data-view'); return draw(); }
     if ((b = t.closest('[data-f]'))) { filter = b.getAttribute('data-f'); return draw(); }
-    if ((b = t.closest('[data-lv]'))) { var r = rec(cur.id), i = +b.getAttribute('data-lv'); r.lv = r.lv || []; r.lv[i] = !r.lv[i]; if ((cur.levels || []).every(function (_, k) { return r.lv[k]; })) r.done = true; save(); return paint(); }
+    if ((b = t.closest('[data-lv]'))) { var r = rec(cur.id), i = +b.getAttribute('data-lv'); r.lv = r.lv || []; r.lv[i] = !r.lv[i]; if ((cur.levels || []).every(function (_, k) { return r.lv[k]; })) r.done = true; save(cur.id); return paint(); }
     if ((b = t.closest('[data-think]'))) {
       var q = topicOf(cur), c = b.getAttribute('data-think');
       if (EMBED) tell({ action: 'think', input: q, card: c }); else location.href = '../index.html#q=' + encodeURIComponent(q) + '&card=' + c;
     }
   });
   $('#p-back').onclick = back; $('#p-prev').onclick = function () { step(-1); }; $('#p-next').onclick = function () { step(1); };
-  $('#p-fav').onclick = function () { var r = rec(cur.id); r.fav = !r.fav; save(); paint(); };
-  $('#p-done').onclick = function () { var r = rec(cur.id); r.done = !r.done; if (!r.done) r.lv = []; save(); paint(); };
+  $('#p-fav').onclick = function () { var r = rec(cur.id); r.fav = !r.fav; save(cur.id); paint(); };
+  $('#p-done').onclick = function () { var r = rec(cur.id); r.done = !r.done; if (!r.done) r.lv = []; save(cur.id); paint(); };
   $('#p-guide').onclick = function () { var off = player.classList.toggle('no-guide'); this.setAttribute('aria-pressed', String(!off)); };
-  guideEl.addEventListener('input', function (e) { if (e.target.id === 'note' && cur) { rec(cur.id).note = e.target.value.slice(0, 4000); save(); } });
+  guideEl.addEventListener('input', function (e) { if (e.target.id === 'note' && cur) { rec(cur.id).note = e.target.value.slice(0, 4000); save(cur.id); } });
+  window.addEventListener('storage', function (e) { if (e.key !== KEY) return; st = load(); if (cur) paint(); else draw(); });   // another tab wrote
   qEl.value = query; qEl.addEventListener('input', function () { query = qEl.value; if (view === 'paths') view = 'grid'; draw(); });
   document.addEventListener('keydown', function (e) {
     var typing = /^(INPUT|TEXTAREA)$/.test((e.target || {}).tagName || '');
