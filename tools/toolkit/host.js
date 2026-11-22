@@ -25,14 +25,27 @@
     if (o.model) h.push('model=' + encodeURIComponent(o.model));
     if (o.input) h.push('input=' + encodeURIComponent(o.input));
     if (o.nebula) h.push('nebula=1');
+    if (o.only) h.push('only=1');
     ov = document.createElement('div'); ov.className = 'mn-tk-ov'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Cognitive Toolkit');
     ov.innerHTML = '<iframe title="Cognitive Toolkit" src="' + PAGE + '#' + h.join('&') + '"></iframe><button type="button" class="mn-tk-x" aria-label="Close">×</button>';
+    var from = o.from || { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    from = { x: Math.max(0, Math.min(window.innerWidth, from.x)), y: Math.max(0, Math.min(window.innerHeight, from.y)) };   // the workbench unfolds from here (the watch, when summoned)
+    ov.style.setProperty('--ox', Math.round(from.x) + 'px'); ov.style.setProperty('--oy', Math.round(from.y) + 'px'); if (o.from) ov.classList.add('from-watch');
     document.body.appendChild(ov); frame = ov.querySelector('iframe');
     ov.querySelector('.mn-tk-x').onclick = close;
     document.addEventListener('keydown', key, true);
     requestAnimationFrame(function () { ov.classList.add('on'); });
   }
-  function close() { if (!ov) return; var o = ov; ov = null; frame = null; if (unsub) { unsub(); unsub = null; } document.removeEventListener('keydown', key, true); o.classList.remove('on'); setTimeout(function () { o.remove(); }, 220); }
+  // the workbench lives in Holo Lab's 知识星图 (spatial-home/js/holo-lab.js); the toolkit's own nebula is only a fallback
+  function holo() {
+    var H = window.SpatialHoloLab;
+    if (H) H.open(function (r) { try { if (window.MinestUniverse && window.MinestUniverse.close) window.MinestUniverse.close(); } catch (e) {} if (r && r.after && window.MinestAI) setTimeout(function () { r.after(window); }, 200); }, { mode: 'stars' });
+    else open({ nebula: true });
+  }
+  function close() {
+    if (!ov) return; var o = ov; ov = null; frame = null; if (unsub) { unsub(); unsub = null; } document.removeEventListener('keydown', key, true);
+    o.classList.remove('on'); setTimeout(function () { o.remove(); try { window.dispatchEvent(new CustomEvent('minest:toolkit-closed')); } catch (e) {} }, o.classList.contains('from-watch') ? 560 : 220);   // folds back into the watch
+  }
   function key(e) { if (e.key === 'Escape' && ov) { e.stopPropagation(); close(); } }
 
   // ---------------------------------------------------------------- the toolkit asks, the host answers
@@ -57,6 +70,7 @@
     if (m.action === 'hello') return reply(src, m.id, { host: 'minest', user: user() ? { email: user().email || '' } : null, worlds: !!window.MinestWorld });
     if (m.action === 'items') return reply(src, m.id, items());
     if (m.action === 'close') return close();
+    if (m.action === 'holo') { close(); setTimeout(holo, 260); return reply(src, m.id, { ok: !!window.SpatialHoloLab }); }
     if (m.action === 'capture') {
       close();
       setTimeout(function () { try { if (window.MinestCapture) window.MinestCapture.open({ text: String(m.text || '') }); } catch (x) {} }, 260);
@@ -89,8 +103,8 @@
     b.onclick = function (e) { e.stopPropagation(); open({}); };
     fw.after(b);
     var nb = document.createElement('button'); nb.type = 'button'; nb.className = 'mw-portal'; nb.setAttribute('data-nebula', '');
-    nb.innerHTML = '<span>🌌</span><div><b>Knowledge Nebula</b><small>Holographic workbench · rotate, open, focus, pull out</small></div><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
-    nb.onclick = function (e) { e.stopPropagation(); open({ nebula: true }); };
+    nb.innerHTML = '<span>🌌</span><div><b>Knowledge Constellation</b><small>知识星图 · Holographic workbench · rotate, open, focus, pull out, connect</small></div><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
+    nb.onclick = function (e) { e.stopPropagation(); holo(); };
     b.after(nb);
   }
   function watch() {
@@ -102,10 +116,12 @@
 
   var css = document.createElement('style'); css.id = 'mn-tk-host';
   css.textContent = '.mn-tk-ov{position:fixed;inset:0;z-index:2147483600;background:rgba(10,8,24,.55);opacity:0;transition:opacity .2s}.mn-tk-ov.on{opacity:1}' +
+    '.mn-tk-ov.from-watch{opacity:1;clip-path:circle(0 at var(--ox) var(--oy));transition:clip-path .55s cubic-bezier(.3,.7,.2,1)}.mn-tk-ov.from-watch.on{clip-path:circle(150% at var(--ox) var(--oy))}' +
+    '@media (prefers-reduced-motion:reduce){.mn-tk-ov.from-watch{transition:none}}' +
     '.mn-tk-ov iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#14121f}' +
     '.mn-tk-x{position:absolute;top:calc(env(safe-area-inset-top,0px) + 10px);right:12px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.9);color:#1d1838;font:600 22px/1 system-ui;box-shadow:0 4px 14px rgba(0,0,0,.3);cursor:pointer}' +
     'html.student-mode .mw-portal[data-toolkit],html.student-mode .mw-portal[data-nebula]{display:none}';
   (document.head || document.documentElement).appendChild(css);
 
-  window.MinestToolkitHost = { open: open, close: close, isOpen: function () { return !!ov; }, items: items };
+  window.MinestToolkitHost = { open: open, close: close, constellation: holo, isOpen: function () { return !!ov; }, items: items };
 })();

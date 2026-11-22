@@ -551,7 +551,7 @@
   /* ════════════════════════ 3 · 知识星图 Knowledge Constellation ════════════════════════ */
   var S = { id: 'stars', zh: '知识星图', en: 'CONSTELLATION', bag: new Bag(), nodes: [], edges: [], focus: -1, alpha: 0, root: null };
   S.clear = function () { if (S.root) HL.contentRoot.remove(S.root); S.root = null; S.nodes = []; S.edges = []; S.bag.free(); S.focus = -1; };
-  S.exit = function () { S.clear(); };
+  S.exit = function () { if (S.wb && S.wb.exit) S.wb.exit(); S.clear(); };
   S.enter = function () { S.build(); };
   S.onContent = function () { var f = S.focus >= 0 && S.nodes[S.focus] && S.nodes[S.focus].uid; S.build(true); if (f) S.nodes.forEach(function (n, i) { if (n.uid === f) S.setFocus(i, true); }); HL.refreshTools(); };
   S.onItemEdited = function (it) { S.nodes.forEach(function (n) { if (n.it === it) S.atlas.redraw(n.uv, HL.labelDraw(it.title, null, n.color)); }); };
@@ -592,6 +592,7 @@
     nodes.forEach(function (n) { if (!n.hub) { var h = hubs[n.it.group]; if (!oldPos[n.uid]) n.p.copy(h.p).add(V((R0() - 0.5) * 0.6, (R0() - 0.5) * 0.6, (R0() - 0.5) * 0.6)); } });
     edges.forEach(function (e) { nodes[e[0]].adj.push(e[1]); nodes[e[1]].adj.push(e[0]); });
     S.nodes = nodes; S.edges = edges; S.alpha = keep ? 0.25 : 1;
+    if (S.wb && S.wb.onBuild) S.wb.onBuild(nodes, edges);
     S.root = new T.Group(); S.root.position.copy(HL.CENTER); HL.contentRoot.add(S.root);
     var N = nodes.length;
     S.glow = S.bag.add(HL.Billboards(N)); S.root.add(S.glow.mesh);
@@ -647,30 +648,35 @@
     if (S.alpha > 0) { S.step(); if (S.alpha > 0.1) S.step(); }
     if (!reduce() && S.focus < 0 && !S.dragging) S.root.rotation.y += dt * 0.05;
     var n = S.nodes, foc = S.focus, nb = foc >= 0 ? n[foc].adjSet : null, NW = HL.narrow ? 1.25 : 1;
+    var WB = S.wb;   // the Holographic Workbench (workbench.js): levels, collapse, pulled cards, explode, time, path
+    if (WB && WB.beforeUpdate) WB.beforeUpdate(dt, t);
     for (var i = 0; i < n.length; i++) {
-      var N0 = n[i], a = HL.appear(Math.min(i, 60) * 0.3, 0.03);
-      _w.copy(N0.p).multiplyScalar(a);
-      var hi = foc < 0 ? 1 : (i === foc ? 1.6 : nb[i] ? 1.1 : 0.25);
+      var N0 = n[i], a = HL.appear(Math.min(i, 60) * 0.3, 0.03), wv = WB ? WB.vis(i) : 1;
+      _w.copy(WB ? WB.pos(i) : N0.p).multiplyScalar(a);
+      var hi = (foc < 0 ? 1 : (i === foc ? 1.6 : nb[i] ? 1.1 : 0.25)) * (WB ? WB.hi(i) : 1);
       var gs = (N0.hub ? 0.36 : 0.18) * NW * (i === foc ? 1.5 : 1) * a * (0.92 + 0.08 * Math.sin(t * 2 + i));
-      S.glow.set(i, _w, gs, gs); S.glow.tintC(i, N0.col, hi);
+      gs *= wv; S.glow.set(i, _w, gs, gs); S.glow.tintC(i, N0.col, hi);
       var many = n.length > 70, la = foc < 0 ? (N0.hub ? 1 : many ? 0.42 : 0.9) : (i === foc || nb[i] ? 1 : 0.12);
       var lw = (N0.hub ? 0.95 : many ? 0.6 : 0.8) * NW * (i === foc ? 1.6 : nb && nb[i] ? 1.2 : 1);
+      la *= wv * (WB ? WB.hi(i) : 1); lw *= wv > 0.05 ? 1 : 0;
       _w.y -= (N0.hub ? 0.22 : 0.13) * NW; S.lab.set(i, _w, lw * a, lw * 72 / 384 * a); S.lab.tint(i, 1, 1, 1, la * a);
     }
     S.glow.commit(); S.lab.commit();
     var pos = S.eg.attributes.position.array, hiA = S.eg.attributes.aHi.array, ea = HL.appear(20, 0.03);
     S.edges.forEach(function (e, k) {
-      var A = n[e[0]].p, B = n[e[1]].p; pos[k * 6] = A.x * ea; pos[k * 6 + 1] = A.y * ea; pos[k * 6 + 2] = A.z * ea; pos[k * 6 + 3] = B.x * ea; pos[k * 6 + 4] = B.y * ea; pos[k * 6 + 5] = B.z * ea;
+      var A = WB ? WB.pos(e[0]) : n[e[0]].p, B = WB ? WB.pos(e[1]) : n[e[1]].p; pos[k * 6] = A.x * ea; pos[k * 6 + 1] = A.y * ea; pos[k * 6 + 2] = A.z * ea; pos[k * 6 + 3] = B.x * ea; pos[k * 6 + 4] = B.y * ea; pos[k * 6 + 5] = B.z * ea;
       hiA[k * 2] = hiA[k * 2 + 1] = foc >= 0 && (e[0] === foc || e[1] === foc) ? 1 : 0;
     });
     S.eg.attributes.position.needsUpdate = true; S.eg.attributes.aHi.needsUpdate = true;
     S.lines.material.uniforms.uFocus.value = foc >= 0 ? 1 : 0; S.lines.material.uniforms.uShow.value = ea;
-    if (foc >= 0 && !S.dragging) { S.root.localToWorld(_w.copy(n[foc].p)); HL.cam.g.tgt.lerp(_w, damp(dt, 3)); }
+    if (foc >= 0 && !S.dragging) { S.root.localToWorld(_w.copy(WB ? WB.pos(foc) : n[foc].p)); HL.cam.g.tgt.lerp(_w, damp(dt, 3)); }
+    if (WB && WB.afterUpdate) WB.afterUpdate(dt, t);
   };
-  S.world = function (i) { return S.root.localToWorld(n0(i)); function n0(k) { return S.nodes[k].p.clone(); } };
+  S.world = function (i) { return S.root.localToWorld((S.wb ? S.wb.pos(i) : S.nodes[i].p).clone()); };
   S.pick = function (x, y) {
     var best = null, bd = Infinity;
     S.nodes.forEach(function (N0, i) {
+      if (S.wb && S.wb.vis(i) < 0.3) return;
       var s = HL.screenOf(S.world(i)); if (s.behind) return;
       var r = Math.max(20, (N0.hub ? 0.2 : 0.11) * s.ppu), d = Math.hypot(s.x - x, s.y - y);
       if (d < r && d < bd) { bd = d; best = { i: i, drag: true }; }
@@ -686,6 +692,7 @@
     }
   };
   S.tap = function (h) {
+    if (S.wb && S.wb.tap && S.wb.tap(h)) return;
     if (!h) { if (S.focus >= 0) { S.focus = -1; HL.home(); } HL.detail.close(); return; }
     S.setFocus(h.i);
   };
@@ -701,6 +708,7 @@
     ui.sep(box);
     [['#6fe3ff', '单词'], ['#9fc4ff', '卡片'], ['#e0a060', 'Anchor'], ['#b58cff', '知识'], ['#ffd27a', '分组']].forEach(function (l) { var s = document.createElement('span'); s.className = 'lab'; s.innerHTML = '<b style="color:' + l[0] + '">●</b> ' + l[1]; box.appendChild(s); });
     ui.sep(box); ui.lab(box, S.nodes.length + ' 节点 · ' + S.edges.length + ' 连线');
+    if (S.wb && S.wb.tools) S.wb.tools(box);
   };
   HL.register(S);
 

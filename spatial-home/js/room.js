@@ -291,6 +291,11 @@
     }));
     function arm(x, seed) { var a = new THREE.Group(); a.position.set(x, 0.46, 0); torso.add(a); a.add(part(seed, function (v) { v.box(-0.04, -0.42, -0.06, 0.04, 0.02, 0.06, 'plaster'); v.box(-0.04, -0.5, -0.06, 0.04, -0.42, 0.06, SKIN); })); return a; }
     var armL = arm(-0.21, 114), armR = arm(0.21, 115);
+    /* the knowledge watch on the left wrist: a dark band and a face that glows when it projects the nebula */
+    var band = new THREE.Mesh(new THREE.BoxGeometry(0.095, 0.035, 0.13), new THREE.MeshStandardMaterial({ color: 0x1b1d2a, roughness: 0.5, metalness: 0.4 }));
+    band.position.set(0, -0.4, 0); armL.add(band);
+    var faceMat = new THREE.MeshStandardMaterial({ color: 0x0b2a3a, emissive: new THREE.Color(0x35d6ff).convertSRGBToLinear(), emissiveIntensity: 0.6, roughness: 0.3 });
+    var face = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.05, 0.06), faceMat); face.position.set(-0.05, -0.4, 0); armL.add(face);
     function leg(x, seed) {
       var th = new THREE.Group(); th.position.set(x, 0, 0); hips.add(th);
       th.add(part(seed, function (v) { v.box(-0.055, -0.31, -0.07, 0.055, 0, 0.07, 'blueDeep'); }));
@@ -306,7 +311,8 @@
         armL.rotation.x = P.aLx || 0; armL.rotation.z = -(P.aLz || 0); armR.rotation.x = P.aRx || 0; armR.rotation.z = P.aRz || 0;
         legL.th.rotation.x = P.tLx || 0; legR.th.rotation.x = P.tRx || 0; legL.sh.rotation.x = P.sLx || 0; legR.sh.rotation.x = P.sRx || 0;
         torso.scale.y = P.breath || 1;
-      }
+      },
+      watch: { face: face, glow: function (k) { faceMat.emissiveIntensity = 0.6 + k * 5; } }
     };
     return g;
   }

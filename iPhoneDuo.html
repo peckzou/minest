@@ -182645,6 +182645,138 @@ html.mn-type3d-on #minest-mini-pet-p0{visibility:hidden!important}
 <link rel="stylesheet" href="live-games/extra-games.css?v=13-1">
 <script src="live-games/extra-drag.js?v=13-1"></script>
 <script src="live-games/extra-runtime.js?v=13-1"></script>
+<!-- mn-toolkit-host:start -->
+<script>
+/* Minest · Cognitive Toolkit — the host side inside the Minest app (window.MinestToolkitHost)
+   Injected into the phone / iPad / web pages by tools/toolkit/apply.py. It:
+     · puts a “Cognitive Toolkit” entry on the My World home, next to Frameworks;
+     · opens the toolkit (toolkit.html, built by tools/toolkit/build.py) full screen in an iframe;
+     · answers the toolkit over postMessage (works whether or not the frame counts as same-origin, e.g. file:// in the app):
+         items          → the things in the user's worlds (titles only), to think about one of them
+         capture        → closes the toolkit and opens My World's own Quick Capture with the text (the user confirms
+                          where it goes — nothing is written to a board without that)
+         cloud-*        → reads / writes users/{uid}/focusboard/toolkit with the app's signed-in Firebase user, and relays
+                          remote changes; no other document is touched
+   Entry from code: MinestToolkitHost.open({ input, card, objectId, lab, model }). */
+(function () {
+  'use strict';
+  if (window.MinestToolkitHost) return;
+  var ov = null, frame = null, unsub = null, PAGE = 'toolkit.html';
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function open(o) {
+    o = o || {};
+    if (ov) close();
+    var h = ['embed=1'];
+    if (o.objectId) h.push('ko=' + encodeURIComponent(o.objectId));
+    if (o.card) h.push('card=' + encodeURIComponent(o.card));
+    if (o.lab) h.push('lab=' + encodeURIComponent(o.lab));
+    if (o.model) h.push('model=' + encodeURIComponent(o.model));
+    if (o.input) h.push('input=' + encodeURIComponent(o.input));
+    if (o.nebula) h.push('nebula=1');
+    if (o.only) h.push('only=1');
+    ov = document.createElement('div'); ov.className = 'mn-tk-ov'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Cognitive Toolkit');
+    ov.innerHTML = '<iframe title="Cognitive Toolkit" src="' + PAGE + '#' + h.join('&') + '"></iframe><button type="button" class="mn-tk-x" aria-label="Close">×</button>';
+    var from = o.from || { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    from = { x: Math.max(0, Math.min(window.innerWidth, from.x)), y: Math.max(0, Math.min(window.innerHeight, from.y)) };   // the workbench unfolds from here (the watch, when summoned)
+    ov.style.setProperty('--ox', Math.round(from.x) + 'px'); ov.style.setProperty('--oy', Math.round(from.y) + 'px'); if (o.from) ov.classList.add('from-watch');
+    document.body.appendChild(ov); frame = ov.querySelector('iframe');
+    ov.querySelector('.mn-tk-x').onclick = close;
+    document.addEventListener('keydown', key, true);
+    requestAnimationFrame(function () { ov.classList.add('on'); });
+  }
+  // the workbench lives in Holo Lab's 知识星图 (spatial-home/js/holo-lab.js); the toolkit's own nebula is only a fallback
+  function holo() {
+    var H = window.SpatialHoloLab;
+    if (H) H.open(function (r) { try { if (window.MinestUniverse && window.MinestUniverse.close) window.MinestUniverse.close(); } catch (e) {} if (r && r.after && window.MinestAI) setTimeout(function () { r.after(window); }, 200); }, { mode: 'stars' });
+    else open({ nebula: true });
+  }
+  function close() {
+    if (!ov) return; var o = ov; ov = null; frame = null; if (unsub) { unsub(); unsub = null; } document.removeEventListener('keydown', key, true);
+    o.classList.remove('on'); setTimeout(function () { o.remove(); try { window.dispatchEvent(new CustomEvent('minest:toolkit-closed')); } catch (e) {} }, o.classList.contains('from-watch') ? 560 : 220);   // folds back into the watch
+  }
+  function key(e) { if (e.key === 'Escape' && ov) { e.stopPropagation(); close(); } }
+
+  // ---------------------------------------------------------------- the toolkit asks, the host answers
+  function reply(src, id, data) { try { src.postMessage({ type: 'minest-toolkit-reply', id: id, data: data }, '*'); } catch (e) {} }
+  function user() { try { var fb = window.firebase; return fb && fb.auth && fb.auth().currentUser; } catch (e) { return null; } }
+  function doc(u) { return window.firebase.firestore().collection('users').doc(u.uid).collection('focusboard').doc('toolkit'); }
+  function items() {
+    var out = [];
+    try {
+      var W = window.MinestWorld, ws = W && W.worlds ? W.worlds() : [], K = window.MinestKnowledge;
+      ws.forEach(function (x) { var b = x.b || x; (b.columns || []).forEach(function (col) { (col.cards || []).forEach(function (c) {
+        if (!c || !c.title || (K && K.isHeading && K.isHeading(c.id))) return;
+        out.push({ id: c.id, title: c.title, world: b.title, list: col.title });
+        (c.stack || []).forEach(function (s) { if (s && s.title) out.push({ id: s.id, title: s.title, world: b.title, list: c.title }); });
+      }); }); });
+    } catch (e) {}
+    return out.slice(0, 600);
+  }
+  window.addEventListener('message', function (e) {
+    var m = e.data; if (!m || m.type !== 'minest-toolkit' || !frame || e.source !== frame.contentWindow) return;
+    var src = e.source, u;
+    if (m.action === 'hello') return reply(src, m.id, { host: 'minest', user: user() ? { email: user().email || '' } : null, worlds: !!window.MinestWorld });
+    if (m.action === 'items') return reply(src, m.id, items());
+    if (m.action === 'close') return close();
+    if (m.action === 'holo') { close(); setTimeout(holo, 260); return reply(src, m.id, { ok: !!window.SpatialHoloLab }); }
+    if (m.action === 'capture') {
+      close();
+      setTimeout(function () { try { if (window.MinestCapture) window.MinestCapture.open({ text: String(m.text || '') }); } catch (x) {} }, 260);
+      return reply(src, m.id, { ok: !!window.MinestCapture });
+    }
+    if (m.action === 'cloud-get') {
+      u = user(); if (!u || !window.firebase.firestore) return reply(src, m.id, { error: 'signed-out' });
+      doc(u).get().then(function (d) { reply(src, m.id, { x: d.exists ? (d.data().x || {}) : {}, email: u.email || '' }); }).catch(function (x) { reply(src, m.id, { error: x && x.code || String(x) }); });
+      return;
+    }
+    if (m.action === 'cloud-set') {
+      u = user(); if (!u) return reply(src, m.id, { error: 'signed-out' });
+      doc(u).set({ x: m.x || {}, updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(), writer: 'cognitive-toolkit' }, { merge: true })
+        .then(function () { reply(src, m.id, { ok: true }); }).catch(function (x) { reply(src, m.id, { error: x && x.code || String(x) }); });
+      return;
+    }
+    if (m.action === 'cloud-listen') {
+      u = user(); if (!u) return reply(src, m.id, { error: 'signed-out' });
+      if (unsub) unsub();
+      unsub = doc(u).onSnapshot(function (d) { try { src.postMessage({ type: 'minest-toolkit-remote', x: d.exists ? (d.data().x || {}) : {} }, '*'); } catch (x) {} }, function () {});
+      return reply(src, m.id, { ok: true });
+    }
+  });
+
+  // ---------------------------------------------------------------- the entry on the My World home (next to Frameworks)
+  function addEntry(root) {
+    var fw = (root || document).querySelector('.mw-portal[data-frameworks]'); if (!fw || fw.parentNode.querySelector('.mw-portal[data-toolkit]')) return;
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'mw-portal'; b.setAttribute('data-toolkit', '');
+    b.innerHTML = '<span>🧠</span><div><b>Cognitive Toolkit</b><small>Think it through · Compass · Framework · Models · Lab · Graph</small></div><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
+    b.onclick = function (e) { e.stopPropagation(); open({}); };
+    fw.after(b);
+    var nb = document.createElement('button'); nb.type = 'button'; nb.className = 'mw-portal'; nb.setAttribute('data-nebula', '');
+    nb.innerHTML = '<span>🌌</span><div><b>Knowledge Constellation</b><small>知识星图 · Holographic workbench · rotate, open, focus, pull out, connect</small></div><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
+    nb.onclick = function (e) { e.stopPropagation(); holo(); };
+    b.after(nb);
+  }
+  function watch() {
+    addEntry();
+    if (!window.MutationObserver) return;
+    var t = 0; new MutationObserver(function () { clearTimeout(t); t = setTimeout(addEntry, 40); }).observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.body) watch(); else document.addEventListener('DOMContentLoaded', watch);
+
+  var css = document.createElement('style'); css.id = 'mn-tk-host';
+  css.textContent = '.mn-tk-ov{position:fixed;inset:0;z-index:2147483600;background:rgba(10,8,24,.55);opacity:0;transition:opacity .2s}.mn-tk-ov.on{opacity:1}' +
+    '.mn-tk-ov.from-watch{opacity:1;clip-path:circle(0 at var(--ox) var(--oy));transition:clip-path .55s cubic-bezier(.3,.7,.2,1)}.mn-tk-ov.from-watch.on{clip-path:circle(150% at var(--ox) var(--oy))}' +
+    '@media (prefers-reduced-motion:reduce){.mn-tk-ov.from-watch{transition:none}}' +
+    '.mn-tk-ov iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#14121f}' +
+    '.mn-tk-x{position:absolute;top:calc(env(safe-area-inset-top,0px) + 10px);right:12px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.9);color:#1d1838;font:600 22px/1 system-ui;box-shadow:0 4px 14px rgba(0,0,0,.3);cursor:pointer}' +
+    'html.student-mode .mw-portal[data-toolkit],html.student-mode .mw-portal[data-nebula]{display:none}';
+  (document.head || document.documentElement).appendChild(css);
+
+  window.MinestToolkitHost = { open: open, close: close, constellation: holo, isOpen: function () { return !!ov; }, items: items };
+})();
+
+</script>
+<!-- mn-toolkit-host:end -->
 <style id="mn-spatial-home-css">
 /* Minest · Spatial Home — everything is scoped under #mn-sh (and the sh- ids), so it can live inside the Minest page. */
 #mn-sh, #sh-host, #sh-veil, #sh-pill { --sh-ink: #1d2b4f; --sh-blue: #2f6fd6; --sh-paper: #fbf7ee; --sh-glass: rgba(251, 247, 238, .82); --sh-line: rgba(29, 43, 79, .14); }
@@ -182958,6 +183090,13 @@ html.sh-main-dock-disabled body .mn-bdock { display: none !important; }
 #sh-piano [data-keys] .w.on { background: linear-gradient(180deg, #c9f4ff, #6fdcff); box-shadow: 0 0 22px rgba(90, 220, 255, .9), inset 0 -4px 0 rgba(0,0,0,.08); }
 #sh-piano [data-keys] .b.on { background: linear-gradient(180deg, #3cd2ff, #0a6fa0); box-shadow: 0 0 18px rgba(90, 220, 255, .9); }
 #mn-sh.busy #sh-piano, #mn-sh.busy #sh-pianohit { pointer-events: auto; }
+
+/* ⌚ the knowledge watch: a beam of light from the wrist */
+.sh-watchbeam { position: fixed; z-index: 2147483000; width: 10px; height: 0; margin-left: -5px; pointer-events: none; transform-origin: 50% 100%;
+  background: linear-gradient(to top, rgba(140, 230, 255, .95), rgba(120, 200, 255, .35) 60%, transparent); border-radius: 6px; box-shadow: 0 0 24px #7fd8ff, 0 0 60px rgba(107, 76, 230, .6);
+  animation: shBeam 1s ease-out forwards; }
+@keyframes shBeam { 0% { height: 0; opacity: 0; transform: translateY(0); } 25% { opacity: 1; } 55% { height: 46vh; transform: translateY(-46vh); width: 14px; } 100% { height: 60vh; transform: translateY(-60vh) scaleX(8); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .sh-watchbeam { animation-duration: .2s; } }
 </style>
 <script id="mn-spatial-home">
 window.__SPATIAL_HOME_EMBEDDED__ = true;
@@ -183374,6 +183513,11 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     }));
     function arm(x, seed) { var a = new THREE.Group(); a.position.set(x, 0.46, 0); torso.add(a); a.add(part(seed, function (v) { v.box(-0.04, -0.42, -0.06, 0.04, 0.02, 0.06, 'plaster'); v.box(-0.04, -0.5, -0.06, 0.04, -0.42, 0.06, SKIN); })); return a; }
     var armL = arm(-0.21, 114), armR = arm(0.21, 115);
+    /* the knowledge watch on the left wrist: a dark band and a face that glows when it projects the nebula */
+    var band = new THREE.Mesh(new THREE.BoxGeometry(0.095, 0.035, 0.13), new THREE.MeshStandardMaterial({ color: 0x1b1d2a, roughness: 0.5, metalness: 0.4 }));
+    band.position.set(0, -0.4, 0); armL.add(band);
+    var faceMat = new THREE.MeshStandardMaterial({ color: 0x0b2a3a, emissive: new THREE.Color(0x35d6ff).convertSRGBToLinear(), emissiveIntensity: 0.6, roughness: 0.3 });
+    var face = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.05, 0.06), faceMat); face.position.set(-0.05, -0.4, 0); armL.add(face);
     function leg(x, seed) {
       var th = new THREE.Group(); th.position.set(x, 0, 0); hips.add(th);
       th.add(part(seed, function (v) { v.box(-0.055, -0.31, -0.07, 0.055, 0, 0.07, 'blueDeep'); }));
@@ -183389,7 +183533,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
         armL.rotation.x = P.aLx || 0; armL.rotation.z = -(P.aLz || 0); armR.rotation.x = P.aRx || 0; armR.rotation.z = P.aRz || 0;
         legL.th.rotation.x = P.tLx || 0; legR.th.rotation.x = P.tRx || 0; legL.sh.rotation.x = P.sLx || 0; legR.sh.rotation.x = P.sRx || 0;
         torso.scale.y = P.breath || 1;
-      }
+      },
+      watch: { face: face, glow: function (k) { faceMat.emissiveIntensity = 0.6 + k * 5; } }
     };
     return g;
   }
@@ -193417,7 +193562,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     var seen = {}, addList = function (b, c) {
       var key = 'b:' + b.id + ':' + c.id; if (seen[key] || out.lists.length >= 10) return; seen[key] = 1;
       var rec = gs && gs.lists && gs.lists[key], items = (c.cards || []).filter(function (k) { return k && k.title; }).slice(0, 80).map(function (k) {
-        return { id: k.id, bd: bdOf(k), title: clip(k.title, 60), text: textOf(k), learned: !!(rec && rec.cards && rec.cards[k.id] && rec.cards[k.id].learned), tags: tagsOf(k) }; });
+        return { id: k.id, t: +k.createdAt || 0, bd: bdOf(k), title: clip(k.title, 60), text: textOf(k), learned: !!(rec && rec.cards && rec.cards[k.id] && rec.cards[k.id].learned), tags: tagsOf(k) }; });
       if (items.length) out.lists.push({ key: key, title: clip((c.title || '') + (b.title ? ' · ' + b.title : ''), 60), source: rec ? 'gptstudy' : 'kanban', items: items });
     };
     try { var ws = E && E.wordState(); if (ws && ws.L) addList(ws.L.b, ws.L.c); } catch (e) {}
@@ -193430,7 +193575,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     if (cb) (cb.columns || []).forEach(function (c) {
       var sub = subOf(c.title);
       (c.cards || []).forEach(function (k) { if (!k || !k.title || out.charts.length >= 120) return;
-        out.charts.push({ id: k.id, bd: bdOf(k), sub: sub[0], subName: sub[2], ink: sub[3], title: clip(k.title, 80), text: textOf(k), today: !!picked[k.id],
+        out.charts.push({ id: k.id, t: +k.createdAt || 0, bd: bdOf(k), sub: sub[0], subName: sub[2], ink: sub[3], title: clip(k.title, 80), text: textOf(k), today: !!picked[k.id],
           mastered: !!(S && (S.mastered || []).some(function (m) { return m.id === k.id && !m.undone; })) }); });
     });
     out.charts.sort(function (a, b) { return (b.today ? 1 : 0) - (a.today ? 1 : 0); });
@@ -193441,7 +193586,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     kb.sort(function (a, b) { return (/knowledge|知识/i.test(b.title || '') ? 1 : 0) - (/knowledge|知识/i.test(a.title || '') ? 1 : 0); });
     kb.forEach(function (b) { (b.columns || []).forEach(function (c) { (c.cards || []).forEach(function (k) { if (!k || !k.title || out.knowledge.length >= 150) return;
       var par = []; try { par = (K && K.parentOf && K.parentOf(k.id)) || []; if (!Array.isArray(par)) par = par ? [par] : []; } catch (e) {}
-      out.knowledge.push({ id: k.id, bd: bdOf(k), title: clip(k.title, 80), text: textOf(k), tags: tagsOf(k).concat([plain(c.title)]).filter(Boolean), board: clip(b.title, 40), parents: par.slice(0, 6) }); }); }); });
+      out.knowledge.push({ id: k.id, t: +k.createdAt || 0, bd: bdOf(k), title: clip(k.title, 80), text: textOf(k), tags: tagsOf(k).concat([plain(c.title)]).filter(Boolean), board: clip(b.title, 40), parents: par.slice(0, 6) }); }); }); });
     /* 3D Type works */
     try { var BP = root.MinestBackpack; if (BP && BP.works) out.works = BP.works().slice(-60).reverse().map(function (it) { return { id: it.id, word: clip(it.word, 40), mode: it.mode || 'neon', look: (it.look && it.look.gas) || it.gas || 'neon' }; }); } catch (e) {}
     out.layout = loadLayout();
@@ -193456,14 +193601,24 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
   var el = null, frame = null, done = null, saveT = 0;
   function post(m) { try { frame.contentWindow.postMessage(m, '*'); } catch (e) {} }
+  /* the Holographic Workbench in 知识星图 keeps its links and groups in the Cognitive Toolkit's store — this page writes
+     them (same records and write-time stamps as the toolkit, so its cloud sync carries them); boards are not touched */
+  var TKP = 'minest.lab.kw.', TKM = 'minest.toolkit.meta', want = null;
+  function wbAll() { var o = {}; try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf(TKP) === 0) { var kk = k.slice(TKP.length); if (/^(kr|cc):/.test(kk)) o[kk] = JSON.parse(localStorage.getItem(k)); } } } catch (e) {} return o; }
+  function wbWrite(k, v) { try { if (v == null) localStorage.removeItem(TKP + k); else localStorage.setItem(TKP + k, JSON.stringify(v)); var mt = JSON.parse(localStorage.getItem(TKM) || '{}'); mt[k] = Math.max(Date.now(), (mt[k] || 0) + 1); localStorage.setItem(TKM, JSON.stringify(mt)); } catch (e) {} }
   function finish(r) {
     if (!el) return; root.removeEventListener('message', onMsg);
-    var e0 = el; el = null; frame = null; e0.style.opacity = '0'; setTimeout(function () { e0.remove(); }, 320);
+    var e0 = el, watch = e0.classList.contains('from-watch'); el = null; frame = null;
+    if (watch) e0.style.clipPath = 'circle(0 at var(--ox) var(--oy))'; else e0.style.opacity = '0';   // folds back into the watch
+    setTimeout(function () { e0.remove(); try { root.dispatchEvent(new CustomEvent('minest:holo-closed')); } catch (er) {} }, watch ? 560 : 320);
     var f = done; done = null; if (f) f(r || null);
   }
   function onMsg(e) {
     var m = e.data; if (!el || !m || m.holo !== 1 || !frame || e.source !== frame.contentWindow) return;
-    if (m.op === 'ready') post({ holo: 1, op: 'content', data: snapshot() });
+    if (m.op === 'ready') { if (want) post({ holo: 1, op: 'mode', id: want }); post({ holo: 1, op: 'content', data: snapshot() }); if (el && el.classList.contains('from-watch')) post({ holo: 1, op: 'boot' }); }
+    else if (m.op === 'wb-get') post({ holo: 1, op: 'wb', data: wbAll() });
+    else if (m.op === 'wb-write' && typeof m.key === 'string' && /^(kr|cc):[A-Za-z0-9_-]+$/.test(m.key)) wbWrite(m.key, m.value);
+    else if (m.op === 'toolkit') { var tw = HW(), q = { input: String(m.input || '').slice(0, 200), card: m.card || null }; finish(null); setTimeout(function () { try { (tw.MinestToolkitHost || root.MinestToolkitHost).open(q); } catch (er) {} }, 360); }
     else if (m.op === 'close') finish(null);
     else if (m.op === 'save' && m.layout && typeof m.layout === 'object') { clearTimeout(saveT); var l = m.layout; saveT = setTimeout(function () { saveLayout(l); }, 400); }
     else if (m.op === 'edit' && m.id) {
@@ -193481,10 +193636,13 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     }
   }
   /** open the lab; cb(null) = back where you were, cb({feature, after}) = open that in Minest */
-  function open(cb) {
-    if (el) return; done = cb || null;
+  /** opts.mode: start in that mode (e.g. 'stars' = 知识星图) · opts.from {x,y}: unfold from that point (the knowledge watch) */
+  function open(cb, opts) {
+    if (el) return; done = cb || null; opts = opts || {}; want = opts.mode || null;
     el = document.createElement('div'); el.id = 'mn-holo-lab';
-    el.style.cssText = 'position:fixed;inset:0;z-index:2147483600;background:#02060a;opacity:0;transition:opacity .3s';
+    el.style.cssText = 'position:fixed;inset:0;z-index:2147483620;background:#02060a;opacity:0;transition:opacity .3s';   // above Spatial Home (2147483600)
+    if (opts.from) { var fx = Math.max(0, Math.min(innerWidth, opts.from.x)), fy = Math.max(0, Math.min(innerHeight, opts.from.y)); el.classList.add('from-watch'); el.style.setProperty('--ox', fx + 'px'); el.style.setProperty('--oy', fy + 'px');
+      el.style.opacity = '1'; el.style.clipPath = 'circle(0 at var(--ox) var(--oy))'; el.style.transition = 'clip-path .55s cubic-bezier(.3,.7,.2,1)'; requestAnimationFrame(function () { requestAnimationFrame(function () { if (el) el.style.clipPath = 'circle(150% at var(--ox) var(--oy))'; }); }); }
     frame = document.createElement('iframe'); frame.title = '全息文字操作台 · Holographic Typography Lab'; frame.setAttribute('allow', 'fullscreen; autoplay; clipboard-write');
     frame.style.cssText = 'border:0;width:100%;height:100%;display:block'; frame.src = src(); el.appendChild(frame); document.body.appendChild(el);
     ['pointerdown', 'touchstart', 'wheel', 'keydown'].forEach(function (t) { el.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
@@ -194273,7 +194431,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
 
   /* ------------------------------------------------------------ the figure (third person): walk, idle, sit / stand up, reach,
      carry, put down, wave. Target poses blend into each other, so every change of state is a short, smooth movement. */
-  var RIG = avatar.userData.rig, AV = { cur: {}, sitting: false, sitK: 0, wantSit: false, standUntil: 0, g: null, g0: 0, gd: 1, carry: false, phase: 0, speed: 0, lx: null, lz: null, look: 0, lookT: 0, lookTo: 0 };
+  var RIG = avatar.userData.rig, AV = { holo: false, holoK: 0, beam: 0, cur: {}, sitting: false, sitK: 0, wantSit: false, standUntil: 0, g: null, g0: 0, gd: 1, carry: false, phase: 0, speed: 0, lx: null, lz: null, look: 0, lookT: 0, lookTo: 0 };
   var POSE0 = { y: 0, lean: 0, headX: 0, headY: 0, aLx: 0, aLz: 0.06, aRx: 0, aRz: 0.06, tLx: 0, tRx: 0, sLx: 0, sRx: 0, breath: 1 };
   Object.keys(POSE0).forEach(function (k) { AV.cur[k] = POSE0[k]; });
   function gesture(name, dur) { AV.g = name; AV.g0 = T; AV.gd = dur || 0.9; }
@@ -194315,6 +194473,10 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
         if (AV.g === 'wave') { t.aRz = t.aRz + (2.6 - t.aRz) * w + Math.sin(T * 13) * 0.25 * w; t.aRx = 0; t.headY = 0.2 * w; }
       }
     }
+    /* the knowledge watch: the left wrist comes up in front, the head looks at it — held while the nebula is out */
+    AV.holoK += ((AV.holo ? 1 : 0) - AV.holoK) * Math.min(1, dt * 6);
+    if (AV.holoK > 0.01) { var hk = AV.holoK; t.aLx = t.aLx + (-1.45 - t.aLx) * hk; t.aLz = t.aLz + (-0.55 - t.aLz) * hk; t.headX = t.headX + (0.32 - t.headX) * hk; t.headY = t.headY + (-0.3 - t.headY) * hk; }
+    if (RIG.watch) RIG.watch.glow(AV.holoK * (0.7 + Math.sin(T * 9) * 0.3) + (AV.beam > 0 ? AV.beam : 0));
     var f = Math.min(1, dt * 10); for (k in t) AV.cur[k] += (t[k] - AV.cur[k]) * f;
     RIG.pose(AV.cur);
   }
@@ -194372,10 +194534,42 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     return ray.intersectObject(avatar, true).length > 0;
   }
   function closeFigureMenu() { if (fmenu) { fmenu.remove(); fmenu = null; } }
+  /* ⌚ summon the knowledge nebula from the watch: wrist up → a beam of light → the workbench unfolds from the watch;
+     closing it folds it back into the watch and the arm comes down (tools/toolkit/host.js does the unfolding) */
+  function watchPoint() {
+    var f = RIG.watch && RIG.watch.face; if (!f || !avatar.visible) return null;
+    f.updateMatrixWorld(true); var v = new THREE.Vector3(); f.getWorldPosition(v); v.project(camera);
+    var C = canvas.getBoundingClientRect(), x = C.left + (v.x + 1) / 2 * C.width, y = C.top + (1 - v.y) / 2 * C.height;
+    if (!(v.z < 1) || x < 0 || y < 0 || x > window.innerWidth || y > window.innerHeight) return null;   // behind the camera or off screen
+    return { x: x, y: y };
+  }
+  function watchSummon() {
+    var HLab = window.SpatialHoloLab; if ((!HLab && !window.MinestToolkitHost) || AV.holo) return;
+    var wait = 520;
+    if (!third()) { setMode('explore'); setView('3p'); wait = 1500; }   // the figure has to be in view to raise its wrist
+    if (AV.sitting) sitToggle();
+    AV.holo = true; noteInput();
+    setTimeout(function () {
+      var pt = watchPoint() || { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+      beam(pt);
+      setTimeout(function () {
+        var from = watchPoint() || pt;
+        if (HLab) HLab.open(function (r) { if (r && r.after && window.MinestAI) setTimeout(function () { r.after(window); }, 200); }, { mode: 'stars', from: from });   // 知识星图, unfolding from the watch
+        else window.MinestToolkitHost.open({ nebula: true, only: true, from: from });
+      }, 420);
+    }, wait);
+  }
+  function beam(pt) {   // a column of light out of the watch face (screen space, above the canvas)
+    AV.beam = 1; var t0 = performance.now(); (function fade() { AV.beam = Math.max(0, 1 - (performance.now() - t0) / 900); if (AV.beam > 0) setTimeout(fade, 30); })();
+    var b = document.createElement('div'); b.className = 'sh-watchbeam'; b.style.left = pt.x + 'px'; b.style.top = pt.y + 'px'; document.body.appendChild(b);
+    setTimeout(function () { b.remove(); }, 1100);
+  }
+  ['minest:toolkit-closed', 'minest:holo-closed'].forEach(function (ev) { window.addEventListener(ev, function () { if (AV.holo) { AV.holo = false; noteInput(); } }); });
   function figureMenu() {
     closeFigureMenu(); noteInput();
     var host = editBar.parentNode, el = document.createElement('div'); el.className = 'sh-fmenu'; fmenu = el;
     var acts = [{ k: 'sit', t: AV.sitting ? '站起来' : '坐到书桌前' }, { k: 'stroll', t: '随便逛逛' }, { k: 'wave', t: '挥挥手' }];
+    if (window.SpatialHoloLab || window.MinestToolkitHost) acts.unshift({ k: 'holo', t: '⌚ 手表 · 展开知识星图' });
     objects.forEach(function (o) { if (!o.stashed && VERB[o.id]) acts.push({ k: 'o:' + o.id, t: VERB[o.id], o: o }); });
     el.innerHTML = '<b>要做什么？</b><div class="list">' + acts.map(function (a) { return '<button type="button" data-k="' + a.k + '">' + (a.o ? '<i>' + ico(a.o) + '</i>' : '') + a.t + '</button>'; }).join('') + '</div>';
     host.appendChild(el);
@@ -194384,6 +194578,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       var b = ev.target.closest('button'); if (!b) return; var k = b.dataset.k; closeFigureMenu();
       if (k === 'sit') { sitToggle(); return; }
       if (k === 'wave') { gesture('wave', 1.6); return; }
+      if (k === 'holo') { watchSummon(); return; }
       if (k === 'stroll') { lastInput = T - IDLE - 1; return; }
       var o = objects.filter(function (x) { return 'o:' + x.id === k; })[0]; if (!o) return;
       if (/^desk\./.test(o.anchor || '') && !AV.sitting) { sitToggle(); task = { o: o, sit: true }; return; }   // things on the desk: sit down first
@@ -195249,7 +195444,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     switches: { list: function () { return SWS.map(function (w) { return w.o.id; }); }, press: function (id) { var w = SWS.filter(function (q) { return q.o.id === id; })[0]; if (w) pressSwitch(w); return !!w; },
       screen: function (id) { var w = SWS.filter(function (q) { return q.o.id === id; })[0]; if (!w) return null; w.g.updateMatrixWorld(true); var v = w.g.getWorldPosition(new THREE.Vector3()).project(camera); return [(v.x + 1) / 2 * window.innerWidth, (1 - v.y) / 2 * window.innerHeight]; },
       at: function (x, y) { var w = swAt({ clientX: x, clientY: y }); return w ? w.o.id : null; } },
-    figure: { sit: sitToggle, gesture: function (n) { gesture(n, n === 'wave' ? 1.6 : 0.9); }, state: function () { return { sitting: AV.sitting, wantSit: AV.wantSit, carry: AV.carry, g: AV.g, speed: +AV.speed.toFixed(2), pos: avatar.position.toArray().map(function (n) { return +n.toFixed(2); }), pose: JSON.parse(JSON.stringify(AV.cur)) }; } },
+    figure: { watch: watchSummon, sit: sitToggle, gesture: function (n) { gesture(n, n === 'wave' ? 1.6 : 0.9); }, state: function () { return { sitting: AV.sitting, wantSit: AV.wantSit, carry: AV.carry, g: AV.g, speed: +AV.speed.toFixed(2), pos: avatar.position.toArray().map(function (n) { return +n.toFixed(2); }), pose: JSON.parse(JSON.stringify(AV.cur)) }; } },
     setEnv: setEnv, envs: function () { return window.SpatialRoom.envs(); }, env: function () { return room; }, look: function (yaw, pitch) { if (mode === 'desk') { DK.yaw = yaw; DK.pitch = pitch; } else { P.yaw = yaw; P.pitch = pitch; } dirty = true; }, layout: function () { return JSON.parse(JSON.stringify(layout())); },
     edit: { start: function (id) { var o = objects.filter(function (x) { return x.id === id; })[0]; if (o) startEdit(o); }, moveAt: function (x, y) { editMove({ clientX: x, clientY: y }); }, end: function (how) { endEdit(how || 'ok'); }, spawn: function (kind) { spawn({ kind: kind }); }, extras: function () { return XS.length; } },
     backpack: function () { return BP && BP.catalog ? BP.catalog(host) : []; },   // the laptop's grid (laptop.js)
@@ -195377,121 +195572,5 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
 })();
 
 </script>
-<!-- mn-toolkit-host:start -->
-<script>
-/* Minest · Cognitive Toolkit — the host side inside the Minest app (window.MinestToolkitHost)
-   Injected into the phone / iPad / web pages by tools/toolkit/apply.py. It:
-     · puts a “Cognitive Toolkit” entry on the My World home, next to Frameworks;
-     · opens the toolkit (toolkit.html, built by tools/toolkit/build.py) full screen in an iframe;
-     · answers the toolkit over postMessage (works whether or not the frame counts as same-origin, e.g. file:// in the app):
-         items          → the things in the user's worlds (titles only), to think about one of them
-         capture        → closes the toolkit and opens My World's own Quick Capture with the text (the user confirms
-                          where it goes — nothing is written to a board without that)
-         cloud-*        → reads / writes users/{uid}/focusboard/toolkit with the app's signed-in Firebase user, and relays
-                          remote changes; no other document is touched
-   Entry from code: MinestToolkitHost.open({ input, card, objectId, lab, model }). */
-(function () {
-  'use strict';
-  if (window.MinestToolkitHost) return;
-  var ov = null, frame = null, unsub = null, PAGE = 'toolkit.html';
-  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-
-  function open(o) {
-    o = o || {};
-    if (ov) close();
-    var h = ['embed=1'];
-    if (o.objectId) h.push('ko=' + encodeURIComponent(o.objectId));
-    if (o.card) h.push('card=' + encodeURIComponent(o.card));
-    if (o.lab) h.push('lab=' + encodeURIComponent(o.lab));
-    if (o.model) h.push('model=' + encodeURIComponent(o.model));
-    if (o.input) h.push('input=' + encodeURIComponent(o.input));
-    if (o.nebula) h.push('nebula=1');
-    ov = document.createElement('div'); ov.className = 'mn-tk-ov'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Cognitive Toolkit');
-    ov.innerHTML = '<iframe title="Cognitive Toolkit" src="' + PAGE + '#' + h.join('&') + '"></iframe><button type="button" class="mn-tk-x" aria-label="Close">×</button>';
-    document.body.appendChild(ov); frame = ov.querySelector('iframe');
-    ov.querySelector('.mn-tk-x').onclick = close;
-    document.addEventListener('keydown', key, true);
-    requestAnimationFrame(function () { ov.classList.add('on'); });
-  }
-  function close() { if (!ov) return; var o = ov; ov = null; frame = null; if (unsub) { unsub(); unsub = null; } document.removeEventListener('keydown', key, true); o.classList.remove('on'); setTimeout(function () { o.remove(); }, 220); }
-  function key(e) { if (e.key === 'Escape' && ov) { e.stopPropagation(); close(); } }
-
-  // ---------------------------------------------------------------- the toolkit asks, the host answers
-  function reply(src, id, data) { try { src.postMessage({ type: 'minest-toolkit-reply', id: id, data: data }, '*'); } catch (e) {} }
-  function user() { try { var fb = window.firebase; return fb && fb.auth && fb.auth().currentUser; } catch (e) { return null; } }
-  function doc(u) { return window.firebase.firestore().collection('users').doc(u.uid).collection('focusboard').doc('toolkit'); }
-  function items() {
-    var out = [];
-    try {
-      var W = window.MinestWorld, ws = W && W.worlds ? W.worlds() : [], K = window.MinestKnowledge;
-      ws.forEach(function (x) { var b = x.b || x; (b.columns || []).forEach(function (col) { (col.cards || []).forEach(function (c) {
-        if (!c || !c.title || (K && K.isHeading && K.isHeading(c.id))) return;
-        out.push({ id: c.id, title: c.title, world: b.title, list: col.title });
-        (c.stack || []).forEach(function (s) { if (s && s.title) out.push({ id: s.id, title: s.title, world: b.title, list: c.title }); });
-      }); }); });
-    } catch (e) {}
-    return out.slice(0, 600);
-  }
-  window.addEventListener('message', function (e) {
-    var m = e.data; if (!m || m.type !== 'minest-toolkit' || !frame || e.source !== frame.contentWindow) return;
-    var src = e.source, u;
-    if (m.action === 'hello') return reply(src, m.id, { host: 'minest', user: user() ? { email: user().email || '' } : null, worlds: !!window.MinestWorld });
-    if (m.action === 'items') return reply(src, m.id, items());
-    if (m.action === 'close') return close();
-    if (m.action === 'capture') {
-      close();
-      setTimeout(function () { try { if (window.MinestCapture) window.MinestCapture.open({ text: String(m.text || '') }); } catch (x) {} }, 260);
-      return reply(src, m.id, { ok: !!window.MinestCapture });
-    }
-    if (m.action === 'cloud-get') {
-      u = user(); if (!u || !window.firebase.firestore) return reply(src, m.id, { error: 'signed-out' });
-      doc(u).get().then(function (d) { reply(src, m.id, { x: d.exists ? (d.data().x || {}) : {}, email: u.email || '' }); }).catch(function (x) { reply(src, m.id, { error: x && x.code || String(x) }); });
-      return;
-    }
-    if (m.action === 'cloud-set') {
-      u = user(); if (!u) return reply(src, m.id, { error: 'signed-out' });
-      doc(u).set({ x: m.x || {}, updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(), writer: 'cognitive-toolkit' }, { merge: true })
-        .then(function () { reply(src, m.id, { ok: true }); }).catch(function (x) { reply(src, m.id, { error: x && x.code || String(x) }); });
-      return;
-    }
-    if (m.action === 'cloud-listen') {
-      u = user(); if (!u) return reply(src, m.id, { error: 'signed-out' });
-      if (unsub) unsub();
-      unsub = doc(u).onSnapshot(function (d) { try { src.postMessage({ type: 'minest-toolkit-remote', x: d.exists ? (d.data().x || {}) : {} }, '*'); } catch (x) {} }, function () {});
-      return reply(src, m.id, { ok: true });
-    }
-  });
-
-  // ---------------------------------------------------------------- the entry on the My World home (next to Frameworks)
-  function addEntry(root) {
-    var fw = (root || document).querySelector('.mw-portal[data-frameworks]'); if (!fw || fw.parentNode.querySelector('.mw-portal[data-toolkit]')) return;
-    var b = document.createElement('button'); b.type = 'button'; b.className = 'mw-portal'; b.setAttribute('data-toolkit', '');
-    b.innerHTML = '<span>🧠</span><div><b>Cognitive Toolkit</b><small>Think it through · Compass · Framework · Models · Lab · Graph</small></div><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
-    b.onclick = function (e) { e.stopPropagation(); open({}); };
-    fw.after(b);
-    var nb = document.createElement('button'); nb.type = 'button'; nb.className = 'mw-portal'; nb.setAttribute('data-nebula', '');
-    nb.innerHTML = '<span>🌌</span><div><b>Knowledge Nebula</b><small>Holographic workbench · rotate, open, focus, pull out</small></div><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
-    nb.onclick = function (e) { e.stopPropagation(); open({ nebula: true }); };
-    b.after(nb);
-  }
-  function watch() {
-    addEntry();
-    if (!window.MutationObserver) return;
-    var t = 0; new MutationObserver(function () { clearTimeout(t); t = setTimeout(addEntry, 40); }).observe(document.body, { childList: true, subtree: true });
-  }
-  if (document.body) watch(); else document.addEventListener('DOMContentLoaded', watch);
-
-  var css = document.createElement('style'); css.id = 'mn-tk-host';
-  css.textContent = '.mn-tk-ov{position:fixed;inset:0;z-index:2147483600;background:rgba(10,8,24,.55);opacity:0;transition:opacity .2s}.mn-tk-ov.on{opacity:1}' +
-    '.mn-tk-ov iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#14121f}' +
-    '.mn-tk-x{position:absolute;top:calc(env(safe-area-inset-top,0px) + 10px);right:12px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.9);color:#1d1838;font:600 22px/1 system-ui;box-shadow:0 4px 14px rgba(0,0,0,.3);cursor:pointer}' +
-    'html.student-mode .mw-portal[data-toolkit],html.student-mode .mw-portal[data-nebula]{display:none}';
-  (document.head || document.documentElement).appendChild(css);
-
-  window.MinestToolkitHost = { open: open, close: close, isOpen: function () { return !!ov; }, items: items };
-})();
-
-</script>
-<!-- mn-toolkit-host:end -->
 </body>
 </html>

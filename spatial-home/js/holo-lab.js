@@ -35,7 +35,7 @@
     var seen = {}, addList = function (b, c) {
       var key = 'b:' + b.id + ':' + c.id; if (seen[key] || out.lists.length >= 10) return; seen[key] = 1;
       var rec = gs && gs.lists && gs.lists[key], items = (c.cards || []).filter(function (k) { return k && k.title; }).slice(0, 80).map(function (k) {
-        return { id: k.id, bd: bdOf(k), title: clip(k.title, 60), text: textOf(k), learned: !!(rec && rec.cards && rec.cards[k.id] && rec.cards[k.id].learned), tags: tagsOf(k) }; });
+        return { id: k.id, t: +k.createdAt || 0, bd: bdOf(k), title: clip(k.title, 60), text: textOf(k), learned: !!(rec && rec.cards && rec.cards[k.id] && rec.cards[k.id].learned), tags: tagsOf(k) }; });
       if (items.length) out.lists.push({ key: key, title: clip((c.title || '') + (b.title ? ' · ' + b.title : ''), 60), source: rec ? 'gptstudy' : 'kanban', items: items });
     };
     try { var ws = E && E.wordState(); if (ws && ws.L) addList(ws.L.b, ws.L.c); } catch (e) {}
@@ -48,7 +48,7 @@
     if (cb) (cb.columns || []).forEach(function (c) {
       var sub = subOf(c.title);
       (c.cards || []).forEach(function (k) { if (!k || !k.title || out.charts.length >= 120) return;
-        out.charts.push({ id: k.id, bd: bdOf(k), sub: sub[0], subName: sub[2], ink: sub[3], title: clip(k.title, 80), text: textOf(k), today: !!picked[k.id],
+        out.charts.push({ id: k.id, t: +k.createdAt || 0, bd: bdOf(k), sub: sub[0], subName: sub[2], ink: sub[3], title: clip(k.title, 80), text: textOf(k), today: !!picked[k.id],
           mastered: !!(S && (S.mastered || []).some(function (m) { return m.id === k.id && !m.undone; })) }); });
     });
     out.charts.sort(function (a, b) { return (b.today ? 1 : 0) - (a.today ? 1 : 0); });
@@ -59,7 +59,7 @@
     kb.sort(function (a, b) { return (/knowledge|知识/i.test(b.title || '') ? 1 : 0) - (/knowledge|知识/i.test(a.title || '') ? 1 : 0); });
     kb.forEach(function (b) { (b.columns || []).forEach(function (c) { (c.cards || []).forEach(function (k) { if (!k || !k.title || out.knowledge.length >= 150) return;
       var par = []; try { par = (K && K.parentOf && K.parentOf(k.id)) || []; if (!Array.isArray(par)) par = par ? [par] : []; } catch (e) {}
-      out.knowledge.push({ id: k.id, bd: bdOf(k), title: clip(k.title, 80), text: textOf(k), tags: tagsOf(k).concat([plain(c.title)]).filter(Boolean), board: clip(b.title, 40), parents: par.slice(0, 6) }); }); }); });
+      out.knowledge.push({ id: k.id, t: +k.createdAt || 0, bd: bdOf(k), title: clip(k.title, 80), text: textOf(k), tags: tagsOf(k).concat([plain(c.title)]).filter(Boolean), board: clip(b.title, 40), parents: par.slice(0, 6) }); }); }); });
     /* 3D Type works */
     try { var BP = root.MinestBackpack; if (BP && BP.works) out.works = BP.works().slice(-60).reverse().map(function (it) { return { id: it.id, word: clip(it.word, 40), mode: it.mode || 'neon', look: (it.look && it.look.gas) || it.gas || 'neon' }; }); } catch (e) {}
     out.layout = loadLayout();
@@ -74,14 +74,24 @@
   }
   var el = null, frame = null, done = null, saveT = 0;
   function post(m) { try { frame.contentWindow.postMessage(m, '*'); } catch (e) {} }
+  /* the Holographic Workbench in 知识星图 keeps its links and groups in the Cognitive Toolkit's store — this page writes
+     them (same records and write-time stamps as the toolkit, so its cloud sync carries them); boards are not touched */
+  var TKP = 'minest.lab.kw.', TKM = 'minest.toolkit.meta', want = null;
+  function wbAll() { var o = {}; try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf(TKP) === 0) { var kk = k.slice(TKP.length); if (/^(kr|cc):/.test(kk)) o[kk] = JSON.parse(localStorage.getItem(k)); } } } catch (e) {} return o; }
+  function wbWrite(k, v) { try { if (v == null) localStorage.removeItem(TKP + k); else localStorage.setItem(TKP + k, JSON.stringify(v)); var mt = JSON.parse(localStorage.getItem(TKM) || '{}'); mt[k] = Math.max(Date.now(), (mt[k] || 0) + 1); localStorage.setItem(TKM, JSON.stringify(mt)); } catch (e) {} }
   function finish(r) {
     if (!el) return; root.removeEventListener('message', onMsg);
-    var e0 = el; el = null; frame = null; e0.style.opacity = '0'; setTimeout(function () { e0.remove(); }, 320);
+    var e0 = el, watch = e0.classList.contains('from-watch'); el = null; frame = null;
+    if (watch) e0.style.clipPath = 'circle(0 at var(--ox) var(--oy))'; else e0.style.opacity = '0';   // folds back into the watch
+    setTimeout(function () { e0.remove(); try { root.dispatchEvent(new CustomEvent('minest:holo-closed')); } catch (er) {} }, watch ? 560 : 320);
     var f = done; done = null; if (f) f(r || null);
   }
   function onMsg(e) {
     var m = e.data; if (!el || !m || m.holo !== 1 || !frame || e.source !== frame.contentWindow) return;
-    if (m.op === 'ready') post({ holo: 1, op: 'content', data: snapshot() });
+    if (m.op === 'ready') { if (want) post({ holo: 1, op: 'mode', id: want }); post({ holo: 1, op: 'content', data: snapshot() }); if (el && el.classList.contains('from-watch')) post({ holo: 1, op: 'boot' }); }
+    else if (m.op === 'wb-get') post({ holo: 1, op: 'wb', data: wbAll() });
+    else if (m.op === 'wb-write' && typeof m.key === 'string' && /^(kr|cc):[A-Za-z0-9_-]+$/.test(m.key)) wbWrite(m.key, m.value);
+    else if (m.op === 'toolkit') { var tw = HW(), q = { input: String(m.input || '').slice(0, 200), card: m.card || null }; finish(null); setTimeout(function () { try { (tw.MinestToolkitHost || root.MinestToolkitHost).open(q); } catch (er) {} }, 360); }
     else if (m.op === 'close') finish(null);
     else if (m.op === 'save' && m.layout && typeof m.layout === 'object') { clearTimeout(saveT); var l = m.layout; saveT = setTimeout(function () { saveLayout(l); }, 400); }
     else if (m.op === 'edit' && m.id) {
@@ -99,10 +109,13 @@
     }
   }
   /** open the lab; cb(null) = back where you were, cb({feature, after}) = open that in Minest */
-  function open(cb) {
-    if (el) return; done = cb || null;
+  /** opts.mode: start in that mode (e.g. 'stars' = 知识星图) · opts.from {x,y}: unfold from that point (the knowledge watch) */
+  function open(cb, opts) {
+    if (el) return; done = cb || null; opts = opts || {}; want = opts.mode || null;
     el = document.createElement('div'); el.id = 'mn-holo-lab';
-    el.style.cssText = 'position:fixed;inset:0;z-index:2147483600;background:#02060a;opacity:0;transition:opacity .3s';
+    el.style.cssText = 'position:fixed;inset:0;z-index:2147483620;background:#02060a;opacity:0;transition:opacity .3s';   // above Spatial Home (2147483600)
+    if (opts.from) { var fx = Math.max(0, Math.min(innerWidth, opts.from.x)), fy = Math.max(0, Math.min(innerHeight, opts.from.y)); el.classList.add('from-watch'); el.style.setProperty('--ox', fx + 'px'); el.style.setProperty('--oy', fy + 'px');
+      el.style.opacity = '1'; el.style.clipPath = 'circle(0 at var(--ox) var(--oy))'; el.style.transition = 'clip-path .55s cubic-bezier(.3,.7,.2,1)'; requestAnimationFrame(function () { requestAnimationFrame(function () { if (el) el.style.clipPath = 'circle(150% at var(--ox) var(--oy))'; }); }); }
     frame = document.createElement('iframe'); frame.title = '全息文字操作台 · Holographic Typography Lab'; frame.setAttribute('allow', 'fullscreen; autoplay; clipboard-write');
     frame.style.cssText = 'border:0;width:100%;height:100%;display:block'; frame.src = src(); el.appendChild(frame); document.body.appendChild(el);
     ['pointerdown', 'touchstart', 'wheel', 'keydown'].forEach(function (t) { el.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });

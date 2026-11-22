@@ -411,7 +411,7 @@
 
   /* ------------------------------------------------------------ the figure (third person): walk, idle, sit / stand up, reach,
      carry, put down, wave. Target poses blend into each other, so every change of state is a short, smooth movement. */
-  var RIG = avatar.userData.rig, AV = { cur: {}, sitting: false, sitK: 0, wantSit: false, standUntil: 0, g: null, g0: 0, gd: 1, carry: false, phase: 0, speed: 0, lx: null, lz: null, look: 0, lookT: 0, lookTo: 0 };
+  var RIG = avatar.userData.rig, AV = { holo: false, holoK: 0, beam: 0, cur: {}, sitting: false, sitK: 0, wantSit: false, standUntil: 0, g: null, g0: 0, gd: 1, carry: false, phase: 0, speed: 0, lx: null, lz: null, look: 0, lookT: 0, lookTo: 0 };
   var POSE0 = { y: 0, lean: 0, headX: 0, headY: 0, aLx: 0, aLz: 0.06, aRx: 0, aRz: 0.06, tLx: 0, tRx: 0, sLx: 0, sRx: 0, breath: 1 };
   Object.keys(POSE0).forEach(function (k) { AV.cur[k] = POSE0[k]; });
   function gesture(name, dur) { AV.g = name; AV.g0 = T; AV.gd = dur || 0.9; }
@@ -453,6 +453,10 @@
         if (AV.g === 'wave') { t.aRz = t.aRz + (2.6 - t.aRz) * w + Math.sin(T * 13) * 0.25 * w; t.aRx = 0; t.headY = 0.2 * w; }
       }
     }
+    /* the knowledge watch: the left wrist comes up in front, the head looks at it — held while the nebula is out */
+    AV.holoK += ((AV.holo ? 1 : 0) - AV.holoK) * Math.min(1, dt * 6);
+    if (AV.holoK > 0.01) { var hk = AV.holoK; t.aLx = t.aLx + (-1.45 - t.aLx) * hk; t.aLz = t.aLz + (-0.55 - t.aLz) * hk; t.headX = t.headX + (0.32 - t.headX) * hk; t.headY = t.headY + (-0.3 - t.headY) * hk; }
+    if (RIG.watch) RIG.watch.glow(AV.holoK * (0.7 + Math.sin(T * 9) * 0.3) + (AV.beam > 0 ? AV.beam : 0));
     var f = Math.min(1, dt * 10); for (k in t) AV.cur[k] += (t[k] - AV.cur[k]) * f;
     RIG.pose(AV.cur);
   }
@@ -510,10 +514,42 @@
     return ray.intersectObject(avatar, true).length > 0;
   }
   function closeFigureMenu() { if (fmenu) { fmenu.remove(); fmenu = null; } }
+  /* ⌚ summon the knowledge nebula from the watch: wrist up → a beam of light → the workbench unfolds from the watch;
+     closing it folds it back into the watch and the arm comes down (tools/toolkit/host.js does the unfolding) */
+  function watchPoint() {
+    var f = RIG.watch && RIG.watch.face; if (!f || !avatar.visible) return null;
+    f.updateMatrixWorld(true); var v = new THREE.Vector3(); f.getWorldPosition(v); v.project(camera);
+    var C = canvas.getBoundingClientRect(), x = C.left + (v.x + 1) / 2 * C.width, y = C.top + (1 - v.y) / 2 * C.height;
+    if (!(v.z < 1) || x < 0 || y < 0 || x > window.innerWidth || y > window.innerHeight) return null;   // behind the camera or off screen
+    return { x: x, y: y };
+  }
+  function watchSummon() {
+    var HLab = window.SpatialHoloLab; if ((!HLab && !window.MinestToolkitHost) || AV.holo) return;
+    var wait = 520;
+    if (!third()) { setMode('explore'); setView('3p'); wait = 1500; }   // the figure has to be in view to raise its wrist
+    if (AV.sitting) sitToggle();
+    AV.holo = true; noteInput();
+    setTimeout(function () {
+      var pt = watchPoint() || { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+      beam(pt);
+      setTimeout(function () {
+        var from = watchPoint() || pt;
+        if (HLab) HLab.open(function (r) { if (r && r.after && window.MinestAI) setTimeout(function () { r.after(window); }, 200); }, { mode: 'stars', from: from });   // 知识星图, unfolding from the watch
+        else window.MinestToolkitHost.open({ nebula: true, only: true, from: from });
+      }, 420);
+    }, wait);
+  }
+  function beam(pt) {   // a column of light out of the watch face (screen space, above the canvas)
+    AV.beam = 1; var t0 = performance.now(); (function fade() { AV.beam = Math.max(0, 1 - (performance.now() - t0) / 900); if (AV.beam > 0) setTimeout(fade, 30); })();
+    var b = document.createElement('div'); b.className = 'sh-watchbeam'; b.style.left = pt.x + 'px'; b.style.top = pt.y + 'px'; document.body.appendChild(b);
+    setTimeout(function () { b.remove(); }, 1100);
+  }
+  ['minest:toolkit-closed', 'minest:holo-closed'].forEach(function (ev) { window.addEventListener(ev, function () { if (AV.holo) { AV.holo = false; noteInput(); } }); });
   function figureMenu() {
     closeFigureMenu(); noteInput();
     var host = editBar.parentNode, el = document.createElement('div'); el.className = 'sh-fmenu'; fmenu = el;
     var acts = [{ k: 'sit', t: AV.sitting ? '站起来' : '坐到书桌前' }, { k: 'stroll', t: '随便逛逛' }, { k: 'wave', t: '挥挥手' }];
+    if (window.SpatialHoloLab || window.MinestToolkitHost) acts.unshift({ k: 'holo', t: '⌚ 手表 · 展开知识星图' });
     objects.forEach(function (o) { if (!o.stashed && VERB[o.id]) acts.push({ k: 'o:' + o.id, t: VERB[o.id], o: o }); });
     el.innerHTML = '<b>要做什么？</b><div class="list">' + acts.map(function (a) { return '<button type="button" data-k="' + a.k + '">' + (a.o ? '<i>' + ico(a.o) + '</i>' : '') + a.t + '</button>'; }).join('') + '</div>';
     host.appendChild(el);
@@ -522,6 +558,7 @@
       var b = ev.target.closest('button'); if (!b) return; var k = b.dataset.k; closeFigureMenu();
       if (k === 'sit') { sitToggle(); return; }
       if (k === 'wave') { gesture('wave', 1.6); return; }
+      if (k === 'holo') { watchSummon(); return; }
       if (k === 'stroll') { lastInput = T - IDLE - 1; return; }
       var o = objects.filter(function (x) { return 'o:' + x.id === k; })[0]; if (!o) return;
       if (/^desk\./.test(o.anchor || '') && !AV.sitting) { sitToggle(); task = { o: o, sit: true }; return; }   // things on the desk: sit down first
@@ -1387,7 +1424,7 @@
     switches: { list: function () { return SWS.map(function (w) { return w.o.id; }); }, press: function (id) { var w = SWS.filter(function (q) { return q.o.id === id; })[0]; if (w) pressSwitch(w); return !!w; },
       screen: function (id) { var w = SWS.filter(function (q) { return q.o.id === id; })[0]; if (!w) return null; w.g.updateMatrixWorld(true); var v = w.g.getWorldPosition(new THREE.Vector3()).project(camera); return [(v.x + 1) / 2 * window.innerWidth, (1 - v.y) / 2 * window.innerHeight]; },
       at: function (x, y) { var w = swAt({ clientX: x, clientY: y }); return w ? w.o.id : null; } },
-    figure: { sit: sitToggle, gesture: function (n) { gesture(n, n === 'wave' ? 1.6 : 0.9); }, state: function () { return { sitting: AV.sitting, wantSit: AV.wantSit, carry: AV.carry, g: AV.g, speed: +AV.speed.toFixed(2), pos: avatar.position.toArray().map(function (n) { return +n.toFixed(2); }), pose: JSON.parse(JSON.stringify(AV.cur)) }; } },
+    figure: { watch: watchSummon, sit: sitToggle, gesture: function (n) { gesture(n, n === 'wave' ? 1.6 : 0.9); }, state: function () { return { sitting: AV.sitting, wantSit: AV.wantSit, carry: AV.carry, g: AV.g, speed: +AV.speed.toFixed(2), pos: avatar.position.toArray().map(function (n) { return +n.toFixed(2); }), pose: JSON.parse(JSON.stringify(AV.cur)) }; } },
     setEnv: setEnv, envs: function () { return window.SpatialRoom.envs(); }, env: function () { return room; }, look: function (yaw, pitch) { if (mode === 'desk') { DK.yaw = yaw; DK.pitch = pitch; } else { P.yaw = yaw; P.pitch = pitch; } dirty = true; }, layout: function () { return JSON.parse(JSON.stringify(layout())); },
     edit: { start: function (id) { var o = objects.filter(function (x) { return x.id === id; })[0]; if (o) startEdit(o); }, moveAt: function (x, y) { editMove({ clientX: x, clientY: y }); }, end: function (how) { endEdit(how || 'ok'); }, spawn: function (kind) { spawn({ kind: kind }); }, extras: function () { return XS.length; } },
     backpack: function () { return BP && BP.catalog ? BP.catalog(host) : []; },   // the laptop's grid (laptop.js)

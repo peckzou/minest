@@ -535,7 +535,7 @@
       var L = { key: key, title: str(l.title, 60) || '未命名列表', source: src, items: [] };
       arr(l.items).slice(0, 400).forEach(function (it, ii) {
         if (!it || typeof it !== 'object' || !(it.title || it.text)) return;
-        var o = { kind: src === 'gptstudy' ? 'word' : 'card', id: String(it.id != null ? it.id : key + ':' + ii), title: str(it.title, 120), text: str(it.text, 1200),
+        var o = { kind: src === 'gptstudy' ? 'word' : 'card', t: +it.t || 0, id: String(it.id != null ? it.id : key + ':' + ii), title: str(it.title, 120), text: str(it.text, 1200),
           bd: cleanBd(it.bd), learned: !!it.learned, tags: arr(it.tags).map(function (t) { return str(t, 24); }).filter(Boolean).slice(0, 8), group: 'l:' + key, groupTitle: L.title };
         L.items.push(o);
       });
@@ -543,13 +543,13 @@
     });
     arr(d.charts).slice(0, 200).forEach(function (c, i) {
       if (!c || typeof c !== 'object') return;
-      out.charts.push({ kind: 'chart', bd: cleanBd(c.bd), id: String(c.id != null ? c.id : 'chart' + i), title: str(c.title, 120), text: str(c.text, 1200), sub: str(c.sub) || 'other', subName: str(c.subName, 30) || 'Anchor Chart',
+      out.charts.push({ kind: 'chart', t: +c.t || 0, bd: cleanBd(c.bd), id: String(c.id != null ? c.id : 'chart' + i), title: str(c.title, 120), text: str(c.text, 1200), sub: str(c.sub) || 'other', subName: str(c.subName, 30) || 'Anchor Chart',
         ink: hexOk(c.ink) || '#6fe3ff', today: !!c.today, mastered: !!c.mastered, learned: !!c.mastered, tags: arr(c.tags).map(function (t) { return str(t, 24); }).filter(Boolean), group: 's:' + (str(c.sub) || 'other'), groupTitle: str(c.subName, 30) || 'Anchor Chart' });
     });
     arr(d.knowledge).slice(0, 300).forEach(function (k, i) {
       if (!k || typeof k !== 'object' || !(k.title || k.text)) return;
       var b = str(k.board, 40);
-      out.knowledge.push({ kind: 'knowledge', bd: cleanBd(k.bd), id: String(k.id != null ? k.id : 'k' + i), title: str(k.title, 120), text: str(k.text, 1200), tags: arr(k.tags).map(function (t) { return str(t, 24); }).filter(Boolean).slice(0, 8), parents: arr(k.parents).map(function (x) { return String(x); }).slice(0, 12), group: 'k:' + (b || '知识'), groupTitle: b || '知识 Knowledge' });
+      out.knowledge.push({ kind: 'knowledge', t: +k.t || 0, bd: cleanBd(k.bd), id: String(k.id != null ? k.id : 'k' + i), title: str(k.title, 120), text: str(k.text, 1200), tags: arr(k.tags).map(function (t) { return str(t, 24); }).filter(Boolean).slice(0, 8), parents: arr(k.parents).map(function (x) { return String(x); }).slice(0, 12), group: 'k:' + (b || '知识'), groupTitle: b || '知识 Knowledge' });
     });
     arr(d.works).slice(0, 80).forEach(function (w, i) {
       if (!w || typeof w !== 'object' || !w.word) return;
@@ -599,7 +599,7 @@
     el('sub').textContent = (c.isSample ? '示例 · ' : '') + c.lists.length + ' 个单词表 · ' + c.charts.length + ' 张 Anchor Chart · ' + c.knowledge.length + ' 条知识 · ' + c.works.length + ' 件作品';
     if (!n) el('sub').textContent = '还没有内容 · Nothing to project yet';
     if (HL.detail.item && !c.byUid[HL.detail.item.uid]) HL.detail.close();
-    var want = HL.modes[layout.mode] ? layout.mode : 'panels';
+    var want = HL.wantMode && HL.modes[HL.wantMode] ? HL.wantMode : HL.modes[layout.mode] ? layout.mode : 'panels'; HL.wantMode = null;
     if (HL.active && HL.active.id === want) { if (HL.active.onContent) HL.active.onContent(); else setMode(want, true); }
     else setMode(want, true);
   }
@@ -609,6 +609,9 @@
     var m = e.data; if (!m || typeof m !== 'object' || m.holo !== 1) return;
     if (m.op === 'content') { gotReal = true; setContent(m.data, false); }
     else if (m.op === 'toast' && m.text != null) HL.toast(str(m.text, 140));
+    else if (m.op === 'mode' && HL.modes[m.id]) { HL.wantMode = m.id; if (HL.contentReady) setMode(m.id); }   // e.g. opened from the knowledge watch: straight to 知识星图
+    else if (m.op === 'wb' && HL.onWB) HL.onWB(m);
+    else if (m.op === 'boot' && boot.state === 'idle') startBoot();   // summoned from the knowledge watch: the beam boots it
   });
 
   /* ───────────────────────── item actions (edit / open) ───────────────────────── */
@@ -844,7 +847,7 @@
     applySettings(); resize();
     addEventListener('resize', resize); addEventListener('orientationchange', function () { setTimeout(resize, 200); });
     HL.active = null;
-    var want = HL.modes[layout.mode] ? layout.mode : 'panels';
+    var want = HL.wantMode && HL.modes[HL.wantMode] ? HL.wantMode : HL.modes[layout.mode] ? layout.mode : 'panels'; HL.wantMode = null;
     Array.prototype.forEach.call(modesEl.children, function (b) { b.classList.toggle('on', b.dataset.id === want); });
     if (EMBED) {
       post({ holo: 1, op: 'ready' });

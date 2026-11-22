@@ -100,6 +100,57 @@
     #detail .tx { max-height: 22vh; }
   }
 </style>
+
+<style id="wb-css">
+/* 全息知识工作台 · Holographic Knowledge Workbench (workbench.js) */
+#wb { position: fixed; inset: 0; pointer-events: none; z-index: 30; }
+#wb [hidden] { display: none !important; }
+#wb > * { pointer-events: auto; }
+#wb .wb-hand, #wb .wb-tmp { pointer-events: none; position: fixed; inset: 0; } #wb .wb-hand > * { pointer-events: auto; }
+.wb-zones { position: fixed; left: 14px; top: 50%; transform: translateY(-50%); display: grid; gap: 10px; opacity: .4; transition: opacity .2s, transform .2s; pointer-events: none !important; }
+#wb.carrying .wb-zones { opacity: 1; transform: translateY(-50%) scale(1.04); }
+.wb-zone { width: 96px; height: 76px; border-radius: 18px; display: grid; place-items: center; align-content: center; gap: 2px; border: 1.5px dashed rgba(127,216,255,.55); background: rgba(127,216,255,.07); color: #cfe9ff; font-size: 11.5px; position: relative; backdrop-filter: blur(6px); }
+.wb-zone b { font-size: 22px; } .wb-zone em { position: absolute; top: 4px; right: 6px; font-style: normal; font-size: 10px; color: #ffe28a; }
+.wb-zone.hot { border-style: solid; border-color: #7fd8ff; background: rgba(127,216,255,.24); box-shadow: 0 0 26px rgba(127,216,255,.55); }
+.wb-card { position: fixed; left: 0; top: 0; width: 240px; padding: 14px 16px; border-radius: 16px; display: grid; gap: 4px; cursor: grab; color: #eafaff; touch-action: none;
+  border: 1px solid color-mix(in srgb, var(--h) 65%, rgba(127,216,255,.5)); box-shadow: 0 0 30px color-mix(in srgb, var(--h) 40%, transparent), 0 20px 40px rgba(0,0,0,.5); animation: wbPull .28s cubic-bezier(.2,1.4,.4,1); transition: opacity .26s; }
+.wb-card small { font-size: 11px; color: #8fd0ff; letter-spacing: .06em; } .wb-card b { font-size: 16px; } .wb-card p { margin: 0; font-size: 12.5px; color: #d7ebff; } .wb-card .dim { color: #8fb8d8; }
+.wb-card.going { opacity: 0; } .wb-card.linking { outline: 2px dashed #ffe28a; outline-offset: 3px; } .wb-card.magnetic { border-color: #7fffc8; box-shadow: 0 0 34px rgba(127,255,200,.6); } .wb-card.magnet { outline: 2px solid #7fffc8; outline-offset: 3px; }
+.wb-card.docked p, .wb-card.docked .wb-cact { display: none; }
+.wb-cact { border-top: 1px dashed rgba(127,216,255,.3); margin-top: 4px; padding-top: 4px; } .wb-cact em { font-style: normal; font-size: 11px; color: #8fb8d8; }
+@keyframes wbPull { from { opacity: 0; filter: blur(4px); } }
+.wb-handle { position: absolute; right: -12px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-style: normal; background: #ffe28a; color: #3a2a00; box-shadow: 0 0 14px #ffd27f; cursor: crosshair; touch-action: none; }
+.wb-cx { position: absolute; left: -12px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; border-radius: 50%; border: 0; background: #7fd8ff; color: #04223a; box-shadow: 0 0 12px #7fd8ff; font-size: 12px; cursor: pointer; }
+.wb-tmp line { stroke: #ffe28a; stroke-width: 2.5; stroke-dasharray: 6 5; filter: drop-shadow(0 0 6px #ffd27f); } .wb-tmp circle { fill: none; stroke: #ffe28a; stroke-width: 2; }
+.wb-ring { position: fixed; left: 0; top: 0; width: 46px; height: 46px; border-radius: 50%; border: 3px solid #7fffc8; box-shadow: 0 0 30px #7fffc8; display: none; pointer-events: none !important; animation: wbMag .7s ease-in-out infinite alternate; }
+@keyframes wbMag { to { box-shadow: 0 0 46px #7fffc8; border-width: 5px; } }
+.wb-backall { position: fixed; right: 16px; bottom: 150px; padding: 8px 12px; border-radius: 12px; border: 1px solid rgba(127,216,255,.4); background: rgba(10,20,40,.7); color: #eafaff; font-size: 13px; }
+.wb-bar { position: fixed; left: 50%; transform: translateX(-50%); top: 92px; display: flex; gap: 8px; align-items: center; max-width: calc(100% - 32px); padding: 6px 6px 6px 14px; border-radius: 14px; background: rgba(255,226,138,.14); border: 1px solid rgba(255,226,138,.5); color: #fff3c4; font-size: 13px; }
+.wb-bar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .wb-bar button { width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(255,255,255,.3); background: transparent; color: #fff; flex: none; }
+.wb-slider { position: fixed; left: 50%; transform: translateX(-50%); bottom: 150px; display: flex; gap: 10px; align-items: center; padding: 8px 14px; border-radius: 16px; background: rgba(10,14,30,.75); border: 1px solid rgba(127,216,255,.35); color: #8fd0ff; font-size: 12px; width: min(460px, calc(100% - 32px)); backdrop-filter: blur(8px); }
+.wb-time { bottom: 200px; color: #ffd27f; border-color: rgba(255,210,127,.4); } .wb-slider input { flex: 1; accent-color: #7fd8ff; } .wb-time input { accent-color: #ffd27f; } .wb-time b { color: #fff3c4; min-width: 90px; text-align: right; font-weight: 600; }
+.wb-panel { position: fixed; right: 12px; top: 80px; bottom: 150px; width: min(420px, calc(100% - 24px)); overflow: auto; padding: 16px 18px; border-radius: 20px; color: #eafaff; z-index: 2; animation: wbPull .25s; }
+.wb-panel.compare { width: min(760px, calc(100% - 24px)); }
+.wb-panel h2 { margin: 2px 0 6px; font-size: 20px; } .wb-panel h4 { margin: 14px 0 4px; font-size: 12px; letter-spacing: .06em; color: #8fd0ff; } .wb-panel h5 { margin: 8px 0 2px; font-size: 12px; }
+.wb-panel ul { margin: 0; padding-left: 18px; font-size: 13.5px; } .wb-panel p { font-size: 13.5px; margin: 4px 0; } .wb-panel .dim, .wb-panel small { color: #8fb8d8; }
+.wb-panel .tag, .wb-ly .tag { display: inline-block; font-size: 12px; padding: 2px 8px; margin: 2px 3px 2px 0; border-radius: 99px; background: rgba(127,216,255,.1); border: 1px solid rgba(127,216,255,.3); }
+.wb-panel .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; } .wb-panel button:not(.wb-pclose) { padding: 8px 12px; border-radius: 12px; border: 1px solid rgba(127,216,255,.4); background: rgba(127,216,255,.1); color: #eafaff; font: inherit; font-size: 13px; cursor: pointer; }
+.wb-panel button.primary, .wb-confirm .primary { background: #ffe28a !important; color: #2a1d00 !important; border-color: transparent !important; }
+.wb-pk { font-size: 11px; letter-spacing: .1em; color: #ffe28a !important; }
+.wb-pclose { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(127,216,255,.4); background: transparent; color: #eafaff; font-size: 18px; cursor: pointer; }
+.wb-cmp { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 10px; margin-top: 8px; } .wb-cc, .wb-cmid { border: 1px solid rgba(127,216,255,.25); border-radius: 14px; padding: 10px; } .wb-cc b { display: block; font-size: 15px; margin: 2px 0 4px; } .wb-cmid { background: rgba(255,226,138,.06); border-color: rgba(255,226,138,.35); }
+.wb-proj { display: grid; gap: 8px; margin-top: 10px; } .wb-pj { text-align: left; display: grid !important; gap: 3px; transform: perspective(600px) rotateX(8deg); transition: transform .2s; } .wb-pj:hover { transform: none; } .wb-pj span { font-size: 12px; color: #a9cbe6; }
+.wb-confirm { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%); z-index: 5; width: min(360px, calc(100% - 32px)); padding: 16px; border-radius: 18px; display: grid; gap: 8px; border: 1px solid #ffe28a !important; box-shadow: 0 0 40px rgba(255,210,127,.35); color: #fff; }
+.wb-confirm h4 { margin: 0; } .wb-confirm p { margin: 0; font-size: 13.5px; } .wb-confirm label { display: grid; gap: 4px; font-size: 12.5px; color: #cfe0f0; } .wb-confirm label.chk { display: flex; gap: 8px; align-items: center; color: #fff; }
+.wb-confirm select, .wb-confirm input:not([type=radio]) { background: rgba(255,255,255,.08); color: #fff; border: 1px solid rgba(255,255,255,.25); border-radius: 10px; padding: 7px 9px; font: inherit; }
+.wb-confirm .row { display: flex; gap: 6px; flex-wrap: wrap; } .wb-confirm button { padding: 7px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,.3); background: transparent; color: #fff; font: inherit; cursor: pointer; } .wb-confirm .dim { color: #b8c8d8; font-size: 12px; }
+.wb-layers { position: fixed; left: 50%; top: 50%; width: min(360px, calc(100% - 60px)); height: 260px; transform: translate(-50%,-50%); perspective: 1100px; opacity: 0; transition: opacity .25s; z-index: 4; }
+.wb-layers.on { opacity: 1; } .wb-ly { position: absolute; inset: 0; overflow: auto; padding: 14px 16px; border-radius: 18px; cursor: pointer; transition: transform .45s cubic-bezier(.2,.9,.3,1.1), opacity .3s; transform-origin: left center; color: #eafaff; font-size: 13.5px; border: 1px solid color-mix(in srgb, var(--h) 60%, rgba(127,216,255,.4)); }
+.wb-ly:not(.front) { opacity: .72; } .wb-ly small { display: block; font-size: 11px; color: #8fd0ff; margin-bottom: 6px; } .wb-ly b { font-size: 17px; } .wb-ly p { margin: 4px 0; } .wb-ly h5 { margin: 6px 0 2px; font-size: 12px; } .wb-ly ul { margin: 0; padding-left: 18px; }
+.wb-lyx { position: absolute; z-index: 60; right: -14px; top: -14px; width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(127,216,255,.5); background: rgba(10,20,40,.9); color: #fff; font-size: 18px; cursor: pointer; }
+@media (max-width: 640px) { .wb-cmp { grid-template-columns: 1fr; } .wb-zone { width: 72px; height: 62px; font-size: 10.5px; } }
+@media (prefers-reduced-motion: reduce) { .wb-card, .wb-ly, .wb-ring { animation: none; transition: none; } }
+</style>
 </head>
 <body>
 <canvas id="c" tabindex="0" aria-label="全息文字操作台 3D 场景 · Holographic typography lab 3D scene"></canvas>
@@ -126,5 +177,7 @@
 <script src="core.js"></script>
 <script src="modes.js"></script>
 <script>HL.start();</script>
+<script src="../tools/toolkit/store.js"></script>
+<script src="workbench.js"></script>
 </body>
 </html>
