@@ -305,7 +305,8 @@
     var mc = ctx === 'room' || ctx === 'world', keys = 0, seps = 0;
     [].forEach.call(d.children, function (c) { if (c === pageEl) { [].forEach.call(c.children, function (k) { if (getComputedStyle(k).display !== 'none') keys++; }); return; } if (getComputedStyle(c).display === 'none') return; if (c.classList.contains('mn-sys-sep')) seps++; else keys++; });
     var lens = mc ? 0 : (h ? 1.6 : 1.35), room = (h ? innerWidth : innerHeight) - 28 - (h ? 0 : 20);
-    if (R.classList.contains('duo-dockpin') || R.classList.contains('duo-docktop')) {   // the Duo's pinned Dock starts at its own place: the room left from there
+    if (R.classList.contains('mn-dock-free')) room = (h ? innerWidth : innerHeight) - 24;   // placed freely: the whole screen is the limit
+    else if (R.classList.contains('duo-dockpin') || R.classList.contains('duo-docktop')) {   // the Duo's pinned Dock starts at its own place: the room left from there
       var dr = d.getBoundingClientRect(); room = h ? innerWidth - Math.max(0, dr.left) - 16 : innerHeight - Math.max(0, dr.top) - 16;
     }
     var k = Math.floor((room - 10 - seps * 10 - Math.max(0, keys - 1) * 4) / (keys + lens));
@@ -330,6 +331,59 @@
     left.addEventListener('click', function (e) { e.stopImmediatePropagation(); e.preventDefault(); try { localStorage.setItem(TOP, '1'); } catch (er) {} bottom.click(); sides(); }, true);
     [].forEach.call(items, function (b) { if (b !== left) b.addEventListener('click', function () { try { localStorage.setItem(TOP, '0'); } catch (er) {} setTimeout(sides, 0); }, true); });
   }
+  /* drag the Dock anywhere (2026-11-22, the user: "长按拖着移动，不然有的时候会挡住"): hold ~0.45 s, then move — the
+     Dock follows the finger and stays where it is let go (kept on this device as a fraction of the screen). A short tap
+     still presses a key, a hold without moving still opens the Dock menu, which also has 复位 Reset position. */
+  var FREE = 'minest.dockFree.v1', dg = null;
+  function freeGet() { try { return JSON.parse(localStorage.getItem(FREE) || 'null'); } catch (e) { return null; } }
+  function freeApply() {
+    var f = freeGet(), d = dock(); R.classList.toggle('mn-dock-free', !!f); if (!f || !d) return;
+    var r = d.getBoundingClientRect(), w = r.width || 60, h = r.height || 60;
+    R.style.setProperty('--mn-fx', Math.round(Math.max(6, Math.min(innerWidth - w - 6, f.x * innerWidth))) + 'px');
+    R.style.setProperty('--mn-fy', Math.round(Math.max(6, Math.min(innerHeight - h - 6, f.y * innerHeight))) + 'px');
+  }
+  function freeReset() { try { localStorage.removeItem(FREE); } catch (e) {} R.classList.remove('mn-dock-free'); R.style.removeProperty('--mn-fx'); R.style.removeProperty('--mn-fy'); fit(); haptic(); }
+  function closeDockMenu() { [].forEach.call(document.querySelectorAll('.mn-bd-menu'), function (m) { m.remove(); }); }
+  document.addEventListener('pointerdown', function (e) {
+    var d = dock(); if (!d || !d.contains(e.target) || (e.button && e.button !== 0)) return;
+    if (dg) clearTimeout(dg.tm);
+    dg = { x: e.clientX, y: e.clientY, id: e.pointerId, d: d, held: false, on: false };
+    dg.tm = setTimeout(function () { if (dg) { dg.held = true; d.classList.add('mn-dock-ready'); } }, 450);
+  }, true);
+  document.addEventListener('pointermove', function (e) {
+    if (!dg || e.pointerId !== dg.id) return;
+    if (!dg.on) {
+      if (Math.hypot(e.clientX - dg.x, e.clientY - dg.y) < 10) return;
+      if (!dg.held) { clearTimeout(dg.tm); dg = null; return; }   // moved before the hold: not a Dock drag
+      var r0 = dg.d.getBoundingClientRect(); dg.ox = r0.left - dg.x; dg.oy = r0.top - dg.y; dg.on = true;   // measured from where the finger went down, so the Dock keeps up with it
+      R.classList.add('mn-dock-free', 'mn-dock-moving'); closeDockMenu(); haptic();
+    }
+    e.preventDefault(); e.stopPropagation();
+    var r = dg.d.getBoundingClientRect();
+    R.style.setProperty('--mn-fx', Math.round(Math.max(6, Math.min(innerWidth - r.width - 6, e.clientX + dg.ox))) + 'px');
+    R.style.setProperty('--mn-fy', Math.round(Math.max(6, Math.min(innerHeight - r.height - 6, e.clientY + dg.oy))) + 'px');
+  }, { capture: true, passive: false });
+  function dockDragEnd(e) {
+    if (!dg || e.pointerId !== dg.id) return; clearTimeout(dg.tm); dg.d.classList.remove('mn-dock-ready');
+    if (dg.on) {
+      e.preventDefault(); e.stopPropagation(); closeDockMenu();
+      var x = parseFloat(R.style.getPropertyValue('--mn-fx')) || 0, y = parseFloat(R.style.getPropertyValue('--mn-fy')) || 0;
+      try { localStorage.setItem(FREE, JSON.stringify({ x: x / innerWidth, y: y / innerHeight })); } catch (er) {}
+      R.classList.remove('mn-dock-moving');
+      var kill = function (ev) { ev.stopPropagation(); ev.preventDefault(); window.removeEventListener('click', kill, true); };   // the release is not a key press
+      window.addEventListener('click', kill, true); setTimeout(function () { window.removeEventListener('click', kill, true); }, 400);
+      fit();
+    }
+    dg = null;
+  }
+  document.addEventListener('pointerup', dockDragEnd, true); document.addEventListener('pointercancel', dockDragEnd, true);
+  function freeMenu(m) {
+    if (m.__mnFree || !freeGet()) return; m.__mnFree = 1;
+    var b = document.createElement('button'); b.type = 'button'; b.innerHTML = '<i>⤺</i>复位 Reset position';
+    b.addEventListener('click', function (e) { e.stopPropagation(); freeReset(); closeDockMenu(); });
+    m.appendChild(b);
+  }
+  window.addEventListener('resize', freeApply);
   /* Octo can be hidden (2026-11-20, the user): "隐藏" in its quick ring; the Dock's long-press menu shows / hides it */
   var OCTO = 'minest.octoHidden';
   function octoHidden() { try { return localStorage.getItem(OCTO) === '1'; } catch (e) { return false; } }
@@ -382,13 +436,13 @@
   var queued = false;
   new MutationObserver(function () {
     if (queued) return; queued = true;
-    requestAnimationFrame(function () { queued = false; var d = dock(); if (d && (d.firstElementChild !== sysKeys[0] || sep.parentNode !== d || roomKeys[0].parentNode !== d || (pageEl && pageEl.parentNode !== d))) mount(); context(); sides(); fit(); var m = document.querySelector('.mn-bd-menu'); if (m) { menu(m); octoMenu(m); } var pr = document.querySelector('.mpet-menu'); if (pr) octoRing(pr); if (reading) syncFrames(); });
+    requestAnimationFrame(function () { queued = false; var d = dock(); if (d && (d.firstElementChild !== sysKeys[0] || sep.parentNode !== d || roomKeys[0].parentNode !== d || (pageEl && pageEl.parentNode !== d))) mount(); context(); sides(); fit(); freeApply(); var m = document.querySelector('.mn-bd-menu'); if (m) freeMenu(m); if (m) { menu(m); octoMenu(m); } var pr = document.querySelector('.mpet-menu'); if (pr) octoRing(pr); if (reading) syncFrames(); });
   }).observe(document.body || R, { childList: true, subtree: true });
   new MutationObserver(function () { sides(); fit(); }).observe(R, { attributes: true, attributeFilter: ['data-mn-bd'] });
   window.addEventListener('resize', function () { fit(); });
   setInterval(function () { context(); fit(); syncFrames(); }, 900);   // frames that load later (the opening) get the style too
   window.addEventListener('load', function () { setTimeout(syncFrames, 300); }, true);
-  function start() { mount(); setTools(toolsOn()); context(); sides(); fit(); }
+  function start() { mount(); setTools(toolsOn()); context(); sides(); fit(); freeApply(); }
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
   window.MinestSystemBar = { page: setPage, reading: setReading, tools: setTools, state: function () { return { reading: reading, tools: !R.classList.contains('mn-sys-tools-off'), ctx: ctx }; } };
 })();
