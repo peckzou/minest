@@ -1,112 +1,599 @@
 {
-  "format": "minest.micro/1",
-  "interaction_id": "kant-causality",
-  "framework_id": "kant",
-  "also_for": ["causal-inference"],
-  "concept_id": "understanding.relation",
-  "interaction_type": "thought-experiment",
-  "version": "0.1.0",
-  "title": "先后 ≠ 因果",
-  "subtitle": "两盏灯、一座房子、一艘船",
-  "learning_objective": "区分三件事：(1) 事件在时间上的先后；(2) 经验中的因果判断（休谟：习惯性联想；现代因果推断：干预与排除共同原因）；(3) 康德的哲学主张：因果是知性的范畴，是“客观的时间顺序能被经验到”的条件。",
-  "disclaimer": "这个实验是帮助理解康德思想的教学类比，不能证明或验证康德的先验哲学。",
-  "steps": [
-    { "id": "observe", "title": "观察", "scene": "lamps", "prompt": "看两盏灯：A 亮，然后 B 亮。多看几次。" },
-    { "id": "judge", "title": "判断", "scene": "judge", "prompt": "A 导致了 B 吗？", "field": "judge1" },
-    { "id": "probe", "title": "交互", "scene": "probe", "prompt": "改变条件，看看会发生什么。然后去看看房子和船。" },
-    { "id": "rejudge", "title": "再判断", "scene": "judge", "prompt": "现在你还认为 A 导致了 B 吗？", "field": "judge2" },
-    { "id": "explain", "title": "解释", "scene": "layers", "prompt": "把刚才的体验拆成三层。" },
-    { "id": "apply", "title": "应用", "scene": "apply", "prompt": "用同样的方法检查一个生活里的说法。" },
-    { "id": "save", "title": "积累", "scene": "save", "prompt": "留下你的理解和问题。" }
-  ],
-  "initial_state": {
-    "step": "observe", "cycles": 0, "judge1": null, "judge2": null,
-    "pressA": 0, "curtain": false, "stopped": false,
-    "houseOrders": 0, "houseLast": [], "shipTries": 0, "shipWrong": 0, "shipDone": false,
-    "layers": 0, "apply": null, "note": "", "question": "", "last": null, "saved": false
+ "format": "minest.micro/1",
+ "interaction_id": "kant-causality",
+ "framework_id": "kant",
+ "also_for": [
+  "causal-inference"
+ ],
+ "concept_id": "understanding.relation",
+ "interaction_type": "thought-experiment",
+ "version": "0.1.0",
+ "title": "Before ≠ Because",
+ "subtitle": "Two lamps, a house and a ship",
+ "learning_objective": "Tell three things apart: (1) the order in which events happen; (2) empirical judgments of cause (Hume: habit of association; modern causal inference: intervention and ruling out common causes); (3) Kant’s philosophical claim that causality is a category of the understanding — a condition for experiencing an objective order in time.",
+ "disclaimer": "A teaching analogy to help understand Kant — it does not prove or test his transcendental philosophy.",
+ "steps": [
+  {
+   "id": "observe",
+   "title": "Observe",
+   "scene": "lamps",
+   "prompt": "Watch the two lamps: A lights, then B. Watch a few rounds."
   },
-  "user_actions": [
-    { "id": "cycle", "label": "灯亮完一轮", "step": "observe" },
-    { "id": "judge", "label": "选择 是 / 否 / 不确定", "payload": "value", "step": ["judge", "rejudge"] },
-    { "id": "press-a", "label": "亲手按 A", "step": "probe" },
-    { "id": "open-curtain", "label": "掀开幕布", "step": "probe" },
-    { "id": "stop-timer", "label": "让定时器停下", "step": "probe" },
-    { "id": "house-order", "label": "按自己的顺序看完房子", "payload": "order", "step": "probe" },
-    { "id": "ship-ok", "label": "按船的顺序看完", "step": "probe" },
-    { "id": "ship-wrong", "label": "想倒过来看船", "step": "probe" },
-    { "id": "flip", "label": "翻开下一层", "step": "explain" },
-    { "id": "apply", "label": "提交生活案例", "payload": "record", "step": "apply" },
-    { "id": "note", "label": "写下理解 / 问题", "payload": "fields", "step": "save" },
-    { "id": "next", "label": "下一步" },
-    { "id": "back", "label": "上一步" }
-  ],
-  "state_transitions": [
-    { "from": "observe", "on": "cycle", "inc": { "cycles": 1 } },
-    { "from": "judge", "on": "judge", "set": { "judge1": "$value" } },
-    { "from": "probe", "on": "press-a", "inc": { "pressA": 1 }, "set": { "last": "press" } },
-    { "from": "probe", "on": "open-curtain", "set": { "curtain": true, "last": "curtain" } },
-    { "from": "probe", "on": "stop-timer", "set": { "stopped": true, "last": "stopped" } },
-    { "from": "probe", "on": "house-order", "inc": { "houseOrders": 1 }, "set": { "houseLast": "$value", "last": "house" } },
-    { "from": "probe", "on": "ship-ok", "set": { "shipDone": true, "last": "ship-ok" }, "inc": { "shipTries": 1 } },
-    { "from": "probe", "on": "ship-wrong", "inc": { "shipWrong": 1, "shipTries": 1 }, "set": { "last": "ship-wrong" } },
-    { "from": "rejudge", "on": "judge", "set": { "judge2": "$value" } },
-    { "from": "explain", "on": "flip", "inc": { "layers": 1 } },
-    { "from": "apply", "on": "apply", "set": { "apply": "$value" } },
-    { "from": "save", "on": "note", "merge": "$value" },
-    { "from": "*", "on": "next", "advance": 1 },
-    { "from": "*", "on": "back", "advance": -1 }
-  ],
-  "completion_criteria": {
-    "observe": { "gte": { "cycles": 3 } },
-    "judge": { "truthy": ["judge1"] },
-    "probe": { "all": [{ "gte": { "pressA": 1 } }, { "truthy": ["curtain"] }, { "gte": { "houseOrders": 1 } }, { "truthy": ["shipDone"] }] },
-    "rejudge": { "truthy": ["judge2"] },
-    "explain": { "gte": { "layers": 3 } },
-    "apply": { "truthy": ["apply"] },
-    "save": { "truthy": [] },
-    "interaction": { "all": [{ "truthy": ["judge1", "judge2", "apply"] }, { "gte": { "layers": 3 } }] }
+  {
+   "id": "judge",
+   "title": "Judge",
+   "scene": "judge",
+   "prompt": "Did A cause B?",
+   "field": "judge1"
   },
-  "feedback_rules": [
-    { "step": "observe", "when": { "gte": { "cycles": 3 } }, "say": "A 每次都在 B 前面亮。大脑很自然地开始期待：A 亮了，B 就要亮。", "tone": "info" },
-    { "step": "judge", "when": { "eq": { "judge1": "yes" } }, "say": "你认为 A 导致了 B。先记下这个判断，接下来检验它。", "tone": "info" },
-    { "step": "judge", "when": { "eq": { "judge1": "no" } }, "say": "你认为不是。那 B 为什么总跟在 A 后面？接下来找找看。", "tone": "info" },
-    { "step": "judge", "when": { "eq": { "judge1": "unsure" } }, "say": "不确定是一个好的起点：只看先后，确实还不够判断。", "tone": "info" },
-    { "step": "probe", "when": { "eq": { "last": "press" } }, "say": "你亲手按了 A，B 没有亮。A 总在 B 之前，却不是 B 的原因。这一步叫“干预”。", "tone": "good" },
-    { "step": "probe", "when": { "eq": { "last": "curtain" } }, "say": "幕布后面有一个定时器，同时控制着 A 和 B。这叫“共同原因”（混杂因素）。", "tone": "good" },
-    { "step": "probe", "when": { "eq": { "last": "stopped" } }, "say": "定时器一停，A 和 B 都不亮了。真正起作用的，是定时器。", "tone": "good" },
-    { "step": "probe", "when": { "eq": { "last": "house" } }, "say": "看房子的顺序由你决定：先看屋顶还是先看门都可以，房子本身没有变。这是“主观的先后”。", "tone": "info" },
-    { "step": "probe", "when": { "eq": { "last": "ship-wrong" } }, "say": "船不会倒着漂：你只能先看到它在上游，再看到它在下游。这个顺序不由你决定。", "tone": "warn" },
-    { "step": "probe", "when": { "eq": { "last": "ship-ok" } }, "say": "船的顺序是被规定的，这是“客观的先后”：一件事真的发生了。康德问的正是：凭什么能把它认作客观的？", "tone": "good" },
-    { "step": "rejudge", "when": { "all": [{ "eq": { "judge1": "yes" } }, { "eq": { "judge2": "no" } }] }, "say": "你改变了判断。让你改变的不是更多的观察，而是干预和找到共同原因。", "tone": "good" },
-    { "step": "rejudge", "when": { "all": [{ "eq": { "judge1": "yes" } }, { "eq": { "judge2": "yes" } }] }, "say": "你仍然认为是因果。回想一下：亲手按 A 的时候，B 亮了吗？", "tone": "warn" },
-    { "step": "rejudge", "when": { "eq": { "judge2": "no" } }, "say": "对：在这个装置里，A 和 B 都由定时器引起。先后不等于因果。", "tone": "good" },
-    { "step": "rejudge", "when": { "eq": { "judge2": "unsure" } }, "say": "可以保留不确定。不过干预的结果已经说明：A 不是 B 的原因。", "tone": "info" }
-  ],
-  "content": {
-    "layers": [
-      { "id": "order", "title": "① 时间先后", "tag": "事实描述", "body": "A 在 B 之前发生。这只是关于顺序的事实，本身不包含“谁产生了谁”。", "maps_to": "灯的观察" },
-      { "id": "empirical", "title": "② 经验中的因果判断", "tag": "经验观察 · 科学方法", "body": "休谟指出：我们看不到“力量”本身，只看到 A 之后总跟着 B，习惯让我们期待 B。现代因果推断给出检验办法：亲手干预 A（而不只是观察），并排查共同原因（混杂因素）和反向因果。你刚才在灯上做的就是这两件事。", "source": "休谟《人性论》（1739）、《人类理解研究》（1748）；现代因果推断（干预、随机对照、混杂）", "maps_to": "按 A · 掀开幕布 · 停下定时器" },
-      { "id": "kant", "title": "③ 康德的主张", "tag": "哲学主张 · 有争议", "body": "康德认为，“原因与结果”是知性的范畴之一（属于“关系”一类）。它不是从经验里学来的，而是经验得以可能的条件。看房子时，知觉的顺序可以任意颠倒（主观的先后）；看船顺流而下时，顺序是被规定的（客观的先后）。康德的论证是：要把一串知觉认作“客观发生的事件”，就必须按一条规则来思考它，这条规则就是因果律。但范畴只说“每个事件都有原因”，至于具体是什么导致什么，仍然要靠经验去查，也就是第 ② 层的工作。", "source": "康德《纯粹理性批判》（1781/1787），第二类比（A189/B232 起；房子与船的例子在其中，页码请以所用版本核对）", "maps_to": "房子与船" }
-    ],
-    "map_note": "注意对应关系：灯的实验对应第 ② 层（经验与方法）；房子与船才是康德本人用来说明第 ③ 层的例子。",
-    "apply_checks": [
-      { "id": "only-order", "label": "我只是看到了先后顺序" },
-      { "id": "common-cause", "label": "可能有共同原因（第三个因素）" },
-      { "id": "reverse", "label": "可能是反过来的（B 导致 A）" },
-      { "id": "intervene", "label": "我能亲手试一试（干预）" }
-    ],
-    "apply_verdicts": [
-      { "id": "causal", "label": "我认为是因果" },
-      { "id": "correlated", "label": "可能只是相关" },
-      { "id": "unsure", "label": "还不确定，要再查" }
-    ]
+  {
+   "id": "probe",
+   "title": "Experiment",
+   "scene": "probe",
+   "prompt": "Change the conditions and see what happens. Then look at the house and the ship."
   },
-  "result_schema": {
-    "interaction_id": "string", "framework_id": "string", "concept_id": "string", "version": "string",
-    "query_id": "string|null", "startedAt": "number", "finishedAt": "number", "completed": "boolean",
-    "judge1": "yes|no|unsure", "judge2": "yes|no|unsure", "changedMind": "boolean",
-    "probes": { "pressA": "number", "curtain": "boolean", "stopped": "boolean", "houseOrders": "number", "shipTries": "number", "shipWrong": "number" },
-    "apply": { "a": "string", "b": "string", "checks": "string[]", "verdict": "causal|correlated|unsure", "note": "string", "relation_id": "string" },
-    "note": "string", "question": "string", "log": "[{ at, action, step }]"
+  {
+   "id": "rejudge",
+   "title": "Judge again",
+   "scene": "judge",
+   "prompt": "Do you still think A caused B?",
+   "field": "judge2"
+  },
+  {
+   "id": "explain",
+   "title": "Explain",
+   "scene": "layers",
+   "prompt": "Split what you just saw into three layers."
+  },
+  {
+   "id": "apply",
+   "title": "Apply",
+   "scene": "apply",
+   "prompt": "Check a claim from real life the same way."
+  },
+  {
+   "id": "save",
+   "title": "Keep",
+   "scene": "save",
+   "prompt": "Keep what you understood and what you still wonder about."
   }
+ ],
+ "initial_state": {
+  "step": "observe",
+  "cycles": 0,
+  "judge1": null,
+  "judge2": null,
+  "pressA": 0,
+  "curtain": false,
+  "stopped": false,
+  "houseOrders": 0,
+  "houseLast": [],
+  "shipTries": 0,
+  "shipWrong": 0,
+  "shipDone": false,
+  "layers": 0,
+  "apply": null,
+  "note": "",
+  "question": "",
+  "last": null,
+  "saved": false
+ },
+ "user_actions": [
+  {
+   "id": "cycle",
+   "label": "The lamps finish a round",
+   "step": "observe"
+  },
+  {
+   "id": "judge",
+   "label": "Choose yes / no / not sure",
+   "payload": "value",
+   "step": [
+    "judge",
+    "rejudge"
+   ]
+  },
+  {
+   "id": "press-a",
+   "label": "Press A yourself",
+   "step": "probe"
+  },
+  {
+   "id": "open-curtain",
+   "label": "Lift the curtain",
+   "step": "probe"
+  },
+  {
+   "id": "stop-timer",
+   "label": "Stop the timer",
+   "step": "probe"
+  },
+  {
+   "id": "start-timer",
+   "label": "Restart the timer",
+   "step": "probe"
+  },
+  {
+   "id": "house-order",
+   "label": "Look over the house in your own order",
+   "payload": "order",
+   "step": "probe"
+  },
+  {
+   "id": "ship-ok",
+   "label": "Follow the ship in its order",
+   "step": "probe"
+  },
+  {
+   "id": "ship-wrong",
+   "label": "Try to see the ship backwards",
+   "step": "probe"
+  },
+  {
+   "id": "flip",
+   "label": "Turn over the next layer",
+   "step": "explain"
+  },
+  {
+   "id": "apply",
+   "label": "Submit a real-life case",
+   "payload": "record",
+   "step": "apply"
+  },
+  {
+   "id": "note",
+   "label": "Write what you understood / a question",
+   "payload": "fields",
+   "step": "save"
+  },
+  {
+   "id": "next",
+   "label": "Next"
+  },
+  {
+   "id": "back",
+   "label": "Back"
+  }
+ ],
+ "state_transitions": [
+  {
+   "from": "observe",
+   "on": "cycle",
+   "inc": {
+    "cycles": 1
+   }
+  },
+  {
+   "from": "judge",
+   "on": "judge",
+   "set": {
+    "judge1": "$value"
+   }
+  },
+  {
+   "from": "probe",
+   "on": "press-a",
+   "inc": {
+    "pressA": 1
+   },
+   "set": {
+    "last": "press"
+   }
+  },
+  {
+   "from": "probe",
+   "on": "open-curtain",
+   "set": {
+    "curtain": true,
+    "last": "curtain"
+   }
+  },
+  {
+   "from": "probe",
+   "on": "stop-timer",
+   "set": {
+    "stopped": true,
+    "last": "stopped"
+   }
+  },
+  {
+   "from": "probe",
+   "on": "start-timer",
+   "set": {
+    "stopped": false,
+    "last": null
+   }
+  },
+  {
+   "from": "probe",
+   "on": "house-order",
+   "inc": {
+    "houseOrders": 1
+   },
+   "set": {
+    "houseLast": "$value",
+    "last": "house"
+   }
+  },
+  {
+   "from": "probe",
+   "on": "ship-ok",
+   "set": {
+    "shipDone": true,
+    "last": "ship-ok"
+   },
+   "inc": {
+    "shipTries": 1
+   }
+  },
+  {
+   "from": "probe",
+   "on": "ship-wrong",
+   "inc": {
+    "shipWrong": 1,
+    "shipTries": 1
+   },
+   "set": {
+    "last": "ship-wrong"
+   }
+  },
+  {
+   "from": "rejudge",
+   "on": "judge",
+   "set": {
+    "judge2": "$value"
+   }
+  },
+  {
+   "from": "explain",
+   "on": "flip",
+   "inc": {
+    "layers": 1
+   }
+  },
+  {
+   "from": "apply",
+   "on": "apply",
+   "set": {
+    "apply": "$value"
+   }
+  },
+  {
+   "from": "save",
+   "on": "note",
+   "merge": "$value"
+  },
+  {
+   "from": "*",
+   "on": "next",
+   "advance": 1
+  },
+  {
+   "from": "*",
+   "on": "back",
+   "advance": -1
+  }
+ ],
+ "completion_criteria": {
+  "observe": {
+   "gte": {
+    "cycles": 3
+   }
+  },
+  "judge": {
+   "truthy": [
+    "judge1"
+   ]
+  },
+  "probe": {
+   "all": [
+    {
+     "gte": {
+      "pressA": 1
+     }
+    },
+    {
+     "truthy": [
+      "curtain"
+     ]
+    },
+    {
+     "gte": {
+      "houseOrders": 1
+     }
+    },
+    {
+     "truthy": [
+      "shipDone"
+     ]
+    }
+   ]
+  },
+  "rejudge": {
+   "truthy": [
+    "judge2"
+   ]
+  },
+  "explain": {
+   "gte": {
+    "layers": 3
+   }
+  },
+  "apply": {
+   "truthy": [
+    "apply"
+   ]
+  },
+  "save": {
+   "truthy": []
+  },
+  "interaction": {
+   "all": [
+    {
+     "truthy": [
+      "judge1",
+      "judge2",
+      "apply"
+     ]
+    },
+    {
+     "gte": {
+      "layers": 3
+     }
+    }
+   ]
+  }
+ },
+ "feedback_rules": [
+  {
+   "step": "observe",
+   "when": {
+    "gte": {
+     "cycles": 3
+    }
+   },
+   "say": "A lights before B every time. Your mind starts to expect it: A lights, so B is coming.",
+   "tone": "info"
+  },
+  {
+   "step": "judge",
+   "when": {
+    "eq": {
+     "judge1": "yes"
+    }
+   },
+   "say": "You think A caused B. Keep that judgment — next you will test it.",
+   "tone": "info"
+  },
+  {
+   "step": "judge",
+   "when": {
+    "eq": {
+     "judge1": "no"
+    }
+   },
+   "say": "You think not. Then why does B always follow A? Let’s find out.",
+   "tone": "info"
+  },
+  {
+   "step": "judge",
+   "when": {
+    "eq": {
+     "judge1": "unsure"
+    }
+   },
+   "say": "Not sure is a good place to start: order alone is not enough to judge.",
+   "tone": "info"
+  },
+  {
+   "step": "probe",
+   "when": {
+    "eq": {
+     "last": "press"
+    }
+   },
+   "say": "You pressed A yourself and B stayed dark. A always comes first, yet it is not B’s cause. This move is called intervention.",
+   "tone": "good"
+  },
+  {
+   "step": "probe",
+   "when": {
+    "eq": {
+     "last": "curtain"
+    }
+   },
+   "say": "Behind the curtain a timer drives both A and B. That is a common cause (a confounder).",
+   "tone": "good"
+  },
+  {
+   "step": "probe",
+   "when": {
+    "eq": {
+     "last": "stopped"
+    }
+   },
+   "say": "Stop the timer and neither lamp lights. The timer is what really does the work.",
+   "tone": "good"
+  },
+  {
+   "step": "probe",
+   "when": {
+    "eq": {
+     "last": "house"
+    }
+   },
+   "say": "You chose the order to look at the house — roof first or door first, the house did not change. This is a subjective order.",
+   "tone": "info"
+  },
+  {
+   "step": "probe",
+   "when": {
+    "eq": {
+     "last": "ship-wrong"
+    }
+   },
+   "say": "The ship doesn’t drift backwards: you can only see it upstream first, then downstream. You don’t get to choose this order.",
+   "tone": "warn"
+  },
+  {
+   "step": "probe",
+   "when": {
+    "eq": {
+     "last": "ship-ok"
+    }
+   },
+   "say": "The ship’s order is fixed: an objective order — something really happened. Kant’s question is what entitles us to take it as objective.",
+   "tone": "good"
+  },
+  {
+   "step": "rejudge",
+   "when": {
+    "all": [
+     {
+      "eq": {
+       "judge1": "yes"
+      }
+     },
+     {
+      "eq": {
+       "judge2": "no"
+      }
+     }
+    ]
+   },
+   "say": "You changed your mind. What changed it was not more watching, but intervening and finding the common cause.",
+   "tone": "good"
+  },
+  {
+   "step": "rejudge",
+   "when": {
+    "all": [
+     {
+      "eq": {
+       "judge1": "yes"
+      }
+     },
+     {
+      "eq": {
+       "judge2": "yes"
+      }
+     }
+    ]
+   },
+   "say": "You still think it’s cause. Remember: when you pressed A yourself, did B light?",
+   "tone": "warn"
+  },
+  {
+   "step": "rejudge",
+   "when": {
+    "eq": {
+     "judge2": "no"
+    }
+   },
+   "say": "Right: in this setup both A and B are caused by the timer. Before is not because.",
+   "tone": "good"
+  },
+  {
+   "step": "rejudge",
+   "when": {
+    "eq": {
+     "judge2": "unsure"
+    }
+   },
+   "say": "You may stay unsure. But intervening already showed that A is not B’s cause.",
+   "tone": "info"
+  }
+ ],
+ "content": {
+  "layers": [
+   {
+    "id": "order",
+    "title": "① Order in time",
+    "tag": "Description of fact",
+    "body": "A happens before B. That is a fact about order; on its own it says nothing about what produces what.",
+    "maps_to": "Watching the lamps"
+   },
+   {
+    "id": "empirical",
+    "title": "② Empirical judgment of cause",
+    "tag": "Experience · Scientific method",
+    "body": "Hume pointed out that we never see a ‘power’ — only that B always follows A, and habit makes us expect B. Modern causal inference gives ways to test this: intervene on A yourself (not just watch), and rule out common causes (confounders) and reverse causation. That is what you just did with the lamps.",
+    "source": "Hume, A Treatise of Human Nature (1739); An Enquiry concerning Human Understanding (1748); modern causal inference (intervention, randomised trials, confounding)",
+    "maps_to": "Press A · lift the curtain · stop the timer"
+   },
+   {
+    "id": "kant",
+    "title": "③ Kant’s claim",
+    "tag": "Philosophical claim · debated",
+    "body": "Kant held that cause and effect is one of the categories of the understanding (under Relation). It is not learned from experience; it is a condition that makes experience possible. Looking over a house, the order of your perceptions can run either way (a subjective order). Watching a ship drift downstream, the order is fixed (an objective order). Kant argues that to take a series of perceptions as an event that objectively happens, we must think it under a rule — the causal law. But the category only says every event has a cause; what causes what must still be found out from experience — layer ② again.",
+    "source": "Kant, Critique of Pure Reason (1781/1787), Second Analogy (from A189/B232; the house and ship example is in this section — check page numbers against your edition)",
+    "maps_to": "The house and the ship"
+   }
+  ],
+  "map_note": "Mind the mapping: the lamps belong to layer ② (experience and method). The house and the ship are Kant’s own example for layer ③.",
+  "apply_checks": [
+   {
+    "id": "only-order",
+    "label": "I only saw one thing come after the other"
+   },
+   {
+    "id": "common-cause",
+    "label": "A third factor could cause both"
+   },
+   {
+    "id": "reverse",
+    "label": "It could run the other way (B causes A)"
+   },
+   {
+    "id": "intervene",
+    "label": "I could try it myself (intervene)"
+   }
+  ],
+  "apply_verdicts": [
+   {
+    "id": "causal",
+    "label": "I think it is cause and effect"
+   },
+   {
+    "id": "correlated",
+    "label": "Probably just correlated"
+   },
+   {
+    "id": "unsure",
+    "label": "Not sure yet — need to check"
+   }
+  ]
+ },
+ "result_schema": {
+  "interaction_id": "string",
+  "framework_id": "string",
+  "concept_id": "string",
+  "version": "string",
+  "query_id": "string|null",
+  "startedAt": "number",
+  "finishedAt": "number",
+  "completed": "boolean",
+  "judge1": "yes|no|unsure",
+  "judge2": "yes|no|unsure",
+  "changedMind": "boolean",
+  "probes": {
+   "pressA": "number",
+   "curtain": "boolean",
+   "stopped": "boolean",
+   "houseOrders": "number",
+   "shipTries": "number",
+   "shipWrong": "number"
+  },
+  "apply": {
+   "a": "string",
+   "b": "string",
+   "checks": "string[]",
+   "verdict": "causal|correlated|unsure",
+   "note": "string",
+   "relation_id": "string"
+  },
+  "note": "string",
+  "question": "string",
+  "log": "[{ at, action, step }]"
+ }
 }

@@ -90,9 +90,9 @@
     var ov = doc.createElement('div'); ov.className = 'mi-ov'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', def.title);
     ov.innerHTML = '<div class="mi-card"><header class="mi-hd"><div><b>' + esc(def.title) + '</b><small>' + esc(def.subtitle || '') + '</small></div>' +
       '<ol class="mi-dots">' + def.steps.map(function (x, i) { return '<li data-i="' + i + '"><span>' + (i + 1) + '</span>' + esc(x.title) + '</li>'; }).join('') + '</ol>' +
-      '<button class="mi-x" type="button" aria-label="关闭">×</button></header>' +
+      '<button class="mi-x" type="button" aria-label="Close">×</button></header>' +
       '<p class="mi-prompt"></p><div class="mi-stage"></div><div class="mi-fb" aria-live="polite"></div>' +
-      '<footer class="mi-ft"><span class="mi-disc">' + esc(def.disclaimer || '') + '</span><button type="button" class="mi-back">上一步</button><button type="button" class="mi-next">下一步</button></footer></div>';
+      '<footer class="mi-ft"><span class="mi-disc">' + esc(def.disclaimer || '') + '</span><button type="button" class="mi-back">Back</button><button type="button" class="mi-next">Next</button></footer></div>';
     (opt.host || doc.body).appendChild(ov);
     var stage = ov.querySelector('.mi-stage'), fb = ov.querySelector('.mi-fb'), prompt = ov.querySelector('.mi-prompt'), cur = null, curStep = null;
 
@@ -112,10 +112,10 @@
       [].forEach.call(ov.querySelectorAll('.mi-dots li'), function (li, k) { li.className = k < i ? 'done' : k === i ? 'on' : ''; });
       var f = s.feedback(), lastRule = f[f.length - 1];
       fb.className = 'mi-fb' + (lastRule ? ' show ' + (lastRule.tone || 'info') : '');
-      fb.textContent = lastRule ? lastRule.say : '';
+      fb.textContent = f.map(function (r) { return r.say; }).join(' ');   // rules are written so that what matches together reads together
       var last = i === def.steps.length - 1;
       ov.querySelector('.mi-back').disabled = i === 0;
-      var nx = ov.querySelector('.mi-next'); nx.textContent = last ? (savedRec ? '完成' : '先保存') : '下一步';
+      var nx = ov.querySelector('.mi-next'); nx.textContent = last ? (savedRec ? 'Done' : 'Save first') : 'Next';
       nx.disabled = last ? !savedRec : !s.canNext();
     }
     function close() { if (cur && cur.destroy) cur.destroy(); ov.remove(); doc.removeEventListener('keydown', key); if (opt.onClose) opt.onClose(savedRec); }
