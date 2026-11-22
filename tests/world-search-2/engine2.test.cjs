@@ -54,6 +54,7 @@ const has = (hits, kind, id) => hits.some(h => h.kind === kind && h.id === id);
   ['systems', 'model', 'systems-thinking'], ['物理', 'place', 'nature.physics'], ['正义', 'phil', 'rawls']].forEach(([q, kind, id]) => check(has(find(q), kind, id), 'search “' + q + '” lacks ' + kind + ':' + id));
 check(find('自由')[0].how === 'title' && find('nietzche')[0].how === 'spelling', 'how a hit matched');
 check(find('自由', { scope: 'phil' }).every(h => h.kind === 'phil') && find('自由', { scope: 'phil' }).length > find('自由').filter(h => h.kind === 'phil').length, 'a scope shows only its kind, and more of it');
+check(has(find('什么是自由？', { scope: 'lab' }), 'lab', 'locke-room') && has(find('什么是自由？', { scope: 'template' }), 'template', 'hegel-development'), 'experiments and templates are found by field');
 check(find('').length === 0 && find('   ').length === 0 && find('zzzzqqqq').length === 0, 'nothing to find → nothing');
 const fh = find('自由'); check(fh.every((h, i) => !i || fh[i - 1].score >= h.score), 'best first');
 check(E.topic('什么是自由？') === '自由' && E.topic('What is justice?') === 'justice' && E.topic('自由') === null, 'topic()');

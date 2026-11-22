@@ -82,9 +82,9 @@
     }
     (o.phil || []).forEach(function (m) { add('phil', m.id, m.zh, m.en, m.src, (m.kw || []).concat([m.who]), (m.levels || []).join(' '), m.fits, { file: m.file, who: m.who }); });
     (o.frameworks || []).forEach(function (f) { add('framework', f.framework_id, f.zh && f.zh !== f.title ? f.zh : zh(f.title), f.title, f.discipline || '', (f.cues || []), (f.summary || '') + ' ' + (f.related_concepts || []).map(function (c) { return c.name; }).join(' '), f.taxonomy_path); });
-    (o.templates || []).forEach(function (t) { add('template', t.id, zh(t.title), t.title, '', [], t.description || t.purpose || '', []); });
+    (o.templates || []).forEach(function (t) { add('template', t.id, zh(t.title), t.title, '', [], t.scope || '', ((t.fits && t.fits.places) || []).filter(function (p) { return p !== '*'; })); });
     (o.models || []).forEach(function (m) { add('model', m.id, zh(m.title), m.title, m.angle || '', [m.angle], m.principle || '', (m.fits && m.fits.places) || []); });
-    (o.labs || []).forEach(function (d) { add('lab', d.interaction_id, zh(d.title), d.title, d.subtitle || '', [d.framework_id], d.learning_objective || '', d.fits && d.fits.places ? d.fits.places : []); });
+    (o.labs || []).forEach(function (d) { add('lab', d.interaction_id, zh(d.title), d.title, d.subtitle || '', [d.framework_id], d.learning_objective || '', Array.isArray(d.fits) ? d.fits : []); });
     (o.nodes || []).forEach(function (n) { add('place', n.id, n.name, n.en, '', (n.terms || []), '', [n.id], { isNew: !!n.engine2 }); });
     return ix;
   }
