@@ -330,6 +330,8 @@ export class Renderer2 {
     this.renderNow();
     const busy = moving || now < this.aliveUntil;
     if (busy) this.trackPerf(dt);
+    // the frame itself may have called wake() (keepAlive, a quality drop): never queue a second loop
+    if (this.raf) return;
     if (busy) {
       this.raf = requestAnimationFrame(this.loop);
     } else if (this.alwaysOn && !document.hidden) {
