@@ -265,6 +265,7 @@
     var M = FAMILY.map(function (S, n) { var rig = person(S); return { spec: S, rig: rig, x: 0, z: 0, yaw: 0, walk: n * 1.3, ph0: n * 1.7, waveT: 0, hopT: 0, wait: 3 + n * 1.4, idle: 0, sit: 0 }; });
     M.push({ spec: DOG, rig: bichon(), x: 0, z: 0, yaw: 0, walk: 0, ph0: 0, waveT: 0, hopT: 0, wait: 2, idle: 0, sit: 0 });
     M.forEach(function (m) { m.rig.root.userData.member = m; G.add(m.rig.root); });
+    G.traverse(function (o) { if (o.isMesh || o.isSprite) o.raycast = own; });   // only the tap below finds them: to the room's own rays (placing furniture, walking) they are not there
     var solids = null, placed = false, last = 0, born = 0, rnd = Math.random, W = room.size.W, D = room.size.D;
     function free(x, z, mg) {
       if (Math.abs(x) > W - mg || Math.abs(z) > D - mg) return false;
@@ -339,6 +340,7 @@
 
   /* a tap on one of them: it turns to you, waves (the dog hops), and a small card says who it is */
   var card = null, cardT = 0, ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), down = null, cur = null;
+  function own(r, hits) { if (r === ray && this.isMesh) THREE.Mesh.prototype.raycast.call(this, r, hits); }
   function show(m) {
     if (!card) { card = document.createElement('div'); card.id = 'fam-card';
       card.style.cssText = 'position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:60;max-width:min(440px,calc(100vw - 32px));padding:14px 18px 15px;border-radius:16px;background:rgba(18,17,28,.78);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(255,226,160,.45);box-shadow:0 12px 40px rgba(0,0,0,.4);color:#fff6df;font:14px/1.55 -apple-system,"PingFang SC","Noto Sans SC",sans-serif;pointer-events:none;opacity:0;transition:opacity .25s';
