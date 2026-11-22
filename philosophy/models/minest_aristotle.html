@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 亚里士多德四因说 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>亚里士多德 · 四因</b>
+  <button class="tab on" data-l="1">① 质料因</button>
+  <button class="tab" data-l="2">② 形式因</button>
+  <button class="tab" data-l="3">③ 动力因</button>
+  <button class="tab" data-l="4">④ 目的因</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="bd" id="sBody"></div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;const done={};
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);if(L3S)initCarve();}
+addEventListener('resize',resize);
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+
+/* ============ 原文（Hardie & Gaye 英译《物理学》第二卷；中文编译；仅标卷章） ============ */
+const P='《物理学》第二卷';
+const MAP={
+1:[["按住火焰加热：铜块熔化","有些人把自然物的自然或实体，等同于它最直接的、本身没有排列的构成物，例如木头是床的“自然”，铜是雕像的“自然”。","the wood is the 'nature' of the bed, and the bronze the 'nature' of the statue","第1章"],
+   ["倾倒浇铸：铜的量始终不变","在一种意义上，事物由之生成并持存于其中的东西，被称为“原因”，例如雕像的铜、碗的银。","that out of which a thing comes to be and which persists, is called 'cause', e.g. the bronze of the statue, the silver of the bowl","第3章"],
+   ["把床埋进土里，按住让时间流逝","安提丰指出：如果你把一张床种下去，腐烂的木头获得了长出新芽的能力……","if you planted a bed and the rotting wood acquired the power of sending up a shoot","第1章"],
+   ["长出来的是树，不是床","长出来的不会是床，而是木头。这表明按技艺规则所做的排列只是偶然属性。","it would not be a bed that would come up, but wood-which shows that the arrangement in accordance with the rules of the art is merely an incidental attribute","第1章"]],
+2:[["拖动琴马：两段琴弦发出两个音","在另一种意义上，形式或原型，即对本质的表述……被称为“原因”。","the form or the archetype, i.e. the statement of the essence, and its genera, are called 'causes'","第3章"],
+   ["找到 2:1：八度","例如八度的 2:1 关系，以及一般而言的数。","e.g. of the octave the relation of 2:1, and generally number","第3章"],
+   ["摆放木板：还只是“潜在的床”","如果一个东西只是潜在的床，还没有床的形式，我们就不会说它有什么属于技艺的东西。","if it is a bed only potentially, not yet having the form of a bed","第1章"],
+   ["床的形式完成","一个事物在达到完满时，比它潜在地存在时，更恰当地被称为它所是的东西。","a thing is more properly said to be what it is when it has attained to fulfilment than when it exists potentially","第1章"]],
+3:[["挥动刻刀：变化从这里开始","又一种意义上，变化或静止的最初来源被称为“原因”，例如父亲是孩子的原因，一般而言，制作者是被制作物的原因。","the primary source of the change or coming to rest; e.g. … the father is cause of the child, and generally what makes of what is made","第3章"],
+   ["雕刻家与铜：两种不同的原因","雕刻家的技艺和铜都是雕像的原因……只是方式不同：一个是质料因，另一个是运动所从出的原因。","both the art of the sculptor and the bronze are causes of the statue … the one being the material cause, the other the cause whence the motion comes","第3章"],
+   ["停手：雕刻立刻停止","正在实际起作用的个别原因，与其结果同时存在、同时停止。","causes which are actually at work and particular exist and cease to exist simultaneously with their effect","第3章"],
+   ["再动手：从“潜在”到“现实”","房屋建成的原因，或者是“建筑者”，或者是“正在建筑的建筑者”。","the cause of a house being built is either 'house-builder' or 'house-builder building'","第3章"],
+   ["点击名牌：偶然的原因","在一种方式上“波吕克莱托斯”，在另一种方式上“雕刻家”是雕像的原因，因为“是波吕克莱托斯”与“是雕刻家”偶然地结合在一起。","in one way 'Polyclitus', in another 'sculptor' is the cause of a statue, because 'being Polyclitus' and 'sculptor' are incidentally conjoined","第3章"]],
+4:[["任意转动种子：根总是向下","植物为了果实长出叶子，为了养料把根向下（而不是向上）伸。","plants grow leaves for the sake of the fruit and send their roots down (not up) for the sake of nourishment","第8章"],
+   ["叶子长在果实上方","叶子长出来是为了给果实遮荫。","leaves, e.g. grow to provide shade for the fruit","第8章"],
+   ["换个方向再种：同样的终点","每一事物的倾向总是朝向同一个目的，只要没有阻碍。","always the tendency in each is towards the same end, if there is no impediment","第8章"],
+   ["用木头做锯：锯不动","锯为什么是这个样子？为了做某事、为了某个目的。但这个目的不能实现，除非锯是铁做的。","why is a saw such as it is? To effect so-and-so and for the sake of so-and-so. This end, however, cannot be realized unless the saw is made of iron.","第9章"],
+   ["用铁做锯：锯断木头","必然性在质料之中，而“为了什么”在定义之中。","Necessity is in the matter, while 'that for the sake of which' is in the definition.","第9章"],
+   ["四因合一","质料、形式、推动者、“为了什么”。","the matter, the form, the mover, 'that for the sake of which'","第7章"]]};
+const TITLE={1:'① 质料因 · 左：按住火焰熔铜，拖动坩埚浇铸　右：把床拖进土里，按住让时间流逝',2:'② 形式因 · 左：拖动琴马寻找和谐　右：拖动木板拼成床',3:'③ 动力因 · 在石块上快速来回划动雕刻；点击名牌',4:'④ 目的因 · 左：拖动旋转种子，按住土壤让它生长　右：把材料拖到锯上，再来回锯木头'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——亚里士多德${P}${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const e=$('mr'+l+'_'+i);if(!e||e.classList.contains('on'))return;e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});
+  if(MAP[l].every((_,k)=>$('mr'+l+'_'+k).classList.contains('on'))){done[l]=1;tabs();}}
+const isOn=(l,i)=>{const e=$('mr'+l+'_'+i);return e&&e.classList.contains('on');};
+
+/* ============ 通用 ============ */
+function halves(a,b,colA,colB){ctx.fillStyle=colA||'#eef2f5';ctx.fillRect(0,0,W/2,H);ctx.fillStyle=colB||'#f6f1e8';ctx.fillRect(W/2,0,W/2,H);ctx.fillStyle='#bbb';ctx.fillRect(W/2-1,0,2,H);
+  ctx.fillStyle='rgba(0,0,0,.6)';ctx.font='bold 15px sans-serif';ctx.textAlign='left';ctx.fillText(a,14,24);ctx.fillText(b,W/2+14,24);}
+function txt(t,x,y,c,sz,al){ctx.fillStyle=c||'#223';ctx.font=`${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+function meter(x,y,w,v,col,t){ctx.fillStyle='#fff';ctx.fillRect(x,y,w,9);ctx.fillStyle=col;ctx.fillRect(x,y,w*clamp(v,0,1),9);ctx.strokeStyle='#888';ctx.strokeRect(x,y,w,9);txt(t,x+w/2,y-4,'#334',12);}
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const H_={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y,dx:0,dy:0,down:true};cv.setPointerCapture(e.pointerId);H_[L]&&H_[L].down&&H_[L].down(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;PT.dx=dx;PT.dy=dy;}H_[L]&&H_[L].move&&H_[L].move(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;H_[L]&&H_[L].up&&H_[L].up();});
+
+/* ================= 第 1 关：质料因 ================= */
+let A1,B1;
+function init1(){A1={temp:0,heat:false,tilt:0,dragC:false,fill:0,drops:[],solid:false};B1={x:0.75,y:0.55,drag:false,planted:false,t:0,hold:false};}
+function g1(){return{fx:W*0.16,fy:H*0.72,cx:W*0.16,cy:H*0.5,mx:W*0.36,my:H*0.68,gy:H*0.7};}
+H_[1]={down(x,y){const g=g1();
+  if(x<W/2){if(Math.hypot(x-g.fx,y-g.fy)<50)A1.heat=true;else if(Math.hypot(x-g.cx,y-g.cy)<60)A1.dragC=true;}
+  else{const bx=W*B1.x,by=H*B1.y;if(!B1.planted&&Math.abs(x-bx)<70&&Math.abs(y-by)<40)B1.drag=true;else if(B1.planted)B1.hold=true;}},
+ move(x,y,dx){if(A1.dragC){if(A1.temp<0.6){if(Math.abs(dx)>2&&!A1._w){A1._w=1;toast('铜还是固体，倒不出来：先按住火焰加热');}}else A1.tilt=clamp(A1.tilt+dx/(W*0.12),0,1);}
+  if(B1.drag){B1.x=clamp(x/W,0.55,0.95);B1.y=clamp(y/H,0.3,0.85);}},
+ up(){A1.heat=false;A1.dragC=false;A1._w=0;if(B1.drag){B1.drag=false;if(B1.y>0.72){B1.planted=true;B1.y=0.76;toast('床被埋进了土里。现在按住右侧画面，让时间流逝');}}B1.hold=false;}};
+function t1(dt){halves('铜与雕像','安提丰的床','#ecf0f3','#e8f1e2');const g=g1();
+  // --- 左：熔铸 ---
+  if(A1.heat)A1.temp=Math.min(1,A1.temp+dt*0.35);else A1.temp=Math.max(0,A1.temp-dt*0.08);
+  if(A1.temp>0.3)hit(1,0);
+  if(!A1.dragC)A1.tilt=Math.max(0,A1.tilt-dt*0.8);
+  const molten=A1.temp>0.6;const remain=1-A1.fill;
+  if(molten&&A1.tilt>0.45&&remain>0){const rate=dt*0.18*A1.tilt;A1.fill=Math.min(1,A1.fill+rate);for(let i=0;i<2;i++)A1.drops.push({x:g.cx+48,y:g.cy-6,vx:30+Math.random()*20,vy:-10,l:1});}
+  if(A1.fill>0.15)hit(1,1);
+  A1.drops.forEach(d=>{d.vy+=500*dt;d.x+=d.vx*dt;d.y+=d.vy*dt;d.l-=dt;});A1.drops=A1.drops.filter(d=>d.l>0&&d.y<g.my+40);
+  // 火
+  const fl=A1.heat?1.3:0.6;ctx.fillStyle='#555';ctx.fillRect(g.fx-50,g.fy+20,100,10);
+  for(let i=0;i<5;i++){const fx=g.fx-30+i*15,h=(18+Math.sin(T*12+i)*6)*fl;ctx.fillStyle=`rgba(255,${120+i*15},40,.9)`;ctx.beginPath();ctx.moveTo(fx-7,g.fy+20);ctx.quadraticCurveTo(fx,g.fy+20-h*2,fx+7,g.fy+20);ctx.fill();}
+  if(!A1.heat&&T<8){ctx.strokeStyle='rgba(200,80,20,.6)';ctx.setLineDash([4,4]);ctx.beginPath();ctx.arc(g.fx,g.fy,46,0,7);ctx.stroke();ctx.setLineDash([]);}
+  // 坩埚
+  ctx.save();ctx.translate(g.cx,g.cy);ctx.rotate(-A1.tilt*0.9);
+  ctx.fillStyle='#6b6b6b';ctx.beginPath();ctx.moveTo(-45,-30);ctx.lineTo(45,-30);ctx.lineTo(35,30);ctx.lineTo(-35,30);ctx.closePath();ctx.fill();
+  const tc=A1.temp,col=`rgb(${Math.round(176+79*tc)},${Math.round(120+40*tc-80*Math.max(0,tc-0.6))},${Math.round(70-50*tc)})`;
+  ctx.fillStyle=col;const lvl=remain;
+  if(molten){ctx.beginPath();ctx.moveTo(-38,30-50*lvl);for(let i=0;i<=10;i++)ctx.lineTo(-38+i*7.6,30-50*lvl+Math.sin(T*6+i)*2);ctx.lineTo(32,28);ctx.lineTo(-32,28);ctx.fill();}
+  else if(remain>0){ctx.beginPath();ctx.ellipse(0,10,30*Math.sqrt(lvl),18*Math.sqrt(lvl)+2,0,0,7);ctx.fill();}
+  ctx.restore();
+  A1.drops.forEach(d=>{ctx.fillStyle=col;ctx.beginPath();ctx.arc(d.x,d.y,4,0,7);ctx.fill();});
+  // 铸模（人形）
+  const fig=(c,s)=>{c.beginPath();c.arc(g.mx,g.my-s*1.6,s*.3,0,7);c.rect(g.mx-s*.3,g.my-s*1.3,s*.6,s*1.0);c.rect(g.mx-s*.3,g.my-s*.3,s*.22,s*.75);c.rect(g.mx+s*.08,g.my-s*.3,s*.22,s*.75);};
+  const s=H*0.12;ctx.strokeStyle='#777';ctx.lineWidth=2;ctx.setLineDash([5,4]);fig(ctx,s);ctx.stroke();ctx.setLineDash([]);
+  ctx.save();fig(ctx,s);ctx.clip();const top=g.my+s*0.45-(s*2.4)*A1.fill;ctx.fillStyle=A1.fill>=1&&A1.temp<0.35?'#b07b3c':col;ctx.fillRect(g.mx-s,top,s*2,s*3);ctx.restore();
+  if(A1.fill>=1&&A1.temp<0.35&&!A1.solid){A1.solid=true;toast('冷却成形：铜成了雕像，但铜仍在其中');}
+  txt(`铜的量：${(1).toFixed(2)} kg（坩埚 ${(remain).toFixed(2)} + 铸模 ${(A1.fill).toFixed(2)}）`,W*0.25,H-16,'#334',12);
+  meter(W*0.04,44,W*0.14,A1.temp,'#e0602a','温度');
+  txt(A1.solid?'雕像':'',g.mx,g.my+s*0.8,'#5a3b1e',13);
+  txt(!A1.heat&&A1.temp<0.6?'按住火焰加热':molten&&A1.fill<1?'向右拖动坩埚倒出铜水':'',W*0.25,H*0.15,'#a0522d',13);
+  // --- 右：床 ---
+  const x0=W/2,gy=g.gy;const season=B1.t;
+  const sky=ctx.createLinearGradient(0,0,0,gy);const k=(Math.sin(season*1.5)+1)/2;sky.addColorStop(0,`rgb(${120+60*k},${180+30*k},${230})`);sky.addColorStop(1,'#eef6ea');ctx.fillStyle=sky;ctx.fillRect(x0+1,34,W/2-1,gy-34);
+  ctx.fillStyle='#7b5a3a';ctx.fillRect(x0+1,gy,W/2,H-gy);ctx.fillStyle='#5f8d3c';ctx.fillRect(x0+1,gy-4,W/2,6);
+  const bx=W*B1.x,by=H*B1.y,rot=clamp(B1.t/6,0,1);
+  ctx.globalAlpha=1-rot*0.85;ctx.fillStyle='#a8743f';ctx.fillRect(bx-60,by-12,120,14);ctx.fillRect(bx-60,by-40,10,52);ctx.fillRect(bx+50,by-30,10,42);ctx.globalAlpha=1;
+  if(B1.planted&&B1.hold){B1.t+=dt*1.2;}
+  if(B1.planted&&B1.t>0.3)hit(1,2);
+  if(B1.planted){const h=clamp((B1.t-1.5)/6,0,1)*H*0.5;if(h>0){ctx.strokeStyle='#6b4a2a';ctx.lineWidth=4+h*0.06;ctx.beginPath();ctx.moveTo(bx,by);ctx.quadraticCurveTo(bx-10,by-h*0.5,bx,by-h);ctx.stroke();
+      const lv=Math.min(1,h/(H*0.25));ctx.fillStyle='#3f8a35';for(let i=0;i<6;i++){const ly=by-h*(0.4+i*0.1),lx=bx+(i%2?1:-1)*(10+lv*20);ctx.beginPath();ctx.ellipse(lx,ly,8+lv*12,5+lv*6,i%2?0.5:-0.5,0,7);ctx.fill();}
+      if(h>H*0.3){ctx.fillStyle='rgba(63,138,53,.85)';ctx.beginPath();ctx.arc(bx,by-h,30+h*0.12,0,7);ctx.fill();hit(1,3);}}}
+  txt(!B1.planted?'把床拖进下方的土里':B1.hold?'时间流逝……':'按住画面，让时间流逝',W*0.75,H*0.15,'#3a5a2a',13);
+  if(B1.planted&&B1.t>8)txt('长出来的是木头，不是床',W*0.75,H*0.22,'#1f5e2f',15);}
+
+/* ================= 第 2 关：形式因 ================= */
+let A2,B2,AC=null,OS=null;
+function init2(){A2={b:0.62,drag:false,glow:0};B2={planks:[],sel:null,placed:0};
+  const tg=[[0,0,1,0.18],[0,-0.5,0.06,0.7],[0.94,-0.35,0.06,0.55],[0.02,0.18,0.06,0.3],[0.92,0.18,0.06,0.3]];
+  tg.forEach((t,i)=>B2.planks.push({t,x:0.55+Math.random()*0.4,y:0.7+Math.random()*0.15,placed:false,r:(Math.random()-.5)*0.8}));stopTone();}
+function tone(f1,f2){try{if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(!OS){OS=[AC.createOscillator(),AC.createOscillator()];const g=AC.createGain();g.gain.value=0.06;OS.forEach(o=>{o.type='triangle';o.connect(g);o.start();});g.connect(AC.destination);OS.g=g;}
+  OS[0].frequency.setTargetAtTime(f1,AC.currentTime,0.02);OS[1].frequency.setTargetAtTime(f2,AC.currentTime,0.02);}catch(e){}}
+function stopTone(){try{if(OS){OS.forEach(o=>o.stop());OS.g.disconnect();OS=null;}}catch(e){OS=null;}}
+function g2(){return{sx1:W*0.05,sx2:W*0.45,sy:H*0.5,bx0:W*0.55,by0:H*0.42,bw:W*0.36,bh:H*0.22};}
+H_[2]={down(x,y){const g=g2();const bx=lerp(g.sx1,g.sx2,A2.b);if(x<W/2&&Math.abs(x-bx)<26&&Math.abs(y-g.sy)<50){A2.drag=true;}
+  if(x>W/2){for(let i=B2.planks.length-1;i>=0;i--){const p=B2.planks[i];if(p.placed)continue;if(Math.hypot(x-W*p.x,y-H*p.y)<50){B2.sel=p;break;}}}},
+ move(x,y){const g=g2();if(A2.drag){A2.b=clamp((x-g.sx1)/(g.sx2-g.sx1),0.15,0.85);const L1=A2.b,L2=1-A2.b;tone(220/L1*0.5,220/L2*0.5);hit(2,0);}
+  if(B2.sel){B2.sel.x=clamp(x/W,0.52,0.98);B2.sel.y=clamp(y/H,0.1,0.95);}},
+ up(){A2.drag=false;stopTone();if(B2.sel){const g=g2(),p=B2.sel,t=p.t;const tx=g.bx0+g.bw*(t[0]+t[2]/2),ty=g.by0+g.bh*(t[1]+t[3]/2)+g.bh*0.5;
+    if(Math.hypot(W*p.x-tx,H*p.y-ty)<60){p.placed=true;p.r=0;B2.placed++;hit(2,2);if(B2.placed===5){hit(2,3);toast('有了床的形式：它现在“是”床了');}}B2.sel=null;}}};
+function t2(dt){halves('一弦琴','木板与床','#eef0f6','#f6efe4');const g=g2();
+  // 左：一弦琴
+  const bx=lerp(g.sx1,g.sx2,A2.b),L1=A2.b,L2=1-A2.b,r=Math.max(L1,L2)/Math.min(L1,L2);
+  const oct=Math.abs(r-2)<0.05;A2.glow=lerp(A2.glow,oct?1:0,dt*6);if(oct&&A2.drag){hit(2,1);}
+  ctx.fillStyle='#8b5a2b';ctx.fillRect(g.sx1-10,g.sy+18,g.sx2-g.sx1+20,22);
+  const vib=A2.drag?3:0;
+  [[g.sx1,bx,0],[bx,g.sx2,1]].forEach(([a,b2,i])=>{ctx.strokeStyle=oct?'#e0a020':'#333';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(a,g.sy);const n=20;for(let k=1;k<=n;k++){const xx=lerp(a,b2,k/n);const amp=Math.sin(k/n*Math.PI)*vib*Math.sin(T*(i?60:30)+k);ctx.lineTo(xx,g.sy+amp);}ctx.stroke();});
+  ctx.fillStyle='#444';ctx.beginPath();ctx.moveTo(bx-12,g.sy+18);ctx.lineTo(bx,g.sy-4);ctx.lineTo(bx+12,g.sy+18);ctx.fill();
+  if(A2.glow>0.05){ctx.fillStyle=`rgba(240,180,40,${A2.glow*0.25})`;ctx.fillRect(0,34,W/2-1,H);txt('八度 · 2 : 1',W*0.25,g.sy-60,`rgba(160,98,10,${A2.glow})`,22);}
+  txt(`弦长之比 ${r.toFixed(2)} : 1`,W*0.25,g.sy+70,'#334',14);
+  txt(A2.drag?'听：两段弦同时发声':'按住琴马左右拖动（会发声）',W*0.25,H*0.15,'#3a6f99',13);
+  // 右：床
+  ctx.strokeStyle='rgba(0,0,0,.25)';ctx.setLineDash([5,4]);B2.planks.forEach(p=>{const t=p.t;ctx.strokeRect(g.bx0+g.bw*t[0],g.by0+g.bh*t[1]+g.bh*0.5-g.bh*t[3]/2+g.bh*t[3]/2-g.bh*t[3]/2,g.bw*t[2],g.bh*t[3]);});ctx.setLineDash([]);
+  B2.planks.forEach(p=>{const t=p.t;const w=g.bw*t[2],h=g.bh*t[3];let cx,cy;if(p.placed){cx=g.bx0+g.bw*(t[0]+t[2]/2);cy=g.by0+g.bh*(t[1]+t[3]/2)+g.bh*0.5-g.bh*t[3]/2+g.bh*t[3]/2;}else{cx=W*p.x;cy=H*p.y;}
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(p.r);ctx.fillStyle=p.placed?'#a8743f':'#c49a66';ctx.fillRect(-w/2,-h/2,w,h);ctx.strokeStyle='#7a5228';ctx.strokeRect(-w/2,-h/2,w,h);ctx.restore();});
+  const lab=B2.placed===5?'床（形式已完成）':`木头 · 潜在的床（${B2.placed}/5）`;txt(lab,W*0.75,g.by0-20,B2.placed===5?'#1f5e2f':'#7a5228',15);
+  txt(B2.placed<5?'拖动木板放到虚线位置':'',W*0.75,H*0.15,'#7a5228',13);}
+
+/* ================= 第 3 关：动力因 ================= */
+let L3S=null;
+const TAGS=['雕刻家','波吕克莱托斯','白皙的人','有音乐修养的人'];
+function initCarve(){const s=L3S||{};const cols=26,rows=30;const bw=Math.min(W*0.32,H*0.75*0.86),bh=bw/0.86;const x0=W*0.55-bw/2,y0=H*0.5-bh/2;
+  const cells=[];for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){const u=(i+0.5)/cols-0.5,v=(j+0.5)/rows;
+    const head=Math.hypot(u,(v-0.12)*0.86)<0.11;const body=Math.abs(u)<0.15*(1-(v-0.25)*0.3)&&v>0.22&&v<0.62;const legs=v>=0.6&&v<0.97&&(Math.abs(u-0.07)<0.06||Math.abs(u+0.07)<0.06);const arms=v>0.25&&v<0.52&&Math.abs(u)<0.27&&Math.abs(u)>0.14;
+    cells.push({i,j,keep:head||body||legs||arms,alive:true});}
+  L3S={...s,cols,rows,bw,bh,x0,y0,cells,act:s.act||0,removed:s.removed||0,total:cells.filter(c=>!c.keep).length,chips:[],tag:s.tag||0,idleT:0,wasIdle:false,carvedOnce:false};}
+function init3(){L3S=null;initCarve();}
+H_[3]={down(x,y){const S=L3S;if(Math.hypot(x-W*0.16,y-H*0.86)<70&&y>H*0.78){S.tag=(S.tag+1)%TAGS.length;if(S.tag>=1)hit(3,4);toast(S.tag===0?'雕刻家：雕像的本然原因':S.tag===1?'波吕克莱托斯：恰好是这位雕刻家':'“'+TAGS[S.tag]+'”也碰巧是他：偶然的原因');}},
+ move(x,y,dx,dy,down){if(!down)return;const S=L3S;const sp=Math.hypot(dx,dy);if(sp<4)return;S.act=Math.min(1,S.act+sp/60);
+  const cw=S.bw/S.cols,ch=S.bh/S.rows;const ci=Math.floor((x-S.x0)/cw),cj=Math.floor((y-S.y0)/ch);
+  for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){const i=ci+di,j=cj+dj;if(i<0||j<0||i>=S.cols||j>=S.rows)continue;const c=S.cells[j*S.cols+i];if(c.alive&&!c.keep&&Math.random()<0.6){c.alive=false;S.removed++;for(let k=0;k<2;k++)S.chips.push({x:S.x0+(i+.5)*cw,y:S.y0+(j+.5)*ch,vx:(Math.random()-.5)*160,vy:-Math.random()*160,l:1});}}
+  hit(3,0);if(S.removed/S.total>0.3)hit(3,1);if(S.wasIdle&&S.removed/S.total>0.15){hit(3,3);}}};
+function t3(dt){const S=L3S;ctx.fillStyle='#ece8e1';ctx.fillRect(0,0,W,H);txt('雕刻家与石料',14,24,'rgba(0,0,0,.6)',15,'left');
+  S.act=Math.max(0,S.act-dt*2.2);
+  if(S.act<0.02&&S.removed>S.total*0.1){S.idleT+=dt;if(S.idleT>0.8&&!S.wasIdle){S.wasIdle=true;hit(3,2);toast('停手的一刻，雕刻也停止了');}}else if(S.act>0.3){S.idleT=0;if(S.wasIdle&&isOn(3,2))hit(3,3);}
+  // 底座
+  ctx.fillStyle='#9a958c';ctx.fillRect(S.x0-20,S.y0+S.bh,S.bw+40,18);
+  const cw=S.bw/S.cols,ch=S.bh/S.rows;S.cells.forEach(c=>{if(!c.alive)return;ctx.fillStyle=c.keep&&S.removed/S.total>0.6?'#cfc6b8':'#d9d3c8';ctx.fillRect(S.x0+c.i*cw,S.y0+c.j*ch,cw+0.5,ch+0.5);});
+  S.chips.forEach(p=>{p.vy+=600*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.l-=dt;ctx.fillStyle=`rgba(200,190,175,${p.l})`;ctx.fillRect(p.x,p.y,3,3);});S.chips=S.chips.filter(p=>p.l>0);
+  // 雕刻家
+  const sx=W*0.16,sy=H*0.72,r=H*0.06,sw=Math.sin(T*18)*S.act;
+  ctx.fillStyle='#3a4a5a';ctx.beginPath();ctx.arc(sx,sy-r*2.1,r*.42,0,7);ctx.fill();ctx.beginPath();ctx.moveTo(sx-r*.55,sy);ctx.quadraticCurveTo(sx,sy-r*1.9,sx+r*.55,sy);ctx.fill();
+  ctx.strokeStyle='#3a4a5a';ctx.lineWidth=r*.22;ctx.beginPath();ctx.moveTo(sx+r*.2,sy-r*1.4);ctx.lineTo(sx+r*1.3,sy-r*1.6-sw*r*0.8);ctx.stroke();
+  ctx.strokeStyle='#6b4a2a';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(sx+r*1.3,sy-r*1.6-sw*r*0.8);ctx.lineTo(sx+r*1.7,sy-r*2.2-sw*r*1.2);ctx.stroke();
+  txt(S.act>0.15?'正在雕刻的雕刻家（现实）':'雕刻家（潜在）',sx,sy-r*3,S.act>0.15?'#a0522d':'#667',14);
+  // 名牌
+  ctx.fillStyle='#fff';ctx.strokeStyle='#3a6f99';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(sx-70,H*0.82,140,30,8);ctx.fill();ctx.stroke();txt(TAGS[S.tag]+'  ⟳',sx,H*0.82+20,'#3a6f99',14);
+  // 四因标签
+  const prog=S.removed/S.total;meter(W*0.8,50,W*0.16,prog,'#a0522d','成形');
+  txt(prog<0.85?'在石块上快速来回划动':'雕像出现了',W*0.55,H*0.08+10,'#a0522d',13);
+  txt('质料：石料（保留下来的部分）',W*0.88,H*0.4,'#667',12);txt('动力：雕刻家的技艺',W*0.88,H*0.46,'#a0522d',12);}
+
+/* ================= 第 4 关：目的因 ================= */
+let A4,B4;
+function init4(){A4={ang:Math.random()*6.28,g:0,grow:false,rot:false,trials:new Set(),lastAng:null};B4={mat:null,dragMat:null,mx:0,my:0,saw:0,wear:0,cut:0,sawing:false,triedWood:false};}
+function g4(){return{sx:W*0.25,sy:H*0.66,lx:W*0.75,ly:H*0.62};}
+H_[4]={down(x,y){const g=g4();
+  if(x<W/2){if(Math.hypot(x-g.sx,y-g.sy)<36&&A4.g<0.02)A4.rot=true;else if(y>g.sy-10){A4.grow=true;if(A4.g<0.02){A4.lastAng=A4.ang;}}}
+  else{const mats=[['wood',W*0.6],['iron',W*0.7]];mats.forEach(([m,mx])=>{if(Math.hypot(x-mx,y-H*0.9)<30){B4.dragMat=m;B4.mx=x;B4.my=y;}});
+    if(!B4.dragMat&&B4.mat&&Math.abs(y-g.ly)<70)B4.sawing=true;}},
+ move(x,y,dx){const g=g4();if(A4.rot)A4.ang=Math.atan2(y-g.sy,x-g.sx);if(B4.dragMat){B4.mx=x;B4.my=y;}
+  if(B4.sawing){B4.saw=clamp(B4.saw+dx/(W*0.12),-1,1);const st=Math.abs(dx);if(B4.mat==='iron'){B4.cut=Math.min(1,B4.cut+st/(W*3));if(B4.cut>=1){hit(4,4);if(A4.g>=1)hit(4,5);}}else{B4.wear=Math.min(1,B4.wear+st/(W*1.2));B4.cut=Math.min(0.06,B4.cut+st/(W*30));if(B4.wear>0.6&&!B4.triedWood){B4.triedWood=true;hit(4,3);toast('木头做的锯齿磨平了：锯不动');}}}},
+ up(){A4.rot=false;A4.grow=false;B4.sawing=false;if(B4.dragMat){if(Math.hypot(B4.mx-W*0.75,B4.my-H*0.35)<90){B4.mat=B4.dragMat;B4.wear=0;B4.cut=0;toast(B4.mat==='iron'?'铁锯':'木锯');}B4.dragMat=null;}}};
+function t4(dt){halves('植物','锯','#e9f2ea','#f1ede6');const g=g4();
+  // 左：植物
+  const gy=g.sy-12;ctx.fillStyle='#8a6a48';ctx.fillRect(0,gy,W/2-1,H-gy);ctx.fillStyle='#6a9a52';ctx.fillRect(0,gy-3,W/2-1,4);
+  ctx.fillStyle='#ffe58a';ctx.beginPath();ctx.arc(W*0.42,60,18,0,7);ctx.fill();
+  if(A4.grow&&A4.g<1){A4.g=Math.min(1,A4.g+dt*0.12);}
+  const G=A4.g,sx=g.sx,sy=g.sy;
+  // 根：从种子当前朝向出发，逐渐弯向下方
+  if(G>0){ctx.strokeStyle='#c9b48a';ctx.lineWidth=3;for(let b=-1;b<=1;b++){ctx.beginPath();let x=sx,y=sy,a=A4.ang+Math.PI+b*0.3;ctx.moveTo(x,y);const n=Math.floor(40*G);for(let i=0;i<n;i++){const target=Math.PI/2+b*0.4;a+=((target-a+Math.PI*3)%(Math.PI*2)-Math.PI)*0.08;x+=Math.cos(a)*2.2;y+=Math.sin(a)*2.2;ctx.lineTo(x,y);}ctx.stroke();}
+    if(G>0.15)hit(4,0);}
+  // 茎：弯向上方
+  let tipX=sx,tipY=sy;
+  if(G>0.05){ctx.strokeStyle='#3f8a35';ctx.lineWidth=4;ctx.beginPath();let x=sx,y=sy,a=A4.ang;ctx.moveTo(x,y);const n=Math.floor(90*clamp((G-0.05)/0.95,0,1));for(let i=0;i<n;i++){a+=((-Math.PI/2-a+Math.PI*3)%(Math.PI*2)-Math.PI)*0.07;x+=Math.cos(a)*2.2;y+=Math.sin(a)*2.2;ctx.lineTo(x,y);}ctx.stroke();tipX=x;tipY=y;}
+  // 果与叶
+  if(G>0.55){const fk=clamp((G-0.55)/0.3,0,1);ctx.fillStyle='#d8442f';ctx.beginPath();ctx.arc(tipX+14,tipY+28,6+fk*8,0,7);ctx.fill();}
+  if(G>0.4){const lk=clamp((G-0.4)/0.4,0,1);ctx.fillStyle='#4aa040';[[-1,0.0],[1,-6],[0.2,-14]].forEach(([s,o])=>{ctx.beginPath();ctx.ellipse(tipX+s*18*lk+8,tipY+o+10,16*lk+2,7*lk+1,s*0.5,0,7);ctx.fill();});
+    if(G>0.75){ctx.fillStyle='rgba(30,60,30,.18)';ctx.beginPath();ctx.ellipse(tipX+14,tipY+30,22,8,0,0,7);ctx.fill();hit(4,1);}}
+  if(G>=1){const key=Math.round(((A4.lastAng??0)+6.283)%6.283/1.0);A4.trials.add(key);if(A4.trials.size>=2)hit(4,2);if(B4.cut>=1)hit(4,5);}
+  if(G<0.02){ctx.save();ctx.translate(sx,sy);ctx.rotate(A4.ang);ctx.fillStyle='#7a5a2a';ctx.beginPath();ctx.ellipse(0,0,14,9,0,0,7);ctx.fill();ctx.fillStyle='#e8d08a';ctx.beginPath();ctx.moveTo(14,0);ctx.lineTo(4,-4);ctx.lineTo(4,4);ctx.fill();ctx.restore();
+    ctx.strokeStyle='rgba(0,0,0,.3)';ctx.setLineDash([4,4]);ctx.beginPath();ctx.arc(sx,sy,30,0,7);ctx.stroke();ctx.setLineDash([]);}
+  txt(G<0.02?'拖动种子任意旋转，再按住土壤让它生长':G<1?'按住土壤：生长中……':'长成了。按“重置本关”换个方向再种一次',W*0.25,H*0.14,'#2f5a28',13);
+  // 右：锯
+  const lx=g.lx,ly=g.ly;ctx.fillStyle='#8b6b3d';ctx.fillRect(lx-W*0.12,ly,W*0.24,H*0.1);ctx.fillStyle='#6b4f2a';ctx.fillRect(lx-W*0.12,ly,W*0.24,4);
+  ctx.fillStyle='#4a3520';ctx.fillRect(lx-2,ly,4,H*0.1*B4.cut);
+  if(B4.cut>=1){ctx.fillStyle='#f1ede6';ctx.fillRect(lx-3,ly,6,H*0.1);}
+  // 锯
+  const sxx=lx+B4.saw*W*0.05,syy=ly-6+H*0.1*B4.cut*0.9;
+  if(B4.mat){ctx.fillStyle=B4.mat==='iron'?'#9aa4ad':'#c49a66';ctx.fillRect(sxx-W*0.1,syy-28,W*0.2,24);
+    ctx.beginPath();const teeth=24,tw=W*0.2/teeth;for(let i=0;i<teeth;i++){const h=(B4.mat==='wood'?6*(1-B4.wear):6);ctx.moveTo(sxx-W*0.1+i*tw,syy-4);ctx.lineTo(sxx-W*0.1+i*tw+tw/2,syy-4+h);ctx.lineTo(sxx-W*0.1+(i+1)*tw,syy-4);}ctx.fill();
+    ctx.fillStyle='#5a3b1e';ctx.fillRect(sxx+W*0.1,syy-32,30,30);}
+  else{ctx.strokeStyle='#999';ctx.setLineDash([5,4]);ctx.strokeRect(lx-W*0.1,H*0.35-14,W*0.2,28);ctx.setLineDash([]);txt('把材料拖到这里做成锯',lx,H*0.35+4,'#777',12);}
+  if(B4.sawing&&Math.abs(PT?PT.dx:0)>2){for(let i=0;i<2;i++){ctx.fillStyle='rgba(210,180,130,.9)';ctx.fillRect(lx+(Math.random()-.5)*12,ly+H*0.1*B4.cut+Math.random()*10,3,3);}}
+  [['wood','木',W*0.6,'#c49a66'],['iron','铁',W*0.7,'#9aa4ad']].forEach(([m,n,mx,c])=>{ctx.fillStyle=c;ctx.fillRect(mx-24,H*0.9-14,48,28);txt(n,mx,H*0.9+5,'#222',14);});
+  if(B4.dragMat){ctx.globalAlpha=0.7;ctx.fillStyle=B4.dragMat==='iron'?'#9aa4ad':'#c49a66';ctx.fillRect(B4.mx-30,B4.my-12,60,24);ctx.globalAlpha=1;}
+  meter(W*0.88,50,W*0.09,B4.cut,'#a0522d','锯开');
+  txt(!B4.mat?'先选材料':B4.cut>=1?'锯断了':'在木头上左右拖动来锯',W*0.75,H*0.14,'#7a5228',13);}
+
+/* ============ 调度 ============ */
+const INIT={1:init1,2:init2,3:init3,4:init4},TICK={1:t1,2:t2,3:t3,4:t4};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!done[t.dataset.l]);});}
+function go(n,keep){stopTone();L=n;tabs();$('sTitle').textContent=TITLE[L];if(!keep)$('sBody').innerHTML=mapHTML(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{INIT[L]();toast('已重置（已对应的原文保留）');};
+resize();
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

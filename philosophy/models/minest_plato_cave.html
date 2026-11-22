@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 柏拉图洞穴寓言 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#tabs .view.on{background:#7dffb0;color:#123}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none;cursor:default}
+#hud{position:fixed;left:12px;top:58px;color:#fff;font-size:13px;text-shadow:0 1px 3px #000;pointer-events:none;line-height:1.5}
+#hint{position:fixed;left:50%;top:58px;transform:translateX(-50%);color:#ffe9b0;font-size:14px;text-shadow:0 1px 4px #000;pointer-events:none;text-align:center;max-width:70%}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:96px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}#hint{max-width:92%;font-size:13px;top:92px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>柏拉图 · 洞穴</b>
+  <button class="tab on" data-l="1">① 影子的世界</button>
+  <button class="tab" data-l="2">② 转身</button>
+  <button class="tab" data-l="3">③ 上升</button>
+  <button class="tab" data-l="4">④ 返回</button>
+  <span class="sp"></span>
+  <button class="view" id="vSide">剖视</button><button class="view" id="vEye">囚徒之眼</button>
+  <button class="view" id="bReset">↺ 重置</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="hud"></div>
+<div id="hint"></div>
+<div id="side"><div class="tt" id="sTitle"></div><div class="bd" id="sBody"></div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;const done={};
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+
+/* ================= 原文对应（Jowett 英译；中文编译；Stephanus 页码） ================= */
+const MAP={
+1:[["洞中：被锁住、只能看前方","他们从小就在这里，腿和脖子都被锁着，……只能看见前方，锁链使他们不能转头。","have their legs and necks chained so that they cannot move, and can only see before them","514a"],
+   ["搬运者沿矮墙不停走过","你看见有些人沿着矮墙走过，拿着各种器具、木石做的人像和动物像。","men passing along the wall carrying all sorts of vessels, and statues and figures of animals","514c–515a"],
+   ["拖动火光 / 物体：影子实时变形","他们只看见……火光投射到洞穴对面墙上的影子。","they see only … the shadows … which the fire throws on the opposite wall of the cave","515a"],
+   ["回声：声音像是影子发出的","洞里有回声……他们难道不会以为，说话声来自那经过的影子吗？","would they not be sure to fancy when one of the passers-by spoke that the voice which they heard came from the passing shadow?","515b"],
+   ["囚徒之眼：猜下一个影子，赢得荣誉","他们中间有一种荣誉，授予那些最敏于观察经过的影子、记得哪个在前哪个在后……因而最能推断将来的人。","conferring honours among themselves on those who were quickest to observe the passing shadows and to remark which of them went before, and which followed after","516c–d"],
+   ["对囚徒而言，影子就是全部真实","对他们来说，真实无非就是那些人造物的影子。","To them … the truth would be literally nothing but the shadows of the images.","515c"]],
+2:[["拖动头部向后转：越转越刺痛","被迫突然站起来，转过头，……看那火光，他会感到剧痛；强光会使他痛苦。","compelled suddenly to stand up and turn his neck round … he will suffer sharp pains; the glare will distress him","515c"],
+   ["转到一半：看不清实物","他将无法看清那些他从前只见其影的实物。","he will be unable to see the realities of which in his former state he had seen the shadows","515c"],
+   ["松手：头自己弹回墙面","他会转身逃回那些他能看清的东西，并认为它们比给他看的东西更清楚。","turn away to take refuge in the objects of vision which he can see, and which he will conceive to be in reality clearer","515e"],
+   ["坚持看清人偶，却仍以为影子更真","他会不会以为，从前看到的影子比现在给他看的东西更真实？","Will he not fancy that the shadows which he formerly saw are truer than the objects which are now shown to him?","515d"]],
+3:[["按住向上拖：被拖上陡坡","有人硬把他拖上一条陡峭崎岖的坡道……他走近光明时，眼睛会被照花。","he is reluctantly dragged up a steep and rugged ascent … When he approaches the light his eyes will be dazzled","515e–516a"],
+   ["走太快：被强光逼退","他什么也看不见，那些现在被称为真实的东西。","he will not be able to see anything at all of what are now called realities","516a"],
+   ["慢慢适应：影子 → 倒影 → 事物","他需要逐渐习惯。最先看影子，其次是水中的倒影，然后才是事物本身。","first he will see the shadows best, next the reflections of men and other objects in the water, and then the objects themselves","516a"],
+   ["夜空：月光与星辰","然后他会去看月光、星光和夜空。","then he will gaze upon the light of the moon and the stars and the spangled heaven","516a–b"],
+   ["最后：看太阳本身","最后他能看太阳本身……在它本来的位置上，按它本来的样子去观看。","Last of all he will be able to see the sun … and he will contemplate him as he is.","516b"]],
+4:[["回到洞中：满眼黑暗","突然离开阳光，回到原来的位置，他的眼睛难道不会充满黑暗吗？","coming suddenly out of the sun to be replaced in his old situation; would he not be certain to have his eyes full of darkness?","516e"],
+   ["眼睛未适应就比赛辨认影子：输","视力尚弱、眼睛尚未稳定时……和囚徒比赛辨认影子，他难道不会显得可笑吗？","while his sight was still weak, and before his eyes had become steady … would he not be ridiculous?","516e–517a"],
+   ["囚徒嘲笑：“上去一趟，眼睛坏了”","人们会说他上去一趟，回来眼睛就坏了；最好连想都不要想往上走。","up he went and down he came without his eyes; and that it was better not even to think of ascending","517a"],
+   ["拖动他去解开别人：囚徒围拢","如果有人想解开别人并带他上去，他们一旦抓住这人，就会把他杀死。","if any one tried to loose another and lead him up to the light, let them only catch the offender, and they would put him to death","517a"],
+   ["寓意","这个囚室就是可见世界，火光就是太阳；上升之路是灵魂上升到理智世界；善的理念最后才看到。","the prison-house is the world of sight, the light of the fire is the sun … the ascent of the soul into the intellectual world … the idea of good appears last of all","517b–c"]]};
+const TITLE={1:'① 影子的世界 · 拖动火光与物体，切换到“囚徒之眼”参加猜影子比赛',2:'② 转身 · 按住囚徒的头向后拖',3:'③ 上升 · 按住画面向右上拖动前进，眼睛需要时间适应',4:'④ 返回 · 拖动归来者去解开别人'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——《理想国》VII ${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const e=$('mr'+l+'_'+i);if(!e||e.classList.contains('on'))return;e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});
+  if(MAP[l].every((_,k)=>$('mr'+l+'_'+k).classList.contains('on'))){done[l]=1;tabs();}}
+const hint=t=>$('hint').textContent=t||'';
+
+/* ================= 形状 ================= */
+const SH={
+ jar:(c,s)=>{c.beginPath();c.ellipse(0,0,s*.42,s*.5,0,0,7);c.rect(-s*.16,-s*.82,s*.32,s*.35);c.ellipse(0,-s*.85,s*.24,s*.07,0,0,7);},
+ horse:(c,s)=>{c.beginPath();c.ellipse(0,0,s*.6,s*.26,0,0,7);c.moveTo(s*.35,-s*.1);c.lineTo(s*.62,-s*.62);c.lineTo(s*.85,-s*.5);c.lineTo(s*.5,0);c.rect(-s*.5,0,s*.1,s*.55);c.rect(-s*.28,0,s*.1,s*.55);c.rect(s*.2,0,s*.1,s*.55);c.rect(s*.4,0,s*.1,s*.55);c.moveTo(-s*.58,-s*.05);c.lineTo(-s*.85,s*.3);c.lineTo(-s*.6,s*.1);},
+ man:(c,s)=>{c.beginPath();c.arc(0,-s*.68,s*.18,0,7);c.rect(-s*.2,-s*.48,s*.4,s*.75);c.rect(-s*.2,s*.27,s*.13,s*.5);c.rect(s*.07,s*.27,s*.13,s*.5);c.rect(-s*.38,-s*.45,s*.14,s*.5);c.rect(s*.24,-s*.45,s*.14,s*.5);},
+ tree:(c,s)=>{c.beginPath();c.arc(0,-s*.5,s*.36,0,7);c.arc(-s*.25,-s*.3,s*.25,0,7);c.arc(s*.25,-s*.3,s*.25,0,7);c.rect(-s*.07,-s*.1,s*.14,s*.75);},
+ bird:(c,s)=>{c.beginPath();c.ellipse(0,0,s*.35,s*.18,0,0,7);c.moveTo(-s*.1,-s*.05);c.lineTo(-s*.4,-s*.55);c.lineTo(s*.15,-s*.05);c.arc(s*.38,-s*.1,s*.12,0,7);}};
+const NAMES={jar:'壶',horse:'马',man:'人',tree:'树',bird:'鸟'};
+const ECHO={jar:'“铛……”',horse:'“嘶——”',man:'“喂！”',tree:'“沙沙……”',bird:'“啾啾”'};
+
+/* ================= 世界状态 ================= */
+const SEQ=['jar','horse','man','bird','tree','horse','jar','man'];
+let G={};
+function freshWorld(){G={fire:{x:0.82,y:0.5},carriers:[],seqI:0,spawnT:0,dragging:null,view:'side',echo:[],
+  game:{score:0,honor:0,guess:null,streak:0,asked:false},neck:0,neckHold:false,neckMax:0,sawReal:0,
+  climb:{p:0,adapt:0,blind:0,hold:false,lastX:0,pushT:0},
+  back:{dark:1,contest:null,mock:0,liber:{x:0,on:false},crowd:0,started:false}};
+  for(let i=0;i<3;i++)spawn(-i*0.35);}
+function spawn(off){const sh=SEQ[G.seqI%SEQ.length];G.seqI++;G.carriers.push({x:1.05+(off||0)*-1,sh,speed:0.06+Math.random()*0.02,s:1,bob:Math.random()*6,talk:Math.random()<0.5,talkT:0});}
+freshWorld();
+
+/* ================= 几何（剖视：左墙=影墙，右边=火） ================= */
+function geo(){return{wall:W*0.06,floor:H*0.86,lowWall:W*0.6,lowTop:H*0.64,road:W*0.6,objY:H*0.5,pris:W*0.32,fx:W*G.fire.x,fy:H*G.fire.y};}
+function carrierXY(c,g){const x=lerp(W*0.52,W*0.68,0.5),y=g.objY-Math.sin(T*2+c.bob)*3;return[x,y];}
+/* 搬运者沿深度方向走（剖视中表现为沿着矮墙前后），这里用纵深 z∈(0,1) 映射到影墙上的水平位置 */
+function shadowOf(c,g){const ox=g.road-W*0.02,oy=g.objY-Math.sin(T*2+c.bob)*3;
+  const k=(g.fx-g.wall)/Math.max(10,g.fx-ox);const sy=g.fy+(oy-g.fy)*k;return{k,sy,size:H*0.085*c.s*k};}
+
+/* ================= 绘制：剖视 ================= */
+function drawCaveSide(dt,opts={}){const g=geo();
+  const bg=ctx.createLinearGradient(0,0,W,0);bg.addColorStop(0,'#140e09');bg.addColorStop(1,'#261b12');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  // 洞口
+  ctx.fillStyle='#bcdcef';ctx.beginPath();ctx.moveTo(W,0);ctx.lineTo(W*0.92,0);ctx.quadraticCurveTo(W*0.88,H*0.22,W,H*0.34);ctx.fill();
+  ctx.fillStyle='#3a2d20';ctx.fillRect(0,g.floor,W,H-g.floor);
+  // 火光照明
+  const fl=1+Math.sin(T*11)*0.05+Math.sin(T*7.3)*0.04;
+  const rg=ctx.createRadialGradient(g.fx,g.fy,5,g.fx,g.fy,W*0.75*fl);rg.addColorStop(0,'rgba(255,180,80,.42)');rg.addColorStop(1,'rgba(255,180,80,0)');ctx.fillStyle=rg;ctx.fillRect(0,0,W,H);
+  // 影墙
+  const wg=ctx.createLinearGradient(0,0,g.wall,0);wg.addColorStop(0,'#5a4733');wg.addColorStop(1,'#7b6448');ctx.fillStyle=wg;ctx.fillRect(0,0,g.wall,g.floor);
+  // 影子投到影墙（剖视中压扁显示）
+  G.carriers.forEach(c=>{const s=shadowOf(c,g);c._sh=s;});
+  // 矮墙 + 道路
+  ctx.fillStyle='#5f4b36';ctx.fillRect(g.lowWall-W*0.035,g.lowTop,W*0.07,g.floor-g.lowTop);
+  ctx.fillStyle='#2c2117';ctx.fillRect(g.lowWall+W*0.035,g.floor-6,W*0.3,6);
+  // 搬运者（只画最靠前的一个在剖面上）
+  const front=G.carriers.find(c=>c.x>0.3&&c.x<0.7);
+  if(front){const x=g.road+W*0.03,y=g.floor;ctx.fillStyle='#2a1f16';ctx.beginPath();ctx.arc(x,y-H*0.29,H*0.035,0,7);ctx.fill();ctx.fillRect(x-H*0.03,y-H*0.26,H*0.06,H*0.26);
+    ctx.save();ctx.translate(g.road-W*0.02,g.objY-Math.sin(T*2+front.bob)*3);ctx.fillStyle='#c9a774';SH[front.sh](ctx,H*0.085*front.s);ctx.fill();ctx.restore();
+    // 光线
+    ctx.strokeStyle='rgba(255,210,130,.18)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(g.fx,g.fy);ctx.lineTo(g.wall,front._sh.sy-front._sh.size*0.8);ctx.moveTo(g.fx,g.fy);ctx.lineTo(g.wall,front._sh.sy+front._sh.size*0.6);ctx.stroke();
+    ctx.fillStyle='rgba(8,5,3,.85)';ctx.fillRect(g.wall-4,front._sh.sy-front._sh.size*0.8,6,front._sh.size*1.4);}
+  // 火
+  ctx.fillStyle='#ffab3a';ctx.beginPath();ctx.moveTo(g.fx-16,g.fy+18);ctx.bezierCurveTo(g.fx-18,g.fy-10,g.fx-4,g.fy-30*fl,g.fx,g.fy-42*fl);ctx.bezierCurveTo(g.fx+4,g.fy-30*fl,g.fx+18,g.fy-10,g.fx+16,g.fy+18);ctx.fill();
+  ctx.fillStyle='#fff1a8';ctx.beginPath();ctx.moveTo(g.fx-7,g.fy+18);ctx.quadraticCurveTo(g.fx,g.fy-18*fl,g.fx+7,g.fy+18);ctx.fill();
+  ctx.fillStyle='#4a3826';ctx.fillRect(g.fx-20,g.fy+18,40,8);
+  // 囚徒
+  for(let i=0;i<3;i++){const px=g.pris-i*W*0.075;prisoner(px,g.floor,H*0.085,i===0?G.neck:0,!(opts.freeFirst&&i===0));}
+  // 墙面“投影窗”：显示囚徒看到的整面墙（缩略）
+  if(!opts.noInset){const iw=W*0.17,ih=H*0.3,ix=g.wall+8,iy=8;ctx.fillStyle='#6d583f';ctx.fillRect(ix,iy,iw,ih);drawWallShadows(ix,iy,iw,ih,0.9);ctx.strokeStyle='#d8bf96';ctx.lineWidth=1.5;ctx.strokeRect(ix,iy,iw,ih);
+    ctx.fillStyle='#f4e2c2';ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('墙面（囚徒所见）',ix+iw/2,iy+ih+14);}
+  // 回声文字
+  G.echo=G.echo.filter(e=>(e.t-=dt)>0);G.echo.forEach(e=>{ctx.globalAlpha=Math.min(1,e.t);ctx.fillStyle='#ffe7b5';ctx.font='14px sans-serif';ctx.textAlign='left';ctx.fillText(e.s,g.wall+8+e.x,e.y);ctx.globalAlpha=1;});
+  // 火的拖拽提示
+  if(L===1&&T<6){ctx.strokeStyle='rgba(255,230,160,.6)';ctx.setLineDash([4,4]);ctx.beginPath();ctx.arc(g.fx,g.fy-8,34,0,7);ctx.stroke();ctx.setLineDash([]);}
+}
+function prisoner(x,y,s,turn,chained){ // turn 0..1 头部转向（0=看墙，1=看火）
+  ctx.fillStyle='#2f261c';ctx.beginPath();ctx.ellipse(x,y-s*.45,s*.42,s*.5,0,0,7);ctx.fill();
+  const hx=x+lerp(-s*.12,s*.12,turn),hy=y-s*1.15;ctx.beginPath();ctx.arc(hx,hy,s*.3,0,7);ctx.fill();
+  ctx.fillStyle='#f4e2c2';const ex=hx+lerp(-s*.2,s*.2,turn);ctx.beginPath();ctx.arc(ex,hy-s*.03,s*.05,0,7);ctx.fill();
+  if(chained){ctx.strokeStyle='#8a8a8a';ctx.lineWidth=2;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(x-s*.45,hy+s*.32);ctx.lineTo(x+s*.45,hy+s*.32);ctx.moveTo(x-s*.3,y);ctx.lineTo(x+s*.3,y);ctx.stroke();ctx.setLineDash([]);}}
+/* 墙面影子（囚徒视野） */
+function drawWallShadows(ix,iy,iw,ih,alpha){const g=geo();ctx.save();ctx.beginPath();ctx.rect(ix,iy,iw,ih);ctx.clip();
+  const flick=1+Math.sin(T*11)*0.03;
+  G.carriers.forEach(c=>{const s=c._sh||shadowOf(c,g);const sx=ix+iw*(1-c.x)*flick;const sy=iy+ih*((s.sy)/g.floor);const blur=clamp((s.k-1)*2,0,6);
+    ctx.save();ctx.translate(sx,sy);ctx.fillStyle=`rgba(10,6,3,${alpha*(0.9-blur*0.07)})`;ctx.shadowColor='rgba(10,6,3,.9)';ctx.shadowBlur=blur*3;SH[c.sh](ctx,ih*0.28*s.k/2.2);ctx.fill();ctx.restore();});
+  ctx.restore();}
+
+/* ================= 绘制：囚徒之眼（第一人称） ================= */
+function drawEye(dt,turn){const g=geo();
+  // 墙
+  const wg=ctx.createRadialGradient(W/2,H*0.55,20,W/2,H*0.55,W*0.7);const f=0.85+Math.sin(T*11)*0.05;
+  wg.addColorStop(0,`rgb(${Math.round(150*f)},${Math.round(118*f)},${Math.round(80*f)})`);wg.addColorStop(1,'#2a1e13');ctx.fillStyle=wg;ctx.fillRect(0,0,W,H);
+  for(let i=0;i<30;i++){ctx.fillStyle='rgba(0,0,0,.05)';ctx.beginPath();ctx.arc((i*173%97)/97*W,(i*61%89)/89*H,10+(i%5)*6,0,7);ctx.fill();}
+  drawWallShadows(0,0,W,H,1);
+  // 其他囚徒的后脑勺
+  ctx.fillStyle='#120c07';[0.15,0.82].forEach(p=>{ctx.beginPath();ctx.ellipse(W*p,H*1.02,W*0.12,H*0.2,0,0,7);ctx.fill();});
+  G.echo.forEach(e=>{ctx.globalAlpha=Math.min(1,e.t);ctx.fillStyle='#fff2cf';ctx.font='bold 18px sans-serif';ctx.textAlign='center';ctx.fillText(e.s,e.ex*W,H*0.25);ctx.globalAlpha=1;});
+}
+
+/* ================= 更新：搬运者 ================= */
+function updCarriers(dt){G.spawnT-=dt;G.carriers.forEach(c=>{c.x-=c.speed*dt;
+  if(c.talk&&c.x<0.75&&c.x>0.25&&(c.talkT-=dt)<0){c.talkT=2.5+Math.random()*2;G.echo.push({s:ECHO[c.sh],t:1.6,x:20+Math.random()*60,y:H*0.45+Math.random()*30,ex:1-c.x});if(L===1)hit(1,3);}});
+  G.carriers=G.carriers.filter(c=>c.x>-0.15);
+  if(G.carriers.length<3&&G.spawnT<=0){spawn();G.spawnT=2.5+Math.random()*2;}}
+
+/* ================= 第 1 关 ================= */
+function l1Tick(dt){updCarriers(dt);
+  if(G.view==='side'){drawCaveSide(dt);hint('拖动火焰，或拖动矮墙后的物体靠近/远离火光——观察墙上的影子');}
+  else{drawEye(dt);gameTick();}
+  $('hud').innerHTML=G.view==='eye'?`荣誉：${'★'.repeat(G.game.honor)}${'☆'.repeat(Math.max(0,5-G.game.honor))}<br>连续猜中：${G.game.streak}`:'';}
+function gameTick(){const g=G.game;
+  // 当最右侧即将出现新影子时提问
+  const next=G.carriers.filter(c=>c.x>0.95).sort((a,b)=>a.x-b.x)[0];
+  if(next&&!g.asked){g.asked=next;g.guess=null;}
+  if(g.asked&&g.asked.x<0.9&&!g.resolved){g.resolved=true;const ok=g.guess===g.asked.sh;
+    if(g.guess==null)toast('没来得及预测');else if(ok){g.score++;g.streak++;if(g.streak%2===0&&g.honor<5){g.honor++;toast('★ 你赢得了囚徒们的荣誉：你最善于推断影子的次序');hit(1,4);}else toast('猜中了：'+NAMES[g.asked.sh]);}
+    else{g.streak=0;toast('猜错了，下一个是'+NAMES[g.asked.sh]);}
+    if(g.score>=3)hit(1,5);
+    setTimeout(()=>{g.asked=null;g.resolved=false;},400);}
+  // 选择按钮（画在画布上）
+  const opts=['jar','horse','man','bird','tree'];const bw=Math.min(90,W/6.5),bx=W/2-bw*2.5,by=H-56;
+  ctx.font='14px sans-serif';ctx.textAlign='center';
+  ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(bx-10,by-30,bw*5+20,76);ctx.fillStyle='#ffe9b0';ctx.fillText(g.asked&&!g.resolved?'下一个出现的影子是？':'等待下一个影子……',W/2,by-12);
+  opts.forEach((o,i)=>{const x=bx+i*bw;ctx.fillStyle=g.guess===o?'#f3a52b':'rgba(255,255,255,.85)';ctx.fillRect(x+4,by,bw-8,34);ctx.fillStyle='#222';ctx.fillText(NAMES[o],x+bw/2,by+22);});
+  G._btn={bx,by,bw,opts};
+  hint('你是囚徒。你记得影子出现的先后次序吗？');}
+
+/* ================= 第 2 关：转身 ================= */
+function l2Tick(dt){updCarriers(dt);
+  if(!G.neckHold)G.neck=Math.max(0,G.neck-dt*(0.8+G.neck)); // 松手弹回
+  const n=G.neck;G.neckMax=Math.max(G.neckMax,n);
+  if(G.view==='eye'){ // 第一人称：从墙转向火
+    if(n<0.5){drawEye(dt);ctx.fillStyle=`rgba(255,240,200,${n*0.5})`;ctx.fillRect(0,0,W,H);}
+    else{const k=(n-0.5)/0.5;drawTurned(dt,k);}
+  }else{drawCaveSide(dt,{freeFirst:true});const g=geo();
+    const px=g.pris,py=g.floor-H*0.085*1.15;ctx.strokeStyle='rgba(255,230,160,.7)';ctx.lineWidth=2;ctx.setLineDash([4,4]);ctx.beginPath();ctx.arc(px,py,H*0.06,0,7);ctx.stroke();ctx.setLineDash([]);
+    // 视线
+    const ang=lerp(Math.PI,0,n);ctx.strokeStyle=`rgba(255,255,255,${0.3+0.5*n})`;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px+Math.cos(ang)*W*0.25,py-Math.sin(ang)*20);ctx.stroke();
+    const glare=Math.pow(n,2);ctx.fillStyle=`rgba(255,245,220,${glare*0.75})`;ctx.fillRect(0,0,W,H);}
+  // 疼痛条
+  const pain=Math.pow(n,1.5);ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(W-170,12,150,14);ctx.fillStyle=`rgb(${200+55*pain},${120-80*pain},60)`;ctx.fillRect(W-170,12,150*pain,14);ctx.fillStyle='#fff';ctx.font='12px sans-serif';ctx.textAlign='right';ctx.fillText('眼睛的刺痛',W-176,24);
+  if(n>0.2)hit(2,0);if(n>0.55&&n<0.85)hit(2,1);
+  if(!G.neckHold&&G.neckMax>0.3&&n<0.05&&!G._bounced){G._bounced=1;hit(2,2);toast('一松手，他就转回去看墙了：那里“更清楚”');}
+  if(G.neckHold&&n>0.9){G.sawReal+=dt;if(G.sawReal>2)hit(2,3);}
+  $('hud').innerHTML=`转头角度：${Math.round(n*180)}°`+(G.sawReal>0?`<br>直视火光：${G.sawReal.toFixed(1)} s`:'');
+  hint(G.view==='side'?'按住囚徒的头（虚线圈），向右拖动让他转身；切换“囚徒之眼”体验他看到的':'按住画面向右拖动，转过头去');}
+function drawTurned(dt,k){ // 看向火：越转越刺眼，坚持后才渐渐看清
+  const clear=clamp(G.sawReal/3,0,1);
+  ctx.fillStyle='#2a1d12';ctx.fillRect(0,0,W,H);
+  const fx=W*0.5,fy=H*0.45;
+  ctx.save();ctx.filter=`blur(${Math.round((1-clear)*10)}px)`;
+  ctx.fillStyle='#5f4b36';ctx.fillRect(0,H*0.62,W,H*0.12);
+  const front=G.carriers.filter(c=>c.x>0.2&&c.x<0.8);front.forEach(c=>{ctx.save();ctx.translate(W*(1-c.x),H*0.5);ctx.fillStyle='#c9a774';SH[c.sh](ctx,H*0.16);ctx.fill();ctx.restore();
+    ctx.fillStyle='#2a1f16';ctx.fillRect(W*(1-c.x)-14,H*0.62,28,H*0.3);});
+  ctx.restore();
+  const rg=ctx.createRadialGradient(fx,fy-H*0.15,5,fx,fy,W*0.6);rg.addColorStop(0,`rgba(255,250,220,${0.95-0.45*clear})`);rg.addColorStop(1,`rgba(255,220,150,${(0.55-0.4*clear)*k})`);ctx.fillStyle=rg;ctx.fillRect(0,0,W,H);
+  if(clear>0.6){ctx.fillStyle='#fff';ctx.font='15px sans-serif';ctx.textAlign='center';ctx.fillText('这些木头和石头做的东西……难道比墙上的影子更真实？',W/2,H*0.88);}}
+
+/* ================= 第 3 关：上升 ================= */
+const STG=['什么也看不见','影子','水中的倒影','事物本身','月亮与星辰','太阳'];
+function l3Tick(dt){const c=G.climb;
+  // 适应：只有在光中停留才增加；快速前进会造成致盲
+  const light=clamp(c.p*1.2,0,1);
+  c.adapt=Math.min(c.p,c.adapt+dt*0.06*(light>0.05?1:0));
+  const over=c.p-c.adapt;c.blind=lerp(c.blind,clamp(over*4,0,1),dt*3);
+  if(over>0.28){c.p=Math.max(c.adapt+0.05,c.p-dt*0.4);if(!c._pushed){c._pushed=1;toast('光太强了！他什么也看不见，被逼得后退');hit(3,1);}} else c._pushed=0;
+  if(c.p>0.05)hit(3,0);
+  const st=c.adapt<0.12?0:c.adapt<0.3?1:c.adapt<0.5?2:c.adapt<0.72?3:c.adapt<0.9?4:5;
+  if(st>=3)hit(3,2);if(st>=4)hit(3,3);if(st>=5)hit(3,4);
+  drawAscent(dt,c,st);
+  $('hud').innerHTML=`路程：${Math.round(c.p*100)}%<br>眼睛的适应：${Math.round(c.adapt*100)}%<br>能看清：${STG[st]}`;
+  hint(c.p<0.05?'按住画面并向右上方拖动，带他走出洞穴':over>0.15?'太快了——停下，让眼睛适应':'慢慢来：停留越久，看见的越多');}
+function drawAscent(dt,c,st){const p=c.p;
+  if(p<0.25){ // 坡道（洞内）
+    const k=p/0.25;ctx.fillStyle='#1a120b';ctx.fillRect(0,0,W,H);
+    const light=ctx.createRadialGradient(W*0.95,H*0.05,10,W*0.95,H*0.05,W*(0.3+k*1.2));light.addColorStop(0,'rgba(255,255,240,1)');light.addColorStop(1,'rgba(255,255,240,0)');ctx.fillStyle=light;ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#3a2d20';ctx.beginPath();ctx.moveTo(0,H);ctx.lineTo(W,H*0.25);ctx.lineTo(W,H);ctx.fill();
+    for(let i=0;i<14;i++){const x=i/14*W,y=H-(i/14)*H*0.75;ctx.fillStyle='#2a1f15';ctx.fillRect(x,y-6,W/14,6);}
+    const fx=lerp(W*0.1,W*0.85,k),fy=lerp(H*0.92,H*0.33,k);figure(fx,fy,H*0.08);}
+  else{ // 洞外
+    const night=st===4;const sky=ctx.createLinearGradient(0,0,0,H);
+    sky.addColorStop(0,night?'#0b1430':st===5?'#2c94dc':'#7ab6dc');sky.addColorStop(1,night?'#26385e':'#d6ecf8');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+    const gy=H*0.7;ctx.fillStyle=night?'#17251a':'#6a9a52';ctx.fillRect(0,gy,W,H-gy);
+    ctx.fillStyle=night?'#22406a':'#5aa0d0';ctx.beginPath();ctx.ellipse(W*0.42,gy+H*0.14,W*0.2,H*0.06,0,0,7);ctx.fill();
+    const a=k=>clamp((c.adapt-k)*8,0,1);
+    // 影子
+    ctx.fillStyle=`rgba(20,30,20,${0.7*a(0.12)})`;ctx.beginPath();ctx.ellipse(W*0.66,gy+8,60,8,0,0,7);ctx.fill();ctx.beginPath();ctx.ellipse(W*0.82,gy+8,40,6,0,0,7);ctx.fill();
+    // 倒影
+    ctx.save();ctx.globalAlpha=0.7*a(0.3);ctx.translate(W*0.42,gy+H*0.12);ctx.scale(1,-0.45);ctx.fillStyle='#365a2c';SH.tree(ctx,H*0.2);ctx.fill();ctx.restore();
+    // 事物
+    ctx.globalAlpha=a(0.5);ctx.save();ctx.translate(W*0.64,gy-H*0.1);ctx.fillStyle='#2f6a28';SH.tree(ctx,H*0.26);ctx.fill();ctx.restore();ctx.save();ctx.translate(W*0.82,gy-H*0.06);ctx.fillStyle='#7a4f27';SH.horse(ctx,H*0.13);ctx.fill();ctx.restore();ctx.globalAlpha=1;
+    if(night){ctx.fillStyle='#fff8d6';ctx.beginPath();ctx.arc(W*0.78,H*0.18,20,0,7);ctx.fill();for(let i=0;i<60;i++){const tw=0.5+0.5*Math.sin(T*3+i);ctx.globalAlpha=tw;ctx.fillRect((i*137%100)/100*W,(i*71%55)/100*H*0.6,2,2);}ctx.globalAlpha=1;}
+    if(st===5){const r=36+6*Math.sin(T*2);const sg=ctx.createRadialGradient(W*0.8,H*0.17,r*0.3,W*0.8,H*0.17,r*4);sg.addColorStop(0,'rgba(255,250,200,1)');sg.addColorStop(1,'rgba(255,250,200,0)');ctx.fillStyle=sg;ctx.fillRect(0,0,W,H);
+      ctx.fillStyle='#fff6b8';ctx.beginPath();ctx.arc(W*0.8,H*0.17,r,0,7);ctx.fill();}
+    figure(W*0.2,gy,H*0.085);}
+  // 致盲
+  ctx.fillStyle=`rgba(255,255,255,${clamp(c.blind,0,0.97)})`;ctx.fillRect(0,0,W,H);
+  // 路程条
+  ctx.fillStyle='rgba(0,0,0,.4)';ctx.fillRect(W*0.3,H-18,W*0.4,8);ctx.fillStyle='#f3a52b';ctx.fillRect(W*0.3,H-18,W*0.4*c.p,8);ctx.fillStyle='#7dffb0';ctx.fillRect(W*0.3,H-18,W*0.4*c.adapt,3);}
+function figure(x,y,s){ctx.fillStyle='#2f261c';ctx.beginPath();ctx.arc(x,y-s*1.15,s*.3,0,7);ctx.fill();ctx.beginPath();ctx.ellipse(x,y-s*.45,s*.32,s*.5,0,0,7);ctx.fill();
+  const sw=Math.sin(T*6)*s*.2;ctx.strokeStyle='#2f261c';ctx.lineWidth=s*.15;ctx.beginPath();ctx.moveTo(x,y-s*.1);ctx.lineTo(x+sw,y+s*.1);ctx.moveTo(x,y-s*.1);ctx.lineTo(x-sw,y+s*.1);ctx.stroke();}
+
+/* ================= 第 4 关：返回 ================= */
+function l4Tick(dt){const b=G.back;updCarriers(dt);if(!b.started){b.started=1;hit(4,0);}
+  b.dark=Math.max(0,b.dark-dt*0.045); // 适应黑暗很慢
+  const g=geo();
+  drawCaveSide(dt,{noInset:false});
+  // 归来者
+  if(!b.liber.on){b.liber.x=g.pris+W*0.09;}
+  figure(b.liber.x,g.floor,H*0.085);ctx.fillStyle='#ffd27a';ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText('归来者（可拖动）',b.liber.x,g.floor+14);
+  // 比赛
+  if(b.contest){b.contest.t+=dt;const y=H*0.42,x0=g.wall+W*0.2;ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(x0-10,y-22,W*0.42,92);ctx.font='14px sans-serif';ctx.textAlign='left';
+    const sees=1-b.dark;const ok=sees>0.8;
+    ctx.fillStyle='#fff';ctx.fillText(`囚徒们：“${NAMES[b.contest.sh]}！”  ✓`,x0,y);ctx.fillText(ok?`归来者：“${NAMES[b.contest.sh]}”  ✓`:'归来者：“……我看不清”  ✗',x0,y+22);
+    if(!ok&&b.contest.t>1.2){ctx.fillStyle='#ffb0b0';ctx.fillText('“他上去一趟，回来眼睛就坏了！”',x0,y+50);if(!b._m){b._m=1;hit(4,2);}}
+    if(b.contest.t>3.5)b.contest=null;}
+  // 围拢
+  if(b.liber.on){const tx=g.pris-W*0.075;const near=b.liber.x<g.pris+W*0.03;b.crowd=lerp(b.crowd,near?1:0,dt*2);
+    if(b.crowd>0.1){for(let i=0;i<3;i++){const px=g.pris-i*W*0.075;ctx.strokeStyle=`rgba(255,90,90,${b.crowd})`;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(px+H*0.04,g.floor-H*0.1);ctx.lineTo(lerp(px+H*0.04,b.liber.x,b.crowd*0.8),g.floor-H*0.08);ctx.stroke();}
+      ctx.fillStyle=`rgba(255,120,120,${b.crowd})`;ctx.font='bold 15px sans-serif';ctx.textAlign='center';ctx.fillText('“别碰我们！谁敢带人上去，就杀了他！”',W*0.35,H*0.2);
+      if(b.crowd>0.7&&!b._k){b._k=1;hit(4,3);setTimeout(()=>hit(4,4),2500);}}}
+  // 黑暗
+  ctx.fillStyle=`rgba(0,0,0,${b.dark*0.96})`;ctx.fillRect(0,0,W,H);
+  // 比赛按钮
+  const bx=W-200,by=H-50;ctx.fillStyle='rgba(255,255,255,.9)';ctx.fillRect(bx,by,180,36);ctx.fillStyle='#222';ctx.font='14px sans-serif';ctx.textAlign='center';ctx.fillText('参加辨认影子比赛',bx+90,by+23);G._cbtn={bx,by};
+  $('hud').innerHTML=`眼睛对黑暗的适应：${Math.round((1-b.dark)*100)}%`;
+  hint(b.dark>0.5?'从阳光下回来，眼前一片漆黑……':'拖动归来者走向其他囚徒，试着解开他们');}
+
+/* ================= 输入 ================= */
+function pos(e){const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];}
+let ptr=null;
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);ptr={x,y,x0:x,y0:y};cv.setPointerCapture(e.pointerId);const g=geo();
+  if(L===1&&G.view==='side'){if(Math.hypot(x-g.fx,y-g.fy+8)<44){G.dragging='fire';return;}
+    if(x>g.lowWall-W*0.1&&x<g.lowWall+W*0.05&&y<g.lowTop){G.dragging='obj';return;}}
+  if(L===1&&G.view==='eye'&&G._btn){const {bx,by,bw,opts}=G._btn;if(y>by&&y<by+34&&x>bx&&x<bx+bw*5){if(G.game.asked&&!G.game.resolved)G.game.guess=opts[Math.floor((x-bx)/bw)];}return;}
+  if(L===2){G.neckHold=true;G._n0=G.neck;G._bounced=0;return;}
+  if(L===3){G.climb.hold=true;return;}
+  if(L===4){const b=G.back;if(G._cbtn&&x>G._cbtn.bx&&y>G._cbtn.by){b.contest={t:0,sh:G.carriers[0]?G.carriers[0].sh:'jar'};hit(4,1);return;}
+    if(Math.abs(x-b.liber.x)<40&&y>g.floor-H*0.15){b.liber.on=true;G.dragging='liber';}}});
+cv.addEventListener('pointermove',e=>{if(!ptr)return;const [x,y]=pos(e);const dx=x-ptr.x,dy=y-ptr.y;ptr.x=x;ptr.y=y;const g=geo();
+  if(G.dragging==='fire'){G.fire.x=clamp(x/W,0.66,0.9);G.fire.y=clamp(y/H,0.3,0.72);hit(1,2);}
+  else if(G.dragging==='obj'){G.fire.x=clamp(G.fire.x+dx/W*0.5,0.66,0.9);G.carriers.forEach(c=>c.s=clamp(c.s-dx/W*1.5,0.6,1.6));hit(1,2);}
+  else if(L===2&&G.neckHold){G.neck=clamp(G.neck+dx/(W*0.4)*(1-G.neck*0.55),0,1);}
+  else if(L===3&&G.climb.hold){const adv=(dx-dy)/(W*1.4);if(adv>0)G.climb.p=clamp(G.climb.p+adv,0,1);}
+  else if(G.dragging==='liber'){G.back.liber.x=clamp(x,g.pris-W*0.18,g.lowWall-W*0.06);}});
+addEventListener('pointerup',()=>{ptr=null;G.dragging=null;G.neckHold=false;G.climb.hold=false;});
+
+/* ================= 调度 ================= */
+function setView(v){G.view=v;$('vSide').classList.toggle('on',v==='side');$('vEye').classList.toggle('on',v==='eye');}
+$('vSide').onclick=()=>setView('side');$('vEye').onclick=()=>{setView('eye');if(L===1)toast('你现在只能看见墙。注意影子出现的先后次序。');};
+$('bReset').onclick=()=>{const v=G.view;freshWorld();G.view=v;done[L]=0;go(L);toast('已重置');};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!done[t.dataset.l]);});}
+function go(n){L=n;tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);
+  const views=L===1||L===2;$('vSide').style.display=$('vEye').style.display=views?'':'none';if(!views)setView('side');
+  if(L===1)hit(1,0),setTimeout(()=>hit(1,1),1500);if(L===4){G.back={dark:1,contest:null,mock:0,liber:{x:0,on:false},crowd:0,started:false};}
+  if(L===3)G.climb={p:0,adapt:0,blind:0,hold:false};if(L===2){G.neck=0;G.sawReal=0;G.neckMax=0;}}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+const TICK={1:l1Tick,2:l2Tick,3:l3Tick,4:l4Tick};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+setView('side');go(1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

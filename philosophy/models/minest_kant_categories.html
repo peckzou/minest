@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 康德十二范畴与因果性 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>康德 · 范畴与因果</b>
+  <button class="tab on" data-l="1">① 杂多与综合</button>
+  <button class="tab" data-l="2">② 范畴之镜</button>
+  <button class="tab" data-l="3">③ 房屋与航船</button>
+  <button class="tab" data-l="4">④ 与休谟对照</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="bd" id="sBody"></div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;const done={};
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+function meter(x,y,w,v,col,t){ctx.fillStyle='rgba(255,255,255,.9)';ctx.fillRect(x,y,w,9);ctx.fillStyle=col;ctx.fillRect(x,y,w*clamp(v,0,1),9);ctx.strokeStyle='#888';ctx.strokeRect(x,y,w,9);txt(t,x+w/2,y-4,'#dde',12);}
+
+/* ======== 原文：Meiklejohn 英译《纯粹理性批判》(Gutenberg #4280)；Carus 英译《导论》(#52821)；中文编译。
+   标注采用 Meiklejohn 本的章节标题与 § 编号（该本 §11、§12 相当于第二版 §15、§16），未标 A/B 页码。 ======== */
+const C='《纯粹理性批判》',PRO='《未来形而上学导论》序言';
+const MAP={
+1:[["感官源源送来杂多：散乱、无关联","但一种直观中杂多的联结，绝不能由感官给予我们。","the conjunction (conjunctio) of a manifold in intuition never can be given us by the senses",C+" 先验演绎 §11 联结的可能性"],
+   ["按住“我思”：把杂多聚拢为一个对象","一切联结，无论是否意识到，……都是知性的行动。我们给这种行动以一个总的名称：综合。","all conjunction whether conscious or unconscious … is an act of the understanding. To this act we shall give the general appellation of synthesis",C+" §11"],
+   ["持续伴随：对象稳定成形","“我思”必须伴随我的一切表象，否则在我之中就会表象出某种根本不能被思维的东西。","The “I think” must accompany all my representations, for otherwise something would be represented in me which could not be thought",C+" §12 统觉的本源综合统一"],
+   ["松手：表象散开，对我而言什么也不是","也就是说，这个表象要么是不可能的，要么至少对我来说什么也不是。","the representation would either be impossible, or at least be, in relation to me, nothing",C+" §12"]],
+2:[["把对象拖进四面“范畴之镜”","范畴表：量（单一性、复多性、全体性）；质（实在性、否定性、限制性）；关系；模态。","TABLE OF THE CATEGORIES 1 2 _Of Quantity Of Quality_ Unity Reality Plurality Negation Totality Limitation",C+" §6 范畴表"],
+   ["量之镜：按住逐一计数，“一”→“多”→“全”","一切直观都是外延的量。","The principle of these is: All Intuitions are Extensive Quantities",C+" 原理分析论 · 直观的公理"],
+   ["质之镜：按住让感觉的程度从 0 增长","在一切现象中，实在的东西，即感觉的对象，具有内包的量，即程度。","In all phenomena the Real, that which is an object of sensation, has Intensive Quantity, that is, has a Degree",C+" 知觉的预测"],
+   ["每组的第三个：由前两个结合而成","每一组中的第三个范畴总是由第二个与第一个结合而产生。……全体性无非是被视为单一性的复多性；限制性就是与否定性相结合的实在性。","the third category in each triad always arises from the combination of the second with the first. Thus totality is nothing else but plurality contemplated as unity; limitation is merely reality conjoined with negation",C+" §7"],
+   ["关系之镜·实体：融化、变形，总量不变","在现象的一切变化中，实体是持存的，它在自然中的量既不增加也不减少。","In all changes of phenomena, substance is permanent, and the quantum thereof in nature is neither increased nor diminished",C+" 第一类比"],
+   ["关系之镜·协同：拖动一个，另一个也被牵动","一切实体，只要能在空间中被知觉为同时存在，就处于完全的交互作用之中。","All substances, in so far as they can be perceived in space at the same time, exist in a state of complete reciprocity of action",C+" 第三类比"],
+   ["模态之镜：可能 → 现实 → 必然","凡与经验的形式条件相符合的，是可能的；凡与经验的质料条件（感觉）相联系的，是现实的；凡其与现实的联系按经验的普遍条件被规定的，是必然的。","That which agrees with the formal conditions (intuition and conception) of experience, is possible. 2. That which coheres with the material conditions of experience (sensation), is real. 3. That whose coherence with the real is determined according to universal conditions of experience is (exists) necessary",C+" 经验性思维一般的公设"],
+   ["模态不给对象增加任何东西","模态范畴的特点在于：它们丝毫不规定对象，……而只表达它与认识能力的关系。","they do not in the least determine the object, or enlarge the conception to which they are annexed as predicates, but only express its relation to the faculty of cognition",C+" 公设 · 说明"]],
+3:[["房屋：任意方向扫视","我对一座房屋的知觉，可以从屋顶开始到地基结束，也可以反过来；或者从左到右、从右到左。","my perceptions in the apprehension of a house might begin at the roof and end at the foundation, or vice versa; or I might apprehend the manifold in this empirical intuition, by going from left to right, and from right to left",C+" 第二类比"],
+   ["航船：只能往下游拖","我看见一条船顺流而下。……在把握这一现象时，不可能先看到船在下游、后看到它在上游。","I see a ship float down the stream of a river … it is impossible that, in the apprehension of this phenomenon, the vessel should be perceived first below and afterwards higher up the stream",C+" 第二类比"],
+   ["往回拖：被顶回来","我不能把它颠倒过来，从事件回溯去规定先于它的东西。","I cannot reverse this and go back from the event, and determine (by apprehension) that which antecedes it",C+" 第二类比"],
+   ["两球：想让 B 先动？做不到","一切变化都按照因果联结的规律而发生。","All changes take place according to the law of the connection of Cause and Effect",C+" 第二类比 · 原理"],
+   ["正是这条规则使“客观的先后”成为可能","除非有一条规则作为基础，迫使我们遵守这一知觉次序而不是别的，……正是这种必然性首先使对象中的相继的表象成为可能。","unless when a rule lies at the foundation, which compels us to observe this order of perception in preference to any other, and that, indeed, it is this necessity which first renders possible the representation of a succession in the object",C+" 第二类比"]],
+4:[["第一次看见碰撞：康德的“必然”已满","“每一变化必有其原因”这个命题……原因概念如此明显地包含与结果联结的必然性和规则的严格普遍性。","the proposition, “Every change must have a cause,” will amply serve our purpose. In the latter case, indeed, the conception of a cause so plainly involves the conception of a necessity of connection with an effect",C+" 导言 · 二"],
+   ["按住重复：休谟的“习惯”才慢慢增长","如果我们像休谟那样，从发生的事与先行之事的频繁联想，以及由此产生的联结表象的习惯中推出原因概念，……判断中的必然性就只是主观的。","were we to derive it, like Hume, from a frequent association of what happens with that which precedes; and the habit thence originating of connecting representations—the necessity inherent in the judgement being therefore merely subjective",C+" 导言 · 二"],
+   ["休谟的提醒","我坦白承认，正是大卫·休谟的提示，在多年前首先打断了我独断论的迷梦。","the suggestion of David Hume was the very thing, which many years ago first interrupted my dogmatic slumber",PRO]]};
+const TITLE={1:'① 杂多与综合 · 按住画面施加“我思”，把散乱的杂多聚拢；一直按住，再松手看看',2:'② 范畴之镜 · 把中央的对象拖进四个镜框，在每个镜框内按住或拖动',3:'③ 房屋与航船 · 左：在房屋上任意拖动视线 右：拖动航船（试着往回拖） 下：试着在碰撞前拖动 B',4:'④ 与休谟对照 · 按住让碰撞一次次重复，比较两种“必然”'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2].replace(/_/g,'')}</div><div class="ref">——康德${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const e=$('mr'+l+'_'+i);if(!e||e.classList.contains('on'))return;e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});
+  if(MAP[l].every((_,k)=>$('mr'+l+'_'+k).classList.contains('on'))){done[l]=1;tabs();}}
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]?.move?.(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]?.up?.();});
+
+/* ================= 第 1 关：杂多与综合 ================= */
+let A;
+const COLS=['#ff6b6b','#ffd93d','#6bcBff','#c79bff','#7dffb0','#ffa36b'];
+function init1(){A={p:[],hold:false,unity:0,held:0,peak:0,cx:0.5,cy:0.5};}
+HD[1]={down(x,y){A.hold=true;A.cx=x/W;A.cy=y/H;hit(1,1);},move(x,y){if(A.hold){A.cx=x/W;A.cy=y/H;}},up(){if(A.hold&&A.unity>0.7){hit(1,3);toast('没有“我思”的伴随，它们对我而言什么也不是');}A.hold=false;}};
+function t1(dt){ctx.fillStyle='#0d1220';ctx.fillRect(0,0,W,H);
+  // 感官入口
+  for(let i=0;i<3;i++){if(Math.random()<0.9){const side=Math.random()<0.5;A.p.push({x:side?-5:W+5,y:Math.random()*H,vx:(side?1:-1)*(60+Math.random()*80),vy:(Math.random()-.5)*60,c:COLS[Math.floor(Math.random()*6)],s:2+Math.random()*3,bound:0});}}
+  if(T>1)hit(1,0);
+  A.unity=lerp(A.unity,A.hold?1:0,dt*(A.hold?0.6:2.5));if(A.hold)A.held+=dt;else A.held=0;
+  const cx=W*A.cx,cy=H*A.cy,R=Math.min(W,H)*0.16;
+  A.p.forEach(p=>{if(A.hold){const dx=cx-p.x,dy=cy-p.y,d=Math.hypot(dx,dy)+1;const pull=380*A.unity;p.vx+=dx/d*pull*dt;p.vy+=dy/d*pull*dt;p.vx*=0.94;p.vy*=0.94;
+      if(d<R){p.bound=Math.min(1,p.bound+dt*1.5);const a=Math.atan2(p.y-cy,p.x-cx)+dt*0.6;const tr=R*(0.4+0.6*((p.s-2)/3));p.x=lerp(p.x,cx+Math.cos(a)*tr,dt*3*p.bound);p.y=lerp(p.y,cy+Math.sin(a)*tr*0.85,dt*3*p.bound);}}
+    else{p.bound=Math.max(0,p.bound-dt*2);p.vx+=(Math.random()-.5)*200*dt;p.vy+=(Math.random()-.5)*200*dt;}
+    p.x+=p.vx*dt;p.y+=p.vy*dt;});
+  A.p=A.p.filter(p=>p.x>-40&&p.x<W+40&&p.y>-40&&p.y<H+40).slice(-700);
+  // 对象轮廓：由被综合的点“联结”成的形
+  const bound=A.p.filter(p=>p.bound>0.6);
+  if(bound.length>20){ctx.strokeStyle=`rgba(255,240,180,${0.15+0.5*A.unity})`;ctx.lineWidth=1;ctx.beginPath();for(let i=0;i<bound.length-1;i+=2){const a=bound[i],b=bound[i+1];if(Math.hypot(a.x-b.x,a.y-b.y)<R*0.6){ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);}}ctx.stroke();}
+  A.p.forEach(p=>{ctx.fillStyle=p.c;ctx.globalAlpha=0.5+0.5*p.bound;ctx.beginPath();ctx.arc(p.x,p.y,p.s,0,7);ctx.fill();});ctx.globalAlpha=1;
+  if(A.hold){const g=ctx.createRadialGradient(cx,cy,4,cx,cy,R*1.4);g.addColorStop(0,`rgba(255,240,180,${0.35*A.unity})`);g.addColorStop(1,'rgba(255,240,180,0)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    txt('我思',cx,cy+6,`rgba(255,240,180,${0.4+0.6*A.unity})`,18,'center',true);}
+  const coh=clamp(bound.length/160,0,1);A.peak=Math.max(A.peak,coh);
+  if(A.hold&&coh>0.8&&A.held>2.5)hit(1,2);
+  meter(W*0.04,H*0.06,W*0.2,coh,'#ffd96b','统一（被联结的表象）');
+  txt(A.hold?(coh>0.8?'一个对象：被“我思”所伴随的综合统一':'综合中……'):(A.peak>0.6?'松手后：联结散失，杂多重新四散':'杂多从感官涌入：它们自己不会联结起来。按住画面'),W/2,H-14,'#e8ecf4',13);}
+
+/* ================= 第 2 关：范畴之镜 ================= */
+let B;
+const CAT={q:['单一性','复多性','全体性'],l:['实在性','否定性','限制性'],r:['实体','因果','协同'],m:['可能性','现实性','必然性']};
+function init2(){B={obj:{x:0.5,y:0.5},drag:false,in:null,hold:false,seen:{},
+  q:{n:0},l:{deg:0},r:{melt:0,a:{x:0,y:0},b:{x:0,y:0},dragB:false,dragged:0},m:{stage:0,t:0},holdT:0};}
+function lens(){const w=W*0.3,h=H*0.4;return{q:{x:W*0.03,y:H*0.05,w,h,n:'量',c:'#5ee7ff'},l:{x:W*0.67,y:H*0.05,w,h,n:'质',c:'#c79bff'},r:{x:W*0.03,y:H*0.55,w,h,n:'关系',c:'#ffc96b'},m:{x:W*0.67,y:H*0.55,w,h,n:'模态',c:'#7dffb0'}};}
+function mark(k,i){B.seen[k+i]=1;const n=Object.keys(B.seen).length;if(n>=12){toast('十二个范畴全部被你用过了');}}
+HD[2]={down(x,y){const o=B.obj;if(!B.in&&Math.hypot(x-W*o.x,y-H*o.y)<50){B.drag=true;hit(2,0);return;}
+  if(B.in){const Lz=lens()[B.in];if(x>Lz.x&&x<Lz.x+Lz.w&&y>Lz.y&&y<Lz.y+Lz.h){B.hold=true;B.holdT=0;
+      if(B.in==='r'){const cx=Lz.x+Lz.w/2,cy=Lz.y+Lz.h/2;if(Math.hypot(x-(cx+B.r.b.x),y-(cy+B.r.b.y))<26)B.r.dragB=true;}}
+    else{B.in=null;B.obj={x:0.5,y:0.5};}}},
+ move(x,y,dx,dy){if(B.drag){B.obj.x=x/W;B.obj.y=y/H;}if(B.r.dragB){B.r.b.x+=dx;B.r.b.y+=dy;B.r.a.x+=dx*0.6;B.r.a.y+=dy*0.6;B.r.dragged+=Math.hypot(dx,dy);if(B.r.dragged>60){hit(2,5);mark('r',2);}}},
+ up(){if(B.drag){B.drag=false;const Lz=lens();for(const k in Lz){const z=Lz[k];const x=W*B.obj.x,y=H*B.obj.y;if(x>z.x&&x<z.x+z.w&&y>z.y&&y<z.y+z.h){B.in=k;toast(`${z.n}的范畴：在框内按住${k==='r'?'；拖动右边的小球':''}`);}}if(!B.in)B.obj={x:0.5,y:0.5};}B.hold=false;B.r.dragB=false;}};
+function t2(dt){ctx.fillStyle='#0d1220';ctx.fillRect(0,0,W,H);const Z=lens();
+  if(B.hold)B.holdT+=dt;
+  for(const k in Z){const z=Z[k];const on=B.in===k;ctx.fillStyle=on?'rgba(255,255,255,.07)':'rgba(255,255,255,.03)';ctx.fillRect(z.x,z.y,z.w,z.h);ctx.strokeStyle=z.c;ctx.lineWidth=on?3:1.5;ctx.strokeRect(z.x,z.y,z.w,z.h);
+    txt(z.n+'之镜',z.x+12,z.y+20,z.c,14,'left',true);CAT[k].forEach((c,i)=>txt((B.seen[k+i]?'● ':'○ ')+c,z.x+z.w-10,z.y+20+i*16,B.seen[k+i]?z.c:'rgba(255,255,255,.35)',11,'right'));
+    const cx=z.x+z.w/2,cy=z.y+z.h/2+10;
+    if(!on){continue;}
+    if(k==='q'){if(B.hold){B.q.n=Math.min(12,B.q.n+dt*2.2);}
+      const n=Math.floor(B.q.n);for(let i=0;i<Math.max(1,n);i++){const a=i/Math.max(1,n)*6.28+T*0.3,rr=n<=1?0:z.h*0.25;ctx.fillStyle='#5ee7ff';ctx.beginPath();ctx.arc(cx+Math.cos(a)*rr,cy+Math.sin(a)*rr*0.7,9,0,7);ctx.fill();}
+      if(n>=1){mark('q',0);hit(2,1);}if(n>=2)mark('q',1);
+      if(n>=12){ctx.strokeStyle='#5ee7ff';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(cx,cy,z.h*0.33,z.h*0.25,0,0,7);ctx.stroke();mark('q',2);hit(2,3);txt('全体：被看作一的多',cx,z.y+z.h-10,'#5ee7ff',12);}
+      else txt(n<=1?'一':`多：${n}`,cx,z.y+z.h-10,'#5ee7ff',13);}
+    if(k==='l'){B.l.deg=B.hold?Math.min(1,B.l.deg+dt*0.35):Math.max(0,B.l.deg-dt*0.5);const d=B.l.deg;
+      const g=ctx.createRadialGradient(cx,cy,2,cx,cy,z.h*0.35);g.addColorStop(0,`rgba(255,240,200,${d})`);g.addColorStop(1,'rgba(255,240,200,0)');ctx.fillStyle=g;ctx.fillRect(z.x,z.y,z.w,z.h);
+      ctx.strokeStyle='rgba(199,155,255,.6)';ctx.beginPath();ctx.arc(cx,cy,24,0,7);ctx.stroke();
+      if(d<0.03){mark('l',1);txt('否定：感觉 = 0',cx,z.y+z.h-10,'#c79bff',12);}else if(d<0.97){mark('l',2);hit(2,2);txt(`限制：程度 ${(d*100).toFixed(0)}%（介于 0 与实在之间）`,cx,z.y+z.h-10,'#c79bff',12);}else{mark('l',0);txt('实在：感觉充满',cx,z.y+z.h-10,'#c79bff',12);}
+      if(B.seen.l0&&B.seen.l1&&B.seen.l2)hit(2,3);}
+    if(k==='r'){if(B.hold&&!B.r.dragB){B.r.melt=Math.min(1,B.r.melt+dt*0.3);if(B.r.melt>0.3){mark('r',0);hit(2,4);}}
+      const m=B.r.melt;ctx.fillStyle='#ffc96b';ctx.beginPath();for(let i=0;i<=24;i++){const a=i/24*6.28;const rr=22*(1+m*0.6*Math.sin(a*3+T))*(1-m*0.2);const px=cx-z.w*0.18+Math.cos(a)*rr*(1+m*0.8),py=cy+Math.sin(a)*rr*(1-m*0.5);i?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.fill();
+      txt(`实体的量：1.00`,cx-z.w*0.18,cy+44,'#ffc96b',11);
+      // 协同：两个物体以弹簧相连，同时互相规定
+      const ax=cx+z.w*0.12+B.r.a.x,ay=cy+B.r.a.y,bx=cx+z.w*0.3+B.r.b.x,by=cy+B.r.b.y;
+      if(!B.r.dragB){B.r.a.x*=0.95;B.r.a.y*=0.95;B.r.b.x*=0.95;B.r.b.y*=0.95;}
+      ctx.strokeStyle='rgba(255,201,107,.7)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();
+      ctx.fillStyle='#ffe0a0';ctx.beginPath();ctx.arc(ax,ay,12,0,7);ctx.fill();ctx.beginPath();ctx.arc(bx,by,12,0,7);ctx.fill();
+      if(B.r.dragB){mark('r',1);arrowL(bx,by,ax,ay);}
+      txt('按住左边：变形　拖动右边小球：牵动对方',cx,z.y+z.h-10,'#ffc96b',11);}
+    if(k==='m'){if(B.hold){B.m.t+=dt;}const s=B.m.t<1.5?0:B.m.t<4?1:2;
+      ctx.setLineDash(s===0?[5,5]:[]);ctx.strokeStyle='#7dffb0';ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,cy,26,0,7);ctx.stroke();ctx.setLineDash([]);
+      if(s>=1){ctx.fillStyle='rgba(125,255,176,.5)';ctx.beginPath();ctx.arc(cx,cy,26,0,7);ctx.fill();for(let i=0;i<6;i++){ctx.fillStyle='#7dffb0';ctx.fillRect(cx-60+Math.random()*120,cy-40+Math.random()*80,2,2);}}
+      if(s>=2){ctx.strokeStyle='#7dffb0';[[-1,-1],[1,-1],[1,1],[-1,1]].forEach(([u,v])=>{ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+u*z.w*0.3,cy+v*z.h*0.3);ctx.stroke();ctx.beginPath();ctx.arc(cx+u*z.w*0.3,cy+v*z.h*0.3,6,0,7);ctx.stroke();});}
+      mark('m',s);if(s>=0&&B.m.t>0.2)mark('m',0);if(s>=1)mark('m',1);if(s>=2){mark('m',2);hit(2,6);hit(2,7);}
+      txt(['可能：只合乎直观与概念的形式','现实：与感觉相联系','必然：按普遍法则与现实相联系'][s],cx,z.y+z.h-10,'#7dffb0',12);
+      txt('（对象本身没有变大或变色）',cx,z.y+z.h-26,'rgba(125,255,176,.6)',10);}}
+  if(!B.in){const ox=W*B.obj.x,oy=H*B.obj.y;ctx.fillStyle='#ffd96b';ctx.beginPath();ctx.arc(ox,oy,22,0,7);ctx.fill();txt('对象',ox,oy+44,'#ffd96b',12);
+    txt('同一个直观，四种思维方式：把它拖进任意一面镜子',W/2,H/2-60,'#e8ecf4',13);}
+  else txt('点镜框外：取回对象',W/2,H/2,'rgba(232,236,244,.6)',12);
+  txt(`已用过的范畴：${Object.keys(B.seen).length} / 12`,W/2,H-12,'#ffd96b',13,'center',true);}
+function arrowL(x1,y1,x2,y2){ctx.strokeStyle='#ffe0a0';ctx.lineWidth=2;const a=Math.atan2(y2-y1,x2-x1),mx=(x1+x2)/2,my=(y1+y2)/2;ctx.beginPath();ctx.moveTo(mx,my);ctx.lineTo(mx-8*Math.cos(a-.5),my-8*Math.sin(a-.5));ctx.moveTo(mx,my);ctx.lineTo(mx-8*Math.cos(a+.5),my-8*Math.sin(a+.5));ctx.stroke();}
+
+/* ================= 第 3 关：房屋与航船 ================= */
+let D;
+function init3(){D={eye:null,seq:[],dir:new Set(),ship:0.05,shipDrag:false,push:0,ball:{t:0,run:false,dragB:false,bx:0,tried:0},backTry:0};}
+const G3=()=>({hx:W*0.04,hy:H*0.06,hw:W*0.42,hh:H*0.52,rx:W*0.54,ry:H*0.06,rw:W*0.42,rh:H*0.52,by:H*0.82});
+const PARTS=['屋顶','窗','门','墙','地基'];
+HD[3]={down(x,y){const g=G3();if(x<g.hx+g.hw&&y<g.hy+g.hh)D.eye={x,y};
+  else if(x>g.rx&&y<g.ry+g.rh){const sx=g.rx+g.rw*D.ship;if(Math.abs(x-sx)<60)D.shipDrag=true;}
+  else if(y>H*0.66){const bx=W*0.62+D.ball.bx;if(Math.abs(x-bx)<30&&!D.ball.hit){D.ball.dragB=true;D.ball.tried++;}else if(!D.ball.run){D.ball.run=true;D.ball.t=0;D.ball.hit=false;D.ball.bx=0;}}},
+ move(x,y,dx){const g=G3();if(D.eye){D.eye={x,y};const k=clamp((y-g.hy)/g.hh,0,0.999);const part=PARTS[Math.floor(k*5)];if(D.seq[D.seq.length-1]!==part){D.seq.push(part);if(D.seq.length>2){const a=PARTS.indexOf(D.seq[D.seq.length-2]),b=PARTS.indexOf(part);D.dir.add(b>a?'down':'up');if(D.dir.size>=2)hit(3,0);}}}
+  if(D.shipDrag){const nv=D.ship+dx/(g.rw);if(nv<D.ship){D.push=Math.min(1,D.push+Math.abs(dx)/40);D.backTry++;if(D.backTry>6)hit(3,2);}else{D.ship=clamp(nv,0.05,0.95);if(D.ship>0.3)hit(3,1);}}
+  if(D.ball.dragB&&!D.ball.hit){D.ball.bx=clamp(D.ball.bx+dx*0.04,-3,3);}},
+ up(){D.eye=null;D.shipDrag=false;if(D.ball.dragB){D.ball.dragB=false;if(D.ball.tried>=1)hit(3,3);}}};
+function t3(dt){const g=G3();ctx.fillStyle='#0d1220';ctx.fillRect(0,0,W,H);
+  // 房屋
+  ctx.fillStyle='#1b2438';ctx.fillRect(g.hx,g.hy,g.hw,g.hh);const cx=g.hx+g.hw/2,top=g.hy+g.hh*0.12,bw=g.hw*0.5,bh=g.hh*0.7;
+  ctx.fillStyle='#8a5a3a';ctx.beginPath();ctx.moveTo(cx-bw*0.6,top+bh*0.25);ctx.lineTo(cx,top);ctx.lineTo(cx+bw*0.6,top+bh*0.25);ctx.fill();
+  ctx.fillStyle='#d9c8a8';ctx.fillRect(cx-bw/2,top+bh*0.25,bw,bh*0.6);ctx.fillStyle='#6b8db8';ctx.fillRect(cx-bw*0.35,top+bh*0.35,bw*0.2,bw*0.15);ctx.fillRect(cx+bw*0.15,top+bh*0.35,bw*0.2,bw*0.15);
+  ctx.fillStyle='#5a3b1e';ctx.fillRect(cx-bw*0.08,top+bh*0.6,bw*0.16,bh*0.25);ctx.fillStyle='#777';ctx.fillRect(cx-bw*0.55,top+bh*0.85,bw*1.1,bh*0.1);
+  if(D.eye){const gg=ctx.createRadialGradient(D.eye.x,D.eye.y,4,D.eye.x,D.eye.y,60);gg.addColorStop(0,'rgba(255,240,180,.45)');gg.addColorStop(1,'rgba(255,240,180,0)');ctx.fillStyle=gg;ctx.fillRect(g.hx,g.hy,g.hw,g.hh);}
+  txt('房屋：知觉次序 = '+(D.seq.slice(-6).join(' → ')||'（在房屋上拖动视线）'),g.hx+g.hw/2,g.hy+g.hh+18,'#e8ecf4',12);
+  if(D.dir.size>=2)txt('上→下、下→上都可以：次序任意，不是事件',g.hx+g.hw/2,g.hy+g.hh+36,'#7dffb0',12);
+  // 航船
+  const rg=ctx.createLinearGradient(g.rx,0,g.rx+g.rw,0);rg.addColorStop(0,'#2d5d8a');rg.addColorStop(1,'#1d4068');ctx.fillStyle='#1b2438';ctx.fillRect(g.rx,g.ry,g.rw,g.rh);ctx.fillStyle=rg;ctx.fillRect(g.rx,g.ry+g.rh*0.4,g.rw,g.rh*0.35);
+  for(let i=0;i<10;i++){const xx=g.rx+((i*0.1+T*0.05)%1)*g.rw;ctx.strokeStyle='rgba(255,255,255,.25)';ctx.beginPath();ctx.moveTo(xx,g.ry+g.rh*0.55);ctx.lineTo(xx+18,g.ry+g.rh*0.55);ctx.stroke();}
+  txt('上游',g.rx+30,g.ry+g.rh*0.36,'#cfe',11);txt('下游 →',g.rx+g.rw-40,g.ry+g.rh*0.36,'#cfe',11);
+  D.push*=0.9;const sx=g.rx+g.rw*D.ship+D.push*-14*Math.sin(T*40),sy=g.ry+g.rh*0.52;
+  ctx.fillStyle='#c9a774';ctx.beginPath();ctx.moveTo(sx-34,sy);ctx.lineTo(sx+34,sy);ctx.lineTo(sx+24,sy+14);ctx.lineTo(sx-24,sy+14);ctx.fill();ctx.fillStyle='#eee';ctx.beginPath();ctx.moveTo(sx,sy-40);ctx.lineTo(sx+24,sy-4);ctx.lineTo(sx,sy-4);ctx.fill();ctx.fillStyle='#5a3b1e';ctx.fillRect(sx-2,sy-42,3,42);
+  if(D.push>0.1){txt('⟵ 推不动：先上游、后下游的次序不能颠倒',sx,sy-52,'#ff8a8a',12);}
+  ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(g.rx,g.ry+g.rh*0.9,g.rw,6);ctx.fillStyle='#ffd96b';ctx.fillRect(g.rx,g.ry+g.rh*0.9,g.rw*D.ship,6);
+  txt('航船：知觉的时间线（只能前进）',g.rx+g.rw/2,g.ry+g.rh+18,'#e8ecf4',12);
+  // 两球
+  const by=g.by,ax0=W*0.18,bx0=W*0.62,R=16;const b=D.ball;
+  if(b.run){b.t+=dt*0.6;}const k=b.t;let ax=lerp(ax0,bx0-2*R,clamp(k,0,1)),bx=bx0;
+  if(k>=1){b.hit=true;ax=bx0-2*R;bx=bx0+(k-1)*W*0.25;if(k>2.2){b.run=false;}}
+  ctx.strokeStyle='rgba(255,255,255,.2)';ctx.beginPath();ctx.moveTo(W*0.1,by+R);ctx.lineTo(W*0.95,by+R);ctx.stroke();
+  const shake=b.dragB&&!b.hit?Math.sin(T*50)*b.bx:0;
+  ctx.fillStyle='#ffc96b';ctx.beginPath();ctx.arc(ax,by,R,0,7);ctx.fill();ctx.fillStyle='#cfe3f2';ctx.beginPath();ctx.arc(bx+shake,by,R,0,7);ctx.fill();txt('A',ax,by+5,'#222',12,'center',true);txt('B',bx+shake,by+5,'#222',12,'center',true);
+  if(b.dragB&&!b.hit){txt('B 不先于 A 的撞击而动：在经验里，这个次序是被规则固定的',W*0.55,by-26,'#ff8a8a',12);}
+  if(b.hit&&k>1.05&&k<1.4){ctx.fillStyle='rgba(255,240,150,.7)';ctx.beginPath();ctx.arc(bx0-R,by,26,0,7);ctx.fill();}
+  if(D.seq.length>3&&D.ship>0.5&&b.tried>0)hit(3,4);
+  txt(b.run?'':'点击空白处：让 A 滚向 B；在碰撞前按住 B 试着先把它拖走',W*0.55,H-10,'#e8ecf4',12);}
+
+/* ================= 第 4 关：与休谟对照 ================= */
+let E4;
+function init4(){E4={n:0,t:0,hold:false,first:false};}
+HD[4]={down(){E4.hold=true;if(E4.n===0&&E4.t===0)E4.go=true;},up(){E4.hold=false;}};
+function t4(dt){ctx.fillStyle='#0d1220';ctx.fillRect(0,0,W,H);const by=H*0.45,R=18;
+  if(E4.go||E4.hold){E4.t+=dt*(E4.hold&&E4.n>0?2.2:0.9);}
+  if(E4.t>=2){E4.t=0;E4.n++;E4.go=false;if(E4.n===1){hit(4,0);toast('第一次：康德的必然性已经在这里');}if(E4.n>=5)hit(4,1);if(E4.n>=12)hit(4,2);}
+  const k=E4.t;const ax=lerp(W*0.2,W*0.5-2*R,clamp(k,0,1)),bx=W*0.5+(k>1?(k-1)*W*0.3:0);
+  ctx.strokeStyle='rgba(255,255,255,.2)';ctx.beginPath();ctx.moveTo(W*0.1,by+R);ctx.lineTo(W*0.9,by+R);ctx.stroke();
+  ctx.fillStyle='#ffc96b';ctx.beginPath();ctx.arc(ax,by,R,0,7);ctx.fill();ctx.fillStyle='#cfe3f2';ctx.beginPath();ctx.arc(bx,by,R,0,7);ctx.fill();
+  // 康德：第一次就满
+  const kn=E4.n>=1||k>1?1:0;meter(W*0.08,H*0.72,W*0.36,kn,'#ffd96b','康德：因果的必然性（知性的规则）');
+  const hu=E4.n<=1?0:1-1/Math.sqrt(E4.n);meter(W*0.56,H*0.72,W*0.36,hu,'#c79bff','休谟：习惯性的期待（主观）');
+  txt(kn?'从第一次经验起就在：它使“事件”成为可能':'',W*0.26,H*0.82,'#ffd96b',12);
+  txt(E4.n>1?`${E4.n} 次之后才长到 ${(hu*100).toFixed(0)}%，而且永远到不了 100%`:'第一次：还没有任何习惯',W*0.74,H*0.82,'#c79bff',12);
+  txt(`已观察：${E4.n} 次`,W/2,H*0.15,'#e8ecf4',16,'center',true);
+  txt(E4.n===0?'按一下，看第一次碰撞；之后按住让它一次次重复':'按住：重复更多次',W/2,H-12,'#e8ecf4',13);}
+
+/* ======== 调度 ======== */
+const INIT={1:init1,2:init2,3:init3,4:init4},TICK={1:t1,2:t2,3:t3,4:t4};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!done[t.dataset.l]);});}
+function go(n){L=n;tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{INIT[L]();toast('已重置（已对应的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

@@ -104,7 +104,7 @@
       m.disp.x += (tgt.x - m.disp.x) * k; m.disp.y += (tgt.y - m.disp.y) * k; m.disp.z += (tgt.z - m.disp.z) * k;
     }
   };
-  W.pos = function (i) { return meta[i] ? meta[i].disp : nodes[i].p; };
+  W.pos = function (i) { return meta[i] ? meta[i].disp : nodes[i] ? nodes[i].p : S.nodes[i].p; };   // between a rebuild and its onBuild
   W.vis = function (i) { return meta[i] ? meta[i].va : 1; };
   W.hi = function (i) { if (!path) return pathA === i ? 1.6 : 1; return path.some(function (st) { return st.i === i; }) ? 1.5 : 0.18; };
 

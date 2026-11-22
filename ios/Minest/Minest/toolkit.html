@@ -345,6 +345,11 @@ select { max-width: 100%; text-overflow: ellipsis; }
 .lb-tile { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 14px; display: grid; gap: 4px; align-content: start; }
 .lb-tile h3 { margin: 0; font-size: 17px; } .lb-tile p { margin: 0; font-size: 13.5px; } .lb-sub { color: var(--acc); font-weight: 600; }
 .lb-tile.rec { border-color: var(--acc); box-shadow: 0 0 0 2px color-mix(in srgb, var(--acc) 18%, transparent); }
+.md-island { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; width: 100%; text-align: left; margin: 0 0 12px; padding: 12px 14px; border-radius: 16px; border: 1px solid #e9c46a99; background: linear-gradient(135deg, #fff6dc, #f3e2b3); color: #4a3510; cursor: pointer; box-shadow: 0 6px 18px #b8862b22; }
+.md-island span { grid-row: span 2; font-size: 26px; } .md-island b { font-size: 15px; } .md-island small { font-size: 12px; opacity: .8; line-height: 1.35; }
+.md-island:hover { box-shadow: 0 8px 22px #b8862b44; transform: translateY(-1px); }
+@media (prefers-color-scheme: dark) { .md-island { background: linear-gradient(135deg, #3a2d12, #2a2210); color: #f6e3b0; } }
+.lb-lv { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12.5px !important; color: var(--ink); } .lb-lv i { display: inline-grid; place-items: center; width: 17px; height: 17px; margin-right: 4px; border-radius: 50%; background: color-mix(in srgb, var(--acc) 18%, transparent); color: var(--acc); font-style: normal; font-size: 10.5px; font-weight: 700; }
 .lb-tile.planned { opacity: .65; border-style: dashed; }
 .lb-tile button { justify-self: start; margin-top: 8px; }
 .lb-runs { display: grid; gap: 8px; } .lb-run { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; } .lb-run p { margin: 4px 0; font-size: 14px; }
@@ -636,6 +641,8 @@ html.tk-panel main { padding-bottom: 24px !important; }
     'Question': '疑问', 'Goal': '目标', 'Hypothesis': '假设', 'Opinion': '观点', 'Concept / term': '概念 / 词汇', 'Statement / event': '陈述 / 事件', 'Input': '输入',
     'confirmed by you': '已由你确认', 'suggested': '建议', 'Not placed yet': '尚未定位', 'Confirmed': '已确认', 'Suggested': '建议', 'Not placed yet — place it yourself': '尚未定位——请自行定位',
     'Holo map': '全息概览', 'See this concept’s Wikipedia article as a bubble map in Holo Lab’s Knowledge Constellation': '在 Holo Lab 的知识星图里，用气泡图梳理这个概念的维基百科词条', 'Holo Lab is not available here': '这里打不开 Holo Lab', 'The Minest app did not answer': 'Minest 没有响应',
+    'Philosophers’ Island': '哲学家小岛', 'Walk to the homes of 20 philosophers — compass teleport, thought experiments': '走进 20 位哲学家的家——罗盘传送、思想实验',
+    'Interactive philosophy models': '哲学交互模型', 'Hands-on, real-time models: hold, drag and push the scene; each action lights up the original text it stands for (Chinese, English, source). They show an idea — they don’t prove it.': '动手的实时模型：按住、拖动、推动场景；每个动作都会点亮它对应的原文（中文、英文、出处）。它们帮你看见一个想法，而不是证明它。', '▶ Open model': '▶ 打开模型', 'interactive model': '交互模型', 'This model can’t open here': '这里打不开这个模型',
     // card names + lines
     'Thought Compass': '思想罗盘', 'Framework Card': '知识框架卡', 'Thinking Models': '思维模型卡', 'Thinking Lab': '思维实验室', 'Knowledge Graph': '知识图谱卡',
     'Find where a thought sits and which way to think next.': '找到想法所在的位置，以及下一步往哪里想。', 'Organise ideas into a structure you can edit.': '把想法组织成可编辑的结构。',
@@ -2147,6 +2154,7 @@ html.tk-panel main { padding-bottom: 24px !important; }
     });
     $('#tk-new').onclick = home;
     // 知识图谱 ◉ 全息概览: the concept's Wikipedia article as a bubble map in Holo Lab's 知识星图
+    TK.EMBED = EMBED; TK.host = host;   // for card add-ons (phil-models.js)
     TK.holoWiki = function (topic, lang) {
       var w = { topic: String(topic || '').slice(0, 120), lang: lang || null };
       if (EMBED) return host('holo', { wiki: w }).then(function (r) { if (r && r.ok === false) toast('Holo Lab is not available here'); }).catch(function () { toast('The Minest app did not answer'); });
@@ -2817,7 +2825,7 @@ html.tk-panel main { padding-bottom: 24px !important; }
     },
     mount: function (el, ko, opts) {
       var ks = TK.ks, cur = null, inp = {}, runId = null, compare = [];
-      el.innerHTML = '<div class="md-wrap"><aside class="md-side"><h3>Suggested for this question</h3><div class="md-rec"></div><h3>All models</h3><div class="md-all"></div><h3>Saved analyses</h3><div class="md-runs"></div></aside><section class="md-main"></section></div>';
+      el.innerHTML = '<div class="md-wrap"><aside class="md-side"><button type="button" class="md-island" data-island><span aria-hidden="true">🏛️</span><b>Philosophers’ Island</b><small>Walk to the homes of 20 philosophers — compass teleport, thought experiments</small></button><h3>Suggested for this question</h3><div class="md-rec"></div><h3>All models</h3><div class="md-all"></div><h3>Saved analyses</h3><div class="md-runs"></div></aside><section class="md-main"></section></div>';
       var main = el.querySelector('.md-main');
 
       function side() {
@@ -2905,6 +2913,7 @@ html.tk-panel main { padding-bottom: 24px !important; }
       function addItem(k, v) { v = String(v || '').trim(); if (!v) return; inp[k] = arr(inp[k]); if (inp[k].indexOf(v) < 0) inp[k].push(v); changed(true); var f = main.querySelector('[data-addto="' + k + '"]'); if (f) f.focus(); }
       function addCase(k, v) { v = String(v || '').trim(); if (!v) return; inp[k] = arr(inp[k]); inp[k].push({ label: v, a: false, b: false }); changed(true); var f = main.querySelector('[data-caseadd="' + k + '"]'); if (f) f.focus(); }
       el.addEventListener('click', function (e) {
+        if (e.target.closest('[data-island]')) return TK.openIsland();   // 哲学家小岛 (philosophers-island/)
         var b = e.target.closest('button'); if (!b) return;
         if (b.hasAttribute('data-model')) return open(model(b.getAttribute('data-model')));
         if (b.hasAttribute('data-run')) { var r = ks.modelRun(b.getAttribute('data-run')); return open(model(r.model_id), r); }
@@ -2958,6 +2967,73 @@ html.tk-panel main { padding-bottom: 24px !important; }
 
 </script>
 <script>
+/* Minest · 哲学交互模型 — the 13 live models (philosophy/models/, delivered by Boost 2026-11-22) as Thinking Lab entries.
+   Each model is its own page; the toolkit only lists them, ranks the ones that fit the current thought first (compass
+   places + words in the thought and its concepts) and asks the Minest page to open one full screen (host action 'phil').
+   Nothing is written: the models keep no state and send nothing back. */
+(function () {
+  'use strict';
+  var M = [
+    { id: 'plato_cave', file: 'minest_plato_cave.html', who: 'Plato', zh: '柏拉图 · 洞穴寓言', en: 'Plato · The Cave', src: 'Republic VII (Jowett)', levels: ['影子的世界', '转身', '上升', '返回'],
+      fits: ['philosophy.epistemology'], kw: ['洞穴', '真理', '真相', '影子', '现实', '教育', '看见', 'cave', 'truth', 'shadow', 'reality', 'education'] },
+    { id: 'plato_forms', file: 'minest_plato_forms.html', who: 'Plato', zh: '柏拉图 · 理念论', en: 'Plato · The Forms', src: 'Phaedo · Republic X (Jowett)', levels: ['相等的木棍', '回忆', '三张床'],
+      fits: ['philosophy.metaphysics', 'philosophy.epistemology'], kw: ['理念', '完美', '相等', '本质', '抽象', '概念', 'form', 'ideal', 'perfect', 'equal', 'essence', 'abstract'] },
+    { id: 'aristotle', file: 'minest_aristotle.html', who: 'Aristotle', zh: '亚里士多德 · 四因说', en: 'Aristotle · The Four Causes', src: 'Physics II (Hardie & Gaye)', levels: ['质料因', '形式因', '动力因', '目的因'],
+      fits: ['philosophy.epistemology.causation', 'nature'], kw: ['原因', '为什么', '目的', '质料', '形式', '四因', 'cause', 'why', 'purpose', 'matter', 'form'] },
+    { id: 'theseus', file: 'minest_theseus.html', who: 'Plutarch · Hobbes', zh: '忒修斯之船', en: 'The Ship of Theseus', src: 'Plutarch · Hobbes, De Corpore II.11', levels: ['腐朽与替换', '第二艘船', '河流与人'],
+      fits: ['philosophy.metaphysics'], kw: ['同一', '身份', '替换', '还是', '自我', '变化', 'identity', 'same', 'replace', 'self', 'change'] },
+    { id: 'descartes', file: 'minest_descartes.html', who: 'Descartes', zh: '笛卡尔 · 方法性怀疑', en: 'Descartes · Methodical Doubt', src: 'Meditations I–II (Veitch)', levels: ['信念的大厦', '感官', '梦', '恶魔与我思'],
+      fits: ['philosophy.epistemology'], kw: ['怀疑', '确定', '我思', '梦', '感官', '存在', 'doubt', 'certain', 'cogito', 'dream', 'senses', 'exist'] },
+    { id: 'locke', file: 'minest_locke.html', who: 'Locke', zh: '洛克 · 白板说', en: 'Locke · The Blank Slate', src: 'Essay concerning Human Understanding II', levels: ['白纸与感觉', '反省', '组合复杂观念'],
+      fits: ['philosophy.epistemology', 'psychology.learning'], kw: ['经验', '观念', '白板', '学习', '天生', '感觉', 'experience', 'idea', 'blank', 'learn', 'innate', 'sensation'] },
+    { id: 'leibniz', file: 'minest_leibniz.html', who: 'Leibniz', zh: '莱布尼茨 · 单子论', en: 'Leibniz · Monadology', src: 'Monadology', levels: ['没有部分', '没有窗户', '宇宙之镜', '前定和谐'],
+      fits: ['philosophy.metaphysics'], kw: ['单子', '实体', '心灵', '身体', '和谐', '视角', 'monad', 'substance', 'mind', 'body', 'harmony', 'perspective'] },
+    { id: 'hume', file: 'minest_hume.html', who: 'Hume', zh: '休谟 · 因果关系', en: 'Hume · Cause and Effect', src: 'Enquiry concerning Human Understanding (1777)', levels: ['亚当初见', '寻找必然联系', '第 1 次与第 N 次', '第 1001 次'],
+      fits: ['philosophy.epistemology.causation', 'nature.method.causal-inference'], kw: ['因果', '原因', '导致', '必然', '习惯', '先后', 'cause', 'effect', 'causation', 'habit', 'necessary'] },
+    { id: 'kant_categories', file: 'minest_kant_categories.html', who: 'Kant', zh: '康德 · 十二范畴与因果性', en: 'Kant · The Categories and Causality', src: 'Critique of Pure Reason (Meiklejohn) · Prolegomena', levels: ['杂多与综合', '范畴之镜', '房屋与航船', '与休谟对照'],
+      fits: ['philosophy.epistemology.causation', 'philosophy.epistemology'], kw: ['因果', '范畴', '先验', '经验', '康德', '先后', 'cause', 'category', 'a priori', 'kant', 'experience'] },
+    { id: 'kant_moral', file: 'minest_kant_moral.html', who: 'Kant', zh: '康德 · 道德法则', en: 'Kant · The Moral Law', src: 'Groundwork (Abbott)', levels: ['普遍化准则', '虚假承诺', '人是目的', '善良意志'],
+      fits: ['philosophy.ethics'], kw: ['道德', '应该', '义务', '说谎', '承诺', '尊重', '善', '对错', 'moral', 'ought', 'duty', 'lie', 'promise', 'respect', 'right', 'wrong'] },
+    { id: 'hegel', file: 'minest_hegel.html', who: 'Hegel', zh: '黑格尔 · 辩证法', en: 'Hegel · Dialectic', src: 'Logic (Wallace) · Phenomenology (Baillie)', levels: ['有—无—变易', '主人与奴隶'],
+      fits: ['philosophy.metaphysics', 'philosophy.logic', 'philosophy.political'], kw: ['辩证', '变易', '变化', '矛盾', '承认', '主人', '奴隶', '劳动', 'dialectic', 'becoming', 'contradiction', 'recognition', 'master', 'slave', 'labour'] },
+    { id: 'gettier', file: 'minest_gettier.html', who: 'Gettier', zh: '盖梯尔问题', en: 'The Gettier Problem', src: 'Gettier 1963, Analysis 23(6)', levels: ['知识三条件', '十枚硬币', '巴塞罗那'],
+      fits: ['philosophy.epistemology'], kw: ['知识', '知道', '相信', '证据', '理由', '运气', 'knowledge', 'know', 'belief', 'justified', 'evidence', 'luck'] },
+    { id: 'freewill', file: 'minest_freewill.html', who: 'Laplace · Hume · Spinoza', zh: '自由意志与决定论', en: 'Free Will and Determinism', src: 'Laplace · Hume §8 · Spinoza, Ethics', levels: ['拉普拉斯妖', '锁链与动机', '遮住的原因', '三种解释'],
+      fits: ['philosophy.metaphysics.free-will', 'philosophy.political'], kw: ['自由', '选择', '决定', '意志', '命运', '强迫', 'free', 'freedom', 'liberty', 'choice', 'determinism', 'will', 'fate'] }
+  ];
+  if (typeof module === 'object' && module.exports) module.exports = M;
+  var TK = typeof window !== 'undefined' && window.MinestToolkit; if (!TK) return;
+  function text(ko) {
+    var t = [ko.title || '', ko.original_input || ''];
+    try { (TK.ks.conceptsOf(ko.id) || []).forEach(function (c) { t.push(c.labels.en || '', c.labels.zh || ''); }); } catch (e) {}
+    return t.join(' ').toLowerCase();
+  }
+  // score: compass places (primary 2, related 1, by path) + 2 per word of the thought it names (at most 6)
+  function recommend(ko) {
+    var pl = TK.placement ? TK.placement(ko) : {}, places = [pl.primary].concat(pl.related || []).filter(Boolean), tx = text(ko);
+    return M.map(function (m) {
+      var s = 0;
+      m.fits.forEach(function (p) { places.forEach(function (q, i) { if (TK.C.path(q).indexOf(p) >= 0 || TK.C.path(p).indexOf(q) >= 0) s += i === 0 ? 2 : 1; }); });
+      var w = 0; m.kw.forEach(function (k) { if (tx.indexOf(k.toLowerCase()) >= 0) w += 2; }); s += Math.min(6, w);
+      return { m: m, s: s };
+    }).sort(function (a, b) { return b.s - a.s; });
+  }
+  function open(id) {
+    var m = M.filter(function (x) { return x.id === id; })[0]; if (!m) return;
+    if (TK.EMBED) return TK.host('phil', { file: m.file, title: m.zh }).then(function (r) { if (!r || !r.ok) TK.toast('This model can’t open here'); }).catch(function () { TK.toast('The Minest app did not answer'); });
+    var base = /\/tools\/toolkit\//.test(location.pathname) ? '../../philosophy/models/' : 'philosophy/models/';   // on its own: a new tab
+    window.open(base + m.file, '_blank');
+  }
+  function island() {   // 哲学家小岛 Philosophers' Island (philosophers-island/, Antigravity's voxel world)
+    if (TK.EMBED) return TK.host('island').catch(function () { TK.toast('The Minest app did not answer'); });
+    window.open((/\/tools\/toolkit\//.test(location.pathname) ? '../../' : '') + 'philosophers-island/philosophers.html', '_blank');
+  }
+  TK.openIsland = island;
+  TK.philModels = M; TK.recommendPhil = recommend; TK.openPhil = open;
+})();
+
+</script>
+<script>
 /* Card 04 · Thinking Lab — experience.
    Runs micro-interactions (minest.micro/1, tools/compass/micro.js) for the current object. Each finished run is linked
    to the object (lab_run_ids), its understanding / question become the object's notes (visible in the Framework Card),
@@ -2986,11 +3062,24 @@ html.tk-panel main { padding-bottom: 24px !important; }
       (rec.apply ? '<br>Case: ' + esc(rec.apply.case || rec.apply.situation || (rec.apply.a + ' → ' + rec.apply.b)) : '');
   }
 
+  // 哲学交互模型: the 13 live models (phil-models.js), the ones that fit this thought first — each opens full screen
+  function philSection(ko) {
+    if (!TK.recommendPhil) return '';
+    var zh = window.MinestI18n && MinestI18n.lang() === 'zh', rec = TK.recommendPhil(ko), top = rec[0] && rec[0].s;
+    return '<h2>Interactive philosophy models</h2><p class="dim">Hands-on, real-time models: hold, drag and push the scene; each action lights up the original text it stands for (Chinese, English, source). They show an idea — they don’t prove it.</p><div class="lb-grid lb-phil">' +
+      rec.map(function (x) { var m = x.m, fit = top > 0 && x.s === top;
+        return '<article class="lb-tile lb-ph' + (fit ? ' rec' : '') + '"><h3 data-noi18n>' + esc(zh ? m.zh : m.en) + (fit ? ' <span class="pill ok">fits this question</span>' : '') + '</h3>' +
+          '<p class="lb-sub" data-noi18n>' + esc(zh ? m.en : m.zh) + '</p><p class="dim" data-noi18n>' + esc(m.src) + '</p>' +
+          '<p class="lb-lv" data-noi18n>' + m.levels.map(function (l, i) { return '<i>' + (i + 1) + '</i>' + esc(l); }).join('') + '</p>' +
+          '<div class="row"><button type="button" class="primary" data-phil="' + m.id + '">▶ Open model</button></div></article>'; }).join('') + '</div>';
+  }
+
   TK.register({
     id: 'lab', en: 'Thinking Lab', zh: '思维实验室', color: '#f08c3a', line: 'Make an idea visible and try it with your own hands.',
     icon: TK.icon('<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4A2 2 0 0 0 19 18l-5-9V3"/><path d="M7.5 15h9"/>'),
     preview: function (ko) {
-      var top = recommend(ko)[0], runs = TK.ks.labRunsOf(ko.id);
+      var top = recommend(ko)[0], runs = TK.ks.labRunsOf(ko.id), ph = TK.recommendPhil ? TK.recommendPhil(ko)[0] : null;
+      if (ph && ph.s > 0 && (!top || ph.s >= top.s)) return '<span class="pv-lab"><b data-noi18n>' + esc(window.MinestI18n && MinestI18n.lang() === 'zh' ? ph.m.zh : ph.m.en) + '</b> <span class="dim">interactive model</span></span>' + (runs.length ? '<span class="dim">' + runs.length + ' done for this object</span>' : '');
       return (top && top.s > 0 ? '<span class="pv-lab"><b>' + esc(top.d.title) + '</b> ' + esc(top.d.subtitle || '') + '</span>' : '<span class="dim">' + TK.data.labs.length + ' experiments ready</span>') +
         (runs.length ? '<span class="dim">' + runs.length + ' done for this object</span>' : '');
     },
@@ -3000,9 +3089,10 @@ html.tk-panel main { padding-bottom: 24px !important; }
         var k = ks.object(ko.id), recs = recommend(k), runs = ks.labRunsOf(ko.id);
         el.innerHTML = '<div class="lb-wrap"><h2>Experiments</h2><p class="dim">Each experiment is a model that helps you understand — none of them proves a philosophical theory.</p><div class="lb-grid">' +
           recs.map(function (x, i) { var d = x.d; return '<article class="lb-tile' + (i === 0 && x.s > 0 ? ' rec' : '') + '"><h3>' + esc(d.title) + (i === 0 && x.s > 0 ? ' <span class="pill ok">fits this question</span>' : '') + (rvw(d) === 'pending' ? ' <span class="pill sug">review pending</span>' : ' <span class="pill ok">reviewed</span>') + '</h3><p class="lb-sub">' + esc(d.subtitle || '') + '</p><p>' + esc(d.learning_objective) + '</p><p class="dim">' + esc(d.disclaimer || '') + '</p><p class="dim">' + d.steps.length + ' steps: ' + esc(d.steps.map(function (s) { return s.title; }).join(' · ')) + '</p><div class="row"><button type="button" class="primary" data-run="' + d.interaction_id + '">▶ Start</button><button type="button" class="small ghost" data-review="' + d.interaction_id + '">' + (rvw(d) === 'pending' ? 'Mark reviewed' : 'Mark pending') + '</button></div></article>'; }).join('') +
-          '</div><h2>Done for this object</h2>' + (runs.length ? '<div class="lb-runs">' + runs.slice().reverse().map(function (r) { var d = TK.M.get(r.interaction_id); return '<div class="lb-run"><b>' + esc(d ? d.title : r.interaction_id) + '</b> <span class="pill ' + (r.completed ? 'ok' : '') + '">' + (r.completed ? 'completed' : 'partial') + '</span><p>' + summary(r) + '</p>' + (r.note ? '<p>“' + esc(r.note) + '”</p>' : '') + '<small class="dim">' + new Date(r.finishedAt).toLocaleString() + '</small></div>'; }).join('') + '</div>' : '<p class="dim">Nothing yet.</p>') + '</div>';
+          '</div>' + philSection(k) + '<h2>Done for this object</h2>' + (runs.length ? '<div class="lb-runs">' + runs.slice().reverse().map(function (r) { var d = TK.M.get(r.interaction_id); return '<div class="lb-run"><b>' + esc(d ? d.title : r.interaction_id) + '</b> <span class="pill ' + (r.completed ? 'ok' : '') + '">' + (r.completed ? 'completed' : 'partial') + '</span><p>' + summary(r) + '</p>' + (r.note ? '<p>“' + esc(r.note) + '”</p>' : '') + '<small class="dim">' + new Date(r.finishedAt).toLocaleString() + '</small></div>'; }).join('') + '</div>' : '<p class="dim">Nothing yet.</p>') + '</div>';
       }
       el.addEventListener('click', function (e) {
+        var ph = e.target.closest('[data-phil]'); if (ph) return TK.openPhil(ph.getAttribute('data-phil'));
         var b = e.target.closest('[data-run]'); if (b) return run(b.getAttribute('data-run'));
         var r = e.target.closest('[data-review]'); if (r) { var d = TK.M.get(r.getAttribute('data-review')); TK.silently(function () { ks.setReview('lab', d.interaction_id, rvw(d) === 'pending' ? 'reviewed' : 'pending'); }); TK.toast(rvw(d) === 'pending' ? 'Marked as review pending' : 'Marked as reviewed by you'); paint(); }
       });
@@ -3241,7 +3331,8 @@ html.tk-panel main { padding-bottom: 24px !important; }
       });
       // ◉ the concept in the user's own words' language (a Chinese thought → Chinese Wikipedia)
       function holoMap() {
-        var k = ks.object(ko.id), c = k.root_concept && ks.getConcept(k.root_concept), zh = /[㐀-鿿]/.test(k.title || '');
+        var k = ks.object(ko.id); if (!k) return;   // the object was deleted meanwhile
+        var c = k.root_concept && ks.getConcept(k.root_concept), zh = /[㐀-鿿]/.test(k.title || '');
         var topic = c ? (zh ? c.labels.zh || c.labels.en : c.labels.en || c.labels.zh) : k.title;
         TK.holoWiki(topic || k.title, /[㐀-鿿]/.test(topic || '') ? 'zh' : 'en');
       }

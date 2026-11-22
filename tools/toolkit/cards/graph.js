@@ -203,7 +203,8 @@
       });
       // ◉ the concept in the user's own words' language (a Chinese thought → Chinese Wikipedia)
       function holoMap() {
-        var k = ks.object(ko.id), c = k.root_concept && ks.getConcept(k.root_concept), zh = /[㐀-鿿]/.test(k.title || '');
+        var k = ks.object(ko.id); if (!k) return;   // the object was deleted meanwhile
+        var c = k.root_concept && ks.getConcept(k.root_concept), zh = /[㐀-鿿]/.test(k.title || '');
         var topic = c ? (zh ? c.labels.zh || c.labels.en : c.labels.en || c.labels.zh) : k.title;
         TK.holoWiki(topic || k.title, /[㐀-鿿]/.test(topic || '') ? 'zh' : 'en');
       }

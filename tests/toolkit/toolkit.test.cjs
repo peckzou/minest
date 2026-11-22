@@ -207,3 +207,13 @@ console.log('nebula: ok');
   assert.strictEqual(WM.url('zh', '法国 大革命', '历史'), 'https://zh.wikipedia.org/wiki/%E6%B3%95%E5%9B%BD_%E5%A4%A7%E9%9D%A9%E5%91%BD#%E5%8E%86%E5%8F%B2');
 }
 console.log('wiki map: ok');
+
+// ---------------------------------------------------------------- 哲学交互模型: every registered model is a delivered page, and every page is registered
+{
+  const PM = require(path.join(R, 'tools/toolkit/phil-models.js'));
+  const files = fs.readdirSync(path.join(R, 'philosophy/models')).filter(f => /^minest_.*\.html$/.test(f)).sort();
+  assert.deepStrictEqual(PM.map(m => m.file).sort(), files, 'registry = philosophy/models/minest_*.html');
+  PM.forEach(m => { assert(/^minest_[a-z_]+\.html$/.test(m.file), m.id + ' file name the host accepts'); assert(m.zh && m.en && m.levels.length && m.fits.length && m.kw.length, m.id + ' complete'); });
+  assert(fs.existsSync(path.join(R, 'philosophers-island/philosophers.html')), 'the Philosophers’ Island page is in the repo');
+}
+console.log('philosophy models: ok');

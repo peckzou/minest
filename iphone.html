@@ -186229,6 +186229,27 @@ button.mn-fx-scan::after {
     if (H) H.open(function (r) { try { if (window.MinestUniverse && window.MinestUniverse.close) window.MinestUniverse.close(); } catch (e) {} if (r && r.after && window.MinestAI) setTimeout(function () { r.after(window); }, 200); }, { mode: 'stars', wiki: wiki && typeof wiki === 'object' ? wiki : null });
     else open({ nebula: true });
   }
+  /* 哲学交互模型 (philosophy/models/): one full screen over everything, the toolkit stays where it was underneath.
+     Only file names of the form minest_*.html are opened; on the web from this site, in the app from minest-app. */
+  var phEl = null, SITE = /^https?:$/.test(location.protocol) ? '' : 'https://minest-app.vercel.app/';
+  function phil(file, title) { full(SITE + 'philosophy/models/' + file, title || '哲学交互模型'); }
+  /* 哲学家小岛 Philosophers' Island (philosophers-island/, Antigravity): the voxel island of 20 philosophers, full screen */
+  function island() { full(SITE + 'philosophers-island/philosophers.html', '哲学家小岛 · Philosophers’ Island'); }
+  function full(url, title) {
+    if (phEl) phEl.remove();
+    var o = phEl = document.createElement('div'); o.className = 'mn-phil';
+    o.style.cssText = 'position:fixed;inset:0;z-index:2147483646;background:#0b0f14;opacity:0;transition:opacity .25s';
+    o.innerHTML = '<div style="height:calc(env(safe-area-inset-top,0px) + 34px);box-sizing:border-box;padding:calc(env(safe-area-inset-top,0px) + 4px) 10px 4px;display:flex;align-items:center;gap:10px;background:#0b0f14;border-bottom:1px solid rgba(255,255,255,.08);font:13px/1 -apple-system,BlinkMacSystemFont,\'PingFang SC\',sans-serif;color:#cfd8e3">' +
+      '<button type="button" style="border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.06);color:#fff;border-radius:999px;padding:5px 11px;font:inherit;cursor:pointer">✕ 返回 Minest</button><b style="font-weight:600;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></b></div>' +
+      '<iframe title="" style="border:0;width:100%;height:calc(100% - env(safe-area-inset-top,0px) - 34px);display:block" allow="fullscreen"></iframe>';   // a bar of its own: nothing inside the model is covered
+    o.querySelector('b').textContent = title;
+    o.querySelector('iframe').title = title; o.querySelector('iframe').src = url;
+    ['pointerdown', 'touchstart', 'wheel', 'keydown'].forEach(function (t) { o.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
+    var shut = function () { if (!phEl) return; var x = phEl; phEl = null; document.removeEventListener('keydown', esc, true); x.style.opacity = '0'; setTimeout(function () { x.remove(); }, 260); };
+    var esc = function (e) { if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); shut(); } };
+    o.querySelector('button').onclick = shut; document.addEventListener('keydown', esc, true);
+    document.body.appendChild(o); requestAnimationFrame(function () { o.style.opacity = '1'; });
+  }
   function close() {
     if (!ov) return; var o = ov; ov = null; frame = null; if (unsub) { unsub(); unsub = null; } document.removeEventListener('keydown', key, true);
     o.classList.remove('on'); setTimeout(function () { o.remove(); try { window.dispatchEvent(new CustomEvent('minest:toolkit-closed')); } catch (e) {} }, o.classList.contains('from-watch') ? 560 : 220);   // folds back into the watch
@@ -186261,6 +186282,8 @@ button.mn-fx-scan::after {
     if (m.action === 'items') return reply(src, m.id, items());
     if (m.action === 'close') return close();
     if (m.action === 'ready') return;
+    if (m.action === 'island') { island(); return reply(src, m.id, { ok: true }); }
+    if (m.action === 'phil') { var okp = typeof m.file === 'string' && /^minest_[a-z_]+\.html$/.test(m.file); if (okp) phil(m.file, String(m.title || '').slice(0, 60)); return reply(src, m.id, { ok: okp }); }
     if (m.action === 'holo') { close(); setTimeout(function () { holo(m.wiki); }, 260); return reply(src, m.id, { ok: !!window.SpatialHoloLab }); }
     if (m.action === 'capture') {
       close();
@@ -186298,10 +186321,33 @@ button.mn-fx-scan::after {
     nb.onclick = function (e) { e.stopPropagation(); holo(); };
     b.after(nb);
   }
+  function addIsland() {
+    var cs = document.querySelector('[data-centerstyle]');   // My World's overview sheet (it sits outside .uv)
+    if (cs && !cs.parentNode.querySelector('[data-philisland]')) {
+      var r = document.createElement('button'); r.type = 'button'; r.className = 'uv-row'; r.setAttribute('data-philisland', '');
+      r.innerHTML = '<i>🏛️</i><div><b>哲学家小岛 · Philosophers’ Island</b><small>20 位哲学家的家 · 漫游、罗盘传送、思想实验</small></div>';
+      r.addEventListener('click', function (e) { e.stopPropagation(); island(); }, true);
+      cs.parentNode.insertBefore(r, cs);
+    }
+    // the centre island's hexagon menu (mn-island-game-script): one more hexagon, in the free bottom-left slot
+    var m = document.querySelector('.mn-island-actions[aria-label="My World actions"]'), b4 = m && m.querySelector('.mn-island-action-4');
+    if (m && b4 && !m.querySelector('[data-philisland]')) {
+      var t4 = m.querySelector('.mn-action-tip-4'), hb = document.createElement('button'), n = m.querySelectorAll('.mn-island-action').length;
+      hb.type = 'button'; hb.className = 'mn-island-action mn-island-action-' + n; hb.setAttribute('data-philisland', ''); hb.setAttribute('role', 'menuitem'); hb.setAttribute('aria-label', '哲学家小岛 Philosophers’ Island'); hb.title = '哲学家小岛 · Philosophers’ Island';
+      hb.innerHTML = '<span class="mn-action-icon" aria-hidden="true" style="font-size:22px;line-height:1">🏛️</span>';
+      var top = m.offsetHeight - b4.offsetTop - b4.offsetHeight;
+      hb.style.cssText = 'position:absolute;left:' + b4.offsetLeft + 'px;top:' + top + 'px;right:auto;bottom:auto;--g:conic-gradient(from 30deg,#f7e3a6 0 60deg,#f0d27a 60deg 120deg,#d9ab3a 120deg 180deg,#b88a22 180deg 240deg,#e2bb52 240deg 300deg,#f4dc95 300deg)';
+      hb.addEventListener('click', function (e) { e.stopPropagation(); m.remove(); [].forEach.call(document.querySelectorAll('.mn-island-selected'), function (x) { x.classList.remove('mn-island-selected'); x.setAttribute('aria-expanded', 'false'); }); island(); });
+      m.appendChild(hb);
+      if (t4) { var tp = document.createElement('span'); tp.className = t4.className.replace(/mn-action-tip-4/, 'mn-action-tip-' + n); tp.setAttribute('aria-hidden', 'true'); tp.textContent = 'Philosophers’ Island';
+        tp.style.cssText = 'position:absolute;left:' + (t4.offsetLeft) + 'px;top:' + (top + (t4.offsetTop - b4.offsetTop)) + 'px;right:auto;bottom:auto'; m.appendChild(tp); }
+    }
+  }
   function watch() {
-    addEntry();
+    addEntry(); addIsland();
     if (!window.MutationObserver) return;
-    var t = 0; new MutationObserver(function () { clearTimeout(t); t = setTimeout(addEntry, 40); }).observe(document.body, { childList: true, subtree: true });
+    // a throttle, not a debounce: the live 3D home changes the page all the time, so a debounce could wait for ever
+    var t = 0; new MutationObserver(function () { if (t) return; t = setTimeout(function () { t = 0; addEntry(); addIsland(); }, 60); }).observe(document.body, { childList: true, subtree: true });
   }
   if (document.body) watch(); else document.addEventListener('DOMContentLoaded', watch);
 
@@ -186315,7 +186361,7 @@ button.mn-fx-scan::after {
   (document.head || document.documentElement).appendChild(css);
 
   var adopted = [];   // other toolkit frames this page answers (My World's input, tools/toolkit/omni.js)
-  window.MinestToolkitHost = { adopt: function (f) { if (adopted.indexOf(f) < 0) adopted.push(f); }, open: open, close: close, constellation: holo, isOpen: function () { return !!ov; }, items: items };
+  window.MinestToolkitHost = { island: island, adopt: function (f) { if (adopted.indexOf(f) < 0) adopted.push(f); }, open: open, close: close, constellation: holo, isOpen: function () { return !!ov; }, items: items };
 })();
 
 /* Minest · My World input — the system-level search / build bar, with the five Cognitive Toolkit cards (window.MinestOmni)
@@ -186503,7 +186549,8 @@ button.mn-fx-scan::after {
   function isOpen() { return !!(root && root.classList.contains('on')); }
   document.addEventListener('keydown', function (e) {
     if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); if (isOpen()) close(); else open(); return; }
-    if (e.key === 'Escape' && isOpen()) { e.preventDefault(); e.stopPropagation(); if (active) closeCard(); else close(); }
+    // a philosophy model on top (host.js .mn-phil) takes Esc first
+    if (e.key === 'Escape' && isOpen() && !document.querySelector('.mn-phil')) { e.preventDefault(); e.stopPropagation(); if (active) closeCard(); else close(); }
   }, true);
 
   // ---------------------------------------------------------------- style

@@ -26,11 +26,24 @@
       (rec.apply ? '<br>Case: ' + esc(rec.apply.case || rec.apply.situation || (rec.apply.a + ' → ' + rec.apply.b)) : '');
   }
 
+  // 哲学交互模型: the 13 live models (phil-models.js), the ones that fit this thought first — each opens full screen
+  function philSection(ko) {
+    if (!TK.recommendPhil) return '';
+    var zh = window.MinestI18n && MinestI18n.lang() === 'zh', rec = TK.recommendPhil(ko), top = rec[0] && rec[0].s;
+    return '<h2>Interactive philosophy models</h2><p class="dim">Hands-on, real-time models: hold, drag and push the scene; each action lights up the original text it stands for (Chinese, English, source). They show an idea — they don’t prove it.</p><div class="lb-grid lb-phil">' +
+      rec.map(function (x) { var m = x.m, fit = top > 0 && x.s === top;
+        return '<article class="lb-tile lb-ph' + (fit ? ' rec' : '') + '"><h3 data-noi18n>' + esc(zh ? m.zh : m.en) + (fit ? ' <span class="pill ok">fits this question</span>' : '') + '</h3>' +
+          '<p class="lb-sub" data-noi18n>' + esc(zh ? m.en : m.zh) + '</p><p class="dim" data-noi18n>' + esc(m.src) + '</p>' +
+          '<p class="lb-lv" data-noi18n>' + m.levels.map(function (l, i) { return '<i>' + (i + 1) + '</i>' + esc(l); }).join('') + '</p>' +
+          '<div class="row"><button type="button" class="primary" data-phil="' + m.id + '">▶ Open model</button></div></article>'; }).join('') + '</div>';
+  }
+
   TK.register({
     id: 'lab', en: 'Thinking Lab', zh: '思维实验室', color: '#f08c3a', line: 'Make an idea visible and try it with your own hands.',
     icon: TK.icon('<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4A2 2 0 0 0 19 18l-5-9V3"/><path d="M7.5 15h9"/>'),
     preview: function (ko) {
-      var top = recommend(ko)[0], runs = TK.ks.labRunsOf(ko.id);
+      var top = recommend(ko)[0], runs = TK.ks.labRunsOf(ko.id), ph = TK.recommendPhil ? TK.recommendPhil(ko)[0] : null;
+      if (ph && ph.s > 0 && (!top || ph.s >= top.s)) return '<span class="pv-lab"><b data-noi18n>' + esc(window.MinestI18n && MinestI18n.lang() === 'zh' ? ph.m.zh : ph.m.en) + '</b> <span class="dim">interactive model</span></span>' + (runs.length ? '<span class="dim">' + runs.length + ' done for this object</span>' : '');
       return (top && top.s > 0 ? '<span class="pv-lab"><b>' + esc(top.d.title) + '</b> ' + esc(top.d.subtitle || '') + '</span>' : '<span class="dim">' + TK.data.labs.length + ' experiments ready</span>') +
         (runs.length ? '<span class="dim">' + runs.length + ' done for this object</span>' : '');
     },
@@ -40,9 +53,10 @@
         var k = ks.object(ko.id), recs = recommend(k), runs = ks.labRunsOf(ko.id);
         el.innerHTML = '<div class="lb-wrap"><h2>Experiments</h2><p class="dim">Each experiment is a model that helps you understand — none of them proves a philosophical theory.</p><div class="lb-grid">' +
           recs.map(function (x, i) { var d = x.d; return '<article class="lb-tile' + (i === 0 && x.s > 0 ? ' rec' : '') + '"><h3>' + esc(d.title) + (i === 0 && x.s > 0 ? ' <span class="pill ok">fits this question</span>' : '') + (rvw(d) === 'pending' ? ' <span class="pill sug">review pending</span>' : ' <span class="pill ok">reviewed</span>') + '</h3><p class="lb-sub">' + esc(d.subtitle || '') + '</p><p>' + esc(d.learning_objective) + '</p><p class="dim">' + esc(d.disclaimer || '') + '</p><p class="dim">' + d.steps.length + ' steps: ' + esc(d.steps.map(function (s) { return s.title; }).join(' · ')) + '</p><div class="row"><button type="button" class="primary" data-run="' + d.interaction_id + '">▶ Start</button><button type="button" class="small ghost" data-review="' + d.interaction_id + '">' + (rvw(d) === 'pending' ? 'Mark reviewed' : 'Mark pending') + '</button></div></article>'; }).join('') +
-          '</div><h2>Done for this object</h2>' + (runs.length ? '<div class="lb-runs">' + runs.slice().reverse().map(function (r) { var d = TK.M.get(r.interaction_id); return '<div class="lb-run"><b>' + esc(d ? d.title : r.interaction_id) + '</b> <span class="pill ' + (r.completed ? 'ok' : '') + '">' + (r.completed ? 'completed' : 'partial') + '</span><p>' + summary(r) + '</p>' + (r.note ? '<p>“' + esc(r.note) + '”</p>' : '') + '<small class="dim">' + new Date(r.finishedAt).toLocaleString() + '</small></div>'; }).join('') + '</div>' : '<p class="dim">Nothing yet.</p>') + '</div>';
+          '</div>' + philSection(k) + '<h2>Done for this object</h2>' + (runs.length ? '<div class="lb-runs">' + runs.slice().reverse().map(function (r) { var d = TK.M.get(r.interaction_id); return '<div class="lb-run"><b>' + esc(d ? d.title : r.interaction_id) + '</b> <span class="pill ' + (r.completed ? 'ok' : '') + '">' + (r.completed ? 'completed' : 'partial') + '</span><p>' + summary(r) + '</p>' + (r.note ? '<p>“' + esc(r.note) + '”</p>' : '') + '<small class="dim">' + new Date(r.finishedAt).toLocaleString() + '</small></div>'; }).join('') + '</div>' : '<p class="dim">Nothing yet.</p>') + '</div>';
       }
       el.addEventListener('click', function (e) {
+        var ph = e.target.closest('[data-phil]'); if (ph) return TK.openPhil(ph.getAttribute('data-phil'));
         var b = e.target.closest('[data-run]'); if (b) return run(b.getAttribute('data-run'));
         var r = e.target.closest('[data-review]'); if (r) { var d = TK.M.get(r.getAttribute('data-review')); TK.silently(function () { ks.setReview('lab', d.interaction_id, rvw(d) === 'pending' ? 'reviewed' : 'pending'); }); TK.toast(rvw(d) === 'pending' ? 'Marked as review pending' : 'Marked as reviewed by you'); paint(); }
       });

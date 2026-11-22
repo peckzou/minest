@@ -18,6 +18,8 @@
     'Question': '疑问', 'Goal': '目标', 'Hypothesis': '假设', 'Opinion': '观点', 'Concept / term': '概念 / 词汇', 'Statement / event': '陈述 / 事件', 'Input': '输入',
     'confirmed by you': '已由你确认', 'suggested': '建议', 'Not placed yet': '尚未定位', 'Confirmed': '已确认', 'Suggested': '建议', 'Not placed yet — place it yourself': '尚未定位——请自行定位',
     'Holo map': '全息概览', 'See this concept’s Wikipedia article as a bubble map in Holo Lab’s Knowledge Constellation': '在 Holo Lab 的知识星图里，用气泡图梳理这个概念的维基百科词条', 'Holo Lab is not available here': '这里打不开 Holo Lab', 'The Minest app did not answer': 'Minest 没有响应',
+    'Philosophers’ Island': '哲学家小岛', 'Walk to the homes of 20 philosophers — compass teleport, thought experiments': '走进 20 位哲学家的家——罗盘传送、思想实验',
+    'Interactive philosophy models': '哲学交互模型', 'Hands-on, real-time models: hold, drag and push the scene; each action lights up the original text it stands for (Chinese, English, source). They show an idea — they don’t prove it.': '动手的实时模型：按住、拖动、推动场景；每个动作都会点亮它对应的原文（中文、英文、出处）。它们帮你看见一个想法，而不是证明它。', '▶ Open model': '▶ 打开模型', 'interactive model': '交互模型', 'This model can’t open here': '这里打不开这个模型',
     // card names + lines
     'Thought Compass': '思想罗盘', 'Framework Card': '知识框架卡', 'Thinking Models': '思维模型卡', 'Thinking Lab': '思维实验室', 'Knowledge Graph': '知识图谱卡',
     'Find where a thought sits and which way to think next.': '找到想法所在的位置，以及下一步往哪里想。', 'Organise ideas into a structure you can edit.': '把想法组织成可编辑的结构。',

@@ -181,6 +181,7 @@
     });
     $('#tk-new').onclick = home;
     // 知识图谱 ◉ 全息概览: the concept's Wikipedia article as a bubble map in Holo Lab's 知识星图
+    TK.EMBED = EMBED; TK.host = host;   // for card add-ons (phil-models.js)
     TK.holoWiki = function (topic, lang) {
       var w = { topic: String(topic || '').slice(0, 120), lang: lang || null };
       if (EMBED) return host('holo', { wiki: w }).then(function (r) { if (r && r.ok === false) toast('Holo Lab is not available here'); }).catch(function () { toast('The Minest app did not answer'); });

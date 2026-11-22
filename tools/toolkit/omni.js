@@ -183,7 +183,8 @@
   function isOpen() { return !!(root && root.classList.contains('on')); }
   document.addEventListener('keydown', function (e) {
     if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); if (isOpen()) close(); else open(); return; }
-    if (e.key === 'Escape' && isOpen()) { e.preventDefault(); e.stopPropagation(); if (active) closeCard(); else close(); }
+    // a philosophy model on top (host.js .mn-phil) takes Esc first
+    if (e.key === 'Escape' && isOpen() && !document.querySelector('.mn-phil')) { e.preventDefault(); e.stopPropagation(); if (active) closeCard(); else close(); }
   }, true);
 
   // ---------------------------------------------------------------- style

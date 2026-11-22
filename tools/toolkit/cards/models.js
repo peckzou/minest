@@ -68,7 +68,7 @@
     },
     mount: function (el, ko, opts) {
       var ks = TK.ks, cur = null, inp = {}, runId = null, compare = [];
-      el.innerHTML = '<div class="md-wrap"><aside class="md-side"><h3>Suggested for this question</h3><div class="md-rec"></div><h3>All models</h3><div class="md-all"></div><h3>Saved analyses</h3><div class="md-runs"></div></aside><section class="md-main"></section></div>';
+      el.innerHTML = '<div class="md-wrap"><aside class="md-side"><button type="button" class="md-island" data-island><span aria-hidden="true">🏛️</span><b>Philosophers’ Island</b><small>Walk to the homes of 20 philosophers — compass teleport, thought experiments</small></button><h3>Suggested for this question</h3><div class="md-rec"></div><h3>All models</h3><div class="md-all"></div><h3>Saved analyses</h3><div class="md-runs"></div></aside><section class="md-main"></section></div>';
       var main = el.querySelector('.md-main');
 
       function side() {
@@ -156,6 +156,7 @@
       function addItem(k, v) { v = String(v || '').trim(); if (!v) return; inp[k] = arr(inp[k]); if (inp[k].indexOf(v) < 0) inp[k].push(v); changed(true); var f = main.querySelector('[data-addto="' + k + '"]'); if (f) f.focus(); }
       function addCase(k, v) { v = String(v || '').trim(); if (!v) return; inp[k] = arr(inp[k]); inp[k].push({ label: v, a: false, b: false }); changed(true); var f = main.querySelector('[data-caseadd="' + k + '"]'); if (f) f.focus(); }
       el.addEventListener('click', function (e) {
+        if (e.target.closest('[data-island]')) return TK.openIsland();   // 哲学家小岛 (philosophers-island/)
         var b = e.target.closest('button'); if (!b) return;
         if (b.hasAttribute('data-model')) return open(model(b.getAttribute('data-model')));
         if (b.hasAttribute('data-run')) { var r = ks.modelRun(b.getAttribute('data-run')); return open(model(r.model_id), r); }
