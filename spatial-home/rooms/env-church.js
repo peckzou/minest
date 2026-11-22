@@ -6,8 +6,8 @@
      the Crucifixion, the Resurrection and the Ascension in the apse, saints in the clerestory, the west rose.
    · Murals: a fresco at the east end of each aisle and one each side of the west door, and the painted frieze of angels
      and saints that runs the length of the triforium.
-   · The aisles carry the thirty most-quoted verses (rooms/church-verses.js) on tablets at eye height: 1–15 going east
-     along the south aisle, 16–30 coming back west along the north.
+   · The aisles carry the thirty most-quoted verses (rooms/church-verses.js), each a small window of painted glass at eye
+     height under the story windows: 1–15 going east along the north aisle, 16–30 coming back west along the south.
    · The organ console stands on the nave floor under the loft (a thing of the layout: tap it and the organ plays the
      Old Hundredth; tap again to stop).
    Every thing of Spatial Home has its place (the same anchor names as the other rooms): the writing desk in the south
@@ -170,7 +170,7 @@
       white: std({ color: lin(0xf4efe4), roughness: 0.8 }), red: std({ color: lin(0x8a1f24), roughness: 0.8 }), wax: std({ color: lin(0xf6efdc), roughness: 0.6, emissive: lin(0x5a4a2a), emissiveIntensity: 0.5 }),
       black: new THREE.MeshBasicMaterial({ color: 0x050508 })
     };
-    var glassMats = [], lit = [];                       // glass dims with the day; the painted things keep a little light of their own
+    var glassMats = [], lit = [], named = {};                       // glass dims with the day; the painted things keep a little light of their own
     function glassMat(tex) { var m = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }); glassMats.push(m); return m; }
     function painted(tex) { var m = std({ map: tex, roughness: 0.9, emissive: lin(0xffffff), emissiveMap: tex, emissiveIntensity: 0.4 }); lit.push(m); return m; }
     function storyTex(id, tall) { return canvasTex(384, tall ? 1536 : 720, function (x, w, h) { ART.glass(x, w, h, id); }); }
@@ -184,7 +184,7 @@
       var sh = new THREE.Shape(); sh.moveTo(0, 0); sh.lineTo(L, 0); sh.lineTo(L, y1); sh.lineTo(0, y1); sh.lineTo(0, 0);
       (holes || []).forEach(function (h) {
         sh.holes.push(moved(lancet(h.w, h.h, h.c), h.x, h.y0));
-        if (h.mat) { var gl = lancetMesh(h.w, h.h, h.c, h.mat); gl.position.set(h.x, h.y0, t * 0.5); gr.add(gl); }
+        if (h.mat) { var gl = lancetMesh(h.w, h.h, h.c, h.mat); gl.position.set(h.x, h.y0, t * 0.5); gr.add(gl); if (h.name) { gl.name = h.name; named[h.name] = gl; } }
       });
       var me = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: t, bevelEnabled: false, curveSegments: 10 }), mat || M.stone); me.receiveShadow = true; me.castShadow = true; gr.add(me);
       return gr;
@@ -223,6 +223,11 @@
 
     /* ── the aisles: outer walls with the story windows, a small pointed vault to each bay, an arch across at each pier ── */
     var OT = ART.STORIES.slice(0, 6), NT = ART.STORIES.slice(6, 12), WY = 2.75, WH = 3.2, pools = [];
+    /* the thirty verses: a small lancet of painted glass each, three to a bay under the story windows, 1–15 east along the north
+       aisle, 16–30 back west along the south (so they read left to right as you face the wall); they keep some light at night */
+    var SLOTS = [], verseMats = [], VW = 0.9, VH = 1.7, VY = 0.78, VC = 0.15;
+    [5.25, 1.75, -1.75, -5.25, -8.75].forEach(function (z) { [1, 0, -1].forEach(function (d) { SLOTS.push(z + 0.2 + d); }); });   // + 0.2: centred between the jambs of the arches across the aisle
+    function verseHole(sd, z, name, draw) { var m = new THREE.MeshBasicMaterial({ map: canvasTex(512, 948, draw), side: THREE.DoubleSide }); verseMats.push(m); return { x: sd > 0 ? z + D : D - z, y0: VY, w: VW, h: VH, c: VC, name: name, mat: m }; }
     [1, -1].forEach(function (sd) {
       var holes = [];
       BAYS.forEach(function (z, q) {
@@ -231,6 +236,11 @@
         var av = new THREE.Mesh(sweep(archPts(BAY / 2, AH, 0.7, 10), W - NW - T + 0.04), M.vault); av.rotation.y = -PI / 2; av.position.set(sd > 0 ? W + 0.02 : -NW - T + 0.02, 0, z); g.add(av);
         if (st) pools.push([sd * (W - 1.5), z, st]);
       });
+      SLOTS.forEach(function (z, j) { var n = sd < 0 ? j + 1 : 30 - j, v = VERSES[n - 1]; holes.push(verseHole(sd, z, 'verse-' + n, function (x, w, h) { ART.verseGlass(x, w, h, n, v); })); });
+      holes.push(verseHole(sd, 8.95, 'verse-title-' + (sd > 0 ? 'south' : 'north'), function (x, w, h) {
+        ART.verseTitle(x, w, h, sd < 0 ? ['经文三十', 'The Thirty Verses', '最常被引用的三十节经文', '1–15 节沿北廊向东', 'thirty most-quoted verses', '1–15 east along this aisle, 16–30 back along the south']
+          : ['经文三十', 'The Thirty Verses', '16–30 节由东端回到这里', '和合本与英王钦定本', 'verses 16–30 end here', 'verse 1 begins across the nave, in the north aisle']);
+      }));
       wall(sd > 0 ? [W, -D] : [-W, D], sd > 0 ? [W, D] : [-W, -D], 0.5, 7, holes);
       PIERS.forEach(function (z) {
         var ar = wall(sd > 0 ? [NW + T, z + 0.2] : [-W, z + 0.2], sd > 0 ? [W, z + 0.2] : [-NW - T, z + 0.2], 0.4, 6.7, [{ x: (W - NW - T) / 2, y0: 0, w: 2.2, h: 5.5, c: 0.5 }], M.plain);
@@ -310,19 +320,7 @@
     mural('shepherd', CX, 2.78, -D + 0.03, 0, 2.1); mural('sermon', -CX, 2.84, -D + 0.03, 0, 2.1);
     mural('jacob', -CX, 2.3, D - 0.03, PI, 2.0); mural('jonah', CX, 2.3, D - 0.03, PI, 2.0);
 
-    /* ── the thirty verses: tablets down the aisle walls, 1–15 east along the south, 16–30 back west along the north ── */
-    var tablets = [], SLOTS = [];
-    [5.25, 1.75, -1.75, -5.25, -8.75].forEach(function (z) { [1.1, 0, -1.1].forEach(function (d) { SLOTS.push(z + d); }); });
-    function tablet(tex, sd, z, n) {
-      var me = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.5), painted(tex)); me.position.set(sd * (W - 0.05), 1.66, z); me.rotation.y = -sd * PI / 2; me.name = n ? 'verse-' + n : 'verse-title'; g.add(me);
-      box(g, M.dark, sd * (W - 0.025), 1.66, z, 0.04, 1.6, 1.1).castShadow = false; return me;
-    }
-    VERSES.forEach(function (v, q) {
-      var n = q + 1, sd = q < 15 ? 1 : -1, z = q < 15 ? SLOTS[q] : SLOTS[29 - q];
-      tablets.push(tablet(canvasTex(512, 768, function (x, w, h) { ART.tablet(x, w, h, n, v); }), sd, z, n));
-    });
-    tablet(canvasTex(512, 768, function (x, w, h) { ART.title(x, w, h, ['经文三十', 'The Thirty Verses', '最常被引用的三十节经文', '第 1–15 节 · 沿南廊向东', 'the thirty most-quoted verses', '1–15 east along this aisle, 16–30 back along the north']); }), 1, 7.7, 0);
-    tablet(canvasTex(512, 768, function (x, w, h) { ART.title(x, w, h, ['经文三十', 'The Thirty Verses', '第 16–30 节 · 沿北廊向西', '和合本 · King James Version', 'verses 16–30, walking west', 'verse 1 begins across the nave, in the south aisle']); }), -1, 7.7, 0);
+    var verseWins = []; for (i = 1; i <= 30; i++) verseWins.push(named['verse-' + i]);
 
     /* ── the nave: oak pews either side of the middle walk, three brass coronas, the console under the loft ── */
     for (s = -1; s <= 1; s += 2) for (i = 0; i < 14; i++) {
@@ -385,7 +383,7 @@
     function apply() {
       var Dt = SR.timeOfDay(mode), L = Dt.light, K = Dt.dusk; night = Dt.night;
       var gc = new THREE.Color(0x3a4a8a).lerp(new THREE.Color(0xffffff), L).lerp(new THREE.Color(0xffc9a0), K * 0.4).multiplyScalar(0.3 + 0.7 * L);
-      glassMats.forEach(function (m) { m.color.copy(gc); });
+      glassMats.forEach(function (m) { m.color.copy(gc); }); verseMats.forEach(function (m) { m.color.setScalar(0.6 + 0.4 * L); });
       sun.intensity = 0.05 + 0.8 * L; sun.color.set(0xfff0d8).lerp(new THREE.Color(0xffb27a), K * 0.6); hemi.intensity = 0.22 + 0.3 * L; fill.intensity = 0.1 + 0.22 * L;
       M.stone.emissiveIntensity = 0.07 + 0.13 * L; M.plain.emissiveIntensity = 0.07 + 0.12 * L; M.vault.emissiveIntensity = 0.14 + 0.24 * L;
       lit.forEach(function (m) { m.emissiveIntensity = 0.26 + 0.16 * L; });
@@ -422,7 +420,7 @@
       start: { pos: [0, 1.55, 9.4], yaw: 0, pitch: 0.12 }, startV: 1,
       seat: { x: DX, z: DZ + 0.8, yaw: PI, approach: [DX - 0.75, DZ + 0.95], y: 0.46 },
       desk: { pos: [DX, 1.42, DZ + 1.06], look: [DX, 0.95, DZ - 0.3] },
-      solids: solids, verses: tablets,
+      solids: solids, verses: verseWins,
       /* the organ console stands under the loft, north of the door, as a thing of the layout: it plays, and it can be moved */
       defaultLayout: function () { return { extras: [{ kind: 'church-organ', title: '管风琴演奏台', p: [-2.35, 0, 12.6], ry: PI / 2, uid: 9731 }] }; },
       setTime: function (m) { mode = m || 'auto'; apply(); },
