@@ -242,6 +242,7 @@ export class TypingWorlds2 {
     stage.addEventListener('pointermove', (e) => {
       const r = stage.getBoundingClientRect();
       const p = pts.get(e.pointerId);
+      if (p && e.pointerType === 'mouse' && e.buttons === 0) return up(e); // released where no pointerup reached us
       if (!p) {
         if (e.pointerType === 'mouse') this.director?.pointer(((e.clientX - r.left) / r.width) * 2 - 1, ((e.clientY - r.top) / r.height) * 2 - 1);
         this.renderer.wake();
@@ -276,8 +277,9 @@ export class TypingWorlds2 {
         else this.hint(false);
       }
     };
-    stage.addEventListener('pointerup', up);
-    stage.addEventListener('pointercancel', up);
+    // on the window: a drag may end over the HUD or outside the page
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
     stage.addEventListener('pointerleave', (e) => {
       if (e.pointerType === 'mouse' && !pts.size) this.director?.pointer(0, 0);
     });

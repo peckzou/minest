@@ -1,4 +1,4 @@
-import{H as e,K as t,L as n,U as r,_t as i,f as a,j as o,nt as s,x as c}from"./three-DUSkY6Fy.js";import{c as l,d as u,m as d,s as f,t as p}from"./letter-world-Cr9IRXF5.js";import{t as m}from"./index-CrUTed1g.js";import{t as h}from"./particles-DiEz3MZi.js";var g=-.62,_=5.9,v=-.85,y=.085,b=24,x=8,S=1.3,C=`
+import{H as e,K as t,L as n,U as r,_t as i,f as a,j as o,nt as s,x as c}from"./three-DUSkY6Fy.js";import{c as l,d as u,m as d,s as f,t as p}from"./letter-world-Cr9IRXF5.js";import{t as m}from"./index-D-Cvv9nk.js";import{t as h}from"./particles-DiEz3MZi.js";var g=-.62,_=5.9,v=-.85,y=.085,b=24,x=8,S=1.3,C=`
 attribute float aU; attribute float aV;
 uniform float uProg; uniform float uCollapse; uniform float uTime; uniform float uR; uniform float uLen; uniform float uFlow;
 varying float vU; varying float vV;`,w=`

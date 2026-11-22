@@ -1,4 +1,4 @@
-import{H as e,L as t,U as n,_t as r,f as i,j as a,nt as o,st as s,x as c}from"./three-DUSkY6Fy.js";import{c as l,f as u,m as d,s as f,t as p}from"./letter-world-Cr9IRXF5.js";import{t as m}from"./index-CrUTed1g.js";import{t as h}from"./particles-DiEz3MZi.js";var g=-2.3,_=.07,v=.112,y=9,b=11,x=700,S=`
+import{H as e,L as t,U as n,_t as r,f as i,j as a,nt as o,st as s,x as c}from"./three-DUSkY6Fy.js";import{c as l,f as u,m as d,s as f,t as p}from"./letter-world-Cr9IRXF5.js";import{t as m}from"./index-D-Cvv9nk.js";import{t as h}from"./particles-DiEz3MZi.js";var g=-2.3,_=.07,v=.112,y=9,b=11,x=700,S=`
 uniform vec3 uDeep; uniform vec3 uMid; uniform vec3 uHi;
 uniform float uCrack; uniform float uFlash; uniform float uOpacity;
 varying vec3 vViewPos; varying vec3 vLocal;
