@@ -339,7 +339,7 @@
   }
 
   /* a tap on one of them: it turns to you, waves (the dog hops), and a small card says who it is */
-  var card = null, cardT = 0, ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), down = null, cur = null;
+  var card = null, cardT = 0, ray = new THREE.Raycaster(), front = new THREE.Raycaster(), ndc = new THREE.Vector2(), down = null, cur = null;
   function own(r, hits) { if (r === ray && this.isMesh) THREE.Mesh.prototype.raycast.call(this, r, hits); }
   function show(m) {
     if (!card) { card = document.createElement('div'); card.id = 'fam-card';
@@ -351,9 +351,10 @@
   function hit(e) {
     var cam = SR.camera, G = cur && cur.family && cur.family.group; if (!cam || !G || !G.visible || !G.parent) return null;
     ndc.set(e.clientX / root.innerWidth * 2 - 1, -(e.clientY / root.innerHeight) * 2 + 1); ray.setFromCamera(ndc, cam); ray.camera = cam;
-    var h = ray.intersectObject(G, true).filter(function (q) { return !q.object.isSprite; })[0]; if (!h) return null;
-    var wall = ray.intersectObject(cur.group || cur.holder, true).filter(function (q) { if (q.object.isSprite) return false; for (var o = q.object; o; o = o.parent) if (!o.visible) return false; return true; })[0];   // something of the room stands in front of it
-    if (wall && wall.distance < h.distance - 0.05) return null;
+    var h = ray.intersectObject(G, true)[0]; if (!h) return null;
+    var top = G; while (top.parent) top = top.parent;
+    front.ray.copy(ray.ray); front.camera = cam; front.far = h.distance - 0.05;   // the room, or one of the things in it (they hang on the scene, not on the room), stands in front: the tap is for that
+    if (front.intersectObject(top, true).some(function (q) { if (!q.object.isMesh) return false; for (var o = q.object; o; o = o.parent) if (!o.visible) return false; return true; })) return null;
     for (var o = h.object; o; o = o.parent) if (o.userData && o.userData.member) return o.userData.member;
     return null;
   }
