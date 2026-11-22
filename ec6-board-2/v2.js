@@ -124,6 +124,13 @@
   /* the Kanban (a card, or the whole board) is Minest itself, brought to the front; one key comes back */
   function showApp(after) {
     doc.body.classList.add('v2-app'); doc.getElementById('toBoard').hidden = false;
+    /* what would cover it is put away the way a hand would: the app's 速览 page (wide or small windows start under it),
+       and a card left open from the last visit */
+    try {
+      var d = hostWin.document, g = d.querySelector('.duo-gl'), b = g && !g.hidden && hostWin.getComputedStyle(g).display !== 'none' && g.querySelector('[data-duo-full], .duo-full');
+      if (b) b.click();
+      var x = d.querySelector('.mn-cardsheet .mn-cs-x'); if (x) x.click();
+    } catch (e) {}
     try { after && after(hostWin); } catch (e) {}
     try { hostFrame.focus(); } catch (e) {}
   }
