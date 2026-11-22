@@ -43,7 +43,7 @@
     ];
     return [{ id: 'cards2-sample', title: '星空图鉴 · 示例', columns: L.map(function (l, li) {
       return { id: 'cards2-l' + li, title: l[0], color: l[1], cards: l[3].map(function (s, i) { var p = s.split('|');
-        return { id: 'cards2-' + li + '-' + i, title: p[0], description: p[1], cover: { type: 'image', value: art((li * 118 + i * 29 + 190) % 360, l[2], i) } }; }) };
+        return { id: 'cards2-' + li + '-' + i, title: p[0], description: p[1], meaning: p[1], cover: { type: 'image', value: art((li * 118 + i * 29 + 190) % 360, l[2], i) } }; }) };
     }) }];
   }
 

@@ -68,6 +68,8 @@ const mine = [
   const sample = Array.from(r.IV.cards(r.AI.board()));
   assert(sample.every(c => c.id && c.title && /^data:image\/svg\+xml,/.test(r.IV.image(c).thumb)), 'sample cards carry their own artwork (nothing fetched)');
   assert.strictEqual(new Set(sample.map(c => c.id)).size, sample.length);
+  assert(sample.every(c => c.meaning && c.meaning === c.description), 'sample cards say what they are, where explode.js reads it (meaning)');
+  assert(/c\.meaning \|\| c\.desc/.test(rd('tools/cover-modes/explode.js')));
   assert.deepStrictEqual([...r.raw], [], 'nothing written');
 
   // Minest's boards from localStorage; the board it has open is the one shown
