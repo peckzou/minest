@@ -182801,8 +182801,9 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     /* what was set here before Minest was there (the outbox): handed to it, the newer of each key wins */
     try {
       var x = kl().x, hx = K._cloud().x || {};
-      Object.keys(outbox).forEach(function (k) { var a = x[k], b = hx[k]; if (a && (!b || (b.t || 0) < (a.t || 0))) K.set(k, a.v, true); });
-      outbox = {}; outSave();
+      var mine = outbox; outbox = {};
+      Object.keys(mine).forEach(function (k) { var a = x[k], b = hx[k]; if (a && (!b || (b.t || 0) < (a.t || 0))) { K.set(k, a.v, true); outbox[k] = ((K._cloud().x || {})[k] || {}).t || Date.now(); } });
+      outSave(); setTimeout(flush, 0);
     } catch (e) {}
     try { K.onChange(function () { emit(null); }); } catch (e) {}
     try { var fb = w.firebase; if (fb && fb.auth) fb.auth().onAuthStateChanged(function (u) { st.user = u ? u.uid : null; st.email = u ? (u.email || '') : ''; emit(null); }); } catch (e) {}
@@ -182882,8 +182883,27 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       });
     }).catch(function () { st.error = '连不上云端（离线？）· 改动先存在本机'; emit(null); });
   }
+  /* Minest's own page: the keys go up by themselves, small. Minest Knowledge's own push sends the whole store in plain
+     form, which fails without a word once the store is near Firestore's 1 MB (the full upload compresses it, but runs
+     only after a board edit); so a move made in the room waited for the next board edit to reach the cloud. */
+  function hostFlush(h) {
+    if (flushing || !pending()) return;
+    if (root.navigator && root.navigator.onLine === false) return;
+    var F = null, u = null; try { F = h.w.firebase; u = F && F.auth && F.auth().currentUser; } catch (e) {}
+    if (!u || !F.firestore) return;
+    var x = h.K._cloud().x || {}, send = {}, sent = {};
+    Object.keys(outbox).forEach(function (k) { if (x[k]) { send[k] = x[k]; sent[k] = outbox[k]; } else delete outbox[k]; });
+    if (!Object.keys(send).length) { outSave(); return; }
+    flushing = true;
+    F.firestore().collection('users').doc(u.uid).collection('focusboard').doc('data').set({ knowledge: { x: send } }, { merge: true }).then(function () {
+      Object.keys(sent).forEach(function (k) { if (outbox[k] === sent[k]) delete outbox[k]; });
+      outSave(); flushing = false; st.synced = Date.now(); st.error = ''; emit(null);
+      if (pending()) flush();
+    }).catch(function (e) { flushing = false; st.error = (e && e.code) || '上传失败 · 稍后再试'; emit(null); });
+  }
   function flush() {
     if (st.mode === 'bridge') return bridgeFlush();
+    var h = host(); if (h) return hostFlush(h);
     if (st.mode !== 'lite' || !db || !st.user || flushing || !pending()) return;
     if (root.navigator && root.navigator.onLine === false) return;
     var x = kl().x, send = {}, sent = {};
@@ -182963,7 +182983,11 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     /* the Minest Knowledge-shaped store the room uses (get / set / keys) */
     kn: function () { var h = host(); return h ? h.K : LITE; },
     get: function (key) { var h = host(); return h ? clone(h.K.get(key)) : LITE.get(key); },
-    set: function (key, v) { var h = host(); if (h) h.K.set(key, v, true); else LITE.set(key, v); },
+    set: function (key, v) {
+      var h = host(); if (!h) { LITE.set(key, v); return; }
+      h.K.set(key, v, true);
+      if (MINE.test(key)) { outbox[key] = ((h.K._cloud().x || {})[key] || {}).t || Date.now(); outSave(); flush(); }
+    },
     keys: function (prefix) { return S.kn().keys(prefix); },
     time: function (key) { var h = host(), r = h ? (h.K._cloud().x || {})[key] : kl().x[key]; return r ? r.t || 0 : 0; },
     onChange: function (fn) { listeners.push(fn); },
@@ -182971,7 +182995,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     status: function () {
       var h = host(), on = !(root.navigator && root.navigator.onLine === false), mode = h ? 'host' : st.mode;
       var text = !on ? '离线 · 改动先存在本机，联网后自动上传' + (pending() ? '（' + pending() + ' 项待上传）' : '')
-        : mode === 'host' ? (st.user ? '跟着 Minest 同步 · ' + st.email : '跟着 Minest 存在本机（登录 Minest 后上云）')
+        : mode === 'host' ? (!st.user ? '跟着 Minest 存在本机（登录 Minest 后上云）' : pending() ? '正在上传 ' + pending() + ' 项…' : '已同步 · ' + st.email)
         : !st.user ? (mode === 'bridge' ? '跟着 Minest · 未登录，只在本机' : '未登录 · 只在本机（在同一浏览器里登录 Minest 就会同步）')
         : pending() ? '正在上传 ' + pending() + ' 项…' : '已同步 · ' + st.email;
       return { mode: mode, online: on, user: st.user, email: st.email, pending: pending(), synced: st.synced, error: st.error, text: st.error && on ? text + ' · ' + st.error : text };
