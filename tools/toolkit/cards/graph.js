@@ -24,6 +24,7 @@
     if (s.indexOf('mi:') === 0) { var l = ks.labRun(s.slice(3)), d = l && TK.M.get(l.interaction_id); return 'Experiment: ' + (d ? d.title : 'run'); }
     if (s.indexOf('note:') === 0) return 'A note';
     if (s === 'graph') return 'Made in the Graph';
+    if (s.indexOf('wiki:') === 0) return 'Wikipedia ‘' + s.split(':').slice(2).join(':') + '’';
     return s || 'Made in the Graph';
   }
 
@@ -43,6 +44,7 @@
         ks.REL.map(function (r) { return '<marker id="ga-' + r.id + '" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="' + r.color + '"/></marker>'; }).join('') +
         '</defs><g class="gr-world"><g class="gr-edges"></g><g class="gr-nodes"></g></g></svg>' +
         '<div class="gr-tools"><button type="button" data-z="1.25" aria-label="Zoom in">＋</button><button type="button" data-z="0.8" aria-label="Zoom out">－</button><button type="button" data-fit>Fit</button><button type="button" data-addc>+ Concept</button><button type="button" data-relayout>Re-arrange</button></div>' +
+        '<button type="button" class="gr-holo" data-holo title="See this concept’s Wikipedia article as a bubble map in Holo Lab’s Knowledge Constellation"><i aria-hidden="true"></i><span>Holo map</span></button>' +
         '<div class="gr-hint"></div></div><aside class="gr-side"></aside></div>';
       var svg = el.querySelector('.gr-svg'), world = el.querySelector('.gr-world'), side = el.querySelector('.gr-side'), hint = el.querySelector('.gr-hint');
 
@@ -186,6 +188,7 @@
         if (b.hasAttribute('data-fit')) return fit();
         if (b.hasAttribute('data-relayout')) { nodes.forEach(function (n) { n.pinned = false; }); return run(220); }
         if (b.hasAttribute('data-addc')) return addConcept();
+        if (b.hasAttribute('data-holo')) return holoMap();
         if (b.hasAttribute('data-export')) return document.getElementById('tk-export').click();
         if (b.hasAttribute('data-pick')) { selE = b.getAttribute('data-pick'); selN = null; draw(); return panel(); }
         if (b.hasAttribute('data-connect')) { connectFrom = selN; hint.textContent = 'Tap the node to connect “' + lab(selN) + '” to — or tap the background to cancel'; return draw(); }
@@ -198,6 +201,12 @@
         if (b.hasAttribute('data-eflip')) { TK.silently(function () { ks.updateRelation(ed.id, { from: ed.to, to: ed.from, provenance: 'user' }); }); return refresh(); }
         if (b.hasAttribute('data-edel')) { if (ed.source_ref && ed.source_ref.indexOf('fwi:') === 0 && !confirm('This link comes from a framework. Delete it here anyway? (The framework node stays.)')) return; TK.silently(function () { ks.unrelate(ed.id); }); selE = null; return refresh(); }
       });
+      // ◉ the concept in the user's own words' language (a Chinese thought → Chinese Wikipedia)
+      function holoMap() {
+        var k = ks.object(ko.id), c = k.root_concept && ks.getConcept(k.root_concept), zh = /[㐀-鿿]/.test(k.title || '');
+        var topic = c ? (zh ? c.labels.zh || c.labels.en : c.labels.en || c.labels.zh) : k.title;
+        TK.holoWiki(topic || k.title, /[㐀-鿿]/.test(topic || '') ? 'zh' : 'en');
+      }
       function addConcept() {
         var v = prompt('New concept name'); if (!v || !v.trim()) return;
         var c; TK.silently(function () { c = ks.concept(v.trim(), { kind: 'concept', provenance: 'user' }); ks.addToObject(ko.id, c); });

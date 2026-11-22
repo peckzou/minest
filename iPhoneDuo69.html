@@ -183864,7 +183864,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   function post(m) { try { frame.contentWindow.postMessage(m, '*'); } catch (e) {} }
   /* the Holographic Workbench in 知识星图 keeps its links and groups in the Cognitive Toolkit's store — this page writes
      them (same records and write-time stamps as the toolkit, so its cloud sync carries them); boards are not touched */
-  var TKP = 'minest.lab.kw.', TKM = 'minest.toolkit.meta', want = null;
+  var TKP = 'minest.lab.kw.', TKM = 'minest.toolkit.meta', want = null, wiki = null;
   function wbAll() { var o = {}; try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf(TKP) === 0) { var kk = k.slice(TKP.length); if (/^(kr|cc):/.test(kk)) o[kk] = JSON.parse(localStorage.getItem(k)); } } } catch (e) {} return o; }
   function wbWrite(k, v) { try { if (v == null) localStorage.removeItem(TKP + k); else localStorage.setItem(TKP + k, JSON.stringify(v)); var mt = JSON.parse(localStorage.getItem(TKM) || '{}'); mt[k] = Math.max(Date.now(), (mt[k] || 0) + 1); localStorage.setItem(TKM, JSON.stringify(mt)); } catch (e) {} }
   function finish(r) {
@@ -183876,7 +183876,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
   function onMsg(e) {
     var m = e.data; if (!el || !m || m.holo !== 1 || !frame || e.source !== frame.contentWindow) return;
-    if (m.op === 'ready') { if (want) post({ holo: 1, op: 'mode', id: want }); post({ holo: 1, op: 'content', data: snapshot() }); if (el && el.classList.contains('from-watch')) post({ holo: 1, op: 'boot' }); }
+    if (m.op === 'ready') { if (want) post({ holo: 1, op: 'mode', id: want }); if (wiki) post({ holo: 1, op: 'wiki', topic: wiki.topic, lang: wiki.lang }); post({ holo: 1, op: 'content', data: snapshot() }); if (el && (el.classList.contains('from-watch') || wiki)) post({ holo: 1, op: 'boot' }); }   // the watch or ◉ 全息概览 already was the tap
     else if (m.op === 'wb-get') post({ holo: 1, op: 'wb', data: wbAll() });
     else if (m.op === 'wb-write' && typeof m.key === 'string' && /^(kr|cc):[A-Za-z0-9_-]+$/.test(m.key)) wbWrite(m.key, m.value);
     else if (m.op === 'toolkit') { var tw = HW(), q = { input: String(m.input || '').slice(0, 200), card: m.card || null }; finish(null); setTimeout(function () { try { var O = tw.MinestOmni || root.MinestOmni; if (O) O.openCard(q.card || 'compass', q.input); else (tw.MinestToolkitHost || root.MinestToolkitHost).open(q); } catch (er) {} }, 360); }
@@ -183897,9 +183897,12 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     }
   }
   /** open the lab; cb(null) = back where you were, cb({feature, after}) = open that in Minest */
-  /** opts.mode: start in that mode (e.g. 'stars' = 知识星图) · opts.from {x,y}: unfold from that point (the knowledge watch) */
+  /** opts.mode: start in that mode (e.g. 'stars' = 知识星图) · opts.from {x,y}: unfold from that point (the knowledge watch)
+      opts.wiki {topic, lang}: show that concept's Wikipedia article as a bubble map in 知识星图 (the Knowledge Graph's ◉) */
   function open(cb, opts) {
     if (el) return; done = cb || null; opts = opts || {}; want = opts.mode || null;
+    wiki = opts.wiki && typeof opts.wiki.topic === 'string' && opts.wiki.topic.trim() ? { topic: opts.wiki.topic.trim().slice(0, 120), lang: opts.wiki.lang === 'zh' || opts.wiki.lang === 'en' ? opts.wiki.lang : null } : null;
+    if (wiki) want = 'stars';
     el = document.createElement('div'); el.id = 'mn-holo-lab';
     el.style.cssText = 'position:fixed;inset:0;z-index:2147483620;background:#02060a;opacity:0;transition:opacity .3s';   // above Spatial Home (2147483600)
     if (opts.from) { var fx = Math.max(0, Math.min(innerWidth, opts.from.x)), fy = Math.max(0, Math.min(innerHeight, opts.from.y)); el.classList.add('from-watch'); el.style.setProperty('--ox', fx + 'px'); el.style.setProperty('--oy', fy + 'px');

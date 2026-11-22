@@ -37,9 +37,9 @@
     requestAnimationFrame(function () { ov.classList.add('on'); });
   }
   // the workbench lives in Holo Lab's 知识星图 (spatial-home/js/holo-lab.js); the toolkit's own nebula is only a fallback
-  function holo() {
+  function holo(wiki) {
     var H = window.SpatialHoloLab;
-    if (H) H.open(function (r) { try { if (window.MinestUniverse && window.MinestUniverse.close) window.MinestUniverse.close(); } catch (e) {} if (r && r.after && window.MinestAI) setTimeout(function () { r.after(window); }, 200); }, { mode: 'stars' });
+    if (H) H.open(function (r) { try { if (window.MinestUniverse && window.MinestUniverse.close) window.MinestUniverse.close(); } catch (e) {} if (r && r.after && window.MinestAI) setTimeout(function () { r.after(window); }, 200); }, { mode: 'stars', wiki: wiki && typeof wiki === 'object' ? wiki : null });
     else open({ nebula: true });
   }
   function close() {
@@ -68,13 +68,13 @@
     var m = e.data; if (!m || m.type !== 'minest-toolkit') return;
     var mine = frame && e.source === frame.contentWindow, other = adopted.filter(function (f) { return f.contentWindow === e.source; })[0];   // the full-screen frame, or My World's input panel
     if (!mine && !other) return;
-    if (other && (m.action === 'close' || m.action === 'capture' || m.action === 'holo' || m.action === 'ready')) { try { other.dispatchEvent(new CustomEvent('tk-' + m.action, { detail: m })); } catch (x) {} if (m.action !== 'capture') return; }
+    if (other && (m.action === 'close' || m.action === 'capture' || m.action === 'holo' || m.action === 'ready')) { try { other.dispatchEvent(new CustomEvent('tk-' + m.action, { detail: m })); } catch (x) {} if (m.action === 'holo') reply(e.source, m.id, { ok: !!window.SpatialHoloLab }); if (m.action !== 'capture') return; }
     var src = e.source, u;
     if (m.action === 'hello') return reply(src, m.id, { host: 'minest', user: user() ? { email: user().email || '' } : null, worlds: !!window.MinestWorld });
     if (m.action === 'items') return reply(src, m.id, items());
     if (m.action === 'close') return close();
     if (m.action === 'ready') return;
-    if (m.action === 'holo') { close(); setTimeout(holo, 260); return reply(src, m.id, { ok: !!window.SpatialHoloLab }); }
+    if (m.action === 'holo') { close(); setTimeout(function () { holo(m.wiki); }, 260); return reply(src, m.id, { ok: !!window.SpatialHoloLab }); }
     if (m.action === 'capture') {
       close();
       setTimeout(function () { try { if (window.MinestCapture) window.MinestCapture.open({ text: String(m.text || '') }); } catch (x) {} }, 260);

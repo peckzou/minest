@@ -559,13 +559,16 @@
   S.build = function (keep) {
     var oldPos = {}; if (keep) S.nodes.forEach(function (n) { oldPos[n.uid] = n.p.clone(); });
     S.clear();
+    if (HL.wikiLoading) { HL.empty('正在读取维基百科… · Reading Wikipedia…', HL.wikiLoading); return; }
+    var wk = HL.wiki ? S.wikiGraph(HL.wiki) : null;
     var c = HL.content, items = [];
-    items = items.concat(c.charts.slice(0, 24), c.knowledge.slice(0, 48));
+    if (!wk) items = items.concat(c.charts.slice(0, 24), c.knowledge.slice(0, 48));
     var lists = c.lists.slice(0, 12).map(function (l) { return l.items.slice(); }), room = 112 - items.length, more = true;
+    if (wk) room = 0;
     while (room > 0 && more) { more = false; for (var li = 0; li < lists.length && room > 0; li++) { var x = lists[li].shift(); if (x) { items.push(x); room--; more = true; } } }
-    if (!items.length) { HL.empty('还没有可连接的内容 · Nothing to connect yet', '单词表、Anchor Chart 和知识卡会在这里连成星图'); return; }
+    if (!items.length && !wk) { HL.empty('还没有可连接的内容 · Nothing to connect yet', '单词表、Anchor Chart 和知识卡会在这里连成星图'); return; }
     HL.empty('');
-    var hubs = {}, nodes = [], edges = [], R0 = u.rng(7);
+    var hubs = {}, nodes = wk ? wk.nodes : [], edges = wk ? wk.edges : [], R0 = u.rng(7);
     items.forEach(function (it) {
       if (!hubs[it.group]) { var h = { hub: true, uid: 'hub:' + it.group, it: { kind: 'group', id: it.group, title: it.groupTitle, text: '', uid: 'hub:' + it.group, groupTitle: '', tags: [], listKey: /^l:/.test(it.group) ? it.group.slice(2) : null }, members: [], color: '#ffd27a' }; hubs[it.group] = h; nodes.push(h); }
       if (it.kind === 'chart') hubs[it.group].color = it.ink;
@@ -581,15 +584,16 @@
     // the same words appearing in different lists/subjects (same title) → link
     var byTitle = {}; nodes.forEach(function (n, i) { if (n.hub) return; var k = (n.it.title || '').toLowerCase(); (byTitle[k] = byTitle[k] || []).push(i); });
     Object.keys(byTitle).forEach(function (k) { var a = byTitle[k]; for (var i = 0; i < a.length - 1 && edges.length < 440; i++) edges.push([a[i], a[i + 1], 1]); });
-    nodes.forEach(function (n) { if (n.hub) n.it.text = n.members.slice(0, 40).map(function (m) { return '· ' + m.title; }).join('\n') + (n.members.length > 40 ? '\n…' : ''); });
+    nodes.forEach(function (n) { if (n.hub && !n.it.wiki) n.it.text = n.members.slice(0, 40).map(function (m) { return '· ' + m.title; }).join('\n') + (n.members.length > 40 ? '\n…' : ''); });
     var RX = HL.narrow ? 1.5 : 2.4, RY = 1.05;
     nodes.forEach(function (n, i) {
       n.v = V(); n.adj = [];
       if (oldPos[n.uid]) { n.p = oldPos[n.uid]; return; }
+      if (n.p0) { n.p = n.p0.clone(); return; }
       if (n.hub) { var a = i / Math.max(1, nh) * Math.PI * 2; n.p = V(Math.cos(a) * RX * 0.55, (R0() - 0.5) * 0.8, Math.sin(a) * RX * 0.4); }
       else n.p = V((R0() - 0.5) * RX, (R0() - 0.5) * RY, (R0() - 0.5) * RX * 0.6);
     });
-    nodes.forEach(function (n) { if (!n.hub) { var h = hubs[n.it.group]; if (!oldPos[n.uid]) n.p.copy(h.p).add(V((R0() - 0.5) * 0.6, (R0() - 0.5) * 0.6, (R0() - 0.5) * 0.6)); } });
+    nodes.forEach(function (n) { if (!n.hub && !n.p0) { var h = hubs[n.it.group]; if (!oldPos[n.uid]) n.p.copy(h.p).add(V((R0() - 0.5) * 0.6, (R0() - 0.5) * 0.6, (R0() - 0.5) * 0.6)); } });
     edges.forEach(function (e) { nodes[e[0]].adj.push(e[1]); nodes[e[1]].adj.push(e[0]); });
     S.nodes = nodes; S.edges = edges; S.alpha = keep ? 0.25 : 1;
     if (S.wb && S.wb.onBuild) S.wb.onBuild(nodes, edges);
@@ -620,6 +624,42 @@
     S.lines = new T.LineSegments(eg, em); S.lines.frustumCulled = false; S.root.add(S.lines);
     S.eg = eg;
   };
+  /* 维基概览: a Wikipedia article as a bubble map in this same constellation (data: tools/toolkit/wiki-map.js).
+     The concept is the middle star; each part of the article is a cluster round it; the ideas that part links to most
+     are its stars. Nothing is written anywhere — it is a view; ✕ 退出词条 brings the user's own constellation back. */
+  S.wikiGraph = function (m) {
+    var RX = HL.narrow ? 1.2 : 1.85, PAL = (window.MinestWikiMap && MinestWikiMap.PAL) || ['#5ee7ff'], nodes = [], edges = [], A = Math.max(1, m.aspects.length);
+    var src = m.lang === 'zh' ? '维基百科' : 'Wikipedia';
+    var c = { hub: true, uid: 'wiki:c', color: '#bff7ff', members: [], pinned: true, p0: V(0, 0, 0),
+      it: { kind: 'group', wiki: m, wikiRole: 'center', id: 'wiki:c', uid: 'wiki:c', title: m.title, text: '', groupTitle: src, tags: [] } };
+    nodes.push(c);
+    m.aspects.forEach(function (a, i) {
+      var th = i / A * Math.PI * 2 - Math.PI / 2, col = PAL[i % PAL.length], p = V(Math.cos(th) * RX * 0.62, (i % 2 ? 1 : -1) * 0.2, Math.sin(th) * RX * 0.46);
+      var h = { hub: true, uid: 'wiki:a' + i, color: col, members: [], p0: p,
+        it: { kind: 'group', wiki: m, wikiRole: 'aspect', aspect: a, id: 'wiki:a' + i, uid: 'wiki:a' + i, title: a.name, text: '', groupTitle: m.title + ' · ' + src, tags: [] } };
+      nodes.push(h); var hi = nodes.length - 1; edges.push([0, hi, 2]); c.members.push(h.it);
+      var out = V(p.x, 0, p.z).normalize(), L = a.links.length;
+      a.links.forEach(function (l, k) {
+        var al = k / Math.max(1, L) * Math.PI * 2 + i, q = p.clone().add(out.clone().multiplyScalar(0.36)).add(V(-out.z * Math.cos(al) * 0.28, Math.sin(al) * 0.24, out.x * Math.cos(al) * 0.28));
+        var it = { kind: 'wiki', wiki: m, wikiRole: 'idea', wikiTitle: l.title, id: 'wiki:' + i + ':' + k, uid: 'wiki:' + i + ':' + k, title: l.label, text: '', group: 'wiki:a' + i, groupTitle: a.name, tags: l.title !== l.label ? [l.title] : [] };
+        nodes.push({ hub: false, uid: it.uid, it: it, color: col, p0: q }); edges.push([nodes.length - 1, hi, 0]); h.members.push(it);
+      });
+      h.it.text = (a.gist ? a.gist + '\n\n' : '') + h.members.map(function (x) { return '· ' + x.title; }).join('\n');
+    });
+    c.it.text = (m.def ? m.def + '\n\n' : '') + c.members.map(function (x) { return '◦ ' + x.title + ' (' + (x.aspect.links.length) + ')'; }).join('\n');
+    return { nodes: nodes, edges: edges };
+  };
+  S.wikiActions = function (it) {
+    var m = it.wiki, W = window.MinestWikiMap, out = []; if (!m || !W) return out;
+    var go = function (u) { try { window.open(u, '_blank', 'noopener'); } catch (e) {} };
+    if (it.wikiRole === 'idea') {
+      out.push(['◎ 以它为中心 Centre on it', function () { HL.openWiki(it.wikiTitle, m.lang, true); }, 'pri']);
+      out.push(['↗ 维基百科 Wikipedia', function () { go(W.url(m.lang, it.wikiTitle)); }]);
+    } else if (it.wikiRole === 'aspect') out.push(['↗ 阅读这一部分 Read this part', function () { go(W.url(m.lang, m.title, it.aspect.id)); }]);
+    else out.push(['↗ 打开原文 Open the article', function () { go(m.url); }, 'pri']);
+    return out;
+  };
+
   S.step = function () {
     var n = S.nodes, a = S.alpha, i, j, RX = HL.narrow ? 1.55 : 2.5;
     for (i = 0; i < n.length; i++) {
@@ -688,7 +728,16 @@
     HL.focus(S.world(i), HL.cam.homeDist * 0.55);
     if (!quiet) {
       var it = N0.it, nbs = N0.adj.map(function (j) { return S.nodes[j].it.title; }).filter(function (t, k, a) { return a.indexOf(t) === k; });
-      HL.detail.open(it, { sub: N0.hub ? N0.members.length + ' 项 · ' + (N0.adj.length) + ' 条连线' : '相连 linked: ' + nbs.slice(0, 6).join(' · ') + (nbs.length > 6 ? ' …' : '') });
+      var ex = { sub: N0.hub ? N0.members.length + ' 项 · ' + (N0.adj.length) + ' 条连线' : '相连 linked: ' + nbs.slice(0, 6).join(' · ') + (nbs.length > 6 ? ' …' : '') };
+      if (it.wiki) {
+        ex.actions = S.wikiActions(it);
+        if (it.wikiRole === 'idea' && !it.text && window.MinestWikiMap) {
+          ex.body = '正在读取摘要… · Loading…';
+          MinestWikiMap.summary(it.wiki.lang, it.wikiTitle).then(function (r) { it.text = r.text || '没有摘要 · No summary'; }).catch(function () { it.text = '没能读取摘要 · Couldn’t load the summary'; })
+            .then(function () { if (HL.detail.item === it) { delete HL.detail.extra.body; HL.detail.render(false); } });
+        }
+      }
+      HL.detail.open(it, ex);
     }
   };
   S.tap = function (h) {
@@ -702,11 +751,20 @@
   S.dragEnd = function (h) { S.nodes[h.i].pinned = false; S.dragging = false; };
   S.tools = function (box) {
     var ui = HL.ui;
+    if (HL.wiki || HL.wikiLoading) {
+      ui.chip(box, '✕ 退出词条', false, function () { HL.closeWiki(); }, '回到我的知识星图 · Back to my constellation');
+      if (HL.wikiHist.length > 1) ui.chip(box, '← ' + HL.wikiHist[HL.wikiHist.length - 2].title, false, function () { HL.wikiHist.pop(); var h = HL.wikiHist.pop(); HL.openWiki(h.title, h.lang, true); }, '上一个词条 · Previous article');
+      var m = HL.wiki, other = m && (m.lang === 'zh' ? 'en' : 'zh');
+      if (m && m.langlinks[other]) ui.chip(box, other === 'en' ? 'EN' : '中', false, function () { HL.openWiki(m.langlinks[other], other, true); }, other === 'en' ? '英文维基百科 · English Wikipedia' : '中文维基百科 · Chinese Wikipedia');
+      if (m) { ui.sep(box); ui.lab(box, (m.lang === 'zh' ? '维基百科「' + m.title + '」' : 'Wikipedia “' + m.title + '”') + ' · CC BY-SA 4.0'); }
+      if (!S.nodes.length) return;
+      ui.sep(box);
+    }
     if (!S.nodes.length) return;
     ui.chip(box, '↻ 重新布局', false, function () { S.focus = -1; HL.detail.close(); HL.home(); S.build(false); HL.appearAt = HL.now; });
     ui.chip(box, '◎ 回中心', false, function () { S.focus = -1; HL.detail.close(); HL.home(); });
     ui.sep(box);
-    [['#6fe3ff', '单词'], ['#9fc4ff', '卡片'], ['#e0a060', 'Anchor'], ['#b58cff', '知识'], ['#ffd27a', '分组']].forEach(function (l) { var s = document.createElement('span'); s.className = 'lab'; s.innerHTML = '<b style="color:' + l[0] + '">●</b> ' + l[1]; box.appendChild(s); });
+    if (!HL.wiki) [['#6fe3ff', '单词'], ['#9fc4ff', '卡片'], ['#e0a060', 'Anchor'], ['#b58cff', '知识'], ['#ffd27a', '分组']].forEach(function (l) { var s = document.createElement('span'); s.className = 'lab'; s.innerHTML = '<b style="color:' + l[0] + '">●</b> ' + l[1]; box.appendChild(s); });
     ui.sep(box); ui.lab(box, S.nodes.length + ' 节点 · ' + S.edges.length + ' 连线');
     if (S.wb && S.wb.tools) S.wb.tools(box);
   };

@@ -225,10 +225,10 @@
   HL.wrap = wrap;
   function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
   HL.rr = rr;
-  HL.KIND = { word: ['单词', 'WORD'], card: ['卡片', 'CARD'], chart: ['Anchor Chart', 'CHART'], knowledge: ['知识', 'NOTE'], work: ['3D Type', 'WORK'], group: ['分组', 'GROUP'] };
+  HL.KIND = { word: ['单词', 'WORD'], card: ['卡片', 'CARD'], chart: ['Anchor Chart', 'CHART'], knowledge: ['知识', 'NOTE'], work: ['3D Type', 'WORK'], group: ['分组', 'GROUP'], wiki: ['维基', 'WIKI'] };
   HL.kindColor = function (it) {
     if (it.kind === 'chart' && it.ink) return it.ink;
-    return { word: '#6fe3ff', card: '#9fc4ff', knowledge: '#b58cff', work: it.lookCss || '#ff7a4a', group: '#ffd27a' }[it.kind] || '#6fe3ff';
+    return { word: '#6fe3ff', card: '#9fc4ff', knowledge: '#b58cff', work: it.lookCss || '#ff7a4a', group: '#ffd27a', wiki: '#5ee7ff' }[it.kind] || '#6fe3ff';
   };
   /** a glass card canvas for an item (title + text + footer) */
   HL.cardCanvas = function (it, W, H, opt) {
@@ -612,7 +612,36 @@
     else if (m.op === 'mode' && HL.modes[m.id]) { HL.wantMode = m.id; if (HL.contentReady) setMode(m.id); }   // e.g. opened from the knowledge watch: straight to 知识星图
     else if (m.op === 'wb' && HL.onWB) HL.onWB(m);
     else if (m.op === 'boot' && boot.state === 'idle') startBoot();   // summoned from the knowledge watch: the beam boots it
+    else if (m.op === 'wiki' && typeof m.topic === 'string' && m.topic.trim()) HL.openWiki(str(m.topic, 120), m.lang === 'zh' || m.lang === 'en' ? m.lang : null);   // 知识图谱 ◉ 全息概览
   });
+
+  /* ───────────────────────── 维基概览 · a Wikipedia article in 知识星图 ─────────────────────────
+     HL.wiki is the map being shown (tools/toolkit/wiki-map.js); while it is set the constellation draws it instead of
+     the user's own content. Reading only — nothing is written. */
+  HL.wiki = null; HL.wikiLoading = ''; HL.wikiHist = []; var wikiTok = 0;
+  HL.openWiki = function (topic, lang, push, tries) {
+    if (!window.MinestWikiMap) { if ((tries || 0) < 60) setTimeout(function () { HL.openWiki(topic, lang, push, (tries || 0) + 1); }, 100); return; }
+    var tk = ++wikiTok, keep = HL.wiki;
+    HL.wikiLoading = String(topic); HL.detail.close();
+    if (!HL.active || HL.active.id !== 'stars') { HL.wantMode = 'stars'; if (HL.contentReady) setMode('stars'); } else if (HL.contentReady) { HL.active.focus = -1; HL.home(); HL.active.build(false); HL.appearAt = HL.now; }
+    HL.refreshTools();
+    MinestWikiMap.load(topic, lang).then(function (m) {
+      if (tk !== wikiTok) return;
+      HL.wiki = m; HL.wikiLoading = '';
+      if (!push) HL.wikiHist = []; HL.wikiHist.push({ title: m.title, lang: m.lang });
+      if (m.disamb) HL.toast('这个词有多种含义——点一个你想看的 · Several meanings: pick one', 3200);
+    }).catch(function () {
+      if (tk !== wikiTok) return;
+      HL.wikiLoading = ''; HL.wiki = keep;
+      HL.toast(keep ? '没能打开这个词条 · Couldn’t open that article' : '连不上维基百科 · Couldn’t reach Wikipedia', 2600);
+    }).then(function () {
+      if (tk !== wikiTok) return;
+      if (HL.active && HL.active.id === 'stars' && HL.contentReady) { HL.active.focus = -1; HL.home(); HL.active.build(false); HL.appearAt = HL.now; }
+      HL.refreshTools();
+    });
+  };
+  HL.closeWiki = function () { wikiTok++; HL.wiki = null; HL.wikiLoading = ''; HL.wikiHist = []; HL.detail.close(); if (HL.active && HL.active.id === 'stars') { HL.active.focus = -1; HL.home(); HL.active.build(false); HL.appearAt = HL.now; } HL.refreshTools(); };
+  HL.wikiFromHash = function () { var h = location.hash.match(/[#&]wiki=([^&]+)/), l = location.hash.match(/[#&]lang=(zh|en)/); if (h) { try { HL.openWiki(decodeURIComponent(h[1]).slice(0, 120), l ? l[1] : null); } catch (e) {} } };
 
   /* ───────────────────────── item actions (edit / open) ───────────────────────── */
   HL.canSync = function () { return EMBED && !HL.content.isSample; };
@@ -662,12 +691,14 @@
       if (ex.sub) { var sb = document.createElement('div'); sb.className = 'sub'; sb.textContent = ex.sub; D.appendChild(sb); }
       var body = ex.body != null ? ex.body : it.text;
       if (body) { var t = document.createElement('div'); t.className = 'tx'; t.textContent = body; D.appendChild(t); }
-      else if (it.kind !== 'work' && it.kind !== 'group') { var t0 = document.createElement('div'); t0.className = 'note'; t0.textContent = '还没有释义 · No meaning yet'; D.appendChild(t0); }
+      else if (it.kind !== 'work' && it.kind !== 'group' && !it.wiki) { var t0 = document.createElement('div'); t0.className = 'note'; t0.textContent = '还没有释义 · No meaning yet'; D.appendChild(t0); }
       var tags = (it.tags || []).slice(); if (it.learned || it.mastered) tags.unshift(it.kind === 'chart' ? '✓ 已掌握 mastered' : '✓ 已学会 learned');
       if (tags.length) { var tg = document.createElement('div'); tg.className = 'tags'; tags.forEach(function (s) { var sp = document.createElement('span'); sp.textContent = s; tg.appendChild(sp); }); D.appendChild(tg); }
       var list = [];
-      if (it.kind !== 'work' && it.kind !== 'group') list.push(['✎ 编辑 Edit', function () { self.render(true); }]);
-      if (it.kind === 'work') list.push(['↗ 在 3D Type 打开', function () { HL.openItem(it); }, 'pri']);
+      if (it.wiki) { /* a Wikipedia star: nothing to edit or open in Minest — its own actions come in ex.actions */ }
+      else if (it.kind !== 'work' && it.kind !== 'group') list.push(['✎ 编辑 Edit', function () { self.render(true); }]);
+      if (it.wiki) {}
+      else if (it.kind === 'work') list.push(['↗ 在 3D Type 打开', function () { HL.openItem(it); }, 'pri']);
       else if (it.kind !== 'group') list.push(['↗ 打开原卡 Open', function () { HL.openItem(it); }, 'pri']);
       else if (it.listKey) list.push(['↗ 打开列表 Open list', function () { if (!HL.canSync()) { HL.toast(EMBED ? '示例内容没有原列表 · Sample' : '从 Spatial Home 或 My World 进入后可打开列表'); return; } post({ holo: 1, op: 'open', kind: 'list', key: it.listKey }); HL.toast('正在打开列表…'); }, 'pri']);
       (ex.actions || []).forEach(function (a) { list.push(a); });

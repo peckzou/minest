@@ -41,7 +41,7 @@
     frame.addEventListener('tk-ready', function () { frameReady = true; var q = queue; queue = []; q.forEach(send); preview(); });
     frame.addEventListener('tk-close', function () { closeCard(); });
     frame.addEventListener('tk-capture', function () { close(); });
-    frame.addEventListener('tk-holo', function () { close(); setTimeout(function () { if (MinestToolkitHost && MinestToolkitHost.constellation) MinestToolkitHost.constellation(); }, 220); });
+    frame.addEventListener('tk-holo', function (e) { var w = e.detail && e.detail.wiki; close(); setTimeout(function () { if (MinestToolkitHost && MinestToolkitHost.constellation) MinestToolkitHost.constellation(w); }, 220); });
     return frame;
   }
   function send(m) { if (!frame || !frameReady) { queue.push(m); ensureFrame(); return; } try { frame.contentWindow.postMessage(Object.assign({ type: 'minest-toolkit-cmd' }, m), '*'); } catch (e) {} }

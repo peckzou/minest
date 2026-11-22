@@ -190,3 +190,20 @@ console.log('toolkit: ok');
   at(4).forEach(c => assert(c.t >= c.parent.t, c.id + ' not before its thought'));
 }
 console.log('nebula: ok');
+
+// ---------------------------------------------------------------- 知识图谱 ◉ 全息概览: Wikipedia → bubble map (data rules)
+{
+  const WM = require(path.join(R, 'tools/toolkit/wiki-map.js'));
+  assert.strictEqual(WM.cleanQuery('什么是自由？'), '自由');
+  assert.strictEqual(WM.cleanQuery('自由是什么?'), '自由');
+  assert.strictEqual(WM.cleanQuery('What is the freedom?'), 'freedom');
+  assert.strictEqual(WM.cleanQuery('Liberty'), 'Liberty');
+  assert(WM.isZh('自由') && !WM.isZh('Liberty'));
+  assert.strictEqual(WM.sentences('第一句。第二句。第三句。', 2), '第一句。第二句。');
+  assert.strictEqual(WM.sentences('One. Two[3]. Three.', 2), 'One. Two.', 'citation marks are dropped');
+  assert(WM.sentences('一'.repeat(300), 1, 50).length === 50 && WM.sentences('一'.repeat(300), 1, 50).endsWith('…'));
+  ['参见', '参考文献', 'See also', 'References', 'External links'].forEach(s => assert(WM.SKIP.test(s), s + ' is not a part of the concept'));
+  ['定义', '历史', 'Philosophy'].forEach(s => assert(!WM.SKIP.test(s), s + ' is a part'));
+  assert.strictEqual(WM.url('zh', '法国 大革命', '历史'), 'https://zh.wikipedia.org/wiki/%E6%B3%95%E5%9B%BD_%E5%A4%A7%E9%9D%A9%E5%91%BD#%E5%8E%86%E5%8F%B2');
+}
+console.log('wiki map: ok');

@@ -80,7 +80,7 @@
     var ts = meta.map(function (m) { return m.t; }).filter(Boolean); tMin = ts.length ? Math.min.apply(0, ts) : Date.now() - 864e5; tMax = Date.now();
     held.forEach(function (h) { var j = -1; ns.forEach(function (n, k) { if (n.uid === h.uid) j = k; }); h.i = j; if (j >= 0) meta[j].pulled = true; });
     path = null; pathA = -1;
-    if (!Object.keys(expanded).length) setLevel(level, true);
+    if (!ns.some(function (n) { return expanded[n.uid]; })) setLevel(level, true);   // a different constellation (e.g. a Wikipedia map): open it to the current level
     buildBeams();
   };
 

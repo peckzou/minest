@@ -17,6 +17,7 @@
     'Import a knowledge object (JSON)': '导入知识对象（JSON）', 'New thought': '新想法', 'Export JSON': '导出 JSON', 'Delete': '删除', 'Five cards': '五卡入口', 'Open →': '打开 →',
     'Question': '疑问', 'Goal': '目标', 'Hypothesis': '假设', 'Opinion': '观点', 'Concept / term': '概念 / 词汇', 'Statement / event': '陈述 / 事件', 'Input': '输入',
     'confirmed by you': '已由你确认', 'suggested': '建议', 'Not placed yet': '尚未定位', 'Confirmed': '已确认', 'Suggested': '建议', 'Not placed yet — place it yourself': '尚未定位——请自行定位',
+    'Holo map': '全息概览', 'See this concept’s Wikipedia article as a bubble map in Holo Lab’s Knowledge Constellation': '在 Holo Lab 的知识星图里，用气泡图梳理这个概念的维基百科词条', 'Holo Lab is not available here': '这里打不开 Holo Lab', 'The Minest app did not answer': 'Minest 没有响应',
     // card names + lines
     'Thought Compass': '思想罗盘', 'Framework Card': '知识框架卡', 'Thinking Models': '思维模型卡', 'Thinking Lab': '思维实验室', 'Knowledge Graph': '知识图谱卡',
     'Find where a thought sits and which way to think next.': '找到想法所在的位置，以及下一步往哪里想。', 'Organise ideas into a structure you can edit.': '把想法组织成可编辑的结构。',

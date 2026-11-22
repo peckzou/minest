@@ -374,6 +374,14 @@ select { max-width: 100%; text-overflow: ellipsis; }
 .gr-canvas { position: relative; height: min(72vh, 680px); background: radial-gradient(circle at 50% 50%, var(--card), var(--bg)); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
 .gr-svg { width: 100%; height: 100%; touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
 .gr-tools { position: absolute; top: 10px; left: 10px; display: flex; gap: 4px; flex-wrap: wrap; } .gr-tools button { padding: 5px 10px; font-size: 13px; background: color-mix(in srgb, var(--card) 85%, transparent); backdrop-filter: blur(6px); }
+.gr-holo { position: absolute; top: 10px; right: 10px; display: flex; align-items: center; gap: 8px; padding: 7px 14px 7px 10px; border-radius: 999px; border: 1px solid #5ee7ff99; color: #e6fcff; font-weight: 650; font-size: 13px; background: radial-gradient(120% 160% at 20% 0%, #1b6f8a, #0a2238 70%); box-shadow: 0 0 18px #5ee7ff55, inset 0 0 12px #5ee7ff33; cursor: pointer; overflow: hidden; }
+.gr-holo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, #ffffff40 50%, transparent 70%); transform: translateX(-100%); animation: grHoloSheen 3.6s ease-in-out infinite; pointer-events: none; }
+.gr-holo i { position: relative; width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid #9ff3ff; box-shadow: 0 0 8px #5ee7ff; }
+.gr-holo i::before { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: #9ff3ff; animation: grHoloPulse 1.8s ease-in-out infinite; }
+.gr-holo:hover { box-shadow: 0 0 28px #5ee7ffaa, inset 0 0 14px #5ee7ff55; }
+@keyframes grHoloSheen { 0%, 55% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+@keyframes grHoloPulse { 0%, 100% { transform: scale(.55); opacity: .7; } 50% { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .gr-holo::after, .gr-holo i::before { animation: none; } }
 .gr-hint { position: absolute; bottom: 10px; left: 10px; right: 10px; text-align: center; font-size: 13px; color: var(--acc); font-weight: 600; pointer-events: none; }
 .gr-hit { stroke: transparent; stroke-width: 14; fill: none; cursor: pointer; }
 .gr-line { fill: none; stroke-width: 1.8; opacity: .75; } .gr-line.sug { stroke-dasharray: 5 4; } .gr-line.t-refutes { stroke-dasharray: 2 3; stroke-width: 2.2; }
@@ -627,6 +635,7 @@ html.tk-panel main { padding-bottom: 24px !important; }
     'Import a knowledge object (JSON)': '导入知识对象（JSON）', 'New thought': '新想法', 'Export JSON': '导出 JSON', 'Delete': '删除', 'Five cards': '五卡入口', 'Open →': '打开 →',
     'Question': '疑问', 'Goal': '目标', 'Hypothesis': '假设', 'Opinion': '观点', 'Concept / term': '概念 / 词汇', 'Statement / event': '陈述 / 事件', 'Input': '输入',
     'confirmed by you': '已由你确认', 'suggested': '建议', 'Not placed yet': '尚未定位', 'Confirmed': '已确认', 'Suggested': '建议', 'Not placed yet — place it yourself': '尚未定位——请自行定位',
+    'Holo map': '全息概览', 'See this concept’s Wikipedia article as a bubble map in Holo Lab’s Knowledge Constellation': '在 Holo Lab 的知识星图里，用气泡图梳理这个概念的维基百科词条', 'Holo Lab is not available here': '这里打不开 Holo Lab', 'The Minest app did not answer': 'Minest 没有响应',
     // card names + lines
     'Thought Compass': '思想罗盘', 'Framework Card': '知识框架卡', 'Thinking Models': '思维模型卡', 'Thinking Lab': '思维实验室', 'Knowledge Graph': '知识图谱卡',
     'Find where a thought sits and which way to think next.': '找到想法所在的位置，以及下一步往哪里想。', 'Organise ideas into a structure you can edit.': '把想法组织成可编辑的结构。',
@@ -2137,6 +2146,13 @@ html.tk-panel main { padding-bottom: 24px !important; }
       var r = e.target.closest('[data-ko]'); if (r) { TK.open(null, { objectId: r.getAttribute('data-ko') }); }
     });
     $('#tk-new').onclick = home;
+    // 知识图谱 ◉ 全息概览: the concept's Wikipedia article as a bubble map in Holo Lab's 知识星图
+    TK.holoWiki = function (topic, lang) {
+      var w = { topic: String(topic || '').slice(0, 120), lang: lang || null };
+      if (EMBED) return host('holo', { wiki: w }).then(function (r) { if (r && r.ok === false) toast('Holo Lab is not available here'); }).catch(function () { toast('The Minest app did not answer'); });
+      var base = /\/tools\/toolkit\//.test(location.pathname) ? '../../holo-lab/index.html' : 'holo-lab/index.html';   // on its own: Holo Lab in a new tab
+      window.open(base + '#wiki=' + encodeURIComponent(w.topic) + (w.lang ? '&lang=' + w.lang : ''), '_blank');
+    };
     $('#tk-nebula').onclick = function () { if (EMBED) host('holo').catch(function () { TK.nebula(); }); else TK.nebula(); };   // in Minest: Holo Lab's 知识星图
     $('#tk-export').onclick = function () {
       if (!TK.ko) return; var data = ks.exportObject(TK.ko.id), blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -3046,6 +3062,7 @@ html.tk-panel main { padding-bottom: 24px !important; }
     if (s.indexOf('mi:') === 0) { var l = ks.labRun(s.slice(3)), d = l && TK.M.get(l.interaction_id); return 'Experiment: ' + (d ? d.title : 'run'); }
     if (s.indexOf('note:') === 0) return 'A note';
     if (s === 'graph') return 'Made in the Graph';
+    if (s.indexOf('wiki:') === 0) return 'Wikipedia ‘' + s.split(':').slice(2).join(':') + '’';
     return s || 'Made in the Graph';
   }
 
@@ -3065,6 +3082,7 @@ html.tk-panel main { padding-bottom: 24px !important; }
         ks.REL.map(function (r) { return '<marker id="ga-' + r.id + '" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="' + r.color + '"/></marker>'; }).join('') +
         '</defs><g class="gr-world"><g class="gr-edges"></g><g class="gr-nodes"></g></g></svg>' +
         '<div class="gr-tools"><button type="button" data-z="1.25" aria-label="Zoom in">＋</button><button type="button" data-z="0.8" aria-label="Zoom out">－</button><button type="button" data-fit>Fit</button><button type="button" data-addc>+ Concept</button><button type="button" data-relayout>Re-arrange</button></div>' +
+        '<button type="button" class="gr-holo" data-holo title="See this concept’s Wikipedia article as a bubble map in Holo Lab’s Knowledge Constellation"><i aria-hidden="true"></i><span>Holo map</span></button>' +
         '<div class="gr-hint"></div></div><aside class="gr-side"></aside></div>';
       var svg = el.querySelector('.gr-svg'), world = el.querySelector('.gr-world'), side = el.querySelector('.gr-side'), hint = el.querySelector('.gr-hint');
 
@@ -3208,6 +3226,7 @@ html.tk-panel main { padding-bottom: 24px !important; }
         if (b.hasAttribute('data-fit')) return fit();
         if (b.hasAttribute('data-relayout')) { nodes.forEach(function (n) { n.pinned = false; }); return run(220); }
         if (b.hasAttribute('data-addc')) return addConcept();
+        if (b.hasAttribute('data-holo')) return holoMap();
         if (b.hasAttribute('data-export')) return document.getElementById('tk-export').click();
         if (b.hasAttribute('data-pick')) { selE = b.getAttribute('data-pick'); selN = null; draw(); return panel(); }
         if (b.hasAttribute('data-connect')) { connectFrom = selN; hint.textContent = 'Tap the node to connect “' + lab(selN) + '” to — or tap the background to cancel'; return draw(); }
@@ -3220,6 +3239,12 @@ html.tk-panel main { padding-bottom: 24px !important; }
         if (b.hasAttribute('data-eflip')) { TK.silently(function () { ks.updateRelation(ed.id, { from: ed.to, to: ed.from, provenance: 'user' }); }); return refresh(); }
         if (b.hasAttribute('data-edel')) { if (ed.source_ref && ed.source_ref.indexOf('fwi:') === 0 && !confirm('This link comes from a framework. Delete it here anyway? (The framework node stays.)')) return; TK.silently(function () { ks.unrelate(ed.id); }); selE = null; return refresh(); }
       });
+      // ◉ the concept in the user's own words' language (a Chinese thought → Chinese Wikipedia)
+      function holoMap() {
+        var k = ks.object(ko.id), c = k.root_concept && ks.getConcept(k.root_concept), zh = /[㐀-鿿]/.test(k.title || '');
+        var topic = c ? (zh ? c.labels.zh || c.labels.en : c.labels.en || c.labels.zh) : k.title;
+        TK.holoWiki(topic || k.title, /[㐀-鿿]/.test(topic || '') ? 'zh' : 'en');
+      }
       function addConcept() {
         var v = prompt('New concept name'); if (!v || !v.trim()) return;
         var c; TK.silently(function () { c = ks.concept(v.trim(), { kind: 'concept', provenance: 'user' }); ks.addToObject(ko.id, c); });

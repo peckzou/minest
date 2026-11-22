@@ -180,6 +180,13 @@
       var r = e.target.closest('[data-ko]'); if (r) { TK.open(null, { objectId: r.getAttribute('data-ko') }); }
     });
     $('#tk-new').onclick = home;
+    // 知识图谱 ◉ 全息概览: the concept's Wikipedia article as a bubble map in Holo Lab's 知识星图
+    TK.holoWiki = function (topic, lang) {
+      var w = { topic: String(topic || '').slice(0, 120), lang: lang || null };
+      if (EMBED) return host('holo', { wiki: w }).then(function (r) { if (r && r.ok === false) toast('Holo Lab is not available here'); }).catch(function () { toast('The Minest app did not answer'); });
+      var base = /\/tools\/toolkit\//.test(location.pathname) ? '../../holo-lab/index.html' : 'holo-lab/index.html';   // on its own: Holo Lab in a new tab
+      window.open(base + '#wiki=' + encodeURIComponent(w.topic) + (w.lang ? '&lang=' + w.lang : ''), '_blank');
+    };
     $('#tk-nebula').onclick = function () { if (EMBED) host('holo').catch(function () { TK.nebula(); }); else TK.nebula(); };   // in Minest: Holo Lab's 知识星图
     $('#tk-export').onclick = function () {
       if (!TK.ko) return; var data = ks.exportObject(TK.ko.id), blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
