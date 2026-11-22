@@ -122,8 +122,8 @@
   // where plate p sits in the assembly for an exploded amount E (0 locked … 1 fully apart), in root space
   function seat(p, E, t, out, rotOut) {
     var mid = (F.layers - 1) / 2, d = p.L - mid, r0 = Math.max(0.5, p.n * PW * 1.04 / (Math.PI * 2)) * (1 - Math.abs(d) * 0.1),
-        a = p.a + (p.L % 2 ? 1 : -1) * (0.3 * E + F.swirl), r = r0 * (1 + E * 0.6) + E * 0.25 + Math.sin(t * 1.3 + p.i) * 0.03 * E,
-        y = d * (PH * 1.08 + E * 0.5) + Math.sin(t * 0.9 + p.i * 1.7) * 0.04 * E;
+        a = p.a + (p.L % 2 ? 1 : -1) * (0.3 * E + F.swirl), r = r0 + (Math.max(r0 * 1.15, F.rOpen) - r0) * E + Math.sin(t * 1.3 + p.i) * 0.03 * E,
+        y = d * (PH * 1.08 + E * F.gap) + Math.sin(t * 0.9 + p.i * 1.7) * 0.04 * E;
     out.set(Math.cos(a) * r, y, Math.sin(a) * r);
     rotOut.set(-d * 0.3 * (1 - E), Math.PI / 2 - a, 0, 'YXZ');
   }
@@ -133,7 +133,13 @@
     if (!F.gOk) F.gOk = guide(true);
     var cam = HL.cam, rd = reduce(), home = cam.homeDist;
     // zooming in is what takes the armour apart; the assembly is scaled so it stays the same size on screen while it does
-    var E = F.E = clamp((home - cam.dist) / (home * (1 - NEAR)), 0, 1), sc = cam.dist / home * (1 + 0.18 * E); root.scale.setScalar(sc);
+    // … and the open armour is sized from the camera, so on any screen its nearest plates stay inside the frame and above the dock:
+    // rho = open radius as a fraction of the camera distance, m = how much bigger than the locked armour it may look
+    var tanV = Math.tan(HL.camera.fov * Math.PI / 360), th = tanV * HL.camera.aspect, rho = Math.min(0.42, 0.72 * th / (0.707 * (1 + th)));
+    F.gap = HL.narrow ? 0.6 : 0.42;
+    var tall = (F.layers - 1) / 2 * (PH * 1.08 + F.gap) + PH / 2, m = Math.min(1.18, 0.72 * tanV * (1 - rho) * home / tall); F.rOpen = rho * home / m;
+    var E = F.E = clamp((home - cam.dist) / (home * (1 - NEAR)), 0, 1), sc = cam.dist / home * (1 + (m - 1) * E); root.scale.setScalar(sc);
+    root.position.y = HL.CENTER.y + E * 0.07 * cam.dist;
     F.swirl += dt * 0.1 * E * (rd || F.sel >= 0 ? 0 : 1);
     F.spin *= Math.exp(-dt * 0.9);
     root.rotation.y += (F.spin + (F.auto && !rd && F.sel < 0 && !F.held ? 0.1 + 0.08 * E : 0)) * dt;
