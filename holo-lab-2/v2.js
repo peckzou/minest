@@ -168,6 +168,14 @@
     if (it === lastTitle || reduce()) return; lastTitle = it; decode(h);
   }).observe(detEl, { childList: true });
 
+  // an edit saved from the data panel: 1.0 redraws the star's label, the cards showing that item follow
+  var edited0 = S.onItemEdited;
+  S.onItemEdited = function (it) {
+    if (edited0) edited0.call(S, it);
+    tags.forEach(function (t) { if (t.i >= 0 && S.nodes[t.i] && S.nodes[t.i].it === it) fillTag(t.el, S.nodes[t.i]); });
+    peek._i = -1;
+  };
+
   // 卡片 Cards chip, added to the constellation's own tool strip
   var tools0 = S.tools;
   S.tools = function (box) {
