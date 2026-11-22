@@ -356,42 +356,62 @@
   var NOBREAK = '，。；：、？！”’）》';
   function wrapZh(x, s, mw) { var out = [], line = '', i, ch; for (i = 0; i < s.length; i++) { ch = s[i]; if (line && x.measureText(line + ch).width > mw && NOBREAK.indexOf(ch) < 0) { out.push(line); line = ch; } else line += ch; } if (line) out.push(line); return out; }
   function wrapEn(x, s, mw) { var out = [], line = ''; s.split(' ').forEach(function (wd) { var t = line ? line + ' ' + wd : wd; if (line && x.measureText(t).width > mw) { out.push(line); line = wd; } else line = t; }); if (line) out.push(line); return out; }
-  /* the verse windows: small lancets low in the aisle walls (the arch crops the top third of the canvas). On a ground of
-     quarries: a medallion with the verse's number, the reference on a band of gold glass, and the verse itself, Chinese over
-     English, each line of it a strip of deep-coloured glass with the letters left clear in it, leaded line from line. */
-  var DEEP = [['#16308f', '#8f1620'], ['#8f1620', '#16308f'], ['#16308f', '#0f5a2c'], ['#5a1f86', '#16308f'], ['#0f5a2c', '#8f1620'], ['#8f1620', '#5a1f86']];
+  /* the verse windows: small lancets low in the aisle walls (the arch crops the top third of the canvas). The whole light is
+     one piece of leaded glass in one of four patterns — rays from the numbered medallion, a mosaic of cut quarries, running
+     waves, scales — in the deep blues, rubies, greens and purples of the story windows; the reference is a band of gold glass
+     and the verse itself, Chinese over English, is lettered into the pattern in clear glass with a lead line round each letter. */
+  var TONES = { b: ['#1a3aa8', '#16308f', '#2450c4', '#1b5fae'], r: ['#a31b26', '#8f1620', '#b8242e', '#9c2238'], g: ['#17662f', '#0f5a2c', '#1f7a3c', '#14705a'], p: ['#5a1f86', '#6b2a9a', '#4a2390', '#7a2d8a'], a: ['#b9791a', '#c98a1e', '#a86a16', '#c0801c'] };
+  var SCHEMES = ['brg', 'rbp', 'bpg', 'gbr', 'pbr', 'bra', 'rgb', 'gpb'];
+  function piece(x, col, veil) { x.fillStyle = col; x.fill(); if (veil) { x.fillStyle = veil; x.fill(); } x.stroke(); }
+  function verseGround(x, w, h, k, b, cx, cy) {
+    var r = rng(900 + k * 37), sch = SCHEMES[k % SCHEMES.length], kind = k % 4, i, j, n, m, a0, a1, r0, r1, d, pts, q;
+    function tone(c) { var t = TONES[sch[c % 3]]; return t[Math.floor(r() * t.length)]; }
+    function veil() { var t = r(); return t < 0.5 ? 'rgba(255,255,255,' + (0.02 + t * 0.16) + ')' : 'rgba(0,0,20,' + (t - 0.5) * 0.3 + ')'; }
+    x.save(); x.beginPath(); x.rect(b, b, w - 2 * b, h - 2 * b); x.clip(); x.strokeStyle = '#0c0a14'; x.lineWidth = 2.6; x.lineJoin = 'round';
+    if (kind === 1) {                                                    // rays from the medallion, cut by rings
+      d = w * 0.17;
+      for (j = 0; j * d < h * 1.05; j++) {
+        n = j < 2 ? 12 : j < 5 ? 24 : 36; r0 = j * d; r1 = r0 + d;
+        for (i = 0; i < n; i++) { a0 = i * TAU / n + j * 0.07; a1 = a0 + TAU / n; x.beginPath(); x.arc(cx, cy, r1, a0, a1); x.arc(cx, cy, r0, a1, a0, true); x.closePath(); piece(x, tone(j % 4 === 3 ? 2 : (i + j) % 2), veil()); }
+      }
+    } else if (kind === 2) {                                             // a mosaic of cut quarries, coloured in diagonal bands
+      n = 6; m = 11; pts = [];
+      for (j = 0; j <= m; j++) for (i = 0; i <= n; i++) pts.push([b + (w - 2 * b) * (i + (i && i < n ? (r() - 0.5) * 0.5 : 0)) / n, b + (h - 2 * b) * (j + (j && j < m ? (r() - 0.5) * 0.5 : 0)) / m]);
+      for (j = 0; j < m; j++) for (i = 0; i < n; i++) {
+        q = [pts[j * (n + 1) + i], pts[j * (n + 1) + i + 1], pts[(j + 1) * (n + 1) + i + 1], pts[(j + 1) * (n + 1) + i]];
+        if ((i + j) % 2) { x.beginPath(); x.moveTo(q[0][0], q[0][1]); x.lineTo(q[1][0], q[1][1]); x.lineTo(q[2][0], q[2][1]); x.closePath(); piece(x, tone(Math.floor((i + j) / 2)), veil()); x.beginPath(); x.moveTo(q[0][0], q[0][1]); x.lineTo(q[2][0], q[2][1]); x.lineTo(q[3][0], q[3][1]); x.closePath(); piece(x, tone(Math.floor((i + j) / 2) + 1), veil()); }
+        else { x.beginPath(); x.moveTo(q[0][0], q[0][1]); x.lineTo(q[1][0], q[1][1]); x.lineTo(q[2][0], q[2][1]); x.lineTo(q[3][0], q[3][1]); x.closePath(); piece(x, tone(Math.floor((i + j) / 2)), veil()); }
+      }
+    } else if (kind === 3) {                                             // running waves, each cut into lengths
+      d = w * 0.15; q = function (px, j) { return b + j * d + Math.sin(px / w * TAU * 1.5 + j * 0.9) * d * 0.33; };
+      for (j = -1; j * d < h; j++) for (i = 0, a0 = b - r() * w * 0.2; a0 < w; i++, a0 = a1) {
+        a1 = a0 + w * (0.16 + r() * 0.16); x.beginPath(); x.moveTo(a0, q(a0, j));
+        for (n = 1; n <= 6; n++) x.lineTo(a0 + (a1 - a0) * n / 6, q(a0 + (a1 - a0) * n / 6, j));
+        for (n = 6; n >= 0; n--) x.lineTo(a0 + (a1 - a0) * n / 6 + d * 0.12, q(a0 + (a1 - a0) * n / 6 + d * 0.12, j + 1));
+        x.closePath(); piece(x, tone(j % 3 === 2 ? 2 : (j + 400) % 2 + (i % 3 ? 0 : 3)), veil());
+      }
+    } else {                                                             // scales
+      d = w * 0.105;
+      for (j = Math.ceil(h / d) + 1; j >= 0; j--) for (i = -1; i * 2 * d < w + d; i++) { x.beginPath(); x.arc(i * 2 * d + (j % 2) * d, j * d, d * 1.04, 0, TAU); piece(x, tone(j % 4 === 3 ? 2 : (j >> 1) % 2 + (i + j) % 2 * 3), veil()); }
+    }
+    x.restore();
+  }
   function versePane(x, w, h, k, mark) {
-    var b = w * 0.06, px = b + w * 0.04, py = h * 0.335, pw = w - 2 * px, ph = h - b - w * 0.045 - py, cy = h * 0.125, r = w * 0.115;
-    x.fillStyle = '#0a0d2a'; x.fillRect(0, 0, w, h);
-    quarries(x, b, b, w - 2 * b, h - 2 * b, w * 0.115, k % 2 ? '#a31b26' : '#1a3aa8', k % 2 ? '#1a3aa8' : '#a31b26');
+    var b = w * 0.06, cy = h * 0.125, r = w * 0.115, pad = b + w * 0.05, py = h * 0.335;
+    x.fillStyle = '#0a0d2a'; x.fillRect(0, 0, w, h); verseGround(x, w, h, k, b, w / 2, cy);
     x.fillStyle = '#f2b632'; x.strokeStyle = '#0c0a14'; x.lineWidth = 3; x.beginPath(); x.arc(w / 2, cy, r, 0, TAU); x.fill(); x.stroke();
     x.fillStyle = k % 2 ? '#1d46c8' : '#c8202a'; x.beginPath(); x.arc(w / 2, cy, r * 0.8, 0, TAU); x.fill(); x.stroke();
     x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#ffe9a0'; x.font = '700 ' + r * 0.92 + 'px ' + SERIF; x.fillText(mark, w / 2, cy + r * 0.04);
-    return { x: px, y: py, w: pw, h: ph, b: b, seed: rng(700 + k * 13), cols: DEEP[k % DEEP.length] };
+    return { x: pad, y: py, w: w - 2 * pad, h: h - b - w * 0.04 - py, b: b };
   }
-  /* the lines of one language as strips of glass between ys[i] and ys[i + 1], each a slightly different melt of the colour */
-  function strips(x, P, ys, col) {
-    var i, t;
-    for (i = 0; i < ys.length - 1; i++) {
-      x.fillStyle = col; x.fillRect(P.x, ys[i], P.w, ys[i + 1] - ys[i]);
-      t = P.seed(); x.fillStyle = t < 0.5 ? 'rgba(255,255,255,' + (0.03 + t * 0.2) + ')' : 'rgba(0,0,20,' + (t - 0.5) * 0.36 + ')'; x.fillRect(P.x, ys[i], P.w, ys[i + 1] - ys[i]);
-      x.fillStyle = '#0c0a14'; x.fillRect(P.x, ys[i] - 1.25, P.w, 2.5);
-      t = P.x + P.w * (0.2 + P.seed() * 0.6); x.fillRect(t - 1, ys[i], 2, ys[i + 1] - ys[i]);      // and a came across each strip
-    }
-  }
-  function frame(x, w, P) {
-    x.strokeStyle = '#0c0a14'; x.lineWidth = w * 0.024; x.strokeRect(P.x, P.y, P.w, P.h); x.strokeStyle = '#f2b632'; x.lineWidth = w * 0.009; x.strokeRect(P.x, P.y, P.w, P.h);
-    [[P.x, P.y], [P.x + P.w, P.y], [P.x, P.y + P.h], [P.x + P.w, P.y + P.h]].forEach(function (q, i) { x.fillStyle = i % 2 ? '#f3efe2' : '#f2b632'; x.strokeStyle = '#0c0a14'; x.lineWidth = 2.5; x.beginPath(); x.arc(q[0], q[1], w * 0.03, 0, TAU); x.fill(); x.stroke(); });
-  }
-  /* zl and el set at sizes fz and fe in the pane, the Chinese over the English, the block centred */
+  /* zl and el set at sizes fz and fe, the Chinese over the English, the block centred in the pane: each letter clear glass in a lead line */
   function setVerse(x, w, P, zl, el, fz, fe) {
-    var lz = fz * 1.46, le = fe * 1.42, need = zl.length * lz + el.length * le, top = P.y + (P.h - need) * 0.5, mid = top + zl.length * lz, ys = [P.y], i;
-    for (i = 1; i < zl.length; i++) ys.push(top + i * lz); ys.push(mid); strips(x, P, ys, P.cols[0]);
-    ys = [mid]; for (i = 1; i < el.length; i++) ys.push(mid + i * le); ys.push(P.y + P.h); strips(x, P, ys, P.cols[1]);
-    x.textAlign = 'center'; x.textBaseline = 'middle'; x.shadowColor = 'rgba(0,0,10,.55)'; x.shadowBlur = w * 0.008;
-    x.fillStyle = '#fff0b0'; x.font = '700 ' + fz + 'px ' + SERIF; for (i = 0; i < zl.length; i++) x.fillText(zl[i], w / 2, top + (i + 0.5) * lz);
-    x.fillStyle = '#fbf6e8'; x.font = 'italic 600 ' + fe + 'px ' + SERIF; for (i = 0; i < el.length; i++) x.fillText(el[i], w / 2, mid + (i + 0.5) * le);
-    x.shadowBlur = 0; frame(x, w, P);
+    var lz = fz * 1.46, le = fe * 1.46, gap = fz * 0.5, top = P.y + (P.h - zl.length * lz - gap - el.length * le) * 0.5, mid = top + zl.length * lz + gap, i;
+    function put(t, y, f, col) { x.lineWidth = f * 0.26; x.strokeStyle = '#0c0a14'; x.strokeText(t, w / 2, y); x.fillStyle = col; x.fillText(t, w / 2, y); }
+    x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineJoin = 'round'; x.miterLimit = 2;
+    x.font = '700 ' + fz + 'px ' + SERIF; for (i = 0; i < zl.length; i++) put(zl[i], top + (i + 0.5) * lz, fz, '#fff0b4');
+    x.font = 'italic 700 ' + fe + 'px ' + SERIF; for (i = 0; i < el.length; i++) put(el[i], mid + (i + 0.5) * le, fe, '#fdfaf0');
+    for (i = -1; i <= 1; i++) { x.fillStyle = '#f2b632'; x.strokeStyle = '#0c0a14'; x.lineWidth = 2; x.beginPath(); x.arc(w / 2 + i * fz * 0.9, mid - gap * 0.62, fz * (i ? 0.09 : 0.13), 0, TAU); x.fill(); x.stroke(); }   // three gold beads between the two
   }
   /* Chinese wrapped to mw, then the same number of lines made equally long, so the last is not one stray character */
   function evenZh(x, s, mw) {
@@ -403,20 +423,20 @@
   function evenEn(x, s, mw) { var out = wrapEn(x, s, mw), t, k; for (k = 0.97; k > 0.55; k -= 0.03) { t = wrapEn(x, s, mw * k); if (t.length > out.length) break; out = t; } return out; }
   /* window n (1..30) of v = [ref zh, ref en, zh, en] */
   function verseGlass(x, w, h, n, v) {
-    var P = versePane(x, w, h, n, String(n)), mw = P.w * 0.88, fz, fe, zl, el;
+    var P = versePane(x, w, h, n, String(n)), mw = P.w, fz, fe, zl, el;
     label(x, w, w * 0.12, h * 0.218, w * 0.76, h * 0.098, v[0], v[1]);
     for (fz = w * 0.094; fz >= w * 0.034; fz -= w * 0.002) {
-      fe = fz * 0.62; x.font = '700 ' + fz + 'px ' + SERIF; zl = evenZh(x, v[2], mw); x.font = 'italic 600 ' + fe + 'px ' + SERIF; el = evenEn(x, v[3], mw);
-      if (zl.length * fz * 1.46 + el.length * fe * 1.42 <= P.h - w * 0.07) break;
+      fe = fz * 0.62; x.font = '700 ' + fz + 'px ' + SERIF; zl = evenZh(x, v[2], mw); x.font = 'italic 700 ' + fe + 'px ' + SERIF; el = evenEn(x, v[3], mw);
+      if (zl.length * fz * 1.46 + fz * 0.5 + el.length * fe * 1.46 <= P.h - w * 0.04) break;
     }
     setVerse(x, w, P, zl, el, fz, fe); border(x, w, h, P.b); leadAndLight(x, w, h, 300 + n, 1);
     return { zh: zl.length, en: el.length, size: fz };
   }
   /* the window at the head of each aisle that says what the others are: lines = [title zh, title en, zh, zh, en, en] */
   function verseTitle(x, w, h, lines) {
-    var P = versePane(x, w, h, 0, '✝'), mw = P.w * 0.88, fz = w * 0.07, fe = w * 0.05, zl, el;
+    var P = versePane(x, w, h, 0, '✝'), mw = P.w, fz = w * 0.07, fe = w * 0.05, zl, el;
     label(x, w, w * 0.12, h * 0.218, w * 0.76, h * 0.098, lines[0], lines[1]);
-    x.font = '700 ' + fz + 'px ' + SERIF; zl = evenZh(x, lines[2], mw).concat(evenZh(x, lines[3], mw)); x.font = 'italic 600 ' + fe + 'px ' + SERIF; el = wrapEn(x, lines[4], mw).concat(wrapEn(x, lines[5], mw));
+    x.font = '700 ' + fz + 'px ' + SERIF; zl = evenZh(x, lines[2], mw).concat(evenZh(x, lines[3], mw)); x.font = 'italic 700 ' + fe + 'px ' + SERIF; el = wrapEn(x, lines[4], mw).concat(wrapEn(x, lines[5], mw));
     setVerse(x, w, P, zl, el, fz, fe); border(x, w, h, P.b); leadAndLight(x, w, h, 299, 1);
   }
 
