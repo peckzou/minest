@@ -58,7 +58,7 @@
     return { parts: parts, notes: notes, steps_done: done, steps_total: m.steps.length };
   }
 
-  TK.card({
+  TK.register({
     id: 'models', en: 'Thinking Models', zh: '思维模型卡', color: '#1f9d55', line: 'Analyse the question step by step with a method.',
     icon: TK.icon('<path d="M4 6h10M4 12h16M4 18h7"/><circle cx="17" cy="6" r="2"/><circle cx="14" cy="18" r="2"/>'),
     preview: function (ko) {

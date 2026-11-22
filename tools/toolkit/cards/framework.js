@@ -73,7 +73,7 @@
 
   function pend(t) { return !!t.content_review_status && TK.ks.reviewStatus('tpl', t.id, t.content_review_status) === 'pending'; }
   TK.frameworkOps = { build: build, sync: sync, kids: kids, rootOf: rootOf };   // for tests and future hosts
-  TK.card({
+  TK.register({
     id: 'framework', en: 'Framework Card', zh: '知识框架卡', color: '#5e9cff', line: 'Organise ideas into a structure you can edit.',
     icon: TK.icon('<rect x="9" y="3" width="6" height="4" rx="1"/><rect x="3" y="17" width="6" height="4" rx="1"/><rect x="15" y="17" width="6" height="4" rx="1"/><path d="M12 7v5M6 17v-2.5h12V17"/>'),
     preview: function (ko) {

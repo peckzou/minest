@@ -27,11 +27,15 @@
     if (changed && onRemote) onRemote();
     return changed;
   }
+  // inside the Minest app the app's signed-in user does the reading and writing (tools/toolkit/host.js)
+  function H() { return window.MinestToolkit && MinestToolkit.embed ? MinestToolkit.host : null; }
+  function hostErr(e) { return e === 'permission-denied' ? tr('The cloud refused to save (permission denied)') : e === 'signed-out' ? tr('Sign in to Minest in the app to sync') : String(e); }
   function push() {
     if (!st.on || !st.user) return;
     var x = snapshotLocal(), size = JSON.stringify(x).length;
     if (size > LIMIT) return set('error', tr('Too large to sync') + ' (' + Math.round(size / 1024) + ' KB)');
     set('syncing');
+    if (H()) { H()('cloud-set', { x: x }).then(function (r) { if (r && r.ok) { st.at = Date.now(); set('ok'); } else set(r && r.error === 'signed-out' ? 'signin' : 'error', hostErr(r && r.error)); }).catch(function (e) { set('error', e.message); }); return; }
     ref().set({ x: x, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), writer: 'cognitive-toolkit' }, { merge: true })
       .then(function () { st.at = Date.now(); set('ok'); })
       .catch(function (e) { set('error', e && e.code === 'permission-denied' ? tr('The cloud refused to save (permission denied)') : (e && e.message || String(e))); });
@@ -44,6 +48,13 @@
   function start() {
     st.on = true; try { localStorage.setItem(ON_KEY, '1'); } catch (e) {}
     set('connecting');
+    if (H()) {
+      return H()('cloud-get').then(function (r) {
+        if (r && r.error) { st.user = null; return set(r.error === 'signed-out' ? 'signin' : 'error', hostErr(r.error)); }
+        st.user = { email: r.email || '', viaApp: true }; merge(r.x); push();
+        H()('cloud-listen').catch(function () {});
+      }).catch(function (e) { set('error', e.message); });
+    }
     return sdk().then(function () {
       app().auth().onAuthStateChanged(function (u) {
         st.user = u || null;
@@ -55,15 +66,17 @@
     }).catch(function (e) { set('error', e.message); });
   }
   function signIn() {
+    if (H()) { toast0(tr('Sign in to Minest in the app to sync')); return start(); }
     var p = new firebase.auth.GoogleAuthProvider(); p.setCustomParameters({ prompt: 'select_account' });
     return app().auth().signInWithPopup(p).catch(function (e) { set('error', e && e.message || String(e)); });
   }
+  function toast0(m) { if (window.MinestToolkit && MinestToolkit.toast) MinestToolkit.toast(m); }
   function stop() { st.on = false; try { localStorage.removeItem(ON_KEY); } catch (e) {} if (unsub) { unsub(); unsub = null; } set('off'); }
 
   // ---------------------------------------------------------------- the status pill
   function paint() {
     var b = document.getElementById('tk-cloud'); if (!b) return;
-    var t = { off: 'Cloud sync: off — this browser only', connecting: 'Connecting…', signin: 'Sign in with Google to sync', syncing: 'Syncing…', ok: 'Synced', error: 'Sync problem' }[st.state];
+    var t = { off: 'Cloud sync: off — this browser only', connecting: 'Connecting…', signin: (window.MinestToolkit && MinestToolkit.embed) ? 'Sign in to Minest in the app to sync' : 'Sign in with Google to sync', syncing: 'Syncing…', ok: 'Synced', error: 'Sync problem' }[st.state];
     b.className = 'tk-cloud s-' + st.state;
     b.querySelector('span').textContent = tr(t) + (st.state === 'ok' && st.at ? ' · ' + new Date(st.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '');
     b.title = st.msg || (st.user ? (st.user.email || '') : '');
@@ -80,9 +93,10 @@
     init: function (backend, refresh) {
       back = backend; onRemote = refresh;
       var b = document.getElementById('tk-cloud'); if (b) b.onclick = menu;
-      var on = false; try { on = localStorage.getItem(ON_KEY) === '1'; } catch (e) {}
+      var on = !!H(); try { on = on || localStorage.getItem(ON_KEY) === '1'; } catch (e) {}
       if (on) start(); else paint();
     },
-    touch: schedule, status: function () { return Object.assign({}, st); }
+    touch: schedule, status: function () { return Object.assign({}, st); },
+    remote: function (x) { if (st.on && st.user && merge(x)) { st.at = Date.now(); set('ok'); } }
   };
 })();

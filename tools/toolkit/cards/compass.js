@@ -17,7 +17,7 @@
   }
   function short(s, n) { s = String(s); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
 
-  TK.card({
+  TK.register({
     id: 'compass', en: 'Thought Compass', zh: '思想罗盘', color: '#9b5de5', line: 'Find where a thought sits and which way to think next.',
     icon: TK.icon('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/><path d="M13.6 10.4 9.5 14.5l1-3.4 3.1-0.7z" fill="currentColor"/>'),
     preview: function (ko) {

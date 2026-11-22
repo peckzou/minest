@@ -86,7 +86,7 @@ C.load({ taxonomy: tax, ext, frameworks: fws, store: backend() });
 });
 
 // ---------------------------------------------------------------- 4 · framework ↔ store sync (the Framework Card's own functions)
-global.window = { MinestToolkit: { card() {}, icon: () => '', esc: s => s, ks, data: { templates: T, seeds: S }, silently: f => f(), rootLabel: k => ks.label(k.root_concept) } };
+global.window = { MinestToolkit: { register() {}, icon: () => '', esc: s => s, ks, data: { templates: T, seeds: S }, silently: f => f(), rootLabel: k => ks.label(k.root_concept) } };
 require(path.join(R, 'tools/toolkit/cards/framework.js'));
 const F = global.window.MinestToolkit.frameworkOps;
 ks.updateObject(ko.id, { seed: 'freedom' });
@@ -123,7 +123,7 @@ assert.strictEqual(ks.relations({ source: 'fwi:' + fi.id }).length, 0);
 assert.strictEqual(ks.relations({ ko: ko.id }).length, before, 'links made elsewhere stay');
 
 // ---------------------------------------------------------------- 5 · model loops
-global.window.MinestToolkit.card = () => {}; global.window.MinestToolkit.data.models = MD.models; global.window.MinestToolkit.C = C;
+global.window.MinestToolkit.register = () => {}; global.window.MinestToolkit.data.models = MD.models; global.window.MinestToolkit.C = C;
 require(path.join(R, 'tools/toolkit/cards/models.js'));
 const loops = global.window.MinestToolkit.modelLoops([{ from: 'A', to: 'B', sign: '+' }, { from: 'B', to: 'A', sign: '-' }, { from: 'B', to: 'C', sign: '+' }, { from: 'C', to: 'B', sign: '+' }, { from: 'A', to: 'C', sign: '+' }]);
 const kinds = loops.map(l => l.path.join('>') + ':' + l.kind).sort();

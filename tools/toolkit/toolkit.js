@@ -29,17 +29,34 @@
   function $$(s, r) { return [].slice.call((r || document).querySelectorAll(s)); }
   var toastT = 0;
   function toast(m) { var t = $('#tk-toast'); if (!t) return; t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function () { t.classList.remove('on'); }, 2600); }
+  // embedded in the Minest app (tools/toolkit/host.js): talk to the host over postMessage
+  var EMBED = window.parent !== window && /(^|[#&])embed=1(&|$)/.test(location.hash);
+  var hostSeq = 0, hostWait = {};
+  window.addEventListener('message', function (e) {
+    var m = e.data; if (!m || e.source !== window.parent) return;
+    if (m.type === 'minest-toolkit-reply' && hostWait[m.id]) { hostWait[m.id](m.data); delete hostWait[m.id]; }
+    if (m.type === 'minest-toolkit-remote' && window.MinestToolkitCloud && MinestToolkitCloud.remote) MinestToolkitCloud.remote(m.x);
+  });
+  function host(action, payload) {
+    if (!EMBED) return Promise.reject(new Error('not embedded'));
+    return new Promise(function (ok, no) {
+      var id = ++hostSeq, t = setTimeout(function () { delete hostWait[id]; no(new Error('The Minest app did not answer')); }, 10000);
+      hostWait[id] = function (d) { clearTimeout(t); ok(d); };
+      window.parent.postMessage(Object.assign({ type: 'minest-toolkit', action: action, id: id }, payload || {}), '*');
+    });
+  }
   function j(u, n) {
+    if (window.__TK_DATA && window.__TK_DATA[u]) return Promise.resolve(JSON.parse(JSON.stringify(window.__TK_DATA[u])));   // the one-file build
     n = n == null ? 3 : n;
     return fetch(u, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error(u + ' ' + r.status); return r.json(); })
       .catch(function (e) { if (n <= 0) throw e; return new Promise(function (ok) { setTimeout(ok, 250); }).then(function () { return j(u, n - 1); }); });
   }
 
-  var TK = { ks: ks, C: C, M: M, esc: esc, $: $, $$: $$, toast: toast, data: {}, cards: {}, order: [], ko: null, card: null, opts: {} };
+  var TK = { ks: ks, C: C, M: M, esc: esc, $: $, $$: $$, toast: toast, data: {}, cards: {}, order: [], ko: null, card: null, opts: {}, embed: EMBED, host: host };
   window.MinestToolkit = TK;
 
   // ------------------------------------------------------------------ card registry
-  TK.card = function (def) { TK.cards[def.id] = def; if (TK.order.indexOf(def.id) < 0) TK.order.push(def.id); };
+  TK.register = function (def) { TK.cards[def.id] = def; if (TK.order.indexOf(def.id) < 0) TK.order.push(def.id); };
   TK.icon = function (d) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>'; };
 
   // ------------------------------------------------------------------ topic + seeds
@@ -93,11 +110,11 @@
     if (o.objectId) TK.ko = ks.object(o.objectId);
     if (!TK.ko) return home();
     TK.opts = o; TK.card = card && TK.cards[card] ? card : null;
-    var h = '#ko=' + TK.ko.id + (TK.card ? '&card=' + TK.card : '') + (o.lab ? '&lab=' + o.lab : '') + (o.model ? '&model=' + o.model : '');
+    var h = '#' + (EMBED ? 'embed=1&' : '') + 'ko=' + TK.ko.id + (TK.card ? '&card=' + TK.card : '') + (o.lab ? '&lab=' + o.lab : '') + (o.model ? '&model=' + o.model : '');
     if (location.hash !== h) history.replaceState(null, '', h);
     render();
   };
-  function home() { TK.ko = null; TK.card = null; history.replaceState(null, '', location.pathname + location.search); render(); }
+  function home() { TK.ko = null; TK.card = null; history.replaceState(null, '', location.pathname + location.search + (EMBED ? '#embed=1' : '')); render(); }
   TK.home = home;
 
   // ------------------------------------------------------------------ rendering
@@ -171,16 +188,49 @@
     };
     $('#tk-delete').onclick = function () { if (TK.ko && confirm('Delete “' + TK.ko.title + '” and everything made inside it (frameworks, analyses, links)? Concepts used elsewhere stay.')) { ks.deleteObject(TK.ko.id); home(); } };
     window.addEventListener('hashchange', route);
+    if (EMBED) {
+      document.documentElement.classList.add('tk-embed');
+      $('#tk-fromworld').hidden = false; $('#tk-tomw').hidden = false;
+      $('#tk-fromworld').onclick = pickFromWorld;
+      $('#tk-tomw').onclick = toMyWorld;
+    }
+  }
+  // ---------------------------------------------------------------- My World (only when the toolkit runs inside the app)
+  function pickFromWorld() {
+    host('items').then(function (list) {
+      var box = document.createElement('div'); box.className = 'tk-pick';
+      box.innerHTML = '<div class="tk-pick-card"><h3>Think about something from My World</h3><input placeholder="Search your worlds…" autocomplete="off"><div class="tk-pick-list"></div><button type="button" data-x>Cancel</button></div>';
+      document.body.appendChild(box);
+      var inp = box.querySelector('input'), lst = box.querySelector('.tk-pick-list');
+      function draw() { var q = inp.value.trim().toLowerCase(); var hits = list.filter(function (x) { return !q || x.title.toLowerCase().indexOf(q) >= 0; }).slice(0, 80);
+        lst.innerHTML = hits.length ? hits.map(function (x, i) { return '<button type="button" data-i="' + list.indexOf(x) + '"><b>' + esc(x.title) + '</b><small>' + esc(x.world + ' › ' + x.list) + '</small></button>'; }).join('') : '<p class="dim">' + (list.length ? 'Nothing matches.' : 'Your worlds are empty.') + '</p>'; }
+      inp.oninput = draw; draw(); setTimeout(function () { inp.focus(); }, 30);
+      box.onclick = function (e) {
+        var b = e.target.closest('[data-i]');
+        if (b) { var it = list[+b.getAttribute('data-i')]; box.remove(); var k = TK.createFromInput(it.title); ks.updateObject(k.id, { sources: [{ kind: 'my-world-item', id: it.id, title: it.title, world: it.world, list: it.list }] }); TK.open(null, { objectId: k.id }); toast('From My World: “' + it.title + '”'); return; }
+        if (e.target.closest('[data-x]') || e.target === box) box.remove();
+      };
+    }).catch(function (e) { toast(e.message); });
+  }
+  function toMyWorld() {
+    var k = TK.ko && ks.object(TK.ko.id); if (!k) return;
+    var lines = [TK.rootLabel(k) && TK.rootLabel(k) !== k.title ? TK.rootLabel(k) + ' — ' + k.title : k.title];
+    (k.notes || []).filter(function (n) { return n.content_kind === 'view'; }).slice(-3).forEach(function (n) { lines.push('· ' + n.text); });
+    host('capture', { text: lines.join('\n') }).then(function (r) { if (!r || !r.ok) toast('My World’s Quick Capture is not available here'); }).catch(function (e) { toast(e.message); });
   }
   function route() {
     var h = {}; location.hash.slice(1).split('&').forEach(function (p) { var kv = p.split('='); if (kv[0]) h[kv[0]] = decodeURIComponent(kv[1] || ''); });
-    if (h.ko && ks.object(h.ko)) TK.open(h.card || null, { objectId: h.ko, lab: h.lab, model: h.model }); else render();
+    if (h.ko && ks.object(h.ko)) TK.open(h.card || null, { objectId: h.ko, lab: h.lab, model: h.model });
+    else if (h.input) TK.open(h.card || null, { input: h.input, lab: h.lab, model: h.model });
+    else render();
   }
 
   var COLS = ['philosophy', 'knowledge', 'nature', 'psychology', 'society', 'systems', 'life'];
   var LABS = ['../compass/micro/kant-causality.json', 'labs/locke-room.json', 'labs/plato-cave.json', 'labs/aristotle-causes.json', 'labs/hegel-concept.json'];
   var URLS = ['../compass/taxonomy.json', '../compass/frameworks-ext.json', 'data/templates.json', 'data/seeds.json', 'data/models.json'].concat(LABS).concat(['i18n/zh.json'])
     .concat(COLS.map(function (c) { return '../knowledge/frameworks/' + c + '.json'; }));
+  // start once every card script has registered (the one-file build resolves its data at once)
+  var ready = new Promise(function (ok) { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ok); else setTimeout(ok, 0); });
   URLS.reduce(function (p, u) { return p.then(function (acc) { return j(u).then(function (d) { acc.push(d); return acc; }); }); }, Promise.resolve([]))
     .then(function (all) {
       var n = 5 + LABS.length, fws = []; all.slice(n + 1).forEach(function (col) { fws = fws.concat(col.frameworks || []); });
@@ -197,7 +247,7 @@
       C.load({ taxonomy: all[0], ext: all[1], frameworks: fws, store: backend });
       TK.data.templates = all[2].templates; TK.data.seeds = all[3].seeds; TK.data.models = all[4].models; TK.data.angles = all[4].angles;
       TK.data.labs = all.slice(5, n); TK.data.labs.forEach(function (d) { M.register(d); });
-      wire(); route(); if (window.MinestI18n) MinestI18n.start();
-      if (window.MinestToolkitCloud) MinestToolkitCloud.init(backend, function () { if (TK.ko && !ks.object(TK.ko.id)) TK.ko = null; render(); });
+      return ready.then(function () { wire(); route(); if (window.MinestI18n) MinestI18n.start();
+      if (window.MinestToolkitCloud) MinestToolkitCloud.init(backend, function () { if (TK.ko && !ks.object(TK.ko.id)) TK.ko = null; render(); }); });
     }).catch(function (e) { document.body.insertAdjacentHTML('afterbegin', '<p class="err">Could not load the toolkit data: ' + esc(e.message) + '</p>'); });
 })();

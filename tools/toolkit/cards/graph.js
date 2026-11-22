@@ -27,7 +27,7 @@
     return s || 'Made in the Graph';
   }
 
-  TK.card({
+  TK.register({
     id: 'graph', en: 'Knowledge Graph', zh: '知识图谱卡', color: '#00a6a6', line: 'See and edit how everything connects.',
     icon: TK.icon('<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="7" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8.3 7 15.6 7M7.2 8.2l3.6 7.6M16.9 9.3l-3.7 6.6"/>'),
     preview: function (ko) {
