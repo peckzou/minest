@@ -9,7 +9,7 @@
   'use strict';
   var E = window.SpatialEC6, doc = document; if (!E || !E._) return;
   var boardEl = doc.getElementById('board'), rail = doc.getElementById('rail'), hostFrame = doc.getElementById('host');
-  var UI_KEY = 'minest.ec6board2.ui', ui = { surface: 'cork', pomo: {}, timer: null };
+  var UI_KEY = 'minest.ec6board2.ui' + (window.EC6V2_DEMO ? '.demo' : ''), ui = { surface: 'cork', pomo: {}, timer: null };
   try { var saved = JSON.parse(localStorage.getItem(UI_KEY) || 'null'); if (saved) for (var k in ui) if (saved[k] !== undefined) ui[k] = saved[k]; } catch (e) {}
   function saveUi() { try { localStorage.setItem(UI_KEY, JSON.stringify(ui)); } catch (e) {} }
   function S() { return E._.S(); }

@@ -20,13 +20,14 @@ if (!/\/$|\.html$/.test(location.pathname)) location.replace(location.pathname +
 <iframe id="host" title="Minest" allow="camera; microphone; fullscreen; autoplay; clipboard-write" tabindex="-1"></iframe>
 <button id="toBoard" type="button" hidden>↩ 回到布告栏</button>
 <script>/* 2.0 keeps its own board, apart from 1.0's (same origin, same key in board-ec6.js). The first time, it starts from 1.0's board as it is now.
-   ?demo=1 is the sample board, kept apart again so it never mixes with yours. */
+   ?demo=1 is the sample board: its board and its word records (1.0 writes those to the study store) go to keys of their own, never to yours. */
 (function () {
-  var demo = /[?&]demo=1\b/.test(location.search);
-  var K = 'minest.ec6board.v1', K2 = demo ? 'minest.ec6board2.demo' : 'minest.ec6board2.v1', g = Storage.prototype.getItem, s = Storage.prototype.setItem;
+  var demo = /[?&]demo=1\b/.test(location.search), K = 'minest.ec6board.v1', G = 'minest.gptstudy.v1';
+  var MAP = {}; MAP[K] = demo ? 'minest.ec6board2.demo' : 'minest.ec6board2.v1'; if (demo) MAP[G] = 'minest.gptstudy.demo';
+  var K2 = MAP[K], g = Storage.prototype.getItem, s = Storage.prototype.setItem, to = function (k) { return Object.prototype.hasOwnProperty.call(MAP, k) ? MAP[k] : k; };
   try { if (g.call(localStorage, K2) == null) { window.EC6V2_FRESH = true; var v1 = demo ? null : g.call(localStorage, K); if (v1) s.call(localStorage, K2, v1); } } catch (e) {}
-  Storage.prototype.getItem = function (k) { return g.call(this, k === K ? K2 : k); };
-  Storage.prototype.setItem = function (k, v) { return s.call(this, k === K ? K2 : k, v); };
+  Storage.prototype.getItem = function (k) { return g.call(this, to(k)); };
+  Storage.prototype.setItem = function (k, v) { return s.call(this, to(k), v); };
   window.EC6V2_DEMO = demo;
 })();</script>
 <script src="../spatial-home/js/board-ec6.js"></script>

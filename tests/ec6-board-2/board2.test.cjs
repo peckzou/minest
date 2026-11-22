@@ -35,6 +35,10 @@ assert(!p.w.EC6V2_FRESH && p.w.SpatialEC6._.S().exam.date === '2027-06-01', 'lat
 p = page('?demo=1', { [K1]: mine });
 assert(p.w.EC6V2_DEMO && p.w.SpatialEC6._.S().exam.date === '2027-02-28' && !(K2 in p.m), 'the sample board starts clean and apart');
 p.w.localStorage.setItem(K1, '{"v":1}'); assert(KD in p.m && p.m[K1] === mine);
+p.w.localStorage.setItem('minest.gptstudy.v1', '{}'); assert(p.m['minest.gptstudy.demo'] === '{}' && !('minest.gptstudy.v1' in p.m), 'sample words never reach the study store');
+p.w.localStorage.setItem('other', '1'); assert.strictEqual(p.w.localStorage.getItem('other'), '1', 'every other key is left alone');
+assert(/UI_KEY = 'minest\.ec6board2\.ui' \+ \(window\.EC6V2_DEMO \? '\.demo' : ''\)/.test(v2), 'the sample keeps its own tool settings');
+p = page('', {}); p.w.localStorage.setItem('minest.gptstudy.v1', '{}'); assert('minest.gptstudy.v1' in p.m, 'your own words still go to the study store');
 
 // ---------------------------------------------------------------- 3 · 1.0 works on a host handed to it (the app in a frame, or the sample)
 p = page('?demo=1', {});
