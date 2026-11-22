@@ -326,7 +326,7 @@
   function wireStage() {
     stage.addEventListener('pointerdown', function (e) {
       if (e.target.closest('.v2-nav') || panel.classList.contains('v2-compact')) return;
-      R.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, y0: R.y, x0: R.x, moved: 0, lx: e.clientX, lt: performance.now(), target: e.target };
+      R.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, y0: R.y, x0: R.x, moved: 0, lx: e.clientX, lt: performance.now() };
       try { stage.setPointerCapture(e.pointerId); } catch (x) {}
       stage.classList.add('v2-drag'); R.vy = 0; R.goal = null;
     });
@@ -346,7 +346,7 @@
       var d = R.drag; if (!d || d.id !== e.pointerId) return;
       R.drag = null; stage.classList.remove('v2-drag'); askTilt();
       if (e.pointerType !== 'mouse') { R.tlx = 0; R.tly = 0; }
-      if (d.moved < 7 && e.type === 'pointerup') tap(d.target);
+      if (d.moved < 7 && e.type === 'pointerup') tap(e.clientX, e.clientY);
       else if (performance.now() - d.lt > 90) R.vy = 0;
     }
     stage.addEventListener('pointerup', up); stage.addEventListener('pointercancel', up);
@@ -356,11 +356,14 @@
       R.tly = clamp(e.gamma * 0.55, -20, 20); R.tlx = clamp(-((e.beta || 45) - 45) * 0.35, -14, 14);
     }, { passive: true });
   }
-  function tap(t) {
+  function tap(x, y) {
     if (ST.view === 'card') { flip(); return; }
-    var m = t.closest && t.closest('.v2-mini');
-    if (ST.view === 'deck' && m) { [].forEach.call(deck.children, function (x) { x.classList.toggle('up', x === m); }); return; }
-    if (ST.view === 'ab') { var f = t.closest && t.closest('figure'); if (f && f.getAttribute('data-ab') === 'a') { var a = pin; pin = cur; select(a); } }
+    /* what is under the finger, whatever plane of the tilted scene it lies on */
+    var hit = (doc.elementsFromPoint ? doc.elementsFromPoint(x, y) : []).filter(function (n) { return scene.contains(n); });
+    function under(sel) { for (var i = 0; i < hit.length; i++) { var n = hit[i].closest(sel); if (n) return n; } return null; }
+    var m = under('.v2-mini');
+    if (ST.view === 'deck' && m) { [].forEach.call(deck.children, function (c) { c.classList.toggle('up', c === m); }); return; }
+    if (ST.view === 'ab') { var f = under('figure'); if (f && f.getAttribute('data-ab') === 'a') { var a = pin; pin = cur; select(a); } }
   }
   function frame(now) {
     requestAnimationFrame(frame);
