@@ -568,6 +568,13 @@ html.tk-embed .nb-levels, html.tk-embed .nb-backall { bottom: calc(env(safe-area
 .nb-lyx { position: absolute; z-index: 60; right: -14px; top: -14px; width: 30px; height: 30px; padding: 0 !important; border-radius: 50% !important; font-size: 18px; }
 @media (prefers-reduced-motion: reduce) { .nb-ly { transition: none; } .nb-n.magnet > i { animation: none; } }
 
+/* ---------------- panel mode: one card, inside My World's input (omni.js) */
+html.tk-panel body { background: transparent; }
+html.tk-panel .top, html.tk-panel .tk-ask, html.tk-panel #tk-start, html.tk-panel .tk-tabs, html.tk-panel #tk-new, html.tk-panel #tk-delete { display: none !important; }
+html.tk-panel .tk-main { padding: 12px 14px 24px; max-width: none; }
+html.tk-panel .tk-obj { margin: 0 0 10px; } html.tk-panel .tk-obj h2 { font-size: 18px; }
+html.tk-panel main { padding-bottom: 24px !important; }
+
 </style>
 </head>
 <body class="tk">
@@ -1981,11 +1988,14 @@ html.tk-embed .nb-levels, html.tk-embed .nb-backall { bottom: calc(env(safe-area
   function toast(m) { var t = $('#tk-toast'); if (!t) return; t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function () { t.classList.remove('on'); }, 2600); }
   // embedded in the Minest app (tools/toolkit/host.js): talk to the host over postMessage
   var EMBED = window.parent !== window && /(^|[#&])embed=1(&|$)/.test(location.hash);
+  var PANEL = EMBED && /(^|[#&])panel=1(&|$)/.test(location.hash);   // one card at a time, inside My World's input (tools/toolkit/omni.js)
+  if (PANEL) document.documentElement.classList.add('tk-panel');
   var hostSeq = 0, hostWait = {};
   window.addEventListener('message', function (e) {
     var m = e.data; if (!m || e.source !== window.parent) return;
     if (m.type === 'minest-toolkit-reply' && hostWait[m.id]) { hostWait[m.id](m.data); delete hostWait[m.id]; }
     if (m.type === 'minest-toolkit-remote' && window.MinestToolkitCloud && MinestToolkitCloud.remote) MinestToolkitCloud.remote(m.x);
+    if (m.type === 'minest-toolkit-cmd') command(m);
   });
   function host(action, payload) {
     if (!EMBED) return Promise.reject(new Error('not embedded'));
@@ -2146,6 +2156,34 @@ html.tk-embed .nb-levels, html.tk-embed .nb-backall { bottom: calc(env(safe-area
       $('#tk-tomw').onclick = toMyWorld;
     }
   }
+  // ---------------------------------------------------------------- commands from My World's input (omni.js)
+  function command(m) {
+    if (!TK.data.models || !TK.booted) { setTimeout(function () { command(m); }, 120); return; }   // still loading
+    if (m.cmd === 'open') {
+      var input = String(m.input || '').trim(), k = TK.ko && ks.object(TK.ko.id);
+      if (input && !(k && k.original_input === input)) { var same = ks.objects().filter(function (o) { return o.original_input === input; })[0]; if (same) TK.open(m.card || null, { objectId: same.id }); else TK.open(m.card || null, { input: input }); }
+      else if (k) TK.open(m.card || null, { objectId: k.id });
+      else TK.open(m.card || null, {});
+    } else if (m.cmd === 'preview') {
+      var d = null; try { d = TK.preview(String(m.input || '')); } catch (e) {}
+      window.parent.postMessage({ type: 'minest-toolkit-preview', id: m.id, data: d }, '*');
+    } else if (m.cmd === 'lang' && window.MinestI18n) MinestI18n.set(m.lang);
+  }
+  // what each card would show for a text — nothing is created
+  TK.preview = function (text) {
+    text = String(text || '').trim(); if (!text) return null;
+    var t = function (x) { return window.MinestI18n ? MinestI18n.t(x) : x; };
+    var r = C.classify(text), seed = TK.seedFor(text);
+    var fake = { original_input: text, content_type: r.type.id, seed: seed ? seed.id : null, suggested_labs: r.interactions.map(function (i) { return i.interaction_id; }),
+      placement: { suggested: { primary: r.primary ? r.primary.id : null, related: r.related.map(function (x) { return x.id; }) } } };
+    var models = TK.recommendModels ? TK.recommendModels(fake) : [], labs = TK.recommendLabs ? TK.recommendLabs(fake).filter(function (x) { return x.s > 0; }) : [];
+    var tplId = seed ? seed.template : (r.type.id === 'concept' || r.type.id === 'question' ? 'concept-analysis' : 'problem-analysis'), tpl = TK.data.templates.filter(function (x) { return x.id === tplId; })[0];
+    var mine = ks.objects().filter(function (o) { return o.original_input === text; })[0];
+    return { type: t(r.type.label), place: r.primary ? r.primary.names.map(t).join(' › ') : null, uncertain: r.uncertain, related: r.related.map(function (x) { return t(x.names[x.names.length - 1]); }),
+      framework: tpl ? t(tpl.title) : null, frameworks: r.frameworks.slice(0, 2).map(function (f) { return t(f.title); }), model: models[0] ? t(models[0].title) : null, lab: labs[0] ? t(labs[0].d.title) : null,
+      links: mine ? ks.relations({ ko: mine.id }).length : 0, concepts: mine ? mine.concept_ids.length : 0, saved: !!mine };
+  };
+
   // ---------------------------------------------------------------- My World (only when the toolkit runs inside the app)
   function pickFromWorld() {
     host('items').then(function (list) {
@@ -2203,7 +2241,8 @@ html.tk-embed .nb-levels, html.tk-embed .nb-backall { bottom: calc(env(safe-area
       C.load({ taxonomy: all[0], ext: all[1], frameworks: fws, store: backend });
       TK.data.templates = all[2].templates; TK.data.seeds = all[3].seeds; TK.data.models = all[4].models; TK.data.angles = all[4].angles;
       TK.data.labs = all.slice(5, n); TK.data.labs.forEach(function (d) { M.register(d); });
-      return ready.then(function () { wire(); route(); if (window.MinestI18n) MinestI18n.start();
+      return ready.then(function () { wire(); route(); if (window.MinestI18n) MinestI18n.start(); TK.booted = true;
+      if (EMBED) try { window.parent.postMessage({ type: 'minest-toolkit', action: 'ready', id: 0 }, '*'); } catch (e) {}
       if (window.MinestToolkitCloud) MinestToolkitCloud.init(backend, function () { if (TK.ko && !ks.object(TK.ko.id)) TK.ko = null; render(); }); });
     }).catch(function (e) { document.body.insertAdjacentHTML('afterbegin', '<p class="err">Could not load the toolkit data: ' + esc(e.message) + '</p>'); });
 })();

@@ -8,7 +8,7 @@ PAGES = ['iphone.html', 'iPhoneDuo.html', 'index.html', 'ipad.html'] + ['ios/Min
 A, B = '<!-- mn-toolkit-host:start -->', '<!-- mn-toolkit-host:end -->'
 
 def main():
-    js = open(os.path.join(HERE, 'host.js'), encoding='utf-8').read()
+    js = open(os.path.join(HERE, 'host.js'), encoding='utf-8').read() + '\n' + open(os.path.join(HERE, 'omni.js'), encoding='utf-8').read()   # + My World's input with the five cards
     block = A + '\n<script>\n' + js + '\n</script>\n' + B
     for name in PAGES:
         p = os.path.join(REPO, name)

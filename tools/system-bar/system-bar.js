@@ -25,6 +25,7 @@
     views: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M12 3v18M4 12h16"/>',
     sit: '<path d="M7 3v10h10M7 13v8M17 13v8M17 9V3"/>',
     view: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
+    world: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.6-4.6"/><path d="M18.5 3.2v3.4M16.8 4.9h3.4"/>',
     set: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3.1 14H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 3.1V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 20.9 10H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'
   };
   function haptic() { try { if (window.MinestNative && MinestNative.haptic) MinestNative.haptic('light'); } catch (e) {} }
@@ -232,7 +233,8 @@
   var sysKeys = [
     key('mn-sk-close', '系统 · 关闭', svg(ICON.close), close),   // (not "Close ·": the Dock's own close looks for those)
     key('mn-sk-back', '系统 · 返回', svg(ICON.back), back),
-    key('mn-sk-full', '全屏 · 阅览模式', svg(ICON.full), function () { setReading(true); })
+    key('mn-sk-full', '全屏 · 阅览模式', svg(ICON.full), function () { setReading(true); }),
+    key('mn-sk-world', 'My World · 搜索或搭建世界 (⌘K)', svg(ICON.world), function () { if (window.MinestOmni) MinestOmni.toggle(); })   // tools/toolkit/omni.js
   ];
   var toolsKey = key('mn-sk-tools', '收起工具', '<span class="mn-eq" aria-hidden="true"><i></i><i></i></span>', function () { toggleTools(); });
   sysKeys.push(toolsKey);

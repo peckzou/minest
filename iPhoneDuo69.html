@@ -183879,7 +183879,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     if (m.op === 'ready') { if (want) post({ holo: 1, op: 'mode', id: want }); post({ holo: 1, op: 'content', data: snapshot() }); if (el && el.classList.contains('from-watch')) post({ holo: 1, op: 'boot' }); }
     else if (m.op === 'wb-get') post({ holo: 1, op: 'wb', data: wbAll() });
     else if (m.op === 'wb-write' && typeof m.key === 'string' && /^(kr|cc):[A-Za-z0-9_-]+$/.test(m.key)) wbWrite(m.key, m.value);
-    else if (m.op === 'toolkit') { var tw = HW(), q = { input: String(m.input || '').slice(0, 200), card: m.card || null }; finish(null); setTimeout(function () { try { (tw.MinestToolkitHost || root.MinestToolkitHost).open(q); } catch (er) {} }, 360); }
+    else if (m.op === 'toolkit') { var tw = HW(), q = { input: String(m.input || '').slice(0, 200), card: m.card || null }; finish(null); setTimeout(function () { try { var O = tw.MinestOmni || root.MinestOmni; if (O) O.openCard(q.card || 'compass', q.input); else (tw.MinestToolkitHost || root.MinestToolkitHost).open(q); } catch (er) {} }, 360); }
     else if (m.op === 'close') finish(null);
     else if (m.op === 'save' && m.layout && typeof m.layout === 'object') { clearTimeout(saveT); var l = m.layout; saveT = setTimeout(function () { saveLayout(l); }, 400); }
     else if (m.op === 'edit' && m.id) {

@@ -65,11 +65,15 @@
     return out.slice(0, 600);
   }
   window.addEventListener('message', function (e) {
-    var m = e.data; if (!m || m.type !== 'minest-toolkit' || !frame || e.source !== frame.contentWindow) return;
+    var m = e.data; if (!m || m.type !== 'minest-toolkit') return;
+    var mine = frame && e.source === frame.contentWindow, other = adopted.filter(function (f) { return f.contentWindow === e.source; })[0];   // the full-screen frame, or My World's input panel
+    if (!mine && !other) return;
+    if (other && (m.action === 'close' || m.action === 'capture' || m.action === 'holo' || m.action === 'ready')) { try { other.dispatchEvent(new CustomEvent('tk-' + m.action, { detail: m })); } catch (x) {} if (m.action !== 'capture') return; }
     var src = e.source, u;
     if (m.action === 'hello') return reply(src, m.id, { host: 'minest', user: user() ? { email: user().email || '' } : null, worlds: !!window.MinestWorld });
     if (m.action === 'items') return reply(src, m.id, items());
     if (m.action === 'close') return close();
+    if (m.action === 'ready') return;
     if (m.action === 'holo') { close(); setTimeout(holo, 260); return reply(src, m.id, { ok: !!window.SpatialHoloLab }); }
     if (m.action === 'capture') {
       close();
@@ -100,7 +104,7 @@
     var fw = (root || document).querySelector('.mw-portal[data-frameworks]'); if (!fw || fw.parentNode.querySelector('.mw-portal[data-toolkit]')) return;
     var b = document.createElement('button'); b.type = 'button'; b.className = 'mw-portal'; b.setAttribute('data-toolkit', '');
     b.innerHTML = '<span>🧠</span><div><b>Cognitive Toolkit</b><small>Think it through · Compass · Framework · Models · Lab · Graph</small></div><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
-    b.onclick = function (e) { e.stopPropagation(); open({}); };
+    b.onclick = function (e) { e.stopPropagation(); if (window.MinestOmni) MinestOmni.open(); else open({}); };   // the five cards live with My World's input
     fw.after(b);
     var nb = document.createElement('button'); nb.type = 'button'; nb.className = 'mw-portal'; nb.setAttribute('data-nebula', '');
     nb.innerHTML = '<span>🌌</span><div><b>Knowledge Constellation</b><small>知识星图 · Holographic workbench · rotate, open, focus, pull out, connect</small></div><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
@@ -123,5 +127,6 @@
     'html.student-mode .mw-portal[data-toolkit],html.student-mode .mw-portal[data-nebula]{display:none}';
   (document.head || document.documentElement).appendChild(css);
 
-  window.MinestToolkitHost = { open: open, close: close, constellation: holo, isOpen: function () { return !!ov; }, items: items };
+  var adopted = [];   // other toolkit frames this page answers (My World's input, tools/toolkit/omni.js)
+  window.MinestToolkitHost = { adopt: function (f) { if (adopted.indexOf(f) < 0) adopted.push(f); }, open: open, close: close, constellation: holo, isOpen: function () { return !!ov; }, items: items };
 })();

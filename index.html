@@ -185995,11 +185995,15 @@ button.mn-fx-scan::after {
     return out.slice(0, 600);
   }
   window.addEventListener('message', function (e) {
-    var m = e.data; if (!m || m.type !== 'minest-toolkit' || !frame || e.source !== frame.contentWindow) return;
+    var m = e.data; if (!m || m.type !== 'minest-toolkit') return;
+    var mine = frame && e.source === frame.contentWindow, other = adopted.filter(function (f) { return f.contentWindow === e.source; })[0];   // the full-screen frame, or My World's input panel
+    if (!mine && !other) return;
+    if (other && (m.action === 'close' || m.action === 'capture' || m.action === 'holo' || m.action === 'ready')) { try { other.dispatchEvent(new CustomEvent('tk-' + m.action, { detail: m })); } catch (x) {} if (m.action !== 'capture') return; }
     var src = e.source, u;
     if (m.action === 'hello') return reply(src, m.id, { host: 'minest', user: user() ? { email: user().email || '' } : null, worlds: !!window.MinestWorld });
     if (m.action === 'items') return reply(src, m.id, items());
     if (m.action === 'close') return close();
+    if (m.action === 'ready') return;
     if (m.action === 'holo') { close(); setTimeout(holo, 260); return reply(src, m.id, { ok: !!window.SpatialHoloLab }); }
     if (m.action === 'capture') {
       close();
@@ -186030,7 +186034,7 @@ button.mn-fx-scan::after {
     var fw = (root || document).querySelector('.mw-portal[data-frameworks]'); if (!fw || fw.parentNode.querySelector('.mw-portal[data-toolkit]')) return;
     var b = document.createElement('button'); b.type = 'button'; b.className = 'mw-portal'; b.setAttribute('data-toolkit', '');
     b.innerHTML = '<span>🧠</span><div><b>Cognitive Toolkit</b><small>Think it through · Compass · Framework · Models · Lab · Graph</small></div><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
-    b.onclick = function (e) { e.stopPropagation(); open({}); };
+    b.onclick = function (e) { e.stopPropagation(); if (window.MinestOmni) MinestOmni.open(); else open({}); };   // the five cards live with My World's input
     fw.after(b);
     var nb = document.createElement('button'); nb.type = 'button'; nb.className = 'mw-portal'; nb.setAttribute('data-nebula', '');
     nb.innerHTML = '<span>🌌</span><div><b>Knowledge Constellation</b><small>知识星图 · Holographic workbench · rotate, open, focus, pull out, connect</small></div><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
@@ -186053,11 +186057,915 @@ button.mn-fx-scan::after {
     'html.student-mode .mw-portal[data-toolkit],html.student-mode .mw-portal[data-nebula]{display:none}';
   (document.head || document.documentElement).appendChild(css);
 
-  window.MinestToolkitHost = { open: open, close: close, constellation: holo, isOpen: function () { return !!ov; }, items: items };
+  var adopted = [];   // other toolkit frames this page answers (My World's input, tools/toolkit/omni.js)
+  window.MinestToolkitHost = { adopt: function (f) { if (adopted.indexOf(f) < 0) adopted.push(f); }, open: open, close: close, constellation: holo, isOpen: function () { return !!ov; }, items: items };
+})();
+
+/* Minest · My World input — the system-level search / build bar, with the five Cognitive Toolkit cards (window.MinestOmni)
+   Opened from the Dock's ✦ key, ⌘K / Ctrl+K anywhere, or My World's Cognitive Toolkit entry.
+     · type → your worlds, lists and things that match (open them), and ✦ Build a world about it (MinestNewWorld 'gen')
+     · under the bar, five cards travel with it — Thought Compass · Framework · Thinking Models · Thinking Lab ·
+       Knowledge Graph. Each is a button with its own living icon; while you type each shows what it would do with the
+       text (worked out by the toolkit's local engine, nothing is saved). Press one: the card opens into its tool right
+       there (the toolkit in panel mode, one card only — never a separate page); the five shrink into a switcher.
+   The toolkit runs in one hidden frame (toolkit.html#embed=1&panel=1), answered by tools/toolkit/host.js. */
+(function () {
+  'use strict';
+  if (window.MinestOmni) return;
+  var PAGE = 'toolkit.html';
+  var CARDS = [
+    { id: 'compass', zh: '思想罗盘', en: 'Thought Compass', c: '#9b5de5', c2: '#d4b8ff', line: '找到它属于哪里' },
+    { id: 'framework', zh: '知识框架', en: 'Framework', c: '#5e9cff', c2: '#bcd6ff', line: '把它组织成结构' },
+    { id: 'models', zh: '思维模型', en: 'Thinking Models', c: '#1f9d55', c2: '#a9efc6', line: '一步步分析它' },
+    { id: 'lab', zh: '思维实验室', en: 'Thinking Lab', c: '#f08c3a', c2: '#ffd2a8', line: '亲手试一试' },
+    { id: 'graph', zh: '知识图谱', en: 'Knowledge Graph', c: '#00a6a6', c2: '#a6f0ef', line: '看它连向哪里' }
+  ];
+  /* living icons: each one moves in its own way (CSS below) */
+  var ICON = {
+    compass: '<svg viewBox="0 0 64 64" class="oi oi-compass"><circle cx="32" cy="32" r="26" class="ring"/><circle cx="32" cy="32" r="19" class="ring2"/><g class="ticks">' + [0, 45, 90, 135, 180, 225, 270, 315].map(function (a) { return '<line x1="32" y1="5" x2="32" y2="' + (a % 90 ? 9 : 11) + '" transform="rotate(' + a + ' 32 32)"/>'; }).join('') + '</g><g class="needle"><path d="M32 13 L37 32 L32 51 L27 32 Z" class="n2"/><path d="M32 13 L37 32 L27 32 Z" class="n1"/></g><circle cx="32" cy="32" r="3" class="hub"/></svg>',
+    framework: '<svg viewBox="0 0 64 64" class="oi oi-framework"><path class="br b1" d="M32 18 V28 M32 28 H16 V38 M32 28 H48 V38 M32 28 V38"/><path class="br b2" d="M16 46 V52 M48 46 V52"/><rect class="nd n0" x="24" y="8" width="16" height="10" rx="3"/><rect class="nd n1" x="8" y="38" width="16" height="9" rx="3"/><rect class="nd n2" x="24" y="38" width="16" height="9" rx="3"/><rect class="nd n3" x="40" y="38" width="16" height="9" rx="3"/><circle class="nd n4" cx="16" cy="55" r="3"/><circle class="nd n5" cx="48" cy="55" r="3"/></svg>',
+    models: '<svg viewBox="0 0 64 64" class="oi oi-models"><g class="row r1"><circle cx="13" cy="16" r="5"/><rect x="22" y="13" width="32" height="6" rx="3" class="tr"/><rect x="22" y="13" width="32" height="6" rx="3" class="fl"/></g><g class="row r2"><circle cx="13" cy="32" r="5"/><rect x="22" y="29" width="32" height="6" rx="3" class="tr"/><rect x="22" y="29" width="32" height="6" rx="3" class="fl"/></g><g class="row r3"><circle cx="13" cy="48" r="5"/><rect x="22" y="45" width="32" height="6" rx="3" class="tr"/><rect x="22" y="45" width="32" height="6" rx="3" class="fl"/></g><path class="ck" d="M10 32 l2.5 2.5 L17 29.5"/></svg>',
+    lab: '<svg viewBox="0 0 64 64" class="oi oi-lab"><defs><clipPath id="omniFlask"><path d="M26 8 H38 V24 L52 50 A6 6 0 0 1 47 58 H17 A6 6 0 0 1 12 50 L26 24 Z"/></clipPath></defs><g clip-path="url(#omniFlask)"><path class="liq" d="M0 40 Q8 36 16 40 T32 40 T48 40 T64 40 T80 40 V64 H0 Z"/><circle class="bub b1" cx="26" cy="54" r="2.2"/><circle class="bub b2" cx="36" cy="56" r="1.6"/><circle class="bub b3" cx="31" cy="55" r="2.6"/></g><path class="gl" d="M26 8 H38 V24 L52 50 A6 6 0 0 1 47 58 H17 A6 6 0 0 1 12 50 L26 24 Z"/><path class="gl" d="M23 8 H41"/></svg>',
+    graph: '<svg viewBox="0 0 64 64" class="oi oi-graph"><g class="ln"><path class="l1" d="M32 32 L14 16"/><path class="l2" d="M32 32 L52 20"/><path class="l3" d="M32 32 L18 50"/><path class="l4" d="M32 32 L50 48"/><path class="l5" d="M14 16 L52 20"/></g><circle class="nd c0" cx="32" cy="32" r="6"/><circle class="nd c1" cx="14" cy="16" r="4"/><circle class="nd c2" cx="52" cy="20" r="4.5"/><circle class="nd c3" cx="18" cy="50" r="4"/><circle class="nd c4" cx="50" cy="48" r="3.5"/></svg>'
+  };
+  var reduce = false; try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function hap() { try { if (window.MinestNative && MinestNative.haptic) MinestNative.haptic('light'); } catch (e) {} }
+
+  var root = null, input, results, cardsEl, panel, frame = null, frameReady = false, queue = [], active = null, sel = -1, items = [], pvSeq = 0, pvT = 0;
+
+  // ---------------------------------------------------------------- the toolkit frame (one, hidden until a card opens)
+  function ensureFrame() {
+    if (frame) return frame;
+    frame = document.createElement('iframe'); frame.title = 'Cognitive Toolkit'; frame.className = 'mo-frame';
+    frame.src = PAGE + '#embed=1&panel=1';
+    panel.appendChild(frame);
+    if (window.MinestToolkitHost && MinestToolkitHost.adopt) MinestToolkitHost.adopt(frame);
+    frame.addEventListener('tk-ready', function () { frameReady = true; var q = queue; queue = []; q.forEach(send); preview(); });
+    frame.addEventListener('tk-close', function () { closeCard(); });
+    frame.addEventListener('tk-capture', function () { close(); });
+    frame.addEventListener('tk-holo', function () { close(); setTimeout(function () { if (MinestToolkitHost && MinestToolkitHost.constellation) MinestToolkitHost.constellation(); }, 220); });
+    return frame;
+  }
+  function send(m) { if (!frame || !frameReady) { queue.push(m); ensureFrame(); return; } try { frame.contentWindow.postMessage(Object.assign({ type: 'minest-toolkit-cmd' }, m), '*'); } catch (e) {} }
+  window.addEventListener('message', function (e) {
+    var m = e.data; if (!m || m.type !== 'minest-toolkit-preview' || !frame || e.source !== frame.contentWindow || m.id !== pvSeq) return;
+    paintPreview(m.data);
+  });
+
+  // ---------------------------------------------------------------- build
+  function build() {
+    root = document.createElement('div'); root.className = 'mo-root'; root.setAttribute('role', 'dialog'); root.setAttribute('aria-label', 'My World');
+    root.innerHTML = '<div class="mo-backdrop"></div><div class="mo-box">' +
+      '<div class="mo-bar"><span class="mo-glow" aria-hidden="true"></span><svg class="mo-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.6-4.6"/><path class="sp" d="M18.5 3.5v3M17 5h3"/></svg>' +
+      '<input class="mo-in" type="text" autocomplete="off" spellcheck="false" placeholder="搜索或搭建你的世界 · Search or build a world" aria-label="搜索或搭建你的世界"><kbd>esc</kbd></div>' +
+      '<div class="mo-res" role="listbox"></div>' +
+      '<div class="mo-cards" role="toolbar" aria-label="Cognitive Toolkit">' + CARDS.map(function (c, i) {
+        return '<button type="button" class="mo-card" data-card="' + c.id + '" style="--c:' + c.c + ';--c2:' + c.c2 + ';--i:' + i + '"><span class="mo-shine"></span><span class="mo-icon">' + ICON[c.id] + '</span>' +
+          '<span class="mo-names"><b>' + c.zh + '</b><em>' + c.en + '</em></span><span class="mo-pv">' + c.line + '</span></button>';
+      }).join('') + '</div>' +
+      '<div class="mo-panel"><div class="mo-panel-top"><span class="mo-panel-t"></span><button type="button" class="mo-pclose" aria-label="收起 Close">⌄</button></div></div></div>';
+    document.body.appendChild(root);
+    input = root.querySelector('.mo-in'); results = root.querySelector('.mo-res'); cardsEl = root.querySelector('.mo-cards'); panel = root.querySelector('.mo-panel');
+    root.querySelector('.mo-backdrop').addEventListener('click', close);
+    input.addEventListener('input', function () { search(); clearTimeout(pvT); pvT = setTimeout(preview, 160); root.classList.toggle('dirty', !!active); });   // an open tool changes only on Enter (no half-typed objects)
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); move(1); } else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
+      else if (e.key === 'Enter') { e.preventDefault(); if (active) { var b = cardsEl.querySelector('[data-card="' + active + '"]'); root.classList.remove('dirty'); openCard(active, b); } else go(items[sel >= 0 ? sel : 0]); }
+    });
+    results.addEventListener('click', function (e) { var b = e.target.closest('[data-k]'); if (b) go(items[+b.getAttribute('data-k')]); });
+    cardsEl.addEventListener('click', function (e) { var b = e.target.closest('[data-card]'); if (b) openCard(b.getAttribute('data-card'), b); });
+    cardsEl.addEventListener('pointermove', function (e) { if (reduce) return; var b = e.target.closest('.mo-card'); if (!b) return; var r = b.getBoundingClientRect(); b.style.setProperty('--rx', (((e.clientY - r.top) / r.height - 0.5) * -14).toFixed(1) + 'deg'); b.style.setProperty('--ry', (((e.clientX - r.left) / r.width - 0.5) * 16).toFixed(1) + 'deg'); b.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100).toFixed(0) + '%'); });
+    cardsEl.addEventListener('pointerleave', function () { [].forEach.call(cardsEl.children, function (b) { b.style.removeProperty('--rx'); b.style.removeProperty('--ry'); }); }, true);
+    root.querySelector('.mo-pclose').addEventListener('click', closeCard);
+    ['pointerdown', 'wheel', 'touchstart', 'keydown'].forEach(function (t) { root.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
+  }
+
+  // ---------------------------------------------------------------- search your worlds + build
+  function worlds() { try { return (window.MinestWorld && MinestWorld.worlds ? MinestWorld.worlds() : []).map(function (x) { return x.b || x; }); } catch (e) { return []; } }
+  function search() {
+    var q = input.value.trim(), ql = q.toLowerCase(); items = [];
+    if (q) {
+      var K = window.MinestKnowledge;
+      worlds().forEach(function (b) {
+        if ((b.title || '').toLowerCase().indexOf(ql) >= 0) items.push({ k: 'w', t: b.title, s: '世界 World', b: b });
+        (b.columns || []).forEach(function (c) {
+          if ((c.title || '').toLowerCase().indexOf(ql) >= 0) items.push({ k: 'l', t: c.title, s: b.title + ' · 列表 List', b: b, c: c });
+          (c.cards || []).forEach(function (k) { if (!k || !k.title || (K && K.isHeading && K.isHeading(k.id))) return; if (k.title.toLowerCase().indexOf(ql) >= 0) items.push({ k: 'c', t: k.title, s: b.title + ' › ' + (c.title || ''), b: b, c: c, card: k }); });
+        });
+      });
+      items = items.slice(0, 6);
+      items.push({ k: 'build', t: '✦ 搭建世界「' + q + '」', s: 'Build a world about it' });
+    } else {
+      items = worlds().slice(0, 4).map(function (b) { return { k: 'w', t: b.title, s: '世界 World', b: b }; });
+      items.push({ k: 'home', t: '打开 My World', s: 'All my worlds' });
+    }
+    sel = items.length ? 0 : -1;
+    results.innerHTML = items.map(function (it, i) { return '<button type="button" role="option" class="mo-r k-' + it.k + (i === sel ? ' on' : '') + '" data-k="' + i + '"><b>' + esc(it.t) + '</b><small>' + esc(it.s) + '</small></button>'; }).join('');
+  }
+  function move(d) { if (!items.length) return; sel = (sel + d + items.length) % items.length; [].forEach.call(results.children, function (b, i) { b.classList.toggle('on', i === sel); }); }
+  function go(it) {
+    if (!it) return; var q = input.value.trim();
+    close();
+    setTimeout(function () {
+      try {
+        if (it.k === 'build') { if (window.MinestNewWorld) MinestNewWorld.open('gen', q); else if (window.MinestMyWorld) MinestMyWorld.gallery(); }
+        else if (it.k === 'home') { if (window.MinestMyWorld) MinestMyWorld.open(); }
+        else if (it.k === 'w') { if (window.MinestMyWorld && MinestMyWorld.world) MinestMyWorld.world(it.b.id); else if (window.MinestAI) MinestAI.selectBoard(it.b.id); }
+        else if (it.k === 'l') { if (window.MinestAI && MinestAI.showList) MinestAI.showList(it.b.id, it.c.id); }
+        else if (it.k === 'c') { if (window.MinestAI && MinestAI.openCardIn) MinestAI.openCardIn(it.b.id, it.c.id, it.card.id); }
+      } catch (e) {}
+    }, 220);
+  }
+
+  // ---------------------------------------------------------------- live previews on the cards
+  function preview() {
+    var q = input.value.trim();
+    if (!q) { paintPreview(null); return; }
+    pvSeq++; send({ cmd: 'preview', input: q, id: pvSeq });
+  }
+  function paintPreview(d) {
+    CARDS.forEach(function (c) {
+      var el = cardsEl.querySelector('[data-card="' + c.id + '"] .mo-pv'), t = c.line;
+      if (d) t = c.id === 'compass' ? (d.place || '还不确定 · uncertain') : c.id === 'framework' ? (d.framework || t) : c.id === 'models' ? (d.model || t) : c.id === 'lab' ? (d.lab || '选一个实验') : (d.saved ? d.concepts + ' 个概念 · ' + d.links + ' 条连线' : (d.related && d.related.length ? '连向 ' + d.related.slice(0, 2).join('、') : t));
+      if (el.textContent === t) return;
+      el.classList.remove('in'); void el.offsetWidth; el.textContent = t; el.classList.add('in');
+    });
+    root.classList.toggle('has-text', !!d);
+  }
+
+  // ---------------------------------------------------------------- a card opens into its tool (FLIP from the card)
+  function openCard(id, btn) {
+    hap(); var q = input.value.trim(), first = !active; active = id;
+    [].forEach.call(cardsEl.children, function (b) { b.classList.toggle('on', b.getAttribute('data-card') === id); b.setAttribute('aria-pressed', String(b.getAttribute('data-card') === id)); });
+    var c = CARDS.filter(function (x) { return x.id === id; })[0]; root.querySelector('.mo-panel-t').innerHTML = '<i style="background:' + c.c + '"></i>' + c.zh + ' · ' + c.en + (q ? ' — ' + esc(q) : '');
+    panel.style.setProperty('--c', c.c);
+    ensureFrame(); send({ cmd: 'open', card: id, input: q });
+    if (first) {
+      var from = btn.getBoundingClientRect();
+      root.classList.add('has-panel');
+      var to = panel.getBoundingClientRect();
+      if (!reduce && to.width) {
+        panel.style.transformOrigin = '0 0';
+        panel.style.transform = 'translate(' + (from.left - to.left) + 'px,' + (from.top - to.top) + 'px) scale(' + (from.width / to.width) + ',' + (from.height / to.height) + ')';
+        panel.style.opacity = '0.4'; panel.getBoundingClientRect();
+        panel.style.transition = 'transform .5s cubic-bezier(.2,.9,.25,1), opacity .35s'; panel.style.transform = ''; panel.style.opacity = '';
+        setTimeout(function () { panel.style.transition = ''; }, 520);
+      }
+    }
+  }
+  function closeCard() {
+    if (!active) return; var b = cardsEl.querySelector('[data-card="' + active + '"]'); active = null;
+    [].forEach.call(cardsEl.children, function (x) { x.classList.remove('on'); x.setAttribute('aria-pressed', 'false'); });
+    if (!reduce && b) {
+      var from = panel.getBoundingClientRect();
+      root.classList.remove('has-panel'); var to = b.getBoundingClientRect(); root.classList.add('has-panel', 'folding');
+      panel.style.transformOrigin = '0 0'; panel.style.transition = 'transform .38s cubic-bezier(.5,0,.75,0), opacity .3s';
+      panel.style.transform = 'translate(' + (to.left - from.left) + 'px,' + (to.top - from.top) + 'px) scale(' + (to.width / from.width) + ',' + (to.height / from.height) + ')'; panel.style.opacity = '0';
+      setTimeout(function () { root.classList.remove('has-panel', 'folding'); panel.style.transition = panel.style.transform = panel.style.opacity = ''; }, 380);
+    } else root.classList.remove('has-panel');
+    setTimeout(function () { input.focus(); }, 60);
+  }
+
+  // ---------------------------------------------------------------- open / close
+  function open(o) {
+    o = o || {}; if (document.documentElement.classList.contains('student-mode')) return;   // students see only their activity
+    if (!root) build();
+    root.classList.remove('out'); root.classList.add('on'); document.documentElement.classList.add('mo-open');
+    if (o.input != null) input.value = o.input;
+    search(); ensureFrame(); preview();
+    setTimeout(function () { input.focus(); if (o.input == null) input.select(); }, 30);
+    if (o.card) { var b = cardsEl.querySelector('[data-card="' + o.card + '"]'); if (b) setTimeout(function () { openCard(o.card, b); }, reduce ? 0 : 380); }
+  }
+  function close() {
+    if (!root || !root.classList.contains('on')) return;
+    if (active) { root.classList.remove('has-panel'); active = null; [].forEach.call(cardsEl.children, function (x) { x.classList.remove('on'); }); }
+    root.classList.add('out'); document.documentElement.classList.remove('mo-open');
+    setTimeout(function () { root.classList.remove('on', 'out'); }, reduce ? 0 : 260);
+  }
+  function isOpen() { return !!(root && root.classList.contains('on')); }
+  document.addEventListener('keydown', function (e) {
+    if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); if (isOpen()) close(); else open(); return; }
+    if (e.key === 'Escape' && isOpen()) { e.preventDefault(); e.stopPropagation(); if (active) closeCard(); else close(); }
+  }, true);
+
+  // ---------------------------------------------------------------- style
+  var css = document.createElement('style'); css.id = 'mo-css';
+  css.textContent = [
+    '.mo-root{position:fixed;inset:0;z-index:2147483640;display:none;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",sans-serif;color:#f2f4ff}',
+    '.mo-root.on{display:block}',
+    '.mo-backdrop{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 18%,rgba(60,50,120,.42),rgba(6,6,16,.62));-webkit-backdrop-filter:blur(14px) saturate(1.2);backdrop-filter:blur(14px) saturate(1.2);animation:moFade .25s both}',
+    '.mo-root.out .mo-backdrop{animation:moFadeOut .25s both}.mo-root.out .mo-box{animation:moDrop .25s reverse both}',
+    '.mo-box{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + max(14px,7vh));transform:translateX(-50%);width:min(760px,calc(100vw - 24px));display:grid;gap:12px;animation:moDrop .42s cubic-bezier(.2,1.2,.3,1) both}',
+    /* the bar: glass with a slowly turning aurora edge */
+    '.mo-bar{position:relative;display:flex;align-items:center;gap:12px;height:60px;padding:0 16px;border-radius:20px;background:rgba(22,20,40,.78);-webkit-backdrop-filter:blur(30px);backdrop-filter:blur(30px);box-shadow:0 20px 50px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.12);isolation:isolate}',
+    '.mo-glow{position:absolute;inset:-1.5px;border-radius:21.5px;z-index:-1;background:conic-gradient(from var(--moa,0deg),#9b5de5,#5e9cff,#1fbf75,#f08c3a,#00a6a6,#9b5de5);animation:moAura 6s linear infinite;opacity:.85}',
+    '.mo-glow::after{content:"";position:absolute;inset:1.5px;border-radius:20px;background:rgba(22,20,40,.96)}',
+    '@property --moa{syntax:"<angle>";inherits:false;initial-value:0deg}',
+    '.mo-ic{width:24px;height:24px;flex:none;fill:none;stroke:#cfd6ff;stroke-width:2;stroke-linecap:round}.mo-ic .sp{stroke:#ffe28a;animation:moTw 2.4s ease-in-out infinite}',
+    '.mo-in{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;color:#fff;font:500 19px/1 inherit;font-family:inherit}.mo-in::placeholder{color:rgba(220,225,255,.5)}',
+    '.mo-bar kbd{font:600 11px/1 ui-monospace,monospace;padding:5px 7px;border-radius:7px;background:rgba(255,255,255,.08);color:rgba(230,235,255,.6)}',
+    '.mo-res{display:grid;gap:4px;padding:6px;border-radius:18px;background:rgba(22,20,40,.7);-webkit-backdrop-filter:blur(26px);backdrop-filter:blur(26px);box-shadow:0 12px 30px rgba(0,0,0,.3);max-height:34vh;overflow:auto;animation:moRise .35s .05s both}',
+    '.mo-res:empty{display:none}',
+    '.mo-r{display:flex;align-items:baseline;gap:10px;width:100%;text-align:left;border:0;background:transparent;color:inherit;padding:10px 12px;border-radius:12px;font:inherit;cursor:pointer}',
+    '.mo-r b{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mo-r small{color:rgba(210,215,245,.6);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.mo-r.on,.mo-r:hover{background:rgba(255,255,255,.09)}.mo-r.k-build b{color:#ffe28a}.mo-r.k-build.on{background:rgba(255,226,138,.13)}',
+    /* the five cards */
+    '.mo-cards{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;perspective:900px}',
+    '.mo-card{position:relative;display:grid;justify-items:start;align-content:start;gap:6px;min-height:150px;padding:14px 12px 12px;border-radius:20px;border:1px solid color-mix(in srgb,var(--c) 45%,rgba(255,255,255,.12));cursor:pointer;color:#fff;text-align:left;overflow:hidden;font:inherit;',
+    '  background:linear-gradient(155deg,color-mix(in srgb,var(--c) 34%,rgba(24,22,44,.9)),rgba(20,18,38,.88) 62%);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);',
+    '  box-shadow:0 14px 30px -14px color-mix(in srgb,var(--c) 80%,transparent),inset 0 1px 0 rgba(255,255,255,.14);transform:rotateX(var(--rx,0)) rotateY(var(--ry,0)) translateZ(0);transition:transform .25s ease-out,box-shadow .25s,min-height .4s cubic-bezier(.2,.9,.3,1),padding .4s;animation:moCard .55s cubic-bezier(.2,1.35,.35,1) both;animation-delay:calc(.06s + var(--i) * 55ms)}',
+    '.mo-card:hover{box-shadow:0 22px 40px -14px color-mix(in srgb,var(--c) 95%,transparent),inset 0 1px 0 rgba(255,255,255,.2)}',
+    '.mo-card:active{transform:rotateX(var(--rx,0)) rotateY(var(--ry,0)) scale(.96)}',
+    '.mo-card:focus-visible{outline:2px solid var(--c2);outline-offset:3px}',
+    '.mo-shine{position:absolute;inset:0;background:radial-gradient(circle at var(--mx,30%) 0%,rgba(255,255,255,.22),transparent 55%);opacity:0;transition:opacity .25s;pointer-events:none}.mo-card:hover .mo-shine{opacity:1}',
+    '.mo-icon{width:46px;height:46px;display:block}.mo-icon svg{width:100%;height:100%;overflow:visible}',
+    '.mo-names{display:grid;line-height:1.15}.mo-names b{font-size:15px;font-weight:700}.mo-names em{font-style:normal;font-size:11px;letter-spacing:.04em;color:color-mix(in srgb,var(--c2) 80%,#fff)}',
+    '.mo-pv{font-size:12px;line-height:1.3;color:rgba(235,238,255,.78);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.6em}',
+    '.mo-pv.in{animation:moPv .35s ease-out}.mo-root.has-text .mo-pv{color:#fff}',
+    '.mo-card.on{border-color:var(--c2);box-shadow:0 0 0 2px color-mix(in srgb,var(--c2) 70%,transparent),0 16px 34px -12px var(--c)}',
+    /* living icons */
+    '.oi *{vector-effect:non-scaling-stroke}',
+    '.oi-compass .ring{fill:rgba(255,255,255,.06);stroke:var(--c2);stroke-width:2}.oi-compass .ring2{fill:none;stroke:rgba(255,255,255,.35);stroke-width:1;stroke-dasharray:3 4;transform-origin:32px 32px;animation:moSpin 14s linear infinite reverse}',
+    '.oi-compass .ticks line{stroke:#fff;stroke-width:1.6;stroke-linecap:round}.oi-compass .needle{transform-origin:32px 32px;animation:moNeedle 3.6s ease-in-out infinite}.oi-compass .n1{fill:#ff6b8b}.oi-compass .n2{fill:#fff}.oi-compass .hub{fill:#1d1838;stroke:#fff;stroke-width:1.5}',
+    '.mo-card:hover .oi-compass .needle{animation:moNeedleFind .9s cubic-bezier(.3,1.6,.5,1) both}',
+    '.oi-framework .br{fill:none;stroke:var(--c2);stroke-width:2;stroke-linecap:round;stroke-dasharray:80;stroke-dashoffset:80;animation:moDraw 3.2s ease-in-out infinite}.oi-framework .b2{animation-delay:.35s}',
+    '.oi-framework .nd{fill:rgba(255,255,255,.12);stroke:#fff;stroke-width:1.6;transform-box:fill-box;transform-origin:center;animation:moPop 3.2s ease-in-out infinite}',
+    '.oi-framework .n0{fill:var(--c2);animation-delay:0s}.oi-framework .n1{animation-delay:.45s}.oi-framework .n2{animation-delay:.6s}.oi-framework .n3{animation-delay:.75s}.oi-framework .n4{animation-delay:1s}.oi-framework .n5{animation-delay:1.1s}',
+    '.oi-models circle{fill:none;stroke:#fff;stroke-width:1.6}.oi-models .tr{fill:rgba(255,255,255,.12)}.oi-models .fl{fill:var(--c2);transform-box:fill-box;transform-origin:left center;transform:scaleX(0);animation:moFill 3.6s ease-in-out infinite}',
+    '.oi-models .r2 .fl{animation-delay:.5s}.oi-models .r3 .fl{animation-delay:1s}.oi-models .r1 circle{animation:moDot 3.6s infinite}.oi-models .r2 circle{animation:moDot 3.6s .5s infinite}.oi-models .r3 circle{animation:moDot 3.6s 1s infinite}',
+    '.oi-models .ck{fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;opacity:0}',
+    '.oi-lab .gl{fill:none;stroke:#fff;stroke-width:1.8;stroke-linejoin:round}.oi-lab .liq{fill:var(--c2);opacity:.85;animation:moWave 2.4s linear infinite}',
+    '.oi-lab .bub{fill:#fff;opacity:0;animation:moBub 2.6s ease-in infinite}.oi-lab .b2{animation-delay:.8s}.oi-lab .b3{animation-delay:1.5s}',
+    '.mo-card:hover .oi-lab .bub{animation-duration:1.2s}',
+    '.oi-graph .ln path{fill:none;stroke:var(--c2);stroke-width:1.8;stroke-linecap:round;stroke-dasharray:40;stroke-dashoffset:40;animation:moDraw 3.4s ease-in-out infinite}',
+    '.oi-graph .l2{animation-delay:.2s}.oi-graph .l3{animation-delay:.4s}.oi-graph .l4{animation-delay:.6s}.oi-graph .l5{animation-delay:.9s}',
+    '.oi-graph .nd{fill:#fff;transform-box:fill-box;transform-origin:center;animation:moPulse 3.4s ease-in-out infinite}.oi-graph .c0{fill:var(--c2)}.oi-graph .c1{animation-delay:.3s}.oi-graph .c2{animation-delay:.5s}.oi-graph .c3{animation-delay:.7s}.oi-graph .c4{animation-delay:.9s}',
+    /* a card open: the five become a switcher, the tool opens below */
+    '.mo-panel{display:none;position:relative;border-radius:22px;overflow:hidden;background:rgba(18,16,34,.94);border:1px solid color-mix(in srgb,var(--c,#9b5de5) 50%,rgba(255,255,255,.12));box-shadow:0 30px 60px rgba(0,0,0,.5);height:min(66vh,680px)}',
+    '.mo-root.has-panel .mo-panel{display:flex;flex-direction:column}',
+    '.mo-root.has-panel .mo-res{display:none}',
+    '.mo-root.has-panel .mo-card{min-height:52px;padding:8px 10px;grid-template-columns:30px 1fr;align-items:center;column-gap:8px;animation:none}',
+    '.mo-root.has-panel .mo-icon{width:30px;height:30px;grid-row:span 2}.mo-root.has-panel .mo-pv{display:none}.mo-root.has-panel .mo-names b{font-size:13px}.mo-root.has-panel .mo-names em{font-size:10px}',
+    '.mo-panel-top{display:flex;align-items:center;justify-content:space-between;padding:8px 10px 8px 16px;font-size:13px;font-weight:600;border-bottom:1px solid rgba(255,255,255,.08)}',
+    '.mo-panel-t{display:flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mo-panel-t i{width:9px;height:9px;border-radius:50%;flex:none}',
+    '.mo-pclose{width:32px;height:32px;border-radius:10px;border:0;background:rgba(255,255,255,.08);color:#fff;font-size:18px;cursor:pointer}',
+    '.mo-frame{flex:1;width:100%;border:0;background:transparent}',
+    '.mo-panel .mo-frame{display:block}',
+    /* phones */
+    '@media (max-width:640px){.mo-box{top:calc(env(safe-area-inset-top,0px) + 10px);gap:10px}.mo-bar{height:54px}.mo-in{font-size:17px}.mo-bar kbd{display:none}',
+    '  .mo-cards{grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}.mo-card{min-height:104px;padding:12px 3px 10px;border-radius:16px;justify-items:center;text-align:center}.mo-icon{width:36px;height:36px}.mo-names b{font-size:11px;white-space:nowrap;letter-spacing:-.02em}.mo-names em,.mo-pv{display:none}',
+    '  .mo-root.has-panel .mo-card{grid-template-columns:1fr;justify-items:center;min-height:46px;padding:6px 2px}.mo-root.has-panel .mo-names{display:none}.mo-panel{height:calc(100vh - 210px)}}',
+    '@keyframes moFade{from{opacity:0}}@keyframes moFadeOut{to{opacity:0}}',
+    '@keyframes moDrop{from{opacity:0;transform:translateX(-50%) translateY(-14px) scale(.97)}}',
+    '@keyframes moRise{from{opacity:0;transform:translateY(-6px)}}',
+    '@keyframes moCard{0%{opacity:0;transform:translateY(-26px) rotateX(28deg) scale(.86)}100%{opacity:1}}',
+    '@keyframes moSpin{to{transform:rotate(360deg)}}',
+    '@keyframes moAura{to{--moa:360deg}}',   /* only the colours turn round the edge, never the box */
+    '@keyframes moTw{0%,100%{opacity:.3}50%{opacity:1}}',
+    '@keyframes moNeedle{0%,100%{transform:rotate(-22deg)}45%{transform:rotate(18deg)}70%{transform:rotate(8deg)}}',
+    '@keyframes moNeedleFind{0%{transform:rotate(-30deg)}60%{transform:rotate(200deg)}100%{transform:rotate(180deg)}}',
+    '@keyframes moDraw{0%{stroke-dashoffset:80}40%,75%{stroke-dashoffset:0}100%{stroke-dashoffset:-80}}',
+    '@keyframes moPop{0%,8%{transform:scale(.4);opacity:.2}22%,80%{transform:scale(1);opacity:1}100%{transform:scale(.4);opacity:.2}}',
+    '@keyframes moFill{0%,10%{transform:scaleX(0)}40%,85%{transform:scaleX(1)}100%{transform:scaleX(0)}}',
+    '@keyframes moDot{0%,30%{fill:none}40%,85%{fill:var(--c2)}100%{fill:none}}',
+    '@keyframes moWave{from{transform:translateX(0)}to{transform:translateX(-32px)}}',
+    '@keyframes moBub{0%{opacity:0;transform:translateY(0)}20%{opacity:.9}100%{opacity:0;transform:translateY(-26px)}}',
+    '@keyframes moPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}',
+    '@keyframes moPv{from{opacity:0;transform:translateY(4px)}}',
+    'html.mo-open .mn-bdock{opacity:.35!important;transition:opacity .25s}',
+    '@media (prefers-reduced-motion:reduce){.mo-root *,.mo-root *::after{animation:none!important;transition:none!important}.oi-models .fl{transform:scaleX(1)}.oi-framework .br,.oi-graph .ln path{stroke-dashoffset:0}}'
+  ].join('\n');
+  (document.head || document.documentElement).appendChild(css);
+
+  window.MinestOmni = { open: open, close: close, toggle: function () { if (isOpen()) close(); else open(); }, isOpen: isOpen, openCard: function (id, q) { open({ input: q, card: id }); } };
 })();
 
 </script>
 <!-- mn-toolkit-host:end -->
+<style id="mn-sysbar-css">
+/* Minest · System buttons at the head of the Dock (see system-bar.js) */
+
+/* the Dock holds the system keys, so outside reading mode it stays on screen instead of sliding away when idle — not the
+   Duo's pinned Dock (duo-dockpin / duo-docktop: placed from the top, it scrolls; pushing it up by half broke it, 2026-11-20)
+   (the opening's own Dock row keeps the place the opening gives it) */
+html.mn-sysbar:not(.mn-sys-reading):not(.mn-start-active):not(.duo-dockpin):not(.duo-docktop)[data-mn-bd=right] body .mn-bdock.mn-bdock,
+html.mn-sysbar:not(.mn-sys-reading):not(.mn-start-active):not(.duo-dockpin):not(.duo-docktop)[data-mn-bd=left] body .mn-bdock.mn-bdock { transform: translate(0,-50%) !important; opacity: 1 !important; pointer-events: auto !important; visibility: visible !important; }
+html.mn-sysbar:not(.mn-sys-reading):not(.mn-start-active):not(.duo-dockpin):not(.duo-docktop)[data-mn-bd=bottom] body .mn-bdock.mn-bdock { transform: translate(-50%,0) !important; opacity: 1 !important; pointer-events: auto !important; visibility: visible !important; }
+html.mn-sysbar.sh-main-dock-disabled:not(.mn-sys-reading) body .mn-bdock.mn-bdock { display: flex !important; }
+/* the opening (2026-11-19, the user: no system keys on the opening): its Dock no longer fades out when idle — a touch
+   inside the opening's scene never reached the page, so on a phone it stayed hidden; only reading hides it */
+html.mn-sysbar.mn-start-active.mn-start-idle:not(.mn-sys-reading):not(.mn-start-reading) body .mn-bdock.mn-bdock { opacity: 1 !important; visibility: visible !important; pointer-events: auto !important; }
+html.mn-sysbar #mn-start-full { display: none !important; }   /* the system keys' full-screen key does this */
+/* Top: the bottom row, moved up under the title bar */
+html.mn-dock-top[data-mn-bd=bottom]:not(.mn-start-active) body .mn-bdock.mn-bdock { top: calc(env(safe-area-inset-top, 0px) + var(--mn-bd-top, 52px) + 6px) !important; bottom: auto !important; }
+
+/* in the room and in My World the Dock (and so the system keys) sits above them — under them it was covered by the
+   room's canvas (z 2147483600), on the opening too, which boots into the room (2026-11-20, the user) */
+html.mn-sysbar[data-mn-ctx=room] body .mn-bdock.mn-bdock, html.mn-sysbar[data-mn-ctx=world] body .mn-bdock.mn-bdock { z-index: 2147483620 !important; }
+/* the system keys: a size down from the apps, never "the app in use" */
+.mn-bdock .mn-bapp.mn-sys-key { flex-shrink: 0; }
+html .mn-bdock .mn-bapp.mn-sys-key { width: calc(var(--mn-key, 40px) * .86) !important; height: calc(var(--mn-key, 40px) * .86) !important; min-width: calc(var(--mn-key, 40px) * .86) !important; }
+html .mn-bdock .mn-bapp.mn-sys-key svg { width: calc(var(--mn-key, 40px) * .44) !important; height: calc(var(--mn-key, 40px) * .44) !important; }
+.mn-bdock .mn-bapp.mn-sys-key.mn-pill-active, .mn-bdock .mn-bapp.mn-sys-key.on { background: transparent !important; border-color: transparent !important; box-shadow: none !important; }
+.mn-bdock .mn-bapp.mn-sys-key::after { display: none !important; }
+
+/* the hairline between the system keys and the tools */
+.mn-sys-sep { flex: none; align-self: center; width: 22px; height: 1.5px; margin: 3px 0; border-radius: 1px; background: currentColor; opacity: .22; }
+html.mn-dock-h .mn-sys-sep { width: 1.5px; height: 22px; margin: 0 3px; }
+
+/* "=" → "||": Apple's two bars; folding the tools turns them upright */
+.mn-eq { position: relative; display: block; width: 18px; height: 18px; pointer-events: none; }
+.mn-eq i { position: absolute; left: 50%; top: 50%; width: 16px; height: 2.2px; margin: -1.1px 0 0 -8px; border-radius: 2px; background: currentColor;
+  transition: transform .42s cubic-bezier(.22,1,.36,1); }
+.mn-eq i:first-child { transform: translateY(-3.6px); }
+.mn-eq i:last-child { transform: translateY(3.6px); }
+html.mn-sys-tools-off .mn-eq i:first-child { transform: translateX(-3.6px) rotate(90deg) scaleX(.82); }
+html.mn-sys-tools-off .mn-eq i:last-child { transform: translateX(3.6px) rotate(90deg) scaleX(.82); }
+
+/* the tools of the screen in use: the Dock's apps on the board, the room's tools in Spatial Home */
+html body .mn-bdock .mn-bapp.mn-ctx-key { display: none !important; }
+html[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-ctx-key[data-ctx=room] { display: inline-flex !important; }
+html.mn-sys-tools-off[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-ctx-key { display: none !important; }
+html[data-mn-ctx=room]:not(.mn-ctx-apps) .mn-bdock .mn-bapp:not(.mn-sys-key):not(.mn-ctx-key) { display: none !important; }
+html.mn-sysbar[data-mn-ctx=room] #sh-top > .sh-ic, html.mn-sysbar[data-mn-ctx=room] #sh-modeSeg { display: none !important; }   /* the room's own top bar gives way */
+/* "Dock" in the room: every Minest entry instead of the room's tools (the Dock key stays, pressed) */
+html.mn-ctx-apps[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-ctx-key[data-ctx=room]:not(.mn-ctx-dock) { display: none !important; }
+.mn-bdock .mn-ctx-key svg.px { width: 22px !important; height: 22px !important; image-rendering: pixelated; filter: drop-shadow(1px 1px 0 rgba(0,0,0,.35)); }
+
+/* Spatial Home and My World: the room's Minecraft look — a see-through hotbar of square, bevelled slots; green for the
+   one in use; white icons; monospace names */
+html[data-mn-ctx=room] body .mn-bdock.mn-bdock, html[data-mn-ctx=world] body .mn-bdock.mn-bdock {
+  border-radius: 0 !important; background: rgba(16,16,20,.42) !important; border: 2px solid rgba(0,0,0,.6) !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important; box-shadow: inset 2px 2px 0 rgba(255,255,255,.12), inset -2px -2px 0 rgba(0,0,0,.35) !important;
+  padding: 4px !important; gap: 4px !important;
+}
+html[data-mn-ctx=room] body .mn-bdock .mn-bapp, html[data-mn-ctx=world] body .mn-bdock .mn-bapp {
+  width: var(--mn-key, 38px) !important; height: var(--mn-key, 38px) !important; min-width: var(--mn-key, 38px) !important; min-height: 0 !important; padding: 0 !important; border-radius: 0 !important; color: #fff !important;
+  border: 2px solid #111 !important; background: rgba(110,110,118,.55) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.38), inset -2px -2px 0 rgba(0,0,0,.42) !important; transition: none !important;
+}
+html[data-mn-ctx=room] body .mn-bdock .mn-bapp:active, html[data-mn-ctx=world] body .mn-bdock .mn-bapp:active { box-shadow: inset -2px -2px 0 rgba(255,255,255,.3), inset 2px 2px 0 rgba(0,0,0,.45) !important; }
+html[data-mn-ctx=room] body .mn-bdock .mn-bapp svg, html[data-mn-ctx=world] body .mn-bdock .mn-bapp svg { width: calc(var(--mn-key, 38px) * .54) !important; height: calc(var(--mn-key, 38px) * .54) !important; stroke-linecap: square; stroke-linejoin: miter; filter: drop-shadow(1px 1px 0 rgba(0,0,0,.45)); }
+html[data-mn-ctx=room] body .mn-bdock .mn-bapp.on, html[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-pill-active,
+html[data-mn-ctx=world] body .mn-bdock .mn-bapp.on, html[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-pill-active,
+html.mn-ctx-apps body .mn-bdock .mn-bapp.mn-ctx-dock { background: rgba(70,140,70,.85) !important; }
+html[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-sys-key.mn-pill-active, html[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-sys-key.mn-pill-active { background: rgba(110,110,118,.55) !important; }
+/* in the room's look the slot in use is just green: no name (a sideways name does not read in a hotbar) */
+html[data-mn-ctx=room] body .mn-bdock .mn-bapp::after, html[data-mn-ctx=world] body .mn-bdock .mn-bapp::after { display: none !important; }
+html[data-mn-ctx=room] .mn-sys-sep, html[data-mn-ctx=world] .mn-sys-sep { color: #fff; opacity: .35; border-radius: 0; }
+html[data-mn-ctx=room] .mn-eq i, html[data-mn-ctx=world] .mn-eq i { border-radius: 0; height: 2.6px; box-shadow: 1px 1px 0 rgba(0,0,0,.45); }
+/* tools folded away: only the system keys stay */
+html.mn-sys-tools-off .mn-bdock .mn-bapp:not(.mn-sys-key), html.mn-sys-tools-off .mn-bdock .mn-sys-sep { display: none !important; }
+
+/* nothing doubled: the Dock's own close / back and the older full-screen buttons give way */
+html.mn-sysbar .mn-bdock .mn-sys-btn.mn-sys-exit, html.mn-sysbar .mn-bdock .mn-sys-btn.mn-sys-back { display: none !important; }
+html.mn-sysbar #sh-reading-enter { display: none !important; }
+
+/* the exit from reading: alone, bottom-left */
+#mn-sys-exit {
+  all: unset; box-sizing: border-box; cursor: pointer; position: fixed; z-index: 2147483647;
+  left: calc(16px + env(safe-area-inset-left)); bottom: calc(16px + env(safe-area-inset-bottom));
+  width: 44px; height: 44px; border-radius: 50%; display: none; place-items: center; color: #fff;
+  background: rgba(20,24,32,.55); border: 1px solid rgba(255,255,255,.45);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 6px 18px rgba(0,0,0,.35);
+}
+#mn-sys-exit svg { width: 22px; height: 22px; display: block; pointer-events: none; }
+#mn-sys-exit:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+html.mn-sys-reading #mn-sys-exit { display: grid !important; visibility: visible !important; pointer-events: auto !important; }
+
+/* reading: every tool is hidden; only the exit stays */
+html.mn-sys-reading body button:not(#mn-sys-exit),
+html.mn-sys-reading [role="button"], html.mn-sys-reading [role="toolbar"],
+html.mn-sys-reading header.iphone-topbar, html.mn-sys-reading .ios-bottom-tab-bar, html.mn-sys-reading #minest-mini-pet-p0, html.mn-sys-reading #cs-btn,
+html.mn-sys-reading #sh-top, html.mn-sys-reading #sh-labels, html.mn-sys-reading #sh-stick, html.mn-sys-reading #sh-hint, html.mn-sys-reading #sh-credit,
+html.mn-sys-reading #sh-pill, html.mn-sys-reading #sh-dock, html.mn-sys-reading #sh-settings, html.mn-sys-reading #sh-pack, html.mn-sys-reading #sh-edit,
+html.mn-sys-reading #sh-card, html.mn-sys-reading #sh-toast, html.mn-sys-reading #sh-skip {
+  visibility: hidden !important; pointer-events: none !important;
+}
+html.mn-sys-reading body .mn-bdock.mn-bdock, html.mn-sys-reading body .mn-bdock.mn-bdock::before, html.mn-sys-reading body .mn-bdock.mn-bdock::after { display: none !important; }
+/* 2026-11-19 (the user: full screen hides every button but the exit): the bars and plates that hold buttons go too —
+   the 3D Cover mode bar and its speed slider, the card-group bar, a card in hand's bar, 放回全部, the Fan's pills and
+   heading, the detail plate, the holo projection's bar, the exploded card's bar, the pet (a child of it kept itself
+   visible), any slider or menu */
+html.mn-sys-reading #cm-bar, html.mn-sys-reading #cm-hbar, html.mn-sys-reading .cm-gbar, html.mn-sys-reading .cm-hctl, html.mn-sys-reading .cm-hback,
+html.mn-sys-reading #cm-pills, html.mn-sys-reading #cm-head, html.mn-sys-reading #cm-det, html.mn-sys-reading #xl .xl-bar, html.mn-sys-reading #xl .xl-x,
+html.mn-sys-reading #minest-mini-pet-p0, html.mn-sys-reading body input[type=range], html.mn-sys-reading body select, html.mn-sys-reading #cs-modal { display: none !important; }
+@media (prefers-reduced-motion: reduce) { .mn-eq i { transition: none; } }
+/* the room's look: the slot in use keeps the slot's size (the pill Dock's tall lens does not apply) */
+html.mn-dock-pill[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-pill-active, html.mn-dock-pill[data-mn-ctx=room] body .mn-bdock .mn-bapp.on,
+html.mn-dock-pill[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-pill-active, html.mn-dock-pill[data-mn-ctx=world] body .mn-bdock .mn-bapp.on {
+  width: var(--mn-key, 38px) !important; height: var(--mn-key, 38px) !important; min-height: 0 !important; padding: 0 !important; flex-direction: row !important;
+  border: 2px solid #111 !important; box-shadow: inset 2px 2px 0 rgba(255,255,255,.38), inset -2px -2px 0 rgba(0,0,0,.42) !important;
+}
+
+/* the page's own keys (cover modes …): in the Dock's tools, the board's apps giving way to them; "Dock" brings them back */
+.mn-bdock .mn-page { display: contents; }
+html.mn-ctx-page[data-mn-ctx=board]:not(.mn-ctx-apps) body .mn-bdock .mn-bapp:not(.mn-sys-key):not(.mn-ctx-key):not(.mn-page-key) { display: none !important; }
+html.mn-ctx-page[data-mn-ctx=board] body .mn-bdock .mn-bapp.mn-ctx-dock { display: inline-flex !important; }
+html.mn-ctx-page.mn-ctx-apps body .mn-bdock .mn-page-key, html.mn-sys-tools-off body .mn-bdock .mn-page-key, html[data-mn-ctx=room] body .mn-bdock .mn-page { display: none !important; }
+html.mn-ctx-page.mn-ctx-apps body .mn-bdock .mn-bapp.mn-ctx-dock { background: rgba(255,255,255,.16) !important; border-radius: 12px !important; }
+.mn-bdock .mn-bapp.mn-page-key { flex-shrink: 0; position: relative; }
+.mn-bdock .mn-bapp.mn-page-key::after { display: none !important; }
+.mn-bdock .mn-bapp.mn-page-key.mn-pill-active { background: transparent !important; box-shadow: none !important; }
+.mn-bdock .mn-bapp.mn-page-key svg { width: calc(var(--mn-key, 40px) * .5) !important; height: calc(var(--mn-key, 40px) * .5) !important; }
+.mn-bdock .mn-bapp.mn-page-key.on { color: #7dd3fc !important; }
+.mn-bdock .mn-bapp.mn-page-key.cm-dk-mode::before { content: ""; position: absolute; right: 18%; bottom: 14%; width: 0; height: 0; border-left: 3.5px solid transparent; border-right: 3.5px solid transparent; border-top: 4px solid currentColor; opacity: .55; }
+
+/* Octo hidden (its quick ring's "隐藏"; the Dock's long-press menu brings it back) */
+html.mn-octo-off #minest-mini-pet-p0, html.mn-octo-off .mpet-menu, html.mn-octo-off .mpet-tip, html.mn-octo-off .mpet-say, html.mn-octo-off .mpet-inbox { display: none !important; }
+.mpet-menu button.mn-octo-hide svg { display: block; }
+
+/* no "in use" lens in the Dock (2026-11-20, the user: a selected look belongs only where one of several modes is
+   picked): its keys open things — the lens stays in the mode pickers (3D Cover's), not here */
+html body .mn-bdock .mn-bapp.mn-bapp.on, html body .mn-bdock .mn-bapp.mn-bapp.mn-pill-active { background: transparent !important; border-color: transparent !important; box-shadow: none !important; }
+html[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-bapp.on, html[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-bapp.mn-pill-active,
+html[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-bapp.on, html[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-bapp.mn-pill-active {
+  background: rgba(110,110,118,.55) !important; border: 2px solid #111 !important; box-shadow: inset 2px 2px 0 rgba(255,255,255,.38), inset -2px -2px 0 rgba(0,0,0,.42) !important; }
+
+/* the press (drawn per frame by system-bar.js): a soft bloom, sparks, a ghost of the icon; and the note when there is nothing to do */
+.mn-bdock .mn-bapp { position: relative; overflow: visible; }
+.mn-sk-ring { position: absolute; inset: 0; border-radius: 50%; pointer-events: none; opacity: 0; background: radial-gradient(circle, rgba(190,225,255,.55), rgba(190,225,255,0) 70%); }
+html[data-mn-ctx=room] .mn-sk-ring, html[data-mn-ctx=world] .mn-sk-ring { border-radius: 0; background: rgba(255,255,255,.28); }
+.mn-sk-spark { position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px; border-radius: 50%; pointer-events: none; opacity: 0; background: #fff; box-shadow: 0 0 6px rgba(190,225,255,.9); }
+.mn-bdock .mn-bapp svg.mn-sk-ghost { position: absolute; left: 50%; top: 50%; margin: 0 !important; translate: -50% -50%; pointer-events: none; opacity: 0; }
+.mn-eq i { transition: none !important; }
+.mn-bdock.mn-dock-anim { overflow: hidden !important; }
+.mn-bdock.mn-dock-anim > * { flex-shrink: 0 !important; }
+#mn-sk-toast { position: fixed; z-index: 2147483646; transform: translate(-50%, -100%); padding: 6px 12px; border-radius: 10px; pointer-events: none; opacity: 0; white-space: nowrap;
+  background: rgba(20,22,30,.86); color: #f1f5f9; font: 600 12px -apple-system, system-ui, sans-serif; letter-spacing: .03em; border: 1px solid rgba(255,255,255,.12);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 10px 24px -8px rgba(0,0,0,.5); }
+#mn-sk-toast.v { transform: translate(-100%, -50%); }
+/* the keys' motion is drawn per frame: no CSS easing on transform / opacity to lag behind it */
+html body .mn-bdock .mn-bapp { transition-property: background-color, color, border-color, box-shadow !important; }
+html body .mn-bdock .mn-bapp svg, html body .mn-bdock .mn-bapp svg * { transition: none !important; }
+
+/* the student side has no system keys and no Dock: nothing that leads to the rest of Minest (2026-11-20, the user) */
+html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.student-mode #mn-sk-toast { display: none !important; }
+
+/* the Duo's pinned Dock: shown (not slid away) without being moved off its place */
+html.mn-sysbar.duo-dockpin:not(.mn-sys-reading) body .mn-bdock.mn-bdock, html.mn-sysbar.duo-docktop:not(.mn-sys-reading) body .mn-bdock.mn-bdock { opacity: 1 !important; pointer-events: auto !important; visibility: visible !important; }
+
+/* the Dock placed freely (hold, then drag) — wins over every side / centring rule */
+html.mn-dock-free.mn-dock-free .mn-bdock.mn-bdock { left: var(--mn-fx, 50%) !important; top: var(--mn-fy, 50%) !important; right: auto !important; bottom: auto !important; transform: none !important; margin: 0 !important; }
+html.mn-dock-moving .mn-bdock.mn-bdock { transition: none !important; box-shadow: 0 18px 40px rgba(0, 0, 0, .45), 0 0 0 2px rgba(255, 255, 255, .35) !important; cursor: grabbing; }
+.mn-bdock.mn-dock-ready { animation: mnDockReady .25s ease-out; } @keyframes mnDockReady { 50% { filter: brightness(1.25); } }
+@media (prefers-reduced-motion: reduce) { .mn-bdock.mn-dock-ready { animation: none; } }
+
+html.student-mode .mn-sk-world { display: none !important; }
+</style>
+<script id="mn-sysbar-js">
+/* Minest · System buttons (2026-11-19; moved into the Dock the same day after the user's marked-up screenshot).
+   The Dock is one capsule: the four system buttons at its head, a hairline, then the tools of the screen in use.
+     1 ✕ close  — the Dock's own close (the module / panel on top closes); in the room: back to the full Minest
+     2 ‹ back   — the Dock's own back (Escape, then the page's history, then close)
+     3 ⛶ full   — reading mode: the Dock, every tool button on the page and inside its open frames are hidden; one
+                  "exit full screen" button stays, bottom-left. Esc also leaves. Native full screen where allowed.
+     4 = tools  — Apple's two-bar "=": folds the tools away, the bars turning into "||"; again, and they come back.
+   The tools follow the screen: on the board the Dock's apps; in Spatial Home the room's own tools (Explore / Desk,
+   backpack, places, window view, sit, first / third person, settings — the room's pixel icons, each pressing the
+   room's button, whose own top bar then gives way) and "Dock", which brings every Minest entry in. In Spatial Home
+   and My World the whole Dock takes the room's Minecraft look (square bevelled slots, green for the one in use). Outside reading mode the Dock no longer slides away when idle (it holds the system keys).
+   window.MinestSystemBar = { reading(on), tools(on), state() }. */
+(function () {
+  'use strict';
+  if (window.MinestSystemBar) return;
+  var R = document.documentElement, KEY = 'mn_sys_tools_v1', reading = false, nativeFull = false, lastFocus = null, ctx = 'board';
+  function svg(p) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>'; }
+  var ICON = {
+    close: '<path d="M6 6l12 12M18 6L6 18"/>', back: '<path d="M15 5l-7 7 7 7"/>',
+    full: '<path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5"/>', exit: '<path d="M3 8h5V3M16 3v5h5M8 21v-5H3M21 16h-5v5"/>',
+    walk: '<circle cx="13" cy="4.5" r="1.8"/><path d="M10 21l2-6-2.5-2.5L11 8l3 3 3 1M12 15l3 2 1 4M11 8l-3 2-1 3"/>',
+    desk: '<path d="M3 10h18M5 10v9M19 10v9M5 14h14M9 6h6v4H9z"/>',
+    pack: '<path d="M8 6V5a4 4 0 0 1 8 0v1"/><rect x="5" y="6" width="14" height="15" rx="4"/><path d="M9 12h6v4H9z"/>',
+    env: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/>',
+    views: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M12 3v18M4 12h16"/>',
+    sit: '<path d="M7 3v10h10M7 13v8M17 13v8M17 9V3"/>',
+    view: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
+    world: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.6-4.6"/><path d="M18.5 3.2v3.4M16.8 4.9h3.4"/>',
+    set: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3.1 14H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 3.1V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 20.9 10H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'
+  };
+  function haptic() { try { if (window.MinestNative && MinestNative.haptic) MinestNative.haptic('light'); } catch (e) {} }
+  function key(cls, label, inner, fn) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'mn-bapp mn-sys-key ' + cls;
+    b.setAttribute('aria-label', label); b.title = label; b.innerHTML = inner;
+    b.setAttribute('data-spatial-home-dock', '');   // not an app: the room must not leave for the Minest page when it is pressed
+    /* a tap is read from the finger (pointer down → up, a little drift allowed): a click was lost when the finger
+       moved a hair or the Dock resized under it (2026-11-20, the user: the keys sometimes did nothing) */
+    var dn = null, done = 0;
+    function fire() { done = Date.now(); haptic(); pressFx(b, 'up'); fn(b); }
+    b.addEventListener('pointerdown', function (e) { if (e.button > 0) return; dn = { x: e.clientX, y: e.clientY, t: Date.now(), id: e.pointerId }; pressFx(b, 'down'); }, true);
+    b.addEventListener('pointerup', function (e) { var d = dn; dn = null; if (!d || d.id !== e.pointerId) return; if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 28 || Date.now() - d.t > 900) { pressFx(b, 'cancel'); return; } e.stopPropagation(); fire(); }, true);
+    b.addEventListener('pointercancel', function () { if (dn) { dn = null; pressFx(b, 'cancel'); } }, true);
+    b.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); if (Date.now() - done < 700) return; fire(); }, true);   // keyboard, or a click with no pointer before it
+    return b;
+  }
+  /* ---- micro-motion (2026-11-20, the user: every key's own little animation; the ring stayed on screen — Web
+     Animations could stay pending forever here, so every motion is drawn per frame, and a timer always lands it) ---- */
+  function tween(dur, fn, done, delay) {
+    var t0 = 0, over = false;
+    function land() { if (over) return; over = true; try { fn(1); } catch (e) {} if (done) try { done(); } catch (e) {} }
+    function step() { if (over) return; var k = Math.min(1, (performance.now() - t0) / dur); if (k >= 1) { land(); return; } try { fn(k); } catch (e) {} requestAnimationFrame(step); }
+    setTimeout(function () { t0 = performance.now(); try { fn(0); } catch (e) {} requestAnimationFrame(step); setTimeout(land, dur + 160); }, delay || 0);
+  }
+  var EZ = {
+    out: function (k) { return 1 - Math.pow(1 - k, 3); },
+    inn: function (k) { return k * k * k; },
+    io: function (k) { return k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; },
+    spring: function (k) { return 1 - Math.exp(-6.5 * k) * Math.cos(10.5 * k); },
+    bell: function (k) { return Math.sin(Math.PI * k); },
+    shake: function (k) { return Math.sin(k * Math.PI * 5) * (1 - k); }
+  };
+  function tf(el, v) { if (el) el.style.transform = v || ''; }
+  /* the key under the finger: sinks, then springs back */
+  function sink(b) { if (b.__down) return; b.__down = 1; var s0 = b.__sc || 1; tween(110, function (k) { b.__sc = s0 + (0.84 - s0) * EZ.out(k); tf(b, 'scale(' + b.__sc.toFixed(3) + ')'); }); }
+  function rise(b) { b.__down = 0; var s0 = b.__sc || .84; tween(460, function (k) { b.__sc = s0 + (1 - s0) * EZ.spring(k); tf(b, 'scale(' + b.__sc.toFixed(3) + ')'); }, function () { b.__sc = 1; tf(b, ''); }); }
+  /* a soft bloom of light behind the icon, always gone at the end */
+  function bloom(b) {
+    var r = document.createElement('i'); r.className = 'mn-sk-ring'; b.appendChild(r);
+    tween(420, function (k) { var e = EZ.out(k); r.style.transform = 'scale(' + (0.5 + e * 0.8).toFixed(3) + ')'; r.style.opacity = (0.5 * (1 - k)).toFixed(3); }, function () { r.remove(); });
+  }
+  function sparks(b, n) {
+    var r = b.getBoundingClientRect();
+    for (var i = 0; i < n; i++) (function (i) {
+      var s = document.createElement('i'); s.className = 'mn-sk-spark'; b.appendChild(s);
+      var a = (-120 + i * (240 / Math.max(1, n - 1))) * Math.PI / 180, d = r.width * (0.45 + (i % 2) * 0.15);
+      tween(520, function (k) { var e = EZ.out(k); s.style.transform = 'translate(' + (Math.cos(a) * d * e).toFixed(1) + 'px,' + (Math.sin(a) * d * e).toFixed(1) + 'px) scale(' + (1 - k * 0.6).toFixed(2) + ')'; s.style.opacity = (k < .2 ? k * 5 : 1 - (k - .2) / .8).toFixed(2); }, function () { s.remove(); }, i * 30);
+    })(i);
+  }
+  /* each key's own motion, on its icon */
+  function iconFx(b) {
+    var sv = b.querySelector('svg'), c = b.className, l = (b.getAttribute('aria-label') || '').toLowerCase();
+    if (/mn-sk-tools/.test(c)) return;   // "=" morphs itself (eqMorph)
+    if (!sv) return;
+    sv.style.transformOrigin = '50% 50%';
+    var done = function () { tf(sv, ''); };
+    if (/mn-sk-close/.test(c) || /close|关闭/.test(l)) return tween(480, function (k) { tf(sv, 'rotate(' + (EZ.spring(k) * 90).toFixed(1) + 'deg) scale(' + (1 - EZ.bell(k) * .18).toFixed(3) + ')'); }, done);
+    if (/mn-sk-back/.test(c) || /back|返回/.test(l)) {
+      var g = sv.cloneNode(true); g.classList.add('mn-sk-ghost'); b.appendChild(g);
+      tween(420, function (k) { g.style.transform = 'translateX(' + (-10 * EZ.out(k)).toFixed(1) + 'px)'; g.style.opacity = (0.55 * (1 - k)).toFixed(2); }, function () { g.remove(); });
+      return tween(460, function (k) { tf(sv, 'translateX(' + (-6 * EZ.bell(Math.min(1, k * 1.6)) + (k > .62 ? 2 * EZ.shake((k - .62) / .38) : 0)).toFixed(2) + 'px)'); }, done);
+    }
+    if (/mn-sk-full/.test(c)) return tween(520, function (k) { var e = k < .35 ? EZ.out(k / .35) * .32 : .32 * (1 - EZ.spring((k - .35) / .65)); tf(sv, 'scale(' + (1 + e).toFixed(3) + ')'); }, done);
+    if (/spatial home|我的房间/.test(l)) return tween(520, function (k) { var y = k < .45 ? -6 * EZ.bell(k / .45 / 2 + 0) : 0, q = k >= .45 ? EZ.bell((k - .45) / .55) * .16 * (1 - (k - .45) / .55 * .5) : 0; tf(sv, 'translateY(' + y.toFixed(2) + 'px) scale(' + (1 + q).toFixed(3) + ',' + (1 - q).toFixed(3) + ')'); }, done);
+    if (/my world|世界/.test(l)) return tween(700, function (k) { tf(sv, 'rotate(' + (EZ.io(k) * 360).toFixed(1) + 'deg)'); }, done);
+    if (/views|视图/.test(l)) return tween(520, function (k) { tf(sv, 'translateY(' + (-5 * EZ.bell(Math.min(1, k * 1.5)) + (k > .66 ? 1.5 * EZ.shake((k - .66) / .34) : 0)).toFixed(2) + 'px)'); }, done);
+    if (/arcade|游戏/.test(l)) return tween(560, function (k) { tf(sv, 'rotate(' + (14 * EZ.shake(k)).toFixed(2) + 'deg)'); }, done);
+    if (/routine|liquid/.test(l)) return tween(560, function (k) { var q = EZ.shake(k) * .22; tf(sv, 'scale(' + (1 - q).toFixed(3) + ',' + (1 + q).toFixed(3) + ')'); }, done);
+    if (/hermes|打字/.test(l)) return tween(460, function (k) { tf(sv, 'translateY(' + (2.5 * Math.abs(Math.sin(k * Math.PI * 3)) * (1 - k * .4)).toFixed(2) + 'px)'); }, done);
+    if (/looks|外观/.test(l)) { sparks(b, 5); return tween(560, function (k) { tf(sv, 'rotate(' + (-26 * EZ.bell(Math.min(1, k * 1.4)) + (k > .7 ? 6 * EZ.shake((k - .7) / .3) : 0)).toFixed(1) + 'deg)'); }, done); }
+    if (/more|更多/.test(l)) { var dots = sv.children; [].forEach.call(dots, function (d, i) { d.style.transformBox = 'fill-box'; d.style.transformOrigin = 'center'; tween(420, function (k) { d.style.transform = 'translateY(' + (-3.5 * EZ.bell(k)).toFixed(2) + 'px)'; }, function () { d.style.transform = ''; }, i * 70); }); return; }
+    if (/dock|全部入口/.test(l)) return tween(460, function (k) { tf(sv, 'rotate(' + (EZ.spring(k) * 90).toFixed(1) + 'deg)'); }, done);
+    if (/mn-page-key/.test(c)) return tween(420, function (k) { tf(sv, 'scale(' + (1 + EZ.bell(k) * .22).toFixed(3) + ')'); }, done);
+    return tween(420, function (k) { tf(sv, 'scale(' + (1 + EZ.bell(k) * .18).toFixed(3) + ')'); }, done);
+  }
+  function pressFx(b, ph) {
+    if (ph === 'down') { sink(b); return; }
+    rise(b); if (ph === 'cancel') return;
+    bloom(b); iconFx(b);
+  }
+  /* "=": the two bars turn into "||" (and back) with a liquid squeeze, the second a beat behind */
+  var EQ = { on: [[0, -3.6, 0, 1], [0, 3.6, 0, 1]], off: [[-3.6, 0, 90, .82], [3.6, 0, 90, .82]] };
+  function eqMorph(on) {
+    var bars = toolsKey.querySelectorAll('.mn-eq i'), from = on ? EQ.off : EQ.on, to = on ? EQ.on : EQ.off;
+    [].forEach.call(bars, function (bar, i) {
+      var f = from[i], t = to[i];
+      tween(620, function (k) {
+        var e = EZ.io(Math.min(1, k * 1.25)), sp = EZ.spring(k), sq = EZ.bell(Math.min(1, k * 1.25)) * .38;
+        var x = f[0] + (t[0] - f[0]) * e, y = f[1] + (t[1] - f[1]) * e, r = f[2] + (t[2] - f[2]) * sp, sx = (f[3] + (t[3] - f[3]) * e) * (1 - sq);
+        bar.style.transform = 'translate(' + x.toFixed(2) + 'px,' + y.toFixed(2) + 'px) rotate(' + r.toFixed(1) + 'deg) scaleX(' + sx.toFixed(3) + ')';
+      }, function () { bar.style.transform = ''; }, i * 70);
+    });
+  }
+  /* "=": the tools fold into the key, the Dock closing round them — and come out of it one by one */
+  var toolsBusy = false;
+  function shownTools(d) { var out = [], past = false; [].forEach.call(d.children, function (c) { if (c === sep) { past = true; return; } if (past && getComputedStyle(c).display !== 'none') { if (c.classList.contains('mn-page')) [].forEach.call(c.children, function (k) { if (getComputedStyle(k).display !== 'none') out.push(k); }); else out.push(c); } }); return out; }
+  function dockSize(d, from, done) {
+    var v = R.classList.contains('mn-dock-v'), P = v ? 'height' : 'width', to = v ? d.getBoundingClientRect().height : d.getBoundingClientRect().width;
+    if (Math.abs(to - from) < 2) { if (done) done(); return; }
+    d.classList.add('mn-dock-anim');
+    tween(560, function (k) { d.style.setProperty(P, (from + (to - from) * EZ.spring(k)).toFixed(1) + 'px', 'important'); }, function () { d.style.removeProperty(P); d.classList.remove('mn-dock-anim'); if (done) done(); });
+  }
+  function toggleTools() {
+    var d = dock(), on = R.classList.contains('mn-sys-tools-off');
+    if (!d || toolsBusy) { setTools(on); return; }
+    toolsBusy = true; eqMorph(on);
+    var v = R.classList.contains('mn-dock-v'), r0 = d.getBoundingClientRect(), from = v ? r0.height : r0.width, kr = toolsKey.getBoundingClientRect(), kx = kr.left + kr.width / 2, ky = kr.top + kr.height / 2;
+    if (!on) {
+      var apps = shownTools(d), n = apps.length;
+      apps.forEach(function (a, i) {
+        var r = a.getBoundingClientRect(), dx = kx - (r.left + r.width / 2), dy = ky - (r.top + r.height / 2);
+        tween(240, function (k) { var e = EZ.inn(k); a.style.transform = 'translate(' + (dx * e).toFixed(1) + 'px,' + (dy * e).toFixed(1) + 'px) scale(' + (1 - .65 * e).toFixed(3) + ')'; a.style.opacity = (1 - e).toFixed(3); }, null, (n - 1 - i) * 16);
+      });
+      setTimeout(function () {
+        apps.forEach(function (a) { a.style.transform = ''; a.style.opacity = ''; });
+        setTools(false); fit(); dockSize(d, from, function () { toolsBusy = false; });
+      }, 240 + n * 16 + 20);
+    } else {
+      setTools(true); fit();
+      var apps2 = shownTools(d);
+      apps2.forEach(function (a) { a.style.opacity = '0'; });
+      dockSize(d, from);
+      requestAnimationFrame(function () {
+        apps2.forEach(function (a, i) {
+          var r = a.getBoundingClientRect(), dx = kx - (r.left + r.width / 2), dy = ky - (r.top + r.height / 2);
+          tween(520, function (k) { var e = EZ.spring(k), o = Math.min(1, k * 3); a.style.transform = 'translate(' + (dx * (1 - e)).toFixed(1) + 'px,' + (dy * (1 - e)).toFixed(1) + 'px) scale(' + (.35 + .65 * e).toFixed(3) + ')'; a.style.opacity = o.toFixed(3); }, function () { a.style.transform = ''; a.style.opacity = ''; if (i === apps2.length - 1) toolsBusy = false; }, i * 28);
+        });
+        if (!apps2.length) toolsBusy = false;
+      });
+      setTimeout(function () { toolsBusy = false; }, 1600);
+    }
+  }
+  /* every other key in the Dock (apps, the room's tools, the page's keys) gets the same press and its own motion */
+  document.addEventListener('pointerdown', function (e) { var b = e.target.closest && e.target.closest('.mn-bdock .mn-bapp'); if (!b || b.classList.contains('mn-sys-key')) return; b.__pd = { x: e.clientX, y: e.clientY, t: Date.now() }; sink(b); }, true);
+  document.addEventListener('pointerup', function (e) { var b = e.target.closest && e.target.closest('.mn-bdock .mn-bapp'); [].forEach.call(document.querySelectorAll('.mn-bdock .mn-bapp'), function (x) { if (x.__down && x !== b && !x.classList.contains('mn-sys-key')) { x.__pd = null; pressFx(x, 'cancel'); } }); if (!b || b.classList.contains('mn-sys-key') || !b.__pd) return; var d = b.__pd; b.__pd = null; pressFx(b, Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 28 ? 'cancel' : 'up'); }, true);
+  document.addEventListener('pointercancel', function () { [].forEach.call(document.querySelectorAll('.mn-bdock .mn-bapp'), function (x) { if (x.__down && !x.classList.contains('mn-sys-key')) { x.__pd = null; pressFx(x, 'cancel'); } }); }, true);
+  /* nothing to go back to / close: the key shakes its head, and says so */
+  function nothing(b, txt) {
+    var sv = b.querySelector('svg'); tween(420, function (k) { tf(sv, 'translateX(' + (5 * EZ.shake(k)).toFixed(2) + 'px)'); }, function () { tf(sv, ''); });
+    var t = document.getElementById('mn-sk-toast'); if (!t) { t = document.createElement('div'); t.id = 'mn-sk-toast'; document.body.appendChild(t); }
+    t.textContent = txt; var r = b.getBoundingClientRect(), v = R.classList.contains('mn-dock-v');
+    t.style.left = (v ? r.left - 12 : r.left + r.width / 2) + 'px'; t.style.top = (v ? r.top + r.height / 2 : r.top - 12) + 'px'; t.className = v ? 'v' : '';
+    var id = (t.__id || 0) + 1; t.__id = id;
+    tween(1500, function (k) { if (t.__id !== id) return; var o = k < .12 ? k / .12 : k < .8 ? 1 : 1 - (k - .8) / .2, y = k < .12 ? 6 * (1 - EZ.out(k / .12)) : k > .8 ? -2 * (k - .8) / .2 : 0; t.style.opacity = o.toFixed(3); t.style.translate = '0 ' + y.toFixed(1) + 'px'; }, function () { if (t.__id === id) t.style.opacity = '0'; });
+  }
+  /* did a step back / a close change anything on screen? (the page's own Esc handlers say nothing back) */
+  function snap() { var b = document.body; return location.href + '|' + b.className + '|' + R.className.replace(/\bmn-(dock-[hv]|sys-\S+)\b/g, '') + '|' + b.childElementCount + '|' + document.querySelectorAll('[role=dialog],[class*=modal],[class*=overlay],[class*=popover],[class*=sheet]').length; }
+  function orNothing(b, before, txt) { setTimeout(function () { if (snap() === before) nothing(b, txt); }, 280); }
+  /* the room (Spatial Home) is the screen in use: open, and not showing a Minest feature over it */
+  function inRoom() {
+    try { var H = window.MinestSpatialHome; if (!H || !H.isOpen || !H.isOpen()) return false; var st = H.api && H.api().state(); return !(st && st.inFeature); } catch (e) { return false; }
+  }
+  function press(id) { var b = document.getElementById(id); if (b) { b.click(); return true; } return false; }
+  /* 1, 2 */
+  function dockKey(sel) { var b = document.querySelector('.mn-bdock ' + sel); if (b) { b.click(); return true; } return false; }
+  function esc() { return document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true, cancelable: true })); }
+  function close(b) { var s0 = snap(); if (ctx === 'room' && press('sh-exitBtn')) return; if (!dockKey('.mn-sys-exit')) esc(); orNothing(b, s0, '没有可关闭的'); }
+  function back(b) { var s0 = snap(); if (ctx === 'room') { if (esc() && !press('sh-exitBtn')) {} return; } if (!dockKey('.mn-sys-back') && esc() && location.hash.length > 1) history.back(); orNothing(b, s0, '已经是最前一页'); }
+  /* 3: reading mode, here and in every open frame of the same site */
+  var HIDE = 'button,[role="button"],[role="toolbar"],header.iphone-topbar,.ios-bottom-tab-bar,.mn-bdock,#minest-mini-pet-p0,#cs-btn,' +
+    '#sh-top,#sh-labels,#sh-stick,#sh-hint,#sh-credit,#sh-pill,#sh-reading-enter,#sh-dock,#sh-settings,#sh-pack,#sh-edit,#sh-card,#sh-toast,#sh-skip,.clun-entry,.mn-start-control';
+  var FRAME_CSS = HIDE.split(',').map(function (s) { return 'html.mn-sys-reading ' + s; }).join(',') + '{visibility:hidden!important;pointer-events:none!important}' +
+    'html.mn-sys-reading body .mn-bdock.mn-bdock{display:none!important}#mn-start-full,#sh-reading-enter{display:none!important}';
+  function frames(doc, out) {
+    out = out || [];
+    try { [].forEach.call(doc.querySelectorAll('iframe'), function (f) { try { var d = f.contentDocument; if (d && d.documentElement) { out.push(d); frames(d, out); } } catch (e) {} }); } catch (e) {}
+    return out;
+  }
+  function syncFrames() {
+    frames(document).forEach(function (d) {
+      try {
+        if (!d.getElementById('mn-sys-frame-css')) { var s = d.createElement('style'); s.id = 'mn-sys-frame-css'; s.textContent = FRAME_CSS; (d.head || d.documentElement).appendChild(s); }
+        d.documentElement.classList.toggle('mn-sys-reading', reading);
+        if (!d.__mnSysKeys) { d.__mnSysKeys = 1; d.addEventListener('keydown', onKey, true); }
+      } catch (e) {}
+    });
+  }
+  function setReading(on) {
+    on = !!on; if (on === reading) return;
+    reading = on; R.classList.toggle('mn-sys-reading', on); syncFrames();
+    try { if (window.SpatialBridge && SpatialBridge.setReading) SpatialBridge.setReading(false); } catch (e) {}
+    try { if (window.MinestStartControls && MinestStartControls.setReading) MinestStartControls.setReading(false); } catch (e) {}
+    if (on) {
+      lastFocus = document.activeElement; exitKey.focus({ preventScroll: true });
+      if (!document.fullscreenElement && R.requestFullscreen) {
+        try { var p = R.requestFullscreen(); if (p && p.then) p.then(function () { nativeFull = true; if (!reading && document.exitFullscreen) document.exitFullscreen().catch(function () {}); }).catch(function () {}); } catch (e) {}
+      }
+    } else {
+      if (nativeFull && document.fullscreenElement && document.exitFullscreen) { try { document.exitFullscreen().catch(function () {}); } catch (e) {} }
+      nativeFull = false;
+      if (lastFocus && lastFocus.isConnected) try { lastFocus.focus({ preventScroll: true }); } catch (e) {}
+    }
+    try { window.dispatchEvent(new CustomEvent('minest:reading', { detail: { on: on } })); } catch (e) {}
+  }
+  function onKey(e) { if (reading && e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setReading(false); } }
+  /* 4: "=" folds the tools away, turning into "||" */
+  function toolsOn() { try { return localStorage.getItem(KEY) !== '0'; } catch (e) { return true; } }
+  function setTools(on) {
+    R.classList.toggle('mn-sys-tools-off', !on);
+    try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {}
+    var l = on ? '收起工具' : '展开工具'; toolsKey.setAttribute('aria-label', l); toolsKey.title = l; toolsKey.setAttribute('aria-expanded', on ? 'true' : 'false');
+  }
+
+  var sysKeys = [
+    key('mn-sk-close', '系统 · 关闭', svg(ICON.close), close),   // (not "Close ·": the Dock's own close looks for those)
+    key('mn-sk-back', '系统 · 返回', svg(ICON.back), back),
+    key('mn-sk-full', '全屏 · 阅览模式', svg(ICON.full), function () { setReading(true); }),
+    key('mn-sk-world', 'My World · 搜索或搭建世界 (⌘K)', svg(ICON.world), function () { if (window.MinestOmni) MinestOmni.toggle(); })   // tools/toolkit/omni.js
+  ];
+  var toolsKey = key('mn-sk-tools', '收起工具', '<span class="mn-eq" aria-hidden="true"><i></i><i></i></span>', function () { toggleTools(); });
+  sysKeys.push(toolsKey);
+  var sep = document.createElement('span'); sep.className = 'mn-sys-sep'; sep.setAttribute('aria-hidden', 'true');
+  var exitKey = document.createElement('button'); exitKey.type = 'button'; exitKey.id = 'mn-sys-exit'; exitKey.setAttribute('aria-label', '退出全屏'); exitKey.title = '退出全屏';
+  exitKey.innerHTML = svg(ICON.exit); exitKey.addEventListener('click', function (e) { e.stopPropagation(); haptic(); setReading(false); });
+
+  /* the room's tools, in the Dock while the room is the screen */
+  function deskMode() { var d = document.querySelector('#sh-modeSeg [data-mode="desk"]'); return !!(d && d.classList.contains('on')); }
+  var ROOM = [
+    ['mode', 'Explore · Desk', function () { return deskMode() ? ICON.desk : ICON.walk; },
+      function () { var s = document.querySelectorAll('#sh-modeSeg [data-mode]'); for (var i = 0; i < s.length; i++) if (!s[i].classList.contains('on')) { s[i].click(); return; } }],
+    ['pack', '背包 · 布置', ICON.pack, 'sh-packBtn'], ['env', '切换环境', ICON.env, 'sh-envBtn'], ['views', '窗外风景', ICON.views, 'sh-viewsBtn'],
+    ['sit', '坐下 · 起立', ICON.sit, 'sh-sitBtn'], ['view', '第一 · 第三人称', ICON.view, 'sh-viewBtn'], ['set', '设置', ICON.set, 'sh-setBtn']
+  ];
+  var roomKeys = ROOM.map(function (q) {
+    var b = key('mn-ctx-key mn-ctx-' + q[0], q[1], svg(typeof q[2] === 'function' ? q[2]() : q[2]), function () {
+      if (typeof q[3] === 'function') q[3](); else press(q[3]);
+      if (typeof q[2] === 'function') setTimeout(function () { modeLabel(b); }, 150);
+    });
+    b.classList.remove('mn-sys-key'); b.dataset.ctx = 'room'; return b;
+  });
+  /* the mode key shows the mode the room is in (its icon, and its name in the lens) */
+  function modeLabel(b) { var desk = deskMode(), l = desk ? 'Desk · 办公桌前' : 'Explore · 行走探索'; if (b.dataset.desk === String(desk)) return; b.dataset.desk = String(desk); b.innerHTML = svg(desk ? ICON.desk : ICON.walk); b.setAttribute('aria-label', l); b.title = l; }
+  /* the room's own pixel icons, once the room has drawn them */
+  function pixelIcons() {
+    ROOM.forEach(function (q, i) { if (typeof q[3] !== 'string') return; var o = document.getElementById(q[3]), b = roomKeys[i]; if (o && b.dataset.px !== '1' && o.querySelector('svg')) { b.innerHTML = o.innerHTML; b.dataset.px = '1'; } });
+  }
+  /* "Dock": every entry of the Minest Dock, from inside the room (again: back to the room's tools) */
+  var dockAll = key('mn-ctx-key mn-ctx-dock', 'Dock · 全部入口', svg('<rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/>'),
+    function () { var on = !R.classList.contains('mn-ctx-apps'); R.classList.toggle('mn-ctx-apps', on); dockAll.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+  dockAll.classList.remove('mn-sys-key'); dockAll.dataset.ctx = 'room'; dockAll.setAttribute('aria-pressed', 'false'); roomKeys.push(dockAll);
+  /* the study's sliding board: each panel up or down — the EC–6 board, blackboard 1, blackboard 2 (Victorian Study only) */
+  var slideKeys = [['布告栏 · 上下推拉', '<rect x="4" y="9" width="16" height="11" rx="1"/><path d="M8 13h8M8 16h5M12 2v5M9.5 4.5 12 2l2.5 2.5"/>'],
+    ['黑板 1 · 上下推拉', '<rect x="4" y="9" width="16" height="11" rx="1"/><path d="M12 2v5M9.5 4.5 12 2l2.5 2.5M11 12v5"/>'],
+    ['黑板 2 · 上下推拉', '<rect x="4" y="9" width="16" height="11" rx="1"/><path d="M12 2v5M9.5 4.5 12 2l2.5 2.5M10 12h3.5v2.4H10V17h3.5"/>']].map(function (q, i) {
+      var k = key('mn-ctx-key mn-ctx-slide', q[0], svg(q[1]), function () { var b = window.MinestStudyBoard; if (b && b.slide) b.slide(i); });
+      k.classList.remove('mn-sys-key'); k.dataset.ctx = 'off'; roomKeys.push(k); return k; });
+  function study() { try { var e = window.MinestSpatialHome.api().env(); return !!(e && e.envId === 'victorian' && window.MinestStudyBoard && window.MinestStudyBoard.slide); } catch (er) { return false; } }
+  function inWorld() { try { return !!(window.MinestMyWorld && MinestMyWorld.isOpen && MinestMyWorld.isOpen()); } catch (e) { return false; } }
+
+  /* the page's own keys (2026-11-20, the user: the right of the Dock holds only what the page in use needs — its top
+     bar moves down here): a page hands over one group of keys; while it is there, the board's apps give way (the
+     "Dock" key brings them back) */
+  var pageEl = null;
+  function setPage(el) {
+    if (pageEl === el) return; if (pageEl && pageEl.parentNode && pageEl !== el) pageEl.remove();
+    pageEl = el || null; R.classList.toggle('mn-ctx-page', !!pageEl);
+    if (!pageEl && ctx !== 'room') { R.classList.remove('mn-ctx-apps'); dockAll.setAttribute('aria-pressed', 'false'); }
+    mount(); fit();
+  }
+  function dock() { return document.querySelector('.mn-bdock'); }
+  function mount() {
+    var d = dock(); if (!d) return;
+    var at = d.firstElementChild, i;
+    for (i = 0; i < sysKeys.length; i++) { if (at !== sysKeys[i]) d.insertBefore(sysKeys[i], at); at = sysKeys[i].nextElementSibling; }
+    if (at !== sep) d.insertBefore(sep, at);
+    var anchor = sep.nextElementSibling;
+    roomKeys.forEach(function (b) { if (b.parentNode !== d) d.insertBefore(b, anchor); });
+    if (pageEl && pageEl.parentNode !== d) d.insertBefore(pageEl, sep.nextElementSibling);
+    if (!exitKey.isConnected && document.body) document.body.appendChild(exitKey);
+    R.classList.add('mn-sysbar');
+  }
+  /* the Dock's shape on screen: standing (right) or lying (top / bottom, and the opening's own row) — and every key
+     sized so the whole Dock fits the screen */
+  function fit() {
+    var d = dock(); if (!d) return;
+    var cs = getComputedStyle(d), h = /^row/.test(cs.flexDirection);
+    R.classList.toggle('mn-dock-h', h); R.classList.toggle('mn-dock-v', !h);
+    var mc = ctx === 'room' || ctx === 'world', keys = 0, seps = 0;
+    [].forEach.call(d.children, function (c) { if (c === pageEl) { [].forEach.call(c.children, function (k) { if (getComputedStyle(k).display !== 'none') keys++; }); return; } if (getComputedStyle(c).display === 'none') return; if (c.classList.contains('mn-sys-sep')) seps++; else keys++; });
+    var lens = mc ? 0 : (h ? 1.6 : 1.35), room = (h ? innerWidth : innerHeight) - 28 - (h ? 0 : 20);
+    if (R.classList.contains('mn-dock-free')) room = (h ? innerWidth : innerHeight) - 24;   // placed freely: the whole screen is the limit
+    else if (R.classList.contains('duo-dockpin') || R.classList.contains('duo-docktop')) {   // the Duo's pinned Dock starts at its own place: the room left from there
+      var dr = d.getBoundingClientRect(); room = h ? innerWidth - Math.max(0, dr.left) - 16 : innerHeight - Math.max(0, dr.top) - 16;
+    }
+    var k = Math.floor((room - 10 - seps * 10 - Math.max(0, keys - 1) * 4) / (keys + lens));
+    k = Math.max(22, Math.min(mc ? 38 : 40, k));
+    if (R.style.getPropertyValue('--mn-key') !== k + 'px') R.style.setProperty('--mn-key', k + 'px');
+  }
+  /* where the Dock may sit: Right, Top or Bottom (not the left) — Top is the bottom row moved up under the title bar */
+  var TOP = 'mn_dock_top_v1';
+  function isTop() { try { return localStorage.getItem(TOP) === '1'; } catch (e) { return false; } }
+  function sides() {
+    if (R.getAttribute('data-mn-bd') === 'left') { R.setAttribute('data-mn-bd', 'right'); try { localStorage.setItem('minest.iphone.dockPos', 'right'); } catch (e) {} }
+    R.classList.toggle('mn-dock-top', isTop() && R.getAttribute('data-mn-bd') === 'bottom');
+  }
+  function menu(m) {
+    if (m.__mnSides) return; m.__mnSides = 1;
+    var items = m.querySelectorAll('button[role="menuitemradio"]'), left = null, bottom = null, top = isTop() && R.getAttribute('data-mn-bd') === 'bottom';
+    [].forEach.call(items, function (b) { var t = b.textContent.replace(/[✓\s]/g, ''); if (t === 'Left') left = b; if (t === 'Bottom') bottom = b; });
+    if (!left || !bottom) return;
+    m.insertBefore(left, m.querySelector('button'));   // Right · Top · Bottom, top first
+    left.innerHTML = '<i>' + (top ? '✓' : '') + '</i>Top'; left.setAttribute('aria-checked', String(top));
+    if (top) { bottom.setAttribute('aria-checked', 'false'); var i = bottom.querySelector('i'); if (i) i.textContent = ''; }
+    left.addEventListener('click', function (e) { e.stopImmediatePropagation(); e.preventDefault(); try { localStorage.setItem(TOP, '1'); } catch (er) {} bottom.click(); sides(); }, true);
+    [].forEach.call(items, function (b) { if (b !== left) b.addEventListener('click', function () { try { localStorage.setItem(TOP, '0'); } catch (er) {} setTimeout(sides, 0); }, true); });
+  }
+  /* drag the Dock anywhere (2026-11-22, the user: "长按拖着移动，不然有的时候会挡住"): hold ~0.45 s, then move — the
+     Dock follows the finger and stays where it is let go (kept on this device as a fraction of the screen). A short tap
+     still presses a key, a hold without moving still opens the Dock menu, which also has 复位 Reset position. */
+  var FREE = 'minest.dockFree.v1', dg = null;
+  function freeGet() { try { return JSON.parse(localStorage.getItem(FREE) || 'null'); } catch (e) { return null; } }
+  function freeApply() {
+    var f = freeGet(), d = dock(); R.classList.toggle('mn-dock-free', !!f); if (!f || !d) return;
+    var r = d.getBoundingClientRect(), w = r.width || 60, h = r.height || 60;
+    R.style.setProperty('--mn-fx', Math.round(Math.max(6, Math.min(innerWidth - w - 6, f.x * innerWidth))) + 'px');
+    R.style.setProperty('--mn-fy', Math.round(Math.max(6, Math.min(innerHeight - h - 6, f.y * innerHeight))) + 'px');
+  }
+  function freeReset() { try { localStorage.removeItem(FREE); } catch (e) {} R.classList.remove('mn-dock-free'); R.style.removeProperty('--mn-fx'); R.style.removeProperty('--mn-fy'); fit(); haptic(); }
+  function closeDockMenu() { [].forEach.call(document.querySelectorAll('.mn-bd-menu'), function (m) { m.remove(); }); }
+  document.addEventListener('pointerdown', function (e) {
+    var d = dock(); if (!d || !d.contains(e.target) || (e.button && e.button !== 0)) return;
+    if (dg) clearTimeout(dg.tm);
+    dg = { x: e.clientX, y: e.clientY, id: e.pointerId, d: d, held: false, on: false };
+    dg.tm = setTimeout(function () { if (dg) { dg.held = true; d.classList.add('mn-dock-ready'); } }, 450);
+  }, true);
+  document.addEventListener('pointermove', function (e) {
+    if (!dg || e.pointerId !== dg.id) return;
+    if (!dg.on) {
+      if (Math.hypot(e.clientX - dg.x, e.clientY - dg.y) < 10) return;
+      if (!dg.held) { clearTimeout(dg.tm); dg = null; return; }   // moved before the hold: not a Dock drag
+      var r0 = dg.d.getBoundingClientRect(); dg.ox = r0.left - dg.x; dg.oy = r0.top - dg.y; dg.on = true;   // measured from where the finger went down, so the Dock keeps up with it
+      R.classList.add('mn-dock-free', 'mn-dock-moving'); closeDockMenu(); haptic();
+    }
+    e.preventDefault(); e.stopPropagation();
+    var r = dg.d.getBoundingClientRect();
+    R.style.setProperty('--mn-fx', Math.round(Math.max(6, Math.min(innerWidth - r.width - 6, e.clientX + dg.ox))) + 'px');
+    R.style.setProperty('--mn-fy', Math.round(Math.max(6, Math.min(innerHeight - r.height - 6, e.clientY + dg.oy))) + 'px');
+  }, { capture: true, passive: false });
+  function dockDragEnd(e) {
+    if (!dg || e.pointerId !== dg.id) return; clearTimeout(dg.tm); dg.d.classList.remove('mn-dock-ready');
+    if (dg.on) {
+      e.preventDefault(); e.stopPropagation(); closeDockMenu();
+      var x = parseFloat(R.style.getPropertyValue('--mn-fx')) || 0, y = parseFloat(R.style.getPropertyValue('--mn-fy')) || 0;
+      try { localStorage.setItem(FREE, JSON.stringify({ x: x / innerWidth, y: y / innerHeight })); } catch (er) {}
+      R.classList.remove('mn-dock-moving');
+      var kill = function (ev) { ev.stopPropagation(); ev.preventDefault(); window.removeEventListener('click', kill, true); };   // the release is not a key press
+      window.addEventListener('click', kill, true); setTimeout(function () { window.removeEventListener('click', kill, true); }, 400);
+      fit();
+    }
+    dg = null;
+  }
+  document.addEventListener('pointerup', dockDragEnd, true); document.addEventListener('pointercancel', dockDragEnd, true);
+  function freeMenu(m) {
+    if (m.__mnFree || !freeGet()) return; m.__mnFree = 1;
+    var b = document.createElement('button'); b.type = 'button'; b.innerHTML = '<i>⤺</i>复位 Reset position';
+    b.addEventListener('click', function (e) { e.stopPropagation(); freeReset(); closeDockMenu(); });
+    m.appendChild(b);
+  }
+  window.addEventListener('resize', freeApply);
+  /* Octo can be hidden (2026-11-20, the user): "隐藏" in its quick ring; the Dock's long-press menu shows / hides it */
+  var OCTO = 'minest.octoHidden';
+  function octoHidden() { try { return localStorage.getItem(OCTO) === '1'; } catch (e) { return false; } }
+  function setOcto(hide) { R.classList.toggle('mn-octo-off', !!hide); try { localStorage.setItem(OCTO, hide ? '1' : '0'); } catch (e) {} haptic(); }
+  setOcto(octoHidden());
+  function octoRing(m) {
+    if (m.__mnOcto) return; m.__mnOcto = 1;
+    var c = window.__miniPetCtl, ctr = c && c.center ? c.center() : null; if (!ctr) return;
+    var n = m.querySelectorAll('button').length, right = ctr.x < innerWidth / 2, a = (-84 + n * 28) * Math.PI / 180, Rr = 118;
+    var x = Math.max(32, Math.min(innerWidth - 32, ctr.x + (right ? 1 : -1) * Math.cos(a) * Rr)), y = Math.max(40, Math.min(innerHeight - 40, ctr.y + Math.sin(a) * Rr));
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'mn-glass mn-octo-hide'; b.setAttribute('aria-label', '隐藏 Octo');
+    b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c6 0 9.5 7 9.5 7a17 17 0 0 1-2.6 3.4M6.4 6.4C3.9 8.2 2.5 12 2.5 12s3.5 7 9.5 7a9.6 9.6 0 0 0 5.6-1.8"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg><i>隐藏</i>';
+    b.style.left = x + 'px'; b.style.top = y + 'px'; b.style.setProperty('--fx', (ctr.x - x) + 'px'); b.style.setProperty('--fy', (ctr.y - y) + 'px'); b.style.setProperty('--dl', (n * 35) + 'ms');
+    b.addEventListener('click', function (e) { e.stopPropagation(); m.classList.remove('open'); setTimeout(function () { m.remove(); }, 0); setOcto(true); });
+    m.appendChild(b);
+  }
+  function octoMenu(m) {
+    if (m.__mnOcto) return; m.__mnOcto = 1;
+    var h0 = m.offsetHeight, h = document.createElement('h6'); h.textContent = 'Octo'; h.style.marginTop = '10px';
+    var hid = octoHidden(), b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'menuitemcheckbox'); b.setAttribute('aria-checked', String(!hid));
+    b.innerHTML = '<i>' + (hid ? '' : '✓') + '</i>显示 Octo';
+    b.addEventListener('click', function (e) { e.stopPropagation(); setOcto(!octoHidden()); m.remove(); });
+    m.appendChild(h); m.appendChild(b);
+    var grow = m.offsetHeight - h0, r = m.getBoundingClientRect();   // a menu over the Dock grows upward, never onto it
+    if (R.getAttribute('data-mn-bd') === 'bottom' && !R.classList.contains('mn-dock-top')) m.style.top = Math.max(8, r.top - grow) + 'px';
+    else if (r.bottom > innerHeight - 8) m.style.top = Math.max(8, innerHeight - 8 - m.offsetHeight) + 'px';
+  }
+  function context() {
+    var c = inRoom() ? 'room' : inWorld() ? 'world' : 'board';
+    if (c === 'room') { modeLabel(roomKeys[0]); pixelIcons(); var fl = study() ? 'room' : 'off'; slideKeys.forEach(function (k) { if (k.dataset.ctx !== fl) k.dataset.ctx = fl; }); } else if (!pageEl && R.classList.contains('mn-ctx-apps')) { R.classList.remove('mn-ctx-apps'); dockAll.setAttribute('aria-pressed', 'false'); }
+    if (c !== ctx) { ctx = c; R.setAttribute('data-mn-ctx', c); }
+    else if (R.getAttribute('data-mn-ctx') !== c) R.setAttribute('data-mn-ctx', c);
+  }
+  /* an app key pressed in the room (Dock · 全部入口): its panel opens on the board, under the room's canvas — it looked
+     dead (2026-11-20, the user). Leave the room first, then press it again on the board. */
+  document.addEventListener('click', function (e) {
+    if (ctx !== 'room') return;
+    var b = e.target.closest && e.target.closest('.mn-bdock .mn-bapp');
+    if (!b || b.__mnReplay || b.classList.contains('mn-sys-key') || b.classList.contains('mn-ctx-key') || b.classList.contains('mn-page-key') || b.hasAttribute('data-spatial-home-dock')) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    try { if (window.MinestSpatialHome && MinestSpatialHome.close) MinestSpatialHome.close(); else press('sh-exitBtn'); } catch (er) { press('sh-exitBtn'); }
+    var t0 = Date.now();
+    (function again() {
+      if (!inRoom() || Date.now() - t0 > 2500) { setTimeout(function () { b.__mnReplay = 1; try { b.click(); } finally { b.__mnReplay = 0; } }, 120); return; }
+      setTimeout(again, 80);
+    })();
+  }, true);
+  document.addEventListener('keydown', onKey, true);
+  document.addEventListener('fullscreenchange', function () { if (reading && nativeFull && !document.fullscreenElement) setReading(false); });
+  var queued = false;
+  new MutationObserver(function () {
+    if (queued) return; queued = true;
+    requestAnimationFrame(function () { queued = false; var d = dock(); if (d && (d.firstElementChild !== sysKeys[0] || sep.parentNode !== d || roomKeys[0].parentNode !== d || (pageEl && pageEl.parentNode !== d))) mount(); context(); sides(); fit(); freeApply(); var m = document.querySelector('.mn-bd-menu'); if (m) freeMenu(m); if (m) { menu(m); octoMenu(m); } var pr = document.querySelector('.mpet-menu'); if (pr) octoRing(pr); if (reading) syncFrames(); });
+  }).observe(document.body || R, { childList: true, subtree: true });
+  new MutationObserver(function () { sides(); fit(); }).observe(R, { attributes: true, attributeFilter: ['data-mn-bd'] });
+  window.addEventListener('resize', function () { fit(); });
+  setInterval(function () { context(); fit(); syncFrames(); }, 900);   // frames that load later (the opening) get the style too
+  window.addEventListener('load', function () { setTimeout(syncFrames, 300); }, true);
+  function start() { mount(); setTools(toolsOn()); context(); sides(); fit(); freeApply(); }
+  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+  window.MinestSystemBar = { page: setPage, reading: setReading, tools: setTools, state: function () { return { reading: reading, tools: !R.classList.contains('mn-sys-tools-off'), ctx: ctx }; } };
+})();
+</script>
 <style id="mn-spatial-home-css">
 /* Minest · Spatial Home — everything is scoped under #mn-sh (and the sh- ids), so it can live inside the Minest page. */
 #mn-sh, #sh-host, #sh-veil, #sh-pill { --sh-ink: #1d2b4f; --sh-blue: #2f6fd6; --sh-paper: #fbf7ee; --sh-glass: rgba(251, 247, 238, .82); --sh-line: rgba(29, 43, 79, .14); }
@@ -196899,7 +197807,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     if (m.op === 'ready') { if (want) post({ holo: 1, op: 'mode', id: want }); post({ holo: 1, op: 'content', data: snapshot() }); if (el && el.classList.contains('from-watch')) post({ holo: 1, op: 'boot' }); }
     else if (m.op === 'wb-get') post({ holo: 1, op: 'wb', data: wbAll() });
     else if (m.op === 'wb-write' && typeof m.key === 'string' && /^(kr|cc):[A-Za-z0-9_-]+$/.test(m.key)) wbWrite(m.key, m.value);
-    else if (m.op === 'toolkit') { var tw = HW(), q = { input: String(m.input || '').slice(0, 200), card: m.card || null }; finish(null); setTimeout(function () { try { (tw.MinestToolkitHost || root.MinestToolkitHost).open(q); } catch (er) {} }, 360); }
+    else if (m.op === 'toolkit') { var tw = HW(), q = { input: String(m.input || '').slice(0, 200), card: m.card || null }; finish(null); setTimeout(function () { try { var O = tw.MinestOmni || root.MinestOmni; if (O) O.openCard(q.card || 'compass', q.input); else (tw.MinestToolkitHost || root.MinestToolkitHost).open(q); } catch (er) {} }, 360); }
     else if (m.op === 'close') finish(null);
     else if (m.op === 'save' && m.layout && typeof m.layout === 'object') { clearTimeout(saveT); var l = m.layout; saveT = setTimeout(function () { saveLayout(l); }, 400); }
     else if (m.op === 'edit' && m.id) {
@@ -198852,625 +199760,6 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   if (document.readyState === 'complete') setTimeout(boot, 300); else window.addEventListener('load', function () { setTimeout(boot, 300); }, { once: true });
 })();
 
-</script>
-<style id="mn-sysbar-css">
-/* Minest · System buttons at the head of the Dock (see system-bar.js) */
-
-/* the Dock holds the system keys, so outside reading mode it stays on screen instead of sliding away when idle — not the
-   Duo's pinned Dock (duo-dockpin / duo-docktop: placed from the top, it scrolls; pushing it up by half broke it, 2026-11-20)
-   (the opening's own Dock row keeps the place the opening gives it) */
-html.mn-sysbar:not(.mn-sys-reading):not(.mn-start-active):not(.duo-dockpin):not(.duo-docktop)[data-mn-bd=right] body .mn-bdock.mn-bdock,
-html.mn-sysbar:not(.mn-sys-reading):not(.mn-start-active):not(.duo-dockpin):not(.duo-docktop)[data-mn-bd=left] body .mn-bdock.mn-bdock { transform: translate(0,-50%) !important; opacity: 1 !important; pointer-events: auto !important; visibility: visible !important; }
-html.mn-sysbar:not(.mn-sys-reading):not(.mn-start-active):not(.duo-dockpin):not(.duo-docktop)[data-mn-bd=bottom] body .mn-bdock.mn-bdock { transform: translate(-50%,0) !important; opacity: 1 !important; pointer-events: auto !important; visibility: visible !important; }
-html.mn-sysbar.sh-main-dock-disabled:not(.mn-sys-reading) body .mn-bdock.mn-bdock { display: flex !important; }
-/* the opening (2026-11-19, the user: no system keys on the opening): its Dock no longer fades out when idle — a touch
-   inside the opening's scene never reached the page, so on a phone it stayed hidden; only reading hides it */
-html.mn-sysbar.mn-start-active.mn-start-idle:not(.mn-sys-reading):not(.mn-start-reading) body .mn-bdock.mn-bdock { opacity: 1 !important; visibility: visible !important; pointer-events: auto !important; }
-html.mn-sysbar #mn-start-full { display: none !important; }   /* the system keys' full-screen key does this */
-/* Top: the bottom row, moved up under the title bar */
-html.mn-dock-top[data-mn-bd=bottom]:not(.mn-start-active) body .mn-bdock.mn-bdock { top: calc(env(safe-area-inset-top, 0px) + var(--mn-bd-top, 52px) + 6px) !important; bottom: auto !important; }
-
-/* in the room and in My World the Dock (and so the system keys) sits above them — under them it was covered by the
-   room's canvas (z 2147483600), on the opening too, which boots into the room (2026-11-20, the user) */
-html.mn-sysbar[data-mn-ctx=room] body .mn-bdock.mn-bdock, html.mn-sysbar[data-mn-ctx=world] body .mn-bdock.mn-bdock { z-index: 2147483620 !important; }
-/* the system keys: a size down from the apps, never "the app in use" */
-.mn-bdock .mn-bapp.mn-sys-key { flex-shrink: 0; }
-html .mn-bdock .mn-bapp.mn-sys-key { width: calc(var(--mn-key, 40px) * .86) !important; height: calc(var(--mn-key, 40px) * .86) !important; min-width: calc(var(--mn-key, 40px) * .86) !important; }
-html .mn-bdock .mn-bapp.mn-sys-key svg { width: calc(var(--mn-key, 40px) * .44) !important; height: calc(var(--mn-key, 40px) * .44) !important; }
-.mn-bdock .mn-bapp.mn-sys-key.mn-pill-active, .mn-bdock .mn-bapp.mn-sys-key.on { background: transparent !important; border-color: transparent !important; box-shadow: none !important; }
-.mn-bdock .mn-bapp.mn-sys-key::after { display: none !important; }
-
-/* the hairline between the system keys and the tools */
-.mn-sys-sep { flex: none; align-self: center; width: 22px; height: 1.5px; margin: 3px 0; border-radius: 1px; background: currentColor; opacity: .22; }
-html.mn-dock-h .mn-sys-sep { width: 1.5px; height: 22px; margin: 0 3px; }
-
-/* "=" → "||": Apple's two bars; folding the tools turns them upright */
-.mn-eq { position: relative; display: block; width: 18px; height: 18px; pointer-events: none; }
-.mn-eq i { position: absolute; left: 50%; top: 50%; width: 16px; height: 2.2px; margin: -1.1px 0 0 -8px; border-radius: 2px; background: currentColor;
-  transition: transform .42s cubic-bezier(.22,1,.36,1); }
-.mn-eq i:first-child { transform: translateY(-3.6px); }
-.mn-eq i:last-child { transform: translateY(3.6px); }
-html.mn-sys-tools-off .mn-eq i:first-child { transform: translateX(-3.6px) rotate(90deg) scaleX(.82); }
-html.mn-sys-tools-off .mn-eq i:last-child { transform: translateX(3.6px) rotate(90deg) scaleX(.82); }
-
-/* the tools of the screen in use: the Dock's apps on the board, the room's tools in Spatial Home */
-html body .mn-bdock .mn-bapp.mn-ctx-key { display: none !important; }
-html[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-ctx-key[data-ctx=room] { display: inline-flex !important; }
-html.mn-sys-tools-off[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-ctx-key { display: none !important; }
-html[data-mn-ctx=room]:not(.mn-ctx-apps) .mn-bdock .mn-bapp:not(.mn-sys-key):not(.mn-ctx-key) { display: none !important; }
-html.mn-sysbar[data-mn-ctx=room] #sh-top > .sh-ic, html.mn-sysbar[data-mn-ctx=room] #sh-modeSeg { display: none !important; }   /* the room's own top bar gives way */
-/* "Dock" in the room: every Minest entry instead of the room's tools (the Dock key stays, pressed) */
-html.mn-ctx-apps[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-ctx-key[data-ctx=room]:not(.mn-ctx-dock) { display: none !important; }
-.mn-bdock .mn-ctx-key svg.px { width: 22px !important; height: 22px !important; image-rendering: pixelated; filter: drop-shadow(1px 1px 0 rgba(0,0,0,.35)); }
-
-/* Spatial Home and My World: the room's Minecraft look — a see-through hotbar of square, bevelled slots; green for the
-   one in use; white icons; monospace names */
-html[data-mn-ctx=room] body .mn-bdock.mn-bdock, html[data-mn-ctx=world] body .mn-bdock.mn-bdock {
-  border-radius: 0 !important; background: rgba(16,16,20,.42) !important; border: 2px solid rgba(0,0,0,.6) !important;
-  -webkit-backdrop-filter: none !important; backdrop-filter: none !important; box-shadow: inset 2px 2px 0 rgba(255,255,255,.12), inset -2px -2px 0 rgba(0,0,0,.35) !important;
-  padding: 4px !important; gap: 4px !important;
-}
-html[data-mn-ctx=room] body .mn-bdock .mn-bapp, html[data-mn-ctx=world] body .mn-bdock .mn-bapp {
-  width: var(--mn-key, 38px) !important; height: var(--mn-key, 38px) !important; min-width: var(--mn-key, 38px) !important; min-height: 0 !important; padding: 0 !important; border-radius: 0 !important; color: #fff !important;
-  border: 2px solid #111 !important; background: rgba(110,110,118,.55) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
-  box-shadow: inset 2px 2px 0 rgba(255,255,255,.38), inset -2px -2px 0 rgba(0,0,0,.42) !important; transition: none !important;
-}
-html[data-mn-ctx=room] body .mn-bdock .mn-bapp:active, html[data-mn-ctx=world] body .mn-bdock .mn-bapp:active { box-shadow: inset -2px -2px 0 rgba(255,255,255,.3), inset 2px 2px 0 rgba(0,0,0,.45) !important; }
-html[data-mn-ctx=room] body .mn-bdock .mn-bapp svg, html[data-mn-ctx=world] body .mn-bdock .mn-bapp svg { width: calc(var(--mn-key, 38px) * .54) !important; height: calc(var(--mn-key, 38px) * .54) !important; stroke-linecap: square; stroke-linejoin: miter; filter: drop-shadow(1px 1px 0 rgba(0,0,0,.45)); }
-html[data-mn-ctx=room] body .mn-bdock .mn-bapp.on, html[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-pill-active,
-html[data-mn-ctx=world] body .mn-bdock .mn-bapp.on, html[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-pill-active,
-html.mn-ctx-apps body .mn-bdock .mn-bapp.mn-ctx-dock { background: rgba(70,140,70,.85) !important; }
-html[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-sys-key.mn-pill-active, html[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-sys-key.mn-pill-active { background: rgba(110,110,118,.55) !important; }
-/* in the room's look the slot in use is just green: no name (a sideways name does not read in a hotbar) */
-html[data-mn-ctx=room] body .mn-bdock .mn-bapp::after, html[data-mn-ctx=world] body .mn-bdock .mn-bapp::after { display: none !important; }
-html[data-mn-ctx=room] .mn-sys-sep, html[data-mn-ctx=world] .mn-sys-sep { color: #fff; opacity: .35; border-radius: 0; }
-html[data-mn-ctx=room] .mn-eq i, html[data-mn-ctx=world] .mn-eq i { border-radius: 0; height: 2.6px; box-shadow: 1px 1px 0 rgba(0,0,0,.45); }
-/* tools folded away: only the system keys stay */
-html.mn-sys-tools-off .mn-bdock .mn-bapp:not(.mn-sys-key), html.mn-sys-tools-off .mn-bdock .mn-sys-sep { display: none !important; }
-
-/* nothing doubled: the Dock's own close / back and the older full-screen buttons give way */
-html.mn-sysbar .mn-bdock .mn-sys-btn.mn-sys-exit, html.mn-sysbar .mn-bdock .mn-sys-btn.mn-sys-back { display: none !important; }
-html.mn-sysbar #sh-reading-enter { display: none !important; }
-
-/* the exit from reading: alone, bottom-left */
-#mn-sys-exit {
-  all: unset; box-sizing: border-box; cursor: pointer; position: fixed; z-index: 2147483647;
-  left: calc(16px + env(safe-area-inset-left)); bottom: calc(16px + env(safe-area-inset-bottom));
-  width: 44px; height: 44px; border-radius: 50%; display: none; place-items: center; color: #fff;
-  background: rgba(20,24,32,.55); border: 1px solid rgba(255,255,255,.45);
-  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 6px 18px rgba(0,0,0,.35);
-}
-#mn-sys-exit svg { width: 22px; height: 22px; display: block; pointer-events: none; }
-#mn-sys-exit:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
-html.mn-sys-reading #mn-sys-exit { display: grid !important; visibility: visible !important; pointer-events: auto !important; }
-
-/* reading: every tool is hidden; only the exit stays */
-html.mn-sys-reading body button:not(#mn-sys-exit),
-html.mn-sys-reading [role="button"], html.mn-sys-reading [role="toolbar"],
-html.mn-sys-reading header.iphone-topbar, html.mn-sys-reading .ios-bottom-tab-bar, html.mn-sys-reading #minest-mini-pet-p0, html.mn-sys-reading #cs-btn,
-html.mn-sys-reading #sh-top, html.mn-sys-reading #sh-labels, html.mn-sys-reading #sh-stick, html.mn-sys-reading #sh-hint, html.mn-sys-reading #sh-credit,
-html.mn-sys-reading #sh-pill, html.mn-sys-reading #sh-dock, html.mn-sys-reading #sh-settings, html.mn-sys-reading #sh-pack, html.mn-sys-reading #sh-edit,
-html.mn-sys-reading #sh-card, html.mn-sys-reading #sh-toast, html.mn-sys-reading #sh-skip {
-  visibility: hidden !important; pointer-events: none !important;
-}
-html.mn-sys-reading body .mn-bdock.mn-bdock, html.mn-sys-reading body .mn-bdock.mn-bdock::before, html.mn-sys-reading body .mn-bdock.mn-bdock::after { display: none !important; }
-/* 2026-11-19 (the user: full screen hides every button but the exit): the bars and plates that hold buttons go too —
-   the 3D Cover mode bar and its speed slider, the card-group bar, a card in hand's bar, 放回全部, the Fan's pills and
-   heading, the detail plate, the holo projection's bar, the exploded card's bar, the pet (a child of it kept itself
-   visible), any slider or menu */
-html.mn-sys-reading #cm-bar, html.mn-sys-reading #cm-hbar, html.mn-sys-reading .cm-gbar, html.mn-sys-reading .cm-hctl, html.mn-sys-reading .cm-hback,
-html.mn-sys-reading #cm-pills, html.mn-sys-reading #cm-head, html.mn-sys-reading #cm-det, html.mn-sys-reading #xl .xl-bar, html.mn-sys-reading #xl .xl-x,
-html.mn-sys-reading #minest-mini-pet-p0, html.mn-sys-reading body input[type=range], html.mn-sys-reading body select, html.mn-sys-reading #cs-modal { display: none !important; }
-@media (prefers-reduced-motion: reduce) { .mn-eq i { transition: none; } }
-/* the room's look: the slot in use keeps the slot's size (the pill Dock's tall lens does not apply) */
-html.mn-dock-pill[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-pill-active, html.mn-dock-pill[data-mn-ctx=room] body .mn-bdock .mn-bapp.on,
-html.mn-dock-pill[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-pill-active, html.mn-dock-pill[data-mn-ctx=world] body .mn-bdock .mn-bapp.on {
-  width: var(--mn-key, 38px) !important; height: var(--mn-key, 38px) !important; min-height: 0 !important; padding: 0 !important; flex-direction: row !important;
-  border: 2px solid #111 !important; box-shadow: inset 2px 2px 0 rgba(255,255,255,.38), inset -2px -2px 0 rgba(0,0,0,.42) !important;
-}
-
-/* the page's own keys (cover modes …): in the Dock's tools, the board's apps giving way to them; "Dock" brings them back */
-.mn-bdock .mn-page { display: contents; }
-html.mn-ctx-page[data-mn-ctx=board]:not(.mn-ctx-apps) body .mn-bdock .mn-bapp:not(.mn-sys-key):not(.mn-ctx-key):not(.mn-page-key) { display: none !important; }
-html.mn-ctx-page[data-mn-ctx=board] body .mn-bdock .mn-bapp.mn-ctx-dock { display: inline-flex !important; }
-html.mn-ctx-page.mn-ctx-apps body .mn-bdock .mn-page-key, html.mn-sys-tools-off body .mn-bdock .mn-page-key, html[data-mn-ctx=room] body .mn-bdock .mn-page { display: none !important; }
-html.mn-ctx-page.mn-ctx-apps body .mn-bdock .mn-bapp.mn-ctx-dock { background: rgba(255,255,255,.16) !important; border-radius: 12px !important; }
-.mn-bdock .mn-bapp.mn-page-key { flex-shrink: 0; position: relative; }
-.mn-bdock .mn-bapp.mn-page-key::after { display: none !important; }
-.mn-bdock .mn-bapp.mn-page-key.mn-pill-active { background: transparent !important; box-shadow: none !important; }
-.mn-bdock .mn-bapp.mn-page-key svg { width: calc(var(--mn-key, 40px) * .5) !important; height: calc(var(--mn-key, 40px) * .5) !important; }
-.mn-bdock .mn-bapp.mn-page-key.on { color: #7dd3fc !important; }
-.mn-bdock .mn-bapp.mn-page-key.cm-dk-mode::before { content: ""; position: absolute; right: 18%; bottom: 14%; width: 0; height: 0; border-left: 3.5px solid transparent; border-right: 3.5px solid transparent; border-top: 4px solid currentColor; opacity: .55; }
-
-/* Octo hidden (its quick ring's "隐藏"; the Dock's long-press menu brings it back) */
-html.mn-octo-off #minest-mini-pet-p0, html.mn-octo-off .mpet-menu, html.mn-octo-off .mpet-tip, html.mn-octo-off .mpet-say, html.mn-octo-off .mpet-inbox { display: none !important; }
-.mpet-menu button.mn-octo-hide svg { display: block; }
-
-/* no "in use" lens in the Dock (2026-11-20, the user: a selected look belongs only where one of several modes is
-   picked): its keys open things — the lens stays in the mode pickers (3D Cover's), not here */
-html body .mn-bdock .mn-bapp.mn-bapp.on, html body .mn-bdock .mn-bapp.mn-bapp.mn-pill-active { background: transparent !important; border-color: transparent !important; box-shadow: none !important; }
-html[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-bapp.on, html[data-mn-ctx=room] body .mn-bdock .mn-bapp.mn-bapp.mn-pill-active,
-html[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-bapp.on, html[data-mn-ctx=world] body .mn-bdock .mn-bapp.mn-bapp.mn-pill-active {
-  background: rgba(110,110,118,.55) !important; border: 2px solid #111 !important; box-shadow: inset 2px 2px 0 rgba(255,255,255,.38), inset -2px -2px 0 rgba(0,0,0,.42) !important; }
-
-/* the press (drawn per frame by system-bar.js): a soft bloom, sparks, a ghost of the icon; and the note when there is nothing to do */
-.mn-bdock .mn-bapp { position: relative; overflow: visible; }
-.mn-sk-ring { position: absolute; inset: 0; border-radius: 50%; pointer-events: none; opacity: 0; background: radial-gradient(circle, rgba(190,225,255,.55), rgba(190,225,255,0) 70%); }
-html[data-mn-ctx=room] .mn-sk-ring, html[data-mn-ctx=world] .mn-sk-ring { border-radius: 0; background: rgba(255,255,255,.28); }
-.mn-sk-spark { position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px; border-radius: 50%; pointer-events: none; opacity: 0; background: #fff; box-shadow: 0 0 6px rgba(190,225,255,.9); }
-.mn-bdock .mn-bapp svg.mn-sk-ghost { position: absolute; left: 50%; top: 50%; margin: 0 !important; translate: -50% -50%; pointer-events: none; opacity: 0; }
-.mn-eq i { transition: none !important; }
-.mn-bdock.mn-dock-anim { overflow: hidden !important; }
-.mn-bdock.mn-dock-anim > * { flex-shrink: 0 !important; }
-#mn-sk-toast { position: fixed; z-index: 2147483646; transform: translate(-50%, -100%); padding: 6px 12px; border-radius: 10px; pointer-events: none; opacity: 0; white-space: nowrap;
-  background: rgba(20,22,30,.86); color: #f1f5f9; font: 600 12px -apple-system, system-ui, sans-serif; letter-spacing: .03em; border: 1px solid rgba(255,255,255,.12);
-  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 10px 24px -8px rgba(0,0,0,.5); }
-#mn-sk-toast.v { transform: translate(-100%, -50%); }
-/* the keys' motion is drawn per frame: no CSS easing on transform / opacity to lag behind it */
-html body .mn-bdock .mn-bapp { transition-property: background-color, color, border-color, box-shadow !important; }
-html body .mn-bdock .mn-bapp svg, html body .mn-bdock .mn-bapp svg * { transition: none !important; }
-
-/* the student side has no system keys and no Dock: nothing that leads to the rest of Minest (2026-11-20, the user) */
-html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.student-mode #mn-sk-toast { display: none !important; }
-
-/* the Duo's pinned Dock: shown (not slid away) without being moved off its place */
-html.mn-sysbar.duo-dockpin:not(.mn-sys-reading) body .mn-bdock.mn-bdock, html.mn-sysbar.duo-docktop:not(.mn-sys-reading) body .mn-bdock.mn-bdock { opacity: 1 !important; pointer-events: auto !important; visibility: visible !important; }
-
-/* the Dock placed freely (hold, then drag) — wins over every side / centring rule */
-html.mn-dock-free.mn-dock-free .mn-bdock.mn-bdock { left: var(--mn-fx, 50%) !important; top: var(--mn-fy, 50%) !important; right: auto !important; bottom: auto !important; transform: none !important; margin: 0 !important; }
-html.mn-dock-moving .mn-bdock.mn-bdock { transition: none !important; box-shadow: 0 18px 40px rgba(0, 0, 0, .45), 0 0 0 2px rgba(255, 255, 255, .35) !important; cursor: grabbing; }
-.mn-bdock.mn-dock-ready { animation: mnDockReady .25s ease-out; } @keyframes mnDockReady { 50% { filter: brightness(1.25); } }
-@media (prefers-reduced-motion: reduce) { .mn-bdock.mn-dock-ready { animation: none; } }
-</style>
-<script id="mn-sysbar-js">
-/* Minest · System buttons (2026-11-19; moved into the Dock the same day after the user's marked-up screenshot).
-   The Dock is one capsule: the four system buttons at its head, a hairline, then the tools of the screen in use.
-     1 ✕ close  — the Dock's own close (the module / panel on top closes); in the room: back to the full Minest
-     2 ‹ back   — the Dock's own back (Escape, then the page's history, then close)
-     3 ⛶ full   — reading mode: the Dock, every tool button on the page and inside its open frames are hidden; one
-                  "exit full screen" button stays, bottom-left. Esc also leaves. Native full screen where allowed.
-     4 = tools  — Apple's two-bar "=": folds the tools away, the bars turning into "||"; again, and they come back.
-   The tools follow the screen: on the board the Dock's apps; in Spatial Home the room's own tools (Explore / Desk,
-   backpack, places, window view, sit, first / third person, settings — the room's pixel icons, each pressing the
-   room's button, whose own top bar then gives way) and "Dock", which brings every Minest entry in. In Spatial Home
-   and My World the whole Dock takes the room's Minecraft look (square bevelled slots, green for the one in use). Outside reading mode the Dock no longer slides away when idle (it holds the system keys).
-   window.MinestSystemBar = { reading(on), tools(on), state() }. */
-(function () {
-  'use strict';
-  if (window.MinestSystemBar) return;
-  var R = document.documentElement, KEY = 'mn_sys_tools_v1', reading = false, nativeFull = false, lastFocus = null, ctx = 'board';
-  function svg(p) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>'; }
-  var ICON = {
-    close: '<path d="M6 6l12 12M18 6L6 18"/>', back: '<path d="M15 5l-7 7 7 7"/>',
-    full: '<path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5"/>', exit: '<path d="M3 8h5V3M16 3v5h5M8 21v-5H3M21 16h-5v5"/>',
-    walk: '<circle cx="13" cy="4.5" r="1.8"/><path d="M10 21l2-6-2.5-2.5L11 8l3 3 3 1M12 15l3 2 1 4M11 8l-3 2-1 3"/>',
-    desk: '<path d="M3 10h18M5 10v9M19 10v9M5 14h14M9 6h6v4H9z"/>',
-    pack: '<path d="M8 6V5a4 4 0 0 1 8 0v1"/><rect x="5" y="6" width="14" height="15" rx="4"/><path d="M9 12h6v4H9z"/>',
-    env: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/>',
-    views: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M12 3v18M4 12h16"/>',
-    sit: '<path d="M7 3v10h10M7 13v8M17 13v8M17 9V3"/>',
-    view: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
-    set: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3.1 14H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 3.1V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 20.9 10H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'
-  };
-  function haptic() { try { if (window.MinestNative && MinestNative.haptic) MinestNative.haptic('light'); } catch (e) {} }
-  function key(cls, label, inner, fn) {
-    var b = document.createElement('button'); b.type = 'button'; b.className = 'mn-bapp mn-sys-key ' + cls;
-    b.setAttribute('aria-label', label); b.title = label; b.innerHTML = inner;
-    b.setAttribute('data-spatial-home-dock', '');   // not an app: the room must not leave for the Minest page when it is pressed
-    /* a tap is read from the finger (pointer down → up, a little drift allowed): a click was lost when the finger
-       moved a hair or the Dock resized under it (2026-11-20, the user: the keys sometimes did nothing) */
-    var dn = null, done = 0;
-    function fire() { done = Date.now(); haptic(); pressFx(b, 'up'); fn(b); }
-    b.addEventListener('pointerdown', function (e) { if (e.button > 0) return; dn = { x: e.clientX, y: e.clientY, t: Date.now(), id: e.pointerId }; pressFx(b, 'down'); }, true);
-    b.addEventListener('pointerup', function (e) { var d = dn; dn = null; if (!d || d.id !== e.pointerId) return; if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 28 || Date.now() - d.t > 900) { pressFx(b, 'cancel'); return; } e.stopPropagation(); fire(); }, true);
-    b.addEventListener('pointercancel', function () { if (dn) { dn = null; pressFx(b, 'cancel'); } }, true);
-    b.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); if (Date.now() - done < 700) return; fire(); }, true);   // keyboard, or a click with no pointer before it
-    return b;
-  }
-  /* ---- micro-motion (2026-11-20, the user: every key's own little animation; the ring stayed on screen — Web
-     Animations could stay pending forever here, so every motion is drawn per frame, and a timer always lands it) ---- */
-  function tween(dur, fn, done, delay) {
-    var t0 = 0, over = false;
-    function land() { if (over) return; over = true; try { fn(1); } catch (e) {} if (done) try { done(); } catch (e) {} }
-    function step() { if (over) return; var k = Math.min(1, (performance.now() - t0) / dur); if (k >= 1) { land(); return; } try { fn(k); } catch (e) {} requestAnimationFrame(step); }
-    setTimeout(function () { t0 = performance.now(); try { fn(0); } catch (e) {} requestAnimationFrame(step); setTimeout(land, dur + 160); }, delay || 0);
-  }
-  var EZ = {
-    out: function (k) { return 1 - Math.pow(1 - k, 3); },
-    inn: function (k) { return k * k * k; },
-    io: function (k) { return k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; },
-    spring: function (k) { return 1 - Math.exp(-6.5 * k) * Math.cos(10.5 * k); },
-    bell: function (k) { return Math.sin(Math.PI * k); },
-    shake: function (k) { return Math.sin(k * Math.PI * 5) * (1 - k); }
-  };
-  function tf(el, v) { if (el) el.style.transform = v || ''; }
-  /* the key under the finger: sinks, then springs back */
-  function sink(b) { if (b.__down) return; b.__down = 1; var s0 = b.__sc || 1; tween(110, function (k) { b.__sc = s0 + (0.84 - s0) * EZ.out(k); tf(b, 'scale(' + b.__sc.toFixed(3) + ')'); }); }
-  function rise(b) { b.__down = 0; var s0 = b.__sc || .84; tween(460, function (k) { b.__sc = s0 + (1 - s0) * EZ.spring(k); tf(b, 'scale(' + b.__sc.toFixed(3) + ')'); }, function () { b.__sc = 1; tf(b, ''); }); }
-  /* a soft bloom of light behind the icon, always gone at the end */
-  function bloom(b) {
-    var r = document.createElement('i'); r.className = 'mn-sk-ring'; b.appendChild(r);
-    tween(420, function (k) { var e = EZ.out(k); r.style.transform = 'scale(' + (0.5 + e * 0.8).toFixed(3) + ')'; r.style.opacity = (0.5 * (1 - k)).toFixed(3); }, function () { r.remove(); });
-  }
-  function sparks(b, n) {
-    var r = b.getBoundingClientRect();
-    for (var i = 0; i < n; i++) (function (i) {
-      var s = document.createElement('i'); s.className = 'mn-sk-spark'; b.appendChild(s);
-      var a = (-120 + i * (240 / Math.max(1, n - 1))) * Math.PI / 180, d = r.width * (0.45 + (i % 2) * 0.15);
-      tween(520, function (k) { var e = EZ.out(k); s.style.transform = 'translate(' + (Math.cos(a) * d * e).toFixed(1) + 'px,' + (Math.sin(a) * d * e).toFixed(1) + 'px) scale(' + (1 - k * 0.6).toFixed(2) + ')'; s.style.opacity = (k < .2 ? k * 5 : 1 - (k - .2) / .8).toFixed(2); }, function () { s.remove(); }, i * 30);
-    })(i);
-  }
-  /* each key's own motion, on its icon */
-  function iconFx(b) {
-    var sv = b.querySelector('svg'), c = b.className, l = (b.getAttribute('aria-label') || '').toLowerCase();
-    if (/mn-sk-tools/.test(c)) return;   // "=" morphs itself (eqMorph)
-    if (!sv) return;
-    sv.style.transformOrigin = '50% 50%';
-    var done = function () { tf(sv, ''); };
-    if (/mn-sk-close/.test(c) || /close|关闭/.test(l)) return tween(480, function (k) { tf(sv, 'rotate(' + (EZ.spring(k) * 90).toFixed(1) + 'deg) scale(' + (1 - EZ.bell(k) * .18).toFixed(3) + ')'); }, done);
-    if (/mn-sk-back/.test(c) || /back|返回/.test(l)) {
-      var g = sv.cloneNode(true); g.classList.add('mn-sk-ghost'); b.appendChild(g);
-      tween(420, function (k) { g.style.transform = 'translateX(' + (-10 * EZ.out(k)).toFixed(1) + 'px)'; g.style.opacity = (0.55 * (1 - k)).toFixed(2); }, function () { g.remove(); });
-      return tween(460, function (k) { tf(sv, 'translateX(' + (-6 * EZ.bell(Math.min(1, k * 1.6)) + (k > .62 ? 2 * EZ.shake((k - .62) / .38) : 0)).toFixed(2) + 'px)'); }, done);
-    }
-    if (/mn-sk-full/.test(c)) return tween(520, function (k) { var e = k < .35 ? EZ.out(k / .35) * .32 : .32 * (1 - EZ.spring((k - .35) / .65)); tf(sv, 'scale(' + (1 + e).toFixed(3) + ')'); }, done);
-    if (/spatial home|我的房间/.test(l)) return tween(520, function (k) { var y = k < .45 ? -6 * EZ.bell(k / .45 / 2 + 0) : 0, q = k >= .45 ? EZ.bell((k - .45) / .55) * .16 * (1 - (k - .45) / .55 * .5) : 0; tf(sv, 'translateY(' + y.toFixed(2) + 'px) scale(' + (1 + q).toFixed(3) + ',' + (1 - q).toFixed(3) + ')'); }, done);
-    if (/my world|世界/.test(l)) return tween(700, function (k) { tf(sv, 'rotate(' + (EZ.io(k) * 360).toFixed(1) + 'deg)'); }, done);
-    if (/views|视图/.test(l)) return tween(520, function (k) { tf(sv, 'translateY(' + (-5 * EZ.bell(Math.min(1, k * 1.5)) + (k > .66 ? 1.5 * EZ.shake((k - .66) / .34) : 0)).toFixed(2) + 'px)'); }, done);
-    if (/arcade|游戏/.test(l)) return tween(560, function (k) { tf(sv, 'rotate(' + (14 * EZ.shake(k)).toFixed(2) + 'deg)'); }, done);
-    if (/routine|liquid/.test(l)) return tween(560, function (k) { var q = EZ.shake(k) * .22; tf(sv, 'scale(' + (1 - q).toFixed(3) + ',' + (1 + q).toFixed(3) + ')'); }, done);
-    if (/hermes|打字/.test(l)) return tween(460, function (k) { tf(sv, 'translateY(' + (2.5 * Math.abs(Math.sin(k * Math.PI * 3)) * (1 - k * .4)).toFixed(2) + 'px)'); }, done);
-    if (/looks|外观/.test(l)) { sparks(b, 5); return tween(560, function (k) { tf(sv, 'rotate(' + (-26 * EZ.bell(Math.min(1, k * 1.4)) + (k > .7 ? 6 * EZ.shake((k - .7) / .3) : 0)).toFixed(1) + 'deg)'); }, done); }
-    if (/more|更多/.test(l)) { var dots = sv.children; [].forEach.call(dots, function (d, i) { d.style.transformBox = 'fill-box'; d.style.transformOrigin = 'center'; tween(420, function (k) { d.style.transform = 'translateY(' + (-3.5 * EZ.bell(k)).toFixed(2) + 'px)'; }, function () { d.style.transform = ''; }, i * 70); }); return; }
-    if (/dock|全部入口/.test(l)) return tween(460, function (k) { tf(sv, 'rotate(' + (EZ.spring(k) * 90).toFixed(1) + 'deg)'); }, done);
-    if (/mn-page-key/.test(c)) return tween(420, function (k) { tf(sv, 'scale(' + (1 + EZ.bell(k) * .22).toFixed(3) + ')'); }, done);
-    return tween(420, function (k) { tf(sv, 'scale(' + (1 + EZ.bell(k) * .18).toFixed(3) + ')'); }, done);
-  }
-  function pressFx(b, ph) {
-    if (ph === 'down') { sink(b); return; }
-    rise(b); if (ph === 'cancel') return;
-    bloom(b); iconFx(b);
-  }
-  /* "=": the two bars turn into "||" (and back) with a liquid squeeze, the second a beat behind */
-  var EQ = { on: [[0, -3.6, 0, 1], [0, 3.6, 0, 1]], off: [[-3.6, 0, 90, .82], [3.6, 0, 90, .82]] };
-  function eqMorph(on) {
-    var bars = toolsKey.querySelectorAll('.mn-eq i'), from = on ? EQ.off : EQ.on, to = on ? EQ.on : EQ.off;
-    [].forEach.call(bars, function (bar, i) {
-      var f = from[i], t = to[i];
-      tween(620, function (k) {
-        var e = EZ.io(Math.min(1, k * 1.25)), sp = EZ.spring(k), sq = EZ.bell(Math.min(1, k * 1.25)) * .38;
-        var x = f[0] + (t[0] - f[0]) * e, y = f[1] + (t[1] - f[1]) * e, r = f[2] + (t[2] - f[2]) * sp, sx = (f[3] + (t[3] - f[3]) * e) * (1 - sq);
-        bar.style.transform = 'translate(' + x.toFixed(2) + 'px,' + y.toFixed(2) + 'px) rotate(' + r.toFixed(1) + 'deg) scaleX(' + sx.toFixed(3) + ')';
-      }, function () { bar.style.transform = ''; }, i * 70);
-    });
-  }
-  /* "=": the tools fold into the key, the Dock closing round them — and come out of it one by one */
-  var toolsBusy = false;
-  function shownTools(d) { var out = [], past = false; [].forEach.call(d.children, function (c) { if (c === sep) { past = true; return; } if (past && getComputedStyle(c).display !== 'none') { if (c.classList.contains('mn-page')) [].forEach.call(c.children, function (k) { if (getComputedStyle(k).display !== 'none') out.push(k); }); else out.push(c); } }); return out; }
-  function dockSize(d, from, done) {
-    var v = R.classList.contains('mn-dock-v'), P = v ? 'height' : 'width', to = v ? d.getBoundingClientRect().height : d.getBoundingClientRect().width;
-    if (Math.abs(to - from) < 2) { if (done) done(); return; }
-    d.classList.add('mn-dock-anim');
-    tween(560, function (k) { d.style.setProperty(P, (from + (to - from) * EZ.spring(k)).toFixed(1) + 'px', 'important'); }, function () { d.style.removeProperty(P); d.classList.remove('mn-dock-anim'); if (done) done(); });
-  }
-  function toggleTools() {
-    var d = dock(), on = R.classList.contains('mn-sys-tools-off');
-    if (!d || toolsBusy) { setTools(on); return; }
-    toolsBusy = true; eqMorph(on);
-    var v = R.classList.contains('mn-dock-v'), r0 = d.getBoundingClientRect(), from = v ? r0.height : r0.width, kr = toolsKey.getBoundingClientRect(), kx = kr.left + kr.width / 2, ky = kr.top + kr.height / 2;
-    if (!on) {
-      var apps = shownTools(d), n = apps.length;
-      apps.forEach(function (a, i) {
-        var r = a.getBoundingClientRect(), dx = kx - (r.left + r.width / 2), dy = ky - (r.top + r.height / 2);
-        tween(240, function (k) { var e = EZ.inn(k); a.style.transform = 'translate(' + (dx * e).toFixed(1) + 'px,' + (dy * e).toFixed(1) + 'px) scale(' + (1 - .65 * e).toFixed(3) + ')'; a.style.opacity = (1 - e).toFixed(3); }, null, (n - 1 - i) * 16);
-      });
-      setTimeout(function () {
-        apps.forEach(function (a) { a.style.transform = ''; a.style.opacity = ''; });
-        setTools(false); fit(); dockSize(d, from, function () { toolsBusy = false; });
-      }, 240 + n * 16 + 20);
-    } else {
-      setTools(true); fit();
-      var apps2 = shownTools(d);
-      apps2.forEach(function (a) { a.style.opacity = '0'; });
-      dockSize(d, from);
-      requestAnimationFrame(function () {
-        apps2.forEach(function (a, i) {
-          var r = a.getBoundingClientRect(), dx = kx - (r.left + r.width / 2), dy = ky - (r.top + r.height / 2);
-          tween(520, function (k) { var e = EZ.spring(k), o = Math.min(1, k * 3); a.style.transform = 'translate(' + (dx * (1 - e)).toFixed(1) + 'px,' + (dy * (1 - e)).toFixed(1) + 'px) scale(' + (.35 + .65 * e).toFixed(3) + ')'; a.style.opacity = o.toFixed(3); }, function () { a.style.transform = ''; a.style.opacity = ''; if (i === apps2.length - 1) toolsBusy = false; }, i * 28);
-        });
-        if (!apps2.length) toolsBusy = false;
-      });
-      setTimeout(function () { toolsBusy = false; }, 1600);
-    }
-  }
-  /* every other key in the Dock (apps, the room's tools, the page's keys) gets the same press and its own motion */
-  document.addEventListener('pointerdown', function (e) { var b = e.target.closest && e.target.closest('.mn-bdock .mn-bapp'); if (!b || b.classList.contains('mn-sys-key')) return; b.__pd = { x: e.clientX, y: e.clientY, t: Date.now() }; sink(b); }, true);
-  document.addEventListener('pointerup', function (e) { var b = e.target.closest && e.target.closest('.mn-bdock .mn-bapp'); [].forEach.call(document.querySelectorAll('.mn-bdock .mn-bapp'), function (x) { if (x.__down && x !== b && !x.classList.contains('mn-sys-key')) { x.__pd = null; pressFx(x, 'cancel'); } }); if (!b || b.classList.contains('mn-sys-key') || !b.__pd) return; var d = b.__pd; b.__pd = null; pressFx(b, Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 28 ? 'cancel' : 'up'); }, true);
-  document.addEventListener('pointercancel', function () { [].forEach.call(document.querySelectorAll('.mn-bdock .mn-bapp'), function (x) { if (x.__down && !x.classList.contains('mn-sys-key')) { x.__pd = null; pressFx(x, 'cancel'); } }); }, true);
-  /* nothing to go back to / close: the key shakes its head, and says so */
-  function nothing(b, txt) {
-    var sv = b.querySelector('svg'); tween(420, function (k) { tf(sv, 'translateX(' + (5 * EZ.shake(k)).toFixed(2) + 'px)'); }, function () { tf(sv, ''); });
-    var t = document.getElementById('mn-sk-toast'); if (!t) { t = document.createElement('div'); t.id = 'mn-sk-toast'; document.body.appendChild(t); }
-    t.textContent = txt; var r = b.getBoundingClientRect(), v = R.classList.contains('mn-dock-v');
-    t.style.left = (v ? r.left - 12 : r.left + r.width / 2) + 'px'; t.style.top = (v ? r.top + r.height / 2 : r.top - 12) + 'px'; t.className = v ? 'v' : '';
-    var id = (t.__id || 0) + 1; t.__id = id;
-    tween(1500, function (k) { if (t.__id !== id) return; var o = k < .12 ? k / .12 : k < .8 ? 1 : 1 - (k - .8) / .2, y = k < .12 ? 6 * (1 - EZ.out(k / .12)) : k > .8 ? -2 * (k - .8) / .2 : 0; t.style.opacity = o.toFixed(3); t.style.translate = '0 ' + y.toFixed(1) + 'px'; }, function () { if (t.__id === id) t.style.opacity = '0'; });
-  }
-  /* did a step back / a close change anything on screen? (the page's own Esc handlers say nothing back) */
-  function snap() { var b = document.body; return location.href + '|' + b.className + '|' + R.className.replace(/\bmn-(dock-[hv]|sys-\S+)\b/g, '') + '|' + b.childElementCount + '|' + document.querySelectorAll('[role=dialog],[class*=modal],[class*=overlay],[class*=popover],[class*=sheet]').length; }
-  function orNothing(b, before, txt) { setTimeout(function () { if (snap() === before) nothing(b, txt); }, 280); }
-  /* the room (Spatial Home) is the screen in use: open, and not showing a Minest feature over it */
-  function inRoom() {
-    try { var H = window.MinestSpatialHome; if (!H || !H.isOpen || !H.isOpen()) return false; var st = H.api && H.api().state(); return !(st && st.inFeature); } catch (e) { return false; }
-  }
-  function press(id) { var b = document.getElementById(id); if (b) { b.click(); return true; } return false; }
-  /* 1, 2 */
-  function dockKey(sel) { var b = document.querySelector('.mn-bdock ' + sel); if (b) { b.click(); return true; } return false; }
-  function esc() { return document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true, cancelable: true })); }
-  function close(b) { var s0 = snap(); if (ctx === 'room' && press('sh-exitBtn')) return; if (!dockKey('.mn-sys-exit')) esc(); orNothing(b, s0, '没有可关闭的'); }
-  function back(b) { var s0 = snap(); if (ctx === 'room') { if (esc() && !press('sh-exitBtn')) {} return; } if (!dockKey('.mn-sys-back') && esc() && location.hash.length > 1) history.back(); orNothing(b, s0, '已经是最前一页'); }
-  /* 3: reading mode, here and in every open frame of the same site */
-  var HIDE = 'button,[role="button"],[role="toolbar"],header.iphone-topbar,.ios-bottom-tab-bar,.mn-bdock,#minest-mini-pet-p0,#cs-btn,' +
-    '#sh-top,#sh-labels,#sh-stick,#sh-hint,#sh-credit,#sh-pill,#sh-reading-enter,#sh-dock,#sh-settings,#sh-pack,#sh-edit,#sh-card,#sh-toast,#sh-skip,.clun-entry,.mn-start-control';
-  var FRAME_CSS = HIDE.split(',').map(function (s) { return 'html.mn-sys-reading ' + s; }).join(',') + '{visibility:hidden!important;pointer-events:none!important}' +
-    'html.mn-sys-reading body .mn-bdock.mn-bdock{display:none!important}#mn-start-full,#sh-reading-enter{display:none!important}';
-  function frames(doc, out) {
-    out = out || [];
-    try { [].forEach.call(doc.querySelectorAll('iframe'), function (f) { try { var d = f.contentDocument; if (d && d.documentElement) { out.push(d); frames(d, out); } } catch (e) {} }); } catch (e) {}
-    return out;
-  }
-  function syncFrames() {
-    frames(document).forEach(function (d) {
-      try {
-        if (!d.getElementById('mn-sys-frame-css')) { var s = d.createElement('style'); s.id = 'mn-sys-frame-css'; s.textContent = FRAME_CSS; (d.head || d.documentElement).appendChild(s); }
-        d.documentElement.classList.toggle('mn-sys-reading', reading);
-        if (!d.__mnSysKeys) { d.__mnSysKeys = 1; d.addEventListener('keydown', onKey, true); }
-      } catch (e) {}
-    });
-  }
-  function setReading(on) {
-    on = !!on; if (on === reading) return;
-    reading = on; R.classList.toggle('mn-sys-reading', on); syncFrames();
-    try { if (window.SpatialBridge && SpatialBridge.setReading) SpatialBridge.setReading(false); } catch (e) {}
-    try { if (window.MinestStartControls && MinestStartControls.setReading) MinestStartControls.setReading(false); } catch (e) {}
-    if (on) {
-      lastFocus = document.activeElement; exitKey.focus({ preventScroll: true });
-      if (!document.fullscreenElement && R.requestFullscreen) {
-        try { var p = R.requestFullscreen(); if (p && p.then) p.then(function () { nativeFull = true; if (!reading && document.exitFullscreen) document.exitFullscreen().catch(function () {}); }).catch(function () {}); } catch (e) {}
-      }
-    } else {
-      if (nativeFull && document.fullscreenElement && document.exitFullscreen) { try { document.exitFullscreen().catch(function () {}); } catch (e) {} }
-      nativeFull = false;
-      if (lastFocus && lastFocus.isConnected) try { lastFocus.focus({ preventScroll: true }); } catch (e) {}
-    }
-    try { window.dispatchEvent(new CustomEvent('minest:reading', { detail: { on: on } })); } catch (e) {}
-  }
-  function onKey(e) { if (reading && e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setReading(false); } }
-  /* 4: "=" folds the tools away, turning into "||" */
-  function toolsOn() { try { return localStorage.getItem(KEY) !== '0'; } catch (e) { return true; } }
-  function setTools(on) {
-    R.classList.toggle('mn-sys-tools-off', !on);
-    try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {}
-    var l = on ? '收起工具' : '展开工具'; toolsKey.setAttribute('aria-label', l); toolsKey.title = l; toolsKey.setAttribute('aria-expanded', on ? 'true' : 'false');
-  }
-
-  var sysKeys = [
-    key('mn-sk-close', '系统 · 关闭', svg(ICON.close), close),   // (not "Close ·": the Dock's own close looks for those)
-    key('mn-sk-back', '系统 · 返回', svg(ICON.back), back),
-    key('mn-sk-full', '全屏 · 阅览模式', svg(ICON.full), function () { setReading(true); })
-  ];
-  var toolsKey = key('mn-sk-tools', '收起工具', '<span class="mn-eq" aria-hidden="true"><i></i><i></i></span>', function () { toggleTools(); });
-  sysKeys.push(toolsKey);
-  var sep = document.createElement('span'); sep.className = 'mn-sys-sep'; sep.setAttribute('aria-hidden', 'true');
-  var exitKey = document.createElement('button'); exitKey.type = 'button'; exitKey.id = 'mn-sys-exit'; exitKey.setAttribute('aria-label', '退出全屏'); exitKey.title = '退出全屏';
-  exitKey.innerHTML = svg(ICON.exit); exitKey.addEventListener('click', function (e) { e.stopPropagation(); haptic(); setReading(false); });
-
-  /* the room's tools, in the Dock while the room is the screen */
-  function deskMode() { var d = document.querySelector('#sh-modeSeg [data-mode="desk"]'); return !!(d && d.classList.contains('on')); }
-  var ROOM = [
-    ['mode', 'Explore · Desk', function () { return deskMode() ? ICON.desk : ICON.walk; },
-      function () { var s = document.querySelectorAll('#sh-modeSeg [data-mode]'); for (var i = 0; i < s.length; i++) if (!s[i].classList.contains('on')) { s[i].click(); return; } }],
-    ['pack', '背包 · 布置', ICON.pack, 'sh-packBtn'], ['env', '切换环境', ICON.env, 'sh-envBtn'], ['views', '窗外风景', ICON.views, 'sh-viewsBtn'],
-    ['sit', '坐下 · 起立', ICON.sit, 'sh-sitBtn'], ['view', '第一 · 第三人称', ICON.view, 'sh-viewBtn'], ['set', '设置', ICON.set, 'sh-setBtn']
-  ];
-  var roomKeys = ROOM.map(function (q) {
-    var b = key('mn-ctx-key mn-ctx-' + q[0], q[1], svg(typeof q[2] === 'function' ? q[2]() : q[2]), function () {
-      if (typeof q[3] === 'function') q[3](); else press(q[3]);
-      if (typeof q[2] === 'function') setTimeout(function () { modeLabel(b); }, 150);
-    });
-    b.classList.remove('mn-sys-key'); b.dataset.ctx = 'room'; return b;
-  });
-  /* the mode key shows the mode the room is in (its icon, and its name in the lens) */
-  function modeLabel(b) { var desk = deskMode(), l = desk ? 'Desk · 办公桌前' : 'Explore · 行走探索'; if (b.dataset.desk === String(desk)) return; b.dataset.desk = String(desk); b.innerHTML = svg(desk ? ICON.desk : ICON.walk); b.setAttribute('aria-label', l); b.title = l; }
-  /* the room's own pixel icons, once the room has drawn them */
-  function pixelIcons() {
-    ROOM.forEach(function (q, i) { if (typeof q[3] !== 'string') return; var o = document.getElementById(q[3]), b = roomKeys[i]; if (o && b.dataset.px !== '1' && o.querySelector('svg')) { b.innerHTML = o.innerHTML; b.dataset.px = '1'; } });
-  }
-  /* "Dock": every entry of the Minest Dock, from inside the room (again: back to the room's tools) */
-  var dockAll = key('mn-ctx-key mn-ctx-dock', 'Dock · 全部入口', svg('<rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/>'),
-    function () { var on = !R.classList.contains('mn-ctx-apps'); R.classList.toggle('mn-ctx-apps', on); dockAll.setAttribute('aria-pressed', on ? 'true' : 'false'); });
-  dockAll.classList.remove('mn-sys-key'); dockAll.dataset.ctx = 'room'; dockAll.setAttribute('aria-pressed', 'false'); roomKeys.push(dockAll);
-  /* the study's sliding board: each panel up or down — the EC–6 board, blackboard 1, blackboard 2 (Victorian Study only) */
-  var slideKeys = [['布告栏 · 上下推拉', '<rect x="4" y="9" width="16" height="11" rx="1"/><path d="M8 13h8M8 16h5M12 2v5M9.5 4.5 12 2l2.5 2.5"/>'],
-    ['黑板 1 · 上下推拉', '<rect x="4" y="9" width="16" height="11" rx="1"/><path d="M12 2v5M9.5 4.5 12 2l2.5 2.5M11 12v5"/>'],
-    ['黑板 2 · 上下推拉', '<rect x="4" y="9" width="16" height="11" rx="1"/><path d="M12 2v5M9.5 4.5 12 2l2.5 2.5M10 12h3.5v2.4H10V17h3.5"/>']].map(function (q, i) {
-      var k = key('mn-ctx-key mn-ctx-slide', q[0], svg(q[1]), function () { var b = window.MinestStudyBoard; if (b && b.slide) b.slide(i); });
-      k.classList.remove('mn-sys-key'); k.dataset.ctx = 'off'; roomKeys.push(k); return k; });
-  function study() { try { var e = window.MinestSpatialHome.api().env(); return !!(e && e.envId === 'victorian' && window.MinestStudyBoard && window.MinestStudyBoard.slide); } catch (er) { return false; } }
-  function inWorld() { try { return !!(window.MinestMyWorld && MinestMyWorld.isOpen && MinestMyWorld.isOpen()); } catch (e) { return false; } }
-
-  /* the page's own keys (2026-11-20, the user: the right of the Dock holds only what the page in use needs — its top
-     bar moves down here): a page hands over one group of keys; while it is there, the board's apps give way (the
-     "Dock" key brings them back) */
-  var pageEl = null;
-  function setPage(el) {
-    if (pageEl === el) return; if (pageEl && pageEl.parentNode && pageEl !== el) pageEl.remove();
-    pageEl = el || null; R.classList.toggle('mn-ctx-page', !!pageEl);
-    if (!pageEl && ctx !== 'room') { R.classList.remove('mn-ctx-apps'); dockAll.setAttribute('aria-pressed', 'false'); }
-    mount(); fit();
-  }
-  function dock() { return document.querySelector('.mn-bdock'); }
-  function mount() {
-    var d = dock(); if (!d) return;
-    var at = d.firstElementChild, i;
-    for (i = 0; i < sysKeys.length; i++) { if (at !== sysKeys[i]) d.insertBefore(sysKeys[i], at); at = sysKeys[i].nextElementSibling; }
-    if (at !== sep) d.insertBefore(sep, at);
-    var anchor = sep.nextElementSibling;
-    roomKeys.forEach(function (b) { if (b.parentNode !== d) d.insertBefore(b, anchor); });
-    if (pageEl && pageEl.parentNode !== d) d.insertBefore(pageEl, sep.nextElementSibling);
-    if (!exitKey.isConnected && document.body) document.body.appendChild(exitKey);
-    R.classList.add('mn-sysbar');
-  }
-  /* the Dock's shape on screen: standing (right) or lying (top / bottom, and the opening's own row) — and every key
-     sized so the whole Dock fits the screen */
-  function fit() {
-    var d = dock(); if (!d) return;
-    var cs = getComputedStyle(d), h = /^row/.test(cs.flexDirection);
-    R.classList.toggle('mn-dock-h', h); R.classList.toggle('mn-dock-v', !h);
-    var mc = ctx === 'room' || ctx === 'world', keys = 0, seps = 0;
-    [].forEach.call(d.children, function (c) { if (c === pageEl) { [].forEach.call(c.children, function (k) { if (getComputedStyle(k).display !== 'none') keys++; }); return; } if (getComputedStyle(c).display === 'none') return; if (c.classList.contains('mn-sys-sep')) seps++; else keys++; });
-    var lens = mc ? 0 : (h ? 1.6 : 1.35), room = (h ? innerWidth : innerHeight) - 28 - (h ? 0 : 20);
-    if (R.classList.contains('mn-dock-free')) room = (h ? innerWidth : innerHeight) - 24;   // placed freely: the whole screen is the limit
-    else if (R.classList.contains('duo-dockpin') || R.classList.contains('duo-docktop')) {   // the Duo's pinned Dock starts at its own place: the room left from there
-      var dr = d.getBoundingClientRect(); room = h ? innerWidth - Math.max(0, dr.left) - 16 : innerHeight - Math.max(0, dr.top) - 16;
-    }
-    var k = Math.floor((room - 10 - seps * 10 - Math.max(0, keys - 1) * 4) / (keys + lens));
-    k = Math.max(22, Math.min(mc ? 38 : 40, k));
-    if (R.style.getPropertyValue('--mn-key') !== k + 'px') R.style.setProperty('--mn-key', k + 'px');
-  }
-  /* where the Dock may sit: Right, Top or Bottom (not the left) — Top is the bottom row moved up under the title bar */
-  var TOP = 'mn_dock_top_v1';
-  function isTop() { try { return localStorage.getItem(TOP) === '1'; } catch (e) { return false; } }
-  function sides() {
-    if (R.getAttribute('data-mn-bd') === 'left') { R.setAttribute('data-mn-bd', 'right'); try { localStorage.setItem('minest.iphone.dockPos', 'right'); } catch (e) {} }
-    R.classList.toggle('mn-dock-top', isTop() && R.getAttribute('data-mn-bd') === 'bottom');
-  }
-  function menu(m) {
-    if (m.__mnSides) return; m.__mnSides = 1;
-    var items = m.querySelectorAll('button[role="menuitemradio"]'), left = null, bottom = null, top = isTop() && R.getAttribute('data-mn-bd') === 'bottom';
-    [].forEach.call(items, function (b) { var t = b.textContent.replace(/[✓\s]/g, ''); if (t === 'Left') left = b; if (t === 'Bottom') bottom = b; });
-    if (!left || !bottom) return;
-    m.insertBefore(left, m.querySelector('button'));   // Right · Top · Bottom, top first
-    left.innerHTML = '<i>' + (top ? '✓' : '') + '</i>Top'; left.setAttribute('aria-checked', String(top));
-    if (top) { bottom.setAttribute('aria-checked', 'false'); var i = bottom.querySelector('i'); if (i) i.textContent = ''; }
-    left.addEventListener('click', function (e) { e.stopImmediatePropagation(); e.preventDefault(); try { localStorage.setItem(TOP, '1'); } catch (er) {} bottom.click(); sides(); }, true);
-    [].forEach.call(items, function (b) { if (b !== left) b.addEventListener('click', function () { try { localStorage.setItem(TOP, '0'); } catch (er) {} setTimeout(sides, 0); }, true); });
-  }
-  /* drag the Dock anywhere (2026-11-22, the user: "长按拖着移动，不然有的时候会挡住"): hold ~0.45 s, then move — the
-     Dock follows the finger and stays where it is let go (kept on this device as a fraction of the screen). A short tap
-     still presses a key, a hold without moving still opens the Dock menu, which also has 复位 Reset position. */
-  var FREE = 'minest.dockFree.v1', dg = null;
-  function freeGet() { try { return JSON.parse(localStorage.getItem(FREE) || 'null'); } catch (e) { return null; } }
-  function freeApply() {
-    var f = freeGet(), d = dock(); R.classList.toggle('mn-dock-free', !!f); if (!f || !d) return;
-    var r = d.getBoundingClientRect(), w = r.width || 60, h = r.height || 60;
-    R.style.setProperty('--mn-fx', Math.round(Math.max(6, Math.min(innerWidth - w - 6, f.x * innerWidth))) + 'px');
-    R.style.setProperty('--mn-fy', Math.round(Math.max(6, Math.min(innerHeight - h - 6, f.y * innerHeight))) + 'px');
-  }
-  function freeReset() { try { localStorage.removeItem(FREE); } catch (e) {} R.classList.remove('mn-dock-free'); R.style.removeProperty('--mn-fx'); R.style.removeProperty('--mn-fy'); fit(); haptic(); }
-  function closeDockMenu() { [].forEach.call(document.querySelectorAll('.mn-bd-menu'), function (m) { m.remove(); }); }
-  document.addEventListener('pointerdown', function (e) {
-    var d = dock(); if (!d || !d.contains(e.target) || (e.button && e.button !== 0)) return;
-    if (dg) clearTimeout(dg.tm);
-    dg = { x: e.clientX, y: e.clientY, id: e.pointerId, d: d, held: false, on: false };
-    dg.tm = setTimeout(function () { if (dg) { dg.held = true; d.classList.add('mn-dock-ready'); } }, 450);
-  }, true);
-  document.addEventListener('pointermove', function (e) {
-    if (!dg || e.pointerId !== dg.id) return;
-    if (!dg.on) {
-      if (Math.hypot(e.clientX - dg.x, e.clientY - dg.y) < 10) return;
-      if (!dg.held) { clearTimeout(dg.tm); dg = null; return; }   // moved before the hold: not a Dock drag
-      var r0 = dg.d.getBoundingClientRect(); dg.ox = r0.left - dg.x; dg.oy = r0.top - dg.y; dg.on = true;   // measured from where the finger went down, so the Dock keeps up with it
-      R.classList.add('mn-dock-free', 'mn-dock-moving'); closeDockMenu(); haptic();
-    }
-    e.preventDefault(); e.stopPropagation();
-    var r = dg.d.getBoundingClientRect();
-    R.style.setProperty('--mn-fx', Math.round(Math.max(6, Math.min(innerWidth - r.width - 6, e.clientX + dg.ox))) + 'px');
-    R.style.setProperty('--mn-fy', Math.round(Math.max(6, Math.min(innerHeight - r.height - 6, e.clientY + dg.oy))) + 'px');
-  }, { capture: true, passive: false });
-  function dockDragEnd(e) {
-    if (!dg || e.pointerId !== dg.id) return; clearTimeout(dg.tm); dg.d.classList.remove('mn-dock-ready');
-    if (dg.on) {
-      e.preventDefault(); e.stopPropagation(); closeDockMenu();
-      var x = parseFloat(R.style.getPropertyValue('--mn-fx')) || 0, y = parseFloat(R.style.getPropertyValue('--mn-fy')) || 0;
-      try { localStorage.setItem(FREE, JSON.stringify({ x: x / innerWidth, y: y / innerHeight })); } catch (er) {}
-      R.classList.remove('mn-dock-moving');
-      var kill = function (ev) { ev.stopPropagation(); ev.preventDefault(); window.removeEventListener('click', kill, true); };   // the release is not a key press
-      window.addEventListener('click', kill, true); setTimeout(function () { window.removeEventListener('click', kill, true); }, 400);
-      fit();
-    }
-    dg = null;
-  }
-  document.addEventListener('pointerup', dockDragEnd, true); document.addEventListener('pointercancel', dockDragEnd, true);
-  function freeMenu(m) {
-    if (m.__mnFree || !freeGet()) return; m.__mnFree = 1;
-    var b = document.createElement('button'); b.type = 'button'; b.innerHTML = '<i>⤺</i>复位 Reset position';
-    b.addEventListener('click', function (e) { e.stopPropagation(); freeReset(); closeDockMenu(); });
-    m.appendChild(b);
-  }
-  window.addEventListener('resize', freeApply);
-  /* Octo can be hidden (2026-11-20, the user): "隐藏" in its quick ring; the Dock's long-press menu shows / hides it */
-  var OCTO = 'minest.octoHidden';
-  function octoHidden() { try { return localStorage.getItem(OCTO) === '1'; } catch (e) { return false; } }
-  function setOcto(hide) { R.classList.toggle('mn-octo-off', !!hide); try { localStorage.setItem(OCTO, hide ? '1' : '0'); } catch (e) {} haptic(); }
-  setOcto(octoHidden());
-  function octoRing(m) {
-    if (m.__mnOcto) return; m.__mnOcto = 1;
-    var c = window.__miniPetCtl, ctr = c && c.center ? c.center() : null; if (!ctr) return;
-    var n = m.querySelectorAll('button').length, right = ctr.x < innerWidth / 2, a = (-84 + n * 28) * Math.PI / 180, Rr = 118;
-    var x = Math.max(32, Math.min(innerWidth - 32, ctr.x + (right ? 1 : -1) * Math.cos(a) * Rr)), y = Math.max(40, Math.min(innerHeight - 40, ctr.y + Math.sin(a) * Rr));
-    var b = document.createElement('button'); b.type = 'button'; b.className = 'mn-glass mn-octo-hide'; b.setAttribute('aria-label', '隐藏 Octo');
-    b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c6 0 9.5 7 9.5 7a17 17 0 0 1-2.6 3.4M6.4 6.4C3.9 8.2 2.5 12 2.5 12s3.5 7 9.5 7a9.6 9.6 0 0 0 5.6-1.8"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg><i>隐藏</i>';
-    b.style.left = x + 'px'; b.style.top = y + 'px'; b.style.setProperty('--fx', (ctr.x - x) + 'px'); b.style.setProperty('--fy', (ctr.y - y) + 'px'); b.style.setProperty('--dl', (n * 35) + 'ms');
-    b.addEventListener('click', function (e) { e.stopPropagation(); m.classList.remove('open'); setTimeout(function () { m.remove(); }, 0); setOcto(true); });
-    m.appendChild(b);
-  }
-  function octoMenu(m) {
-    if (m.__mnOcto) return; m.__mnOcto = 1;
-    var h0 = m.offsetHeight, h = document.createElement('h6'); h.textContent = 'Octo'; h.style.marginTop = '10px';
-    var hid = octoHidden(), b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'menuitemcheckbox'); b.setAttribute('aria-checked', String(!hid));
-    b.innerHTML = '<i>' + (hid ? '' : '✓') + '</i>显示 Octo';
-    b.addEventListener('click', function (e) { e.stopPropagation(); setOcto(!octoHidden()); m.remove(); });
-    m.appendChild(h); m.appendChild(b);
-    var grow = m.offsetHeight - h0, r = m.getBoundingClientRect();   // a menu over the Dock grows upward, never onto it
-    if (R.getAttribute('data-mn-bd') === 'bottom' && !R.classList.contains('mn-dock-top')) m.style.top = Math.max(8, r.top - grow) + 'px';
-    else if (r.bottom > innerHeight - 8) m.style.top = Math.max(8, innerHeight - 8 - m.offsetHeight) + 'px';
-  }
-  function context() {
-    var c = inRoom() ? 'room' : inWorld() ? 'world' : 'board';
-    if (c === 'room') { modeLabel(roomKeys[0]); pixelIcons(); var fl = study() ? 'room' : 'off'; slideKeys.forEach(function (k) { if (k.dataset.ctx !== fl) k.dataset.ctx = fl; }); } else if (!pageEl && R.classList.contains('mn-ctx-apps')) { R.classList.remove('mn-ctx-apps'); dockAll.setAttribute('aria-pressed', 'false'); }
-    if (c !== ctx) { ctx = c; R.setAttribute('data-mn-ctx', c); }
-    else if (R.getAttribute('data-mn-ctx') !== c) R.setAttribute('data-mn-ctx', c);
-  }
-  /* an app key pressed in the room (Dock · 全部入口): its panel opens on the board, under the room's canvas — it looked
-     dead (2026-11-20, the user). Leave the room first, then press it again on the board. */
-  document.addEventListener('click', function (e) {
-    if (ctx !== 'room') return;
-    var b = e.target.closest && e.target.closest('.mn-bdock .mn-bapp');
-    if (!b || b.__mnReplay || b.classList.contains('mn-sys-key') || b.classList.contains('mn-ctx-key') || b.classList.contains('mn-page-key') || b.hasAttribute('data-spatial-home-dock')) return;
-    e.preventDefault(); e.stopImmediatePropagation();
-    try { if (window.MinestSpatialHome && MinestSpatialHome.close) MinestSpatialHome.close(); else press('sh-exitBtn'); } catch (er) { press('sh-exitBtn'); }
-    var t0 = Date.now();
-    (function again() {
-      if (!inRoom() || Date.now() - t0 > 2500) { setTimeout(function () { b.__mnReplay = 1; try { b.click(); } finally { b.__mnReplay = 0; } }, 120); return; }
-      setTimeout(again, 80);
-    })();
-  }, true);
-  document.addEventListener('keydown', onKey, true);
-  document.addEventListener('fullscreenchange', function () { if (reading && nativeFull && !document.fullscreenElement) setReading(false); });
-  var queued = false;
-  new MutationObserver(function () {
-    if (queued) return; queued = true;
-    requestAnimationFrame(function () { queued = false; var d = dock(); if (d && (d.firstElementChild !== sysKeys[0] || sep.parentNode !== d || roomKeys[0].parentNode !== d || (pageEl && pageEl.parentNode !== d))) mount(); context(); sides(); fit(); freeApply(); var m = document.querySelector('.mn-bd-menu'); if (m) freeMenu(m); if (m) { menu(m); octoMenu(m); } var pr = document.querySelector('.mpet-menu'); if (pr) octoRing(pr); if (reading) syncFrames(); });
-  }).observe(document.body || R, { childList: true, subtree: true });
-  new MutationObserver(function () { sides(); fit(); }).observe(R, { attributes: true, attributeFilter: ['data-mn-bd'] });
-  window.addEventListener('resize', function () { fit(); });
-  setInterval(function () { context(); fit(); syncFrames(); }, 900);   // frames that load later (the opening) get the style too
-  window.addEventListener('load', function () { setTimeout(syncFrames, 300); }, true);
-  function start() { mount(); setTools(toolsOn()); context(); sides(); fit(); freeApply(); }
-  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
-  window.MinestSystemBar = { page: setPage, reading: setReading, tools: setTools, state: function () { return { reading: reading, tools: !R.classList.contains('mn-sys-tools-off'), ctx: ctx }; } };
-})();
 </script>
 </body>
 </html>
