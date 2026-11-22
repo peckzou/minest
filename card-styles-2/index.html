@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-cs2>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#08090d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Minest · 卡片风格 2.0</title>
+<link rel="icon" href="data:,">
+<script>/* the page's files are addressed from its folder */
+if (!/\/$|\.html$/.test(location.pathname)) location.replace(location.pathname + '/' + location.search + location.hash);</script>
+<link rel="stylesheet" href="v2.css">
+</head>
+<body class="theme-dark">
+<!--
+  卡片风格 2.0 — a separate page over the unchanged 1.0 script (tools/cover-modes/card-styles.js, the one
+  the app carries inline): its 25 materials, its gallery, its light. 2.0 adds eight materials (materials.js)
+  and turns the gallery into a studio (v2.css, v2.js). Nothing in the app or in 1.0 is edited.
+-->
+<script>/* 2.0 remembers its own choice, apart from the app's (same origin, same keys in card-styles.js);
+   the app's own style changes only from the "用到 Minest" button, through CS2Store */
+(function () {
+  var MAP = { 'minest.cardStyle': 'minest.cardStyle2', 'minest.cardStyle.mindful': 'minest.cardStyle2.mindful' };
+  var P = Storage.prototype, g = P.getItem, s = P.setItem, r = P.removeItem;
+  function k(x) { return Object.prototype.hasOwnProperty.call(MAP, x) ? MAP[x] : x; }
+  P.getItem = function (x) { return g.call(this, k(x)); };
+  P.setItem = function (x, v) { return s.call(this, k(x), v); };
+  P.removeItem = function (x) { return r.call(this, k(x)); };
+  window.CS2Store = { get: function (x) { try { return g.call(localStorage, x); } catch (e) { return null; } }, set: function (x, v) { try { s.call(localStorage, x, v); return true; } catch (e) { return false; } } };
+})();</script>
+<script src="../tools/cover-modes/card-styles.js"></script>
+<script src="materials.js"></script>
+<script src="v2.js"></script>
+<noscript>卡片风格 2.0 需要开启 JavaScript。</noscript>
+</body>
+</html>
