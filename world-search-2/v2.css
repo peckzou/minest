@@ -1,0 +1,90 @@
+/* Minest · My World 搜索 2.0 — what v2.js adds to 1.0's bar (.mo-root gets .ws2). 1.0's own styles are untouched. */
+.mo-root.ws2 .mo-res { display: none !important; }                         /* 2.0 shows its own results */
+.mo-root.ws2 .mo-box { width: min(820px, calc(100vw - 24px)); gap: 10px; top: calc(env(safe-area-inset-top, 0px) + max(12px, 5vh)); }
+.ws2-ver { flex: none; font: 800 11px/1 ui-monospace, "SF Mono", monospace; letter-spacing: .04em; padding: 5px 8px; border-radius: 999px; color: #14122a;
+  background: linear-gradient(90deg, #d4b8ff, #bcd6ff 50%, #a9efc6); box-shadow: 0 0 14px rgba(155, 93, 229, .55); }
+
+.ws2-scopes { display: flex; gap: 5px; overflow-x: auto; scrollbar-width: none; padding: 1px; animation: moRise .35s .03s both; }
+.ws2-scopes::-webkit-scrollbar { display: none; }
+.ws2-scopes button { flex: none; display: inline-flex; align-items: baseline; gap: 5px; border: 1px solid rgba(255, 255, 255, .12); background: rgba(22, 20, 40, .62); color: rgba(235, 238, 255, .8);
+  -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); padding: 7px 10px; border-radius: 999px; font: inherit; cursor: pointer; transition: background .2s, border-color .2s, color .2s; }
+.ws2-scopes b { font-size: 13px; font-weight: 600; } .ws2-scopes em { font-style: normal; font-size: 10px; opacity: .6; }
+.ws2-scopes button:hover { background: rgba(255, 255, 255, .1); }
+.ws2-scopes button.on { color: #14122a; background: linear-gradient(90deg, #d4b8ff, #bcd6ff); border-color: transparent; }
+.ws2-scopes button.on em { opacity: .75; }
+.ws2-scopes button:focus-visible, .ws2-r:focus-visible, .ws2-try button:focus-visible { outline: 2px solid #bcd6ff; outline-offset: 2px; }
+
+.ws2-engine { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; min-height: 0; padding: 0 6px; font-size: 12.5px; color: rgba(235, 238, 255, .86); }
+.ws2-engine:empty { display: none; }
+.ws2-engine .tag { font-weight: 700; font-size: 10.5px; letter-spacing: .04em; padding: 3px 8px; border-radius: 999px; background: linear-gradient(90deg, #9b5de5, #5e9cff); color: #fff; }
+.ws2-engine .type { padding: 2px 8px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .22); }
+.ws2-engine .place { font-weight: 650; color: #fff; }
+.ws2-engine .meter { position: relative; width: 72px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .14); overflow: hidden; }
+.ws2-engine .meter i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: linear-gradient(90deg, #f08c3a, #ffe28a 45%, #1fbf75); transition: width .35s cubic-bezier(.2, .9, .3, 1); }
+.ws2-engine b { font: 700 12px/1 ui-monospace, monospace; }
+.ws2-engine .cand { padding: 2px 8px; border-radius: 999px; background: rgba(255, 255, 255, .08); color: rgba(235, 238, 255, .78); }
+.ws2-engine .cand.new { box-shadow: inset 0 0 0 1px rgba(94, 156, 255, .8); }
+.ws2-engine .dim { color: rgba(220, 225, 255, .55); }
+
+.ws2-res { display: grid; gap: 2px; padding: 6px; border-radius: 18px; background: rgba(22, 20, 40, .72); -webkit-backdrop-filter: blur(26px); backdrop-filter: blur(26px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .3); max-height: min(38vh, 360px); overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .22) transparent; animation: moRise .35s .05s both; }
+.ws2-res:empty { display: none; }
+.mo-root.has-panel .ws2-res, .mo-root.has-panel .ws2-scopes, .mo-root.has-panel .ws2-engine, .mo-root.has-panel .ws2-foot { display: none; }
+.ws2-g { display: flex; align-items: center; gap: 8px; padding: 8px 12px 3px; font-size: 11px; letter-spacing: .06em; color: rgba(210, 215, 245, .55); }
+.ws2-g em { font-style: normal; padding: 1px 7px; border-radius: 999px; background: rgba(255, 196, 64, .9); color: #231500; letter-spacing: 0; font-weight: 650; }
+.ws2-g i { font-style: normal; margin-left: auto; opacity: .7; }
+.ws2-r { display: flex; align-items: baseline; gap: 9px; width: 100%; min-width: 0; text-align: left; border: 0; background: transparent; color: inherit; padding: 9px 12px; border-radius: 12px; font: inherit; cursor: pointer; }
+.ws2-r .dot { flex: none; align-self: center; width: 8px; height: 8px; border-radius: 50%; background: var(--k); box-shadow: 0 0 8px var(--k); }
+.ws2-r b { flex: none; max-width: 62%; font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ws2-r mark { background: transparent; color: #ffe28a; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.ws2-r small { flex: 1; min-width: 0; color: rgba(210, 215, 245, .6); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ws2-r u { flex: none; text-decoration: none; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 999px; color: #bcd6ff; box-shadow: inset 0 0 0 1px rgba(94, 156, 255, .8); }
+.ws2-r kbd { flex: none; font: 600 10.5px/1 -apple-system, "PingFang SC", sans-serif; padding: 4px 7px; border-radius: 7px; color: var(--k); background: color-mix(in srgb, var(--k) 14%, transparent); }
+.ws2-r.on { background: rgba(255, 255, 255, .1); box-shadow: inset 2px 0 0 var(--k); }
+.ws2-r.k-build b, .ws2-r.k-think b { color: #ffe28a; }
+.ws2-try { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px 4px; }
+.ws2-try span { font-size: 11px; letter-spacing: .06em; color: rgba(210, 215, 245, .55); margin-right: 2px; }
+.ws2-try button { border: 1px solid rgba(255, 255, 255, .14); background: rgba(255, 255, 255, .05); color: #e8eaff; padding: 6px 11px; border-radius: 999px; font: inherit; font-size: 12.5px; cursor: pointer; }
+.ws2-try button:hover { background: rgba(255, 255, 255, .12); }
+.ws2-wait, .ws2-none { padding: 10px 12px; font-size: 12.5px; color: rgba(210, 215, 245, .6); display: flex; align-items: center; gap: 8px; }
+.ws2-wait i { width: 10px; height: 10px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .25); border-top-color: #bcd6ff; animation: moSpin .8s linear infinite; }
+
+/* the five cards say a little more */
+.mo-root.ws2 .mo-card { min-height: 164px; }
+.ws2-x { font-size: 11px; line-height: 1.3; color: color-mix(in srgb, var(--c2) 85%, #fff); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ws2-x:empty { display: none; } .ws2-x.in { animation: moPv .35s ease-out; }
+.ws2-n { position: absolute; top: 10px; right: 10px; font: 600 10px/1 ui-monospace, monospace; padding: 3px 5px; border-radius: 6px; background: rgba(255, 255, 255, .1); color: rgba(235, 238, 255, .6); }
+.mo-root.has-panel .ws2-x, .mo-root.has-panel .ws2-n { display: none; }
+.mo-root.ws2.has-panel .mo-card { min-height: 52px; }
+
+.ws2-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 0 8px; font-size: 11px; color: rgba(210, 215, 245, .5); }
+.ws2-foot kbd { font: 600 10px/1 ui-monospace, monospace; padding: 3px 5px; margin-right: 4px; border-radius: 5px; background: rgba(255, 255, 255, .09); color: rgba(235, 238, 255, .7); }
+.ws2-foot em { font-style: normal; margin-left: auto; }
+.ws2-toast { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 22px); transform: translate(-50%, 12px); max-width: min(560px, calc(100vw - 32px)); padding: 10px 16px; border-radius: 14px;
+  background: rgba(255, 226, 138, .95); color: #231500; font-size: 13px; font-weight: 600; opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; box-shadow: 0 10px 30px rgba(0, 0, 0, .4); }
+.ws2-toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+/* full screen over the search: 模型馆 2.0, the island, the star map */
+.ws2-over { position: fixed; inset: 0; z-index: 2147483646; background: #0b0d18; opacity: 0; transition: opacity .24s; display: flex; flex-direction: column; }
+.ws2-over.on { opacity: 1; }
+.ws2-over iframe { flex: 1; width: 100%; border: 0; display: block; background: #0b0d18; }
+.ws2-over-top { flex: none; display: flex; align-items: center; gap: 10px; box-sizing: border-box; padding: calc(env(safe-area-inset-top, 0px) + 5px) 10px 5px; border-bottom: 1px solid rgba(255, 255, 255, .08);
+  font: 13px/1 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; color: #cfd8e3; }
+.ws2-over-top button { border: 1px solid rgba(255, 255, 255, .22); background: rgba(255, 255, 255, .06); color: #fff; border-radius: 999px; padding: 6px 12px; font: inherit; cursor: pointer; }
+.ws2-over-top b { font-weight: 600; opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+@media (max-width: 640px) {
+  .mo-root.ws2 .mo-box { top: calc(env(safe-area-inset-top, 0px) + 10px); gap: 8px; }
+  .ws2-scopes em, .ws2-foot, .ws2-x, .ws2-n { display: none; }
+  .ws2-scopes button { padding: 7px 11px; }
+  .mo-root.ws2 .mo-card { min-height: 104px; }
+  .ws2-res { max-height: calc(100vh - 330px); max-height: calc(100dvh - 330px); }
+  .ws2-r { flex-wrap: wrap; row-gap: 2px; padding: 9px 10px; }
+  .ws2-r b { max-width: calc(100% - 90px); }
+  .ws2-r small { order: 5; flex-basis: 100%; padding-left: 17px; }
+  .ws2-r kbd { margin-left: auto; }
+  .ws2-engine { font-size: 12px; }
+  .ws2-engine .cand { display: none; }
+}
+@media (max-height: 720px) and (min-width: 641px) { .ws2-res { max-height: 30vh; } .mo-root.ws2 .mo-card { min-height: 142px; } }
+@media (prefers-reduced-motion: reduce) { .ws2-engine .meter i, .ws2-over, .ws2-toast { transition: none; } }
