@@ -21,3 +21,6 @@ Validation: all 264 additions instantiate nonempty Three.js models with finite g
 and bounds. Picker checks cover all 240 buildings without duplicates and 132 new interiors,
 inside and outside; seven embedded bundles match and introduce no JavaScript parse errors.
 Browser interaction and visual rendering still require a browser smoke check.
+
+The iOS app bundles its own pages (ios/Minest/Minest/*.html). After updating the web pages, copy the library into
+them with `python3 tools/myworld3/sync_ios_pages.py` (`--check` reports pages that are behind).
