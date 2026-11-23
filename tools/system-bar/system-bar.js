@@ -223,7 +223,9 @@
   }
   function onKey(e) { if (reading && e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setReading(false); } }
   /* 4: "=" folds the tools away, turning into "||" */
-  function toolsOn() { try { return localStorage.getItem(KEY) !== '0'; } catch (e) { return true; } }
+  /* 2026-11-22 (the user: "默认 dock 只要显示系统级的 4 个按钮，搜索按钮放到展开里，展开后就不用显示系统按钮"): every start is
+     folded — only ✕ ‹ ⛶ = ; unfolded, the tools (search first) take the Dock and ✕ ‹ ⛶ step aside, "||" folds back */
+  function toolsOn() { return false; }
   function setTools(on) {
     R.classList.toggle('mn-sys-tools-off', !on);
     try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {}
@@ -233,9 +235,9 @@
   var sysKeys = [
     key('mn-sk-close', '系统 · 关闭', svg(ICON.close), close),   // (not "Close ·": the Dock's own close looks for those)
     key('mn-sk-back', '系统 · 返回', svg(ICON.back), back),
-    key('mn-sk-full', '全屏 · 阅览模式', svg(ICON.full), function () { setReading(true); }),
-    key('mn-sk-world', 'My World · 搜索或搭建世界 (⌘K)', svg(ICON.world), function () { if (window.MinestOmni) MinestOmni.toggle(); })   // tools/toolkit/omni.js
+    key('mn-sk-full', '全屏 · 阅览模式', svg(ICON.full), function () { setReading(true); })
   ];
+  var searchKey = key('mn-sk-world', 'My World · 搜索或搭建世界 (⌘K)', svg(ICON.world), function () { if (window.MinestOmni) MinestOmni.toggle(); });   // tools/toolkit/omni.js — the first of the unfolded tools
   var toolsKey = key('mn-sk-tools', '收起工具', '<span class="mn-eq" aria-hidden="true"><i></i><i></i></span>', function () { toggleTools(); });
   sysKeys.push(toolsKey);
   var sep = document.createElement('span'); sep.className = 'mn-sys-sep'; sep.setAttribute('aria-hidden', 'true');
@@ -292,9 +294,10 @@
     var at = d.firstElementChild, i;
     for (i = 0; i < sysKeys.length; i++) { if (at !== sysKeys[i]) d.insertBefore(sysKeys[i], at); at = sysKeys[i].nextElementSibling; }
     if (at !== sep) d.insertBefore(sep, at);
-    var anchor = sep.nextElementSibling;
+    if (sep.nextElementSibling !== searchKey) d.insertBefore(searchKey, sep.nextElementSibling);
+    var anchor = searchKey.nextElementSibling;
     roomKeys.forEach(function (b) { if (b.parentNode !== d) d.insertBefore(b, anchor); });
-    if (pageEl && pageEl.parentNode !== d) d.insertBefore(pageEl, sep.nextElementSibling);
+    if (pageEl && pageEl.parentNode !== d) d.insertBefore(pageEl, searchKey.nextElementSibling);
     if (!exitKey.isConnected && document.body) document.body.appendChild(exitKey);
     R.classList.add('mn-sysbar');
   }
@@ -440,7 +443,7 @@
   var queued = false;
   new MutationObserver(function () {
     if (queued) return; queued = true;
-    requestAnimationFrame(function () { queued = false; var d = dock(); if (d && (d.firstElementChild !== sysKeys[0] || sep.parentNode !== d || roomKeys[0].parentNode !== d || (pageEl && pageEl.parentNode !== d))) mount(); context(); sides(); fit(); freeApply(); var m = document.querySelector('.mn-bd-menu'); if (m) freeMenu(m); if (m) { menu(m); octoMenu(m); } var pr = document.querySelector('.mpet-menu'); if (pr) octoRing(pr); if (reading) syncFrames(); });
+    requestAnimationFrame(function () { queued = false; var d = dock(); if (d && (d.firstElementChild !== sysKeys[0] || sep.parentNode !== d || searchKey.parentNode !== d || roomKeys[0].parentNode !== d || (pageEl && pageEl.parentNode !== d))) mount(); context(); sides(); fit(); freeApply(); var m = document.querySelector('.mn-bd-menu'); if (m) freeMenu(m); if (m) { menu(m); octoMenu(m); } var pr = document.querySelector('.mpet-menu'); if (pr) octoRing(pr); if (reading) syncFrames(); });
   }).observe(document.body || R, { childList: true, subtree: true });
   new MutationObserver(function () { sides(); fit(); }).observe(R, { attributes: true, attributeFilter: ['data-mn-bd'] });
   window.addEventListener('resize', function () { fit(); });
