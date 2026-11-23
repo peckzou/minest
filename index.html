@@ -185985,6 +185985,10 @@ button.mn-fx-scan::after {
   function phil(file, title) { full(SITE + 'philosophy/models/' + file, title || '哲学交互模型'); }
   /* 哲学家小岛 Philosophers' Island (philosophers-island/, Antigravity): the voxel island of 20 philosophers, full screen */
   function island() { full(SITE + 'philosophers-island/philosophers.html', '哲学家小岛 · Philosophers’ Island'); }
+  /* 教堂小岛 Cathedrals' Island (cathedrals-island/, Antigravity): the second built-in island, next to the philosophers' */
+  function cathedrals() { full(SITE + 'cathedrals-island/cathedrals.html', '教堂小岛 · Cathedrals’ Island'); }
+  /* 奇想主题乐园 Theme Park (theme-park-island/, Antigravity): the third built-in island */
+  function themepark() { full(SITE + 'theme-park-island/theme-park.html', '奇想主题乐园 · Theme Park'); }
   function full(url, title) {
     if (phEl) phEl.remove();
     var o = phEl = document.createElement('div'); o.className = 'mn-phil';
@@ -186032,7 +186036,7 @@ button.mn-fx-scan::after {
     if (m.action === 'items') return reply(src, m.id, items());
     if (m.action === 'close') return close();
     if (m.action === 'ready') return;
-    if (m.action === 'island') { island(); return reply(src, m.id, { ok: true }); }
+    if (m.action === 'island') { if (m.which === 'cathedrals') cathedrals(); else if (m.which === 'themepark') themepark(); else island(); return reply(src, m.id, { ok: true }); }
     if (m.action === 'phil') { var okp = typeof m.file === 'string' && /^minest_[a-z_]+\.html$/.test(m.file); if (okp) phil(m.file, String(m.title || '').slice(0, 60)); return reply(src, m.id, { ok: okp }); }
     if (m.action === 'holo') { close(); setTimeout(function () { holo(m.wiki); }, 260); return reply(src, m.id, { ok: !!window.SpatialHoloLab }); }
     if (m.action === 'capture') {
@@ -186079,6 +186083,18 @@ button.mn-fx-scan::after {
       r.addEventListener('click', function (e) { e.stopPropagation(); island(); }, true);
       cs.parentNode.insertBefore(r, cs);
     }
+    if (cs && !cs.parentNode.querySelector('[data-cathisland]')) {
+      var rc = document.createElement('button'); rc.type = 'button'; rc.className = 'uv-row'; rc.setAttribute('data-cathisland', '');
+      rc.innerHTML = '<i>⛪</i><div class="mn-en-keep"><b>教堂小岛 · Cathedrals’ Island</b><small>世界 20 座圣殿教堂 · 漫游、罗盘传送、走进教堂</small></div>';
+      rc.addEventListener('click', function (e) { e.stopPropagation(); cathedrals(); }, true);
+      var pr = cs.parentNode.querySelector('[data-philisland]'); cs.parentNode.insertBefore(rc, pr ? pr.nextSibling : cs);
+    }
+    if (cs && !cs.parentNode.querySelector('[data-parkisland]')) {
+      var rp = document.createElement('button'); rp.type = 'button'; rp.className = 'uv-row'; rp.setAttribute('data-parkisland', '');
+      rp.innerHTML = '<i>🎡</i><div class="mn-en-keep"><b>奇想主题乐园 · Theme Park</b><small>9 大主题园区 · 乘坐游乐设施、城堡烟花秀</small></div>';
+      rp.addEventListener('click', function (e) { e.stopPropagation(); themepark(); }, true);
+      var cr = cs.parentNode.querySelector('[data-cathisland]'); cs.parentNode.insertBefore(rp, cr ? cr.nextSibling : cs);
+    }
     // the centre island's hexagon menu (mn-island-game-script): one more hexagon, in the free bottom-left slot
     var m = document.querySelector('.mn-island-actions[aria-label="My World actions"]'), b4 = m && m.querySelector('.mn-island-action-4');
     if (m && b4 && !m.querySelector('[data-philisland]')) {
@@ -186091,6 +186107,32 @@ button.mn-fx-scan::after {
       m.appendChild(hb);
       if (t4) { var tp = document.createElement('span'); tp.className = t4.className.replace(/mn-action-tip-4/, 'mn-action-tip-' + n); tp.setAttribute('aria-hidden', 'true'); tp.textContent = 'Philosophers’ Island';
         tp.style.cssText = 'position:absolute;left:' + (t4.offsetLeft) + 'px;top:' + (top + (t4.offsetTop - b4.offsetTop)) + 'px;right:auto;bottom:auto'; m.appendChild(tp); }
+    }
+    // the second built-in island beside it: the bottom-right slot, the philosophers' hexagon mirrored left to right
+    var ph = m && m.querySelector('.mn-island-action[data-philisland]');
+    if (m && ph && !m.querySelector('[data-cathisland]')) {
+      var n2 = m.querySelectorAll('.mn-island-action').length, cb = document.createElement('button'), cl = m.offsetWidth - ph.offsetLeft - ph.offsetWidth;
+      cb.type = 'button'; cb.className = 'mn-island-action mn-island-action-' + n2; cb.setAttribute('data-cathisland', ''); cb.setAttribute('role', 'menuitem'); cb.setAttribute('aria-label', '教堂小岛 Cathedrals’ Island'); cb.title = '教堂小岛 · Cathedrals’ Island';
+      cb.innerHTML = '<span class="mn-action-icon" aria-hidden="true" style="font-size:22px;line-height:1">⛪</span>';
+      cb.style.cssText = 'position:absolute;left:' + cl + 'px;top:' + ph.offsetTop + 'px;right:auto;bottom:auto;--g:conic-gradient(from 30deg,#dbeafe 0 60deg,#bfdbfe 60deg 120deg,#7aa7e0 120deg 180deg,#4f7fc4 180deg 240deg,#93b8eb 240deg 300deg,#cfe0fb 300deg)';
+      cb.addEventListener('click', function (e) { e.stopPropagation(); m.remove(); [].forEach.call(document.querySelectorAll('.mn-island-selected'), function (x) { x.classList.remove('mn-island-selected'); x.setAttribute('aria-expanded', 'false'); }); cathedrals(); });
+      m.appendChild(cb);
+      var pt = [].filter.call(m.children, function (x) { return /mn-action-tip-/.test(x.className) && x.textContent === 'Philosophers’ Island'; })[0];
+      if (pt) { var ct = document.createElement('span'); ct.className = pt.className.replace(/mn-action-tip-\d+/, 'mn-action-tip-' + n2); ct.setAttribute('aria-hidden', 'true'); ct.textContent = 'Cathedrals’ Island'; m.appendChild(ct);
+        ct.style.cssText = 'position:absolute;top:' + pt.style.top + ';right:auto;bottom:auto;left:' + (cl + ph.offsetWidth / 2) + 'px;transform:translateX(-50%)'; }
+    }
+    // the third built-in island: one row further down, under the bottom hexagon, between the other two islands
+    var b2 = m && m.querySelector('.mn-island-action-2');
+    if (m && ph && b2 && !m.querySelector('[data-parkisland]')) {
+      var n3 = m.querySelectorAll('.mn-island-action').length, pb = document.createElement('button'), pTop = b2.offsetTop + b2.offsetHeight + 22;
+      pb.type = 'button'; pb.className = 'mn-island-action mn-island-action-' + n3; pb.setAttribute('data-parkisland', ''); pb.setAttribute('role', 'menuitem'); pb.setAttribute('aria-label', '奇想主题乐园 Theme Park'); pb.title = '奇想主题乐园 · Theme Park';
+      pb.innerHTML = '<span class="mn-action-icon" aria-hidden="true" style="font-size:22px;line-height:1">🎡</span>';
+      pb.style.cssText = 'position:absolute;left:' + b2.offsetLeft + 'px;top:' + pTop + 'px;right:auto;bottom:auto;--g:conic-gradient(from 30deg,#fbcfe8 0 60deg,#f9a8d4 60deg 120deg,#ec4899 120deg 180deg,#be185d 180deg 240deg,#f472b6 240deg 300deg,#fbcfe8 300deg)';
+      pb.addEventListener('click', function (e) { e.stopPropagation(); m.remove(); [].forEach.call(document.querySelectorAll('.mn-island-selected'), function (x) { x.classList.remove('mn-island-selected'); x.setAttribute('aria-expanded', 'false'); }); themepark(); });
+      m.appendChild(pb);
+      var pt2 = [].filter.call(m.children, function (x) { return /mn-action-tip-/.test(x.className) && x.textContent === 'Philosophers’ Island'; })[0];
+      if (pt2) { var kt = document.createElement('span'); kt.className = pt2.className.replace(/mn-action-tip-\d+/, 'mn-action-tip-' + n3); kt.setAttribute('aria-hidden', 'true'); kt.textContent = 'Theme Park'; m.appendChild(kt);
+        kt.style.cssText = 'position:absolute;top:' + (pTop + parseFloat(pt2.style.top) - ph.offsetTop) + 'px;right:auto;bottom:auto;left:' + (b2.offsetLeft + b2.offsetWidth / 2) + 'px;transform:translateX(-50%)'; }
     }
   }
   function watch() {
@@ -186111,7 +186153,7 @@ button.mn-fx-scan::after {
   (document.head || document.documentElement).appendChild(css);
 
   var adopted = [];   // other toolkit frames this page answers (My World's input, tools/toolkit/omni.js)
-  window.MinestToolkitHost = { island: island, adopt: function (f) { if (adopted.indexOf(f) < 0) adopted.push(f); }, open: open, close: close, constellation: holo, isOpen: function () { return !!ov; }, items: items };
+  window.MinestToolkitHost = { island: island, cathedrals: cathedrals, themepark: themepark, adopt: function (f) { if (adopted.indexOf(f) < 0) adopted.push(f); }, open: open, close: close, constellation: holo, isOpen: function () { return !!ov; }, items: items };
 })();
 
 /* Minest · My World input — the system-level search / build bar, with the five Cognitive Toolkit cards (window.MinestOmni)
@@ -186723,7 +186765,6 @@ html.sh-main-dock-disabled body .mn-bdock { display: none !important; }
 </style>
 <script id="mn-spatial-home">
 window.__SPATIAL_HOME_EMBEDDED__ = true;
-window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
 /* Minest · Spatial Home — voxel kit.
    Boxes with baked face shading and a shared 16×16 pixel grain (the same idea as santorini-world/textures.js:
    near-white pixel tiles tinted by vertex colour), merged into one BufferGeometry per part.
@@ -197164,7 +197205,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
 (function (root) {
   'use strict';
   if (root.SpatialHoloLab) return;
-  var WEB = 'https://minest-app.vercel.app/holo-lab-2/index.html', LKEY = 'minest.holoLab.layout.v1';
+  var WEB = 'https://minest-app.vercel.app/holo-lab/index.html', LKEY = 'minest.holoLab.layout.v1';
   function HW() { var B = root.SpatialBridge; try { var w = B && B.hostWindow && B.hostWindow(); if (w && w.MinestAI) return w; } catch (e) {} return root; }
   function AI() { var w = HW(); return w && w.MinestAI && w.MinestAI.boards ? w.MinestAI : null; }
   function KN() { var w = HW(); return (w && w.MinestKnowledge) || root.MinestKnowledge || null; }
@@ -197220,7 +197261,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   function saveLayout(l) { try { localStorage.setItem(LKEY, JSON.stringify(l)); } catch (e) {} var K = KN(); try { if (K && K.set) K.set('holo:layout', l); } catch (e) {} }
 
   function src() {
-    if (/^https?:$/.test(location.protocol)) return /\/spatial-home\//.test(location.pathname) ? '../holo-lab-2/index.html' : 'holo-lab-2/index.html';
+    if (/^https?:$/.test(location.protocol)) return /\/spatial-home\//.test(location.pathname) ? '../holo-lab/index.html' : 'holo-lab/index.html';
     return WEB;
   }
   var el = null, frame = null, done = null, saveT = 0;
@@ -199671,7 +199712,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
      Clun 是单独的页面，放在一个全屏 iframe 里；iOS 包里没有它的文件，走线上地址。?clun=0 或载入失败时直接进房间。 */
   function clunSrc(inside) {
     var q = '?scene=valley&entry=1' + (inside ? '&inside=1' : '');
-    return location.protocol === 'file:' ? 'https://minest-app.vercel.app/spatial-home/clun-2/' + q : 'spatial-home/clun-2/index.html' + q;
+    return location.protocol === 'file:' ? 'https://minest-app.vercel.app/spatial-home/clun/' + q : 'spatial-home/clun/index.html' + q;
   }
   function clunFirst(done, force, inside) {
     if (!force && /[?&]clun=0\b/.test(location.search)) { done(); return; }
