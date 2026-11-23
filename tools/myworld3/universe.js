@@ -499,7 +499,7 @@
   function assetLibrary(tab) {
     if (!AS) return assets().then(function () { if (AS) assetLibrary(tab); });
     ui.libTab = tab || ui.libTab || 'world';
-    var T = [['world', 'Islands', 'Level 1'], ['diorama', 'Scenes', 'Level 2'], ['object', 'Objects', 'Level 3'], ['center', 'Centres', 'Level 0']];
+    var T = [['world', 'Islands', 'Level 1'], ['diorama', 'Scenes', 'Level 2'], ['object', 'Objects', 'Level 3'], ['subisland', 'Small islands', 'Level 2'], ['building', 'Buildings', 'Level 2'], ['center', 'Centres', 'Level 0']].filter(function (t) { return AS.catalog[t[0]]; });
     sheet('<h3>Visual Assets</h3><p class="sub">Studio’s library — skins for your worlds, areas and lists. Tap one to look closer.</p><div class="uv-seg2">' + T.map(function (t) { return '<button type="button" data-libtab="' + t[0] + '"' + (ui.libTab === t[0] ? ' class="on"' : '') + '>' + t[1] + ' · ' + AS.catalog[t[0]].length + '</button>'; }).join('') + '</div>' +
       '<div class="uv-pick">' + AS.catalog[ui.libTab].map(function (a) { return '<button type="button" data-libinspect="' + a.id + '">' + art(a.id, '', '·') + esc(a.name) + '<small>' + esc(a.category || a.theme || '') + '</small></button>'; }).join('') + '</div>');
   }

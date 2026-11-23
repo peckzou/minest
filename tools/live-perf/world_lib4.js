@@ -17,19 +17,24 @@
     var r0 = render; render = function () { try { if (V && V.d) (V.d.pc || []).forEach(function (p) { if (!BUILD[p.k] && /^(obj|dio|bld):/.test(p.k)) lib4Kind(p.k); }); } catch (e) {} return r0.apply(null, arguments); };
     var t0 = pkTabs; pkTabs = function () {
       var T = t0(), AS = window.MinestAssets3D, L = AS && AS.lib4; if (!L) return T;
+      var L6 = AS.lib6, addedBuildings = {}; if (L6) L6.buildings.forEach(function (id) { addedBuildings[id] = 1; });
       var ins = indoor(), keep = function (ks) { return ks.filter(function (k) { return lib4Kind(k) && (!ins || !isOutdoor(k)); }); };
       var newB = {}; L.buildings.forEach(function (id) { newB['bld:' + id] = 1; });
       T.forEach(function (t) { if (t.id !== 'bld' || !t.groups) return; var out = [];
         t.groups.forEach(function (g) { if (g.n !== 'Studio buildings') { out.push(g); return; }
           out.push({ n: 'Studio buildings', kinds: g.kinds.filter(function (k) { return !newB[k]; }) });
-          out.push({ n: 'Signature buildings', kinds: keep(L.buildings.filter(function (id) { return !/^BD-1(0[1-9]|1\d|20)$/.test(id); }).map(function (id) { return 'bld:' + id; })) });
+          out.push({ n: 'Signature buildings', kinds: keep(L.buildings.filter(function (id) { return !addedBuildings[id] && !/^BD-1(0[1-9]|1\d|20)$/.test(id); }).map(function (id) { return 'bld:' + id; })) });
           out.push({ n: 'Museums', kinds: keep(L.buildings.filter(function (id) { return /^BD-1(0[1-9]|1\d|20)$/.test(id); }).map(function (id) { return 'bld:' + id; })) }); });
+        if (L6) [['Luxury residences', 'residences'], ['Famous castles', 'castles'], ['Famous cathedrals', 'cathedrals'], ['World landmarks', 'landmarks'], ['Designer villas', 'villas']].forEach(function (group) {
+          out.push({ n: group[0], kinds: keep(L6.groups[group[1]].map(function (id) { return 'bld:' + id; })) });
+        });
         t.groups = out.filter(function (g) { return g.kinds.length; }); });
       var l4 = {}; [L.buildings, L.expoSets, L.museumRooms].concat(Object.keys(L.objects).map(function (k) { return L.objects[k]; })).forEach(function (a) { a.forEach(function (id) { l4[id] = 1; }); });
+      if (L6) L6.interiors.forEach(function (id) { l4[id] = 1; });
       var classicObj = AS.catalog.object.map(function (a) { return a.id; }).filter(function (id) { return !l4[id]; }), classicDio = AS.catalog.diorama.map(function (a) { return a.id; }).filter(function (id) { return !l4[id]; });
       var G = [['Outdoor decor', L.objects.outdoor, 'obj:'], ['Expo sets', L.expoSets, 'dio:'], ['Indoor decor', L.objects.indoor, 'obj:'], ['Museum stands & vitrines', L.objects.museum, 'obj:'],
         ['Expo facilities & racks', L.objects.expo, 'obj:'], ['Museum decor & artifacts', L.objects.decor, 'obj:'], ['Museum interiors', L.museumRooms, 'dio:'],
-        ['Classic objects', classicObj, 'obj:'], ['Classic scenes', classicDio, 'dio:']]
+        ['Studio interiors', L6 ? L6.interiors : [], 'dio:'], ['Classic objects', classicObj, 'obj:'], ['Classic scenes', classicDio, 'dio:']]
         .map(function (g) { return { n: g[0], kinds: keep(g[1].map(function (id) { return g[2] + id; })) }; }).filter(function (g) { return g.kinds.length; });
       if (G.length) { if (ins) G.sort(function (a, b) { return /Indoor|Museum/.test(b.n) - /Indoor|Museum/.test(a.n); }); T.splice(Math.min(T.length, ins ? 1 : 2), 0, { id: 'studio', ic: '✨', n: 'Studio', groups: G }); }
       return T;
