@@ -1583,6 +1583,15 @@
     f.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;max-width:none;max-height:none;margin:0;padding:0;border:0;z-index:2147483647;background:#cfe0ee;opacity:1';
     document.body.appendChild(f);
     try { if (f.showPopover) { f.setAttribute('popover', 'manual'); f.showPopover(); } } catch (e) {}   /* 放进顶层，盖过页面里所有浮层（迷你宠物、速览页等） */
+    /* Dock 也在开屏上面（2026-11-22，用户：开屏也要有 Dock）：跟在开屏后面进顶层，开屏走了再回原处。Dock 可能被重画，隔一会儿再确认一次 */
+    function dockTop(up) {
+      var d = document.querySelector('.mn-bdock'); if (!d || !d.showPopover) return;
+      try {
+        if (up) { if (d.getAttribute('popover') !== 'manual') d.setAttribute('popover', 'manual'); if (!d.matches(':popover-open')) d.showPopover(); }
+        else if (d.hasAttribute('popover')) { if (d.matches(':popover-open')) d.hidePopover(); d.removeAttribute('popover'); }
+      } catch (e) {}
+    }
+    dockTop(true); var dockT = setInterval(function () { dockTop(true); }, 700);
     function fit() {                                                         /* 按看得见的区域（visualViewport）定大小：App 里页面的布局宽度可能比屏幕宽 */
       var v = window.visualViewport, w = v ? v.width : window.innerWidth, h = v ? v.height : window.innerHeight;
       f.style.left = (v ? v.offsetLeft : 0) + 'px'; f.style.top = (v ? v.offsetTop : 0) + 'px'; f.style.right = 'auto'; f.style.bottom = 'auto';
@@ -1593,7 +1602,8 @@
     function room() { if (opened) return; opened = true; done(feature); }
     function end() {
       room(); clearTimeout(to); window.removeEventListener('message', on); window.removeEventListener('resize', fit); if (window.visualViewport) { visualViewport.removeEventListener('resize', fit); visualViewport.removeEventListener('scroll', fit); }
-      setTimeout(function () { f.style.transition = 'opacity .7s ease'; f.style.opacity = '0'; setTimeout(function () { if (f.parentNode) f.parentNode.removeChild(f); }, 800); }, 250);
+      clearInterval(dockT);
+      setTimeout(function () { f.style.transition = 'opacity .7s ease'; f.style.opacity = '0'; setTimeout(function () { if (f.parentNode) f.parentNode.removeChild(f); dockTop(false); }, 800); }, 250);
     }
     f.addEventListener('minest:open-web', function () { feature = '@mac-web'; end(); });
     function on(e) {

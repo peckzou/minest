@@ -332,7 +332,7 @@ document.addEventListener('click', function(e){ if (!on || !e.target.closest) re
 function sheetUp(){
   var R0 = document.documentElement; if (!R0.classList.contains('duo-dockpin')) { R0.classList.remove('duo-sheet'); return; }
   var hit = false, els = document.elementsFromPoint ? document.elementsFromPoint(innerWidth * .35, innerHeight / 2) : [];
-  for (var i = 0; i < els.length && !hit; i++) { var e = els[i]; if (e === document.body || e === R0 || e.closest('main, .mn-bdock, header, .duo-rail')) continue;
+  for (var i = 0; i < els.length && !hit; i++) { var e = els[i]; if (e === document.body || e === R0 || e.closest('main, .mn-bdock, header, .duo-rail, #mn-sh, #mn-clun-splash')) continue;   /* the room and the opening are screens, not sheets: they keep the Dock */
     var r = e.getBoundingClientRect(); if (getComputedStyle(e).position === 'fixed' && r.width >= innerWidth * .8 && r.height >= innerHeight * .8) hit = true; }
   R0.classList.toggle('duo-sheet', hit);
 }
