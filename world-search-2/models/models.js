@@ -16,7 +16,20 @@
     spinoza_substance: 1677, locke: 1689, leibniz: 1714, leibniz_reason: 1714, hume: 1748, kant_transcendental: 1781, kant_categories: 1781, kant_moral: 1785, utilitarian: 1789, hegel: 1807,
     freewill: 1814, mill_liberty: 1859, marx: 1859, peirce: 1878, nietzsche: 1887, frege: 1892, russell_descriptions: 1905, dewey: 1910, husserl: 1913, heidegger: 1927, tarski: 1944,
     sartre: 1946, carnap: 1950, quine_web: 1951, wittgenstein: 1953, goodman_grue: 1955, kuhn: 1962, gettier: 1963, popper: 1963, polanyi: 1966, rawls: 1971, nozick_machine: 1974,
-    foucault: 1975, kripke: 1980, habermas: 1981, parfit: 1984 };
+    foucault: 1975, kripke: 1980, habermas: 1981, parfit: 1984,
+    // models 47–136 (Philosopher's Lab, 2026-11-23): the year of each one's key text
+    parmenides: -475, heraclitus: -500, zeno: -450, democritus: -420, aristotle_mean: -340, epicurus: -300, stoic_control: 125, aquinas: 1270,
+    hobbes: 1651, locke_rights: 1689, berkeley: 1710, montesquieu_separation: 1748, rousseau: 1762, bayesian: 1763, smith_invisible_hand: 1776, ricardo_comparative: 1817,
+    ebbinghaus_forgetting: 1885, durkheim_solidarity: 1893, cooley_looking_glass: 1902, peirce_semiotics: 1903, pavlov_classical: 1903, weber_ideal_type: 1904, simmel_dyad_triad: 1908,
+    saussure: 1916, hilbert_hotel: 1924, whitehead: 1929, mead_self: 1934, vygotsky_zpd: 1934, piaget_cognitive: 1936, keynes_multiplier: 1936, coase_transaction: 1937, skinner_operant: 1938,
+    camus: 1942, schumpeter_destruction: 1942, maslow_needs: 1943, hempel_raven: 1945, hayek_prices: 1945, merleau_ponty: 1945, wiener_cybernetics: 1948, merton_manifest_latent: 1949,
+    prisoner_dilemma: 1950, nash_equilibrium: 1950, arrow_impossibility: 1951, simpson_paradox: 1951, parsons_agil: 1953, simon_bounded: 1955, solow_growth: 1956, downs_median_voter: 1957,
+    festinger_dissonance: 1957, tobin_portfolio: 1958, goffman: 1959, gadamer: 1960, levinas: 1961, bandura_social_learning: 1961, forrester_system_dynamics: 1961, austin_speech: 1962,
+    rogers_diffusion: 1962, friedman_monetarism: 1963, lorenz_chaos: 1963, mcluhan_medium: 1964, olson_collective_action: 1965, milgram_small_world: 1967, deleuze: 1968, derrida: 1968,
+    bertalanffy_gst: 1968, bowlby_attachment: 1969, newcomb: 1969, akerlof_lemons: 1970, lakatos: 1970, schelling_segregation: 1971, granovetter_weak_ties: 1973, baddeley_working_memory: 1974,
+    nozick_entitlement: 1974, feyerabend: 1975, grice: 1975, searle_taxonomy: 1975, monty_hall: 1975, bourdieu: 1979, kahneman_prospect: 1979, sen_capability: 1979, macintyre: 1981,
+    gilligan_care: 1982, ostrom_commons: 1990, nye_soft_power: 1990, ricoeur: 1990, senge_learning_org: 1990, holland_cas: 1995, christensen_disruption: 1997, putnam_social_capital: 2000,
+    thaler_nudge: 2008 };
   var ERAS = [[-9999, '古代', 'Ancient'], [1400, '近代早期', 'Early modern'], [1800, '十九世纪', '19th century'], [1900, '二十世纪上半叶', 'Early 20th century'], [1950, '当代', 'Contemporary']];
   var BRANCH = [
     ['philosophy.epistemology.causation', 'cause', '因果', 'Causation', '#ff8fab'], ['philosophy.epistemology', 'know', '认识论', 'Knowing', '#9b5de5'], ['philosophy.metaphysics', 'being', '形而上学', 'Being', '#5e9cff'],
