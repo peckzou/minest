@@ -449,7 +449,7 @@
   }
   function secondary() {
     return [['📥', 'Inbox', 'Things waiting to be sorted', 'inbox'], ['✨', 'Discover My World', 'This or That, Tier List, Desert Island…', 'discover'], ['🧭', 'Frameworks', 'Ways of seeing the world', 'frameworks'],
-      ['🗺️', 'Worldview Templates', 'Start or grow a world from a template', 'templates'], ['💡', 'Inspiration Library', 'Prompts to spark curiosity — answer any, skip any', 'inspiration'], ['🌱', 'Grow My World', 'Small ideas from what you already have', 'grow'], ['🧩', 'Visual Assets', 'All 72 islands, scenes, objects and centres', 'assets'], ['🕘', 'Activity', 'Recently added and organized', 'activity'], ['🪐', 'My World 2.0 view', 'The classic lists page', 'classic']]
+      ['🗺️', 'Worldview Templates', 'Start or grow a world from a template', 'templates'], ['💡', 'Inspiration Library', 'Prompts to spark curiosity — answer any, skip any', 'inspiration'], ['🌱', 'Grow My World', 'Small ideas from what you already have', 'grow'], ['🧩', 'Visual Assets', 'Islands, scenes, objects, buildings and centres', 'assets'], ['🕘', 'Activity', 'Recently added and organized', 'activity'], ['🪐', 'My World 2.0 view', 'The classic lists page', 'classic']]
       .map(function (x) { return '<button type="button" class="uv-row" data-sec="' + x[3] + '"><i>' + x[0] + '</i><div><b>' + x[1] + '</b><small>' + x[2] + '</small></div></button>'; }).join('');
   }
   function centerPicker() {
