@@ -139,6 +139,78 @@ function outputText(data) { return data?.choices?.[0]?.message?.content || ''; }
 // client assembles the board. Strict JSON schemas keep the output machine-safe.
 // ---------------------------------------------------------------------------
 const str = { type: 'string' };
+// ---------------------------------------------------------------------------
+// Dream Workshop · 梦工坊 — the AI Imagineer's plan (dream-workshop/dw-imagineer.js reads it)
+// ---------------------------------------------------------------------------
+const DW_KINDS = ['lincoln', 'figure', 'guide', 'portrait', 'podium', 'stage', 'curtain', 'bench', 'chair', 'spot', 'lamp', 'lantern', 'flag', 'column', 'tree', 'sign', 'wall', 'boat', 'house', 'windmill', 'bridge',
+  'book', 'clock', 'musicbox', 'door', 'word', 'picture', 'gears', 'top', 'star', 'sprout'];
+const DW_ACTIONS = ['raiseHand', 'turnHead', 'nod', 'openArms', 'point', 'bow', 'smile', 'surprise', 'wink', 'stroll', 'open', 'close', 'turnPage', 'spin', 'timeTravel', 'grow', 'wilt', 'appear', 'vanish', 'startShow'];
+const DW_OPS = ['up', 'down', 'toDay', 'toDusk', 'toNight', 'toTheatre', 'rain', 'snow', 'clear', 'speak', 'pad', 'fanfare', 'drum', 'chime', ...DW_ACTIONS];
+const num = { type: 'number' };
+const imagineerSchema = {
+  type: 'object', additionalProperties: false,
+  required: ['title', 'summary', 'mood', 'ride', 'objects', 'zones', 'route', 'length', 'clips'],
+  properties: {
+    title: str, summary: str,
+    mood: { type: 'string', enum: ['theatre', 'day', 'dusk', 'night'] },
+    ride: { type: 'string', enum: ['walk', 'boat'] },
+    objects: { type: 'array', items: { type: 'object', additionalProperties: false,
+      required: ['key', 'kind', 'name', 'x', 'z', 'facing', 'color', 'text', 'alive', 'voice', 'lang', 'tap_text', 'tap_action'],
+      properties: { key: str, kind: { type: 'string', enum: DW_KINDS }, name: str, x: num, z: num, facing: num, color: str, text: str,
+        alive: { type: 'boolean' }, voice: str, lang: { type: 'string', enum: ['zh-CN', 'en-US', 'en-GB', 'zh-HK', 'ja-JP'] },
+        tap_text: str, tap_action: { type: 'string', enum: ['', ...DW_ACTIONS] } } } },
+    zones: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['name', 'x', 'z', 'r', 'from', 'to', 'exit'],
+      properties: { name: str, x: num, z: num, r: num, from: num, to: num, exit: { type: 'string', enum: ['fade', 'stop', 'none'] } } } },
+    route: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['x', 'z'], properties: { x: num, z: num } } },
+    length: num,
+    clips: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['track', 'op', 'target', 'start', 'end'],
+      properties: { track: { type: 'string', enum: ['light', 'action', 'voice', 'music'] }, op: { type: 'string', enum: DW_OPS }, target: str, start: num, end: num } } }
+  }
+};
+const DW_EDIT_ACTIONS = ['add', 'add_rows', 'move', 'turn', 'scale', 'remove', 'rename', 'set_text', 'set_color', 'life', 'tap', 'zone_add', 'zone_radius', 'zone_exit', 'audio', 'warmth', 'mood', 'length', 'clip_add', 'clip_remove', 'clip_move', 'route_add'];
+const imagineerEditSchema = {
+  type: 'object', additionalProperties: false, required: ['reply', 'ops'],
+  properties: {
+    reply: str,
+    ops: { type: 'array', items: { type: 'object', additionalProperties: false,
+      required: ['action', 'target', 'kind', 'name', 'x', 'z', 'facing', 'count', 'value', 'value2', 'text', 'track', 'op', 'start', 'end'],
+      properties: { action: { type: 'string', enum: DW_EDIT_ACTIONS }, target: str, kind: { type: 'string', enum: ['', ...DW_KINDS] }, name: str, x: num, z: num, facing: num, count: num, value: num, value2: num, text: str,
+        track: { type: 'string', enum: ['', 'light', 'action', 'voice', 'music'] }, op: { type: 'string', enum: ['', 'fade', 'stop', 'none', ...DW_OPS] }, start: num, end: num } } }
+  }
+};
+const IMAGINEER_EDIT_SYSTEM = [
+  'You are the Imagineer of Minest Dream Workshop. The director is editing an open work (a miniature 3D experience on a round sandbox, radius 15 m, x to the right, z toward the audience, the stage usually at negative z).',
+  'Change it with the smallest set of operations that does what they ask; never rebuild what they did not mention. Fill every field of every operation; unused text fields are "", unused numbers 0 (start -1 means "at the playhead").',
+  'Operations: add (kind, name, x, z, facing in degrees — 0 faces the audience, 180 faces the stage —, count copies side by side, text for signs/books/stars/words); add_rows (kind bench or chair, count rows added behind the existing audience rows, value = row spacing in metres);',
+  'move (target, x, z); turn (target, facing); scale (target, value 0.3-3); remove (target); rename (target, name); set_text (target, text); set_color (target, text = #rrggbb);',
+  'life (target, text = its script: brings a character, portrait or animated prop to life); tap (target, text = its answer when a guest taps it, op = a gesture or "");',
+  'zone_add (name, x, z, value = radius); zone_radius (target = zone id or name, "" for the main one; value = the distance in metres at which the show starts); zone_exit (target, op = fade | stop | none — none keeps the show playing after the guest leaves);',
+  'audio (value = metres within which sound is at full volume, value2 = metres where it has faded to a whisper — use it for "louder near, quieter far" requests); warmth (value 0 cool … 0.5 neutral … 1 warm light); mood (text = theatre | day | dusk | night); length (value = show seconds);',
+  'clip_add (track light|action|voice|music, op, target = a thing id for action/voice/music-from-a-thing, start and end in seconds, text = the line for voice); clip_remove (target = clip id); clip_move (target = clip id, start); route_add (x, z).',
+  'target is an id from the work (or a name). Example: "start Lincoln\'s voice when the guest is 3 m away and fade it beyond 5 m" → zone_radius value 3, zone_exit op none, audio value 5 value2 12.',
+  'reply: one or two sentences, in the director\'s language, saying what you changed and what to try next.'
+].join('\n');
+const IMAGINEER_SYSTEM = [
+  'You are the Imagineer of Minest Dream Workshop (梦工坊), a small visual studio where a learner directs a miniature 3D experience that a guest then walks into.',
+  'Turn the learner\'s idea into a first plan they will edit. Return only the plan object.',
+  'The table: a round sandbox, radius 15 m, ground y = 0, x to the right, z toward the audience. Guests usually come in from z = 10..13 and look toward -z.',
+  'Things (kind, size): lincoln (a tall 19th-century speaker with a top hat), figure (a person, 1.8 m), guide (a presenter, 1.7 m), portrait (a framed talking painting that hangs at eye height; put a wall 0.3 m behind it),',
+  'podium (0.8 m), stage (8 × 5 m, 0.6 m high; things placed on it stand on top by themselves), curtain (9 m wide backdrop), bench (2.2 m), chair, spot (a stage spotlight on a stand that aims where it faces),',
+  'lamp (street lamp), lantern (paper lantern on a post), flag, column, tree, sign (text = up to two short lines, split with \\n), wall (6 m), boat, house (2 × 2 m), windmill (turning sails), bridge (arched, 4.4 m long, spans along its local x).',
+  'Things that come to life (alive = true): book (a giant pop-up book on a table: open, turnPage, close; text = its title), clock (a time-machine grandfather clock: timeTravel), musicbox (open, spin, close), door (open, close),',
+  'gears (a thought machine: spin), top (a concept top whose three rings carry text lines split with \\n: spin, open, close), star (a glowing knowledge node floating in the air, text = its name: spin), sprout (an idea that grows, text = the idea: grow, wilt), picture (a framed memory, text = its title; tap_text tells its story).',
+  'word is a neon sign (text = the words). Any thing can appear or vanish on the action track; a thing whose first clip is appear stays hidden until then. tap_action startShow starts the whole show.',
+  'facing is in degrees: 0 faces +z (toward the audience), 180 faces the stage side, 90 faces +x. Spotlights should face the stage. Benches and chairs face the stage (usually 180).',
+  'Keep everything inside radius 14, at most 30 things, nothing overlapping. key is a short unique id used by clips (e.g. "speaker").',
+  'Characters and portraits that should come to life: alive = true, voice = what they say (in the learner\'s language unless the idea asks otherwise; original wording — public-domain speeches such as the Gettysburg Address may be quoted), lang to match,',
+  'tap_text = a short reply when a guest taps them (or ""), tap_action = a gesture for that reply (or ""). For everything else alive = false and voice, tap_text, tap_action are "". color is a hex colour or "".',
+  'zones are trigger areas on the ground where guests stand: entering starts the show (from/to = the part of the timeline in seconds this zone plays; -1/-1 = the whole show). exit: fade (default), stop or none.',
+  'route: 2-8 points from the guests\' entrance to where they watch. ride = "boat" only for a ride along water: then the route is the canal (keep every thing at least 2.6 m from it), and give each scene along it its own zone with from/to.',
+  'clips build the show on four tracks (seconds): light (op up or down; usually up at the start; also toDay, toDusk, toNight, toTheatre to change the sky, and rain, snow, clear for weather), voice (op speak, target = the speaker\'s key, start when they begin; end is recalculated), action (raiseHand, turnHead, nod, openArms, point, bow, smile, surprise, wink — target = a character or portrait key; smile/surprise/wink suit portraits),',
+  'music (pad, fanfare, drum, chime; target = the key of the thing the sound comes from, or "" for everywhere). length = the show in seconds (10-240). Make it feel like a little Disney-style dark ride or show: something to notice from afar, a reason to come closer, a moment that answers the guest, and an ending.',
+  'title: a short name in the learner\'s language. summary: two or three sentences, in the learner\'s language, telling the director what you built and what to try changing.'
+].join('\n');
+
 const planSchema = {
   type: 'object', additionalProperties: false, required: ['title', 'summary', 'routine', 'lists'],
   properties: {
@@ -468,6 +540,27 @@ export async function handle(path, input) {
     if (path.endsWith('/ai-chat-stream')) return { __stream: messages };
     const data = await callModel(input, messages, { max_tokens: 1500, effort: EFFORT.chat });
     return { reply: outputText(data) };
+  }
+  // Dream Workshop · 梦工坊: the AI Imagineer turns one sentence into an editable first plan of an experience —
+  // things on a sandbox table, who says what, where the guests trigger the show, their route and the show's timeline.
+  // The client checks every value again and the director edits everything afterwards.
+  // …and edits the open work with fixed scene-editing operations (never regenerating it): the client checks and applies them.
+  if (path.endsWith('/ai-imagineer-edit')) {
+    const said = String(input.prompt || '').replace(/\s+/g, ' ').trim().slice(0, 800);
+    if (!said) throw new Error('Say what to change first');
+    const scene = JSON.stringify(input.scene || {}).slice(0, 24000);
+    const messages = [{ role: 'system', content: IMAGINEER_EDIT_SYSTEM }, { role: 'user', content: 'The open work:\n' + scene + '\n\nThe director says: ' + said }];
+    const options = { max_tokens: 3000, effort: EFFORT.chat, response_format: { type: 'json_schema', json_schema: { name: 'dream_workshop_edit', strict: true, schema: imagineerEditSchema } } };
+    const data = await callModel(input, messages, options);
+    return JSON.parse(outputText(data));
+  }
+  if (path.endsWith('/ai-imagineer')) {
+    const idea = String(input.prompt || '').replace(/\s+/g, ' ').trim().slice(0, 1200);
+    if (!idea) throw new Error('Describe the idea first');
+    const messages = [{ role: 'system', content: IMAGINEER_SYSTEM }, ...history, { role: 'user', content: idea }];
+    const options = { max_tokens: 6000, effort: EFFORT.plan, response_format: { type: 'json_schema', json_schema: { name: 'dream_workshop_plan', strict: true, schema: imagineerSchema } } };
+    const data = await callModel(input, messages, options);
+    return { plan: JSON.parse(outputText(data)) };
   }
   if (path.endsWith('/ai-board')) {
     const userContent = [{ type: 'text', text: String(input.prompt || '') + attachmentContext }, ...imageParts];

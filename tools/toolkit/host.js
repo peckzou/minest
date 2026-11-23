@@ -52,6 +52,11 @@
   function cathedrals() { full(SITE + 'cathedrals-island/cathedrals.html', '教堂小岛 · Cathedrals’ Island'); }
   /* 奇想主题乐园 Theme Park (theme-park-island/, Antigravity): the third built-in island */
   function themepark() { full(SITE + 'theme-park-island/theme-park.html', '奇想主题乐园 · Theme Park'); }
+  /* 梦工坊 Dream Workshop (dream-workshop/): direct an experience — characters, voices, triggers, a show timeline, then walk in as a guest */
+  function workshop(id, play) {   /* (id, true): walk straight into that work as its guest — a placed experience in a room or on an island */
+    var q = id && /^[A-Za-z0-9_-]{1,40}$/.test(String(id)) ? '?' + (play ? 'play=' : 'open=') + id : '';
+    full(SITE + 'dream-workshop/index.html' + q, '梦工坊 · Dream Workshop');
+  }
   function full(url, title) {
     if (phEl) phEl.remove();
     var o = phEl = document.createElement('div'); o.className = 'mn-phil';
@@ -99,7 +104,7 @@
     if (m.action === 'items') return reply(src, m.id, items());
     if (m.action === 'close') return close();
     if (m.action === 'ready') return;
-    if (m.action === 'island') { if (m.which === 'cathedrals') cathedrals(); else if (m.which === 'themepark') themepark(); else island(); return reply(src, m.id, { ok: true }); }
+    if (m.action === 'island') { if (m.which === 'cathedrals') cathedrals(); else if (m.which === 'themepark') themepark(); else if (m.which === 'workshop') workshop(); else island(); return reply(src, m.id, { ok: true }); }
     if (m.action === 'phil') { var okp = typeof m.file === 'string' && /^minest_[a-z_]+\.html$/.test(m.file); if (okp) phil(m.file, String(m.title || '').slice(0, 60)); return reply(src, m.id, { ok: okp }); }
     if (m.action === 'holo') { close(); setTimeout(function () { holo(m.wiki); }, 260); return reply(src, m.id, { ok: !!window.SpatialHoloLab }); }
     if (m.action === 'capture') {
@@ -157,6 +162,12 @@
       rp.innerHTML = '<i>🎡</i><div class="mn-en-keep"><b>奇想主题乐园 · Theme Park</b><small>9 大主题园区 · 乘坐游乐设施、城堡烟花秀</small></div>';
       rp.addEventListener('click', function (e) { e.stopPropagation(); themepark(); }, true);
       var cr = cs.parentNode.querySelector('[data-cathisland]'); cs.parentNode.insertBefore(rp, cr ? cr.nextSibling : cs);
+    }
+    if (cs && !cs.parentNode.querySelector('[data-dreamws]')) {
+      var rw = document.createElement('button'); rw.type = 'button'; rw.className = 'uv-row'; rw.setAttribute('data-dreamws', '');
+      rw.innerHTML = '<i>🎬</i><div class="mn-en-keep"><b>梦工坊 · Dream Workshop</b><small>造物 · 赋能 · 布景 · 导演 · 让作品活起来，再走进去当观众</small></div>';
+      rw.addEventListener('click', function (e) { e.stopPropagation(); workshop(); }, true);
+      var pk = cs.parentNode.querySelector('[data-parkisland]'); cs.parentNode.insertBefore(rw, pk ? pk.nextSibling : cs);
     }
     // the centre island's hexagon menu (mn-island-game-script): one more hexagon, in the free bottom-left slot
     var m = document.querySelector('.mn-island-actions[aria-label="My World actions"]'), b4 = m && m.querySelector('.mn-island-action-4');
@@ -216,5 +227,5 @@
   (document.head || document.documentElement).appendChild(css);
 
   var adopted = [];   // other toolkit frames this page answers (My World's input, tools/toolkit/omni.js)
-  window.MinestToolkitHost = { island: island, cathedrals: cathedrals, themepark: themepark, adopt: function (f) { if (adopted.indexOf(f) < 0) adopted.push(f); }, open: open, close: close, constellation: holo, isOpen: function () { return !!ov; }, items: items };
+  window.MinestToolkitHost = { island: island, cathedrals: cathedrals, themepark: themepark, workshop: workshop, adopt: function (f) { if (adopted.indexOf(f) < 0) adopted.push(f); }, open: open, close: close, constellation: holo, isOpen: function () { return !!ov; }, items: items };
 })();

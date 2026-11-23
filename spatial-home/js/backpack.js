@@ -2,6 +2,7 @@
    Craft → Collect → Backpack → Place → Interact → Retrieve → Reuse.
    It does not own any content. It lists what Minest already has and only keeps where things stand:
      · My Creations     Type / Pipe Wall works            MinestKnowledge 'mtw:item:<id>'   (model: MinestNeonWord.build — the workshop's own builder)
+                        Dream Workshop experiences         'sh:dw:work:<id>' with shelf: true (a miniature theater; a tap walks you into it)
      · Display Fixtures display furniture (templates) and the dynamic display machines (MinestMachines / MinestVoxelDisplays,
                         model and operating view are theirs; a machine only REFERENCES a list: {bid, list})
      · Workshop Tools / Magic Items   the Spatial Home function objects (typewriter, quill, planner, projector, ornament …)
@@ -43,6 +44,17 @@
     var K = KN(); if (!K || !K.keys) return [];
     try { return K.keys('mtw:item:').map(function (k) { return K.get(k); }).filter(function (it) { return it && it.id && !it.deleted && it.word; }); } catch (e) { return []; }
   }
+  /* 梦工坊 experiences the user put in the backpack (🎒 放进 My World in the workshop) */
+  function dreamWorks() {
+    var K = KN(); if (!K || !K.keys) return [];
+    try { return K.keys('sh:dw:work:').map(function (k) { return K.get(k); }).filter(function (w) { return w && w.id && !w.deleted && w.shelf; }); } catch (e) { return []; }
+  }
+  /* walk into one: the workshop's guest preview, full screen over Minest */
+  function playDream(id) {
+    var W = HW(); try { if ((W === root || W === root.top) && W.MinestToolkitHost && W.MinestToolkitHost.workshop) return W.MinestToolkitHost.workshop(id, true); } catch (e) {}   /* only a host the user can see (a bridge's hidden Minest frame would swallow it) */
+    var u = (/^https?:$/.test(location.protocol) ? (/\/spatial-home\//.test(location.pathname) ? '../' : '') : 'https://minest-app.vercel.app/') + 'dream-workshop/index.html?play=' + encodeURIComponent(id);
+    root.open(u, '_blank');
+  }
   function boards() { try { var w = HW(); return (w.MinestAI && w.MinestAI.boards && w.MinestAI.boards()) || []; } catch (e) { return []; } }
   function things() {
     var out = [];
@@ -73,6 +85,10 @@
     works().forEach(function (it) {
       out.push({ key: 'work:' + it.id, cat: 'creations', kind: 'owned', name: it.word, icon: '✨', place: 'surface',
         note: (it.mode || 'neon') + ' · ' + (it.gas || '') + ' · Type Workshop 作品', ref: { work: it.id }, spec: { kind: 'neon', ref: { work: it.id }, title: it.word } });
+    });
+    dreamWorks().forEach(function (w) {
+      out.push({ key: 'dw:' + w.id, cat: 'creations', kind: 'owned', name: w.title || '梦工坊体验', icon: '🎬', place: 'floor',
+        note: '梦工坊体验 · 摆好后点它「走进体验」', ref: { dw: w.id }, spec: { kind: 'dw', ref: { dw: w.id }, title: w.title || '梦工坊体验' } });
     });
     FIXTURES.concat(root.SpatialFurnitureCatalog || []).forEach(function (f) { out.push({ key: 'fx:' + f.id, cat: 'fixtures', kind: 'template', name: f.name, icon: f.icon, place: f.place, size: f.size, note: f.note, spec: { kind: f.id, title: f.name } }); });
     machines().forEach(function (m) {
@@ -143,7 +159,32 @@
     var g = new T.Group(); g.add(inner);
     return { group: g, hb: [size.x * s, size.y * s, size.z * s], place: 'floor', machine: { d: d, bid: bid } };
   }
+  /* a Dream Workshop experience as a thing to set out: a miniature theater on a round base, its title on a plaque */
+  function dream(T, e) {
+    var K = KN(), w = null; try { w = K ? K.get('sh:dw:work:' + (e.ref && e.ref.dw)) : null; } catch (er) {}
+    var title = (w && w.title) || e.title || '梦工坊体验', tpl = w && w.template;
+    var M = function (c, o) { return new T.MeshStandardMaterial(Object.assign({ color: c, roughness: 0.7 }, o || {})); };
+    var B = function (w2, h, d, m, x, y, z) { var o = new T.Mesh(new T.BoxGeometry(w2, h, d), m); o.position.set(x, y, z); return o; };
+    var g = new T.Group(), gold = M('#c9a24a', { metalness: 0.5, roughness: 0.35 });
+    var base = new T.Mesh(new T.CylinderGeometry(0.34, 0.37, 0.08, 32), M('#5a3a24')); base.position.y = 0.04; g.add(base);
+    var top = new T.Mesh(new T.CylinderGeometry(0.33, 0.33, 0.012, 32), M(tpl === 'boat' ? '#2f7fa8' : '#3b2a1e')); top.position.y = 0.086; g.add(top);
+    g.add(B(0.46, 0.05, 0.22, M('#8a5a35'), 0, 0.117, -0.08));
+    g.add(B(0.5, 0.34, 0.02, M(tpl === 'portrait' ? '#3d5a4a' : '#7d1424'), 0, 0.26, -0.19));
+    g.add(B(0.54, 0.05, 0.04, gold, 0, 0.44, -0.19));
+    if (tpl === 'portrait') { g.add(B(0.16, 0.2, 0.02, gold, 0, 0.29, -0.175)); g.add(B(0.12, 0.16, 0.01, M('#5b2a3a'), 0, 0.29, -0.165)); }
+    else if (tpl === 'boat') { var bt = B(0.08, 0.04, 0.18, M('#8a5a35'), 0.12, 0.11, 0.12); bt.rotation.y = 0.6; g.add(bt); }
+    else { g.add(B(0.05, 0.16, 0.04, M('#17171b'), 0, 0.22, -0.08)); g.add(B(0.07, 0.05, 0.07, M('#141417'), 0, 0.32, -0.08)); }
+    var cv = document.createElement('canvas'); cv.width = 256; cv.height = 64; var cx = cv.getContext('2d');
+    cx.fillStyle = '#f3e6c8'; cx.fillRect(0, 0, 256, 64); cx.fillStyle = '#3a2414'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    var fs = 30; cx.font = '700 ' + fs + 'px -apple-system,"PingFang SC",sans-serif'; while (cx.measureText('🎬 ' + title).width > 240 && fs > 14) { fs -= 2; cx.font = '700 ' + fs + 'px -apple-system,"PingFang SC",sans-serif'; }
+    cx.fillText('🎬 ' + title, 128, 33);
+    var tex = new T.CanvasTexture(cv); tex.encoding = T.sRGBEncoding;
+    var plq = new T.Mesh(new T.PlaneGeometry(0.34, 0.085), new T.MeshBasicMaterial({ map: tex })); plq.position.set(0, 0.05, 0.372); g.add(plq);
+    var glow = new T.Mesh(new T.SphereGeometry(0.025, 12, 8), new T.MeshBasicMaterial({ color: '#ffd98a' })); glow.position.set(0.2, 0.42, 0.05); g.add(glow);
+    return { group: g, hb: [0.74, 0.46, 0.74], place: 'floor', missing: !w };
+  }
   function model(T, e) {
+    if (e.kind === 'dw') return dream(T, e);
     if (e.kind === 'neon') return neon(T, e);
     if (e.kind === 'thing') return frame(T, e);
     if (e.kind === 'machine') return machine(T, e);
@@ -369,7 +410,7 @@
   /* ================================================================ one owned thing, one place — across Spatial Home and My World
      'bp:owned:<key>' = { w: 'home', env, uid } | { w: 'oia', bid, id } | null. Placing somewhere sets it; whoever finds a copy
      that is not the registered one drops it (lazily, the next time that place is drawn). */
-  function ownedKey(ref) { return ref && ref.work ? 'work:' + ref.work : (ref && ref.sid ? 'thing:' + ref.sid : null); }
+  function ownedKey(ref) { return ref && ref.work ? 'work:' + ref.work : (ref && ref.sid ? 'thing:' + ref.sid : (ref && ref.dw ? 'dw:' + ref.dw : null)); }
   var owned = {
     get: function (ref) { var k = ownedKey(ref); return k ? store.get('bp:owned:' + k) : null; },
     set: function (ref, where) { var k = ownedKey(ref); if (k) store.set('bp:owned:' + k, Object.assign({ t: Date.now() }, where)); },
@@ -404,10 +445,11 @@
       },
       sig: function (d) { var spec = d.tx && d.tx.bp; return JSON.stringify(spec || {}) + (spec && spec.ref ? JSON.stringify(owned.get(spec.ref)) : ''); },
       open: function (d, ctx) { ctx.setSel(d.id); ctx.refresh(); var W = HW(); try { if (W.MinestOiaConsole) W.MinestOiaConsole.open('disp'); } catch (e) {} },
-      panel: function (d) { var spec = d.tx && d.tx.bp || {}; return '<div class="obld-sub">🎒 ' + esc(spec.title || '背包物品') + (spec.ref ? ' · 只有一件' : '') + '</div><div class="obld-actions"><button type="button" class="obld-btn" data-vd="bp:stash">🎒 收回背包</button><button type="button" class="obld-btn" data-vd="bp:open">打开背包</button></div>'; },
+      panel: function (d) { var spec = d.tx && d.tx.bp || {}; return '<div class="obld-sub">🎒 ' + esc(spec.title || '背包物品') + (spec.ref ? ' · 只有一件' : '') + '</div><div class="obld-actions">' + (spec.kind === 'dw' ? '<button type="button" class="obld-btn pri" data-vd="bp:play">▶ 走进体验</button>' : '') + '<button type="button" class="obld-btn" data-vd="bp:stash">🎒 收回背包</button><button type="button" class="obld-btn" data-vd="bp:open">打开背包</button></div>'; },
       entry: function () { return '<div class="tw-entry"><button type="button" class="obld-btn pri" data-vd="bp:open">🎒 魔法背包</button><small>作品、陈列装置、收藏 · 和 Spatial Home 用同一个背包</small></div>'; },
       act: function (ctx, name, arg, d) {
         if (name === 'open') return openInWorld();
+        if (name === 'play' && d) { var sp = d.tx && d.tx.bp; if (sp && sp.ref && sp.ref.dw) return playDream(sp.ref.dw); }
         if (name === 'stash' && d) { var spec = d.tx && d.tx.bp; ctx.commit(function (next) { next.displays = next.displays.filter(function (q) { return q.id !== d.id; }); }); if (spec && spec.ref) owned.clear(spec.ref); ctx.setSel(null); ctx.refresh(); ctx.toast('🎒 收回背包了 · 原来的作品和 List 都没有改动'); }
       }
     };
@@ -463,5 +505,5 @@
     head.insertBefore(b, head.children[1] || null);
   }, 700);
 
-  root.MinestBackpack = { VERSION: VERSION, open: open, close: close, isOpen: isOpen, catalog: catalog, model: model, operate: operate, store: store, pref: pref, lists: lists, works: works, hotbar: hotbar, thumb: thumb, thingPic: thingPic, owned: owned, ownedKey: ownedKey, openInWorld: openInWorld, registerKind: registerKind };
+  root.MinestBackpack = { VERSION: VERSION, playDream: playDream, dreamWorks: dreamWorks, open: open, close: close, isOpen: isOpen, catalog: catalog, model: model, operate: operate, store: store, pref: pref, lists: lists, works: works, hotbar: hotbar, thumb: thumb, thingPic: thingPic, owned: owned, ownedKey: ownedKey, openInWorld: openInWorld, registerKind: registerKind };
 })(window);

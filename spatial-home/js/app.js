@@ -1280,17 +1280,19 @@
 
   /* ---- a placed instance answers a tap */
   function extraCard(x) {
-    var e = x.e, isTpl = !/^(neon|thing)$/.test(e.kind), name = e.title || NAMES[e.kind] || '物品';
+    var e = x.e, isTpl = !/^(neon|thing|dw)$/.test(e.kind), name = e.title || NAMES[e.kind] || '物品';
     var acts = [];
+    if (e.kind === 'dw') acts.push({ label: '▶ 走进体验', cls: 'pri', a: 'play' });   /* a Dream Workshop experience: walk into it as its guest */
     if (e.kind === 'machine') acts.push({ label: e.mx && e.mx.list ? '🔍 走近操作' : '装载 List…', cls: 'pri', a: e.mx && e.mx.list ? 'operate' : 'load' });
     if (e.kind === 'machine' && e.mx && e.mx.list) acts.push({ label: '换一个 List…', a: 'load' });
-    acts.push({ label: '移动', cls: e.kind === 'machine' ? '' : 'pri', a: 'move' }, { label: '🎒 收回背包', a: 'stash' });
+    acts.push({ label: '移动', cls: e.kind === 'machine' || e.kind === 'dw' ? '' : 'pri', a: 'move' }, { label: '🎒 收回背包', a: 'stash' });
     if (isTpl) acts.push({ label: '复制一个', a: 'dup' });
     acts.push({ label: '好', cls: 'ghost', a: 'none' });
-    var text = e.kind === 'machine' ? (e.mx && e.mx.list ? '装着「' + esc(e.mx.title || '') + '」 · 引用 List，不复制内容' : '还是空的展架') : (e.kind === 'thing' ? '来自 My World · ' + esc(e.list || '') : (e.kind === 'neon' ? 'Type Workshop 作品 · 只有一件' : '陈列家具 · 可以放多个'));
+    var text = e.kind === 'dw' ? '梦工坊体验 · 走进去当观众' : e.kind === 'machine' ? (e.mx && e.mx.list ? '装着「' + esc(e.mx.title || '') + '」 · 引用 List，不复制内容' : '还是空的展架') : (e.kind === 'thing' ? '来自 My World · ' + esc(e.list || '') : (e.kind === 'neon' ? 'Type Workshop 作品 · 只有一件' : '陈列家具 · 可以放多个'));
     ask(name, text, acts).then(function (i) {
       var a = acts[i] && acts[i].a;
-      if (a === 'operate') BP.operate(e, function () { save(); buildExtras(); }, toast);
+      if (a === 'play' && BP.playDream) BP.playDream(e.ref && e.ref.dw);
+      else if (a === 'operate') BP.operate(e, function () { save(); buildExtras(); }, toast);
       else if (a === 'load') { openPack('mc:' + (e.mx && e.mx.type)); }
       else if (a === 'move') startEdit(x);
       else if (a === 'stash') { edit = { x: x, g: x.group, p0: x.group.position.clone(), ry0: x.group.rotation.y, type: x.place, valid: true }; endEdit('stash'); }
@@ -1320,7 +1322,7 @@
     if (reg && reg.w === 'oia') return { oia: true, bid: reg.bid };
     window.SpatialRoom.envs().forEach(function (en) {
       var Lx = en.id === room.envId ? layout() : layoutOf(en.id);
-      (Lx.extras || []).forEach(function (e) { if (hit) return; if ((ref.work && e.ref && e.ref.work === ref.work) || (ref.sid && e.ref && e.ref.sid === ref.sid)) hit = { env: en.id, e: e }; });
+      (Lx.extras || []).forEach(function (e) { if (hit) return; if ((ref.work && e.ref && e.ref.work === ref.work) || (ref.sid && e.ref && e.ref.sid === ref.sid) || (ref.dw && e.ref && e.ref.dw === ref.dw)) hit = { env: en.id, e: e }; });
     });
     return hit;
   }
