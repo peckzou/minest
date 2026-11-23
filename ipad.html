@@ -183684,7 +183684,17 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
 
   /* ------------------------------------------------------------ cards, toast */
   var card = $('card'), toastEl = $('toast'), toastT = 0;
-  function toast(s) { toastEl.textContent = s; toastEl.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { toastEl.hidden = true; }, 3200); }
+  function toast(s, undo) {                                                     // undo: a 撤销 button on the toast (a few seconds longer)
+    toastEl.textContent = s;
+    if (undo) {
+      var u = document.createElement('button'); u.type = 'button'; u.textContent = '撤销';
+      u.style.cssText = 'margin-left:10px;padding:3px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.6);background:rgba(255,255,255,.18);color:#fff;font:inherit;font-weight:600;cursor:pointer;pointer-events:auto';
+      ['pointerdown', 'touchstart', 'mousedown'].forEach(function (t) { u.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
+      u.addEventListener('click', function (e) { e.stopPropagation(); toastEl.hidden = true; clearTimeout(toastT); undo(); });
+      toastEl.appendChild(u);
+    }
+    toastEl.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { toastEl.hidden = true; }, undo ? 7000 : 3200);
+  }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   /* a small card over the room; resolves with the index of the button pressed */
   function ask(title, text, buttons) {
@@ -184421,6 +184431,18 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   function spotFor() { var s = room.start.pos; return [+(s[0] - Math.sin(room.start.yaw) * 1.4).toFixed(2), 0, +(s[2] - Math.cos(room.start.yaw) * 1.4).toFixed(2)]; }
   /* another device moved things, or changed the defaults (the store merged it in): the room shown follows */
   var DEFT = {};
+  /* undo of a removal: the room's layout and its defaults as they were just before */
+  function snapRoom() { var env = room.envId; return { env: env, L: JSON.stringify(layout()), d: DEFS ? JSON.stringify(DEFS.get(env)) : 'null' }; }
+  function undoTo(sn) {
+    if (!room || room.envId !== sn.env) { toast('已经换了房间，撤销不了'); return; }
+    if (edit) endEdit('cancel');
+    var L = JSON.parse(sn.L);
+    if (DEFS && sn.d !== JSON.stringify(DEFS.get(sn.env))) {
+      var d = JSON.parse(sn.d), nd = DEFS.put(sn.env, d ? { fn: d.fn, extras: d.extras } : null);
+      L.defAt = nd ? nd.at : (L.defAt || 0); if (room.upgrade && nd) L.defUp = room.upgrade.v; DEFT[sn.env] = nd ? nd.at : 0;
+    }
+    delete LCACHE[sn.env]; saveLayout(sn.env, L); placeAll(); refreshHotbar(); if (DEFS) DEFS.edited(); toast('已撤销');
+  }
   var remoteT = 0;
   function remoteCheck() {
     clearTimeout(remoteT);
@@ -184736,8 +184758,9 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
   function snapIs(h, kind) { var r = false; XS.forEach(function (q) { if (q.e.kind === kind) q.group.traverse(function (m) { if (m === h.object) r = true; }); }); return r; }
   function endEdit(how) {
-    if (!edit) return; if (how === 'ok' && !edit.valid) return;
+    if (!edit) return; if (how === 'ok' && !edit.valid) return; var E0 = edit;
     AV.carry = false; if (how === 'ok') gesture('place', 0.8); else if (how === 'stash') gesture('reach', 0.7);
+    var sn = how === 'stash' && !(E0 && E0.isNew) ? snapRoom() : null;   // a removal can be taken back
     var E = edit, L = layout(); edit = null; killArrows(); ghost(E, false); editBar.hidden = true; body.classList.remove('editing');
     var g = E.g, pos = [+g.position.x.toFixed(3), +g.position.y.toFixed(3), +g.position.z.toFixed(3)], ry = +g.rotation.y.toFixed(4);
     if (how === 'cancel') {
@@ -184749,11 +184772,11 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       g.position.copy(E.p0); g.rotation.y = E.ry0; if (E.o) { E.o.stashed = E.wasStashed; g.visible = !E.wasStashed; settle(E.o); } refreshHotbar(); if (DEFS) DEFS.edited(how); return;
     }
     if (E.o) {
-      if (how === 'stash') { L[E.o.id] = { p: pos, ry: ry, stashed: true }; E.o.stashed = true; g.visible = false; toast(E.o.name + ' 已收回背包 · 功能仍可从下方入口进入'); }
+      if (how === 'stash') { L[E.o.id] = { p: pos, ry: ry, stashed: true }; E.o.stashed = true; g.visible = false; toast(E.o.name + ' 已收回背包 · 功能仍可从下方入口进入', sn ? function () { undoTo(sn); } : null); }
       else { L[E.o.id] = { p: pos, ry: ry }; E.o.stashed = false; }
       E.o.chip.classList.toggle('stashed', E.o.stashed); settle(E.o); rebuildHits();
     } else {
-      if (how === 'stash') { L.extras = (L.extras || []).filter(function (e) { return e !== E.x.e; }); if (E.x.e.ref && BP.owned) BP.owned.clear(E.x.e.ref); toast('已收回背包 · 原来的作品和 List 都没有改动'); }
+      if (how === 'stash') { L.extras = (L.extras || []).filter(function (e) { return e !== E.x.e; }); if (E.x.e.ref && BP.owned) BP.owned.clear(E.x.e.ref); toast('已收回背包 · 原来的作品和 List 都没有改动', sn ? function () { undoTo(sn); } : null); }
       else { E.x.e.p = pos; E.x.e.ry = ry; delete pendingReg[E.x.e.uid]; if (E.x.e.ref && BP.owned) BP.owned.set(E.x.e.ref, { w: 'home', env: room.envId, uid: E.x.e.uid }); }
       buildExtras();
     }
@@ -184916,12 +184939,13 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       state: function () { return DEFS.capture(layout(), objects); },
       stamp: function (d) { var L = layout(); L.defAt = d ? d.at : 0; if (room.upgrade) { L.defUp = room.upgrade.v; } DEFT[room.envId] = d ? d.at : 0; saveLayout(room.envId, L); },
       setFn: function (id, on) {
-        var o = objects.filter(function (q) { return q.id === id; })[0]; if (!o) return; var L = layout();
+        var o = objects.filter(function (q) { return q.id === id; })[0]; if (!o) return; var sn = on ? null : snapRoom(), L = layout();
+        if (sn) setTimeout(function () { toast(o.name + ' 已从房间移除', function () { undoTo(sn); }); }, 0);
         if (on) { var a = room.anchors[o.anchor] || REF[o.anchor] || room.anchors['desk.left'], l = L[id]; L[id] = l && l.p ? { p: l.p, ry: l.ry } : { p: a.p.slice(), ry: a.ry }; }
         else L[id] = { p: [o.group.position.x, o.group.position.y, o.group.position.z].map(function (n) { return +n.toFixed(3); }), ry: +o.group.rotation.y.toFixed(4), stashed: true };
         saveLayout(room.envId, L); placeAll(); refreshHotbar();
       },
-      removeExtra: function (uid) { var L = layout(); L.extras = (L.extras || []).filter(function (e) { return e.uid !== uid; }); saveLayout(room.envId, L); buildExtras(); },
+      removeExtra: function (uid) { var sn = snapRoom(); setTimeout(function () { toast('已移除', function () { undoTo(sn); }); }, 0); var L = layout(); L.extras = (L.extras || []).filter(function (e) { return e.uid !== uid; }); saveLayout(room.envId, L); buildExtras(); },
       addExtra: function (kind, name) { spawn({ kind: kind, title: name }); },
       move: function (q) {
         if (q.fn) { var o = objects.filter(function (x) { return x.id === q.fn; })[0]; if (o) startEdit(o); return; }

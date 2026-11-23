@@ -194,16 +194,31 @@
     var b = e.target.closest('[data-a]'); if (!b || !sel) return; var a = b.getAttribute('data-a');
     if (a === 'rot' || a === 'rot15') { sel.g.rotation.z += a === 'rot' ? PI / 2 : -PI / 12; writeBack(sel); mark(); return; }
     if (a === 'del') {
-      var q = sel.q, L = layoutOf(q.room);
+      var q = sel.q, sn = snap(q.room), L = layoutOf(q.room);
       if (q.fn) L[q.fn] = { stashed: true }; else L.extras = (L.extras || []).filter(function (x) { return x.uid !== q.uid; });
-      save(q.room, L); sel = null; mark(); build(); DF().edited('stash'); return;
+      save(q.room, L); sel = null; mark(); build(); DF().edited('stash'); toast((q.title || '物件') + ' 已移除', function () { undo(sn); }); return;
     }
     if (a === 'ok') { writeBack(sel); sel = null; mark(); DF().edited('ok'); }
   });
   var toastEl = null, toastT = 0;
-  function toast(t) {
-    if (!toastEl) { toastEl = document.createElement('div'); toastEl.style.cssText = 'position:fixed;z-index:42;left:50%;transform:translateX(-50%);top:calc(max(14px,env(safe-area-inset-top)) + 40px);padding:7px 14px;border-radius:999px;background:rgba(30,26,20,.75);color:#fff7e6;font:13px -apple-system,"PingFang SC",sans-serif;pointer-events:none;transition:opacity .4s'; document.body.appendChild(toastEl); }
-    toastEl.textContent = t; toastEl.style.opacity = 1; clearTimeout(toastT); toastT = setTimeout(function () { toastEl.style.opacity = 0; }, 2600);
+  function toast(t, undoFn) {                                                    /* undoFn：提示条上加「撤销」 */
+    if (!toastEl) { toastEl = document.createElement('div'); toastEl.style.cssText = 'position:fixed;z-index:42;left:50%;transform:translateX(-50%);top:calc(max(14px,env(safe-area-inset-top)) + 40px);padding:7px 14px;border-radius:999px;background:rgba(30,26,20,.82);color:#fff7e6;font:13px -apple-system,"PingFang SC",sans-serif;pointer-events:none;transition:opacity .4s;white-space:nowrap'; document.body.appendChild(toastEl); }
+    toastEl.textContent = t; toastEl.style.pointerEvents = undoFn ? 'auto' : 'none';
+    if (undoFn) {
+      var u = document.createElement('button'); u.type = 'button'; u.textContent = '撤销';
+      u.style.cssText = 'margin-left:10px;padding:3px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.16);color:#fff7e6;font:inherit;font-weight:600;cursor:pointer';
+      ['pointerdown', 'pointerup', 'touchstart'].forEach(function (ev) { u.addEventListener(ev, function (e) { e.stopPropagation(); }, { passive: true }); });
+      u.addEventListener('click', function (e) { e.stopPropagation(); toastEl.style.opacity = 0; toastEl.style.pointerEvents = 'none'; clearTimeout(toastT); undoFn(); });
+      toastEl.appendChild(u);
+    }
+    toastEl.style.opacity = 1; clearTimeout(toastT); toastT = setTimeout(function () { toastEl.style.opacity = 0; toastEl.style.pointerEvents = 'none'; }, undoFn ? 7000 : 2600);
+  }
+  /* 撤销移除：那个房间移除之前的摆放和默认 */
+  function snap(id) { return { id: id, L: JSON.stringify(layoutOf(id)), d: JSON.stringify(DF() ? DF().get('clun:' + id) : null) }; }
+  function undo(sn) {
+    var L = JSON.parse(sn.L), D = DF();
+    if (D && sn.d !== JSON.stringify(D.get('clun:' + sn.id))) { var d = JSON.parse(sn.d), nd = D.put('clun:' + sn.id, d ? { fn: d.fn, extras: d.extras } : null); L.defAt = nd ? nd.at : (L.defAt || 0); }
+    delete LC[sn.id]; save(sn.id, L); build(); if (D) D.edited(); toast('已撤销');
   }
 
   /* —— 默认物件面板（home-defaults.js，和 Spatial Home 同一个）：这里管 Clun 的房间 —— */
@@ -219,8 +234,8 @@
     live: {
       state: function () { return stateOf(curRoom()); },
       stamp: function (d) { var id = curRoom(), L = layoutOf(id); L.defAt = d ? d.at : 0; save(id, L); },
-      setFn: function (f, on) { var id = curRoom(), L = layoutOf(id), m = me(); L[f] = on ? { p: m ? m.front : centre(id), ry: m ? r3(m.face) : 0 } : { stashed: true }; save(id, L); build(); },
-      removeExtra: function (uid) { var id = curRoom(), L = layoutOf(id); L.extras = (L.extras || []).filter(function (e) { return e.uid !== uid; }); save(id, L); build(); },
+      setFn: function (f, on) { var id = curRoom(), sn = on ? null : snap(id), L = layoutOf(id), m = me(); if (sn) setTimeout(function () { toast(FN_NAME[f][0] + ' 已移除', function () { undo(sn); }); }, 0); L[f] = on ? { p: m ? m.front : centre(id), ry: m ? r3(m.face) : 0 } : { stashed: true }; save(id, L); build(); },
+      removeExtra: function (uid) { var id = curRoom(), sn = snap(id); setTimeout(function () { toast('已移除', function () { undo(sn); }); }, 0); var L = layoutOf(id); L.extras = (L.extras || []).filter(function (e) { return e.uid !== uid; }); save(id, L); build(); },
       addExtra: function (kind, name) {
         var id = curRoom(), L = layoutOf(id), m = me(), e = { uid: Date.now() % 1e9 + Math.floor(Math.random() * 1000), kind: kind, title: name, p: m ? m.front : centre(id), ry: m ? r3(m.face) : 0 };
         L.extras = (L.extras || []).concat([e]); save(id, L);
