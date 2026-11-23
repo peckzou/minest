@@ -5,6 +5,7 @@ import { readFileSync, readdirSync, writeFileSync, existsSync, mkdirSync } from 
 import { createHash, randomBytes } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { lkExtract } from './living-knowledge.mjs';
 
 // 42.0: the board-building manual and the data blocks travel with every request
 // (the API keeps no memory between calls).
@@ -332,6 +333,8 @@ export async function handle(path, input) {
     const data = await openrouter([{ role: 'user', content: 'Say hello' }], { max_tokens: 80 }, requestedModel);
     return { provider: 'openrouter', model: requestedModel, reply: outputText(data) };
   }
+  // Living Knowledge (M3): one piece of a source → a checked proposal (api/_minest/living-knowledge.mjs)
+  if (path.endsWith('/lk-extract')) return lkExtract(input, (messages, options) => callModel(input, messages, options));
   const attachmentContext = (input.attachments || []).filter(a => a && typeof a.text === 'string').map(a => `\n\n[Attached file: ${String(a.name || 'text file').slice(0, 160)}]\n${a.text.slice(0, 50000)}`).join('');
   const imageParts = (input.attachments || []).filter(a => a && typeof a.data === 'string' && /^data:image\/(png|jpeg|webp|gif);base64,/i.test(a.data)).map(a => ({ type: 'image_url', image_url: { url: a.data } }));
   // the conversation so far (the client sends its last turns), so replies and boards keep context
