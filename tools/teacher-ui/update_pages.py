@@ -26,7 +26,4 @@ for name in PAGES:
         assert html.count(base) == 1, name
         html = html.replace(base, decorated)
     html = html.replace('保存并 Teaching →', '保存并上课 →').replace('▦ Teaching 活动', '▦ 课堂活动')
-    html = html.replace("bLive.textContent = '🎮 Teaching · 10 个课堂游戏'", "bLive.textContent = '🎮 课堂游戏'").replace("bl.textContent = '👥 Team Games'", "bl.textContent = '👥 小组活动'")
-    if "o.el.querySelector('[data-x]').textContent='✕ 关闭';" not in html:
-        html = html.replace("o.el.querySelector('.mlv-brand span').textContent='教师工作台';", "o.el.querySelector('.mlv-brand span').textContent='教师工作台'; o.el.querySelector('[data-x]').textContent='✕ 关闭';")
     page.write_text(html)
