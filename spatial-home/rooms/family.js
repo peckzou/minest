@@ -12,7 +12,7 @@
    you, waves (the dog hops) and a card says who it is. */
 (function (root) {
   'use strict';
-  var THREE = root.THREE, SR = root.SpatialRoom; if (!THREE || !SR || !SR.build) return;
+  var THREE = root.THREE, SR = root.SpatialRoom; if (!THREE) return;   /* the people can be built anywhere (Clun House uses them too); the rooms part needs SpatialRoom */
   var PI = Math.PI, Paint = root.Clun && root.Clun.Paint;
   var INK = new THREE.MeshBasicMaterial({ color: 0x241c2c, side: THREE.BackSide }), MATS = {}, V = new THREE.Vector3();
   function mat(hex) {
@@ -358,6 +358,8 @@
     for (var o = h.object; o; o = o.parent) if (o.userData && o.userData.member) return o.userData.member;
     return null;
   }
+  root.SpatialFamily = { people: FAMILY, dog: DOG, person: person, bichon: bichon, posePerson: posePerson, poseDog: poseDog, show: show, room: function () { return cur; } };
+  if (!SR || !SR.build) return;
   document.addEventListener('pointerdown', function (e) { down = e.target && e.target.tagName === 'CANVAS' ? { x: e.clientX, y: e.clientY, t: Date.now(), id: e.pointerId } : null; }, true);
   document.addEventListener('pointerup', function (e) {
     var d = down; down = null; if (!d || d.id !== e.pointerId || Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 7 || Date.now() - d.t > 450) return;
@@ -369,5 +371,4 @@
 
   var build0 = SR.build;
   SR.build = function () { var room = build0.apply(this, arguments); try { attach(room); cur = room; } catch (e) { if (root.console) console.warn('[rooms] family', e); } return room; };
-  root.SpatialFamily = { people: FAMILY, person: person, bichon: bichon, show: show, room: function () { return cur; } };
 })(window);

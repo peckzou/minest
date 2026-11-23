@@ -26,6 +26,17 @@
     return JSON.stringify(s);
   };
   P.setItem = function (k, v) { return set.call(this, k === KEY && this === window.localStorage ? MINE : k, v); };
+  /* came here through Clun House's 「🏠 更多房间」: a way back into the house */
+  var fromClun = false; try { fromClun = new URLSearchParams(location.search).get('from') === 'clun'; } catch (e) {}
+  if (fromClun) (function back() {
+    var host = document.getElementById('mn-sh');   /* inside the room's own layer, which covers the page */
+    if (!host) return setTimeout(back, 150);
+    var b = document.createElement('button'); b.type = 'button'; b.textContent = '🏡 回 Clun 小屋';
+    b.style.cssText = 'position:fixed;z-index:70;left:max(12px,env(safe-area-inset-left));top:calc(env(safe-area-inset-top,0px) + 12px);padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.5);background:rgba(28,24,40,.75);color:#fff;font:600 13px/1 -apple-system,"PingFang SC",sans-serif;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)';
+    b.addEventListener('click', function (e) { e.stopPropagation(); location.href = 'clun-2/?scene=valley&inside=1'; });
+    ['pointerdown', 'touchstart', 'mousedown'].forEach(function (t) { b.addEventListener(t, function (e) { e.stopPropagation(); }); });
+    host.appendChild(b);
+  })();
   var build0 = SR.build, first = true;
   SR.build = function (scene, id) {
     if (first) { first = false; id = target() || id; }
