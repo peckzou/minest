@@ -949,7 +949,7 @@
   }
 
   function openTeacher() {
-    var o = overlay('Minest Live · Teacher'); o.el.classList.add('mlv-teacher'); o.el.querySelector('.mlv-brand span').textContent='教师工作台';
+    var o = overlay('Minest Live · Teacher');
     var cur = activeBoard(), boards = boardsList().concat(kits());
     var st = { boardId: (cur && cur.id) || (boards[0] && boards[0].id), cols: null, levels: LEVELS.map(function (l) { return l.k; }), pace: 'normal', goal: 'levels', time: 10, target: 100000 };
     function board() { return boards.filter(function (b) { return b.id === st.boardId; })[0] || cur; }
