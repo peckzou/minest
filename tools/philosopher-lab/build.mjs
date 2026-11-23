@@ -1,0 +1,16 @@
+import {createRequire} from 'node:module';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const base=path.dirname(fileURLToPath(import.meta.url));
+const modules=process.env.MINEST_BUILD_NODE_MODULES || '/Users/cece/Documents/minest/downloaded-octopus/node_modules';
+const require=createRequire(path.join(modules,'../package.json'));
+const esbuild=require('esbuild'), {compile}=require('@tailwindcss/node'), {Scanner}=require('@tailwindcss/oxide');
+const out=path.resolve(base,'../../philosophy/models');
+await esbuild.build({entryPoints:[path.join(base,'src/main.tsx')],bundle:true,minify:true,jsx:'automatic',format:'iife',target:['es2020','safari15'],nodePaths:[modules],define:{'process.env.NODE_ENV':'"production"'},outfile:path.join(out,'lab.min.js'),legalComments:'none',loader:{'.css':'empty'}});
+const compiler=await compile('@import "tailwindcss";',{base:modules,onDependency:()=>{}});
+const scanner=new Scanner({sources:[{base:path.join(base,'src'),pattern:'**/*.{ts,tsx}',negated:false}]});
+const css=compiler.build(scanner.scan());
+const minified=await esbuild.transform(css,{loader:'css',minify:true,target:['safari15']});
+await fs.writeFile(path.join(out,'lab.min.css'),minified.code);
+console.log('Built shared model runtime and stylesheet');
