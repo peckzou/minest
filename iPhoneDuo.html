@@ -97619,7 +97619,7 @@ var Ve = (function(_Component) {
 
   function openTeacher(launchOptions) {
     launchOptions=launchOptions&&launchOptions.board&&Array.isArray(launchOptions.board.columns)?launchOptions:{};
-    var o = overlay('Minest Live · Teacher');
+    var o = overlay('Minest Live · Teacher'); o.el.classList.add('mlv-teacher'); o.el.querySelector('.mlv-brand span').textContent='教师工作台';
     var cur = launchOptions.board||activeBoard(), boards = launchOptions.board?[cur]:boardsList().concat(kits());
     var st = { boardId: (cur && cur.id) || (boards[0] && boards[0].id), cols: null, levels: ['flinger', 'swipe', 'slice', 'blast', 'whack', 'missing', 'smash', 'tt-dragmatching', 'tt-ttt3', 'tt-snake3', 'tt-cloze3', 'tt-cloud3', 'tt-lock3'], pace: 'slow', spd: true, goal: 'levels', time: 10, target: 100000 };
     function board() { return boards.filter(function (b) { return b.id === st.boardId; })[0] || cur; }
@@ -137752,7 +137752,7 @@ function edit(listId,options){
  function keys(ev){if(!overlay.isConnected)return;if(ev.key==='Escape'){ev.preventDefault();ev.stopImmediatePropagation();close();}if(ev.key==='Tab'){var bs=qa('button:not(:disabled),input,textarea,select,summary').filter(function(el){return el.getClientRects().length;});if(!bs.length)return;var f=bs[0],l=bs[bs.length-1];if(ev.shiftKey&&document.activeElement===f){ev.preventDefault();l.focus();}else if(!ev.shiftKey&&document.activeElement===l){ev.preventDefault();f.focus();}}}
  window.addEventListener('keydown',keys,true);
  function draw(){
- overlay.innerHTML='<div class="se819-sheet"><header><div><small>TEACHER · WORD LIST</small><h2>编辑词表</h2></div><button data-edit-close>取消</button><button data-edit-save>保存</button><button class="se819-primary" data-edit-teach>保存并 Teaching →</button></header><main>'+listBar()+'<label>词表标题<input data-edit-title maxlength="120" value="'+e(draft.title)+'" placeholder="给词表一个标题"></label><details class="se819-smart"'+(active().length?'':' open')+'><summary>✨ 智能建词条 · 本地生成拼音、英文、例句</summary><div class="se819-themes">'+THEMES.map(function(t,i){return '<button type="button" data-edit-theme="'+i+'">'+t[1]+' '+e(t[0])+' <small>'+t[2].length+'</small></button>';}).join('')+'</div><label>或粘贴课文 / 段落，自动找出里面的词语<textarea data-edit-passage rows="2" placeholder="例如：今天我们上数学课和音乐课，下课后我和朋友去公园跑步。"></textarea></label><div class="se819-actions"><button data-edit-extract>🔎 提取词语</button><span>只在本机分析，不联网</span></div><div data-edit-picks></div></details><details class="se819-add"'+(active().length?'':' open')+'><summary>＋ 批量添加词汇</summary><label>直接加中文词汇<textarea data-edit-words rows="2" placeholder="跑步，看书，画画，听音乐，唱歌，游泳，跳舞，骑车"></textarea></label><div class="se819-actions"><button class="se819-primary" data-edit-add>＋ 添加词卡</button><span>正面中文 · 背面本地拼音 · 无需联网</span></div></details><div class="se819-toolbar"><strong data-edit-count>'+active().length+' 张词卡</strong><button data-edit-fill>补齐缺少的拼音</button><button data-edit-fill-en>🔤 一键补英文副标题</button><button data-edit-sents>✍ 一键造句</button><button data-edit-fillimg>🖼 一键配图</button><button data-edit-all-pinyin>背面一键用拼音</button></div><p class="se819-note">拼音可直接修改，多音字请核对。原有释义保留，切换“释义 / 自定义”可继续编辑。图片只在你手动选择时添加。</p><p data-edit-status role="status" aria-live="polite"></p><div data-edit-rows></div><div class="se819-one"><input data-edit-one maxlength="120" placeholder="输入一个词，回车添加；留空则加一张空白词卡"><button class="se819-primary" data-edit-one-add>＋ 添加词卡</button></div><div class="se819-go"><span>保存后去：</span><button data-edit-go="ten">🎮 十关课堂游戏</button><button data-edit-go="prep">🧠 智能备课</button><button data-edit-go="wall">🖼 搜图墙</button><button data-edit-go="teach">▦ Teaching 活动</button></div>'+ (draft.cards.some(function(c){return c.teachingArchived;})?'<details class="se819-archived"><summary>已收起的词卡（可恢复）</summary>'+draft.cards.filter(function(c){return c.teachingArchived;}).map(function(c){return '<p>'+e(c.title)+' <button data-edit-restore="'+e(c.id)+'">恢复</button></p>';}).join('')+'</details>':'')+'</main></div>';
+ overlay.innerHTML='<div class="se819-sheet"><header><div><small>TEACHER · WORD LIST</small><h2>编辑词表</h2></div><button data-edit-close>取消</button><button data-edit-save>保存</button><button class="se819-primary" data-edit-teach>保存并上课 →</button></header><main>'+listBar()+'<label>词表标题<input data-edit-title maxlength="120" value="'+e(draft.title)+'" placeholder="给词表一个标题"></label><details class="se819-smart"'+(active().length?'':' open')+'><summary>✨ 智能建词条 · 本地生成拼音、英文、例句</summary><div class="se819-themes">'+THEMES.map(function(t,i){return '<button type="button" data-edit-theme="'+i+'">'+t[1]+' '+e(t[0])+' <small>'+t[2].length+'</small></button>';}).join('')+'</div><label>或粘贴课文 / 段落，自动找出里面的词语<textarea data-edit-passage rows="2" placeholder="例如：今天我们上数学课和音乐课，下课后我和朋友去公园跑步。"></textarea></label><div class="se819-actions"><button data-edit-extract>🔎 提取词语</button><span>只在本机分析，不联网</span></div><div data-edit-picks></div></details><details class="se819-add"'+(active().length?'':' open')+'><summary>＋ 批量添加词汇</summary><label>直接加中文词汇<textarea data-edit-words rows="2" placeholder="跑步，看书，画画，听音乐，唱歌，游泳，跳舞，骑车"></textarea></label><div class="se819-actions"><button class="se819-primary" data-edit-add>＋ 添加词卡</button><span>正面中文 · 背面本地拼音 · 无需联网</span></div></details><div class="se819-toolbar"><strong data-edit-count>'+active().length+' 张词卡</strong><button data-edit-fill>补齐缺少的拼音</button><button data-edit-fill-en>🔤 一键补英文副标题</button><button data-edit-sents>✍ 一键造句</button><button data-edit-fillimg>🖼 一键配图</button><button data-edit-all-pinyin>背面一键用拼音</button></div><p class="se819-note">拼音可直接修改，多音字请核对。原有释义保留，切换“释义 / 自定义”可继续编辑。图片只在你手动选择时添加。</p><p data-edit-status role="status" aria-live="polite"></p><div data-edit-rows></div><div class="se819-one"><input data-edit-one maxlength="120" placeholder="输入一个词，回车添加；留空则加一张空白词卡"><button class="se819-primary" data-edit-one-add>＋ 添加词卡</button></div><div class="se819-go"><span>保存后去：</span><button data-edit-go="ten">🎮 十关课堂游戏</button><button data-edit-go="prep">🧠 智能备课</button><button data-edit-go="wall">🖼 搜图墙</button><button data-edit-go="teach">▦ 课堂活动</button></div>'+ (draft.cards.some(function(c){return c.teachingArchived;})?'<details class="se819-archived"><summary>已收起的词卡（可恢复）</summary>'+draft.cards.filter(function(c){return c.teachingArchived;}).map(function(c){return '<p>'+e(c.title)+' <button data-edit-restore="'+e(c.id)+'">恢复</button></p>';}).join('')+'</details>':'')+'</main></div>';
  q('[data-edit-title]').oninput=function(){draft.title=this.value;};q('[data-edit-close]').onclick=close;q('[data-edit-save]').onclick=function(){commit(false);};q('[data-edit-teach]').onclick=function(){commit(true);};
  q('[data-edit-add]').onclick=function(){var text=q('[data-edit-words]').value,words=parse(text),existing=new Set(draft.cards.map(function(c){return norm(c.title);}));if(!words.length){status('先输入词语，用逗号、顿号或换行分隔。',true);return;}if(words.length+active().length>200||words.some(function(w){return w.length>120;})){status('每个词表最多200词，每词最多120字。',true);return;}var n=0;words.forEach(function(w){if(existing.has(norm(w)))return;var py=localPinyin(w);draft.cards.push({id:uid(),title:w,desc:py||'',pinyin:py,teachingBack:py?'pinyin':'text',labels:[],complete:false,__editorBack:'',en:enLocal(w)});existing.add(norm(w));n++;});draw();status('已加入 '+n+' 张；跳过 '+(words.length-n)+' 个重复词。保存后即可选择模板。');};
  q('[data-edit-one-add]').onclick=function(){addOne(q('[data-edit-one]').value);};q('[data-edit-one]').onkeydown=function(ev){if(ev.key==='Enter'){ev.preventDefault();addOne(this.value);}};
@@ -137871,9 +137871,9 @@ function localImage(file){return new Promise(function(resolve,reject){var r=new 
 
 /* Teaching home: list actions stay beside the list, sharing the library's storage. */
 function teacher(body){
- var panel=document.createElement('section'),archived=false,busy=false,dragged=null;
- panel.className='mlv-card';panel.setAttribute('data-teaching-sets','');
- var legacy=document.createElement('details');legacy.innerHTML='<summary style="cursor:pointer;padding:16px">Live classroom & more</summary>';
+ var panel=document.createElement('section'),archived=false,busy=false,dragged=null,filter='';
+ panel.className='mlv-card tl-library';var host=body.closest('.mlv');if(host)host.classList.add('mlv-teacher');body.classList.add('tl-dashboard');panel.setAttribute('data-teaching-sets','');
+ var legacy=document.createElement('details');legacy.className='tl-live';legacy.innerHTML='<summary><span>🎮</span><div><b>Live 课堂与学生作业</b><small>选择游戏、生成数字 Code、查看课堂结果</small></div><i aria-hidden="true">⌄</i></summary>';
  while(body.firstChild)legacy.appendChild(body.firstChild);body.append(panel,legacy);
  function message(text){var p=panel.querySelector('[data-set-error]');if(p)p.textContent=text||'';}
  async function flush(){if(window.MinestTeachingStorage)await window.MinestTeachingStorage.flush();}
@@ -137882,13 +137882,18 @@ function teacher(body){
  }
  function render(){
   var b;try{b=read();}catch(e){panel.textContent=e.message;return;}
-  var columns=b.columns.filter(function(c){return !!c.teachingListArchived===archived;});
-  panel.innerHTML='<div class="mlv-row" style="margin:0 0 20px"><button class="mlv-btn" data-teaching-templates>Teaching</button><button class="mlv-btn alt" data-teaching-ec6>EC–6</button></div>'
-   +'<h2>Word Lists</h2><div class="tl-toolbar"><button class="mlv-btn alt" data-set-json>Import JSON</button><button class="mlv-btn alt" data-teaching-export="">Export All</button><button class="mlv-btn alt" data-set-scope></button><label class="tl-sort">Sort <select data-set-sort><option value="">Manual</option><option value="title">Name</option><option value="count">Word count</option></select></label></div>'
-   +'<p data-set-error role="status"></p><div data-set-json-panel hidden></div><div class="tl-create"><label>Title<input data-set-title placeholder="Word list title" maxlength="120"></label><label>Words <small>(optional)</small><textarea data-set-words rows="2" placeholder="One word per line, or separate with commas"></textarea></label><button class="mlv-btn" data-set-create>New List</button></div><div data-set-items></div>';
+  var active=b.columns.filter(function(c){return !c.teachingListArchived;}),wordCount=active.reduce(function(n,c){return n+c.cards.filter(function(w){return !w.teachingArchived;}).length;},0);
+  var columns=b.columns.filter(function(c){return !!c.teachingListArchived===archived&&(!filter||(c.title+' '+c.cards.map(function(w){return w.title;}).join(' ')).toLocaleLowerCase().includes(filter.toLocaleLowerCase()));});
+  panel.innerHTML='<div class="tl-hero"><div><span class="tl-eyebrow">MINEST · TEACHER</span><h1>教师工作台</h1><p>整理词卡，准备活动，开启你的课堂。</p></div><div class="tl-quick"><button class="mlv-btn" data-teaching-templates>▦ 课堂活动</button><button class="mlv-btn alt" data-teaching-ec6>EC–6 教学</button><button class="mlv-btn alt" data-set-live>🎮 Live 课堂</button></div></div>'
+   +'<div class="tl-stats"><div><span>📚 我的词表</span><strong>'+active.length+'</strong></div><div><span>✦ 可用词卡</span><strong>'+wordCount+'</strong></div><div><span>▣ 已归档</span><strong>'+(b.columns.length-active.length)+'</strong></div></div>'
+   +'<div class="tl-section-head"><div><h2>我的教学词表</h2><p>先选一份词表，再开始编辑或上课。</p></div><button class="mlv-btn alt" data-wordlists-open>管理全部词表 ↗</button></div>'
+   +'<div class="tl-toolbar"><label class="tl-search"><span class="tl-sr">搜索词表或词语</span><input data-set-search type="search" placeholder="搜索词表或词语"></label><button class="mlv-btn alt" data-set-json>↓ 导入 JSON</button><button class="mlv-btn alt" data-teaching-export="">↑ 导出全部</button><button class="mlv-btn alt" data-set-scope></button><label class="tl-sort">排序 <select data-set-sort><option value="">手动顺序</option><option value="title">名称</option><option value="count">词数最多</option></select></label></div>'
+   +'<p data-set-error role="status" aria-live="polite"></p><div data-set-json-panel hidden></div><details class="tl-create"'+(active.length?'':' open')+'><summary>＋ 新建教学词表</summary><div class="tl-create-fields"><label>词表名称<input data-set-title placeholder="例如：校园生活" maxlength="120"></label><label>词语 <small>（可留空）</small><textarea data-set-words rows="2" placeholder="每行一个词，或用逗号分隔"></textarea></label><button class="mlv-btn" data-set-create>创建词表</button></div></details><div data-set-items></div>';
+  panel.querySelector('[data-set-live]').onclick=function(){legacy.open=true;legacy.scrollIntoView({block:'start',behavior:'smooth'});};
+  var search=panel.querySelector('[data-set-search]');search.value=filter;search.oninput=function(event){if(event&&event.isComposing)return;var pos=this.selectionStart;filter=this.value;render();var input=panel.querySelector('[data-set-search]');input.focus();if(typeof pos==='number')input.setSelectionRange(pos,pos);};search.oncompositionend=search.oninput;
   function enter(audience){var saved=read();window.MinestLive.close();open({board:saved,listId:saved.selected},{audience:audience});}
   panel.querySelector('[data-teaching-templates]').onclick=function(){enter('student');};panel.querySelector('[data-teaching-ec6]').onclick=function(){enter('ec6');};
-  var scope=panel.querySelector('[data-set-scope]');scope.textContent=archived?'Lists ('+b.columns.filter(function(c){return !c.teachingListArchived;}).length+')':'Archive ('+b.columns.filter(function(c){return c.teachingListArchived;}).length+')';
+  var scope=panel.querySelector('[data-set-scope]');scope.textContent=archived?'查看使用中的词表':'归档词表 · '+(b.columns.length-active.length);scope.setAttribute('aria-pressed',String(archived));
   scope.onclick=function(){archived=!archived;render();};
   panel.querySelector('[data-set-sort]').onchange=function(){var mode=this.value;if(mode)run(function(){return window.MinestWordlists.sort(mode,archived);});};
   panel.querySelector('[data-set-json]').onclick=function(){
@@ -137900,26 +137905,26 @@ function teacher(body){
   };
   var items=panel.querySelector('[data-set-items]');
   columns.forEach(function(c,index){
-   var row=document.createElement('div');row.className='tl-row';row.setAttribute('data-set-row',c.id);
-   var label=document.createElement('strong');label.className='tl-title';var count=c.cards.filter(function(w){return !w.teachingArchived;}).length;label.textContent=c.title+' · '+count+(count===1?' word':' words');
-   var actions=document.createElement('div');actions.className='tl-actions';row.append(label,actions);
-   function button(text,fn,attr){var el=document.createElement('button');el.type='button';el.className='mlv-btn alt';el.textContent=text;if(attr)el.setAttribute(attr,c.id);el.onclick=fn;actions.appendChild(el);return el;}
-   button('Edit',function(){edit(c.id,{onSave:render});},'data-set-edit');
-   button('Export',null,'data-teaching-export');
-   var teach=button('Teaching',function(){window.MinestLive.close();open({board:read(),listId:c.id});});teach.className='mlv-btn';teach.disabled=!c.cards.some(function(w){return !w.teachingArchived;});
-   var solo=button('Solo',function(){try{arcade(c.id);}catch(e){message(e.message);}},'data-set-arcade');solo.disabled=teach.disabled;
+   var row=document.createElement('div');row.className='tl-row';row.dataset.tone=index%4;row.setAttribute('data-set-row',c.id);
+   var label=document.createElement('div');label.className='tl-title';var count=c.cards.filter(function(w){return !w.teachingArchived;}).length;var title=document.createElement('strong');title.textContent=c.title;var meta=document.createElement('small');meta.textContent=count+' 张词卡';var preview=document.createElement('p');preview.textContent=c.cards.filter(function(w){return !w.teachingArchived;}).slice(0,4).map(function(w){return w.title;}).join(' · ')||'添加词卡，开始准备课堂';label.append(title,meta,preview);
+   var badge=document.createElement('span');badge.className='tl-list-icon';badge.setAttribute('aria-hidden','true');badge.textContent=['📚','✏️','🌟','🎨'][index%4];var actions=document.createElement('div');actions.className='tl-actions';row.append(badge,label,actions);var more=document.createElement('details');more.className='tl-more';more.innerHTML='<summary aria-label="更多词表操作">更多 ···</summary><div class="tl-menu"></div>';more.querySelector('summary').setAttribute('aria-label','更多操作：'+c.title);actions.appendChild(more);
+   function button(text,fn,attr){var el=document.createElement('button');el.type='button';el.className='mlv-btn alt';el.textContent=text;if(attr)el.setAttribute(attr,c.id);el.onclick=fn;if(/^(data-teaching-export|data-set-up|data-set-down|data-set-archive|data-set-delete)$/.test(attr||''))more.querySelector('.tl-menu').appendChild(el);else actions.insertBefore(el,more);return el;}
+   button('编辑备课',function(){edit(c.id,{onSave:render});},'data-set-edit');
+   button('导出词表',null,'data-teaching-export');
+   var teach=button('开始上课',function(){window.MinestLive.close();open({board:read(),listId:c.id});});teach.className='mlv-btn';teach.disabled=!c.cards.some(function(w){return !w.teachingArchived;});
+   var solo=button('学生闯关',function(){try{arcade(c.id);}catch(e){message(e.message);}},'data-set-arcade');solo.disabled=teach.disabled;
    var handle=button('⠿',null,'data-set-drag');handle.draggable=true;handle.setAttribute('aria-label','Reorder '+c.title);handle.classList.add('tl-handle');
    var up=button('↑',function(){if(index>0)run(function(){return window.MinestWordlists.move(c.id,columns[index-1].id);});},'data-set-up');up.disabled=index===0;up.setAttribute('aria-label','Move up '+c.title);
    var down=button('↓',function(){if(index<columns.length-1)run(function(){return window.MinestWordlists.move(c.id,columns[index+1].id);});},'data-set-down');down.disabled=index===columns.length-1;down.setAttribute('aria-label','Move down '+c.title);
-   button(archived?'Restore':'Archive',function(){run(function(){return window.MinestWordlists.archive(c.id,!archived);});},'data-set-archive');
-   var del=button('Delete',function(){if(window.confirm('Delete “'+c.title+'” and its words permanently? Export a backup first if needed.'))run(function(){return window.MinestWordlists.remove(c.id);});},'data-set-delete');del.classList.add('tl-delete');
+   button(archived?'恢复词表':'归档词表',function(){run(function(){return window.MinestWordlists.archive(c.id,!archived);});},'data-set-archive');
+   var del=button('删除词表',function(){if(window.confirm('Delete “'+c.title+'” and its words permanently? Export a backup first if needed.'))run(function(){return window.MinestWordlists.remove(c.id);});},'data-set-delete');del.classList.add('tl-delete');
    handle.ondragstart=function(e){dragged=c.id;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',c.id);row.classList.add('tl-dragging');};
    row.ondragover=function(e){if(dragged&&dragged!==c.id){e.preventDefault();row.classList.add('tl-drop');}};row.ondragleave=function(){row.classList.remove('tl-drop');};
    row.ondrop=function(e){e.preventDefault();row.classList.remove('tl-drop');if(dragged&&dragged!==c.id){var from=dragged;dragged=null;run(function(){return window.MinestWordlists.move(from,c.id);});}};
    handle.ondragend=function(){dragged=null;panel.querySelectorAll('.tl-drop,.tl-dragging').forEach(function(r){r.classList.remove('tl-drop','tl-dragging');});};items.appendChild(row);
   });
-  if(!columns.length){var empty=document.createElement('p');empty.textContent=archived?'No archived lists.':'No word lists yet.';items.appendChild(empty);}
-  panel.querySelector('[data-set-create]').onclick=function(){var title=panel.querySelector('[data-set-title]').value.trim(),words=panel.querySelector('[data-set-words]').value;if(!title){message('Enter a title.');return;}run(async function(){create(title,words);await flush();archived=false;});};
+  if(!columns.length){var empty=document.createElement('p');empty.className='tl-empty';empty.textContent=filter?'没有匹配的词表，试试其他关键词。':archived?'还没有归档词表。':'还没有教学词表，从新建或导入开始吧。';items.appendChild(empty);}
+  panel.querySelector('[data-set-create]').onclick=function(){var title=panel.querySelector('[data-set-title]').value.trim(),words=panel.querySelector('[data-set-words]').value;if(!title){message('请先填写词表名称。');return;}run(async function(){create(title,words);await flush();archived=false;});};
  }
  render();
 }
@@ -181707,14 +181712,15 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock
  function newPanel(){var p=modal.querySelector('[data-wm-panel]');p.hidden=false;p.innerHTML='<form data-wm-new><label>词表名称<input name="title" required maxlength="120" placeholder="例如：Word work"></label><label>词语（可留空）<textarea name="words" rows="3" placeholder="每行一个词，或用逗号分隔"></textarea></label><button type="submit" class="wm-primary">创建词表</button></form>';p.querySelector('form').onsubmit=function(e){e.preventDefault();var title=this.elements.title.value.trim(),words=this.elements.words.value;if(!title)return;perform(async function(){await ready();S().create(title,words);await flush();archived=false;filter='';});};p.querySelector('input').focus();}
  function draw(){
   if(!modal)return;var b=S().read(),all=b.columns||[],rows=all.filter(function(c){return !!c.teachingListArchived===archived&&(!filter||String(c.title||'').toLocaleLowerCase().includes(filter.toLocaleLowerCase()));});
-  modal.innerHTML='<header><div><small>MINEST · VOCABULARY</small><h2>词表管理</h2></div><button data-wm-close aria-label="关闭词表管理">✕</button></header>'
+  modal.innerHTML='<header><div><small>MINEST · TEACHER</small><h2>教学词表库</h2></div><button data-wm-close aria-label="关闭词表管理">✕</button></header>'
+   +'<div class="wm-summary"><span>📚 <b>'+all.filter(function(c){return !c.teachingListArchived;}).length+'</b> 份使用中的词表</span><span>✦ <b>'+all.filter(function(c){return !c.teachingListArchived;}).reduce(function(n,c){return n+(c.cards||[]).filter(function(w){return !w.teachingArchived;}).length;},0)+'</b> 张可用词卡</span></div>'
    +'<div class="wm-toolbar"><button class="wm-primary" data-wm-create>＋ 新建词表</button><button data-wm-import>导入 JSON</button><button data-wm-export>导出全部词表</button><label class="wm-search"><span class="wm-sr">搜索词表</span><input data-wm-search value="'+escape(filter)+'" placeholder="搜索词表"></label></div>'
-   +'<div class="wm-options"><div role="group" aria-label="词表范围"><button data-wm-active aria-pressed="'+!archived+'">词表 · '+all.filter(function(c){return !c.teachingListArchived;}).length+'</button><button data-wm-archive-tab aria-pressed="'+archived+'">Archive · '+all.filter(function(c){return c.teachingListArchived;}).length+'</button></div><label>排序 <select data-wm-sort><option value="">手动顺序</option><option value="title">名称</option><option value="count">词数最多</option></select></label></div>'
+   +'<div class="wm-options"><div role="group" aria-label="词表范围"><button data-wm-active aria-pressed="'+!archived+'">词表 · '+all.filter(function(c){return !c.teachingListArchived;}).length+'</button><button data-wm-archive-tab aria-pressed="'+archived+'">已归档 · '+all.filter(function(c){return c.teachingListArchived;}).length+'</button></div><label>排序 <select data-wm-sort><option value="">手动顺序</option><option value="title">名称</option><option value="count">词数最多</option></select></label></div>'
    +'<p data-wm-message role="status"></p><main class="wm-scroll"><section data-wm-panel hidden></section><div class="wm-list">'
-   +rows.map(function(c,i){return '<article data-wm-row="'+escape(c.id)+'"><div class="wm-info"><strong>'+escape(c.title)+'</strong><small>'+(c.cards||[]).filter(function(w){return !w.teachingArchived;}).length+' 词</small></div><div class="wm-actions"><button data-wm-edit="'+escape(c.id)+'">编辑</button><button data-wm-one-export="'+escape(c.id)+'">导出</button><button class="wm-handle" draggable="true" data-wm-drag="'+escape(c.id)+'" aria-label="拖动排序 '+escape(c.title)+'">⠿</button><button data-wm-up="'+escape(c.id)+'" aria-label="上移 '+escape(c.title)+'" '+(i===0?'disabled':'')+'>↑</button><button data-wm-down="'+escape(c.id)+'" aria-label="下移 '+escape(c.title)+'" '+(i===rows.length-1?'disabled':'')+'>↓</button><button data-wm-archive="'+escape(c.id)+'">'+(archived?'恢复':'Archive')+'</button><button class="wm-danger" data-wm-delete="'+escape(c.id)+'">Delete</button></div></article>';}).join('')
+   +rows.map(function(c,i){return '<article data-tone="'+(i%4)+'" data-wm-row="'+escape(c.id)+'"><div class="wm-info"><strong>'+escape(c.title)+'</strong><small>'+(c.cards||[]).filter(function(w){return !w.teachingArchived;}).length+' 词</small></div><div class="wm-actions"><button class="wm-primary" data-wm-edit="'+escape(c.id)+'">编辑</button><details class="wm-more"><summary aria-label="更多词表操作">更多 ···</summary><div class="wm-menu"><button data-wm-one-export="'+escape(c.id)+'">导出</button><button class="wm-handle" draggable="true" data-wm-drag="'+escape(c.id)+'" aria-label="拖动排序 '+escape(c.title)+'">⠿</button><button data-wm-up="'+escape(c.id)+'" aria-label="上移 '+escape(c.title)+'" '+(i===0?'disabled':'')+'>↑</button><button data-wm-down="'+escape(c.id)+'" aria-label="下移 '+escape(c.title)+'" '+(i===rows.length-1?'disabled':'')+'>↓</button><button data-wm-archive="'+escape(c.id)+'">'+(archived?'恢复':'归档')+'</button><button class="wm-danger" data-wm-delete="'+escape(c.id)+'">删除词表</button></div></details></div></article>';}).join('')
    +(rows.length?'':'<p class="wm-empty">'+(filter?'没有匹配的词表。':archived?'还没有归档词表。':'还没有词表，点击上方新建或导入 JSON。')+'</p>')+'</div></main><footer>拖动 ⠿ 或使用 ↑ ↓ 调整顺序 · 归档后可恢复</footer>';
   var q=function(s){return modal.querySelector(s);};q('[data-wm-close]').onclick=close;q('[data-wm-create]').onclick=newPanel;q('[data-wm-import]').onclick=importPanel;q('[data-wm-export]').onclick=function(){try{window.MinestTeachingExport.download();}catch(e){say(e.message);}};
-  q('[data-wm-search]').oninput=function(){var pos=this.selectionStart;filter=this.value;draw();var input=modal.querySelector('[data-wm-search]');input.focus();input.setSelectionRange(pos,pos);};
+  q('[data-wm-search]').oninput=function(event){if(event&&event.isComposing)return;var pos=this.selectionStart;filter=this.value;draw();var input=modal.querySelector('[data-wm-search]');input.focus();input.setSelectionRange(pos,pos);};q('[data-wm-search]').oncompositionend=q('[data-wm-search]').oninput;
   q('[data-wm-active]').onclick=function(){archived=false;draw();};q('[data-wm-archive-tab]').onclick=function(){archived=true;draw();};q('[data-wm-sort]').onchange=function(){var mode=this.value;if(mode)perform(function(){return sort(mode);});};
   modal.querySelectorAll('[data-wm-row]').forEach(function(row){
    var id=row.getAttribute('data-wm-row'),at=rows.findIndex(function(c){return c.id===id;});
@@ -196626,5 +196632,128 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   window.MinestV2Routes = { open: open, close: function () { close(); }, isOpen: function () { return !!ov; }, dyn: dyn, version: '1.1' };
 })();
 </script><!-- mn-v2-routes:end -->
+<style id="minest-teacher-blooket-ui">
+/* Shared teacher surfaces. Student play, progress and data stores are untouched. */
+:where(.mlv-teacher,#mn-set-editor,#minest-wordlists,#mn-teacher-manager){--tb-purple:#6927d7;--tb-deep:#4c199c;--tb-ink:#302443;--tb-muted:#796a8c;--tb-line:#e5dbf3;--tb-paper:#fff;--tb-bg:#f5f0fc;font-family:"Nunito","PingFang SC",-apple-system,system-ui,sans-serif}
+.mlv.mlv-teacher{background:var(--tb-bg);color:var(--tb-ink)}
+.mlv.mlv-teacher .mlv-top{background:var(--tb-purple);border:0;box-shadow:0 5px 0 #4c199c;color:#fff;padding:16px max(24px,env(safe-area-inset-left));min-height:82px;gap:14px}
+.mlv.mlv-teacher .mlv-brand{font-family:"Titan One","Nunito",sans-serif;font-size:clamp(19px,2.5vw,27px);letter-spacing:.2px}
+.mlv.mlv-teacher .mlv-x{background:#ffffff20;color:#fff;border:2px solid #ffffff40;border-radius:14px;box-shadow:0 4px 0 #37127d;padding:11px 16px;font-weight:900}
+.mlv.mlv-teacher .mlv-body{max-width:1220px;width:100%;margin:0 auto;padding:32px 28px 60px;color:var(--tb-ink)}
+.mlv.mlv-teacher .mlv-card{background:#fff;color:var(--tb-ink);border:2px solid var(--tb-line);border-radius:22px;box-shadow:0 5px 0 #e5dbf0;padding:24px}
+.mlv.mlv-teacher :is(h2,h3){color:var(--tb-ink);font-family:"Nunito","PingFang SC",system-ui,sans-serif;font-weight:900}
+.mlv.mlv-teacher :is(.sub,.dim){color:var(--tb-muted);line-height:1.6}
+.mlv.mlv-teacher :is(input,textarea,select){background:#fff;color:var(--tb-ink);border:2px solid var(--tb-line);border-radius:12px;min-height:44px;font:800 14px/1.5 "Nunito",system-ui,sans-serif;padding:10px 13px;max-width:100%;box-sizing:border-box}
+.mlv.mlv-teacher .mlv-btn{--tb-button:#6927d7;--tb-edge:#4c199c;background:var(--tb-button);color:#fff;border:0;border-radius:12px;box-shadow:0 4px 0 var(--tb-edge);padding:11px 16px;font:900 14px/1.3 "Nunito","PingFang SC",system-ui,sans-serif;min-height:44px;text-transform:none;letter-spacing:0;cursor:pointer;transition:transform .12s,box-shadow .12s,background .12s}
+.mlv.mlv-teacher .mlv-btn.alt{background:#f4eefc;color:#6727be;box-shadow:0 4px 0 #dfd0f2;border:1px solid #e7dcf6}
+.mlv.mlv-teacher .mlv-btn:hover:not(:disabled){filter:brightness(1.04);transform:translateY(-1px)}
+.mlv.mlv-teacher .mlv-btn:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--tb-edge)}
+.mlv.mlv-teacher :is(button,input,select,textarea,summary):focus-visible,#minest-wordlists :is(button,input,select,textarea,summary):focus-visible,#mn-set-editor :is(button,input,select,textarea,summary):focus-visible{outline:3px solid #f9be38;outline-offset:4px}
+.mlv.mlv-teacher .mlv-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.mlv.mlv-teacher .mlv-chip{border:2px solid var(--tb-line);background:#fff;color:var(--tb-ink);border-radius:12px;padding:10px 13px;font-weight:900;box-shadow:0 3px 0 #e6dcf3}
+.mlv.mlv-teacher .mlv-chip.on{background:#eee3ff;border-color:#8544df;color:#54229d;box-shadow:0 3px 0 #c9a7ef}
+.mlv.mlv-teacher .mlv-row{gap:10px}
+/* Teaching home */
+.mlv.mlv-teacher .tl-library{background:transparent;border:0;padding:0;box-shadow:none}
+.tl-hero{position:relative;isolation:isolate;overflow:hidden;background:#6927d7;border-radius:24px;padding:30px 32px;color:#fff;display:flex;justify-content:space-between;align-items:center;gap:26px;box-shadow:0 7px 0 #501baa;margin-bottom:26px}
+.tl-hero::after{content:"";position:absolute;z-index:-1;width:260px;height:260px;border:40px solid #ffffff0d;border-radius:50%;right:-70px;top:-130px;pointer-events:none}
+.tl-eyebrow{font-size:11px;font-weight:900;letter-spacing:2px;color:#e3d0ff}
+.tl-hero h1{font-size:clamp(26px,4vw,38px);line-height:1.25;margin:8px 0 10px;font-weight:900;letter-spacing:-.5px}
+.tl-hero p{margin:0;color:#e9ddff;font-size:14px;font-weight:800;line-height:1.7}
+.tl-quick{display:flex;gap:10px;align-items:center;flex-wrap:wrap;max-width:360px;justify-content:flex-end}
+.mlv.mlv-teacher .tl-quick .mlv-btn{background:#ffbc32;color:#492b0e;box-shadow:0 4px 0 #c38318}
+.mlv.mlv-teacher .tl-quick .mlv-btn.alt{background:#fff;color:#6123be;box-shadow:0 4px 0 #d3b3ff;border:0}
+.tl-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:0 0 32px}
+.tl-stats>div{background:#fff;border:2px solid var(--tb-line);border-radius:18px;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;gap:10px;box-shadow:0 4px 0 #e7def2}
+.tl-stats span{font-size:13px;font-weight:900;color:#79678c}
+.tl-stats strong{font-size:30px;font-weight:900;line-height:1;color:#7b36d8;font-variant-numeric:tabular-nums}
+.tl-stats>div:nth-child(2) strong{color:#169c87}.tl-stats>div:nth-child(3) strong{color:#df9214}
+.tl-section-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}
+.tl-section-head h2{margin:0 0 5px;font-size:24px}.tl-section-head p{margin:0;color:var(--tb-muted);font-size:13px;font-weight:700}
+[data-teaching-sets] .tl-toolbar{display:flex;flex-wrap:wrap;background:#fff;border:2px solid var(--tb-line);border-radius:18px;padding:14px;gap:10px;margin-bottom:18px;align-items:center}
+[data-teaching-sets] .tl-sort{display:inline-flex;align-items:center;margin:0;gap:7px;font-size:12px;font-weight:900;color:var(--tb-muted)}
+[data-teaching-sets] .tl-sort select{max-width:135px;padding:8px 10px;font-size:13px;border:2px solid var(--tb-line)}
+.tl-search{flex:1 1 220px;min-width:150px}.tl-search input{width:100%}
+.tl-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+[data-teaching-sets] .tl-create{border:2px dashed #d5bced;background:#eee5fa;border-radius:18px;padding:0;margin-bottom:22px;color:#6025ae}
+.tl-create>summary{cursor:pointer;list-style:none;min-height:56px;padding:17px 20px;font-size:14px;font-weight:900}
+.tl-create>summary::-webkit-details-marker{display:none}.tl-create[open]>summary{border-bottom:1px solid #d8c7eb}
+.tl-create-fields{padding:18px;display:grid;grid-template-columns:1fr 1.5fr auto;gap:16px;align-items:end}
+.tl-create-fields label{display:block;font-size:13px;font-weight:900}.tl-create-fields input,.tl-create-fields textarea{display:block;width:100%;margin-top:7px;min-height:47px}.tl-create-fields small{color:var(--tb-muted)}
+[data-teaching-sets] [data-set-items]{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+[data-teaching-sets] .tl-row{margin:0;padding:22px;display:grid;grid-template-columns:50px minmax(0,1fr);gap:16px;align-items:start;background:#fff;border:2px solid var(--tb-line);border-radius:20px;box-shadow:0 5px 0 #e5dbf0;min-width:0}
+.tl-list-icon{display:grid;place-items:center;width:50px;height:52px;font-size:25px;border-radius:14px;background:#efe6ff;border-bottom:4px solid #dfccfa}
+[data-tone="1"] .tl-list-icon{background:#dff5f3;border-color:#bbe6df}[data-tone="2"] .tl-list-icon{background:#fff0cf;border-color:#f9dda1}[data-tone="3"] .tl-list-icon{background:#ffe3ec;border-color:#f3c3d4}
+[data-teaching-sets] .tl-title{display:block;min-width:0;overflow-wrap:anywhere}.tl-title>strong{font-size:18px;font-weight:900;line-height:1.4;display:block}.tl-title>small{font-size:12px;font-weight:900;color:#8655bd;display:block;margin-top:5px}.tl-title>p{font-size:12px;line-height:1.6;color:var(--tb-muted);font-weight:700;margin:10px 0 0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+[data-teaching-sets] .tl-actions{grid-column:1/-1;gap:9px;display:flex;align-items:start;flex-wrap:wrap;padding-top:6px}
+[data-teaching-sets] .tl-actions .mlv-btn{font-family:"Nunito","PingFang SC",system-ui,sans-serif;font-weight:900;min-height:42px;font-size:13px;line-height:1.3;padding:10px 13px}
+[data-teaching-sets] .tl-actions>.mlv-btn:not(.alt){background:#10a58a;box-shadow:0 4px 0 #087d69}
+[data-teaching-sets] .tl-actions .tl-handle{padding:8px 10px;min-width:36px;font-size:19px;cursor:grab;order:4}
+.tl-more{margin-left:auto;min-width:74px}.tl-more>summary,.wm-more>summary{list-style:none;cursor:pointer;padding:10px 12px;border:1px solid #e4d9f2;border-radius:12px;background:#f6f1fc;color:#765293;font-weight:900;font-size:13px;min-height:42px;box-sizing:border-box}
+.tl-more>summary::-webkit-details-marker,.wm-more>summary::-webkit-details-marker{display:none}
+.tl-menu{padding-top:10px;display:grid;grid-template-columns:1fr;gap:8px;min-width:120px}.tl-more:not([open]) .tl-menu,.wm-more:not([open]) .wm-menu{display:none}
+[data-teaching-sets] .tl-menu .mlv-btn{font-size:12px;white-space:normal}
+[data-teaching-sets] .tl-menu .tl-delete{color:#b74764;background:#fff1f4;box-shadow:0 3px 0 #f2d1da;border:1px solid #f1d5df}
+[data-teaching-sets] .tl-empty{grid-column:1/-1;background:#fff;border:2px dashed #d9c8ef;border-radius:20px;text-align:center;padding:44px 20px;color:var(--tb-muted);font-weight:800}
+.tl-live{border:2px solid var(--tb-line);border-radius:22px;background:#fff;margin-top:30px;box-shadow:0 5px 0 #e5dbf0;overflow:hidden}
+.tl-live>summary{display:flex;align-items:center;gap:16px;padding:22px 24px;cursor:pointer;list-style:none;background:#fff}
+.tl-live>summary>span{font-size:29px;background:#fff0cc;border-radius:14px;padding:10px}.tl-live>summary>div{flex:1}.tl-live>summary b{font-size:18px;display:block;color:var(--tb-ink);font-weight:900}.tl-live>summary small{font-size:12px;color:var(--tb-muted);display:block;margin-top:5px}.tl-live>summary i{font-style:normal;color:#8b57c6;font-size:24px}
+.tl-live[open]>summary{border-bottom:2px solid var(--tb-line)}.tl-live>.mlv-card,.tl-live>.mlv-grid{margin:20px}.tl-live>.mlv-grid .mlv-card{box-shadow:none}
+/* Word list manager: same vocabulary library and handlers. */
+#minest-wordlists{width:min(1120px,calc(100% - 32px));height:min(900px,calc(100dvh - 36px));border:0;border-radius:24px;background:var(--tb-bg);color:var(--tb-ink);box-shadow:0 20px 80px #24103a66;font-family:"Nunito","PingFang SC",system-ui,sans-serif}
+#minest-wordlists::backdrop{background:#24103ca6;backdrop-filter:blur(8px)}
+#minest-wordlists header{background:var(--tb-purple);color:#fff;padding:24px 28px;border:0;box-shadow:0 5px 0 var(--tb-deep);z-index:1}
+#minest-wordlists header small{color:#dbc4fb;font-weight:900;letter-spacing:2px;font-size:10px}#minest-wordlists header h2{font-size:27px;font-weight:900;margin-top:6px}#minest-wordlists header button{background:#ffffff22;color:#fff;border:1px solid #ffffff40;min-width:44px;min-height:44px;font-size:18px}
+#minest-wordlists .wm-summary{display:flex;gap:26px;flex-wrap:wrap;padding:23px 26px 0;color:#806896;font-size:13px;font-weight:800}#minest-wordlists .wm-summary b{font-size:20px;color:#7433cb;margin:0 4px;font-weight:900}
+#minest-wordlists button{font-weight:900;border-radius:12px;min-height:43px;border:1px solid #e2d5f1;color:#6b3c9f;background:#fff;box-shadow:0 3px 0 #e1d4f0;padding:10px 14px;line-height:1.3}
+#minest-wordlists button:hover:not(:disabled){background:#f1e8fc;border-color:#b58cde;transform:translateY(-1px)}#minest-wordlists button:disabled{opacity:.4;cursor:not-allowed}
+#minest-wordlists .wm-primary{color:#fff;background:var(--tb-purple);border-color:var(--tb-purple);box-shadow:0 4px 0 var(--tb-deep)}#minest-wordlists .wm-primary:hover:not(:disabled){background:#7738dc}
+#minest-wordlists .wm-toolbar{padding:20px 26px 14px;gap:10px}#minest-wordlists .wm-options{padding:0 26px 18px;gap:14px;color:var(--tb-muted);font-weight:800;font-size:12px}#minest-wordlists .wm-options>div{display:flex;gap:8px}
+#minest-wordlists [aria-pressed="true"]{background:#eee0ff;border-color:#b58cde;color:#6225ae;box-shadow:0 3px 0 #d5b5ee}
+#minest-wordlists :is(input,textarea,select){background:white;color:var(--tb-ink);border:2px solid var(--tb-line);border-radius:12px;font-weight:700;padding:10px 12px;min-height:44px}
+#minest-wordlists .wm-scroll{padding:0 26px 26px}#minest-wordlists .wm-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+#minest-wordlists article{padding:20px;display:flex;flex-direction:column;align-items:stretch;gap:16px;border:2px solid var(--tb-line);border-radius:18px;margin:0;box-shadow:0 4px 0 #e5dbf0}
+#minest-wordlists .wm-info strong{font-size:18px;font-weight:900}#minest-wordlists .wm-info small{color:#8962b1;font-weight:800;margin-top:7px}#minest-wordlists .wm-actions{justify-content:flex-start;align-items:start;gap:10px}
+#minest-wordlists .wm-more{margin-left:auto}#minest-wordlists .wm-menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding-top:10px;max-width:280px}#minest-wordlists .wm-menu button{font-size:12px;padding:8px 10px}
+#minest-wordlists .wm-danger{color:#b74764;background:#fff1f4;border-color:#f1d5df;box-shadow:0 3px 0 #f2d1da}
+#minest-wordlists [data-wm-panel]:not([hidden]){background:#eee5fa;border:2px solid #ddcaef;border-radius:18px;padding:20px}#minest-wordlists [data-wm-panel] label{font-size:13px;font-weight:900;color:#65487e}
+#minest-wordlists footer{background:#fff;border-top:2px solid var(--tb-line);color:#8c769f;font-weight:700;padding:14px 26px;font-size:12px}
+#minest-wordlists .wm-empty{grid-column:1/-1;padding:40px 20px;border:2px dashed #d9c8ef;border-radius:18px;background:#fff;color:var(--tb-muted)}
+/* Full editor, including its advanced preparation tools. */
+#mn-set-editor{background:#26133d99;backdrop-filter:blur(8px);color:var(--tb-ink)}
+#mn-set-editor .se819-sheet{background:var(--tb-bg);border:0;border-radius:24px;box-shadow:0 20px 80px #24103a55}
+#mn-set-editor .se819-sheet>header{background:var(--tb-purple);color:#fff;padding:20px 24px;border:0;gap:12px;flex-wrap:wrap;box-shadow:0 4px 0 var(--tb-deep)}
+#mn-set-editor header :is(h2,small){color:#fff}#mn-set-editor header h2{font-size:25px;font-weight:900}#mn-set-editor header small{color:#dbc4fb;letter-spacing:1.4px;font-weight:900}
+#mn-set-editor button{border:1px solid #ddcdef;border-radius:12px;background:white;color:#6c3b9e;box-shadow:0 3px 0 #e3d6f0;min-height:40px;font-family:inherit;font-weight:900;padding:9px 13px}
+#mn-set-editor button.se819-primary{background:var(--tb-purple);color:#fff;border-color:var(--tb-purple);box-shadow:0 4px 0 var(--tb-deep)}
+#mn-set-editor header button{background:#fff;color:#6827bc;border:0;box-shadow:0 3px 0 #d6b4ff}#mn-set-editor header .se819-primary{background:#ffbc32;color:#492b0e;box-shadow:0 4px 0 #c38318}
+#mn-set-editor :is(input,textarea,select){background:#fff;color:var(--tb-ink);border:2px solid var(--tb-line);border-radius:12px;font-family:inherit;min-height:42px}
+#mn-set-editor :is(.se819-card,.se819-smart,.se819-add){background:#fff;border:2px solid var(--tb-line);border-radius:18px;box-shadow:0 4px 0 #e5dbf0}
+#mn-set-editor :is(.se819-smart,.se819-add)>summary{color:#6d329e;font-weight:900;padding:16px}
+#mn-set-editor .se819-card-top{border-bottom:1px solid var(--tb-line);color:#7033bd}#mn-set-editor .se819-toolbar{gap:10px;flex-wrap:wrap;border-radius:16px;background:#eee4fb;padding:16px}
+#mn-set-editor :is(.se819-note,.se819-status){color:var(--tb-muted)}#mn-set-editor .se819-image{background:#f2ebfc;border-radius:14px;color:#8e70a8}
+#mn-set-editor .se819-go{background:#eee4fb;border:2px solid var(--tb-line);border-radius:16px;padding:16px;gap:10px}
+/* Teacher manager and activity library use the same visual vocabulary. */
+#mn-teacher-manager .teacher-manager-modal{max-width:1040px;background:var(--tb-bg);color:var(--tb-ink);border-radius:24px}
+#mn-teacher-manager .teacher-manager-header{background:var(--tb-purple);padding:22px 24px;gap:12px;flex-wrap:wrap;box-shadow:0 4px 0 var(--tb-deep)}
+#mn-teacher-manager .teacher-manager-header h2{font-family:inherit;font-size:22px;font-weight:900;margin-right:auto}
+#mn-teacher-manager .teacher-sync-card{background:#fff;border:2px solid var(--tb-line);box-shadow:0 4px 0 #e5dbf0}
+#mn-teacher-manager .teacher-list-card{background:#fff;border:2px solid var(--tb-line);box-shadow:0 4px 0 #e5dbf0;border-radius:18px}
+#mn-teacher-manager .teacher-list-card.is-active{border-color:#a76ae4;background:#f8f1ff}#mn-teacher-manager .teacher-btn{font-family:inherit;min-height:42px;border-radius:12px}
+#mn-templates:not(.tt-quest824){--tt-bg:#f5f0fc;--tt-card:#fff;--tt-line:#e5dbf3;--tt-ink:#302443;--tt-muted:#796a8c;--tt-accent:#6927d7;font-family:"Nunito","PingFang SC",system-ui,sans-serif;background:#f5f0fc;color:#302443}
+#mn-templates:not(.tt-quest824)>header{background:#6927d7;color:#fff;border:0;box-shadow:0 4px 0 #4c199c;padding-top:16px;padding-bottom:16px;gap:12px}
+#mn-templates:not(.tt-quest824)>header :is(button,select){border:1px solid #ffffff40;background:#ffffff15;color:#fff;border-radius:12px;font-weight:800}#mn-templates:not(.tt-quest824)>header option{background:white;color:#302443}
+#mn-templates:not(.tt-quest824) .tt-template{background:#fff;color:#302443;border:2px solid #e5dbf3;border-radius:20px;box-shadow:0 5px 0 #e5dbf0;transition:transform .15s}
+#mn-templates:not(.tt-quest824) .tt-template:hover{transform:translateY(-3px);border-color:#bd95e7}#mn-templates:not(.tt-quest824) .tt-template>span{border-radius:14px;background:#efe4ff;color:#7537c5}
+#mn-templates:not(.tt-quest824) .tt-lead{color:#796a8c}#mn-templates:not(.tt-quest824) .tt-primary{background:#6927d7;color:#fff;border:0;box-shadow:0 4px 0 #4c199c;border-radius:12px}
+@media(max-width:900px){[data-teaching-sets] [data-set-items]{grid-template-columns:1fr}.tl-hero{align-items:flex-start;flex-direction:column;padding:26px}.tl-quick{justify-content:flex-start;max-width:none}.tl-create-fields{grid-template-columns:1fr 1fr}.tl-create-fields>.mlv-btn{grid-column:1/-1;justify-self:start}.tl-stats>div{padding:16px}.tl-stats span{font-size:12px}.tl-stats strong{font-size:26px}}
+@media(max-width:640px){.mlv.mlv-teacher .mlv-top{padding:14px 16px;min-height:70px}.mlv.mlv-teacher .mlv-brand{font-size:18px}.mlv.mlv-teacher .mlv-x{font-size:12px;padding:10px}.mlv.mlv-teacher .mlv-body{padding:22px 14px 40px}.tl-hero{padding:24px 20px;border-radius:20px;margin-bottom:22px}.tl-hero h1{font-size:29px}.tl-quick{width:100%;gap:9px}.tl-quick .mlv-btn{flex:1 1 100px;font-size:12px;padding:10px}.tl-stats{gap:9px;margin-bottom:26px}.tl-stats>div{display:block;padding:13px 11px;border-radius:14px}.tl-stats span{display:block;font-size:11px;white-space:nowrap}.tl-stats strong{display:block;font-size:26px;margin-top:12px}.tl-section-head{align-items:flex-start;flex-wrap:wrap;gap:12px}.tl-section-head h2{font-size:21px}.tl-section-head .mlv-btn{font-size:12px;min-height:38px}[data-teaching-sets] .tl-toolbar{padding:12px;gap:9px}.tl-search{flex-basis:100%}[data-teaching-sets] .tl-toolbar .mlv-btn{min-height:40px;font-size:12px;padding:9px 12px}.tl-create-fields{grid-template-columns:1fr}[data-teaching-sets] .tl-row{padding:18px;gap:13px}[data-teaching-sets] .tl-actions{width:auto;gap:9px}.tl-title>strong{font-size:17px}.tl-more{margin-left:0}.tl-live>summary{padding:18px 16px}.tl-live>summary b{font-size:16px}.tl-live>.mlv-card,.tl-live>.mlv-grid{margin:14px}#minest-wordlists{width:calc(100% - 16px);height:calc(100dvh - 16px);border-radius:20px}#minest-wordlists header{padding:20px}#minest-wordlists header h2{font-size:23px}#minest-wordlists .wm-summary{padding:21px 18px 0;gap:10px 20px;font-size:12px}#minest-wordlists .wm-toolbar{padding:16px 16px 14px;gap:9px}#minest-wordlists .wm-options{padding:0 16px 16px;flex-wrap:wrap}#minest-wordlists .wm-options>div{gap:7px}#minest-wordlists .wm-scroll{padding:0 16px 20px}#minest-wordlists .wm-list{grid-template-columns:1fr}#minest-wordlists article{padding:18px}#minest-wordlists .wm-actions button{min-height:42px}#minest-wordlists footer{padding:12px 16px;font-size:11px}#mn-set-editor .se819-sheet{border-radius:18px}#mn-set-editor .se819-sheet>header{padding:16px;gap:9px}#mn-set-editor header h2{font-size:21px}#mn-set-editor header button{font-size:12px;padding:9px 11px}#mn-set-editor .se819-toolbar button{font-size:12px}#mn-teacher-manager .teacher-manager-header{padding:18px}#mn-teacher-manager .teacher-manager-header h2{font-size:19px}}
+@media(prefers-reduced-motion:reduce){:where(.mlv-teacher,#mn-set-editor,#minest-wordlists) *{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+
+@media(max-width:640px){.mlv.mlv-teacher .tl-quick .mlv-btn{white-space:nowrap;font-size:12px;padding:10px 9px;min-width:0;flex:1 1 auto}}
+
+:where(.mlv-teacher,#mn-set-editor,#minest-wordlists,#mn-teacher-manager) [hidden]{display:none!important}
+
+</style>
 </body>
 </html>
