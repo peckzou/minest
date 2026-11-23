@@ -27,7 +27,7 @@
     '夜晚的博物馆里，一幅达·芬奇风格的画像会对观众眨眼，还会讲画里的秘密。',
     '坐小船游览一条运河，经过风车村、灯笼桥和一座小城堡，每一站都有人讲一句话。'
   ];
-  var LIMITS = { objects: 40, clips: 80, zones: 8, route: 12, title: 40, name: 30, text: 60, voice: 1500, tap: 300, summary: 600, ideaMin: 2, ideaMax: 1200, editMax: 800, lenMin: 10, lenMax: 300, table: 14.5 };
+  var LIMITS = { objects: 40, clips: 80, zones: 8, route: 12, title: 40, name: 30, text: 60, voice: 1500, tap: 300, summary: 600, ideaMin: 2, ideaMax: 1200, editMax: 800, lenMin: 10, lenMax: 300, lenOutMax: 1800, table: 14.5 };
   var STORE_IDEA = 'minest_imagineer_idea', STORE_EDIT = 'minest_imagineer_edit';
 
   /* ---------------------------------------------------------------- small helpers */
@@ -59,13 +59,16 @@
   function request(op, body, options) {
     options = options || {};
     var timeoutMs = options.timeout || 90000, retries = options.retries == null ? 1 : options.retries, attempt = 0;
+    var timedOut = function () { return errOf('AI 在 ' + Math.round(timeoutMs / 1000) + ' 秒内没有回应', 'TIMEOUT'); };
     function once() {
       return headers().then(function (h) {
         var ctl = root.AbortController ? new root.AbortController() : null;
         var timer = setTimeout(function () { if (ctl) ctl.abort(); }, timeoutMs);
+        /* The API sends a space immediately and then a heartbeat every eight seconds, so fetch resolves
+         * before the model answers. Keep the timer alive through the body read, and treat a failed body
+         * read as a transport error so a stalled or dropped stream can still be retried. */
         return fetch(endpoint(op), { method: 'POST', headers: h, body: JSON.stringify(body || {}), signal: ctl ? ctl.signal : undefined })
           .then(function (r) {
-            clearTimeout(timer);
             return r.text().then(function (raw) {
               var d = null; try { d = raw ? JSON.parse(raw) : {}; } catch (e) { d = { error: String(raw || '').slice(0, 200) }; }
               if (!r.ok) {
@@ -76,12 +79,15 @@
               }
               if (!d || typeof d !== 'object' || Array.isArray(d)) throw errOf('AI 返回了无法识别的内容', 'BAD_RESPONSE');
               return d;
+            }, function () {
+              if (ctl && ctl.signal && ctl.signal.aborted) throw timedOut();
+              throw errOf('AI 回答中断了，请重试', 'NETWORK');
             });
           }, function (e) {
-            clearTimeout(timer);
-            if (e && (e.name === 'AbortError' || e.code === 'ABORT_ERR' || e.name === 'TimeoutError')) throw errOf('AI 在 ' + Math.round(timeoutMs / 1000) + ' 秒内没有回应', 'TIMEOUT');
+            if (e && (e.name === 'AbortError' || e.code === 'ABORT_ERR')) throw timedOut();
             throw errOf('AI 没有连上，请检查网络后重试', 'NETWORK');
-          });
+          })
+          .then(function (d) { clearTimeout(timer); return d; }, function (e) { clearTimeout(timer); throw e; });
       }).catch(function (e) {
         var retryable = e && (e.code === 'NETWORK' || e.code === 'TIMEOUT' || e.code === 'HTTP' && (e.status === 429 || (e.status >= 500 && e.status < 600)));
         if (retryable && attempt < retries) { attempt++; return delay(600 * attempt).then(once); }
@@ -149,7 +155,9 @@
       else if (c.track === 'music' && MUSIC.indexOf(c.op) >= 0) { x.t1 = Math.max(t0 + 1, t1); if (o) x.target = tg; ok = true; }
       else if (c.track === 'action' && ACTIONS.indexOf(c.op) >= 0 && o && canLive(o.kind)) { x.t1 = Math.max(t0 + 1, t1); x.target = tg; ok = true; }
       else if (c.track === 'voice' && o && o.life) {
-        var text = oneLine(c.text || (o.life.voice && o.life.voice.text), 600);
+        /* An explicit clip line is capped at 600; otherwise the character keeps its full stored script
+         * (up to 1,500), because the player speaks that full script when the clip has no text. */
+        var text = c.text ? oneLine(c.text, 600) : oneLine(o.life.voice && o.life.voice.text, LIMITS.voice);
         if (!text) { dropClip++; return; }
         x.op = 'speak'; x.target = tg; if (c.text) x.text = text;
         x.t1 = t0 + (E.sayTime ? E.sayTime({ text: text, rate: o.life.voice.rate }) : Math.max(1.5, text.length / 4));
@@ -159,7 +167,9 @@
       x.t1 = +x.t1.toFixed(1); clips.push(x);
     });
     clips.forEach(function (c) { if (c.t1 > len) len = Math.ceil(c.t1 + 2); });
-    len = n(len, LIMITS.lenMin, LIMITS.lenMax, 30);
+    /* A full character script can run for minutes; the output length may grow past the plan's
+     * 300-second input limit so the player never cuts a speech off mid-sentence. */
+    len = n(len, LIMITS.lenMin, LIMITS.lenOutMax, 30);
     var zones = [];
     arr(plan.zones).slice(0, LIMITS.zones).forEach(function (z, i) {
       if (!z) { dropZone++; return; }
@@ -242,14 +252,14 @@
     if (!msg) return '';
     return '<p class="dw-ierr" role="status" aria-live="polite">' + esc(msg) + (retry ? ' <button type="button" class="dw-btn" data-retry="' + retry + '">' + esc(label || '再试一次') + '</button>' : '') + '</p>';
   }
-  function renderEdit(state, msg) {
+  function renderEdit(state, msg, retry) {
     var b = $('#dw-ibody'), w = root.DWApp.work(), h = modes();
     h += '<p class="dw-muted">直接告诉 Imagineer 想怎么改「' + esc(w ? w.title : '') + '」。它用固定的编辑工具改动沙盘里的东西、触发区、声音、灯光和时间轴，不会重做整个世界；改完可以一步撤销。</p>';
     h += '<label class="dw-f">对 Imagineer 说<textarea id="dw-cmd" rows="3" maxlength="' + LIMITS.editMax + '" placeholder="例如：' + esc(EDITS[0]) + '"></textarea></label>';
     h += '<div class="dw-chips">' + EDITS.map(function (x, i) { return '<button type="button" class="dw-chip" data-cx="' + i + '">' + esc(x.slice(0, 13)) + '…</button>'; }).join('') + '</div>';
     h += '<button type="button" class="dw-btn dw-main" id="dw-cgo"' + (state === 'busy' || busy ? ' disabled' : '') + '>' + (state === 'busy' || busy ? '✨ Imagineer 正在修改…' : '✨ 照这样改') + '</button>';
     h += '<p class="dw-muted dw-hint">小提示：按 Ctrl / ⌘ + Enter 直接提交。</p>';
-    if (msg) h += statusLine(msg, 'edit');
+    if (msg) h += statusLine(msg, retry ? 'edit' : '');
     if (lastEdit) h += '<div class="dw-iplan"><h3>' + (lastEdit.by === 'ai' ? '✨ Imagineer 改好了' : '📝 本地理解，已经改好') + '</h3>' + (lastEdit.reply ? '<p>' + esc(lastEdit.reply) + '</p>' : '') + '<ul>' + lastEdit.done.map(function (d) { return '<li>' + esc(d) + '</li>'; }).join('') + '</ul><div class="dw-row"><button type="button" class="dw-btn" id="dw-cundo">↶ 撤销这次修改</button><button type="button" class="dw-btn" id="dw-cplay">▶ 成为观众试试</button></div></div>';
     b.innerHTML = h; var ta = $('#dw-cmd'); if (ta && renderEdit.text) ta.value = renderEdit.text;
   }
@@ -257,9 +267,11 @@
   function finishEdit(ops, by, reply, note) {
     var done = [];
     try { root.DWApp.edit(function (wk) { done = root.DWEdit.apply(wk, ops); }); }
-    catch (e) { busy = false; return renderEdit('', '修改没有落下去：' + ((e && e.message) || '未知错误')); }
-    if (!done.length) { try { root.DWApp.undo(true); } catch (e) {} lastEdit = null; busy = false; return renderEdit('', (note ? note + '。' : '') + '没找到可以照着改的地方，换个说法试试（比如：加两排观众席、灯光暖一点、三米内开始演讲）。'); }
-    lastEdit = { by: by, done: done, reply: reply }; busy = false; renderEdit('', note);
+    catch (e) { busy = false; return renderEdit('', '修改没有落下去：' + ((e && e.message) || '未知错误'), true); }
+    if (!done.length) { try { root.DWApp.undo(true); } catch (e) {} lastEdit = null; busy = false; return renderEdit('', (note ? note + '。' : '') + '没找到可以照着改的地方，换个说法试试（比如：加两排观众席、灯光暖一点、三米内开始演讲）。', true); }
+    /* The fallback note stays, but a successful local edit must not offer Retry: the command was
+     * already applied, and pressing it again would add the same rows twice. */
+    lastEdit = { by: by, done: done, reply: reply }; busy = false; renderEdit('', note, false);
   }
   function runEdit() {
     if (busy) return;
@@ -272,7 +284,7 @@
       .catch(function (e) {
         var ops = null; try { ops = root.DWEdit.local(text, w); } catch (err) {}
         if (ops) finishEdit(ops, 'local', '', (e && e.message) || 'AI 没有连上');
-        else { busy = false; renderEdit('', ((e && e.message) || 'AI 没有连上') + '，本地也没读懂这句话。试试：加两排观众席、灯光暖一点、变成夜晚、三米内开始演讲。'); }
+        else { busy = false; renderEdit('', ((e && e.message) || 'AI 没有连上') + '，本地也没读懂这句话。试试：加两排观众席、灯光暖一点、变成夜晚、三米内开始演讲。', true); }
       });
   }
   function render(state, msg) {
