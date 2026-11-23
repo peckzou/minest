@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>世界圣殿教堂小岛 · Cathedrals' Island (Top 20: 15 天主教 + 5 新式)</title>
+<style>
+  :root { --ink:#fff; --gold:#f59e0b; --sky:#38bdf8; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; overflow:hidden; background:#0b1120; touch-action:none;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC","Microsoft YaHei",sans-serif; color:var(--ink); user-select:none; }
+  #gl { position:fixed; inset:0; width:100%; height:100%; display:block; outline:none; }
+  .panel { background:rgba(12,18,32,.78); border:1px solid rgba(255,255,255,.16); border-radius:14px; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
+
+  #loading { position:fixed; inset:0; z-index:90; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+    background:radial-gradient(circle at 50% 25%, #1e3a5f 0%, #090d16 85%); transition:opacity .65s; padding:20px; text-align:center; }
+  #loading.done { opacity:0; pointer-events:none; }
+  #loading .badge { padding:5px 14px; border-radius:999px; background:rgba(245,158,11,.18); border:1px solid rgba(245,158,11,.5); color:#fbbf24; font-size:12px; font-weight:800; }
+  #loading h1 { margin:0; font-size:clamp(26px,5.5vw,50px); background:linear-gradient(135deg,#fde68a,#f59e0b,#38bdf8); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  #bar { width:min(380px,78vw); height:10px; border-radius:999px; border:1px solid rgba(255,255,255,.22); background:rgba(15,23,42,.8); overflow:hidden; }
+  #bar i { display:block; height:100%; width:0; background:linear-gradient(90deg,#f59e0b,#38bdf8); transition:width .18s; }
+  #loadMsg { font-size:13px; color:#fde68a; }
+
+  #hud { position:fixed; inset:0; pointer-events:none; z-index:10; }
+  #title { position:absolute; left:12px; top:10px; display:flex; align-items:center; gap:8px; pointer-events:auto; }
+  #title-card { padding:6px 10px 6px 12px; display:flex; align-items:center; gap:10px; border-radius:999px; background:rgba(12,18,32,.72); border:1px solid rgba(255,255,255,.16); }
+  #title b { font-size:13.5px; color:#fde68a; }
+  #compass-top-btn { padding:5px 12px; border-radius:999px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#090d16; font-weight:900; font-size:11.5px; border:none; cursor:pointer; }
+  #compass-top-btn:hover { filter:brightness(1.08); }
+
+  #crosshair { position:absolute; left:50%; top:50%; width:14px; height:14px; margin:-7px 0 0 -7px; display:none; opacity:.72; }
+  #crosshair:before,#crosshair:after { content:""; position:absolute; background:rgba(255,255,255,.85); }
+  #crosshair:before { left:6px; top:1px; width:2px; height:12px; }
+  #crosshair:after { top:6px; left:1px; height:2px; width:12px; }
+
+  #mmWrap { position:absolute; right:12px; top:10px; padding:5px; pointer-events:auto; border-radius:12px; background:rgba(12,18,32,.72); border:1px solid rgba(255,255,255,.15); }
+  #mm { display:block; width:112px; height:112px; border-radius:8px; border:1px solid rgba(255,255,255,.14); }
+  #timeBox { margin-top:4px; font-size:10.5px; display:flex; align-items:center; gap:5px; color:#cbd5e1; }
+  #timeBox input { flex:1; accent-color:#f59e0b; min-width:0; cursor:pointer; height:3px; }
+
+  #hint { position:absolute; left:12px; bottom:62px; padding:8px 12px; font-size:11.5px; line-height:1.55; color:#e2e8f0; display:none; }
+  #hint.show { display:block; }
+
+  #ci-portal-prompt {
+    position:fixed; left:50%; bottom:62px; transform:translateX(-50%); z-index:25; display:none; align-items:center; gap:8px;
+    padding:8px 18px; border-radius:999px; background:rgba(12,18,32,.88); border:1.5px solid rgba(245,158,11,.85);
+    color:#fde68a; font-weight:800; font-size:12.5px; cursor:pointer; pointer-events:auto; backdrop-filter:blur(10px);
+  }
+
+  #hotbar { position:absolute; left:50%; bottom:10px; transform:translateX(-50%); display:flex; gap:4px; padding:4px 6px;
+    background:rgba(12,18,32,.74); border:1px solid rgba(255,255,255,.16); border-radius:999px; pointer-events:auto; backdrop-filter:blur(10px); }
+  .slot { position:relative; width:36px; height:36px; background:rgba(51,65,85,.45); border:1px solid rgba(255,255,255,.12);
+    border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer; transition:all .14s; }
+  .slot:hover { background:rgba(71,85,105,.9); transform:translateY(-2px); }
+  .slot em { position:absolute; top:-28px; left:50%; transform:translateX(-50%); font-style:normal; font-size:11px; white-space:nowrap;
+    opacity:0; color:#fde68a; background:rgba(12,18,32,.92); padding:3px 8px; border-radius:6px; pointer-events:none; }
+  .slot:hover em { opacity:1; }
+  .slot.on { border-color:#f59e0b; background:rgba(245,158,11,.28); }
+
+  #toast { position:absolute; left:50%; top:56px; transform:translateX(-50%); padding:5px 14px; font-size:12px; opacity:0;
+    transition:opacity .28s; color:#fde68a; border-radius:999px; background:rgba(12,18,32,.82); border:1px solid rgba(245,158,11,.35); }
+  #toast.show { opacity:1; }
+
+  /* ---------- Compass & Encyclopedia Modal ---------- */
+  #ci-modal-overlay { position:fixed; inset:0; z-index:80; display:none; align-items:center; justify-content:center;
+    background:rgba(2,6,23,.74); backdrop-filter:blur(8px); padding:16px; pointer-events:auto; }
+  #ci-modal-content { width:min(860px,96vw); max-height:86dvh; overflow-y:auto; background:linear-gradient(165deg,#0f172a,#1e293b);
+    border:1.5px solid rgba(245,158,11,.42); border-radius:18px; padding:20px; box-shadow:0 18px 56px rgba(0,0,0,.6); }
+  .ci-m-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:14px; }
+  .ci-m-head h2 { margin:0; font-size:20px; color:#fde68a; }
+  .ci-m-sub { margin:4px 0 0; font-size:12.5px; color:#cbd5e1; }
+  .ci-m-close { background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2); color:#fff; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:15px; }
+  .ci-filter-bar { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .ci-fbtn { padding:6px 14px; border-radius:999px; background:rgba(30,41,59,.9); border:1px solid rgba(255,255,255,.18); color:#cbd5e1; font-size:12.5px; font-weight:700; cursor:pointer; }
+  .ci-fbtn.on { background:linear-gradient(135deg,#f59e0b,#d97706); color:#090d16; border-color:#f59e0b; }
+  .ci-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(248px,1fr)); gap:10px; }
+  .ci-card { background:rgba(15,23,42,.82); border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:6px; }
+  .ci-card.visited { border-color:rgba(245,158,11,.48); }
+  .ci-card-top { display:flex; justify-content:space-between; align-items:center; font-size:11px; }
+  .ci-badge { padding:2px 8px; border-radius:999px; font-weight:800; }
+  .ci-badge.cath { background:rgba(245,158,11,.18); color:#fde68a; border:1px solid rgba(245,158,11,.4); }
+  .ci-badge.mod { background:rgba(56,189,248,.18); color:#7dd3fc; border:1px solid rgba(56,189,248,.45); }
+  .ci-city { color:#94a3b8; }
+  .ci-card-name { font-size:15px; font-weight:800; color:#fff; }
+  .ci-card-meta { font-size:11.5px; color:#94a3b8; line-height:1.4; }
+  .ci-card-btns { display:flex; gap:6px; margin-top:4px; }
+  .ci-btn { flex:1; padding:6px 8px; border-radius:8px; background:rgba(51,65,85,.7); border:1px solid rgba(255,255,255,.15); color:#e2e8f0; font-size:11.5px; font-weight:700; cursor:pointer; }
+  .ci-btn.gold { background:linear-gradient(135deg,#f59e0b,#d97706); color:#090d16; border:none; }
+  .ci-wiki-body { font-size:13.5px; line-height:1.65; color:#e2e8f0; }
+  .ci-quote-box { padding:12px 14px; border-left:3px solid #f59e0b; background:rgba(245,158,11,.1); border-radius:8px; color:#fef3c7; margin-bottom:14px; }
+  .ci-hl-list { margin:6px 0 14px; padding-left:20px; }
+  .ci-lab-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+
+  /* ---------- Playable Sacred Pipe Organ Mini-Studio ---------- */
+  .ci-organ-box { margin-top:12px; padding:12px 14px; border-radius:12px; background:linear-gradient(180deg,rgba(20,16,12,.92),rgba(12,18,32,.95));
+    border:1px solid rgba(245,158,11,.38); }
+  .ci-organ-top { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+  .ci-organ-top b { color:#fde68a; font-size:13px; }
+  .ci-organ-note { font-size:11.5px; color:#7dd3fc; background:rgba(56,189,248,.12); padding:2px 9px; border-radius:999px; border:1px solid rgba(56,189,248,.3); }
+  .ci-kbd { position:relative; display:flex; height:92px; gap:2px; user-select:none; }
+  .ci-key-w { position:relative; flex:1; background:linear-gradient(180deg,#fffef8 0%,#efe6d2 100%); border:1px solid #9a8668;
+    border-radius:0 0 6px 6px; cursor:pointer; display:flex; align-items:flex-end; justify-content:center; padding-bottom:5px;
+    color:#574734; font-size:10px; font-weight:800; transition:transform .06s, background .08s; }
+  .ci-key-w:hover { background:linear-gradient(180deg,#fff9e6 0%,#fde68a 100%); }
+  .ci-key-w.active { background:linear-gradient(180deg,#fde68a 0%,#f59e0b 100%); color:#090d16; transform:translateY(2px); }
+  .ci-key-b { position:absolute; top:0; width:7.2%; height:56px; z-index:4; background:linear-gradient(180deg,#27272a 0%,#09090b 100%);
+    border:1px solid #475569; border-radius:0 0 5px 5px; cursor:pointer; color:#94a3b8; font-size:9px; display:flex; align-items:flex-end;
+    justify-content:center; padding-bottom:4px; transition:transform .06s, background .08s; }
+  .ci-key-b:hover { background:linear-gradient(180deg,#3f3f46 0%,#18181b 100%); color:#fde68a; }
+  .ci-key-b.active { background:linear-gradient(180deg,#f59e0b 0%,#b45309 100%); color:#090d16; transform:translateY(2px); }
+  .ci-organ-songs { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+
+  /* ---------- Bottom 3D Architect RPG Dialogue Dock ---------- */
+  #ci-rpg-dialogue { position:fixed; left:50%; bottom:12px; transform:translateX(-50%) translateY(120%); width:min(780px,95vw); max-height:36vh;
+    z-index:75; background:rgba(10,16,28,.9); border:1.5px solid rgba(245,158,11,.55); border-radius:16px; padding:12px 14px;
+    backdrop-filter:blur(12px); transition:transform .24s ease; pointer-events:auto; display:flex; flex-direction:column; gap:8px; }
+  #ci-rpg-dialogue.open { transform:translateX(-50%) translateY(0); }
+  .ci-rpg-head { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
+  .ci-rpg-title { display:flex; align-items:baseline; gap:8px; }
+  #ci-rpg-name { font-size:15px; font-weight:800; color:#fde68a; }
+  #ci-rpg-era { font-size:12px; color:#94a3b8; }
+  #ci-rpg-stance { font-size:11.5px; color:#7dd3fc; }
+  .ci-rpg-acts { display:flex; gap:6px; }
+  .ci-rpg-btn { padding:4px 10px; border-radius:8px; background:rgba(51,65,85,.75); border:1px solid rgba(255,255,255,.16); color:#fff; font-size:11.5px; font-weight:700; cursor:pointer; }
+  .ci-rpg-btn.gold { background:linear-gradient(135deg,#f59e0b,#d97706); color:#090d16; border:none; }
+  #ci-rpg-log { overflow-y:auto; max-height:110px; display:flex; flex-direction:column; gap:6px; font-size:13px; line-height:1.5; }
+  .ci-msg.npc { color:#fef3c7; background:rgba(245,158,11,.1); padding:6px 10px; border-radius:8px; }
+  .ci-msg.user { color:#7dd3fc; align-self:flex-end; background:rgba(56,189,248,.14); padding:5px 10px; border-radius:8px; }
+  #ci-rpg-chips { display:flex; gap:6px; flex-wrap:wrap; }
+  .ci-chip { padding:4px 10px; border-radius:999px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); color:#e2e8f0; font-size:11.5px; cursor:pointer; }
+  .ci-chip:hover { border-color:#f59e0b; color:#fde68a; }
+  .ci-rpg-input-row { display:flex; gap:6px; }
+  #ci-rpg-input { flex:1; background:rgba(15,23,42,.9); border:1px solid rgba(255,255,255,.2); border-radius:8px; color:#fff; padding:6px 10px; font-size:12.5px; outline:none; }
+  #ci-rpg-send { padding:6px 14px; border-radius:8px; background:#f59e0b; color:#090d16; font-weight:800; border:none; cursor:pointer; }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="loading">
+  <div class="badge">TOP 20 WORLD CATHEDRALS · 15 CATHOLIC + 5 MODERN</div>
+  <h1>世界圣殿教堂小岛</h1>
+  <div id="bar"><i></i></div>
+  <div id="loadMsg">正在初始化圣殿小岛…</div>
+</div>
+
+<div id="hud">
+  <div id="title">
+    <div id="title-card">
+      <b>⛪ 教堂小岛</b>
+      <button id="compass-top-btn">🧭 罗盘 <span id="ci-visited-count">0 / 20</span></button>
+    </div>
+  </div>
+  <div id="crosshair"></div>
+  <div id="mmWrap">
+    <canvas id="mm" width="112" height="112"></canvas>
+    <div id="timeBox">☀️<input id="timeSlider" type="range" min="0" max="24" step="0.1" value="10.6"></div>
+  </div>
+  <div id="hint" class="panel"><b>WASD</b> 移动 · <b>鼠标</b> 转向 · <b>E</b> 对话<br><b>M</b> 教堂罗盘 · <b>F</b> 飞行 · <b>T</b> 光影 · <b>Esc</b> 退出</div>
+  <div id="toast"></div>
+  <div id="hotbar"></div>
+</div>
+
+<button id="ci-portal-prompt"><span class="ci-pp-title">💬 按 E 与建筑大师对话</span></button>
+
+<div id="ci-rpg-dialogue">
+  <div class="ci-rpg-head">
+    <div>
+      <div class="ci-rpg-title"><span id="ci-rpg-name"></span><span id="ci-rpg-era"></span></div>
+      <div id="ci-rpg-stance"></div>
+    </div>
+    <div class="ci-rpg-acts">
+      <button class="ci-rpg-btn gold" id="ci-rpg-open-wiki">📚 建筑百科</button>
+      <button class="ci-rpg-btn" id="ci-rpg-organ">🎵 管风琴</button>
+      <button class="ci-rpg-btn" id="ci-rpg-close">✕ 关闭</button>
+    </div>
+  </div>
+  <div id="ci-rpg-log"></div>
+  <div id="ci-rpg-chips"></div>
+  <div class="ci-rpg-input-row">
+    <input id="ci-rpg-input" type="text" placeholder="向建筑大师提问（结构、彩窗光影、历史、管风琴…）">
+    <button id="ci-rpg-send">发送</button>
+  </div>
+</div>
+
+<div id="ci-modal-overlay"><div id="ci-modal-content"></div></div>
+
+<script src="vendor/three.min.js"></script>
+<script src="ci-world/world.js"></script>
+<script src="ci-world/textures.js"></script>
+<script src="ci-world/mesher.js"></script>
+<script src="ci-world/props.js"></script>
+<script src="ci-world/portals.js"></script>
+<script src="ci-world/app.js"></script>
+</body>
+</html>

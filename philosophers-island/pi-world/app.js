@@ -320,8 +320,9 @@
   function spawnPhilosopherNPCs() {
     world.PHILOSOPHERS.forEach((p, idx) => {
       // Place each Philosopher NPC directly INSIDE their Exhibition Hall!
-      const startX = p.x + 1.15;
-      const startZ = p.z + 0.55;
+      // For Plato's School of Athens, stand Plato gracefully by the left forecourt colonnade so the central Raphael sightline stays 100% pure!
+      const startX = p.id === 'plato' ? p.x - 10.4 : p.x + 1.15;
+      const startZ = p.id === 'plato' ? p.z + 15.2 : p.z + 0.55;
       const gy = p.gy;
       const labelSprite = makeNPCNameTagSprite(p);
       labelSprite.position.set(startX, gy + 2.38, startZ);
@@ -329,6 +330,7 @@
         phil: p,
         homeX: startX,
         homeZ: startZ,
+        homeY: gy,
         x: startX,
         z: startZ,
         y: gy,
@@ -398,7 +400,7 @@
           const step = Math.min(dist, n.speed * dt);
           n.x += (dx / dist) * step;
           n.z += (dz / dist) * step;
-          n.y = n.phil.gy;
+          n.y = n.homeY != null ? n.homeY : n.phil.gy;
           n.yaw += wrapAngle(Math.atan2(dx, dz) - n.yaw) * (1 - Math.exp(-8 * dt));
           walking = true;
         }
@@ -482,7 +484,10 @@
   /* ================= input & touch ================= */
   function requestLock() {
     if (!isTouch && !S.ui && canvas.requestPointerLock && !document.pointerLockElement) {
-      try { canvas.requestPointerLock(); } catch (e) {}
+      try {
+        const p = canvas.requestPointerLock();
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      } catch (e) {}
     }
   }
   function exitLock() {

@@ -608,13 +608,21 @@
         let d = Math.hypot(pp.x - c.x, pp.z - c.z);
         let dy = Math.abs(pp.y - (c.y - 1));
 
-        // Special check: Plato's Underground Cave Portal (y = gy - 7) & Kant's 2F Starry Loft Portal (y = gy + 5)
-        if (item.philosopher_id === 'plato' && world.props.caveStage) {
-          const cs = world.props.caveStage;
-          const dCave = Math.hypot(pp.x - cs.x, pp.z - cs.zPuppet);
-          const dyCave = Math.abs(pp.y - cs.y);
-          if (dCave < 5.2 && dyCave < 3.0) {
-            d = dCave * 0.7; dy = 0;
+        // Special check: Plato's School of Athens (upper dais, left forecourt NPC/portal & Underground Cave) & Kant's 2F Starry Loft Portal
+        if (item.philosopher_id === 'plato') {
+          const dDais = Math.hypot(pp.x - c.x, pp.z - (c.z + 1.5));
+          const dyDais = Math.abs(pp.y - c.y);
+          if (dDais < 5.5 && dyDais < 2.2) { d = dDais * 0.65; dy = 0; }
+          const dFore = Math.hypot(pp.x - (c.x - 8.0), pp.z - (c.z + 13.5));
+          const dyFore = Math.abs(pp.y - (c.y - 1));
+          if (dFore < 4.8 && dyFore < 2.2 && dFore * 0.7 < d) { d = dFore * 0.7; dy = 0; }
+          if (world.props.caveStage) {
+            const cs = world.props.caveStage;
+            const dCave = Math.hypot(pp.x - cs.x, pp.z - cs.zPuppet);
+            const dyCave = Math.abs(pp.y - cs.y);
+            if (dCave < 5.2 && dyCave < 3.0) {
+              d = dCave * 0.7; dy = 0;
+            }
           }
         } else if (item.philosopher_id === 'kant') {
           const dyLoft = Math.abs(pp.y - (c.y + 4));
@@ -1198,10 +1206,11 @@
             setTime(12.2);
             const platoP = world.PHILOSOPHERS.find((p) => p.id === 'plato');
             const px = platoP ? platoP.x + 0.5 : 84.5;
-            const py = platoP ? platoP.gy : 46;
-            const pz = platoP ? platoP.z + Math.floor(platoP.d / 2) + 4.5 : 112.5;
-            teleport({ mode: 'walk', p: [px, py, pz], t: [px, py + 6, platoP ? platoP.z : 98] });
-            toast('☀️ 走出洞穴：直视阳光下的帕罗斯大理石学院与五种理念立体 (理性 Noesis)');
+            const py = platoP ? platoP.gy : 50;
+            const z0p = platoP ? platoP.z - Math.floor(platoP.d / 2) : 83;
+            const z1p = platoP ? platoP.z + Math.floor(platoP.d / 2) : 113;
+            teleport({ mode: 'walk', p: [px, py, z1p + 8.0], t: [px, py + 5.25, z0p + 2.0] });
+            toast('☀️ 走出洞穴：直视阳光下的《雅典学院》大殿与理性之光 (Noesis)');
           }
         };
       });

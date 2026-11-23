@@ -900,10 +900,9 @@
     }
 
     function buildPortalPedestal(px, py, pz, phil) {
-      set(px, py, pz, B.LIMEC, C.marble);
-      set(px, py + 1, pz, B.PORTAL, C.gold);
-      lamp(px, py + 2, pz, true, 1.45);
-      props.philosopherPlaques.push({ x: px + 0.5, y: py + 1.5, z: pz + 0.5, phil });
+      // Pure warm gallery illumination (no bulky voxel pillar or floating black lamp cube blocking the north oil painting!)
+      lamps.push([px + 0.5, py + 3.4, pz + 0.5, true, 1.5]);
+      props.philosopherPlaques.push({ x: px + 0.5, y: py, z: pz + 0.5, phil });
     }
 
     // Master Architectural House Template (Multi-windowed stone/brick walls, drip moulds, gabled dormers, smooth pitched roof, chimney with smoke, fireplace, chandelier, bookshelves, rug & upper mezzanine!)
@@ -937,8 +936,8 @@
       set(p.x - 2, gy, z1 + 1, B.LIMEC, quoinC); set(p.x - 2, gy + 1, z1 + 1, B.LIMEC, quoinC); set(p.x - 2, gy + 2, z1 + 1, B.LIMES, quoinC);
       set(p.x + 2, gy, z1 + 1, B.LIMEC, quoinC); set(p.x + 2, gy + 1, z1 + 1, B.LIMEC, quoinC); set(p.x + 2, gy + 2, z1 + 1, B.LIMES, quoinC);
       for (let x = p.x - 2; x <= p.x + 2; x++) set(x, gy + 3, z1 + 1, B.HOOD, quoinC);
-      lamp(p.x - 3, gy + 3, z1 + 2, false, 1.0);
-      lamp(p.x + 3, gy + 3, z1 + 2, false, 1.0);
+      lamps.push([p.x - 2.5, gy + 3.2, z1 + 2.2, false, 1.0]);
+      lamps.push([p.x + 3.5, gy + 3.2, z1 + 2.2, false, 1.0]);
 
       // 3. Multi-light Mullioned Casement Windows with Stone Drip Moulds (B.HOOD) — leaving central Museum Gallery Wall bays solid!
       for (let x = x0 + 2; x <= x1 - 2; x++) {
@@ -1124,8 +1123,8 @@
       // 5. Classical Bronze Tripod Sacred Fire Braziers flanking the South Entrance
       props.greekBraziers.push({ x: p.x - 3.8, y: gy, z: z1 + 2.4 });
       props.greekBraziers.push({ x: p.x + 4.8, y: gy, z: z1 + 2.4 });
-      lamp(p.x - 4, gy + 1, z1 + 2, false, 1.35);
-      lamp(p.x + 4, gy + 1, z1 + 2, false, 1.35);
+      lamps.push([p.x - 3.5, gy + 1.8, z1 + 2.4, false, 1.35]);
+      lamps.push([p.x + 4.5, gy + 1.8, z1 + 2.4, false, 1.35]);
 
       // 6. Register 3D Sculpted Frieze, Triglyphs, Metopes, Tympanum Pediment Sculptures, Acroteria & Naos Statue!
       props.greekTemples.push({
@@ -1225,12 +1224,12 @@
         for (let z = z0; z <= p.z + 4; z++) {
           for (let x = p.x - 6; x <= p.x + 6; x++) set(x, gy, z, B.MARBLE, C.marble);
         }
-        // Warm interior bounce lights: Vault 1, crossing, Vault 2 + entrance piers
-        lamp(p.x, gy + 7, p.z + 7, true, 1.4);
-        lamp(p.x, gy + 8, p.z + 1, true, 1.3);
-        lamp(p.x, gy + 7, p.z - 5, true, 1.3);
-        lamp(p.x - 9, gy + 3, z1 + 1, false, 1.2);
-        lamp(p.x + 10, gy + 3, z1 + 1, false, 1.2);
+        // Pure warm interior bounce lights (pushed directly to lamps[] so no floating voxel blocks obstruct the vaults!)
+        lamps.push([p.x + 0.5, gy + 7.5, p.z + 7.5, true, 1.4]);
+        lamps.push([p.x + 0.5, gy + 8.5, p.z + 1.5, true, 1.3]);
+        lamps.push([p.x + 0.5, gy + 7.5, p.z - 4.5, true, 1.3]);
+        lamps.push([p.x - 8.5, gy + 3.2, z1 + 1.5, false, 1.2]);
+        lamps.push([p.x + 9.5, gy + 3.2, z1 + 1.5, false, 1.2]);
 
         // Register Full 3D Raphael School of Athens Architecture, Coffered Barrel Vaults, Apollo & Athena Niches & Sculpted Figures!
         props.schoolOfAthens = { x: p.x + 0.5, y: gy, z: p.z + 0.5, x0, z0, x1, z1 };
@@ -1594,13 +1593,13 @@
         phil: p
       });
 
-      // Register Custom Architectural House Signboard on the Front Porch / Entablature (Plato's School of Athens uses its monumental carved Roman entablature)
-      const isGreek = p.id === 'socrates' || p.id === 'plato' || p.id === 'aristotle' || p.id === 'zeno';
-      if (!isSchoolOfAthens) {
+      // Register Custom Architectural Carved Walnut Plaque ONLY for residences without bespoke architrave/lacquer/café fascia signs
+      const hasCustomFascia = isSchoolOfAthens || isGreekTemple || isTholos || isEastern || p.id === 'heidegger_sartre';
+      if (!hasCustomFascia) {
         props.houseSigns.push({
           x: p.x + 0.5,
-          y: isGreek ? gy + 5.15 : gy + 3.4,
-          z: p.id === 'socrates' ? p.z + 9.85 : isGreek ? z1 + 1.42 : z1 + 2.15,
+          y: gy + 3.74,
+          z: z1 + 2.18,
           phil: p
         });
       }
@@ -1613,8 +1612,12 @@
         x: p.x, z: p.z, top: gy + 6, r: 14,
         phil: p,
         tp: isSchoolOfAthens
-          ? { mode: 'walk', p: [p.x + 0.5, gy, z1 + 6.0], t: [p.x + 0.5, gy + 4.85, z0 + 2.0] }
-          : { mode: 'walk', p: [p.x + 0.5, gy, z1 + 5.5], t: [p.x + 0.5, gy + 2.5, p.z] }
+          ? { mode: 'walk', p: [p.x + 0.5, gy, z1 + 8.0], t: [p.x + 0.5, gy + 5.25, z0 + 2.0] }
+          : p.id === 'confucius'
+            ? { mode: 'walk', p: [p.x + 0.5, gy, z1 + 15.5], t: [p.x + 0.5, gy + 4.4, p.z + 2.0] }
+            : isEastern
+              ? { mode: 'walk', p: [p.x + 0.5, gy, z1 + 13.0], t: [p.x + 0.5, gy + 4.8, p.z] }
+              : { mode: 'walk', p: [p.x + 0.5, gy, z1 + 11.5], t: [p.x + 0.5, gy + 4.0, p.z] }
       });
       buildings.push({ id: p.id, x0, z0, x1, z1, y: gy, phil: p });
     });

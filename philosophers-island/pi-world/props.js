@@ -681,7 +681,7 @@
       const tex = makeHouseNameplateTex(phil);
       const signMesh = new T.Mesh(
         new T.PlaneGeometry(pw, ph),
-        new T.MeshLambertMaterial({ map: tex, emissiveMap: tex, emissive: 0xffffff, emissiveIntensity: 0.34 })
+        new T.MeshLambertMaterial({ map: tex, emissiveMap: tex, emissive: 0xfff4dc, emissiveIntensity: 0.52 })
       );
       signMesh.position.set(x, py, z + 0.012);
       group.add(signMesh);
@@ -1023,249 +1023,803 @@
     mGreekBronze.mesh(bronzeMat);
     mGreekFlame.mesh(flameMat);
 
-    /* ---------------- 3B-2. RAPHAEL'S THE SCHOOL OF ATHENS (拉斐尔《雅典学院》高度还原大殿) ---------------- */
+    /* ---------------- 3B-2. RAPHAEL'S THE SCHOOL OF ATHENS — Bramante Basilica Deep Replica (拉斐尔《雅典学院》建筑深度复刻) ---------------- */
+    const saClouds = [];
     if (P.schoolOfAthens) {
       const SA = P.schoolOfAthens;
-      const cx = SA.x, gy = SA.y, cz = SA.z, x0 = SA.x0, z0 = SA.z0, x1 = SA.x1, z1 = SA.z1;
+      const cx = SA.x, gy = SA.y, cz = SA.z;
+      const zF = cz + 10.7, FT = 0.65;           // Front pier facade face (109.2) & thickness
+      const zPro = zF + 1.2;                     // Foreground Gold-and-Black Meander Proscenium Arch (110.4)
+      const zV1b = cz + 5.5;                     // Vault 1 back / Crossing south edge (104.0)
+      const zXn = cz - 1.1, XW = 0.85;           // Crossing north spandrel wall front face (97.4) & thickness
+      const zV2f = zXn - XW;                     // Vault 2 front (96.55)
+      const zV2b = cz - 6.7;                     // Vault 2 back (91.8)
+      const zA3f = cz - 13.1, zA3b = cz - 14.9;  // Distant 3rd Triumphal Arch (85.4 .. 83.6)
+      const zStep = cz + 4.5;                    // Top edge of 4-step white marble staircase (103.0)
+      const daisY = gy + 1.02;                   // Raised upper philosophical sanctuary dais
+      const R1 = 5.4, S1 = gy + 8.3;             // Vault 1 inner radius & springing Y (apex = gy + 13.7)
+      const R2 = 5.1, S2 = gy + 8.05;            // Vault 2 inner radius & springing Y (apex = gy + 13.15)
+      const RP = 11.2, SP = gy + 1.8;            // Proscenium Gold-Meander Arch radius & springing Y
+      const DR = gy + 14.05;                     // Central Crossing Drum cornice base Y
+      const NX = 7.45;                           // Apollo & Athena recessed niche X offset
 
-      // High-Craft Coffered Renaissance Barrel-Vault Texture (罗马式藻井拱顶贴图 — 仿布拉曼特圣彼得大教堂)
-      function makeCofferedVaultTex() {
-        const c = document.createElement('canvas'); c.width = 256; c.height = 256;
-        const x = c.getContext('2d');
-        x.fillStyle = '#e7ddc8'; x.fillRect(0, 0, 256, 256);
-        // 2x2 Recessed Renaissance Octagonal/Square Coffers with Rosettes
-        for (let r = 0; r < 2; r++) for (let col = 0; col < 2; col++) {
-          const ox = col * 128, oy = r * 128;
-          x.strokeStyle = '#c4b596'; x.lineWidth = 8; x.strokeRect(ox + 6, oy + 6, 116, 116);
-          x.fillStyle = '#d3c4a5'; x.fillRect(ox + 16, oy + 16, 96, 96);
-          x.strokeStyle = '#9c8b6c'; x.lineWidth = 5; x.strokeRect(ox + 22, oy + 22, 84, 84);
-          x.fillStyle = '#b9a684'; x.fillRect(ox + 32, oy + 32, 64, 64);
-          // Central carved rosette medallion
-          x.fillStyle = '#c8a862'; x.beginPath(); x.arc(ox + 64, oy + 64, 15, 0, Math.PI * 2); x.fill();
-          x.strokeStyle = '#8a7346'; x.lineWidth = 2.5; x.stroke();
-        }
+      /* ---------- A. 6 Bespoke High-Resolution Procedural Renaissance Textures ---------- */
+      const cvs = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+      function finTex(c, wrap) {
         const t = new T.CanvasTexture(c);
-        t.wrapS = t.wrapT = T.RepeatWrapping;
-        t.repeat.set(6, 2);
+        if (wrap) t.wrapS = t.wrapT = T.RepeatWrapping;
         if (T.sRGBEncoding !== undefined) t.encoding = T.sRGBEncoding;
+        t.anisotropy = 4;
         made.textures++;
         return t;
       }
 
-      // Carved Marble Bas-Relief Panel Texture (尼奇壁龛下方古典大理石浅浮雕)
-      function makeBasReliefTex() {
-        const c = document.createElement('canvas'); c.width = 256; c.height = 128;
-        const x = c.getContext('2d');
-        x.fillStyle = '#e8dfc9'; x.fillRect(0, 0, 256, 128);
-        x.strokeStyle = '#b8a88a'; x.lineWidth = 6; x.strokeRect(6, 6, 244, 116);
-        // Classical sculpted figures silhouette in shallow stone relief
-        for (let i = 0; i < 4; i++) {
-          const fx = 44 + i * 56;
-          x.fillStyle = '#d4c6a8';
-          x.beginPath(); x.arc(fx, 44, 11, 0, Math.PI * 2); x.fill();
-          x.fillRect(fx - 13, 56, 26, 48);
-          x.fillStyle = '#f5efe0';
-          x.beginPath(); x.arc(fx - 2, 42, 9, 0, Math.PI * 2); x.fill();
-          x.fillRect(fx - 11, 56, 18, 44);
+      // 1. Interlocking Octagonal-Lozenge & Diamond Stone Coffers with Recessed Shadow Bevels & Rosettes
+      function makeLozengeCofferTex() {
+        const S = 512, c = cvs(S, S), x = c.getContext('2d'), r = rng(911);
+        x.fillStyle = '#ece3ce'; x.fillRect(0, 0, S, S);
+        const oct = (px, py, rr) => {
+          x.beginPath();
+          for (let k = 0; k < 8; k++) {
+            const a = Math.PI / 8 + k * Math.PI / 4;
+            const qx = px + Math.cos(a) * rr, qy = py + Math.sin(a) * rr;
+            if (k) x.lineTo(qx, qy); else x.moveTo(qx, qy);
+          }
+          x.closePath();
+        };
+        const dia = (px, py, rr) => {
+          x.beginPath(); x.moveTo(px, py - rr); x.lineTo(px + rr, py); x.lineTo(px, py + rr); x.lineTo(px - rr, py); x.closePath();
+        };
+        const recess = (shape, px, py, rr, shrink) => {
+          const cols = ['#ece3ce', '#d8cab0', '#beae8e', '#978769'];
+          for (let i = 0; i < 4; i++) {
+            const q = rr - i * shrink;
+            shape(px - 2.5, py - 2.5, q); x.fillStyle = 'rgba(255,252,240,0.68)'; x.fill();
+            shape(px + 2.8, py + 2.8, q); x.fillStyle = 'rgba(72,58,38,0.42)'; x.fill();
+            shape(px, py, q); x.fillStyle = cols[i]; x.fill();
+          }
+        };
+        const ros = (px, py, rr) => {
+          x.save(); x.translate(px, py);
+          for (let k = 0; k < 8; k++) {
+            x.rotate(Math.PI / 4);
+            x.fillStyle = '#bc8d3f'; x.beginPath(); x.ellipse(rr * 0.54, 0, rr * 0.46, rr * 0.19, 0, 0, Math.PI * 2); x.fill();
+            x.fillStyle = 'rgba(255,235,178,0.62)'; x.beginPath(); x.ellipse(rr * 0.48, -rr * 0.05, rr * 0.30, rr * 0.07, 0, 0, Math.PI * 2); x.fill();
+          }
+          x.fillStyle = '#e7c572'; x.beginPath(); x.arc(0, 0, rr * 0.23, 0, Math.PI * 2); x.fill();
+          x.strokeStyle = '#6d5022'; x.lineWidth = 2; x.stroke();
+          x.restore();
+        };
+        recess(oct, S / 2, S / 2, 236, 20);
+        const corners = [[0, 0], [S, 0], [0, S], [S, S]];
+        corners.forEach(([qx, qy]) => recess(dia, qx, qy, 102, 15));
+        ros(S / 2, S / 2, 66);
+        corners.forEach(([qx, qy]) => ros(qx, qy, 24));
+        for (let i = 0; i < 1200; i++) {
+          x.fillStyle = r() > 0.5 ? 'rgba(90,70,40,0.06)' : 'rgba(255,255,255,0.06)';
+          x.fillRect(r() * S, r() * S, 1 + r() * 3, 1 + r() * 2);
         }
-        const t = new T.CanvasTexture(c);
-        if (T.sRGBEncoding !== undefined) t.encoding = T.sRGBEncoding;
-        made.textures++;
-        return t;
+        return finTex(c, true);
       }
 
-      const travertineMat = new T.MeshLambertMaterial({ color: 0xede5d4 });
-      const travertineDarkMat = new T.MeshLambertMaterial({ color: 0xd4c7ad });
-      const cofferedMat = new T.MeshLambertMaterial({ map: makeCofferedVaultTex(), side: T.DoubleSide });
-      const reliefMat = new T.MeshLambertMaterial({ map: makeBasReliefTex() });
-      const mTrav = new Merger(), mTravD = new Merger(), mSaMarble = new Merger(), mSaBronze = new Merger(), mSaGold = new Merger();
-      const mPlatoRed = new Merger(), mAristBlue = new Merger(), mOchre = new Merger(), mSkin = new Merger(), mSlate = new Merger(), mHairW = new Merger(), mHairB = new Merger();
+      // 2. Crisp Gold-and-Obsidian Greek Key / Meander Band (前景金黑回纹框券)
+      function makeGreekMeanderTex() {
+        const W = 512, H = 128, c = cvs(W, H), x = c.getContext('2d');
+        x.fillStyle = '#efe7d4'; x.fillRect(0, 0, W, H);
+        x.fillStyle = '#b4a37d'; x.fillRect(0, 17, W, 4); x.fillRect(0, H - 21, W, 4);
+        x.fillStyle = '#18130e'; x.fillRect(0, 22, W, H - 44);
+        for (let bx = 4; bx < W; bx += 12) {
+          x.fillStyle = '#d8ceb4';
+          x.beginPath(); x.arc(bx, 9, 3.2, 0, Math.PI * 2); x.fill();
+          x.beginPath(); x.arc(bx, H - 9, 3.2, 0, Math.PI * 2); x.fill();
+        }
+        const top = 32, bot = H - 32, u = 64, hh = bot - top;
+        const key = (ox, col, lw, d) => {
+          x.strokeStyle = col; x.lineWidth = lw; x.lineJoin = 'miter'; x.lineCap = 'square';
+          x.beginPath();
+          x.moveTo(ox + d, bot + d); x.lineTo(ox + d, top + d);
+          x.lineTo(ox + u * 0.78 + d, top + d); x.lineTo(ox + u * 0.78 + d, top + hh * 0.72 + d);
+          x.lineTo(ox + u * 0.30 + d, top + hh * 0.72 + d); x.lineTo(ox + u * 0.30 + d, top + hh * 0.36 + d);
+          x.lineTo(ox + u * 0.55 + d, top + hh * 0.36 + d);
+          x.stroke();
+        };
+        for (let ox = 0; ox < W; ox += u) {
+          key(ox + 6, '#7a5c1e', 9.5, 1.5);
+          key(ox + 6, '#dfb44d', 8, 0);
+        }
+        x.strokeStyle = '#7a5c1e'; x.lineWidth = 9; x.beginPath(); x.moveTo(0, bot + 1.5); x.lineTo(W, bot + 1.5); x.stroke();
+        x.strokeStyle = '#dfb44d'; x.lineWidth = 8; x.beginPath(); x.moveTo(0, bot); x.lineTo(W, bot); x.stroke();
+        x.strokeStyle = 'rgba(255,238,176,0.58)'; x.lineWidth = 2; x.beginPath(); x.moveTo(0, bot - 3); x.lineTo(W, bot - 3); x.stroke();
+        return finTex(c, true);
+      }
 
-      // Helper: Build a Monumental Coffered Semicircular Barrel-Vault Triumphal Arch!
-      function addTriumphalBarrelArch(az, rInner, depth, springY, addPediment) {
-        const segs = 24;
-        const rOuter = rInner + 1.35;
-        const gVault = new Geo();
-        const white = [1, 1, 1];
+      // 3. Warm Veined Roman Travertine Ashlar Stonework
+      function makeTravertineTex() {
+        const S = 256, c = cvs(S, S), x = c.getContext('2d'), r = rng(733);
+        x.fillStyle = '#efe7d4'; x.fillRect(0, 0, S, S);
+        for (let i = 0; i < 75; i++) {
+          const y = r() * S;
+          x.strokeStyle = r() > 0.5 ? 'rgba(168,148,110,0.16)' : 'rgba(255,252,242,0.24)';
+          x.lineWidth = 0.6 + r() * 1.6;
+          x.beginPath(); x.moveTo(0, y); x.bezierCurveTo(S * 0.3, y + (r() - 0.5) * 6, S * 0.7, y + (r() - 0.5) * 6, S, y + (r() - 0.5) * 3); x.stroke();
+        }
+        for (let i = 0; i < 240; i++) {
+          x.fillStyle = 'rgba(118,96,62,' + (0.07 + r() * 0.14) + ')';
+          x.beginPath(); x.ellipse(r() * S, r() * S, 0.6 + r() * 2.2, 0.4 + r() * 0.8, 0, 0, Math.PI * 2); x.fill();
+        }
+        return finTex(c, true);
+      }
+
+      // 4. Deep-Grooved Fluted Corinthian Pilaster Texture
+      function makeFluteTex() {
+        const S = 256, c = cvs(S, S), x = c.getContext('2d');
+        x.fillStyle = '#f3edde'; x.fillRect(0, 0, S, S);
+        const n = 7, m = 14, fw = (S - m * 2) / n;
+        for (let i = 0; i < n; i++) {
+          const fx = m + i * fw + 3, w = fw - 6;
+          const g = x.createLinearGradient(fx, 0, fx + w, 0);
+          g.addColorStop(0, '#847760'); g.addColorStop(0.32, '#b0a286'); g.addColorStop(0.75, '#ebe3d0'); g.addColorStop(1, '#a09378');
+          x.fillStyle = g; x.fillRect(fx, 0, w, S);
+        }
+        return finTex(c, true);
+      }
+
+      // 5. Opus Sectile Inlaid Geometric Marble Floor (Serene Luminous Vatican Marble + Muted Porphyry Borders)
+      function makeOpusSectileTex() {
+        const S = 512, c = cvs(S, S), x = c.getContext('2d'), r = rng(517);
+        x.fillStyle = '#f2ede2'; x.fillRect(0, 0, S, S);
+        // Subtle muted porphyry-lavender & warm taupe geometric grid bands
+        x.fillStyle = '#9e8f9a';
+        x.fillRect(0, 0, S, 10); x.fillRect(0, 251, S, 10); x.fillRect(0, S - 10, S, 10);
+        x.fillRect(0, 0, 10, S); x.fillRect(251, 0, 10, S); x.fillRect(S - 10, 0, 10, S);
+        for (let py = 0; py < 2; py++) for (let px = 0; px < 2; px++) {
+          const ox = px * 256, oy = py * 256;
+          x.fillStyle = (px + py) % 2 ? '#eae4d8' : '#f6f2e9';
+          x.fillRect(ox + 16, oy + 16, 224, 224);
+          x.strokeStyle = '#b4a5ad'; x.lineWidth = 3;
+          x.strokeRect(ox + 26, oy + 26, 204, 204);
+          x.fillStyle = (px + py) % 2 ? '#f3efe6' : '#e4ded2';
+          x.fillRect(ox + 34, oy + 34, 188, 188);
+          // Delicate central inlaid lozenge accent
+          x.strokeStyle = 'rgba(136, 118, 130, 0.45)'; x.lineWidth = 2.5;
+          x.beginPath(); x.moveTo(ox + 128, oy + 82); x.lineTo(ox + 174, oy + 128); x.lineTo(ox + 128, oy + 174); x.lineTo(ox + 82, oy + 128); x.closePath(); x.stroke();
+        }
+        // Fine natural marble veins
+        for (let i = 0; i < 48; i++) {
+          x.strokeStyle = 'rgba(148,138,126,0.18)'; x.lineWidth = 0.9;
+          let px = r() * S, py = r() * S; x.beginPath(); x.moveTo(px, py);
+          for (let k = 0; k < 5; k++) { px += (r() - 0.5) * 44; py += (r() - 0.3) * 28; x.lineTo(px, py); }
+          x.stroke();
+        }
+        return finTex(c, true);
+      }
+
+      function makeBandFloorTex() {
+        const S = 256, c = cvs(S, S), x = c.getContext('2d');
+        for (let i = 0; i < 4; i++) { x.fillStyle = i % 2 ? '#c0b7a5' : '#eee8d9'; x.fillRect(0, i * 64, S, 64); }
+        x.strokeStyle = 'rgba(110,98,80,0.38)'; x.lineWidth = 2;
+        for (let i = 0; i <= 4; i++) {
+          x.beginPath(); x.moveTo(0, i * 64); x.lineTo(S, i * 64); x.stroke();
+          x.beginPath(); x.moveTo(i * 64, 0); x.lineTo(i * 64, S); x.stroke();
+        }
+        return finTex(c, true);
+      }
+
+      // 6. Sculpted Classical Bas-Reliefs & Circular Tondo Medallions
+      function reliefFigure(x, fx, fy, s, o) {
+        const pass = (col, dx, dy) => {
+          x.save(); x.translate(fx + dx, fy + dy); if (o.rot) x.rotate(o.rot);
+          x.fillStyle = col; x.strokeStyle = col; x.lineCap = 'round'; x.lineJoin = 'round';
+          const lean = o.lean || 0, hipY = o.seated ? -0.32 * s : -0.46 * s;
+          const nx = lean * s * 0.22, ny = -0.86 * s;
+          x.beginPath(); x.arc(nx + lean * s * 0.05, ny - 0.1 * s, 0.085 * s, 0, Math.PI * 2); x.fill();
+          x.lineWidth = 0.17 * s; x.beginPath(); x.moveTo(nx, ny); x.lineTo(0, hipY); x.stroke();
+          x.lineWidth = 0.065 * s;
+          for (const [ang, len] of [[o.armL == null ? 2.4 : o.armL, 0.4], [o.armR == null ? 0.7 : o.armR, 0.4]]) {
+            x.beginPath(); x.moveTo(nx, ny + 0.05 * s);
+            x.lineTo(nx + Math.cos(ang) * len * s, ny + 0.05 * s - Math.sin(ang) * len * s); x.stroke();
+          }
+          x.lineWidth = 0.09 * s;
+          if (o.seated) {
+            x.beginPath(); x.moveTo(0, hipY); x.lineTo(0.3 * s, hipY); x.lineTo(0.32 * s, 0); x.stroke();
+            x.beginPath(); x.moveTo(0, hipY); x.lineTo(0.26 * s, hipY + 0.03 * s); x.lineTo(0.22 * s, 0); x.stroke();
+          } else {
+            const sp = o.spread == null ? 0.14 : o.spread;
+            x.beginPath(); x.moveTo(0, hipY); x.lineTo(-sp * s, 0); x.stroke();
+            x.beginPath(); x.moveTo(0, hipY); x.lineTo(sp * s, 0); x.stroke();
+          }
+          if (o.drape !== false) {
+            x.beginPath(); x.moveTo(nx - 0.1 * s, ny + 0.04 * s);
+            x.bezierCurveTo(-0.26 * s, -0.5 * s, -0.24 * s, -0.25 * s, -0.16 * s, -0.12 * s);
+            x.lineTo(0.16 * s, -0.16 * s); x.bezierCurveTo(0.12 * s, -0.4 * s, 0.1 * s, -0.6 * s, nx + 0.08 * s, ny + 0.1 * s); x.closePath(); x.fill();
+          }
+          x.restore();
+        };
+        pass('rgba(116,100,72,0.86)', 5, 5);
+        pass('#e6dcc4', 0, 0);
+        pass('rgba(255,250,238,0.75)', -1.5, -1.5);
+        pass('#eee5ce', 0.5, 0.5);
+      }
+
+      function makeBasReliefTex(variant) {
+        const W = 512, H = 320, c = cvs(W, H), x = c.getContext('2d'), r = rng(variant === 'apollo' ? 41 : 43);
+        const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#e3d8be'); g.addColorStop(1, '#cebf9f');
+        x.fillStyle = g; x.fillRect(0, 0, W, H);
+        for (let i = 0; i < 850; i++) { x.fillStyle = 'rgba(100,84,56,' + (0.04 + r() * 0.08) + ')'; x.fillRect(r() * W, r() * H, 1 + r() * 2, 1); }
+        x.fillStyle = 'rgba(88,72,48,0.36)'; x.fillRect(0, 0, W, 10); x.fillRect(0, 0, 10, H);
+        x.fillStyle = 'rgba(255,250,236,0.36)'; x.fillRect(0, H - 8, W, 8); x.fillRect(W - 8, 0, 8, H);
+        if (variant === 'apollo') {
+          reliefFigure(x, 92, 268, 125, { rot: -1.15, armL: 2.0, armR: 0.3, spread: 0.2 });
+          reliefFigure(x, 210, 290, 230, { lean: 0.3, armL: 2.6, armR: 1.4, spread: 0.24 });
+          reliefFigure(x, 330, 290, 220, { lean: -0.2, armL: 1.9, armR: 0.5, spread: 0.12 });
+          reliefFigure(x, 440, 290, 200, { armL: 3.0, armR: 0.2, spread: 0.18 });
+        } else {
+          x.fillStyle = 'rgba(120,104,76,0.8)'; x.fillRect(214, 188, 96, 104);
+          x.fillStyle = '#e6dcc4'; x.fillRect(210, 184, 96, 104);
+          reliefFigure(x, 230, 222, 210, { seated: true, armL: 2.2, armR: 0.9 });
+          reliefFigure(x, 100, 292, 190, { lean: 0.35, armL: 0.6, armR: 0.2, spread: 0.2 });
+          reliefFigure(x, 390, 292, 200, { lean: -0.35, armL: 2.5, armR: 2.9, spread: 0.16 });
+          reliefFigure(x, 470, 292, 170, { armL: 2.8, armR: 1.2, spread: 0.12 });
+        }
+        return finTex(c, false);
+      }
+
+      function makeTondoTex(variant) {
+        const S = 256, c = cvs(S, S), x = c.getContext('2d');
+        const g = x.createRadialGradient(110, 100, 10, 128, 128, 128); g.addColorStop(0, '#f0e7d2'); g.addColorStop(1, '#bfb090');
+        x.fillStyle = g; x.fillRect(0, 0, S, S);
+        x.strokeStyle = 'rgba(110,94,66,0.62)'; x.lineWidth = 6; x.beginPath(); x.arc(128, 128, 118, 0, Math.PI * 2); x.stroke();
+        x.strokeStyle = 'rgba(255,250,236,0.62)'; x.lineWidth = 3; x.beginPath(); x.arc(128, 128, 110, 0, Math.PI * 2); x.stroke();
+        if (variant === 'left') reliefFigure(x, 128, 222, 172, { seated: true, armL: 2.4, armR: 1.0 });
+        else reliefFigure(x, 128, 226, 180, { lean: 0.2, armL: 2.9, armR: 0.4 });
+        return finTex(c, false);
+      }
+
+      function makeShellTex() {
+        const W = 256, H = 128, c = cvs(W, H), x = c.getContext('2d');
+        const n = 9, fw = W / n;
+        for (let i = 0; i < n; i++) {
+          const g = x.createLinearGradient(i * fw, 0, (i + 1) * fw, 0);
+          g.addColorStop(0, '#9c8f73'); g.addColorStop(0.45, '#ebe2cd'); g.addColorStop(0.8, '#d4c8ac'); g.addColorStop(1, '#9f9276');
+          x.fillStyle = g; x.fillRect(i * fw, 0, fw + 1, H);
+        }
+        return finTex(c, false);
+      }
+
+      function makeCloudTex(seed) {
+        const W = 512, H = 256, c = cvs(W, H), x = c.getContext('2d'), r = rng(seed);
+        for (let i = 0; i < 24; i++) {
+          const px = 70 + r() * 372, py = 122 + (r() - 0.5) * 68 - Math.sin((px / W) * Math.PI) * 28, rr = 34 + r() * 52;
+          const g = x.createRadialGradient(px, py - rr * 0.2, rr * 0.1, px, py, rr);
+          g.addColorStop(0, 'rgba(255,255,255,0.92)'); g.addColorStop(0.55, 'rgba(248,250,255,0.56)'); g.addColorStop(1, 'rgba(235,242,252,0)');
+          x.fillStyle = g; x.beginPath(); x.arc(px, py, rr, 0, Math.PI * 2); x.fill();
+        }
+        return finTex(c, false);
+      }
+
+      /* ---------- Materials ---------- */
+      const travTex = makeTravertineTex();
+      const travExTex = travTex.clone(); travExTex.needsUpdate = true; travExTex.repeat.set(0.24, 0.24);
+      const cofferTex = makeLozengeCofferTex();
+      const meanderTex = makeGreekMeanderTex();
+      const fluteTex = makeFluteTex();
+      const opusTex = makeOpusSectileTex();
+      const bandTex = makeBandFloorTex();
+
+      const travMat = new T.MeshLambertMaterial({ map: travTex, emissive: 0x221c12 });
+      const travExMat = new T.MeshLambertMaterial({ map: travExTex, emissive: 0x221c12, side: T.DoubleSide });
+      const travDMat = new T.MeshLambertMaterial({ map: travTex, color: 0xc9bb9c, emissive: 0x14100a });
+      const nicheMat = new T.MeshLambertMaterial({ map: travTex, color: 0xd6c9ac, emissive: 0x261f14, side: T.DoubleSide });
+      const pilMat = new T.MeshLambertMaterial({ map: fluteTex, emissive: 0x1d1810 });
+      const capMat = new T.MeshLambertMaterial({ color: 0xf6f1e6, emissive: 0x28231a });
+      const cofferMat = new T.MeshLambertMaterial({ map: cofferTex, emissiveMap: cofferTex, emissive: 0xfff0d4, emissiveIntensity: 0.42, side: T.DoubleSide });
+      const meanderMat = new T.MeshLambertMaterial({ map: meanderTex, emissiveMap: meanderTex, emissive: 0xfff0d0, emissiveIntensity: 0.26, side: T.DoubleSide });
+      const statueMat = new T.MeshLambertMaterial({ color: 0xf6f1e7, emissive: 0x2e2a22, side: T.DoubleSide });
+      const shellMat = new T.MeshLambertMaterial({ map: makeShellTex(), emissive: 0x2a2316, side: T.DoubleSide });
+
+      const mTrav = new Merger(), mTravEx = new Merger(), mTravD = new Merger(), mNiche = new Merger();
+      const mPil = new Merger(), mCap = new Merger(), mStat = new Merger(), mShell = new Merger(), mBr = new Merger(), mGd = new Merger();
+      const figM = {}; const FM = (hex) => figM[hex] || (figM[hex] = new Merger());
+
+      function addMesh(geo, mat, px, py, pz, rx, ry, rz, shadow) {
+        const m = new T.Mesh(geo, mat);
+        m.position.set(px, py, pz); m.rotation.set(rx || 0, ry || 0, rz || 0);
+        m.receiveShadow = true; if (shadow) m.castShadow = true;
+        group.add(m); made.meshes++; return m;
+      }
+      const box = (mg, w, h, d, px, py, pz, ry) => mg.add(new T.BoxGeometry(w, h, d), M(px, py, pz, 0, ry || 0, 0));
+
+      /* ---------- B. ExtrudeGeometry & Architectural Helpers ---------- */
+      function archShape(halfW, totalH, archR, springH, holes) {
+        const s = new T.Shape();
+        s.moveTo(-halfW, 0); s.lineTo(-archR, 0); s.lineTo(-archR, springH);
+        s.absarc(0, springH, archR, Math.PI, 0, true);
+        s.lineTo(archR, 0); s.lineTo(halfW, 0); s.lineTo(halfW, totalH); s.lineTo(-halfW, totalH); s.closePath();
+        if (holes) holes.forEach((h) => s.holes.push(h));
+        return s;
+      }
+      function archHole(hx, y0, w, h) {
+        const rr = w / 2, p = new T.Path();
+        p.moveTo(hx - rr, y0); p.lineTo(hx + rr, y0); p.lineTo(hx + rr, y0 + h - rr);
+        p.absarc(hx, y0 + h - rr, rr, 0, Math.PI, false); p.lineTo(hx - rr, y0);
+        return p;
+      }
+      function ringShape(r0, r1) {
+        const s = new T.Shape();
+        s.moveTo(r1, 0); s.absarc(0, 0, r1, 0, Math.PI, false);
+        s.lineTo(-r0, 0); s.absarc(0, 0, r0, Math.PI, 0, true); s.closePath();
+        return s;
+      }
+      const extrude = (shape, depth, segs) => new T.ExtrudeGeometry(shape, { depth, bevelEnabled: false, curveSegments: segs || 28 });
+      function addArchedWall(mg, px, py, pz, halfW, totalH, archR, springH, depth, holes, ry) {
+        mg.add(extrude(archShape(halfW, totalH, archR, springH, holes), depth), M(px, py, pz, 0, ry || 0, 0));
+      }
+      function addFlatWall(mg, px, py, pz, halfW, totalH, depth, holes, ry) {
+        const s = new T.Shape();
+        s.moveTo(-halfW, 0); s.lineTo(halfW, 0); s.lineTo(halfW, totalH); s.lineTo(-halfW, totalH); s.closePath();
+        (holes || []).forEach((h) => s.holes.push(h));
+        mg.add(extrude(s, depth, 16), M(px, py, pz, 0, ry || 0, 0));
+      }
+      function addRing(mg, px, py, pz, r0, r1, depth) { mg.add(extrude(ringShape(r0, r1), depth, 44), M(px, py, pz)); }
+
+      function addCofferVault(zFront, zBack, rr, springY, uTiles, vTiles) {
+        const g = new Geo(), segs = 32, white = [1, 1, 1];
         for (let i = 0; i < segs; i++) {
           const a0 = (i / segs) * Math.PI, a1 = ((i + 1) / segs) * Math.PI;
-          const xA0 = cx + Math.cos(a0) * rInner, yA0 = springY + Math.sin(a0) * rInner;
-          const xA1 = cx + Math.cos(a1) * rInner, yA1 = springY + Math.sin(a1) * rInner;
-          const xB0 = cx + Math.cos(a0) * rOuter, yB0 = springY + Math.sin(a0) * rOuter;
-          const xB1 = cx + Math.cos(a1) * rOuter, yB1 = springY + Math.sin(a1) * rOuter;
-          const zF = az + depth / 2, zB = az - depth / 2;
-          // Inner coffered barrel vault soffit
-          gVault.quad([xA0, yA0, zF], [xA1, yA1, zF], [xA1, yA1, zB], [xA0, yA0, zB], [i / segs, 0], [(i + 1) / segs, 0], [(i + 1) / segs, 1], [i / segs, 1], white);
-          // Front & back curved stone archivolt rings
-          const xm = (xA0 + xA1 + xB0 + xB1) * 0.25, ym = (yA0 + yA1 + yB0 + yB1) * 0.25;
-          const ang = (a0 + a1) * 0.5 - Math.PI / 2;
-          const chord = Math.hypot(xB1 - xB0, yB1 - yB0) * 1.06;
-          mTrav.add(new T.BoxGeometry(chord, 1.38, depth + 0.16), M(xm, ym, az, 0, 0, ang));
+          const p0 = [cx + Math.cos(a0) * rr, springY + Math.sin(a0) * rr];
+          const p1 = [cx + Math.cos(a1) * rr, springY + Math.sin(a1) * rr];
+          const u0 = (i / segs) * uTiles, u1 = ((i + 1) / segs) * uTiles;
+          g.quad([p0[0], p0[1], zFront], [p1[0], p1[1], zFront], [p1[0], p1[1], zBack], [p0[0], p0[1], zBack], [u0, 0], [u1, 0], [u1, vTiles], [u0, vTiles], white);
         }
-        const vMesh = gVault.mesh(cofferedMat);
-        if (vMesh) vMesh.castShadow = true;
+        const m = g.mesh(cofferMat); if (m) m.castShadow = true;
+      }
 
-        // Flanking Massive Monumental Travertine Piers + Paired Fluted Pilasters + Molded Cornice Capitals
-        const pierH = springY - gy;
+      function addPilaster(px, py, pz, h, w, alongX) {
+        const d = 0.24, ry = alongX ? 0 : Math.PI / 2;
+        box(mCap, w + 0.22, 0.26, d + 0.14, px, py + 0.13, pz, ry);
+        box(mCap, w + 0.12, 0.14, d + 0.08, px, py + 0.33, pz, ry);
+        const shaftH = Math.max(0.5, h - 1.02);
+        box(mPil, w, shaftH, d, px, py + 0.4 + shaftH / 2, pz, ry);
+        const yc = py + 0.4 + shaftH;
+        box(mCap, w + 0.05, 0.07, d + 0.04, px, yc + 0.035, pz, ry);
+        box(mCap, w + 0.04, 0.26, d + 0.05, px, yc + 0.2, pz, ry);
+        box(mCap, w + 0.14, 0.11, d + 0.10, px, yc + 0.16, pz, ry);
+        box(mCap, w + 0.20, 0.11, d + 0.14, px, yc + 0.34, pz, ry);
         for (const sx of [-1, 1]) {
-          const px = cx + sx * (rInner + 1.55);
-          mTrav.add(new T.BoxGeometry(3.1, pierH, depth + 0.3), M(px, gy + pierH / 2, az));
-          // Base Plinth & Springing Cornice Impost Molding
-          mTravD.add(new T.BoxGeometry(3.55, 0.55, depth + 0.72), M(px, gy + 0.28, az));
-          mTravD.add(new T.BoxGeometry(3.65, 0.48, depth + 0.85), M(px, springY - 0.12, az));
-          // Paired Fluted Pilasters on Front & Back Pier Faces
-          for (const pf of [-depth / 2 - 0.14, depth / 2 + 0.14]) {
-            mSaMarble.add(new T.BoxGeometry(0.62, pierH - 0.8, 0.22), M(px - 0.85, gy + pierH / 2, az + pf));
-            mSaMarble.add(new T.BoxGeometry(0.62, pierH - 0.8, 0.22), M(px + 0.85, gy + pierH / 2, az + pf));
-          }
+          const ox = alongX ? sx * (w / 2 + 0.06) : 0, oz = alongX ? 0 : sx * (w / 2 + 0.06);
+          mCap.add(cyl(0.06, 0.06, d + 0.12, 8), M(px + ox, yc + 0.44, pz + oz, alongX ? Math.PI / 2 : 0, 0, alongX ? 0 : Math.PI / 2));
         }
+        box(mCap, w + 0.30, 0.10, d + 0.20, px, yc + 0.57, pz, ry);
+      }
 
-        // Upper Spandrel Wall & Molded Attic Entablature Cornice above the Arch
-        const crownY = springY + rOuter;
-        const totalW = (rInner + 3.1) * 2;
-        mTrav.add(new T.BoxGeometry(totalW, 1.15, depth + 0.2), M(cx, crownY + 0.45, az));
-        mTravD.add(new T.BoxGeometry(totalW + 0.9, 0.38, depth + 0.95), M(cx, crownY + 1.12, az));
-        // Keystone at Arch Apex
-        mSaMarble.add(new T.BoxGeometry(0.78, 1.55, depth + 0.42), M(cx, springY + rInner + 0.65, az));
+      function addEntablature(e0, e1, facePos, yb, alongX, dirSign) {
+        const L = Math.abs(e1 - e0), mid = (e0 + e1) / 2;
+        const put = (mg, depth, h, y) => {
+          const o = facePos + dirSign * (depth / 2 - 0.02);
+          if (alongX) box(mg, L, h, depth, mid, y, o); else box(mg, depth, h, L, o, y, mid);
+        };
+        put(mTrav, 0.24, 0.24, yb + 0.12);
+        put(mTravD, 0.18, 0.20, yb + 0.34);
+        for (let t = 0.14; t < L - 0.06; t += 0.26) {
+          const pos = Math.min(e0, e1) + t, o = facePos + dirSign * 0.20;
+          if (alongX) box(mCap, 0.10, 0.10, 0.12, pos, yb + 0.49, o); else box(mCap, 0.12, 0.10, 0.10, o, yb + 0.49, pos);
+        }
+        put(mCap, 0.46, 0.16, yb + 0.62);
+      }
 
-        // Front Facade Classical Incised Stone Frieze ("SCHOLA ATHENIENSIS · 雅典学院")
-        if (addPediment) {
-          const inscTex = makeGreekArchitraveTex('SCHOLA ATHENIENSIS  ·  雅 典 学 院  ·  ΜΗΔΕΙΣ ΑΓΕΩΜΕΤΡΗΤΟΣ ΕΙΣΙΤΩ');
-          const inscMesh = new T.Mesh(
-            new T.PlaneGeometry(11.6, 0.82),
-            new T.MeshLambertMaterial({ map: inscTex, emissiveMap: inscTex, emissive: 0xffffff, emissiveIntensity: 0.25 })
+      /* ---------- C1. Zone 0: Colossal Foreground Proscenium Arch with 3D Curved Gold-and-Black Greek Meander Band ---------- */
+      addArchedWall(mTravEx, cx, SP, zF - 0.05, 13.0, 12.6, RP, 0.02, 1.25);
+      addRing(mCap, cx, SP, zPro, RP - 0.06, RP + 0.14, 0.12);
+      addRing(mCap, cx, SP, zPro, RP + 1.04, RP + 1.52, 0.18);
+      {
+        const g = new Geo(), segs = 64, ri = RP + 0.14, ro = RP + 1.04, rep = 16, white = [1, 1, 1], zz = zPro + 0.04;
+        for (let i = 0; i < segs; i++) {
+          const a0 = (i / segs) * Math.PI, a1 = ((i + 1) / segs) * Math.PI;
+          const P0 = (rr, a) => [cx + Math.cos(a) * rr, SP + Math.sin(a) * rr, zz];
+          g.quad(P0(ri, a0), P0(ro, a0), P0(ro, a1), P0(ri, a1), [(i / segs) * rep, 0], [(i / segs) * rep, 1], [((i + 1) / segs) * rep, 1], [((i + 1) / segs) * rep, 0], white);
+        }
+        g.mesh(meanderMat);
+      }
+      for (const sd of [-1, 1]) {
+        const px = cx + sd * (RP + 0.9);
+        box(mTrav, 1.8, SP - gy, 1.35, px, gy + (SP - gy) / 2, zF + 0.58);
+        box(mCap, 2.0, 0.24, 1.55, px, gy + 0.12, zF + 0.58);
+      }
+
+      /* ---------- C2. Zone 1: Monumental Apollo & Athena Pier Walls + Recessed Conch-Shell Niches + Fluted Corridor ---------- */
+      const nicheY0 = 4.0, nicheW = 2.08, nicheH = 3.85;
+      addArchedWall(mTravEx, cx, gy, zF - FT, 12.2, 14.3, R1, S1 - gy, FT,
+        [archHole(-NX, nicheY0, nicheW, nicheH), archHole(NX, nicheY0, nicheW, nicheH)]);
+      addRing(mCap, cx, S1, zF, R1, R1 + 0.48, 0.14);
+      box(mCap, 0.60, 1.05, 0.36, cx, S1 + R1 + 0.24, zF + 0.06);
+      box(mTravD, 25.0, 0.36, FT + 0.26, cx, gy + 0.18, zF - FT / 2 + 0.05);
+
+      for (const sd of [-1, 1]) {
+        // Front pier pilasters framing Apollo & Athena niches + continuous entablature
+        for (const px of [5.85, 9.05, 11.45]) addPilaster(cx + sd * px, gy, zF + 0.12, 7.95, 0.58, true);
+        addEntablature(cx + sd * R1, cx + sd * 12.2, zF, gy + 7.95, true, 1);
+
+        const nx = cx + sd * NX, zAx = zF - FT;
+        // True deeply recessed semicircular stone niche + ribbed conch-shell half-dome (no z-fighting!)
+        mNiche.add(new T.CylinderGeometry(nicheW / 2, nicheW / 2, nicheH - nicheW / 2, 20, 1, true, Math.PI / 2, Math.PI), M(nx, gy + nicheY0 + (nicheH - nicheW / 2) / 2, zAx));
+        mShell.add(new T.SphereGeometry(nicheW / 2, 20, 10, Math.PI, Math.PI, 0, Math.PI / 2), M(nx, gy + nicheY0 + nicheH - nicheW / 2, zAx));
+        box(mCap, nicheW + 0.48, 0.16, 1.35, nx, gy + nicheY0 - 0.04, zAx - 0.42);
+        box(mCap, 1.0, 0.26, 0.80, nx, gy + nicheY0 + 0.17, zAx - 0.32);
+        addRing(mCap, nx, gy + nicheY0 + nicheH - nicheW / 2, zF, nicheW / 2, nicheW / 2 + 0.15, 0.08);
+
+        // Classical carved bas-relief panels beneath Apollo/Athena + secondary outer reliefs
+        const relief = (rx, ry, w, h, variant) => {
+          box(mCap, w + 0.28, h + 0.28, 0.10, rx, ry, zF + 0.04);
+          const mt = makeBasReliefTex(variant);
+          addMesh(new T.PlaneGeometry(w, h), new T.MeshLambertMaterial({ map: mt, emissiveMap: mt, emissive: 0xfff5df, emissiveIntensity: 0.16 }), rx, ry, zF + 0.11);
+        };
+        relief(nx, gy + 2.45, 2.15, 1.65, sd < 0 ? 'apollo' : 'athena');
+        relief(cx + sd * 10.25, gy + 2.45, 1.65, 1.55, sd < 0 ? 'athena' : 'apollo');
+
+        // Pier masonry mass behind facade + shadowed inner nave wall lined with 5 fluted Corinthian pilasters
+        box(mTrav, 5.4, S1 - gy, (zF - FT - 1.15) - zV1b, cx + sd * 8.15, gy + (S1 - gy) / 2, (zF - FT - 1.15 + zV1b) / 2);
+        box(mTravD, 0.30, S1 - gy, zF - FT - zV1b, cx + sd * (R1 + 0.15), gy + (S1 - gy) / 2, (zF - FT + zV1b) / 2);
+        for (const pz of [zF - FT - 0.45, zF - FT - 1.55, zF - FT - 2.65, zF - FT - 3.75, zV1b + 0.42]) {
+          addPilaster(cx + sd * (R1 - 0.12), gy, pz, 7.95, 0.56, false);
+        }
+        addEntablature(zV1b, zF - FT, cx + sd * R1, gy + 7.95, false, -sd);
+      }
+
+      /* ---------- C3. Refined Multi-Part LatheGeometry Marble Statues: Apollo (Left) & Athena (Right) ---------- */
+      const _up = new T.Vector3(0, 1, 0);
+      function limb(mg, a, b, r0, r1) {
+        const va = new T.Vector3(a[0], a[1], a[2]), vb = new T.Vector3(b[0], b[1], b[2]);
+        const d = vb.clone().sub(va), L = d.length(); if (L < 1e-4) return;
+        const q = new T.Quaternion().setFromUnitVectors(_up, d.normalize());
+        mg.add(new T.CylinderGeometry(r1 == null ? r0 : r1, r0, L, 8), new T.Matrix4().compose(va.clone().add(vb).multiplyScalar(0.5), q, new T.Vector3(1, 1, 1)));
+        mg.add(new T.SphereGeometry(Math.max(r0, r1 == null ? r0 : r1) * 0.98, 8, 6), new T.Matrix4().makeTranslation(vb.x, vb.y, vb.z));
+      }
+      const V2 = (pts) => pts.map(([a, b]) => new T.Vector2(a, b));
+      function frame(ox, oy, oz, ry, s) {
+        const sn = Math.sin(ry), cs = Math.cos(ry);
+        const L = (lx, ly, lz) => [ox + (lx * cs + lz * sn) * s, oy + ly * s, oz + (-lx * sn + lz * cs) * s];
+        const MR = (lx, ly, lz, rx, rry, rz, sx, sy, sz) => {
+          const p = L(lx, ly, lz);
+          return new T.Matrix4().compose(
+            new T.Vector3(p[0], p[1], p[2]),
+            new T.Quaternion().setFromEuler(new T.Euler(rx || 0, ry + (rry || 0), rz || 0, 'YXZ')),
+            new T.Vector3((sx || 1) * s, (sy || 1) * s, (sz || 1) * s)
           );
-          inscMesh.position.set(cx, crownY + 0.46, az + depth / 2 + 0.14);
-          group.add(inscMesh); made.meshes++;
+        };
+        return { L, MR, s };
+      }
+
+      function addApollo(ox, oy, oz) {
+        const { L, MR, s } = frame(ox, oy, oz, 0, 1.56), m = mStat;
+        limb(m, L(0.09, 0.95, 0), L(0.10, 0.50, 0.02), 0.085 * s, 0.07 * s);
+        limb(m, L(0.10, 0.50, 0.02), L(0.10, 0.07, 0), 0.065 * s, 0.05 * s);
+        limb(m, L(-0.09, 0.95, 0), L(-0.15, 0.52, 0.10), 0.085 * s, 0.07 * s);
+        limb(m, L(-0.15, 0.52, 0.10), L(-0.18, 0.08, -0.06), 0.065 * s, 0.05 * s);
+        m.add(new T.BoxGeometry(0.10, 0.05, 0.22), MR(0.10, 0.03, 0.05));
+        m.add(new T.BoxGeometry(0.10, 0.05, 0.22), MR(-0.18, 0.04, -0.02, 0.28));
+        m.add(new T.LatheGeometry(V2([[0.13, 0], [0.16, 0.08], [0.15, 0.20], [0.13, 0.32], [0.155, 0.45], [0.18, 0.55], [0.12, 0.62], [0.05, 0.66], [0, 0.66]]), 14), MR(0, 0.88, 0, 0, 0, 0.05, 1.25, 1, 0.78));
+        limb(m, L(0, 1.52, 0), L(0, 1.62, 0.01), 0.05 * s);
+        m.add(new T.SphereGeometry(0.10, 12, 10), MR(0, 1.72, 0.01, 0, 0, 0, 0.92, 1.10, 1));
+        for (let k = 0; k < 9; k++) {
+          const a = (k / 9) * Math.PI * 2;
+          m.add(new T.SphereGeometry(0.042, 6, 5), MR(Math.cos(a) * 0.075, 1.79 + Math.sin(a * 2) * 0.01, Math.sin(a) * 0.07 - 0.02));
+        }
+        m.add(new T.LatheGeometry(V2([[0.20, 0.55], [0.23, 0.90], [0.21, 1.25], [0.19, 1.45], [0.10, 1.53]]), 14, Math.PI * 0.55, Math.PI * 1.05), MR(0, 0, -0.02));
+        limb(m, L(-0.22, 1.48, 0), L(-0.28, 1.18, 0.03), 0.05 * s, 0.045 * s);
+        limb(m, L(-0.28, 1.18, 0.03), L(-0.25, 0.95, 0.12), 0.042 * s, 0.035 * s);
+        limb(m, L(0.22, 1.48, 0), L(0.31, 1.22, 0.08), 0.05 * s, 0.045 * s);
+        limb(m, L(0.31, 1.22, 0.08), L(0.25, 1.12, 0.24), 0.042 * s, 0.035 * s);
+        // Sculpted Classical Kithara / Lyre
+        limb(mBr, L(0.22, 0.98, 0.27), L(0.17, 1.42, 0.27), 0.02 * s);
+        limb(mBr, L(0.44, 0.98, 0.27), L(0.49, 1.42, 0.27), 0.02 * s);
+        limb(mBr, L(0.15, 1.42, 0.27), L(0.51, 1.42, 0.27), 0.018 * s);
+        mBr.add(new T.SphereGeometry(0.16, 12, 8), MR(0.33, 0.98, 0.27, 0, 0, 0, 1, 0.5, 0.3));
+        for (let k = 0; k < 5; k++) limb(mGd, L(0.26 + k * 0.035, 1.0, 0.285), L(0.26 + k * 0.035, 1.41, 0.285), 0.004 * s);
+      }
+
+      function addAthena(ox, oy, oz) {
+        const { L, MR, s } = frame(ox, oy, oz, 0, 1.56), m = mStat;
+        m.add(new T.LatheGeometry(V2([[0, 0], [0.27, 0], [0.28, 0.05], [0.25, 0.50], [0.21, 0.95], [0.18, 1.04], [0.215, 1.14], [0.19, 1.24], [0.20, 1.38], [0.215, 1.47], [0.16, 1.55], [0.06, 1.60], [0, 1.60]]), 18), MR(0, 0, 0));
+        m.add(new T.LatheGeometry(V2([[0.225, 1.26], [0.235, 1.42], [0.185, 1.53], [0.08, 1.58]]), 16, -Math.PI * 0.6, Math.PI * 1.2), MR(0, 0, 0.005));
+        mGd.add(new T.SphereGeometry(0.045, 8, 6), MR(0, 1.38, 0.22));
+        limb(m, L(0, 1.58, 0), L(0, 1.66, 0.01), 0.05 * s);
+        m.add(new T.SphereGeometry(0.10, 12, 10), MR(0, 1.74, 0.01, 0, 0, 0, 0.92, 1.08, 1));
+        m.add(new T.SphereGeometry(0.118, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), MR(0, 1.77, -0.01, 0, 0, 0, 1, 1, 1.08));
+        m.add(new T.BoxGeometry(0.035, 0.17, 0.36), MR(0, 1.93, -0.02));
+        limb(m, L(-0.12, 1.69, 0.10), L(0.12, 1.69, 0.10), 0.015 * s);
+        limb(m, L(-0.22, 1.46, 0), L(-0.37, 1.56, 0.06), 0.05 * s, 0.045 * s);
+        limb(m, L(-0.37, 1.56, 0.06), L(-0.42, 1.74, 0.08), 0.042 * s, 0.035 * s);
+        // Tall upright antique-bronze spear
+        limb(mBr, L(-0.42, 0.02, 0.08), L(-0.42, 2.22, 0.08), 0.014 * s);
+        mGd.add(new T.ConeGeometry(0.035, 0.16, 8), MR(-0.42, 2.29, 0.08));
+        // Left arm resting on sculpted Medusa Aegis shield
+        limb(m, L(0.22, 1.46, 0), L(0.32, 1.15, 0.04), 0.05 * s, 0.045 * s);
+        limb(m, L(0.32, 1.15, 0.04), L(0.40, 0.92, 0.10), 0.042 * s, 0.035 * s);
+        m.add(new T.CylinderGeometry(0.36, 0.36, 0.05, 24), MR(0.44, 0.52, 0.14, Math.PI / 2, -0.25, 0.08));
+        m.add(new T.TorusGeometry(0.33, 0.025, 6, 24), MR(0.44, 0.52, 0.17, 0, -0.25, 0));
+        m.add(new T.SphereGeometry(0.10, 10, 8), MR(0.45, 0.52, 0.19, 0, 0, 0, 1, 1, 0.45));
+        for (let k = 0; k < 8; k++) {
+          const a = (k / 8) * Math.PI * 2;
+          limb(m, L(0.45 + Math.cos(a) * 0.08, 0.52 + Math.sin(a) * 0.08, 0.19), L(0.45 + Math.cos(a) * 0.16, 0.52 + Math.sin(a) * 0.16, 0.18), 0.012 * s);
         }
       }
+      addApollo(cx - NX, gy + nicheY0 + 0.30, zF - FT - 0.36);
+      addAthena(cx + NX, gy + nicheY0 + 0.30, zF - FT - 0.36);
 
-      // 1. THREE RECEDING COFFERED BARREL-VAULT TRIUMPHAL ARCHES (Raphael's Exact Perspective Axis!)
-      addTriumphalBarrelArch(z1 - 0.6, 5.8, 3.4, gy + 5.6, true);   // Arch 1: Grand Foreground Triumphal Arch
-      addTriumphalBarrelArch(cz + 0.2, 5.8, 4.0, gy + 5.6, false);  // Arch 2: Central Crossing Vault (with Apollo & Athena Niches)
-      addTriumphalBarrelArch(z0 + 1.4, 5.2, 3.0, gy + 5.4, false);  // Arch 3: Rear Sky-Framed Arch opening to bright Aegean sky!
+      /* ---------- C4. Vault 1 (Deeply Coffered Lozenge Barrel Vault) ---------- */
+      addCofferVault(zF - FT, zV1b, R1, S1, 6, 2.2);
+      addRing(mTrav, cx, S1, zV1b - 0.22, R1 - 0.30, R1 + 0.42, 0.62);
 
-      // Connecting Ribbed Terracotta Barrel Roof Shell on Top of the Nave (realistic exterior crown)
-      const naveRoof = new T.Mesh(
-        new T.CylinderGeometry(7.2, 7.2, z1 - z0 + 2.2, 24, 1, true, -Math.PI / 2, Math.PI),
-        terracottaRoofMat
-      );
-      naveRoof.rotation.x = Math.PI / 2;
-      naveRoof.position.set(cx, gy + 5.75, cz);
-      naveRoof.castShadow = true;
-      group.add(naveRoof); made.meshes++;
+      /* ---------- C5. Zone 2: Sunlit Central Crossing, Pendentive Tondo Medallions & Triple Blue-Sky Clerestory Drum ---------- */
+      const zXc = (zV1b + zXn) / 2, xLen = zV1b - zXn;
+      addArchedWall(mTravEx, cx, gy, zV1b - 0.05, 5.95, DR - gy, R1, S1 - gy, 0.55);
+      addArchedWall(mTravEx, cx, gy, zXn - XW, 5.95, DR - gy, R2, S2 - gy, XW);
+      addRing(mCap, cx, S2, zXn, R2, R2 + 0.44, 0.14);
+      box(mCap, 0.56, 0.98, 0.32, cx, S2 + R2 + 0.22, zXn + 0.06);
 
-      // 2. GRAND 4-STEP FULL-WIDTH PENTELIC MARBLE STAIRCASE (The Iconic Steps of The School of Athens!)
-      for (let st = 0; st < 4; st++) {
-        const sy = gy + st * 0.22 + 0.11;
-        const sz = cz + 2.6 - st * 0.55;
-        mSaMarble.add(new T.BoxGeometry(11.8, 0.22, 0.62), M(cx, sy, sz));
+      for (const sd of [-1, 1]) {
+        // Side transept sunlit opening arches (aligned flush to inner nave x = cx ± 5.45)
+        const trX = sd < 0 ? cx - 5.95 : cx + 5.45;
+        addArchedWall(mTravEx, trX, gy, zXc, xLen / 2, DR - gy, 2.45, 7.6, 0.50, null, Math.PI / 2);
+        addPilaster(cx + sd * (R1 - 0.12), gy, zV1b - 0.55, 7.95, 0.58, false);
+        addPilaster(cx + sd * (R1 - 0.12), gy, zXn + 0.55, 7.95, 0.58, false);
+        addPilaster(cx + sd * 5.42, gy, zXn + 0.12, 7.65, 0.58, true);
+        addEntablature(zXn, zV1b, cx + sd * R1, gy + 7.95, false, -sd);
+
+        // Two Carved Circular Marble Tondo Relief Medallions in the Crossing Pendentive Spandrels
+        const tx = cx + sd * 4.35, ty = gy + 12.25;
+        mCap.add(new T.TorusGeometry(0.86, 0.11, 8, 28), M(tx, ty, zXn + 0.08));
+        const tt = makeTondoTex(sd < 0 ? 'left' : 'right');
+        addMesh(new T.CircleGeometry(0.82, 28), new T.MeshLambertMaterial({ map: tt, emissiveMap: tt, emissive: 0xfff5df, emissiveIntensity: 0.18 }), tx, ty, zXn + 0.06);
       }
-      // Raised Upper Philosophical Sanctuary Dais behind the 4 steps (y = gy + 0.88)
-      const daisY = gy + 0.88;
-      mSaMarble.add(new T.BoxGeometry(11.8, 0.88, cz - z0 + 1.4), M(cx, gy + 0.44, (cz + 0.5 + z0) * 0.5));
 
-      // 3. TWO ICONIC WALL NICHES WITH FULL-SCALE MARBLE STATUES OF APOLLO (LEFT) & ATHENA (RIGHT)
-      for (const [side, deity] of [[-1, 'apollo'], [1, 'athena']]) {
-        const nx = cx + side * 6.85;
-        const nz = cz + 2.4;
-        const ny = gy + 2.85;
-        // Semicircular Recessed Niche Frame & Shell Half-Dome
-        mTravD.add(new T.BoxGeometry(2.35, 3.65, 0.42), M(nx, ny + 1.4, nz));
-        mTrav.add(new T.BoxGeometry(1.75, 3.05, 0.25), M(nx, ny + 1.35, nz + 0.14));
-        mTravD.add(new T.BoxGeometry(2.55, 0.24, 0.62), M(nx, ny - 0.42, nz + 0.15));
-        // Classical Carved Bas-Relief Panel Directly Below Each Niche
-        const relMesh = new T.Mesh(new T.PlaneGeometry(2.15, 1.05), reliefMat);
-        relMesh.position.set(nx, gy + 1.55, nz + 0.28);
-        group.add(relMesh); made.meshes++;
+      // Crossing Drum Cornice Ring + 4 Walls each pierced by TRIPLE ARCHED CLERESTORY WINDOWS (Open Sky Top!)
+      box(mCap, 12.4, 0.50, 0.72, cx, DR + 0.25, zXn - 0.05);
+      box(mCap, 12.4, 0.50, 0.72, cx, DR + 0.25, zV1b + 0.05);
+      box(mCap, 0.72, 0.50, xLen + 0.85, cx - 5.85, DR + 0.25, zXc);
+      box(mCap, 0.72, 0.50, xLen + 0.85, cx + 5.85, DR + 0.25, zXc);
 
-        // Sculpted White-Marble Deity Statue inside Niche
-        mSaMarble.add(cyl(0.28, 0.40, 1.45, 14), M(nx, ny + 0.42, nz + 0.32));
-        mSaMarble.add(cyl(0.32, 0.28, 0.68, 12), M(nx, ny + 1.42, nz + 0.32));
-        mSaMarble.add(sph(0.22), M(nx, ny + 2.02, nz + 0.32));
-        if (deity === 'apollo') {
-          // Apollo's Golden-Bronze Lyre on Left Arm
-          mSaBronze.add(torus(0.26, 0.035), M(nx - 0.34, ny + 1.52, nz + 0.45));
+      const drumH = 3.85, winHoles = (sp) => [-sp, 0, sp].map((wx) => archHole(wx, 0.35, 1.28, 3.05));
+      addFlatWall(mTravEx, cx, DR + 0.50, zXn - 0.55, 6.0, drumH, 0.55, winHoles(1.85));
+      addFlatWall(mTravEx, cx, DR + 0.50, zV1b - 0.05, 6.0, drumH, 0.55, winHoles(1.85));
+      addFlatWall(mTravEx, cx - 6.05, DR + 0.50, zXc, xLen / 2 + 0.12, drumH, 0.55, winHoles(1.85), Math.PI / 2);
+      addFlatWall(mTravEx, cx + 5.50, DR + 0.50, zXc, xLen / 2 + 0.12, drumH, 0.55, winHoles(1.85), Math.PI / 2);
+
+      // Upper Drum Parapet Cornice Rim (leaving center 100% open to real sky!)
+      box(mCap, 12.8, 0.42, 0.82, cx, DR + 0.50 + drumH + 0.21, zXn - 0.28);
+      box(mCap, 12.8, 0.42, 0.82, cx, DR + 0.50 + drumH + 0.21, zV1b + 0.22);
+      box(mCap, 0.82, 0.42, xLen + 1.15, cx - 5.85, DR + 0.50 + drumH + 0.21, zXc);
+      box(mCap, 0.82, 0.42, xLen + 1.15, cx + 5.85, DR + 0.50 + drumH + 0.21, zXc);
+      for (const [px, pz] of [[-5.85, zXn - 0.28], [5.85, zXn - 0.28], [-5.85, zV1b + 0.22], [5.85, zV1b + 0.22]]) {
+        box(mCap, 0.88, drumH, 0.88, cx + px, DR + 0.50 + drumH / 2, pz);
+      }
+
+      /* ---------- C6. Zone 3: Middle Receding Coffered Barrel Vault (Vault 2) ---------- */
+      addCofferVault(zV2f, zV2b, R2, S2, 6, 2.3);
+      addRing(mTrav, cx, S2, zV2b - 0.28, R2 - 0.28, R2 + 0.40, 0.58);
+      for (const sd of [-1, 1]) {
+        box(mTravD, 0.30, S2 - gy, zV2f - zV2b, cx + sd * (R2 + 0.15), gy + (S2 - gy) / 2, (zV2f + zV2b) / 2);
+        for (const pz of [zV2f - 0.55, zV2f - 1.85, zV2f - 3.15, zV2b + 0.42]) {
+          addPilaster(cx + sd * (R2 - 0.12), gy + 1.0, pz, 6.75, 0.54, false);
+        }
+        addEntablature(zV2b, zV2f, cx + sd * R2, gy + 7.55, false, -sd);
+      }
+
+      /* ---------- C7. Zone 4: Sunlit Open-Sky Courtyard Gap + Distant 3rd Triumphal Arch ---------- */
+      for (const sd of [-1, 1]) {
+        const holes = [archHole(-1.6, 1.35, 1.65, 4.4), archHole(1.6, 1.35, 1.65, 4.4)];
+        const cwX = sd < 0 ? cx - R2 - 0.42 : cx + R2;
+        addFlatWall(mTravEx, cwX, gy, (zV2b + zA3f) / 2, (zV2b - zA3f) / 2, S2 - gy, 0.42, holes, Math.PI / 2);
+        box(mCap, 0.70, 0.28, zV2b - zA3f, cx + sd * (R2 + 0.12), S2 + 0.14, (zV2b + zA3f) / 2);
+        for (const pz of [zV2b - 0.32, (zV2b + zA3f) / 2, zA3f + 0.32]) addPilaster(cx + sd * (R2 - 0.10), gy + 1.0, pz, S2 - gy - 1.3, 0.46, false);
+      }
+      // Distant 3rd Triumphal Arch (opening cleanly to pure sunlit Aegean sky!)
+      addArchedWall(mTravEx, cx, gy + 1.0, zA3b, 5.70, 9.8, 4.10, 4.75, zA3f - zA3b);
+      addRing(mCap, cx, gy + 5.75, zA3f, 4.10, 4.52, 0.14);
+      box(mCap, 0.52, 0.92, 0.30, cx, gy + 5.75 + 4.32, zA3f + 0.08);
+      for (const px of [-4.85, 4.85]) addPilaster(cx + px, gy + 1.0, zA3f + 0.12, 8.1, 0.54, true);
+      addEntablature(cx - 5.7, cx + 5.7, zA3f, gy + 9.2, true, 1);
+      box(mCap, 12.1, 0.32, 2.25, cx, gy + 10.95, (zA3f + zA3b) / 2);
+      for (let k = -9; k <= 9; k++) mCap.add(cyl(0.07, 0.09, 0.76, 8), M(cx + k * 0.44, daisY + 0.38, zA3b - 1.0));
+      box(mCap, 8.6, 0.12, 0.26, cx, daisY + 0.80, zA3b - 1.0);
+
+      /* ---------- C8. Grand 4-Step Full-Width White-Marble Staircase & Inlaid Opus Sectile Floors ---------- */
+      for (let k = 1; k <= 4; k++) {
+        const h = k * 0.255, front = zStep + (5 - k) * 0.65;
+        box(mTravD, 15.8, h, front - zStep, cx, gy + h / 2, (front + zStep) / 2);
+        box(mCap, 15.9, 0.06, 0.12, cx, gy + h - 0.03, front + 0.02);
+      }
+      for (let k = 1; k <= 4; k++) {
+        const front = zStep + (5 - k) * 0.65, back = k === 4 ? zA3b - 1.2 : zStep + (4 - k) * 0.65;
+        const wFloor = k === 4 ? 11.4 : 15.8;
+        const tex = k === 4 ? bandTex.clone() : null;
+        if (k === 4) { tex.needsUpdate = true; tex.repeat.set(3.2, (front - back) / 2.2); }
+        const mat = k === 4 ? new T.MeshLambertMaterial({ map: tex, emissive: 0x1a160f }) : pentelicMat;
+        addMesh(new T.PlaneGeometry(wFloor, front - back), mat, cx, gy + k * 0.255 + 0.008, (front + back) / 2, -Math.PI / 2);
+      }
+      const floorPlane = (w, d, px, pz) => {
+        const t = opusTex.clone(); t.needsUpdate = true; t.repeat.set(w / 2.8, d / 2.8);
+        return addMesh(new T.PlaneGeometry(w, d), new T.MeshLambertMaterial({ map: t, emissive: 0x15120d }), px, gy + 0.025, pz, -Math.PI / 2);
+      };
+      floorPlane(21.6, zF - zStep - 2.6, cx, (zF + zStep + 2.6) / 2);
+      floorPlane(28.0, 9.0, cx, zF + 4.5);
+
+      /* ---------- C9. 360° Exterior Basilica Envelope: Side Aisles, Terracotta Vault Roofs & Classical Pediment ---------- */
+      const zE0 = zV2b - 0.5, zE1 = zF - FT, eL = zE1 - zE0, eC = (zE0 + zE1) / 2;
+      for (const sd of [-1, 1]) {
+        const wins = [-5.0, 0, 5.0].map((wx) => archHole(wx, 1.8, 1.7, 5.0));
+        const oxWall = sd < 0 ? cx - 11.4 : cx + 10.8;
+        addFlatWall(mTravEx, oxWall, gy, eC, eL / 2, 9.6, 0.60, wins, Math.PI / 2);
+        for (const wz of [-7.4, -2.5, 2.5, 7.4]) addPilaster(cx + sd * 11.46, gy, eC + wz, 8.9, 0.58, false);
+        box(mCap, 1.15, 0.34, eL + 0.9, cx + sd * 11.1, gy + 9.6, eC);
+        box(mTrav, 5.8, 0.30, eL, cx + sd * 8.35, gy + 9.65, eC);
+        for (let t = 0.3; t < eL; t += 0.52) mCap.add(cyl(0.06, 0.08, 0.55, 8), M(cx + sd * 11.25, gy + 10.1, zE0 + t));
+        box(mCap, 0.24, 0.10, eL, cx + sd * 11.25, gy + 10.42, eC);
+      }
+      addArchedWall(mTravEx, cx, gy, zE0, 11.2, 13.6, R2, S2 - gy, 0.55);
+
+      // Exterior Ribbed Terracotta Barrel Roofs — strictly over Vault 1 & Vault 2 ONLY (Crossing & Courtyard stay 100% open to sky!)
+      const roofCyl = (rr, z0r, z1r, sy) => {
+        const t = greekTileTex.clone(); t.needsUpdate = true; t.repeat.set(10, (z0r - z1r) / 1.2);
+        return addMesh(new T.CylinderGeometry(rr, rr, z0r - z1r, 28, 1, true, -Math.PI / 2, Math.PI), new T.MeshLambertMaterial({ map: t, side: T.DoubleSide }), cx, sy, (z0r + z1r) / 2, -Math.PI / 2, 0, 0, true);
+      };
+      roofCyl(R1 + 0.78, zF - FT, zV1b - 0.1, S1);
+      roofCyl(R2 + 0.74, zV2f + 0.1, zE0, S2);
+
+      // Front Exterior Attic Entablature, Incised Roman Frieze & Classical Pediment Crown (above interior camera view)
+      box(mCap, 26.8, 0.40, 1.45, cx, gy + 14.55, zF + 0.55);
+      box(mTrav, 21.0, 1.05, 1.15, cx, gy + 15.25, zF + 0.45);
+      {
+        const it = makeGreekArchitraveTex('SCHOLA ATHENIENSIS  ·  雅 典 学 院  ·  ΜΗΔΕΙΣ ΑΓΕΩΜΕΤΡΗΤΟΣ ΕΙΣΙΤΩ');
+        addMesh(new T.PlaneGeometry(14.6, 0.88), new T.MeshLambertMaterial({ map: it, emissiveMap: it, emissive: 0xffffff, emissiveIntensity: 0.22 }), cx, gy + 15.25, zF + 1.06);
+        const ps = new T.Shape(); ps.moveTo(-11.2, 0); ps.lineTo(11.2, 0); ps.lineTo(0, 2.55); ps.closePath();
+        mTravEx.add(extrude(ps, 1.10, 4), M(cx, gy + 15.80, zF - 0.10));
+        box(mCap, 22.8, 0.28, 1.42, cx, gy + 15.90, zF + 0.48);
+        const ang = Math.atan2(2.55, 11.2), rl = Math.hypot(11.2, 2.55);
+        for (const sd of [-1, 1]) mCap.add(new T.BoxGeometry(rl + 0.4, 0.28, 1.42), M(cx + sd * 5.6, gy + 15.80 + 1.32, zF + 0.48, 0, 0, -sd * ang));
+        mCap.add(new T.SphereGeometry(0.38, 12, 8), M(cx, gy + 18.55, zF + 0.45));
+        mCap.add(new T.ConeGeometry(0.26, 0.72, 10), M(cx, gy + 19.02, zF + 0.45));
+      }
+
+      /* ---------- C10. Soft Painterly Raphael Cumulus Clouds High in the Northern Sky ---------- */
+      [[-10, 10, -76, 30, 10, 11], [10, 7, -84, 26, 9, 12], [0, 26, -86, 36, 13, 13], [-18, 30, -72, 28, 11, 14], [18, 22, -90, 32, 11, 15]].forEach(([dx, dy, dz, w, h, sd]) => {
+        const mat = new T.MeshBasicMaterial({ map: makeCloudTex(sd), transparent: true, depthWrite: false, fog: false, opacity: 0.82 });
+        const m = new T.Mesh(new T.PlaneGeometry(w, h), mat);
+        m.position.set(cx + dx, gy + dy, cz + dz); m.renderOrder = -5;
+        group.add(m); made.meshes++;
+        saClouds.push(mat);
+      });
+
+      /* ---------- C11. Refined Sculpted Renaissance Philosopher Tableau (Sightline-Pure!) ---------- */
+      const SKIN = 0xe0b48e;
+      const TUNIC = V2([[0, 0], [0.20, 0], [0.235, 0.04], [0.225, 0.45], [0.20, 0.85], [0.18, 1.0], [0.20, 1.20], [0.215, 1.33], [0.17, 1.42], [0.07, 1.47], [0, 1.47]]);
+      const CLOAK = V2([[0.258, 0.16], [0.258, 0.50], [0.238, 0.90], [0.222, 1.12], [0.242, 1.30], [0.205, 1.43], [0.10, 1.49]]);
+
+      function head(F, hair, beard, longBeard) {
+        const { L, MR, s } = F;
+        limb(FM(SKIN), L(0, 1.45, 0), L(0, 1.56, 0.01), 0.055 * s);
+        FM(SKIN).add(new T.SphereGeometry(0.105, 12, 10), MR(0, 1.63, 0.01, 0, 0, 0, 0.92, 1.08, 1));
+        FM(SKIN).add(new T.BoxGeometry(0.03, 0.05, 0.04), MR(0, 1.62, 0.11));
+        FM(hair).add(new T.SphereGeometry(0.112, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.62), MR(0, 1.65, -0.02, -0.25, 0, 0, 1, 1, 1.02));
+        if (beard) FM(hair).add(longBeard ? new T.ConeGeometry(0.08, 0.26, 10) : new T.SphereGeometry(0.075, 10, 8), longBeard ? MR(0, 1.45, 0.07, Math.PI, 0, 0) : MR(0, 1.54, 0.065, 0, 0, 0, 1, 1.25, 0.75));
+      }
+      function arm(F, col, side, el, hand) {
+        const { L, s } = F;
+        limb(FM(col), L(side * 0.20, 1.36, 0), L(el[0], el[1], el[2]), 0.058 * s, 0.05 * s);
+        limb(FM(SKIN), L(el[0], el[1], el[2]), L(hand[0], hand[1], hand[2]), 0.04 * s, 0.035 * s);
+      }
+      function addFigure(o) {
+        const F = frame(o.x, o.y, o.z, o.ry || 0, o.s || 1), { MR, L } = F;
+        FM(o.tunic).add(new T.LatheGeometry(TUNIC, 16), MR(0, 0, 0));
+        FM(o.cloak).add(new T.LatheGeometry(CLOAK, 16, (o.cloakRot || 0) + Math.PI * 0.3, Math.PI * 1.45), MR(0, 0, 0));
+        head(F, o.hair, o.beard !== false, o.longBeard);
+        const P = o.pose || 'down';
+        if (P === 'up') {
+          arm(F, o.tunic, -1, [-0.27, 1.60, 0.06], [-0.24, 1.88, 0.04]);
+          limb(FM(SKIN), L(-0.24, 1.90, 0.04), L(-0.24, 2.04, 0.04), 0.014 * F.s);
+          arm(F, o.cloak, 1, [0.27, 1.08, 0.08], [0.20, 0.98, 0.18]);
+          FM(0x8a5a2c).add(new T.BoxGeometry(0.06, 0.32, 0.22), MR(0.20, 1.02, 0.22, 0, 0, 0.10));
+        } else if (P === 'forward') {
+          arm(F, o.cloak, -1, [-0.30, 1.28, 0.24], [-0.34, 1.26, 0.52]);
+          FM(SKIN).add(new T.BoxGeometry(0.11, 0.025, 0.13), MR(-0.34, 1.25, 0.58));
+          arm(F, o.cloak, 1, [0.30, 1.10, 0.10], [0.25, 1.02, 0.20]);
+          FM(0x6b4a2a).add(new T.BoxGeometry(0.07, 0.34, 0.24), MR(0.27, 1.00, 0.20, 0.50, 0, 0));
+        } else if (P === 'debate') {
+          arm(F, o.cloak, -1, [-0.26, 1.12, 0.12], [-0.10, 1.18, 0.32]);
+          arm(F, o.tunic, 1, [0.26, 1.12, 0.12], [0.12, 1.20, 0.30]);
+        } else if (P === 'globe') {
+          arm(F, o.cloak, -1, [-0.26, 1.10, 0.14], [-0.14, 1.12, 0.30]);
+          arm(F, o.tunic, 1, [0.26, 1.10, 0.14], [0.14, 1.12, 0.30]);
+          FM(o.globe).add(new T.SphereGeometry(0.17, 14, 10), MR(0, 1.20, 0.37));
+          mGd.add(new T.TorusGeometry(0.19, 0.012, 6, 24), MR(0, 1.20, 0.37, 0.6, 0, 0.3));
+        } else if (P === 'book') {
+          arm(F, o.cloak, -1, [-0.26, 1.10, 0.12], [-0.08, 1.20, 0.26]);
+          arm(F, o.tunic, 1, [0.26, 1.10, 0.12], [0.10, 1.20, 0.26]);
+          FM(0xf1e6c8).add(new T.BoxGeometry(0.30, 0.03, 0.22), MR(0, 1.22, 0.30, -0.5, 0, 0));
         } else {
-          // Athena's Crested Corinthian Helmet, Tall Spear & Aegis Shield
-          mSaMarble.add(new T.BoxGeometry(0.08, 0.36, 0.45), M(nx, ny + 2.34, nz + 0.32));
-          mSaBronze.add(cyl(0.025, 0.025, 2.85, 8), M(nx + 0.42, ny + 1.35, nz + 0.42));
-          mSaBronze.add(cyl(0.42, 0.42, 0.06, 16), M(nx - 0.42, ny + 1.25, nz + 0.45, Math.PI / 2, 0, 0));
+          arm(F, o.cloak, -1, [-0.27, 1.10, 0.03], [-0.25, 0.88, 0.08]);
+          arm(F, o.tunic, 1, [0.27, 1.10, 0.03], [0.25, 0.88, 0.08]);
         }
       }
-
-      // 4. LIVING 3D SCULPTURAL TABLEAU OF RAPHAEL'S ICONIC FIGURES!
-      // Helper to sculpt a recognizable classical draped figure
-      function addClassicalFigure(fx, fy, fz, ry, cloakM, tunicM, hairM, pose) {
-        const s = Math.sin(ry), c = Math.cos(ry);
-        const loc = (lx, ly, lz) => [fx + lx * c + lz * s, fy + ly, fz - lx * s + lz * c];
-        let q;
-        // Draped lower robe & torso
-        q = loc(0, 0.56, 0); tunicM.add(cyl(0.24, 0.34, 1.12, 12), M(q[0], q[1], q[2]));
-        q = loc(0, 1.26, 0); cloakM.add(cyl(0.28, 0.26, 0.62, 12), M(q[0], q[1], q[2]));
-        q = loc(0, 1.72, 0); mSkin.add(sph(0.18), M(q[0], q[1], q[2]));
-        q = loc(0, 1.80, -0.02); hairM.add(sph(0.19), M(q[0], q[1], q[2], 0, 0, 0, 1.0, 0.72, 1.0));
-        q = loc(0, 1.62, 0.14); hairM.add(new T.BoxGeometry(0.18, 0.16, 0.10), M(q[0], q[1], q[2], 0, ry, 0));
-
-        if (pose === 'plato_up') {
-          // PLATO: Right arm pointing straight UP to the Heavens (Realm of Forms), left hand holding Timaeus!
-          q = loc(-0.32, 1.65, 0.08); cloakM.add(cyl(0.08, 0.09, 0.65, 8), M(q[0], q[1], q[2], 0, ry, 0.12));
-          q = loc(-0.36, 2.04, 0.08); mSkin.add(cyl(0.035, 0.05, 0.24, 6), M(q[0], q[1], q[2]));
-          q = loc(0.32, 1.18, 0.22); mSaGold.add(new T.BoxGeometry(0.14, 0.42, 0.32), M(q[0], q[1], q[2], 0.15, ry, 0));
-        } else if (pose === 'aristotle_out') {
-          // ARISTOTLE: Right arm extending palm-down forward toward the empirical earth, left holding Ethics!
-          q = loc(-0.28, 1.26, 0.36); cloakM.add(cyl(0.08, 0.09, 0.62, 8), M(q[0], q[1], q[2], Math.PI / 2 - 0.15, ry, 0));
-          q = loc(-0.28, 1.22, 0.68); mSkin.add(new T.BoxGeometry(0.14, 0.05, 0.18), M(q[0], q[1], q[2], 0, ry, 0));
-          q = loc(0.30, 1.16, 0.22); mSlate.add(new T.BoxGeometry(0.14, 0.40, 0.30), M(q[0], q[1], q[2], 0.2, ry, 0));
-        } else if (pose === 'zoroaster_sphere') {
-          // ZOROASTER: Holding the Golden Celestial Sphere (天球仪)
-          q = loc(0, 1.32, 0.46); mSaGold.add(sph(0.26), M(q[0], q[1], q[2]));
-          mSaBronze.add(torus(0.30, 0.025), M(q[0], q[1], q[2], 0.5, 0.3, 0));
-        } else if (pose === 'ptolemy_globe') {
-          // PTOLEMY: Crowned, holding the Terrestrial Globe (地球仪)
-          q = loc(0, 1.92, 0); mSaGold.add(cyl(0.17, 0.15, 0.10, 10), M(q[0], q[1], q[2]));
-          q = loc(0, 1.32, 0.46); mAristBlue.add(sph(0.26), M(q[0], q[1], q[2]));
+      function addSeated(o) {
+        const F = frame(o.x, o.y, o.z, o.ry || 0, o.s || 1), { MR, L, s } = F;
+        FM(o.tunic).add(new T.LatheGeometry(V2([[0.20, 0], [0.22, 0.15], [0.20, 0.50], [0.215, 0.72], [0.17, 0.82], [0.07, 0.87], [0, 0.87]]), 14), MR(0, 0.50, 0.04, 0.18, 0, 0));
+        FM(o.cloak).add(new T.LatheGeometry(CLOAK, 14, Math.PI * 0.4, Math.PI * 1.2), MR(0, -0.05, -0.02, 0.18, 0, 0, 1.05, 0.95, 1.05));
+        for (const sx of [-1, 1]) {
+          limb(FM(o.cloak), L(sx * 0.10, 0.55, 0.05), L(sx * 0.12, 0.55, 0.48), 0.095 * s);
+          limb(FM(o.tunic), L(sx * 0.12, 0.55, 0.48), L(sx * 0.13, 0.06, 0.52), 0.07 * s, 0.06 * s);
+          FM(SKIN).add(new T.BoxGeometry(0.09, 0.05, 0.20), MR(sx * 0.13, 0.03, 0.60));
         }
+        const hF = frame(L(0, 0, 0.18)[0], o.y - 0.12 * s, L(0, 0, 0.18)[2], o.ry || 0, s);
+        head(hF, o.hair, true, false);
+        arm(F, o.cloak, -1, [-0.18, 0.98, 0.42], [-0.07, 1.34, 0.26]);
+        arm(F, o.tunic, 1, [0.27, 0.98, 0.30], [0.20, 0.86, 0.60]);
+        if (o.desk) {
+          box(mTrav, 0.90, 0.82, 0.60, L(0.10, 0, 0.82)[0], o.y + 0.41 * s, L(0.10, 0, 0.82)[2], o.ry || 0);
+          FM(0xf1e6c8).add(new T.BoxGeometry(0.40, 0.03, 0.30), MR(0.12, 0.85, 0.78, 0, 0.2, 0));
+        }
+        box(mTrav, 0.62, 0.48, 0.55, L(0, 0, -0.02)[0], o.y + 0.24 * s, L(0, 0, -0.02)[2], o.ry || 0);
       }
 
-      // (A) TOP OF GRAND STEPS — CENTER FOCAL POINT: PLATO (pointing UP) & ARISTOTLE (gesturing OUTWARD) framed against the sky!
-      addClassicalFigure(cx - 0.85, daisY, cz - 2.2, 0, mPlatoRed, mOchre, mHairW, 'plato_up');
-      addClassicalFigure(cx + 0.85, daisY, cz - 2.2, 0, mAristBlue, mOchre, mHairB, 'aristotle_out');
+      // Upper Dais Center Focal Point: Plato (pointing UP) & Aristotle (palm forward) framed against Distant Arch 3 & Blue Sky!
+      addFigure({ x: cx - 0.72, y: daisY, z: cz + 2.1, ry: 0.14, cloak: 0xb8493c, tunic: 0x7a6880, hair: 0xe8e4dc, longBeard: true, pose: 'up', s: 1.14 });
+      addFigure({ x: cx + 0.72, y: daisY, z: cz + 2.1, ry: -0.14, cloak: 0x3f78b0, tunic: 0xa47a3e, hair: 0x5a4030, pose: 'forward', s: 1.14 });
+      // Flanking Scholars on the Dais
+      addFigure({ x: cx - 2.4, y: daisY, z: cz + 2.1, ry: 0.55, cloak: 0x5f7d45, tunic: 0xd8c39a, hair: 0x6b5638, pose: 'debate' });
+      addFigure({ x: cx - 3.6, y: daisY, z: cz + 1.4, ry: 0.85, cloak: 0x6b7d3a, tunic: 0xcbb98f, hair: 0xb8b2a6, pose: 'down' });
+      addFigure({ x: cx + 2.5, y: daisY, z: cz + 2.0, ry: -0.55, cloak: 0xd89224, tunic: 0x9a4a3a, hair: 0xd9d4ca, pose: 'down' });
+      addFigure({ x: cx + 3.6, y: daisY, z: cz + 1.2, ry: -0.95, cloak: 0xa8322e, tunic: 0x4a6a8a, hair: 0x4a3a2a, pose: 'debate' });
 
-      // (B) ON THE MARBLE STEPS — DIOGENES THE CYNIC lounging diagonally with his wooden bowl!
-      mAristBlue.add(cyl(0.22, 0.28, 1.15, 10), M(cx + 2.4, gy + 0.58, cz + 1.35, 0.2, 0.5, 1.18));
-      mSkin.add(sph(0.17), M(cx + 1.92, gy + 0.88, cz + 1.05));
-      mSaBronze.add(cyl(0.16, 0.10, 0.12, 10), M(cx + 3.15, gy + 0.28, cz + 1.85));
+      // Diogenes reclining diagonally on the White-Marble Steps
+      {
+        const F = frame(cx + 1.85, gy + 0.51, zStep + 1.35, -0.25, 1), { L, MR, s } = F, col = 0x6b9ad0;
+        FM(col).add(new T.SphereGeometry(0.30, 12, 10), MR(0.05, 0.20, 0, 0, 0, 0, 1.3, 0.55, 0.85));
+        limb(FM(col), L(0, 0.22, 0), L(-0.55, 0.48, -0.08), 0.17 * s, 0.15 * s);
+        FM(SKIN).add(new T.SphereGeometry(0.10, 10, 8), MR(-0.74, 0.60, -0.08));
+        FM(0xcfcac0).add(new T.SphereGeometry(0.105, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.6), MR(-0.75, 0.63, -0.10, 0, 0, 0.4));
+        limb(FM(SKIN), L(0.10, 0.22, 0.05), L(0.50, 0.36, 0.15), 0.08 * s);
+        limb(FM(SKIN), L(0.50, 0.36, 0.15), L(0.92, 0.0, 0.25), 0.06 * s);
+        limb(FM(SKIN), L(0.10, 0.22, -0.05), L(0.55, 0.12, -0.12), 0.08 * s);
+        limb(FM(SKIN), L(0.55, 0.12, -0.12), L(0.95, -0.20, -0.10), 0.06 * s);
+        limb(FM(SKIN), L(-0.55, 0.46, -0.10), L(-0.48, 0.12, 0.12), 0.045 * s);
+        limb(FM(SKIN), L(-0.50, 0.48, 0.05), L(-0.20, 0.50, 0.28), 0.04 * s);
+        FM(0xf1e6c8).add(new T.BoxGeometry(0.22, 0.02, 0.30), MR(-0.12, 0.52, 0.32, 0.3, 0, 0));
+        mBr.add(new T.CylinderGeometry(0.11, 0.07, 0.08, 12), MR(0.60, -0.22, 0.45));
+      }
 
-      // (C) FOREGROUND LEFT — HERACLITUS (MICHELANGELO) leaning on his carved marble block + PYTHAGORAS with Tetraktys slate!
-      mTrav.add(new T.BoxGeometry(1.15, 0.92, 0.85), M(cx - 2.6, gy + 0.46, cz + 4.4));
-      mSaMarble.add(new T.BoxGeometry(0.45, 0.04, 0.35), M(cx - 2.55, gy + 0.95, cz + 4.35, 0, 0.18, 0));
-      addClassicalFigure(cx - 3.35, gy - 0.35, cz + 4.5, 0.9, mPlatoRed, mSlate, mHairB, 'seated');
+      // Foreground Left Wing (clear of central sightline!): Heraclitus & Pythagoras
+      addSeated({ x: cx - 3.4, y: gy, z: zF - 1.7, ry: 0.38, cloak: 0x8a5a8c, tunic: 0xb98a4a, hair: 0x2c2018, desk: true });
+      addSeated({ x: cx - 5.9, y: gy, z: zF - 1.2, ry: 0.78, cloak: 0xc8962e, tunic: 0xe8e0cc, hair: 0xd8d2c6 });
+      box(mTravD, 0.70, 0.90, 0.06, cx - 5.0, gy + 0.55, zF - 0.6, 0.75);
 
-      // Pythagoras & Carved Marble Harmonic-Scale Tablet (DIAPASON / TETRAKTYS)
-      mTravD.add(new T.BoxGeometry(0.75, 0.95, 0.08), M(cx - 4.8, gy + 0.52, cz + 5.3, -0.18, 0.45, 0));
-      mSaGold.add(new T.ConeGeometry(0.24, 0.38, 3), M(cx - 4.76, gy + 0.56, cz + 5.34, 0, 0.45, 0));
-      addClassicalFigure(cx - 5.5, gy - 0.25, cz + 4.9, 1.1, mOchre, mSaMarble, mHairW, 'seated');
+      // Foreground Right Wing (clear of central sightline!): Euclid, Zoroaster & Ptolemy
+      {
+        const F = frame(cx + 4.8, gy, zF - 1.6, -0.45, 1), { L, MR, s } = F;
+        FM(0xe2d4b0).add(new T.LatheGeometry(V2([[0, 0], [0.20, 0], [0.22, 0.04], [0.20, 0.50], [0.17, 0.78], [0, 0.80]]), 14), MR(0, 0, 0));
+        limb(FM(0xb03a2e), L(0, 0.75, 0), L(0, 1.12, 0.38), 0.18 * s, 0.17 * s);
+        FM(SKIN).add(new T.SphereGeometry(0.10, 10, 8), MR(0, 1.20, 0.56));
+        FM(0xd8d2c6).add(new T.SphereGeometry(0.105, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.6), MR(0, 1.23, 0.53, 0.9, 0, 0));
+        for (const sx of [-1, 1]) {
+          limb(FM(0xb03a2e), L(sx * 0.18, 1.10, 0.36), L(sx * 0.12, 0.60, 0.60), 0.055 * s);
+          limb(FM(SKIN), L(sx * 0.12, 0.60, 0.60), L(sx * 0.06, 0.16, 0.74), 0.04 * s);
+        }
+        FM(0x2c3540).add(new T.BoxGeometry(0.72, 0.04, 0.54), MR(0, 0.02, 0.85));
+        limb(mGd, L(0.02, 0.05, 0.80), L(0.12, 0.30, 0.85), 0.008 * s);
+        limb(mGd, L(0.22, 0.05, 0.85), L(0.12, 0.30, 0.85), 0.008 * s);
+        mGd.add(new T.TorusGeometry(0.14, 0.006, 4, 24), MR(-0.12, 0.045, 0.85, Math.PI / 2, 0, 0));
+      }
+      addFigure({ x: cx + 6.7, y: gy, z: zF - 1.9, ry: -0.9, cloak: 0x5d6b3a, tunic: 0xe8e0cc, hair: 0x9a9a9a, pose: 'globe', globe: 0x2a4a7a });
+      addFigure({ x: cx + 7.6, y: gy, z: zF - 1.1, ry: -2.4, cloak: 0xd4a020, tunic: 0x4a6a3a, hair: 0x3a2a1a, pose: 'globe', globe: 0x6a8a5a, beard: false });
+      FM(0xc9a353).add(new T.CylinderGeometry(0.13, 0.12, 0.08, 10), M(cx + 7.6, gy + 1.82, zF - 1.1));
 
-      // (D) FOREGROUND RIGHT — EUCLID bending over geometric slate + ZOROASTER (Celestial Sphere) & PTOLEMY (Terrestrial Globe)!
-      mSlate.add(new T.BoxGeometry(1.25, 0.08, 0.95), M(cx + 3.8, gy + 0.06, cz + 4.8, 0, -0.22, 0));
-      mSaGold.add(new T.BoxGeometry(0.04, 0.42, 0.04), M(cx + 3.75, gy + 0.28, cz + 4.82, 0, 0, 0.25));
-      mSaGold.add(new T.BoxGeometry(0.04, 0.42, 0.04), M(cx + 3.92, gy + 0.28, cz + 4.82, 0, 0, -0.25));
-      addClassicalFigure(cx + 4.9, gy, cz + 4.2, -0.8, mOchre, mPlatoRed, mHairW, 'zoroaster_sphere');
-      addClassicalFigure(cx + 6.0, gy, cz + 4.9, -2.2, mOchre, mAristBlue, mHairB, 'ptolemy_globe');
-
-      mTrav.mesh(travertineMat);
-      mTravD.mesh(travertineDarkMat);
-      mSaMarble.mesh(pentelicMat);
-      mSaBronze.mesh(bronzeMat);
-      mSaGold.mesh(goldMat);
-      mPlatoRed.mesh(new T.MeshLambertMaterial({ color: 0xa83232 }));
-      mAristBlue.mesh(new T.MeshLambertMaterial({ color: 0x2c5e8a }));
-      mOchre.mesh(new T.MeshLambertMaterial({ color: 0xc99648 }));
-      mSkin.mesh(new T.MeshLambertMaterial({ color: 0xe8c39e }));
-      mSlate.mesh(new T.MeshLambertMaterial({ color: 0x2c3540 }));
-      mHairW.mesh(new T.MeshLambertMaterial({ color: 0xdedad0 }));
-      mHairB.mesh(new T.MeshLambertMaterial({ color: 0x4a3525 }));
+      /* ---------- Flush Merged Basilica Meshes ---------- */
+      const sh = (m) => { if (m) { m.castShadow = true; m.receiveShadow = true; } };
+      sh(mTrav.mesh(travMat)); sh(mTravEx.mesh(travExMat)); sh(mTravD.mesh(travDMat)); sh(mNiche.mesh(nicheMat));
+      sh(mPil.mesh(pilMat)); sh(mCap.mesh(capMat)); sh(mStat.mesh(statueMat)); sh(mShell.mesh(shellMat));
+      sh(mBr.mesh(bronzeMat)); sh(mGd.mesh(goldMat));
+      for (const hex in figM) {
+        sh(figM[hex].mesh(new T.MeshLambertMaterial({ color: +hex, emissive: new T.Color(+hex).multiplyScalar(0.12), side: T.DoubleSide })));
+      }
     }
 
     /* ---------------- 3C. EASTERN CLASSICAL ARCHITECTURE: RIBBED GLAZED TILE ROOFS, CARVED LACQUER PLAQUES & PAGODA ---------------- */
@@ -1528,8 +2082,15 @@
       mOrGold.add(new T.BoxGeometry(w * 0.94, 0.16, 0.50), M(x, y + 4.9, z));
       mVermilion.add(new T.BoxGeometry(w * 0.42, 0.45, 0.48), M(x, y + 5.8, z));
       addSweepingOrientalRoof(x, z, w * 0.24, 1.35, y + 6.15, 1.15, imperialTileMat, true, false, mRidgeGold, true);
-      addSweepingOrientalRoof(x - w * 0.31, z, w * 0.18, 1.15, y + 5.05, 0.95, imperialTileMat, true, false, mRidgeGold);
-      addSweepingOrientalRoof(x + w * 0.31, z, w * 0.18, 1.15, y + 5.05, 0.95, imperialTileMat, true, false, mRidgeGold);
+      addSweepingOrientalRoof(x - w * 0.31, z, w * 0.18, 1.15, y + 5.05, 0.95, imperialTileMat, true, false, mRidgeGold, true);
+      addSweepingOrientalRoof(x + w * 0.31, z, w * 0.18, 1.15, y + 5.05, 0.95, imperialTileMat, true, false, mRidgeGold, true);
+      // Hang ceremonial red silk lanterns cleanly on the far outer eaves of the Paifang (zero overlap with calligraphy!)
+      for (const lx of [x - w * 0.50, x + w * 0.50]) {
+        mVermilion.add(cyl(0.025, 0.025, 0.55, 6), M(lx, y + 4.95, z + 0.55));
+        mLanternRed.add(sph(0.28), M(lx, y + 4.50, z + 0.55, 0, 0, 0, 1.0, 1.25, 1.0));
+        mOrGold.add(cyl(0.12, 0.12, 0.09, 8), M(lx, y + 4.84, z + 0.55));
+        mOrGold.add(cyl(0.10, 0.10, 0.09, 8), M(lx, y + 4.16, z + 0.55));
+      }
       mountOrientalPlaque(x, y + 5.32, z + 0.28, 3.1, 0.92, title);
     });
 
@@ -1915,12 +2476,25 @@
     const museumLampMat = new T.MeshBasicMaterial({ color: 0xfff3c4 });
     const texLoader = new T.TextureLoader();
 
-    function loadMuseumPhotoTex(url, fallbackCanvasFn) {
-      const tex = texLoader.load(url, () => {}, undefined, () => {
-        // Fallback to procedural canvas if image fails to load
-        if (fallbackCanvasFn) fallbackCanvasFn();
-      });
+    function loadMuseumPhotoTex(url) {
+      // Composite onto warm archival museum parchment so transparent PNG ink drawings (e.g., Laozi, Wittgenstein) never render black!
+      const c = document.createElement('canvas'); c.width = 512; c.height = 512;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#f5efe0';
+      ctx.fillRect(0, 0, 512, 512);
+      const tex = new T.CanvasTexture(c);
       if (T.sRGBEncoding !== undefined) tex.encoding = T.sRGBEncoding;
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        c.width = img.naturalWidth || 512;
+        c.height = img.naturalHeight || 512;
+        ctx.fillStyle = '#f5efe0';
+        ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        tex.needsUpdate = true;
+      };
+      img.src = url;
       made.textures++;
       return tex;
     }
@@ -2244,13 +2818,13 @@
 
       // For Socrates' Open Circular Tholos: build a sleek Pentelic Marble Curved/Segmented Gallery Screen Wall on the North arc!
       if (ME.isSchoolOfAthens) {
-        // Raphael's The School of Athens: Mount the real Vatican fresco & portrait cleanly on the West flanking wall,
-        // and the 3D Magnum Opus bookshelf on the East flanking wall, keeping the central triumphal arch & marble steps 100% pure!
-        mountWallPainting(wX, y + 2.55, z + 3.2, Math.PI / 2, phil, 'marble');
-        mountWallPortrait(wX, y + 2.55, z - 3.6, Math.PI / 2, phil, 'marble');
-        mountWallBookNiche(eX, y + 1.65, z + 3.2, -Math.PI / 2, phil, true);
+        // Mount Plato's museum exhibits cleanly inside the West & East side-aisle gallery walls (cx ± 10.65),
+        // keeping the central Bramante nave, Apollo/Athena niches & marble staircase 100% pure!
+        mountWallPainting(x - 10.68, y + 2.55, z + 3.0, Math.PI / 2, phil, 'marble');
+        mountWallPortrait(x - 10.68, y + 2.55, z - 2.6, Math.PI / 2, phil, 'marble');
+        mountWallBookNiche(x + 10.68, y + 1.65, z + 3.0, -Math.PI / 2, phil, true);
         const qMesh = new T.Mesh(new T.PlaneGeometry(3.6, 1.98), new T.MeshBasicMaterial({ map: makeWallQuoteTex(phil, 'marble'), side: T.DoubleSide }));
-        qMesh.position.set(eX - 0.06, y + 2.55, z - 3.6);
+        qMesh.position.set(x + 10.62, y + 2.55, z - 2.6);
         qMesh.rotation.y = -Math.PI / 2;
         group.add(qMesh); made.meshes++;
         return;
@@ -2318,20 +2892,27 @@
     mMusBronze.mesh(bronzeMat);
     mMusLamp.mesh(museumLampMat);
 
-    /* ---------------- 4. FLOATING PORTAL CRYSTALS & WATERWHEELS ---------------- */
+    /* ---------------- 4. SLEEK MUSEUM PORTAL CRYSTAL PLINTHS & WATERWHEELS ---------------- */
     const floatingCrystals = [];
-    const octGeo = new T.OctahedronGeometry(0.45, 0);
-    const ringGeo = new T.TorusGeometry(0.66, 0.045, 8, 24);
+    const octGeo = new T.OctahedronGeometry(0.24, 0);
+    const ringGeo = new T.TorusGeometry(0.38, 0.026, 8, 24);
+    const mPortalPlinth = new Merger(), mPortalBrass = new Merger();
     (P.philosopherPlaques || []).forEach((item) => {
       const { x, y, z, phil } = item;
+      // Sleek, low-profile fluted marble & antique-brass museum plinth (height 0.72m — never blocks the oil painting behind!)
+      mPortalPlinth.add(new T.BoxGeometry(0.56, 0.12, 0.56), M(x, y + 0.06, z));
+      mPortalPlinth.add(cyl(0.18, 0.22, 0.54, 14), M(x, y + 0.39, z));
+      mPortalBrass.add(new T.BoxGeometry(0.48, 0.06, 0.48), M(x, y + 0.69, z));
       const crystal = new T.Mesh(octGeo, crystalMat);
-      crystal.position.set(x, y + 1.15, z);
+      crystal.position.set(x, y + 1.08, z);
       const halo = new T.Mesh(ringGeo, goldMat);
-      halo.position.set(x, y + 1.15, z);
+      halo.position.set(x, y + 1.08, z);
       group.add(crystal, halo);
-      floatingCrystals.push({ crystal, halo, baseY: y + 1.15, phase: phil.num * 0.7 });
+      floatingCrystals.push({ crystal, halo, baseY: y + 1.08, phase: phil.num * 0.7 });
       made.meshes += 2;
     });
+    mPortalPlinth.mesh(pentelicMat);
+    mPortalBrass.mesh(goldMat);
 
     const rotatingWheels = [];
     (P.waterwheels || []).forEach((ww) => {
@@ -2363,8 +2944,9 @@
         new T.IcosahedronGeometry(0.62)
       ];
       solids.forEach((geo, idx) => {
-        const px = plato.x - 8 + idx * 4;
-        const pz = plato.z + Math.floor(plato.d / 2) + 3.5;
+        // Place the 5 Platonic Solids in an elegant east-side geometry sculpture garden so the front Raphael plaza stays 100% pure!
+        const px = plato.x + 15.2;
+        const pz = plato.z - 8 + idx * 4.5;
         const ped = new T.Mesh(cyl(0.38, 0.48, 1.2, 10), marbleMat);
         ped.position.set(px, plato.gy + 0.6, pz);
         const mesh = new T.Mesh(geo, goldMat);
@@ -2503,9 +3085,10 @@
 
       if (isGreek) {
         // Ancient Greek Temples: Flanking Terracotta Olive Amphorae & Carved Marble Laurel Planters at Entrance Steps
-        const stepZ = p.id === 'socrates' ? p.z + 9.2 : z1 + 2.8;
+        const stepZ = p.id === 'socrates' ? p.z + 9.2 : p.id === 'plato' ? z1 + 1.8 : z1 + 2.8;
+        const spreadX = p.id === 'plato' ? 12.8 : 2.6;
         for (const side of [-1, 1]) {
-          const ax = p.x + 0.5 + side * 2.6;
+          const ax = p.x + 0.5 + side * spreadX;
           // Fluted Marble Urn Pedestal + Terracotta Amphora
           mTrimStone.add(new T.BoxGeometry(0.72, 0.42, 0.72), M(ax, gy + 0.21, stepZ));
           mTrimTerracotta.add(cyl(0.28, 0.16, 0.56, 12), M(ax, gy + 0.70, stepZ));
@@ -2550,11 +3133,18 @@
           mTrimLantern.add(new T.BoxGeometry(0.22, 0.32, 0.22), M(lx, gy + 2.48, z1 + 1.44));
           mTrimIron.add(new T.ConeGeometry(0.20, 0.18, 4), M(lx, gy + 2.72, z1 + 1.44, 0, Math.PI / 4, 0));
 
-          // Terracotta Planters with Trimmed Boxwood Topiary Spheres flanking the front doorway
+          // Sculpted Terracotta Urns with Molded Rim & Organic Multi-Cluster Botanical Foliage (no cartoon lollipop spheres!)
           const px = p.x + 0.5 + side * 2.85;
-          mTrimTerracotta.add(cyl(0.32, 0.22, 0.44, 12), M(px, gy + 0.22, z1 + 1.75));
-          mTrimLeaf.add(sph(0.38), M(px, gy + 0.72, z1 + 1.75));
-          mTrimLeaf.add(sph(0.24), M(px, gy + 1.16, z1 + 1.75));
+          mTrimStone.add(new T.BoxGeometry(0.58, 0.14, 0.58), M(px, gy + 0.07, z1 + 1.75));
+          mTrimTerracotta.add(cyl(0.28, 0.18, 0.46, 14), M(px, gy + 0.37, z1 + 1.75));
+          mTrimTerracotta.add(torus(0.28, 0.038), M(px, gy + 0.61, z1 + 1.75, Math.PI / 2));
+          // Natural multi-tuft Mediterranean boxwood/olive foliage cluster + subtle floral accents
+          mTrimLeaf.add(sph(0.28), M(px, gy + 0.84, z1 + 1.75, 0, 0, 0, 1.1, 0.95, 1.1));
+          mTrimLeaf.add(sph(0.21), M(px - 0.16, gy + 0.78, z1 + 1.85));
+          mTrimLeaf.add(sph(0.20), M(px + 0.17, gy + 0.82, z1 + 1.66));
+          mTrimLeaf.add(sph(0.18), M(px + 0.04, gy + 1.06, z1 + 1.74));
+          mTrimFlowerGold.add(sph(0.055), M(px - 0.12, gy + 0.96, z1 + 1.92));
+          mTrimFlowerLav.add(sph(0.055), M(px + 0.14, gy + 0.98, z1 + 1.84));
 
           // Stone Courtyard Gateposts topped with Classical Stone Ball Finials at garden wall entrance
           const gpx = p.x + 0.5 + side * 2.9;
@@ -2649,7 +3239,11 @@
     mTrimLantern.mesh(new T.MeshBasicMaterial({ color: 0xffe6a3 }));
     mTrimRedSilk.mesh(new T.MeshLambertMaterial({ color: 0xdc2626 }));
 
-    function update(dt, time) {
+    function update(dt, time, cam, night) {
+      if (saClouds.length) {
+        const op = Math.max(0.06, 0.82 * (1 - (night || 0) * 0.92));
+        for (const cm of saClouds) cm.opacity = op;
+      }
       for (const b of bobbingBoats) {
         b.grp.position.y = b.baseY + Math.sin(time * 1.3 + b.phase) * 0.12;
         b.grp.rotation.z = Math.sin(time * 0.95 + b.phase) * 0.045;
