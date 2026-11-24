@@ -166,6 +166,7 @@
     if (!store) return;
     document.querySelectorAll('.lk-tabs [data-tab]').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === ui.tab)); });
     paintReviewCount(); paintChips();
+    var askBtn = $('lk-ask-ai'); if (askBtn) askBtn.textContent = isLocal() ? '问知识库' : '问 AI';
     document.body.classList.toggle('lk-on-graph', ui.tab === 'graph');
     var f = { home: renderHome, graph: renderGraph, pages: renderPages, decisions: renderDecisions, sources: renderSources, review: renderReview, conflicts: renderConflicts, perms: renderPerms }[ui.tab] || renderPages;
     return Promise.resolve(f()).then(function () {
@@ -225,7 +226,7 @@
           pv: '<span class="big">' + srcs.length + '<small>份</small></span>' + tags(srcs.map(function (s) { return s.title; })), open: srcs.length ? '打开' : '导入' },
         { to: 'decisions', cc: 'var(--c3)', ic: IC.decisions, name: '决策', en: 'Decision Memory', line: '需求、选项、决定、理由。已确认的只有你能改。',
           pv: '<span class="big">' + decs.length + '<small>个</small></span><span>' + conf + ' 已确认 · ' + prop + ' 提议中</span>' + tags(decs.map(function (d) { return d.title; })) },
-        { to: 'review', cc: 'var(--c4)', ic: IC.review, name: 'AI 审核', en: 'Knowledge Agent', line: '让 AI 整理来源；它只提建议，你决定留下什么。',
+        { to: 'review', cc: 'var(--c4)', ic: IC.review, name: '审核', en: 'Knowledge Agent', line: '整理来源只提建议；你决定留下什么。',
           pv: '<span class="big">' + pend + '<small>条待审核</small></span><span>' + (last ? '上次整理 ' + esc(when(last.startedAt)) : '还没有整理过') + '</span>' },
         { to: 'graph', cc: 'var(--c5)', ic: IC.graph, name: '知识图谱', en: 'Knowledge Graph', line: '页面之间的链接与关系，矛盾会被标出来。',
           pv: '<span class="big">' + pages.length + '<small>节点</small> ' + links + '<small>连接</small></span>' + (conflicts ? '<span style="color:var(--bad)">⚠️ ' + conflicts + ' 条说法有矛盾</span>' : '<span>没有矛盾</span>') }
@@ -237,6 +238,9 @@
       ).sort(function (a, b) { return b.t - a.t; }).slice(0, 8);
       main.innerHTML = '<div class="lk-home-h"><h2><small>Living Knowledge</small>我的知识库</h2><span class="lk-note">在一张卡里做的，其他卡里都看得到。</span></div>' +
         '<div class="lk-grid">' + cards.map(function (c, i) { return five(i, c); }).join('') + '</div>' +
+        (DEMO && L ? '<section class="lk-card lk-block lk-demo"><div><h3>演示：用《独立宣言》跑一遍全流程</h3><p class="lk-note">导入原文 → 本机整理（切句、词频、概念、排序、说法、关系，每一步都画出来）→ 审核 → 知识页 → 提问。全程在这台设备上完成，不联网，不调用 AI。</p>' +
+          (pages.length && srcs.some(function (x) { return x.title === DEMO.title; }) ? '<p class="lk-demo-q"><span class="lk-note">试着问：</span>' + DEMO.questions.map(function (q) { return '<button type="button" class="lk-chip" data-act="demo-ask" data-q="' + esc(q) + '">' + esc(q) + '</button>'; }).join('') + '</p>' : '') +
+          '</div><button type="button" class="lk-btn" data-act="demo">' + (srcs.some(function (x) { return x.title === DEMO.title; }) ? '再看一遍整理过程' : '开始演示') + '</button></section>' : '') +
         '<section class="lk-card lk-block lk-recent"><h3>最近</h3>' + (recent.length ? '<ol>' + recent.map(function (x) {
           return '<li><button type="button" data-act="go" data-to="' + x.to + '" data-id="' + esc(x.id) + '"><span class="lk-badge">' + esc(x.kind) + '</span><span>' + esc(x.title) + '</span><small>' + esc(when(x.t)) + '</small></button></li>';
         }).join('') + '</ol>' : '<p class="lk-note">还没有内容。在上面输入一个词新建知识页，或者去“来源”导入一份资料。</p>') + '</section>';
@@ -395,7 +399,7 @@
     var back = pages.filter(function (x) { return (x.links || []).indexOf(p.id) >= 0 && x.id !== p.id; });
     return '<section class="lk-card lk-ed"><div class="lk-bar"><button type="button" class="lk-btn ghost lk-only-narrow" data-act="back">‹ 列表</button>' +
       '<span class="lk-badge">' + esc(TYPE_NAMES[p.type] || '笔记') + '</span><span class="lk-note">第 ' + p.rev + ' 版 · ' + esc(when(p.updatedAt)) + ' · ' + esc(p.updatedBy) + '</span>' +
-      (p.lockedBy === 'user' ? '<span class="lk-lock">🔒 已锁定：AI 只能提建议</span>' : '') + '<span class="sp"></span>' + ((p.claims || []).length && p.lockedBy !== 'user' && AG ? '<button type="button" class="lk-btn ghost" data-act="compose"' + (ui.composing ? ' disabled' : '') + ' title="只用这一页已接受的说法写正文；先给你草稿，保存才生效">' + (ui.composing === p.id ? '正在起草…' : 'AI 起草正文') + '</button>' : '') +
+      (p.lockedBy === 'user' ? '<span class="lk-lock">🔒 已锁定：自动整理只能提建议</span>' : '') + '<span class="sp"></span>' + ((p.claims || []).length && p.lockedBy !== 'user' && AG ? '<button type="button" class="lk-btn ghost" data-act="compose"' + (ui.composing ? ' disabled' : '') + ' title="只用这一页已接受的说法写正文；先给你草稿，保存才生效">' + (ui.composing === p.id ? '正在起草…' : isLocal() ? '用说法排出正文' : 'AI 起草正文') + '</button>' : '') +
       '<button type="button" class="lk-btn" data-act="edit">编辑</button></div>' +
       '<h2 style="margin:0">' + esc(p.title) + '</h2>' +
       ((p.aliases || []).length || (p.tags || []).length ? '<div class="lk-note">' + ((p.aliases || []).length ? '别名：' + esc(p.aliases.join('、')) + '　' : '') + ((p.tags || []).length ? '标签：' + esc(p.tags.join('、')) : '') + '</div>' : '') +
@@ -530,7 +534,7 @@
     if (o.fileName) where.push('文件 ' + esc(o.fileName));
     if (o.cardRef) where.push('卡片：' + esc((o.board || '') + ' › ' + (o.list || '') + ' › ' + s.title));
     return '<section class="lk-card lk-ed"><div class="lk-bar"><button type="button" class="lk-btn ghost lk-only-narrow" data-act="back">‹ 列表</button><span class="lk-badge">' + esc(KIND_NAMES[s.kind] || s.kind) + '</span>' +
-      '<span class="lk-lock">原文只读，永不修改</span><span class="sp"></span><button type="button" class="lk-btn ghost" data-act="src-page">用它新建知识页</button><button type="button" class="lk-btn" data-act="ingest-plan">让 AI 整理</button></div>' +
+      '<span class="lk-lock">原文只读，永不修改</span><span class="sp"></span><button type="button" class="lk-btn ghost" data-act="src-page">用它新建知识页</button><button type="button" class="lk-btn" data-act="ingest-plan">' + (isLocal() ? '整理这份来源' : '让 AI 整理') + '</button></div>' +
       ingestPanel(s) +
       '<h2 style="margin:0">' + esc(s.title || s.id) + '</h2>' +
       '<div class="lk-note">' + (where.length ? where.join(' · ') + '<br>' : '') + '导入于 ' + esc(when(s.createdAt)) + ' · ' + esc(s.id) + ' · ' + Math.round(M.byteSize(s.text) / 102.4) / 10 + ' KB</div>' +
@@ -660,7 +664,7 @@
     if (ui.qa && ui.qa.ctl) try { ui.qa.ctl.abort(); } catch (e) {}
     var qa = ui.qa = { q: q, state: 'loading', ctl: typeof AbortController !== 'undefined' ? new AbortController() : null };
     paintAnswer();
-    AG.ask(store, q, { transport: transport, signal: qa.ctl && qa.ctl.signal, history: ui.qaHist.slice(-4) }).then(function (a) {
+    AG.ask(store, q, agentOpts({ signal: qa.ctl && qa.ctl.signal, history: ui.qaHist.slice(-4) })).then(function (a) {
       if (ui.qa !== qa) return;
       qa.state = 'done'; qa.a = a;
       if (a.status === 'answered' && a.summary) ui.qaHist.push({ q: q, a: a.summary });
@@ -677,12 +681,12 @@
     if (!el) return;
     if (!qa) { el.hidden = true; el.innerHTML = ''; return; }
     var body;
-    if (qa.state === 'loading') body = '<p class="lk-ans-wait" role="status">正在你的知识库里找相关的页面，再请 AI 只根据它们回答…</p><div class="lk-bar"><span class="sp"></span><button type="button" class="lk-btn ghost" data-ans="stop">停止</button></div>';
+    if (qa.state === 'loading') body = '<p class="lk-ans-wait" role="status">' + (isLocal() ? '正在你的知识库里找相关的说法…' : '正在你的知识库里找相关的页面，再请 AI 只根据它们回答…') + '</p><div class="lk-bar"><span class="sp"></span><button type="button" class="lk-btn ghost" data-ans="stop">停止</button></div>';
     else if (qa.state === 'need-perm') body = '<p class="lk-ans-sum">还没有允许把知识库内容发给 Minest AI。</p><p class="lk-note">打开后，提问时只会发送和问题相关的那几页的标题、摘要和说法。</p><div class="lk-bar"><span class="sp"></span><button type="button" class="lk-btn" data-ans="perms">去“权限”打开</button></div>';
     else if (qa.state === 'error') body = '<p class="lk-ans-sum" style="color:var(--bad)">没有回答成功：' + esc(qa.err) + '</p><div class="lk-bar"><span class="sp"></span><button type="button" class="lk-btn" data-ans="ask" data-q="' + esc(qa.q) + '">再试一次</button></div>';
     else {
       var a = qa.a;
-      if (a.status === 'nothing') body = '<p class="lk-ans-sum">知识库里还没有和这个问题相关的内容。</p><p class="lk-note">没有向 AI 发送任何东西。可以先导入一份资料，或者自己写一页。</p>' +
+      if (a.status === 'nothing') body = '<p class="lk-ans-sum">知识库里还没有和这个问题相关的内容。</p><p class="lk-note">' + (a.engine === 'local' ? '本机检索是按字面找词的：它不会翻译，也不认识同义词。换一个原文里出现过的词试试，或者先导入一份资料。' : '没有向 AI 发送任何东西。可以先导入一份资料，或者自己写一页。') + '</p>' +
         '<div class="lk-bar"><span class="sp"></span><button type="button" class="lk-btn ghost" data-ans="import">去导入来源</button>' + (a.suggestPage ? '<button type="button" class="lk-btn" data-ans="new" data-title="' + esc(a.suggestPage) + '">新建「' + esc(a.suggestPage) + '」</button>' : '') + '</div>';
       else {
         var conf = CONF_NAMES[a.confidence] || CONF_NAMES.low;
@@ -696,13 +700,13 @@
           }).join('') + '</ol>' : '') +
           (a.gaps.length ? '<div class="lk-ans-more"><span>还缺：</span>' + a.gaps.map(function (g) { return '<i>' + esc(g) + '</i>'; }).join('') + '</div>' : '') +
           (a.followups.length ? '<div class="lk-ans-more"><span>接着问：</span>' + a.followups.map(function (f) { return '<button type="button" data-ans="ask" data-q="' + esc(f) + '">' + esc(f) + '</button>'; }).join('') + '</div>' : '') +
-          '<p class="lk-ans-meta"><span class="' + conf[0] + '">' + conf[1] + '</span> · 发送了 ' + a.sent.pages + ' 页、' + a.sent.claims + ' 条说法' + (a.sent.decisions ? '、' + a.sent.decisions + ' 个决策' : '') +
+          '<p class="lk-ans-meta"><span class="' + conf[0] + '">' + conf[1] + '</span> · ' + (a.engine === 'local' ? '在这台设备上查了 ' : '发送了 ') + a.sent.pages + ' 页、' + a.sent.claims + ' 条说法' + (a.sent.decisions ? '、' + a.sent.decisions + ' 个决策' : '') + (a.engine === 'local' ? ' · 没有联网 · 每一点都是知识库里的原话' : '') +
           (a.usage ? ' · 约 ' + (a.usage.input + a.usage.output) + ' token' : '') + ' · 回答不会自动写入知识库</p>' +
           '<div class="lk-bar"><span class="sp"></span>' + (a.suggestPage && !cache.pages[M.pageId(a.suggestPage)] ? '<button type="button" class="lk-btn ghost" data-ans="new" data-title="' + esc(a.suggestPage) + '">新建「' + esc(a.suggestPage) + '」</button>' : '') +
           '<button type="button" class="lk-btn" data-ans="save">存成一页笔记</button></div>';
       }
     }
-    el.innerHTML = '<div class="lk-ans-h"><span class="lk-badge">问 AI</span><b>' + esc(qa.q) + '</b><button type="button" class="lk-ans-x" data-ans="close" aria-label="关闭回答">×</button></div>' + body;
+    el.innerHTML = '<div class="lk-ans-h"><span class="lk-badge">' + (qa.a && qa.a.engine === 'local' || (!qa.a && isLocal()) ? '本机检索' : '问 AI') + '</span><b>' + esc(qa.q) + '</b><button type="button" class="lk-ans-x" data-ans="close" aria-label="关闭回答">×</button></div>' + body;
     el.hidden = false;
   }
   function openPage(id) {
@@ -713,13 +717,13 @@
     var pg = cache.pages[ui.sel.pages];
     if (!pg || ui.composing || !AG) return;
     ui.composing = pg.id; render();
-    AG.compose(store, pg.id, { transport: transport }).then(function (d) {
+    AG.compose(store, pg.id, agentOpts()).then(function (d) {
       ui.composing = null;
       if (ui.tab !== 'pages' || ui.sel.pages !== d.pageId || ui.edit) { toast('草稿写好了，但你已经离开那一页；回到那一页再点一次'); return render(); }
       return store.get('page', d.pageId).then(function (cur) {
         startPage(cur);
         ui.draft.markdown = d.markdown; ui.dirty = true;
-        ui.draft.aiNote = 'AI 草稿：用了这一页 ' + d.usedClaimIds.length + ' 条已接受的说法' + (d.unusedClaims ? '，' + d.unusedClaims + ' 条没用上' : '') + (d.leftOut ? '（' + d.leftOut + '）' : '') + '。请读一遍再保存；保存后成为新的一版，取消则什么都不变。';
+        ui.draft.aiNote = (isLocal() ? '本机草稿（只是把说法按类型排好，没有改写）' : 'AI 草稿') + '：用了这一页 ' + d.usedClaimIds.length + ' 条已接受的说法' + (d.unusedClaims ? '，' + d.unusedClaims + ' 条没用上' : '') + (d.leftOut ? '（' + d.leftOut + '）' : '') + '。请读一遍再保存；保存后成为新的一版，取消则什么都不变。';
         render();
       });
     }, function (e) {
@@ -746,6 +750,7 @@
   function ingestPanel(s) {
     var g = ui.ingest;
     if (!g || g.sourceId !== s.id) return '';
+    if (g.local) return localPanel(g);
     var body;
     if (!g.perms.allowAI) body = '<p>还没有允许把来源文字发给 Minest AI。</p><div class="lk-bar"><span class="sp"></span><button type="button" class="lk-btn ghost" data-act="ingest-cancel">取消</button><button type="button" class="lk-btn" data-act="go-perms">去“权限”打开</button></div>';
     else if (g.running) body = '<p role="status">正在整理：第 ' + Math.min((g.progress ? g.progress.done : 0) + 1, g.est.allowed) + ' / ' + g.est.allowed + ' 段…</p><div class="lk-bar"><span class="lk-note">停止后，已经整理好的部分仍会留给你审核</span><span class="sp"></span><button type="button" class="lk-btn danger" data-act="ingest-stop">停止</button></div>';
@@ -763,13 +768,153 @@
   }
   function startIngest() {
     var g = ui.ingest; if (!g || g.running) return;
-    g.running = true; g.ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; g.progress = null; render();
-    AG.ingest(store, { transport: transport, sourceIds: [g.sourceId], signal: g.ctl && g.ctl.signal, onProgress: function (p) { g.progress = p; if (ui.tab === 'sources') render(); } })
-      .then(function (run) { g.running = false; g.result = run; toast(run.status === 'review' ? '整理好了，去“审核”看看' : run.status === 'empty' ? '没有新的内容' : '没有整理成功'); render(); },
+    g.running = true; g.ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; g.progress = null; g.traces = []; g.result = null; clearTimeout(g.timer); render();
+    AG.ingest(store, agentOpts({ sourceIds: [g.sourceId], signal: g.ctl && g.ctl.signal, onProgress: function (p) { g.progress = p; if (ui.tab === 'sources' && !g.local) render(); } }, !!g.local))
+      .then(function (run) {
+        g.running = false; g.result = run;
+        if (!g.local) toast(run.status === 'review' ? '整理好了，去“审核”看看' : run.status === 'empty' ? '没有新的内容' : '没有整理成功');
+        return render().then(function () { if (g.local && g.traces.length && ui.ingest === g) vizPlay(g, 0); });
+      },
         function (e) { g.running = false; toast('没有开始：' + (e && e.message || e)); if (e && e.code === 'ai-not-allowed') g.perms.allowAI = false; render(); });
   }
 
-  // ---------------------------------------------------------------- review: what the AI proposed
+  // ---------------------------------------------------------------- the on-device engine, and the picture of each of its steps
+  var L = window.MinestLKLocal, DEMO = window.MinestLKDemo, ENGINE_KEY = 'minest.lk.engine';
+  function isLocal() { return !!L && lsGet(ENGINE_KEY) !== 'cloud'; }
+  var localTransport = L ? L.transport({ onTrace: function (t) { if (ui.ingest && ui.ingest.traces) ui.ingest.traces.push(t); } }) : null;
+  function agentOpts(o, local) { o = o || {}; o.local = local == null ? isLocal() : !!local; o.transport = o.local ? localTransport : transport; return o; }
+  var STAGES = ['切分句子', '数词频', '找概念', '句子排序', '选出说法', '连成关系', '比对出建议'];
+  var KIND_CC = { fact: 'var(--c2)', definition: 'var(--c1)', opinion: 'var(--c4)' };
+  function wordsRe(forms) {
+    var latin = [], cjk = [];
+    forms.slice().sort(function (a, b) { return b.length - a.length; }).forEach(function (f) {
+      var e = f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+      if (/[\u3400-\u9fff]/.test(f)) cjk.push(e); else latin.push(e);
+    });
+    var parts = [];
+    if (latin.length) parts.push('\\b(?:' + latin.join('|') + ')\\b');
+    if (cjk.length) parts.push('(?:' + cjk.join('|') + ')');
+    return parts.length ? new RegExp(parts.join('|'), 'gi') : null;
+  }
+  function vizText(src, t, stage) {
+    var text = src.text, out = [], at = t.offset, re = null;
+    var scores = t.sentences.map(function (s) { return s.score; }), max = Math.max.apply(null, scores.concat([0.001])), min = Math.min.apply(null, scores.concat([max]));
+    if (stage === 1) re = wordsRe(t.terms.slice(0, 12).reduce(function (l, x) { return l.concat(x.forms); }, []));
+    if (stage === 2) re = wordsRe(t.concepts.reduce(function (l, c) { return l.concat(c.forms); }, []));
+    t.sentences.forEach(function (s, i) {
+      if (s.start > at) out.push(esc(text.slice(at, s.start)));
+      var body = esc(text.slice(s.start, s.end)), cls = 's', style = '';
+      if (re) body = body.replace(re, '<mark>$&</mark>');
+      if (stage === 0) { body = '<sup>' + (i + 1) + '</sup>' + body; cls += i % 2 ? ' odd' : ' even'; }
+      if (stage === 3) { cls += ' heat'; style = '--h:' + Math.round((s.score - min) / (max - min || 1) * 100) + '%'; }
+      if (stage === 4 || stage === 6) { cls += s.pick ? ' pick' : ' dim'; if (s.pick) style = '--k:' + (KIND_CC[s.kind] || 'var(--c2)'); }
+      if (stage === 5) cls += s.rel ? ' rel' : ' dim';
+      out.push('<span class="' + cls + '"' + (style ? ' style="' + style + '"' : '') + '>' + body + '</span>');
+      at = s.end;
+    });
+    out.push(esc(text.slice(at, t.offset + t.length)));
+    return out.join('');
+  }
+  function vizGraph(t) {
+    var W = 460, H = 260, cx = W / 2, cy = H / 2, ns = t.concepts, pos = {};
+    var max = Math.max.apply(null, ns.map(function (c) { return c.weight; }).concat([1]));
+    ns.forEach(function (c, i) { var a = -Math.PI / 2 + i * 2 * Math.PI / ns.length; pos[c.title] = { x: cx + 112 * Math.cos(a), y: cy + 92 * Math.sin(a), c: Math.cos(a), r: 5 + 7 * c.weight / max }; });
+    var lines = t.relations.filter(function (r) { return pos[r.from] && pos[r.to]; }).map(function (r) {
+      var a = pos[r.from], b = pos[r.to];
+      return '<line x1="' + a.x.toFixed(1) + '" y1="' + a.y.toFixed(1) + '" x2="' + b.x.toFixed(1) + '" y2="' + b.y.toFixed(1) + '" stroke-width="' + Math.min(5, r.n + 0.5) + '"' + (r.type === 'related' ? '' : ' class="strong"') + '/>';
+    }).join('');
+    var dots = ns.map(function (c) {
+      var p = pos[c.title], side = p.c > 0.3 ? 'start' : p.c < -0.3 ? 'end' : 'middle';
+      var tx = p.x + (side === 'start' ? p.r + 5 : side === 'end' ? -p.r - 5 : 0), ty = p.y + (side === 'middle' ? (p.y < cy ? -p.r - 6 : p.r + 14) : 4);
+      return '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + p.r.toFixed(1) + '"/><text x="' + tx.toFixed(1) + '" y="' + ty.toFixed(1) + '" text-anchor="' + side + '">' + esc(c.title.length > 20 ? c.title.slice(0, 19) + '…' : c.title) + '</text>';
+    }).join('');
+    return '<svg class="lk-viz-graph" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(ns.length + ' 个概念，' + t.relations.length + ' 条关系') + '">' + lines + dots + '</svg>';
+  }
+  function vizSide(g, src, t, stage) {
+    var short = function (s, n) { s = String(s).replace(/\s+/g, ' '); return esc(s.length > n ? s.slice(0, n - 1) + '…' : s); };
+    if (stage === 0) return '<div class="lk-viz-nums"><div><b>' + src.text.length.toLocaleString() + '</b><span>字</span></div><div><b>' + g.traces.length + '</b><span>段</span></div><div><b>' + t.sentences.length + '</b><span>句</span></div></div>' +
+      '<p class="lk-note">按句号、分号、换行把原文切成句子，并记下每一句在原文里的位置。后面每一条说法的出处，就是这个位置。</p>';
+    if (stage === 1) {
+      var top = t.terms.slice(0, 12), mx = top.length ? top[0].count : 1;
+      return '<ul class="lk-bars">' + top.map(function (x) { return '<li><span>' + esc(x.term) + '</span><i style="--w:' + Math.round(x.count / mx * 100) + '%"></i><b>' + x.count + '</b></li>'; }).join('') + '</ul>' +
+        '<p class="lk-note">一共 ' + t.tokens + ' 个词，其中 ' + t.stops + ' 个虚词（the、of、的…）不计。同一个词的单数、复数算在一起。</p>';
+    }
+    if (stage === 2) {
+      var mw = Math.max.apply(null, t.concepts.map(function (c) { return c.weight; }).concat([1]));
+      return '<div class="lk-cons">' + t.concepts.map(function (c) { return '<span class="lk-con" style="--z:' + (13 + 9 * c.weight / mw).toFixed(1) + 'px">' + esc(c.title) + '<small>×' + c.count + (c.isNew ? '' : ' · 已有页面') + '</small></span>'; }).join('') + '</div>' +
+        '<p class="lk-note">反复出现的词，和连在一起的大写专名，成为概念；出现越多越大。每个概念对应一页知识页。</p>';
+    }
+    if (stage === 3) {
+      var best = t.sentences.map(function (s, i) { return { s: s, i: i }; }).sort(function (a, b) { return b.s.score - a.s.score; }).slice(0, 5), ms = best.length ? best[0].s.score : 1;
+      return '<ol class="lk-rankl">' + best.map(function (x) { return '<li><i style="--w:' + Math.round(x.s.score / ms * 100) + '%"></i><span><b>第 ' + (x.i + 1) + ' 句</b> ' + short(src.text.slice(x.s.start, x.s.end), 96) + '</span></li>'; }).join('') + '</ol>' +
+        '<p class="lk-note">TextRank：和越多别的句子用词相近的句子，越靠近全文的中心；提到的概念越重要，分数也越高。原文里颜色越深，分数越高。</p>';
+    }
+    if (stage === 4) return '<ul class="lk-cl">' + t.claims.map(function (c) {
+        return '<li style="--k:' + (KIND_CC[c.kind] || 'var(--c2)') + '"><span><span class="lk-badge">' + esc(CLAIM_KINDS[c.kind] || c.kind) + '</span> ' + short(c.text, 110) + '</span><small>→ ' + esc(c.page) + ' · 把握 ' + Math.round(c.confidence * 100) + '%</small></li>';
+      }).join('') + '</ul><p class="lk-note">排在前面的句子原封不动地成为说法，挂到它提到的概念上。类型只看句式（we hold、should → 观点；is a → 定义），不是理解出来的。' +
+      (t.skipped.short + t.skipped.noConcept ? '另有 ' + t.skipped.short + ' 句太短、' + t.skipped.noConcept + ' 句没有提到任何概念，没有选。' : '') + '</p>';
+    if (stage === 5) return vizGraph(t) + '<p class="lk-note">两个概念出现在同一句里，就连一条线；同句的次数越多线越粗。' + (t.relations.some(function (r) { return r.type !== 'related'; }) ? '深色的线是句子里有“来自 / 属于”这类字眼的关系。' : '') + '</p>';
+    var r = g.result, n = { claim: 0, support: 0, relation: 0, page: 0 }, conflicts = 0, found = g.traces.reduce(function (k, x) { return k + x.claims.length; }, 0);
+    r.proposals.forEach(function (p) { p.items.forEach(function (it) { n[it.type]++; if (it.conflict) conflicts++; }); });
+    var fresh = r.proposals.filter(function (p) { return p.isNew; }).length;
+    return '<div class="lk-viz-nums"><div><b>' + fresh + '</b><span>新页面</span></div><div><b>' + n.claim + '</b><span>新说法</span></div><div><b>' + n.relation + '</b><span>关系</span></div></div>' +
+      '<p class="lk-note">和知识库里已有的内容比对：' + Math.max(0, found - n.claim - n.support) + ' 条已经有了，不重复提出' + (n.support ? '；' + n.support + ' 条只是给已有说法补充出处' : '') + (conflicts ? '；' + conflicts + ' 条和已有说法矛盾，会标出来' : '') + '。</p>' +
+      '<p class="lk-note">这些只是建议。去“审核”里勾选，接受的才会写进知识页，并留下版本。</p>' +
+      (AG.pendingCount([r]) ? '<div class="lk-bar"><span class="sp"></span><button type="button" class="lk-btn" data-act="open-run" data-id="' + esc(r.id) + '">去审核 ' + AG.pendingCount([r]) + ' 条建议</button></div>' : '');
+  }
+  function vizHtml(g) {
+    var src = cache.sources[g.sourceId];
+    if (!src || !g.traces || !g.traces.length) return '';
+    var pi = Math.min(g.piece || 0, g.traces.length - 1), t = g.traces[pi], stage = Math.max(0, Math.min(STAGES.length - 1, g.stage || 0));
+    return '<div class="lk-viz" id="lk-viz"><ol class="lk-steps" aria-label="整理的步骤">' + STAGES.map(function (name, i) {
+        return '<li><button type="button" data-act="viz-stage" data-i="' + i + '"' + (i === stage ? ' aria-current="step"' : '') + (i < stage ? ' class="past"' : '') + '><b>' + (i + 1) + '</b>' + name + '</button></li>';
+      }).join('') + '</ol>' +
+      '<div class="lk-viz-body"><div class="lk-viz-text st' + stage + '" tabindex="0" aria-label="原文">' + vizText(src, t, stage) + '</div><div class="lk-viz-side" aria-live="polite"><h3>' + (stage + 1) + ' · ' + STAGES[stage] + '</h3>' + vizSide(g, src, t, stage) + '</div></div>' +
+      '<div class="lk-bar">' + (g.traces.length > 1 ? '<button type="button" class="lk-btn ghost" data-act="viz-piece" data-d="-1"' + (pi ? '' : ' disabled') + '>‹</button><span class="lk-note">第 ' + (pi + 1) + ' / ' + g.traces.length + ' 段</span><button type="button" class="lk-btn ghost" data-act="viz-piece" data-d="1"' + (pi < g.traces.length - 1 ? '' : ' disabled') + '>›</button>' : '') +
+      '<span class="sp"></span><button type="button" class="lk-btn ghost" data-act="viz-play">' + (g.playing ? '暂停' : '重播') + '</button><button type="button" class="lk-btn ghost" data-act="viz-stage" data-i="' + (stage - 1) + '"' + (stage ? '' : ' disabled') + '>上一步</button><button type="button" class="lk-btn ghost" data-act="viz-stage" data-i="' + (stage + 1) + '"' + (stage < STAGES.length - 1 ? '' : ' disabled') + '>下一步</button></div></div>';
+  }
+  function paintViz() { var el = $('lk-viz'), g = ui.ingest; if (el && g) el.outerHTML = vizHtml(g); }
+  function vizPlay(g, from) {
+    clearTimeout(g.timer); g.stage = from || 0; g.playing = true;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) { g.stage = STAGES.length - 1; g.playing = false; return paintViz(); }
+    paintViz();
+    (function tick() {
+      g.timer = setTimeout(function () {
+        if (ui.ingest !== g || !g.playing) return;
+        if (g.stage >= STAGES.length - 1) { g.playing = false; return paintViz(); }
+        g.stage++; paintViz(); tick();
+      }, 1700);
+    })();
+  }
+  function localPanel(g) {
+    var body;
+    if (g.running) body = '<p role="status">正在这台设备上整理…</p>';
+    else if (g.result) {
+      var r = g.result, n = AG.pendingCount([r]);
+      body = '<p role="status">' + (r.status === 'review' ? '整理好了：有 ' + n + ' 条建议等你审核。下面是它一步一步怎么得出来的。' : r.status === 'empty' ? '没有新的内容：这份来源里的说法知识页里都已经有了。' : '没有整理成功。') + '</p>' +
+        (r.errors && r.errors.length ? '<p class="lk-note" style="color:var(--bad)">' + r.errors.map(esc).join('<br>') + '</p>' : '') +
+        '<div class="lk-bar"><span class="lk-note">全部在这台设备上完成 · 没有联网 · 同一份原文每次结果相同</span><span class="sp"></span><button type="button" class="lk-btn ghost" data-act="ingest-cancel">关闭</button>' +
+        (r.status === 'review' ? '<button type="button" class="lk-btn" data-act="open-run" data-id="' + esc(r.id) + '">去审核</button>' : '') + '</div>';
+    } else body = '<p>在这台设备上用算法整理这份来源（' + g.est.chars.toLocaleString() + ' 字，' + g.est.calls + ' 段）：' + STAGES.slice(0, 6).join(' → ') + '。</p>' +
+      '<p class="lk-note">不联网，不调用 AI，不发送任何内容。它只会挑选和整理原文里已有的句子，不会改写，也不会推断；每一条都要你在“审核”里接受才会写入。</p>' +
+      '<div class="lk-bar"><span class="sp"></span><button type="button" class="lk-btn ghost" data-act="ingest-cancel">取消</button><button type="button" class="lk-btn" data-act="ingest-start">开始整理</button></div>';
+    return '<div class="lk-report lk-ingest"><b>本机整理这份来源</b>' + body + '</div>' + (g.result ? vizHtml(g) : '');
+  }
+  // the walk-through: the example source in, organised on the device, every step drawn
+  function runDemo() {
+    if (!DEMO || !L || !guard()) return;
+    IM.importAll(store, [{ text: DEMO.text, title: DEMO.title, url: DEMO.url }], { via: 'living-knowledge' }).then(function (rep) {
+      var s = rep.added[0] || (rep.duplicates[0] && rep.duplicates[0].source);
+      if (!s) return toast('示例没有导入成功' + (rep.errors[0] ? '：' + rep.errors[0] : ''));
+      ui.tab = 'sources'; lsSet(TAB_KEY, 'sources'); ui.sel.sources = s.id; ui.imp = null; ui.edit = false; ui.draft = null; ui.dirty = false; ui.q = '';
+      return store.permissions().then(function (perms) {
+        ui.ingest = { sourceId: s.id, perms: perms, est: AG.estimate([s], perms), local: true };
+        return render();
+      }).then(function () { window.scrollTo(0, 0); startIngest(); });
+    }, function (e) { toast('示例没有导入成功：' + (e && e.message || e)); });
+  }
+
+  // ---------------------------------------------------------------- review: what was proposed
   var ITEM_NAMES = { claim: '新说法', support: '为已有说法补充出处', relation: '关系', page: '新页面' };
   var REL_NAMES = { related: '相关', part_of: '是…的一部分', person_event: '人物—事件', project_decision: '项目—决策', topic_point: '主题—要点', supports: '支持', contradicts: '反驳', derived_from: '来自' };
   function paintReviewCount() {
@@ -793,7 +938,7 @@
         var n = AG.pendingCount([x]);
         return { id: x.id, title: x.scope.sourceIds.map(function (id) { return (cache.sources[id] || {}).title || id; }).join('、'), sub: when(x.startedAt) + ' · ' + (n ? n + ' 条待审核' : x.status === 'done' ? '已审核' : x.status === 'empty' ? '没有新内容' : x.status === 'failed' ? '失败' : '已处理') };
       });
-      var right = cur ? runView(cur) : '<section class="lk-card lk-ed"><p class="lk-empty">AI 整理来源后，建议会出现在这里。<br>每一条都要你接受才会写进知识页；没接受的不会有任何影响。</p></section>';
+      var right = cur ? runView(cur) : '<section class="lk-card lk-ed"><p class="lk-empty">整理来源后，建议会出现在这里。<br>每一条都要你接受才会写进知识页；没接受的不会有任何影响。</p></section>';
       main.innerHTML = '<div class="lk-split' + (cur ? ' editing' : '') + '">' + sideList(items, cur && cur.id, '搜索整理记录', '') + right + '</div>';
     });
   }
@@ -817,10 +962,10 @@
       return '<div class="lk-pg"><div class="lk-bar"><b>' + esc(g.title) + '</b><span class="lk-badge">' + (g.isNew ? '新页面' : '已有页面') + '</span>' +
         (!g.isNew && cache.pages[g.pageId] && cache.pages[g.pageId].lockedBy === 'user' ? '<span class="lk-lock">🔒 你锁定的页面：只有你接受的才会写入</span>' : '') + '</div><ul>' + rows + '</ul></div>';
     }).join('');
-    return '<section class="lk-card lk-ed"><div class="lk-bar"><button type="button" class="lk-btn ghost lk-only-narrow" data-act="back">‹ 列表</button><b>AI 整理建议</b><span class="lk-note">' + esc(when(run.startedAt)) + ' · 发送 ' + run.used.calls + ' 段' +
+    return '<section class="lk-card lk-ed"><div class="lk-bar"><button type="button" class="lk-btn ghost lk-only-narrow" data-act="back">‹ 列表</button><b>' + (run.engine === 'local' ? '本机整理建议' : 'AI 整理建议') + '</b><span class="lk-note">' + esc(when(run.startedAt)) + ' · ' + (run.engine === 'local' ? '本机整理 ' : '发送 ') + run.used.calls + ' 段' +
       (run.used.input ? ' · 约 ' + (run.used.input + run.used.output) + ' token' : '') + (run.limited ? ' · 到了上限' : '') + (run.stopped ? ' · 中途停止' : '') + (run.truncated ? ' · 建议太多，已截短' : '') + '</span></div>' +
       (run.errors && run.errors.length ? '<p class="lk-note" style="color:var(--bad)">' + run.errors.map(esc).join('<br>') + '</p>' : '') +
-      '<p class="lk-note">勾选的会以你的名义写进知识页（留下新版本，可以恢复）。默认只勾了有原文出处的；“AI 推断”没有出处，要你自己判断。</p>' +
+      '<p class="lk-note">勾选的会以你的名义写进知识页（留下新版本，可以恢复）。' + (run.engine === 'local' ? '本机整理的每一条都是原文里的句子，点“原文”可以回到出处。' : '默认只勾了有原文出处的；“AI 推断”没有出处，要你自己判断。') + '</p>' +
       (groups || '<p class="lk-empty">没有建议</p>') +
       (pending ? '<div class="lk-bar lk-sticky"><span class="lk-note">还有 ' + pending + ' 条待审核</span><span class="sp"></span><button type="button" class="lk-btn ghost" data-act="review-reject-all">全部拒绝</button><button type="button" class="lk-btn ghost" data-act="review-accept">接受勾选的</button><button type="button" class="lk-btn" data-act="review-accept-close">接受勾选的，其余拒绝</button></div>' : '') + '</section>';
   }
@@ -851,7 +996,10 @@
           return '<tr><td>' + esc(MODULE_NAMES[m] || m) + '</td><td class="c"><input type="checkbox" data-perm="' + m + '" data-a="read"' + (x.read ? ' checked' : '') + (self ? ' disabled' : '') + ' aria-label="' + esc(MODULE_NAMES[m]) + ' 读取"></td>' +
             '<td class="c"><input type="checkbox" data-perm="' + m + '" data-a="write"' + (x.write ? ' checked' : '') + (self ? ' disabled' : '') + ' aria-label="' + esc(MODULE_NAMES[m]) + ' 写入"></td></tr>';
         }).join('') + '</tbody></table>' +
-        '<h2 style="margin-top:8px">AI：整理 · 问答 · 起草</h2>' +
+        '<h2 style="margin-top:8px">整理 · 问答 · 起草：用哪种引擎</h2>' +
+        '<label class="lk-check"><input type="radio" name="lk-engine" value="local"' + (isLocal() ? ' checked' : '') + '> <span><b>本机算法（默认）</b>：全部在这台设备上完成，不联网，不发送任何内容。只挑选和整理原文里的句子，不会改写、归纳或翻译。</span></label>' +
+        '<label class="lk-check"><input type="radio" name="lk-engine" value="cloud"' + (isLocal() ? '' : ' checked') + '> <span><b>Minest AI（云端模型）</b>：能改写、归纳和跨语言，但要把内容发出去，需要下面的许可。</span></label>' +
+        '<h2 style="margin-top:8px">Minest AI 的许可（只在选了云端模型时用到）</h2>' +
         '<label class="lk-check"><input type="checkbox" id="lk-allow-ai"' + (p.allowAI ? ' checked' : '') + '> 允许把我选中的内容发给 Minest AI：整理来源、回答问题（问 AI）、起草页面正文</label>' +
         '<p class="lk-note">整理：只在你点“让 AI 整理”时发送那一份来源（分段）和知识页的标题、已有说法的列表；每一条建议都要你在“审核”里接受才会写入。问 AI：相关的页面先在这台设备上找出来，只发送那几页的标题、摘要和说法；回答不会自动写入。起草正文：只发送那一页的说法和其他页面的标题；得到的是草稿，你保存才成为新的一版。Minest AI 用的是你在 Vercel 上配置的模型服务。</p>' +
         '<div class="lk-meta"><label>每次整理最多发送几段（每段约 6 000 字）<input type="number" id="lk-max-calls" min="1" max="60" value="' + esc(p.maxCallsPerRun || 12) + '"></label>' +
@@ -906,14 +1054,23 @@
     if (act === 'back' && tab === 'review') { ui.run = ''; render(); return; }
     if (act === 'ingest-plan') {
       var sid = ui.sel.sources;
-      store.permissions().then(function (perms) { ui.ingest = { sourceId: sid, perms: perms, est: AG.estimate([cache.sources[sid]], perms) }; render(); });
+      store.permissions().then(function (perms) { ui.ingest = { sourceId: sid, perms: perms, est: AG.estimate([cache.sources[sid]], perms), local: isLocal() }; render(); });
       return;
     }
     if (act === 'ingest-start') { startIngest(); return; }
     if (act === 'ingest-stop') { if (ui.ingest && ui.ingest.ctl) ui.ingest.ctl.abort(); return; }
-    if (act === 'ingest-cancel') { if (ui.ingest && ui.ingest.running) return; ui.ingest = null; render(); return; }
+    if (act === 'ingest-cancel') { if (ui.ingest && ui.ingest.running) return; if (ui.ingest) clearTimeout(ui.ingest.timer); ui.ingest = null; render(); return; }
+    if (act === 'demo') { runDemo(); return; }
+    if (act === 'demo-ask') { $('lk-ask-q').value = a.dataset.q; askAI(a.dataset.q); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    if (act === 'viz-stage' || act === 'viz-piece' || act === 'viz-play') {
+      var vg = ui.ingest; if (!vg || !vg.traces) return;
+      if (act === 'viz-play') { if (vg.playing) { vg.playing = false; clearTimeout(vg.timer); paintViz(); } else vizPlay(vg, vg.stage >= STAGES.length - 1 ? 0 : vg.stage); }
+      else { vg.playing = false; clearTimeout(vg.timer); if (act === 'viz-stage') vg.stage = +a.dataset.i; else vg.piece = Math.max(0, Math.min(vg.traces.length - 1, (vg.piece || 0) + (+a.dataset.d))); paintViz(); }
+      var vb = main.querySelector(act === 'viz-play' ? '#lk-viz [data-act="viz-play"]' : '#lk-viz .lk-steps [aria-current="step"]'); if (vb) vb.focus({ preventScroll: true });
+      return;
+    }
     if (act === 'go-perms') { ui.ingest = null; setTab('perms'); return; }
-    if (act === 'open-run') { ui.ingest = null; ui.run = a.dataset.id; ui.choice = {}; setTab('review'); return; }
+    if (act === 'open-run') { if (ui.ingest) clearTimeout(ui.ingest.timer); ui.ingest = null; ui.run = a.dataset.id; ui.choice = {}; setTab('review'); return; }
     if (act === 'review-accept' || act === 'review-accept-close') { submitReview(act === 'review-accept' ? 'accept' : 'close'); return; }
     if (act === 'review-reject-all') { if (confirm('拒绝这次整理里所有还没处理的建议？')) submitReview('reject'); return; }
     if (act === 'open') { if (!guard()) return; ui.sel[key] = a.dataset.id; ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null; ui.showRev = null; ui.imp = null; render(); return; }
@@ -986,10 +1143,11 @@
         p = M.clone(p);
         main.querySelectorAll('[data-perm]').forEach(function (c) { var m = c.dataset.perm; p.modules[m] = p.modules[m] || {}; p.modules[m][c.dataset.a] = c.checked; });
         p.allowAI = $('lk-allow-ai').checked;
+        var eng = main.querySelector('input[name="lk-engine"]:checked'); lsSet(ENGINE_KEY, eng && eng.value === 'cloud' ? 'cloud' : null);
         p.maxCallsPerRun = Math.max(1, Math.min(60, Math.round(+$('lk-max-calls').value || 12)));
         p.maxTokensPerCall = Math.max(500, Math.min(6000, Math.round(+$('lk-max-tokens').value || 3000)));
         return store.savePermissions(p);
-      }).then(function (res) { toast(res.ok ? (res.noop ? '没有变化' : '权限已保存') : '保存失败：' + res.error); render(); });
+      }).then(function (res) { toast(res.ok ? (res.noop ? '已保存' : '权限已保存') : '保存失败：' + res.error); render(); });
     }
   });
   $('lk-ask').addEventListener('submit', function (e) { e.preventDefault(); var i = $('lk-ask-q'); ask(i.value); i.value = ''; i.blur(); });

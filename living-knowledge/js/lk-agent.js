@@ -81,15 +81,16 @@
     var now = opts.now || function () { return Date.now(); };
     var run = null;
     return store.permissions().then(function (perms) {
-      if (!perms.allowAI) throw Object.assign(new Error('还没有允许把来源文字发给 Minest AI（在“权限”里打开）'), { code: 'ai-not-allowed' });
+      // opts.local: the transport is the on-device engine — nothing is sent, so no permission and no budget are needed
+      if (!perms.allowAI && !opts.local) throw Object.assign(new Error('还没有允许把来源文字发给 Minest AI（在“权限”里打开）'), { code: 'ai-not-allowed' });
       return Promise.all((opts.sourceIds || []).map(function (id) { return store.get('source', id); })).then(function (sources) {
         sources = sources.filter(Boolean);
         if (!sources.length) throw Object.assign(new Error('没有选中的来源'), { code: 'invalid' });
-        var maxCalls = Math.max(1, perms.maxCallsPerRun || 12);
+        var maxCalls = opts.local ? Infinity : Math.max(1, perms.maxCallsPerRun || 12);
         var jobs = [];
         sources.forEach(function (s) { chunk(s.text).forEach(function (c) { jobs.push({ source: s, piece: c }); }); });
-        run = { id: M.runId(now()), kind: 'run', mode: 'ingest', status: 'running', scope: { sourceIds: sources.map(function (s) { return s.id; }) },
-          budget: { maxCalls: maxCalls, maxTokensPerCall: perms.maxTokensPerCall || 3000 }, used: { calls: 0, input: 0, output: 0 },
+        run = { id: M.runId(now()), kind: 'run', mode: 'ingest', engine: opts.local ? 'local' : 'cloud', status: 'running', scope: { sourceIds: sources.map(function (s) { return s.id; }) },
+          budget: { maxCalls: opts.local ? jobs.length : maxCalls, maxTokensPerCall: perms.maxTokensPerCall || 3000 }, used: { calls: 0, input: 0, output: 0 },
           pieces: jobs.length, startedAt: now(), proposals: [], errors: [] };
         return Promise.all([store.list('page')]).then(function (r) {
           var pages = r[0];
@@ -214,7 +215,7 @@
     return store.get('run', runId).then(function (run) {
       if (!run) throw new Error('没有这次整理');
       var report = { pages: 0, claims: 0, supports: 0, relations: 0, rejected: 0, errors: [] };
-      var reason = '审核通过：AI 整理（' + run.id + '）';
+      var reason = '审核通过：' + (run.engine === 'local' ? '本机整理' : 'AI 整理') + '（' + run.id + '）';
       return run.proposals.reduce(function (p, g) {
         return p.then(function () {
           var take = g.items.filter(function (it) { return it.status === 'pending' && choice[it.key] === true; });
@@ -319,9 +320,9 @@
       return { id: p.id, title: p.title, type: p.type, summary: String(p.markdown || '').replace(/\s+/g, ' ').slice(0, 900), claims: top, score: x.score };
     });
   }
-  function needAI(store) {
+  function needAI(store, opts) {
     return store.permissions().then(function (perms) {
-      if (!perms.allowAI) throw Object.assign(new Error('还没有允许把知识库内容发给 Minest AI（在“权限”里打开）'), { code: 'ai-not-allowed' });
+      if (!perms.allowAI && !(opts && opts.local)) throw Object.assign(new Error('还没有允许把知识库内容发给 Minest AI（在“权限”里打开）'), { code: 'ai-not-allowed' });
       return perms;
     });
   }
@@ -331,7 +332,7 @@
     opts = opts || {};
     question = String(question || '').trim();
     if (question.length < 2) return Promise.reject(Object.assign(new Error('先写下你的问题'), { code: 'invalid' }));
-    return needAI(store).then(function (perms) {
+    return needAI(store, opts).then(function (perms) {
       return Promise.all([store.list('page'), store.list('decision')]).then(function (r) {
         var found = retrieve(r[0], question, opts), ts = terms(question);
         var decs = r[1].map(function (d) { return { d: d, s: hits(ts, d.title) * 3 + hits(ts, (d.decision || '') + ' ' + (d.requirement || '')) }; })
@@ -342,12 +343,12 @@
         var dtitles = {}; decs.forEach(function (d) { dtitles[d.id] = d.title; });
         var base = { question: question, sent: { pages: found.length, claims: nClaims, decisions: decs.length }, titles: titles, claims: claims, decisions: dtitles };
         // nothing in the library is about this: say so without sending anything
-        if (!found.length && !decs.length) return Object.assign(base, { status: 'nothing', summary: '', points: [], confidence: 'none', gaps: [], followups: [], suggestPage: question.length <= 40 ? question : '' });
+        if (!found.length && !decs.length) return Object.assign(base, { engine: opts.local ? 'local' : 'cloud', status: 'nothing', summary: '', points: [], confidence: 'none', gaps: [], followups: [], suggestPage: question.length <= 40 ? question : '' });
         var body = { question: question, pages: found.map(function (p) { return { id: p.id, title: p.title, type: p.type, summary: p.summary, claims: p.claims }; }), decisions: decs,
           history: (opts.history || []).slice(-4), maxTokens: Math.min(perms.maxTokensPerCall || 3000, 2000) };
         return opts.transport('lk-ask', body, opts.signal).then(function (res) {
           return Object.assign(base, { status: 'answered', summary: res.summary || '', points: res.points || [], confidence: res.confidence || 'low', gaps: res.gaps || [], followups: res.followups || [],
-            suggestPage: res.suggestPage || '', usage: res.usage || null, model: res.model || '' });
+            suggestPage: res.suggestPage || '', usage: res.usage || null, model: res.model || '', engine: opts.local ? 'local' : 'cloud' });
         });
       });
     });
@@ -358,7 +359,7 @@
     if (a.summary) out.push(a.summary, '');
     (a.points || []).forEach(function (p) {
       var refs = (p.pageIds || []).map(function (id) { return a.titles[id] ? '[[' + a.titles[id] + ']]' : ''; }).filter(Boolean);
-      out.push('- ' + p.text + (p.grounded ? (refs.length ? '（' + refs.join('、') + '）' : '') : '（AI 推断，未核实）'));
+      out.push('- ' + p.text.replace(/\s+/g, ' ') + (p.grounded ? (refs.length ? '（' + refs.join('、') + '）' : '') : '（AI 推断，未核实）'));
     });
     if ((a.gaps || []).length) { out.push('', '## 还缺什么', ''); a.gaps.forEach(function (g) { out.push('- ' + g); }); }
     return out.join('\n').trim();
@@ -368,12 +369,12 @@
      → { pageId, baseRev, markdown, usedClaimIds, unusedClaims, leftOut, usage } */
   function compose(store, pageId, opts) {
     opts = opts || {};
-    return needAI(store).then(function (perms) {
+    return needAI(store, opts).then(function (perms) {
       return Promise.all([store.get('page', pageId), store.list('page')]).then(function (r) {
         var p = r[0];
         if (!p) throw Object.assign(new Error('没有这一页'), { code: 'invalid' });
-        if (p.lockedBy === 'user') throw Object.assign(new Error('这一页已锁定，AI 不能起草正文'), { code: 'locked' });
-        if (!(p.claims || []).length) throw Object.assign(new Error('这一页还没有说法；先让 AI 整理一份来源，或者手写正文'), { code: 'no-claims' });
+        if (p.lockedBy === 'user') throw Object.assign(new Error('这一页已锁定，不能自动起草正文'), { code: 'locked' });
+        if (!(p.claims || []).length) throw Object.assign(new Error('这一页还没有说法；先整理一份来源，或者手写正文'), { code: 'no-claims' });
         var body = { title: p.title, type: p.type, markdown: p.markdown || '',
           claims: p.claims.slice(0, 80).map(function (c) { return { id: c.id, text: c.text, kind: c.kind, origin: c.origin, disputed: !!(c.conflictsWith && c.conflictsWith.length) }; }),
           pages: r[1].filter(function (x) { return x.id !== p.id; }).slice(0, 200).map(function (x) { return { id: x.id, title: x.title }; }),
