@@ -359,6 +359,9 @@
       },
       isRunning: () => st.running,
       fire, hyperjump,
+      /* the crew (falcon-crew.js): BB-8 at the co-pilot's console fires at whatever is locked; the cockpit and the state for the figures */
+      crew: { ship, st, flying: () => !!(st.active && st.running && FLY[st.ph] && !/^(jump|hyper|landed|done)/.test(st.ph)),
+        assist() { const t = st.target; if (!t || !this.flying()) return false; const b = free(E.pBolts); if (!b) return false; const ox = st.sx + 0.9, oy = st.sy - 0.45, oz = -3.4, tt = Math.abs(t.z) / 280; launchBolt(b, ox, oy, oz, t.x - ox, t.y - oy, t.z + 95 * tt - oz, 280); if (audio) audio.laser(); return true; } },
       /* the gunner's stick: turns the cannons (arrow keys / the mouse); the pilot's WASD still flies the ship */
       aim(dx, dy) { st.ax = clamp((st.ax || 0) + dx, -1, 1); st.ay = clamp((st.ay || 0) + dy, -1, 1); st.aimIdle = 0; },
       steer(dx, dy) {

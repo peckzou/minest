@@ -1,0 +1,21 @@
+/* The ride HUD (2026-11-24): on any ride the park's own top bar, map, hints and build buttons go away, the status is a
+ * small cockpit readout at the bottom-left, the controls are round keys at the bottom-right in the Falcon's manner
+ * (dark metal, amber rims), the lines appear as subtitles low on the screen, and ⛶ (or G) fills the whole screen. */
+(function (root) {
+  'use strict';
+  var css = document.createElement('style');
+  css.textContent = 'body.ride-on #title,body.ride-on #mn-pav-btns,body.ride-on #mmWrap,body.ride-on #hint,body.ride-on #hotbar,body.ride-on #crosshair,body.ride-on #mip-fab,body.ride-on #sw-saber-btn,body.ride-on #tp-action-prompt,body.ride-on .tp-quick-bar{display:none!important}' +
+    'body.ride-on #tp-ride-bar{left:auto!important;right:18px!important;bottom:18px!important;top:auto!important;transform:none!important;background:none!important;border:none!important;box-shadow:none!important;padding:0!important;gap:10px!important;display:flex;align-items:center;backdrop-filter:none!important}' +
+    'body.ride-on #tp-ride-title{position:fixed;left:18px;bottom:18px;max-width:46vw;padding:7px 14px 7px 12px;font:600 12px/1.5 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.06em;color:#ffd27a;background:linear-gradient(180deg,rgba(24,20,14,.82),rgba(10,9,7,.82));border:1px solid rgba(255,176,60,.55);border-left:4px solid #ffb03c;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,0 100%);text-shadow:0 0 6px rgba(255,176,60,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    'body.ride-on #tp-ride-bar .tp-btn{width:50px;height:50px;padding:0;border-radius:50%;font-size:20px;line-height:46px;text-align:center;color:#ffd27a;background:radial-gradient(circle at 35% 30%,#4a4f58,#16181c 70%);border:2px solid #8a6a2c;box-shadow:inset 0 0 0 3px #0c0d10,0 0 12px rgba(255,176,60,.35),0 3px 8px rgba(0,0,0,.6);overflow:hidden;white-space:nowrap;transition:transform .08s,box-shadow .12s}' +
+    'body.ride-on #tp-ride-bar .tp-btn:hover{box-shadow:inset 0 0 0 3px #0c0d10,0 0 18px rgba(255,176,60,.8)}body.ride-on #tp-ride-bar .tp-btn:active{transform:scale(.92)}' +
+    'body.ride-on #tp-ride-fire{border-color:#b3261e!important;color:#ff7a6b!important;width:62px!important;height:62px!important;line-height:58px!important;font-size:26px!important;box-shadow:inset 0 0 0 3px #0c0d10,0 0 16px rgba(255,60,40,.6)!important}body.ride-on #tp-ride-hyper{border-color:#38bdf8!important;color:#9fe4ff!important}' +
+    'body.ride-on #toast{top:auto!important;bottom:92px!important;max-width:min(760px,80vw);padding:8px 18px!important;font-size:15px!important;line-height:1.5;color:#fff!important;background:rgba(0,0,0,.62)!important;border:none!important;border-radius:6px!important;text-shadow:0 1px 3px #000;white-space:normal;text-align:center}';
+  document.head.appendChild(css);
+  function full() { try { var d = document; if (d.fullscreenElement || d.webkitFullscreenElement) (d.exitFullscreen || d.webkitExitFullscreen).call(d); else { var el = d.documentElement; (el.requestFullscreen || el.webkitRequestFullscreen).call(el); } } catch (e) {} }
+  function trim() { var bar = document.getElementById('tp-ride-bar'); if (!bar) return; [].forEach.call(bar.querySelectorAll('.tp-btn'), function (b) { var t = b.textContent; if (t.length > 3 && b.id !== 'ride-full') { b.title = t; b.textContent = Array.from(t.trim())[0] === '⏸' ? '⏸' : Array.from(t.trim()).slice(0, 2).join('').replace(/\s/g, ''); } });
+    if (!document.getElementById('ride-full')) { var f = document.createElement('button'); f.type = 'button'; f.className = 'tp-btn'; f.id = 'ride-full'; f.textContent = '⛶'; f.title = '全屏 (G)'; f.onclick = function (e) { e.stopPropagation(); full(); }; bar.insertBefore(f, bar.querySelector('#tp-ride-exit') || null); } }
+  var was = false;
+  (function tick() { requestAnimationFrame(tick); var A = root.TPParkAPI; if (!A) return; var on = !!A.state.activeRide; if (on !== was) { was = on; document.body.classList.toggle('ride-on', on); } if (on) trim(); })();
+  root.addEventListener('keydown', function (e) { if (was && e.code === 'KeyG' && !/INPUT|TEXTAREA/.test((e.target && e.target.tagName) || '')) full(); });
+})(window);
