@@ -1,4 +1,5 @@
-/* The opening landscape uses Minest's original Dock and opens the desktop board. */
+/* The opening landscape uses Minest's original Dock and opens the desktop board.
+   The "=" / "||" key only folds the Dock's tools: it stays on the opening. */
 (function () {
   'use strict';
   if (window.MinestStartControls) return;
@@ -75,7 +76,7 @@ html.mn-start-reading #mn-start-exit{visibility:visible!important;pointer-events
   function detach() {
     if(reading)setReading(false);restoreDock();clearTimeout(idle);unwatch.forEach(function(fn){fn();});unwatch=[];down=false;frame=null;dock=null;root.classList.remove('mn-start-active','mn-start-idle','mn-start-reading');
   }
-  document.addEventListener('click',function(e){if(frame&&e.target.closest&&e.target.closest('.mn-bdock button'))openWeb(false);},true);
+  document.addEventListener('click',function(e){if(frame&&e.target.closest&&e.target.closest('.mn-bdock button')&&!e.target.closest('.mn-sk-tools'))openWeb(false);},true);
   ['pointermove','pointerdown','wheel','keydown','focusin'].forEach(function(t){document.addEventListener(t,wake,{capture:true,passive:true});});
   document.addEventListener('fullscreenchange',function(){if(reading&&nativeFull&&!document.fullscreenElement)setReading(false);});
   var queued=false;new MutationObserver(function(){if(queued)return;queued=true;queueMicrotask(function(){queued=false;var f=document.getElementById('mn-clun-splash');if(f===frame){if(frame)ensureDock();return;}if(frame)detach();if(f)attach(f);});}).observe(document.body,{childList:true,subtree:true});
