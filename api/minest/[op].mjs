@@ -1,5 +1,7 @@
 // Minest AI on Vercel: /api/minest/<op> — ai-chat, ai-chat-stream, ai-plan, ai-expand, ai-analyze,
 // ai-diagnose, ai-board, ai-judge (44.7 voice quiz), ai-image (53.4: cartoon pictures, limited per instance), lk-extract (Living Knowledge: a source piece → a checked proposal),
+// lk-ask (Living Knowledge: a question answered from the user's pages, every point cited), lk-compose (a page body drafted from its accepted claims), lk-link (pairs of pages → suggested links, each with its reason),
+// lk-synthesize (the nodes the user picked → an Insight Card; a point with no citation is returned as a hypothesis),
 // ai-imagineer (Dream Workshop: one sentence → an editable plan of an experience), ai-imagineer-edit (edits to the open work). Same logic as the Mac server (api/_minest/core.mjs).
 // Every request must carry X-Minest-Token = MINEST_AI_TOKEN (the app), or a Google sign-in on the allowed list
 // (X-Minest-Id-Token, see api/_minest/auth.mjs), so the API key behind it cannot be used by anyone else.

@@ -148,10 +148,11 @@ class Ferrofluid extends LetterWorld<FerroVisual> {
   private ripHead = 0;
   private coilMats: THREE.MeshStandardMaterial[] = [];
   private field = 0;
+  private fieldU = { value: 0 };
   private yShift = 0;
   private camTarget = new THREE.Vector3(0, 0.05, 0);
-  private camDir = new THREE.Vector3(0, 1.6, 10).normalize();
-  private camDist = 10.1;
+  private camDir = new THREE.Vector3(0, 1.25, 10).normalize();
+  private camDist = 6.6;
   private m4 = new THREE.Matrix4();
   private q = new THREE.Quaternion();
   private p3 = new THREE.Vector3();
@@ -163,23 +164,25 @@ class Ferrofluid extends LetterWorld<FerroVisual> {
     const T = THREE;
     ctx.layout.setOptions({ ...DEFAULT_LAYOUT, metric: 'sans', size: 1.3, tracking: 0.14, maxWidth: 9.4, maxLines: 1, origin: [0, 0, 0], plane: 'xy', minScale: 0.3 });
 
-    // Minimal dark stage: near-black; the studio env map is set only on the ferrofluid
-    // materials (letters + pool) (so the letters read as glossy highlights), one key + a cool rim.
-    ctx.scene.background = new T.Color(0x020203);
-    ctx.scene.fog = new T.FogExp2(0x020203, 0.04);
+    // A photographer's set for ferrofluid: a dark lab, and behind the trough a long softbox. The black liquid
+    // reads as a sharp silhouette against it and carries its highlights; the studio env map stays on the
+    // ferrofluid materials only (letters + pool).
+    ctx.scene.background = new T.Color(0x050608);
+    ctx.scene.fog = new T.FogExp2(0x050608, 0.022);
     this.placeCamera(true);
 
-    this.root.add(new T.HemisphereLight(0x8fa2c8, 0x0a0806, 0.25));
-    const key = new T.DirectionalLight(0xffffff, 1.2);
+    this.root.add(new T.HemisphereLight(0xb8c8e8, 0x0c0a08, 0.5));
+    const key = new T.DirectionalLight(0xffffff, 0.9);
     key.position.set(4, 10, 7);
     this.root.add(key);
-    const rim = new T.DirectionalLight(0x9db4ff, 1.4);
-    rim.position.set(-6, 4, -6);
+    const rim = new T.DirectionalLight(0xcfe0ff, 2.4);
+    rim.position.set(-2, 3.2, -7);
     this.root.add(rim);
 
     for (let i = 0; i < MAX_BUMPS; i++) this.bumpU.push(new T.Vector4(0, 0, 0, 0));
     for (let i = 0; i < MAX_RIPPLES; i++) this.ripU.push(new T.Vector4(0, 0, 0, 0));
     this.buildLab();
+    this.buildSoftbox();
 
     this.coneGeo = new T.ConeGeometry(1, 1, 8, 1);
     this.coneGeo.translate(0, 0.5, 0);
@@ -203,15 +206,66 @@ class Ferrofluid extends LetterWorld<FerroVisual> {
       clearcoat: 1,
       clearcoatRoughness: 0.06,
       envMap: this.ctx.renderer.environment(),
-      envMapIntensity: 1.5,
+      envMapIntensity: 1.35,
     });
+  }
+
+  /** the softbox behind the trough, its spill on the bench, and the frame that holds it */
+  private buildSoftbox() {
+    const T = THREE;
+    const W = 17;
+    const H = 3.1;
+    const y0 = POOL_Y - 0.36;
+    const z = -3.4;
+    const glow = (falloff: string, gain: number, blend: THREE.Blending) =>
+      new T.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        fog: false,
+        blending: blend,
+        uniforms: { uField: this.fieldU, uGain: { value: gain } },
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+        fragmentShader: `varying vec2 vUv; uniform float uField; uniform float uGain;
+          void main(){ vec2 q = vUv * 2.0 - 1.0; ${falloff}
+            vec3 col = mix(vec3(0.78, 0.86, 1.0), vec3(1.0, 0.985, 0.96), a) * (0.9 + 0.1 * uField);
+            gl_FragColor = vec4(col * uGain, a * uGain);
+            #include <colorspace_fragment>
+          }`,
+      });
+    // the diffuser: even in the middle, falling off softly towards its edges; faint cloth seams
+    const panel = new T.Mesh(
+      new T.PlaneGeometry(W, H),
+      glow(
+        `float ex = smoothstep(1.0, 0.72, abs(q.x)), ey = smoothstep(1.0, 0.55, abs(q.y));
+         float a = ex * ey * (0.9 + 0.1 * cos(q.x * 3.0)) * (1.0 - 0.05 * step(0.985, fract(vUv.x * 6.0)));`,
+        1,
+        T.NormalBlending
+      )
+    );
+    panel.position.set(0, y0 + H / 2 + 0.05, z);
+    panel.renderOrder = -2;
+    this.root.add(panel);
+    // light spilling forward over the bench
+    const spill = new T.Mesh(new T.PlaneGeometry(W * 1.1, 5.2), glow(`float a = smoothstep(1.0, 0.3, abs(q.x)) * pow(smoothstep(-1.0, 1.0, q.y), 2.4) * 0.5;`, 0.55, T.AdditiveBlending));
+    spill.rotation.x = -Math.PI / 2;
+    spill.position.set(0, y0 + 0.004, z + 2.5);
+    spill.renderOrder = -1;
+    this.root.add(spill);
+    const frameMat = new T.MeshStandardMaterial({ color: 0x0b0c0f, roughness: 0.55, metalness: 0.6 });
+    const bar = (w: number, h: number, x: number, y: number) => {
+      const m = new T.Mesh(new T.BoxGeometry(w, h, 0.12), frameMat);
+      m.position.set(x, y, z - 0.08);
+      this.root.add(m);
+    };
+    bar(W + 0.3, 0.1, 0, y0 + H + 0.1);
+    for (const sx of [-1, 1]) bar(0.1, H + 0.2, sx * (W / 2 + 0.1), y0 + H / 2 + 0.05);
   }
 
   private buildLab() {
     const T = THREE;
-    const ceramic = new T.MeshStandardMaterial({ color: 0x141518, roughness: 0.45, metalness: 0.2 });
+    const ceramic = new T.MeshStandardMaterial({ color: 0x1b1d22, roughness: 0.38, metalness: 0.25, envMap: this.ctx.renderer.environment(), envMapIntensity: 0.5 });
     // dark matte floor
-    const bench = new T.Mesh(new T.PlaneGeometry(60, 40), new T.MeshStandardMaterial({ color: 0x050506, roughness: 0.85 }));
+    const bench = new T.Mesh(new T.PlaneGeometry(60, 40), new T.MeshStandardMaterial({ color: 0x0d0f13, roughness: 0.62, metalness: 0.35 }));
     bench.rotation.x = -Math.PI / 2;
     bench.position.set(0, POOL_Y - 0.36, -1);
     this.root.add(bench);
@@ -241,7 +295,7 @@ class Ferrofluid extends LetterWorld<FerroVisual> {
     const geo = new T.PlaneGeometry(W, D, segX, segZ);
     geo.rotateX(-Math.PI / 2);
     geo.translate(0, 0, (TROUGH_Z0 + TROUGH_Z1) / 2);
-    const poolMat = new T.MeshPhysicalMaterial({ color: 0x040405, roughness: 0.1, metalness: 0.7, clearcoat: 1, clearcoatRoughness: 0.04, envMap: this.ctx.renderer.environment(), envMapIntensity: 0.45 });
+    const poolMat = new T.MeshPhysicalMaterial({ color: 0x040405, roughness: 0.1, metalness: 0.7, clearcoat: 1, clearcoatRoughness: 0.04, envMap: this.ctx.renderer.environment(), envMapIntensity: 0.55 });
     poolMat.onBeforeCompile = (shader) => {
       shader.uniforms.uBump = { value: this.bumpU };
       shader.uniforms.uRip = { value: this.ripU };
@@ -292,9 +346,9 @@ class Ferrofluid extends LetterWorld<FerroVisual> {
     const aspect = this.ctx.renderer.size.aspect || 1.6;
     const v = Math.tan((cam.fov * Math.PI) / 360);
     const b = this.ctx.layout.bounds;
-    const halfW = Math.max(3, b.isEmpty() ? 0 : Math.max(Math.abs(b.min.x), Math.abs(b.max.x))) + 0.8;
-    const need = Math.max(2.6 / v, halfW / (v * aspect));
-    const want = Math.min(30, Math.max(10.1, need));
+    const halfW = Math.max(2.3, b.isEmpty() ? 0 : Math.max(Math.abs(b.min.x), Math.abs(b.max.x))) + 0.7;
+    const need = Math.max(1.9 / v, halfW / (v * aspect));
+    const want = Math.min(30, Math.max(6.6, need));
     this.camDist = snap ? want : damp(this.camDist, want, 3, dt);
     cam.position.copy(this.camTarget).addScaledVector(this.camDir, this.camDist);
     cam.lookAt(this.camTarget);
@@ -569,6 +623,7 @@ class Ferrofluid extends LetterWorld<FerroVisual> {
     }
     const creating = all.some((v) => v.state === 'creating' || v.finaleT >= 0);
     const glow = Math.max(this.field, creating ? 0.6 : 0) + 0.12 * (this.letters.size > 0 ? 1 : 0);
+    this.fieldU.value = Math.min(1, glow);
     for (const m of this.coilMats) m.emissiveIntensity = glow * (0.9 + 0.1 * Math.sin(time * 14));
 
     // finished letters keep a faint living motion

@@ -1,4 +1,4 @@
-export type KnowledgeType = 'page' | 'wiki' | 'concept' | 'decision' | 'unresolved';
+export type KnowledgeType = 'page' | 'wiki' | 'concept' | 'decision' | 'insight' | 'unresolved';
 
 export type RelationshipType =
   | 'markdown-link'
@@ -41,6 +41,13 @@ export interface KnowledgeNode {
     status?: 'verified' | 'draft' | 'accepted-adr' | 'unresolved-stub';
   };
   sourceReferences: SourceReference[];
+  // Living Knowledge: when it was first saved; in time travel, whether it is new or was changed at the step shown;
+  // an insight still in draft is drawn hollow; a decision that was replaced or rejected is drawn faint
+  createdAt?: number;
+  mark?: 'new' | 'changed';
+  draft?: boolean;
+  faded?: boolean;
+  stateLabel?: string;
   // Runtime d3-force simulation fields
   x?: number;
   y?: number;
@@ -59,6 +66,20 @@ export interface KnowledgeEdge {
   weight: number;
   verified: boolean; // True = real citation/link, False = AI inferred concept link
   evidenceReferences: EvidenceReference[];
+  // Living Knowledge relations: the kind of relation (its colour), whether the user confirmed it (solid) or it is still
+  // a suggestion (dashed), why the two are linked, and the words that show it
+  relationType?: string;
+  status?: 'confirmed' | 'suggested';
+  explanation?: string;
+  relationId?: string; // the lk_relations document; absent for [[links]] and for the ties of an insight
+  confidence?: number;
+  createdAt?: number;
+  quotes?: Array<{ nodeId: string; title: string; quote: string }>;
+  engine?: string;
+  downgraded?: boolean;
+  aiFound?: boolean;
+  fixed?: boolean; // part of the text or of an insight: nothing to confirm or reject
+  mark?: 'new';
 }
 
 export interface GraphGroupRule {

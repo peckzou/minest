@@ -1,7 +1,7 @@
 /**
  * WORLD 16 · Crystal / Ice (冰晶文字)
  *
- * A near-black stage with a faint glassy floor. Each letter GROWS as crystal:
+ * An ice cave: glacial light behind the stage, crystal stands at its sides. Each letter GROWS as crystal:
  *
  *  1. skeleton — a hexagonal ice needle grows along the strokes in writing order
  *     (the growth front tapers to a point; radius swells behind it);
@@ -154,7 +154,7 @@ class CrystalIce extends LetterWorld<IceVisual> {
   private shardN = 0;
   private camTarget = new THREE.Vector3(0, 0.25, 0);
   private camDir = new THREE.Vector3(0, 0.12, 1).normalize();
-  private camDist = 11;
+  private camDist = 7.6;
   private m4 = new THREE.Matrix4();
   private q = new THREE.Quaternion();
   private q2 = new THREE.Quaternion();
@@ -167,16 +167,16 @@ class CrystalIce extends LetterWorld<IceVisual> {
     const T = THREE;
     ctx.layout.setOptions({ ...DEFAULT_LAYOUT, metric: 'sans', size: 1.2, tracking: 0.2, maxWidth: 9.4, maxLines: 2, lineHeight: 1.7, origin: [0, 0.35, 0], plane: 'xy', minScale: 0.35 });
 
-    ctx.scene.background = new T.Color(0x02040a);
-    ctx.scene.fog = new T.Fog(0x02040a, 14, 34);
+    ctx.scene.background = new T.Color(0x030a16);
+    ctx.scene.fog = new T.Fog(0x030a16, 12, 34);
     this.placeCamera(true);
 
-    this.root.add(new T.HemisphereLight(0x9fd8ff, 0x05080c, 0.22));
-    const key = new T.DirectionalLight(0xc9ecff, 0.6);
+    this.root.add(new T.HemisphereLight(0x9fd8ff, 0x05080c, 0.45));
+    const key = new T.DirectionalLight(0xc9ecff, 1.1);
     key.position.set(3, 8, 6);
     this.root.add(key);
-    const glow = new T.PointLight(0x5fd0ff, 14, 18);
-    glow.position.set(0, 2.5, 4);
+    const glow = new T.PointLight(0x7fd6ff, 90, 40);
+    glow.position.set(0, 5.5, -2.5);
     this.root.add(glow);
 
     // shared crystal (hexagonal prism + pyramid tip, base at y=0, tip at y=1)
@@ -218,18 +218,100 @@ class CrystalIce extends LetterWorld<IceVisual> {
 
   /* --------------------------------------------------------------- cave */
 
-  /** classic 3D Type stage: a faint, dark glassy floor and nothing else */
+  /**
+   * The ice cave: a glacial opening glowing behind the letters, strata and light shafts on the back wall,
+   * crystal clusters rising from the floor and hanging from the roof (the same faceted ice as the letters),
+   * and a polished ice floor. The middle of the frame stays clear for the writing.
+   */
   private buildStage() {
     const T = THREE;
-    const floor = new T.Mesh(new T.CircleGeometry(30, 48), new T.MeshStandardMaterial({ color: 0x060b12, roughness: 0.25, metalness: 0.4 }));
+    const wall = new T.Mesh(
+      new T.PlaneGeometry(64, 30),
+      new T.ShaderMaterial({
+        depthWrite: false,
+        fog: false,
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+        fragmentShader: `precision highp float; varying vec2 vUv;
+          float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+          float noise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
+            return mix(mix(hash(i), hash(i+vec2(1,0)), f.x), mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), f.x), f.y); }
+          float fbm(vec2 p){ float a = 0.5, v = 0.0; for (int k = 0; k < 5; k++){ v += a*noise(p); p = p*2.07 + vec2(11.3, 5.7); a *= 0.5; } return v; }
+          void main(){
+            vec2 q = (vUv*2.0 - 1.0) * vec2(2.13, 1.0);
+            float d = length((q - vec2(0.0, 0.62)) * vec2(0.5, 1.25));                 // the opening sits high, over the writing
+            vec3 col = mix(vec3(0.004, 0.016, 0.04), vec3(0.016, 0.075, 0.16), smoothstep(1.25, 0.1, d));
+            col += vec3(0.3, 0.68, 0.92) * exp(-d*d*7.0) * 0.42;                     // daylight through the glacier
+            float n = fbm(q*vec2(1.9, 4.6) + 3.0);
+            float ridge = pow(1.0 - abs(fract(n*5.0) - 0.5)*2.0, 7.0);                 // strata in the ice wall
+            col += vec3(0.12, 0.36, 0.52) * ridge * 0.1 * smoothstep(1.5, 0.2, d);
+            float ang = atan(q.x, 1.15 - q.y);
+            float rays = smoothstep(0.5, 0.92, noise(vec2(ang*13.0, 1.7))) * smoothstep(-0.75, 0.5, q.y) * smoothstep(1.7, 0.1, d);
+            col += vec3(0.32, 0.7, 0.95) * rays * 0.1;                                 // light shafts
+            col *= 0.86 + 0.14 * noise(q*38.0);
+            gl_FragColor = vec4(col, 1.0);
+            #include <colorspace_fragment>
+          }`,
+      })
+    );
+    wall.position.set(0, 2.4, -15);
+    wall.renderOrder = -5;
+    this.root.add(wall);
+
+    const floor = new T.Mesh(new T.CircleGeometry(34, 64), new T.MeshStandardMaterial({ color: 0x143a5a, roughness: 0.34, metalness: 0.35 }));
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = FLOOR_Y;
     this.root.add(floor);
-    // a thin frost ring under the letters
-    const ring = new T.Mesh(new T.RingGeometry(6.5, 6.56, 96), new T.MeshBasicMaterial({ color: 0x1d3a52, transparent: true, opacity: 0.6 }));
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.y = FLOOR_Y + 0.01;
-    this.root.add(ring);
+    for (const [r, o] of [[6.5, 0.6], [9.2, 0.3]] as const) {
+      const ring = new T.Mesh(new T.RingGeometry(r, r + 0.06, 128), new T.MeshBasicMaterial({ color: 0x2c6088, transparent: true, opacity: o }));
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = FLOOR_Y + 0.01;
+      this.root.add(ring);
+    }
+
+    // crystal clusters — seeded, so the cave is the same every time
+    let seed = 1601;
+    const R = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+    const items: number[] = []; // x, y, z, rad, len, tiltX, tiltZ, hanging
+    const cluster = (x: number, z: number, h: number, hang: boolean, n: number) => {
+      for (let k = 0; k < n; k++) {
+        const main = k === 0;
+        const len = h * (main ? 1 : 0.35 + R() * 0.45);
+        const spread = main ? 0 : 0.25 + R() * 0.5;
+        const a = R() * Math.PI * 2;
+        items.push(x + Math.cos(a) * spread, hang ? 5.6 : FLOOR_Y, z + Math.sin(a) * spread * 0.6, len * (0.1 + R() * 0.05), len, main ? (R() - 0.5) * 0.12 : Math.sin(a) * (0.25 + R() * 0.35), main ? (R() - 0.5) * 0.12 : -Math.cos(a) * (0.25 + R() * 0.35), hang ? 1 : 0);
+      }
+    };
+    const low = this.ctx.quality === 0;
+    for (const sx of [-1, 1]) {
+      // tall stands flanking the stage
+      cluster(sx * 7.4, -1.6, 4.2, false, 6);
+      cluster(sx * 9.6, 0.6, 3.1, false, 5);
+      cluster(sx * 6.0, -3.6, 2.6, false, 5);
+      cluster(sx * 11.8, -4.4, 5.4, false, 6);
+      cluster(sx * 8.2, -2.2, 3.4, true, 5);
+      cluster(sx * 5.2, -4.2, 2.3, true, 4);
+      cluster(sx * 11.0, -1.0, 4.2, true, 5);
+    }
+    // a low field behind the letters and short icicles over them
+    for (let k = 0; k < (low ? 5 : 9); k++) cluster(-5 + (10 * k) / (low ? 4 : 8) + (R() - 0.5), -4.6 - R() * 2.2, 0.55 + R() * 0.75, false, 3);
+    for (let k = 0; k < (low ? 5 : 9); k++) cluster(-5.5 + (11 * k) / (low ? 4 : 8) + (R() - 0.5), -3 - R() * 3, 0.9 + R() * 1.1, true, 3);
+    const n = items.length / 8;
+    // the cave's ice is deeper and dimmer than the letters, so the writing stays the brightest thing in the frame
+    const caveU = { ...this.uniforms({}), uDeep: { value: new T.Color(0x051d33) }, uMid: { value: new T.Color(0x1a5f8a) }, uHi: { value: new T.Color(0x8fcbe6) } };
+    const cave = new T.InstancedMesh(this.crystalGeo, this.instMaterial(1, caveU), n);
+    const up = new T.Vector3(0, 1, 0);
+    const dir = new T.Vector3();
+    for (let k = 0; k < n; k++) {
+      const o = k * 8;
+      const hang = items[o + 7] > 0;
+      dir.set(items[o + 5], hang ? -1 : 1, items[o + 6]).normalize();
+      this.q.setFromUnitVectors(up, dir);
+      this.m4.compose(this.p3.set(items[o], items[o + 1], items[o + 2]), this.q, this.s3.set(items[o + 3], items[o + 4], items[o + 3]));
+      cave.setMatrixAt(k, this.m4);
+    }
+    cave.instanceMatrix.needsUpdate = true;
+    cave.frustumCulled = false;
+    this.root.add(cave);
   }
 
   private placeCamera(snap: boolean, dt = 0) {
@@ -237,10 +319,10 @@ class CrystalIce extends LetterWorld<IceVisual> {
     const aspect = this.ctx.renderer.size.aspect || 1.6;
     const v = Math.tan((cam.fov * Math.PI) / 360);
     const b = this.ctx.layout.bounds;
-    const halfW = Math.max(3, b.isEmpty() ? 0 : Math.max(Math.abs(b.min.x), Math.abs(b.max.x))) + 0.9;
-    const halfH = Math.max(2.2, b.isEmpty() ? 0 : Math.max(Math.abs(b.min.y), Math.abs(b.max.y))) + 0.6;
+    const halfW = Math.max(2.4, b.isEmpty() ? 0 : Math.max(Math.abs(b.min.x), Math.abs(b.max.x))) + 0.8;
+    const halfH = Math.max(1.75, b.isEmpty() ? 0 : Math.max(Math.abs(b.min.y), Math.abs(b.max.y))) + 0.5;
     const need = Math.max(halfH / v, halfW / (v * aspect));
-    const want = Math.min(32, Math.max(11, need));
+    const want = Math.min(32, Math.max(7.6, need));
     this.camDist = snap ? want : damp(this.camDist, want, 3, dt);
     cam.position.copy(this.camTarget).addScaledVector(this.camDir, this.camDist);
     cam.lookAt(this.camTarget);

@@ -35,6 +35,7 @@ canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
 <div class="hud" id="line"><span id="txt"></span><span class="caret"></span></div>
 <div class="hud" id="err"></div>
 <input id="kb" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="Type here">
+<script src="ime.js"></script>
 
 <script type="importmap">
 { "imports": {
@@ -45,6 +46,7 @@ canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
 <script src="lifecycle.js"></script>
 <script type="module">
 import * as THREE from 'three';
+import { hanziTypeface } from './hanzi.js';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
@@ -355,7 +357,7 @@ const LF = `uniform float uReveal,uInk,uFade,uTime,uSeed; varying vec3 vN; varyi
 let font = null; const glyphs = new Map();
 function glyph(ch) {
   if (glyphs.has(ch)) return glyphs.get(ch);
-  const d = font.data.glyphs[ch]; if (!d) { glyphs.set(ch, null); return null; }
+  const d = hanziTypeface(font, ch); if (!d) { glyphs.set(ch, null); return null; }
   const adv = d.ha * SIZE / font.data.resolution, shapes = font.generateShapes(ch, SIZE);
   if (!shapes.length) { const g0 = { adv, empty: true }; glyphs.set(ch, g0); return g0; }
   const raw = []; let minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;

@@ -17,7 +17,7 @@
 })(typeof window !== 'undefined' ? window : this, function (M) {
   'use strict';
 
-  var KIND_LIST = ['page', 'decision', 'source', 'relation', 'run', 'meta'];
+  var KIND_LIST = ['page', 'decision', 'source', 'relation', 'insight', 'run', 'meta'];
   function pad(n, w) { n = String(n); while (n.length < w) n = '0' + n; return n; }
   var dkey = function (kind, id) { return 'd|' + kind + '|' + id; };
   var vkey = function (kind, id, rev) { return 'v|' + kind + '|' + id + '|' + pad(rev, 8); };
@@ -179,10 +179,26 @@
         return Promise.all([get(kind, id), local.get(ckey(kind, id))]).then(function (r) {
           var current = r[0];
           if (r[1] && !opts.resolving) return { ok: false, code: 'conflict', error: '这份内容有未解决的冲突，请先在“冲突”里处理', current: current };
-          var plan = M.planWrite(kind, current, next, opts.actor || user, { baseRev: opts.baseRev, reason: opts.reason, now: now() });
+          var plan = M.planWrite(kind, current, next, opts.actor || user, { baseRev: opts.baseRev, reason: opts.reason, source: opts.source, now: now() });
           if (!plan.ok || plan.noop) return plan;
           return commitPlan(kind, current, plan);
         });
+      });
+    }
+    /* what happened to everything, from the versions kept on this device only (no cloud reads): for the time slider of the
+       graph. → { page | decision | relation | insight: { id: [{ rev, at, by, state }] } }, oldest first.
+       state: a decision's state, a relation's status, an insight's status. */
+    function history() {
+      return local.keys('v|').then(function (ks) { return Promise.all(ks.map(function (k) { return local.get(k).then(function (v) { return { k: k, v: v }; }); })); }).then(function (all) {
+        var out = { page: {}, decision: {}, relation: {}, insight: {} };
+        all.forEach(function (x) {
+          var kind = x.k.split('|')[1], v = x.v, s = v && v.snapshot;
+          if (!out[kind] || !s || !s.id) return;
+          (out[kind][s.id] = out[kind][s.id] || []).push({ rev: v.rev, at: v.at, by: v.by,
+            state: kind === 'decision' ? s.state : kind === 'relation' ? M.relationStatus(s) : kind === 'insight' ? s.status : undefined });
+        });
+        Object.keys(out).forEach(function (kind) { Object.keys(out[kind]).forEach(function (id) { out[kind][id].sort(function (a, b) { return a.rev - b.rev; }); }); });
+        return out;
       });
     }
     function versions(kind, id) {
@@ -266,7 +282,7 @@
               var busy = {}; ops.filter(Boolean).forEach(function (op) { busy[op.kind + '|' + op.id] = 1; });
               r[1].forEach(function (k) { busy[k.slice(2)] = 1; });
               var changed = 0;
-              return Promise.all(['page', 'decision', 'source', 'relation', 'meta'].map(function (kind) {
+              return Promise.all(['page', 'decision', 'source', 'relation', 'insight', 'meta'].map(function (kind) {
                 return cloud.pull(kind).then(function (docs) {
                   return Promise.all(docs.map(function (d) {
                     if (!d || !d.id || busy[kind + '|' + d.id]) return null;
@@ -316,17 +332,17 @@
 
     // ---------------------------------------------------------------- Markdown export
     function exportData() {
-      return Promise.all([list('page'), list('decision'), list('source'), list('relation'), local.keys('v|')]).then(function (r) {
+      return Promise.all([list('page'), list('decision'), list('source'), list('relation'), local.keys('v|'), list('insight')]).then(function (r) {
         return Promise.all(r[4].map(function (k) { return local.get(k); })).then(function (vs) {
           var log = vs.filter(Boolean).map(function (v) { var s = v.snapshot || {}; return { at: v.at, kind: s.kind, id: s.id, title: s.title, rev: v.rev, by: v.by, reason: v.reason }; });
-          return { pages: r[0], decisions: r[1], sources: r[2], relations: r[3], log: log };
+          return { pages: r[0], decisions: r[1], sources: r[2], relations: r[3], insights: r[5], log: log };
         });
       });
     }
     function exportZip() { return exportData().then(function (d) { var t = now(); return M.zip(M.exportFiles(d, t), t); }); }
 
     var api = {
-      get: get, list: list, put: put, versions: versions, restore: restore,
+      get: get, list: list, put: put, versions: versions, restore: restore, history: history,
       flush: flush, pull: pull, conflicts: conflicts, resolve: resolve,
       permissions: permissions, savePermissions: savePermissions, access: access,
       exportData: exportData, exportZip: exportZip,

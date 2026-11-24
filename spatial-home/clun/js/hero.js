@@ -75,6 +75,12 @@
       var book = new THREE.Group(); book.add(mesh(new THREE.BoxGeometry(0.24, 0.035, 0.17), mat(0x8e2b2a, 0.6))); book.add(mesh(new THREE.BoxGeometry(0.22, 0.04, 0.15), M.white, 0, 0.004, 0));
       book.position.set(0, 0.16, 0.3); book.rotation.x = -0.75; book.visible = false; torso.add(book);
       root.rotation.order = 'YXZ';
+      var can = new THREE.Group(), canM = mat(0xd9a441, 0.5);                   /* 浇花的水壶：拿在右手里，只在浇水时出现 */
+      var canBody = mesh(new THREE.CylinderGeometry(0.075, 0.085, 0.14, 12), canM); canBody.rotation.x = Math.PI / 2; can.add(canBody);
+      var spout = mesh(new THREE.CylinderGeometry(0.014, 0.024, 0.2, 8), canM, 0, -0.15, 0.03); spout.rotation.x = -0.35; can.add(spout);
+      can.add(mesh(new THREE.SphereGeometry(0.03, 8, 6), canM, 0, -0.25, 0.065));
+      var grip = mesh(new THREE.TorusGeometry(0.055, 0.012, 6, 12, Math.PI), canM, 0, 0.07, 0.02); grip.rotation.set(0, Math.PI / 2, -Math.PI / 2); can.add(grip);
+      can.position.set(0, -0.32, 0.04); can.visible = false; arms[1].el.add(can);
       var R = { root: root, body: body, hips: hips, torso: torso, legs: legs, arms: arms, head: head, neck: neck, tail: tail, hair: hairCap, book: book };
 
       /* —— 动画 —— */
@@ -94,6 +100,7 @@
         st.manual = true; root.visible = true; dt = Math.min(dt, 0.05);
         var a = Math.min(1, dt * 8), now = performance.now() / 1000;
         root.position.copy(pos);
+        can.visible = st.pose === 'water' && !moving;
         if (st.pose === 'lie') {                                             /* 躺：整个人放平，脸朝上，头朝床头 */
           root.rotation.set(-Math.PI / 2, yaw, 0);
           [0, 1].forEach(function (k) { easeTo(R.legs[k].hip.rotation, 'x', 0, a); easeTo(R.legs[k].knee.rotation, 'x', 0.05, a); easeTo(R.arms[k].sh.rotation, 'x', 0, a); R.arms[k].sh.rotation.z = (k ? 1 : -1) * 0.25; });
@@ -119,6 +126,10 @@
           var sp2 = Math.sin(now * 7);
           [0, 1].forEach(function (k) { easeTo(R.legs[k].hip.rotation, 'x', -1.25, a); easeTo(R.legs[k].knee.rotation, 'x', 2.1, a); R.arms[k].sh.rotation.x = -1.1 + (k ? sp2 : -sp2) * 0.35; R.arms[k].el.rotation.x = -0.3; R.arms[k].sh.rotation.z = (k ? -1 : 1) * 0.2; });
           easeTo(R.hips.position, 'y', 0.42, a); easeTo(R.torso.rotation, 'x', 0.45, a); easeTo(R.head.rotation, 'x', 0.2, a); book.visible = false;
+        } else if (st.pose === 'water') {                                   /* 浇花：站着，右手端着水壶往前倾，轻轻晃 */
+          [0, 1].forEach(function (k) { easeTo(R.legs[k].hip.rotation, 'x', 0, a); easeTo(R.legs[k].knee.rotation, 'x', 0.05, a); });
+          easeTo(R.arms[0].sh.rotation, 'x', 0, a); easeTo(R.arms[1].sh.rotation, 'x', -1.05 + Math.sin(now * 3) * 0.08, a); easeTo(R.arms[1].el.rotation, 'x', -0.3, a);
+          easeTo(R.hips.position, 'y', 0.8, a); easeTo(R.torso.rotation, 'x', 0.14, a); easeTo(R.head.rotation, 'x', 0.25, a); R.torso.rotation.y *= 0.85; book.visible = false;
         } else if (st.pose === 'sit') {                                     /* 坐：大腿向前、小腿垂下，屁股落在座面上 */
           [0, 1].forEach(function (k) { easeTo(R.legs[k].hip.rotation, 'x', -1.45, a); easeTo(R.legs[k].knee.rotation, 'x', 1.4, a); });
           easeTo(R.hips.position, 'y', st.poseH / root.scale.y + 0.08, a); R.torso.rotation.y *= 0.85; easeTo(R.torso.rotation, 'x', st.reading ? 0.12 : -0.05, a);

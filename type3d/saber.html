@@ -35,6 +35,7 @@ canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
 <div class="hud" id="line"><span id="txt"></span><span class="caret"></span></div>
 <div class="hud" id="err"></div>
 <input id="kb" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="Type here">
+<script src="ime.js"></script>
 
 <script type="importmap">
 { "imports": {
@@ -50,6 +51,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { strokeGlyph, strokeAdvance } from './strokefont.js';
+import { hanziStrokes } from './hanzi.js';
 
 /* ───────────── constants ───────────── */
 const SIZE = 1.5, GAP = 0.34, ROW_Y = 1.25;      // cap height, space between letters, baseline height above the floor
@@ -211,7 +213,7 @@ const ribbonMat = new THREE.ShaderMaterial({
 const glyphs = new Map();
 function glyph(ch) {
   if (glyphs.has(ch)) return glyphs.get(ch);
-  const sg = strokeGlyph(ch); let g = null;
+  const sg = strokeGlyph(ch) || hanziStrokes(ch); let g = null;
   if (sg && sg.strokes && sg.strokes.length) {
     const strokes = [], pos = [], side = [], cap = [], au = [], idx = []; let off = 0;
     const push = (x, y, sd, cp, u) => { pos.push(x, y, 0); side.push(sd); cap.push(cp); au.push(u); };
