@@ -393,5 +393,5 @@
   }
   function goThere() { if (!API) return; var x = document.getElementById('tp-close-guide'); if (x) x.click(); API.teleport({ mode: 'walk', p: [AT.x, API.groundY(AT.x, AT.z + 30, 62), AT.z + 30], t: [AT.x, 42.5, AT.z + 15] }); API.toast('⚔️ 萨维的工坊：走进院子，按 E 开始'); }
   if (root.TPParkAPI) attach(root.TPParkAPI); else root.addEventListener('tp:park-ready', function (e) { attach(e.detail || root.TPParkAPI); });
-  root.TPSWSavi = { _warp: function (x, z) { if (X) { X.ax = x; X.az = z; } }, start: start, stop: function () { stop(false); }, go: goThere, at: AT, _x: function () { return X; }, _amb: amb };
+  root.TPSWSavi = { traveler: traveler, animate: animate, _warp: function (x, z) { if (X) { X.ax = x; X.az = z; } }, start: start, stop: function () { stop(false); }, go: goThere, at: AT, _x: function () { return X; }, _amb: amb };
 })(window);
