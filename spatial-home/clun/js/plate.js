@@ -1216,7 +1216,7 @@
     function hitDoor(px, py) { return px > DOOR.x[0] && px < DOOR.x[1] && py > DOOR.y[0] && py < DOOR.y[1]; }
     function placeDoorHint(c, sz) {
       var cr = renderer.domElement.getBoundingClientRect(), cx = (1585 - c.x) / c.w * sz.x, cy = (660 - c.y) / c.h * sz.y, cw = 205 / c.w * sz.x, ch = 255 / c.h * sz.y;
-      churchEl.hidden = !!walk || !!trans || cx + cw < 0 || cx > sz.x || cy + ch < 0 || cy > sz.y;
+      churchEl.hidden = !!walk || !!trans || !uiAwake() || cx + cw < 0 || cx > sz.x || cy + ch < 0 || cy > sz.y;
       churchEl.style.left = (cr.left + cx) + 'px'; churchEl.style.top = (cr.top + cy) + 'px'; churchEl.style.width = cw + 'px'; churchEl.style.height = ch + 'px';
 
       if (walk || trans || !uiAwake()) { doorEl.hidden = true; return; }
