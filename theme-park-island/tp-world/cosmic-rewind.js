@@ -414,7 +414,7 @@
     ui.innerHTML = '<div style="position:absolute;inset:0;opacity:0"></div>' +
       '<div role="status" aria-live="polite" style="position:absolute;left:50%;bottom:124px;transform:translateX(-50%);width:max-content;max-width:min(760px,88vw);padding:9px 18px 11px;border-radius:12px;background:rgba(6,10,24,.8);border:1px solid rgba(125,211,252,.35);color:#f1f5f9;font:600 15px/1.5 system-ui,sans-serif;text-align:center;opacity:0;transition:opacity .25s">' +
       '<b style="display:block;font-size:12px;letter-spacing:.06em"></b><span></span></div>';
-    document.body.appendChild(ui);
+    ui.id = 'cr-ui'; document.body.appendChild(ui);
     const fadeEl = ui.children[0], subEl = ui.children[1];
 
     /* ---------------------------------------------------------------- state, script helpers */

@@ -508,7 +508,7 @@
       /* ---- pooled laser bolts and explosions */
       const boltGeo = new T.BoxGeometry(0.2, 0.2, 6);
       const mkBolts = (n, hex) => { const mat = glowMat(hex), arr = []; for (let i = 0; i < n; i++) { const m = new T.Mesh(boltGeo, mat); m.visible = false; grp.add(m); arr.push({ m, on: false, vx: 0, vy: 0, vz: 0, age: 0, tgt: null }); } return arr; };
-      const pBolts = mkBolts(20, 0x6dff8a), eBolts = mkBolts(24, 0xff4433);
+      const pBolts = mkBolts(20, 0xff2a1a), eBolts = mkBolts(24, 0xff4433);
       const exGeo = new T.SphereGeometry(1, 10, 8), booms = [];
       for (let i = 0; i < 6; i++) { const m = new T.Mesh(exGeo, glowMat(0xff9a3c, 0)); m.visible = false; grp.add(m); booms.push({ m, age: 9 }); }
 

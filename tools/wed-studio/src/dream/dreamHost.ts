@@ -8,7 +8,6 @@ import { ControlDesk, Tool } from './controlDesk';
 import { WorksBoard } from './worksBoard';
 import { PassportHall } from './passportHall';
 import { ImagineerBuilding, RoomId } from './building';
-import { Rooms } from './rooms';
 import { WalkBuilding } from './walkBuilding';
 export type { RoomId } from './building';
 
@@ -125,7 +124,6 @@ export class DreamHost {
     this.E.scene().add(this.board.root);
     this.hall = new PassportHall(this.M);
     this.building = new ImagineerBuilding(this.M);
-    this.rooms = new Rooms(this.M);
     this.walk = new WalkBuilding(this.M);
     this.refreshBoard();
   }
@@ -194,11 +192,8 @@ export class DreamHost {
   private building!: ImagineerBuilding;
   private hallFrom: DreamMode = 'mini';
   // ---------------------------------------------------------------- the rooms (rooms.ts): each department its own place
-  private rooms!: Rooms;
   roomId: RoomId | null = null;
-  get shopScene() { return this.rooms.shop; }
-  private enterRoom(id: RoomId) { this.roomId = id; this.rooms.reset(); this.refreshRoom(); this.setMode('room'); this.events.onRoomChange?.(id); }
-  private refreshRoom() { if (this.roomId) this.rooms.refresh(this.roomId, { work: this.work, works: this.works(), beats: this.beats() }); }
+  private refreshRoom() { /* the departments' things are refreshed by the studio (stations.ts) */ }
   /** the model table is never bare: with no work open, the newest one goes onto it (or a first one is made) */
   ensureWork() {
     if (this.work) return;
@@ -208,7 +203,7 @@ export class DreamHost {
   }
   /** to 模型车间, the room with the model table */
   goShop() { this.ensureWork(); this.roomId = null; this.setMode('mini'); this.events.onRoomChange?.(null); this.events.onEnterStudio?.('model-table'); }
-  renderRoom(renderer: THREE.WebGLRenderer, dt: number, aspect: number) { if (this.roomId) this.rooms.render(renderer, this.roomId, dt, aspect); }
+  renderRoom(_r: THREE.WebGLRenderer, _dt: number, _aspect: number) { /* no separate rooms any more */ }
 
   // the building is seen two ways: walked through (walkBuilding.ts, the way in) or as a doll's house (building.ts, the overview)
   private walk!: WalkBuilding;
@@ -552,7 +547,6 @@ export class DreamHost {
     }
     if (this.mode === 'hall' || this.mode === 'building' || this.mode === 'room') return true;
     if (this.mode !== 'guest') {
-      this.rooms.shopFrame(dt);
       cam.updateMatrixWorld();
       this.miniCam.copy(cam, false);
       // the camera, moved into the table's space. three ignores a camera's scale, so the table's scale goes into the
@@ -672,7 +666,6 @@ export class DreamHost {
       const l = this.look; if (Math.hypot(e.clientX - l.x, e.clientY - l.y) > 6) l.moved = true;
       if (this.mode === 'building' && this.buildingView === 'walk') this.walk.look(e.clientX - l.lx, e.clientY - l.ly);
       else if (this.mode === 'building') this.building.drag(e.clientX - l.lx);
-      else if (this.mode === 'room') this.rooms.drag(e.clientX - l.lx);
       else if (this.mode === 'hall') this.hall.look(e.clientX - l.lx, e.clientY - l.ly); else this.E.guestLook(e.clientX - l.lx, e.clientY - l.ly); l.lx = e.clientX; l.ly = e.clientY; return;
     }
     if (this.deskTook) { this.desk.pointerMove(e); return; }
@@ -698,12 +691,6 @@ export class DreamHost {
       if (this.mode === 'building') {
         const r = this.building.enter(e, this.canvas.getBoundingClientRect(), (id) => this.intoRoom(id));
         if (r) { this.E.unlock(); this.events.onMessage?.(r.icon + ' ' + r.name); }
-        return;
-      }
-      if (this.mode === 'room') {
-        const t = this.roomId && this.rooms.tap(e, this.canvas.getBoundingClientRect(), this.roomId);
-        if (t && t.type === 'door') this.enterBuilding();
-        else if (t && t.type === 'work') { this.save(true); if (this.open(t.id)) { this.events.onChange?.(); this.goShop(); } }
         return;
       }
       if (this.mode !== 'hall') { this.tap(e.clientX, e.clientY); return; }
