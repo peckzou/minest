@@ -52,13 +52,17 @@
     R.render = function (scene, cam) { if (!tp || cam !== API.camera || hidden() || !av.visible) return r0(scene, cam); keep.copy(cam.position); cam.getWorldDirection(fw); var d = camD; for (; d > 0.9; d -= 0.5) { var x = keep.x - fw.x * d, y = keep.y - fw.y * d + 0.5, z = keep.z - fw.z * d; if (API.groundY(x, z, Math.min(62, Math.floor(y))) <= y - 0.25) break; }
       cam.position.set(keep.x - fw.x * d, Math.max(keep.y - fw.y * d + 0.5, API.groundY(keep.x - fw.x * d, keep.z - fw.z * d, 62) > 60 ? keep.y : 0), keep.z - fw.z * d); cam.updateMatrixWorld(true); av.visible = d > 1.2; r0(scene, cam); av.visible = true; cam.position.copy(keep); cam.updateMatrixWorld(true); };
     root.addEventListener('keydown', function (e) { if (/INPUT|TEXTAREA/.test((e.target && e.target.tagName) || '') || hidden()) return; if (e.code === 'KeyV') view(); else if (e.code === 'KeyB') bag(); });
+    /* F is the balloon now (before the park's own free-flight key hears it) */
+    root.addEventListener('keydown', function (e) { if (e.code !== 'KeyF' || /INPUT|TEXTAREA/.test((e.target && e.target.tagName) || '')) return; e.stopImmediatePropagation(); e.preventDefault(); if (!e.repeat) setFly(!fly); }, true);
+    GM.quests.push({ id: 'balloon', icon: '🎈', name: '坐热气球俯瞰乐园', tip: '按 F 或 ⚙ 里的热气球', need: 'gate', test: function () { return fly && API.player.pos.y > 62; } });
     var last = performance.now(), paid = Object.keys(G().done || {}).length;
     (function tick(now) { requestAnimationFrame(tick); var dt = Math.min(0.05, (now - last) / 1000); last = now; clock += dt; var P = API.player, hide = hidden(), g = G();
       av.visible = tp && !hide; var W = root.TPStarWarsWorkshops; if (W && W.third) W.third(tp && !hide); var ch = document.getElementById('crosshair'); if (ch) ch.style.opacity = tp ? 0 : 1;
       if (av.visible) { var sp = P.vel ? Math.hypot(P.vel.x, P.vel.z) : 0; av.position.set(P.pos.x, P.pos.y, P.pos.z); av.rotation.y = P.yaw + Math.PI; var ws = W ? W.state().saber : null; if (ws && ws.theme && !sab && root.TPSWParts) { sab = root.TPSWParts.saber(ws); sab.position.set(0, 0.1, 0); av.userData.rig.handR.add(sab); } av.userData.mode = sab ? 'saber' : ''; SV.animate(av, dt, sp); if (sab) sab.rotation.x = -av.userData.rig.armR.rotation.x + 0.12; }
       /* the friends: once the opening is over they walk along, a little behind */
       var joined = g.intro || (GM.crew && GM.crew().length); if (joined && !friends[0].on) { friends.forEach(function (f, i) { f.on = true; var c0 = GM.crew()[i]; if (c0) { f.x = c0.position.x; f.z = c0.position.z; API.scene.remove(c0); } else { f.x = P.pos.x + f.off[0]; f.z = P.pos.z + f.off[1]; } }); }
-      friends.forEach(function (f) { f.m.visible = f.on && !hide; if (!f.m.visible) { f.e.x = 1e6; return; } var s = Math.sin(P.yaw), c2 = Math.cos(P.yaw), tx = P.pos.x + c2 * f.off[0] + s * f.off[1], tz = P.pos.z - s * f.off[0] + c2 * f.off[1], dx = tx - f.x, dz = tz - f.z, d = Math.hypot(dx, dz);
+      try { flyTick(dt); } catch (e) {} if (fly) camD += (9 - camD) * Math.min(1, dt * 2); else camD += (4.2 - camD) * Math.min(1, dt * 2);
+      friends.forEach(function (f) { if (fly) return; f.m.visible = f.on && !hide; if (!f.m.visible) { f.e.x = 1e6; return; } var s = Math.sin(P.yaw), c2 = Math.cos(P.yaw), tx = P.pos.x + c2 * f.off[0] + s * f.off[1], tz = P.pos.z - s * f.off[0] + c2 * f.off[1], dx = tx - f.x, dz = tz - f.z, d = Math.hypot(dx, dz);
         if (d > 45) { f.x = tx; f.z = tz; d = 0; } var v = d > 0.5 ? Math.min(d * 2.2, d > 6 ? 9 : 5.2) : 0; if (v) { f.x += dx / d * v * dt; f.z += dz / d * v * dt; f.m.rotation.y = Math.atan2(dx, dz); } else f.m.rotation.y += Math.atan2(Math.sin(P.yaw + Math.PI - f.m.rotation.y), Math.cos(P.yaw + Math.PI - f.m.rotation.y)) * Math.min(1, dt * 2);
         f.m.position.set(f.x, API.groundY(f.x, f.z, Math.min(62, Math.floor(P.pos.y + 6))), f.z); SV.animate(f.m, dt, v); if (f.wave && clock - f.wave < 2.5) f.m.userData.rig.armR.rotation.set(-2.6, 0, -0.3 + Math.sin(clock * 9) * 0.3); f.e.x = f.x; f.e.z = f.z; });
       /* gold stars */
@@ -66,7 +70,48 @@
       var n = Object.keys(g.done || {}).length; if (n > paid) { coins((n - paid) * 50); paid = n; } else if (n < paid) { paid = n; (g.got || []).length || stars.forEach(function (s3) { s3.m.visible = true; }); dress(); draw(); }
     })(last);
   }
+  /* ---------------------------------------------------------------- the hot-air balloon: flying is a balloon ride
+   * F (or ⚙ → 热气球): the balloon inflates round the traveller and lifts off; the friends climb into the basket.
+   * Space (or the burner button) fires the burner and it rises; C lets it sink; WASD drifts it. F again brings it down. */
+  var landing = false, bal = null, fly = false, burn = 0, hiss = null, hot = { up: false, dn: false }, pad = null;
+  function balloon() {
+    var g = new T.Group(), L = function (c, o) { return new T.MeshLambertMaterial(Object.assign({ color: c }, o || {})); }, add = function (p, geo, m, x, y, z) { var o = new T.Mesh(geo, m); o.position.set(x || 0, y || 0, z || 0); p.add(o); return o; };
+    var env = new T.Group(); env.position.y = 7.4; g.add(env); var cols = [0xe11d48, 0xfde047, 0x2563eb, 0xf8fafc, 0x16a34a, 0xf97316, 0x7c3aed, 0xfde047];
+    for (var i = 0; i < 16; i++) { var gore = add(env, new T.SphereGeometry(3.4, 4, 18, i * Math.PI / 8, Math.PI / 8), L(cols[i % 8], { side: T.DoubleSide })); gore.scale.y = 1.22; }
+    add(env, new T.CylinderGeometry(1.25, 0.75, 1.5, 16, 1, true), L(0xb3202a, { side: T.DoubleSide }), 0, -4.3, 0); var band = add(env, new T.TorusGeometry(3.42, 0.09, 6, 40), L(0xfde047), 0, 0.2, 0); band.rotation.x = Math.PI / 2; add(env, new T.SphereGeometry(0.3, 10, 8), L(0xfde047), 0, 4.2, 0);
+    [0, 1, 2, 3].forEach(function (k) { var a = k * Math.PI / 2 + Math.PI / 4, r = add(g, new T.CylinderGeometry(0.02, 0.02, 2.4, 4), L(0x3a2616), Math.cos(a) * 0.72, 2.2, Math.sin(a) * 0.72); r.rotation.z = -Math.cos(a) * 0.07; r.rotation.x = Math.sin(a) * 0.07; add(g, new T.CylinderGeometry(0.04, 0.04, 1.05, 6), L(0x4a3220), Math.cos(a) * 0.92, 0.52, Math.sin(a) * 0.92); });
+    var wick = L(0xa5713a, { side: T.DoubleSide }); add(g, new T.BoxGeometry(1.9, 0.1, 1.9), L(0x7a4f24), 0, 0.0, 0); [[0, 0.95, 1.9, 0.08], [0, -0.95, 1.9, 0.08], [0.95, 0, 0.08, 1.9], [-0.95, 0, 0.08, 1.9]].forEach(function (q) { add(g, new T.BoxGeometry(q[2], 0.9, q[3]), wick, q[0], 0.5, q[1]); add(g, new T.BoxGeometry(q[2] + 0.06, 0.08, q[3] + 0.06), L(0x4a3220), q[0], 0.98, q[1]); });
+    [-1, 1].forEach(function (s) { add(g, new T.SphereGeometry(0.2, 8, 6), L(0xd9c8a0), s * 1.08, 0.4, 0.5).scale.y = 1.5; });
+    add(g, new T.BoxGeometry(0.5, 0.12, 0.5), L(0x4b5563), 0, 2.55, 0); add(g, new T.CylinderGeometry(0.1, 0.14, 0.3, 8), L(0x9aa3ad), 0, 2.75, 0);
+    var fl = add(g, new T.ConeGeometry(0.28, 1.3, 10), new T.MeshBasicMaterial({ color: 0xffb020, transparent: true, opacity: 0.9 }), 0, 3.5, 0), fl2 = add(g, new T.ConeGeometry(0.14, 0.9, 8), new T.MeshBasicMaterial({ color: 0xfff7c2 }), 0, 3.3, 0); fl.visible = fl2.visible = false;
+    g.userData = { env: env, fl: fl, fl2: fl2, k: 0 }; g.visible = false; API.scene.add(g); return g;
+  }
+  function sound(on) { try { if (!K) return; var a = K.ac(); if (!a) return; if (on && !hiss) { K.noise(0.01, 500, 500, 0.0001); var s = a.createBufferSource(); s.buffer = K._nb; s.loop = true; var f = a.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 900; var gn = a.createGain(); gn.gain.value = 0; s.connect(f); f.connect(gn); gn.connect(a.destination); s.start(); hiss = { s: s, g: gn }; } if (hiss) hiss.g.gain.setTargetAtTime(on ? 0.22 : 0, a.currentTime, 0.08); } catch (e) {} }
+  function setFly(on) {
+    if (on === fly || !API) return; if (on && (hidden() || API.state.mode === 'tour')) return; fly = on; bal = bal || balloon();
+    if (on) { API.player.fly = true; API.state.mode = 'fly'; API.toast('🎈 热气球升空！空格（或 🔥）点火上升 · C 下降 · WASD 飘行 · 再按 F 降落'); if (K) K.noise(1.2, 300, 1400, 0.2, 0.5); G().flown = 1; GM.save(); }
+    else { landing = true; sound(false); API.toast('🎈 热气球正在降落…'); }
+    if (!pad) { pad = document.createElement('div'); pad.style.cssText = 'position:absolute;right:18px;bottom:22px;display:none;flex-direction:column;gap:10px;pointer-events:auto'; pad.innerHTML = '<button type="button" data-k="up">🔥</button><button type="button" data-k="dn">⬇️</button><button type="button" data-k="land">🪂</button>'; (document.getElementById('gm') || document.body).appendChild(pad);
+      [].forEach.call(pad.querySelectorAll('button'), function (b) { b.style.cssText = 'width:62px;height:62px;border-radius:50%;border:2px solid #fde047;background:rgba(10,14,26,.75);font-size:26px;cursor:pointer;touch-action:none'; var k = b.dataset.k; if (k === 'land') { b.onclick = function (e) { e.stopPropagation(); setFly(false); }; return; } b.addEventListener('pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); hot[k] = true; }); ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { b.addEventListener(ev, function () { hot[k] = false; }); }); }); }
+    pad.style.display = on ? 'flex' : 'none';
+  }
+  function flyTick(dt) {
+    if (!bal) return; var P = API.player, u = bal.userData, gy = API.groundY(P.pos.x, P.pos.z, 62);
+    if (fly && (hidden() || API.state.mode === 'tour')) { fly = false; sound(false); if (pad) pad.style.display = 'none'; }
+    var aloft = fly || (landing && API.state.mode === 'fly'); u.k += ((aloft ? 1 : 0) - u.k) * Math.min(1, dt * 1.6);   /* it stays full until the basket is on the ground */ bal.visible = u.k > 0.02 && !hidden(); if (!bal.visible) return;
+    if (fly) { if (!P.fly || API.state.mode !== 'fly') { if (API.state.mode === 'walk') { fly = false; sound(false); if (pad) pad.style.display = 'none'; } else { P.fly = true; } }
+      var up = !!(hot.up || keysDown.Space), dn = !!(hot.dn || keysDown.KeyC); burn += ((up ? 1 : 0) - burn) * Math.min(1, dt * 8); sound(up);
+      if (hot.up) P.vel.y += (7 - P.vel.y) * Math.min(1, dt * 4); if (hot.dn) P.vel.y += (-6 - P.vel.y) * Math.min(1, dt * 4); if (!up && !dn) P.vel.y += (Math.sin(clock * 0.9) * 0.25 - 0.15 - P.vel.y) * Math.min(1, dt * 1.5);   /* it bobs, and sinks a little when the burner is off */
+      var lim = 4.2; if (Math.hypot(P.vel.x, P.vel.z) > lim) { var q = lim / Math.hypot(P.vel.x, P.vel.z); P.vel.x *= q; P.vel.z *= q; }                                              /* a balloon drifts: no faster than a breeze */
+      if (P.pos.y < gy + 0.4) { P.pos.y = gy + 0.4; if (P.vel.y < 0) P.vel.y = 0; } if (P.pos.y > 150) { P.pos.y = 150; if (P.vel.y > 0) P.vel.y = 0; } }
+    else { burn = 0; if (landing && API.state.mode === 'fly') { P.vel.y = 0; P.pos.y = Math.max(gy, P.pos.y - 6 * dt); P.vel.x *= 0.9; P.vel.z *= 0.9; if (P.pos.y <= gy + 0.3) {   /* straight down, whatever the park's own flight would do */ P.fly = false; API.state.mode = 'walk'; landing = false; } } else landing = false; }
+    bal.position.set(P.pos.x, P.pos.y - 0.12, P.pos.z); bal.rotation.y = Math.sin(clock * 0.3) * 0.3; bal.rotation.z = -P.vel.x * 0.018 + Math.sin(clock * 0.8) * 0.012; bal.rotation.x = P.vel.z * 0.018;
+    u.env.scale.set(u.k, 0.25 + u.k * 0.75, u.k); u.env.position.y = 3.2 + u.k * 4.2; u.fl.visible = u.fl2.visible = burn > 0.08; u.fl.scale.set(1, burn * (0.8 + Math.random() * 0.5), 1); u.fl2.scale.y = burn;
+    /* the friends ride in the basket */
+    friends.forEach(function (f, i) { if (!fly || !f.on) return; var o = [[-0.55, -0.5], [0.55, -0.5], [0, 0.6]][i]; f.x = P.pos.x + o[0]; f.z = P.pos.z + o[1]; f.m.position.set(f.x, P.pos.y, f.z); f.m.rotation.y = P.yaw + Math.PI + (i - 1) * 0.5; f.m.visible = true; SV.animate(f.m, dt, 0); f.m.userData.rig.head.rotation.y = Math.sin(clock * 0.7 + i * 2) * 0.6; f.e.x = 1e6; });
+  }
+  var keysDown = {}; root.addEventListener('keydown', function (e) { keysDown[e.code] = true; }); root.addEventListener('keyup', function (e) { keysDown[e.code] = false; });
   function view() { tp = !tp; API.toast(tp ? '🎥 第三人称' : '👁 第一人称'); }
   if (root.TPParkAPI) attach(root.TPParkAPI); else root.addEventListener('tp:park-ready', function (e) { attach(e.detail || root.TPParkAPI); });
-  root.TPGame2 = { view: view, bag: function () { bag(); }, shop: function () { shop(); }, friends: friends, stars: stars, third: function () { return tp; } };
+  root.TPGame2 = { fly: function (v) { setFly(v == null ? !fly : v); }, flying: function () { return fly; }, view: view, bag: function () { bag(); }, shop: function () { shop(); }, friends: friends, stars: stars, third: function () { return tp; } };
 })(window);
