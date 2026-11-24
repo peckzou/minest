@@ -604,7 +604,7 @@
         const pose = r.getCameraPose(S.rideThirdPerson);
         camera.position.set(pose.px, pose.py, pose.pz);
         const f = look(pose.px, pose.py, pose.pz, pose.tx, pose.ty, pose.tz);
-        camera.rotation.set(clamp(f.pitch + S.rideLookPitch, -1.2, 1.2), f.yaw + S.rideLookYaw, 0, 'YXZ');
+        camera.rotation.set(clamp(f.pitch + S.rideLookPitch, -1.2, 1.2), f.yaw + S.rideLookYaw, pose.roll || 0, 'YXZ');
         if (!r.isRunning()) updateRideHud();
       } else if (S.mode === 'tour') {
         S.tourT = (S.tourT + dt) % world.tour.dur;

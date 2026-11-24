@@ -68,7 +68,7 @@
     } else if (rideId === 'small_world_boat') {
       [523.25, 587.33, 659.25, 1046.5, 880.0, 987.77, 880.0, 783.99].forEach((f, i) => playNote(f, 0.42, 'sine', 0.09, i * 0.16));
     } else if (rideId === 'falcon_flight') {
-      [293.66, 440.0, 392.0, 349.23, 329.63, 587.33, 440.0].forEach((f, i) => playNote(f, 0.48, 'sawtooth', 0.08, i * 0.14));
+      [392.0, 523.25, 659.25].forEach((f, i) => playNote(f, 0.3, 'sine', 0.07, i * 0.09)); // comm chirp only: the ride carries its own score (falcon-audio.js)
     } else {
       playFanfare();
     }
