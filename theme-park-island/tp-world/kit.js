@@ -1,5 +1,5 @@
 /* Minest My World · Imagineering Build Kit (`kit.js`)
- * Shared toolbox for the resort expansion parks (Disney California Adventure & Magic Kingdom):
+ * Shared toolbox for the Paris park, the Walt Disney World resort parks and the California upgrade layer:
  *  - Vertex-coloured static batches: every park collapses into ~4 draw calls (solid / facade / glow / glass)
  *  - Primitive shapes addressed by their BASE height (box, cyl, cone, pyr, gable, dome, rod, fan, tube, ribbon)
  *  - Window-tiled `bldg` facades, canvas `sign`s, sculpted trees, lamp posts
@@ -71,6 +71,12 @@
       s.crag = (c, rt, rb, h, x, y, z, seg, ry, rx, rz) => b.add(flat(new T.CylinderGeometry(rt, rb, h, seg || 7)), MX(x, y + h / 2, z, rx, ry, rz), c);
       s.sph = (c, r, x, y, z, sx, sy, sz, seg) => b.add(new T.SphereGeometry(r, seg || 10, Math.max(6, (seg || 10) - 3)), MX(x, y, z, 0, 0, 0, sx || 1, sy || 1, sz || 1), c);
       s.ico = (c, r, x, y, z, sx, sy, sz, det, ry) => b.add(new T.IcosahedronGeometry(r, det === undefined ? 1 : det), MX(x, y, z, 0, ry, 0, sx || 1, sy || 1, sz || 1), c);
+      // Flat-shaded geodesic / boulder (icosahedron, facets kept).
+      s.poly = (c, r, x, y, z, det, sx, sy, sz, ry) => {
+        const g0 = new T.IcosahedronGeometry(r, det === undefined ? 1 : det), g = g0.index ? g0.toNonIndexed() : g0;
+        g.computeVertexNormals();
+        b.add(g, MX(x, y, z, 0, ry, 0, sx || 1, sy || 1, sz || 1), c);
+      };
       s.dome = (c, r, x, y, z, sy, seg) => b.add(new T.SphereGeometry(r, seg || 14, 6, 0, Math.PI * 2, 0, Math.PI / 2), MX(x, y, z, 0, 0, 0, 1, sy || 1, 1), c);
       s.tor = (c, R, r, x, y, z, rx, ry, rz, arc, seg) => b.add(new T.TorusGeometry(R, r, 6, seg || 22, arc || Math.PI * 2), MX(x, y, z, rx, ry, rz), c);
       s.rod = (c, r, x1, y1, z1, x2, y2, z2, seg) => {
@@ -258,16 +264,44 @@
     }
 
     // Scatter trees over reserved parkland cells (occ === 3); `avoid(x, z)` returns true for blocked spots.
-    function scatter(n, x0, x1, z0, z1, avoid, pick) {
+    function scatter(n, x0, x1, z0, z1, avoid, pick, occOk) {
       let placed = 0;
       for (let att = 0; att < n * 9 && placed < n; att++) {
         const tx = x0 + rng() * (x1 - x0), tz = z0 + rng() * (z1 - z0);
         const cell = (tx | 0) + (tz | 0) * world.W;
-        if (world.occ[cell] !== 3 || world.hm[cell] < Y) continue;
+        if ((occOk ? !occOk(world.occ[cell]) : world.occ[cell] !== 3) || world.hm[cell] < Y) continue;
         if (avoid && avoid(tx, tz)) continue;
         tree(pick(tx, tz, rng()), tx, tz);
         placed++;
       }
+    }
+
+    // Local frame at (px, pz) rotated by `r` about Y: local +z is the "front". Lets a pavilion be modelled once and
+    // aimed anywhere (e.g. at a lagoon centre) while still landing in the shared static batches.
+    function frame(px, pz, r) {
+      const cs = Math.cos(r), sn = Math.sin(r);
+      const P = (lx, lz) => [px + lx * cs + lz * sn, pz - lx * sn + lz * cs];
+      const wrap = (s) => ({
+        box: (c, w, h, d, lx, y, lz, ry, rx, rz) => { const p = P(lx, lz); s.box(c, w, h, d, p[0], y, p[1], (ry || 0) + r, rx, rz); },
+        cyl: (c, rt, rb, h, lx, y, lz, seg) => { const p = P(lx, lz); s.cyl(c, rt, rb, h, p[0], y, p[1], seg); },
+        cone: (c, rr, h, lx, y, lz, seg, ry) => { const p = P(lx, lz); s.cone(c, rr, h, p[0], y, p[1], seg, (ry || 0) + r); },
+        pyr: (c, w, h, d, lx, y, lz, ry) => { const p = P(lx, lz); s.pyr(c, w, h, d, p[0], y, p[1], (ry || 0) + r); },
+        crag: (c, rt, rb, h, lx, y, lz, seg, ry) => { const p = P(lx, lz); s.crag(c, rt, rb, h, p[0], y, p[1], seg, (ry || 0) + r); },
+        gable: (c, w, h, d, lx, y, lz, ry) => { const p = P(lx, lz); s.gable(c, w, h, d, p[0], y, p[1], (ry || 0) + r); },
+        dome: (c, rr, lx, y, lz, sy, seg) => { const p = P(lx, lz); s.dome(c, rr, p[0], y, p[1], sy, seg); },
+        sph: (c, rr, lx, y, lz, sx, sy, sz, seg) => { const p = P(lx, lz); s.sph(c, rr, p[0], y, p[1], sx, sy, sz, seg); },
+        ico: (c, rr, lx, y, lz, sx, sy, sz, det) => { const p = P(lx, lz); s.ico(c, rr, p[0], y, p[1], sx, sy, sz, det, r); },
+        rod: (c, rr, x1, y1, z1, x2, y2, z2, seg) => { const a = P(x1, z1), q = P(x2, z2); s.rod(c, rr, a[0], y1, a[1], q[0], y2, q[1], seg); },
+        fan: (cA, cB, rr, h, lx, y, lz, n) => { const p = P(lx, lz); s.fan(cA, cB, rr, h, p[0], y, p[1], n); },
+        tor: (c, R, rr, lx, y, lz, rx, ry, rz, arc, seg) => { const p = P(lx, lz); s.tor(c, R, rr, p[0], y, p[1], rx, (ry || 0) + r, rz, arc, seg); }
+      });
+      const f = wrap(S);
+      f.P = P; f.r = r; f.G = wrap(G); f.W = wrap(W);
+      f.bldg = (c, w, h, d, lx, y, lz, ry, bay, flr) => { const p = P(lx, lz); bldg(c, w, h, d, p[0], y, p[1], (ry || 0) + r, bay, flr); };
+      f.sign = (txt, w, h, lx, y, lz, ry, bg, fg, sub) => { const p = P(lx, lz); return sign(txt, w, h, p[0], y, p[1], (ry || 0) + r, bg, fg, sub); };
+      f.tree = (kind, lx, lz, sc) => { const p = P(lx, lz); tree(kind, p[0], p[1], sc); };
+      f.lamp = (lx, lz, h) => { const p = P(lx, lz); lamp(p[0], p[1], h); };
+      return f;
     }
 
     /* ---------------- Spline track with transported frames ---------------- */
@@ -395,7 +429,7 @@
       return { ride, update, state: st };
     }
 
-    return { T, Y, MX, S, G, W, bldg, sign, tree, lamp, scatter, asm, track, trainRide, flush, rng, clamp };
+    return { T, Y, MX, S, G, W, bldg, sign, tree, lamp, scatter, frame, asm, track, trainRide, flush, rng, clamp };
   }
 
   root.TPKit = { create };

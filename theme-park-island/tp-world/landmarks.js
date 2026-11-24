@@ -126,63 +126,7 @@
     /* ============================================================================
      * 1. RIDEABLE MATTERHORN BOBSLEDS (x=330, z=176 — 46m Snow Peak + Ice Crystal Cavern + Harold!)
      * ============================================================================ */
-    const mhX = 330, mhZ = 176;
-    mRock.add(new T.ConeGeometry(19.5, 35, 9), M(mhX, Y + 17.5, mhZ, 0, 0.3, 0));
-    mRock.add(new T.ConeGeometry(14.0, 44, 7), M(mhX - 1.5, Y + 22, mhZ - 1.0, 0.04, 0.8, -0.05));
-    mRock.add(new T.ConeGeometry(12.5, 25, 7), M(mhX + 9.0, Y + 12.5, mhZ + 4.5, 0, 0.5, 0.08));
-    mRock.add(new T.ConeGeometry(11.5, 22, 7), M(mhX - 9.5, Y + 11.0, mhZ + 5.5, 0, 1.2, -0.08));
-    mRock.add(new T.ConeGeometry(11.0, 23, 7), M(mhX + 3.0, Y + 11.5, mhZ - 9.5, -0.06, 0.2, 0));
-    mSnow.add(new T.ConeGeometry(9.0, 22, 7), M(mhX - 1.8, Y + 37.5, mhZ - 1.2, 0.05, 0.8, -0.06));
-    mSnow.add(new T.ConeGeometry(7.2, 13.5, 7), M(mhX + 7.5, Y + 22.0, mhZ + 3.8, 0, 0.5, 0.08));
-    mSnow.add(new T.ConeGeometry(6.4, 12.5, 7), M(mhX - 8.2, Y + 20.0, mhZ + 4.8, 0, 1.2, -0.08));
-    // Swiss Chalet Bobsled Loading Station + Glowing Ice Crystal Cavern & Abominable Snowman Harold!
-    box(mWood, 8.2, 3.8, 5.8, mhX - 13.5, Y + 1.9, mhZ + 14.5);
-    mRed.add(new T.ConeGeometry(6.2, 3.0, 4), M(mhX - 13.5, Y + 5.3, mhZ + 14.5, 0, Math.PI / 4, 0));
-    box(mIron, 3.8, 3.8, 3.2, mhX + 12.5, Y + 13.5, mhZ + 9.5); // Cavern opening!
-    // Abominable Snowman (Harold) standing menacingly at the mountain cavern ledge (x=mhX+14, y=Y+13, z=mhZ+8)!
-    const yetiGrp = new T.Group(); yetiGrp.position.set(mhX + 14.2, Y + 12.2, mhZ + 8.5);
-    const yTorso = new T.Mesh(sph(1.25, 8), snowMat); yTorso.scale.set(1.0, 1.35, 0.85); yTorso.position.y = 1.6; yetiGrp.add(yTorso);
-    const yHead = new T.Mesh(sph(0.68, 8), snowMat); yHead.position.y = 3.2; yetiGrp.add(yHead);
-    for (const ex of [-0.22, 0.22]) {
-      const eye = new T.Mesh(sph(0.11, 5), new T.MeshBasicMaterial({ color: 0xef4444 }));
-      eye.position.set(ex, 3.3, 0.58); yetiGrp.add(eye);
-    }
-    const yIce = new T.Mesh(new T.ConeGeometry(0.65, 2.8, 5), iceGlowMat); yIce.position.set(-1.6, 1.4, 0.4); yetiGrp.add(yIce);
-    group.add(yetiGrp);
-
-    const mhFall = new T.Mesh(new T.PlaneGeometry(4.6, 20.0), waterFallMat);
-    mhFall.position.set(mhX + 13.5, Y + 9.5, mhZ + 5.5); mhFall.rotation.y = Math.PI / 2.5;
-    group.add(mhFall);
-
-    // Rideable 2-Car Matterhorn Alpine Bobsled!
-    const bobsleds = [];
-    for (let c = 0; c < 2; c++) {
-      const bg = new T.Group();
-      const body = new T.Mesh(new T.BoxGeometry(1.35, 0.85, 3.1), c === 0 ? crimsonMat : pastelBlueMat);
-      body.position.y = 0.52; bg.add(body);
-      const stripe = new T.Mesh(new T.BoxGeometry(1.42, 0.16, 3.16), whiteMat); stripe.position.y = 0.62; bg.add(stripe);
-      group.add(bg); bobsleds.push(bg);
-    }
-    const mhState = { running: true, ang: 0, eventIdx: -1 };
-    function sampleMH(a) {
-      const r = 17.2 + Math.sin(a * 3) * 2.2;
-      return { x: mhX + Math.cos(a) * r, y: Y + 8.5 + Math.sin(a) * 6.8 + Math.cos(a * 2) * 2.4, z: mhZ + Math.sin(a) * r };
-    }
-    const matterhornRide = {
-      id: 'matterhorn_bobsleds', name: '马特宏峰雪山雪橇（Matterhorn Bobsleds）', land: 'Fantasyland',
-      boardPos: { x: mhX - 13.5, y: Y, z: mhZ + 18.2 },
-      exitPos:  { x: mhX - 16.5, y: Y, z: mhZ + 20.0, yaw: -0.5 },
-      start: () => { mhState.running = true; mhState.eventIdx = -1; },
-      stop:  () => { mhState.running = false; },
-      isRunning: () => mhState.running,
-      getCameraPose: (thirdPerson) => {
-        const p0 = sampleMH(mhState.ang), p1 = sampleMH(mhState.ang + 0.06);
-        const dx = p1.x - p0.x, dy = p1.y - p0.y, dz = p1.z - p0.z, L = Math.hypot(dx, dy, dz) || 1;
-        const fx = dx / L, fy = dy / L, fz = dz / L;
-        if (thirdPerson) return { px: p0.x - fx * 8.2, py: p0.y + 3.8, pz: p0.z - fz * 8.2, tx: p0.x + fx * 6, ty: p0.y + 1.0, tz: p0.z + fz * 6 };
-        return { px: p0.x + fx * 0.6, py: p0.y + 1.45, pz: p0.z + fz * 0.6, tx: p0.x + fx * 16, ty: p0.y + fy * 16 + 0.6, tz: p0.z + fz * 16 };
-      }
-    };
+    const mhX = 330, mhZ = 176; // mountain + bobsled track now built by california-plus.js (TPCalifornia)
 
     /* 2. "it's a small world" now lives in smallworld.js (TPSmallWorld) — full dark ride rebuild. */
 
@@ -230,48 +174,7 @@
     /* ============================================================================
      * 4. RIDEABLE BIG THUNDER MOUNTAIN RAILROAD (btX=188, btZ=154 — 37m Red-Rock Mesas & Dinosaur Ribs!)
      * ============================================================================ */
-    const btX = 188, btZ = 154;
-    mRedRock.add(cyl(10.5, 15.5, 16, 9), M(btX, Y + 8.0, btZ));
-    mRedRock.add(cyl(5.8, 9.5, 14, 8), M(btX - 2.0, Y + 21.0, btZ - 1.5));
-    mRedDark.add(new T.ConeGeometry(4.4, 14.0, 7), M(btX - 2.5, Y + 31.5, btZ - 1.8));
-    mRedRock.add(cyl(4.8, 8.2, 18, 8), M(btX + 9.0, Y + 9.0, btZ + 4.5));
-    mRedDark.add(new T.ConeGeometry(4.0, 11.0, 6), M(btX + 9.0, Y + 22.5, btZ + 4.5));
-    mRedRock.add(cyl(5.4, 8.8, 14, 8), M(btX - 9.2, Y + 7.0, btZ + 5.8));
-    mRedDark.add(new T.ConeGeometry(3.6, 9.5, 6), M(btX - 9.2, Y + 18.0, btZ + 5.8));
-    // Tumbleweed Mining Water Tower + Giant Bleached Dinosaur Ribcage Arch over Track!
-    mWood.add(cyl(1.8, 1.9, 2.8, 10), M(btX + 14.5, Y + 6.2, btZ + 13.0));
-    mRedDark.add(new T.ConeGeometry(2.1, 1.6, 10), M(btX + 14.5, Y + 8.3, btZ + 13.0));
-    for (let r = -2; r <= 2; r++) {
-      mWhite.add(new T.TorusGeometry(3.2, 0.18, 5, 12, Math.PI), M(btX, Y + 2.2, btZ + 16.5 + r * 1.1));
-    }
-    const mineCars = [];
-    for (let c = 0; c < 4; c++) {
-      const mg = new T.Group();
-      const mb = new T.Mesh(new T.BoxGeometry(1.45, 1.05, 2.7), c === 0 ? ironMat : woodMat);
-      mb.position.y = 0.65; mg.add(mb);
-      if (c === 0) { const st = new T.Mesh(cyl(0.24, 0.16, 0.95, 6), goldMat); st.position.set(0, 1.45, 0.85); mg.add(st); }
-      group.add(mg); mineCars.push(mg);
-    }
-    const btState = { running: true, ang: 0 };
-    function sampleBT(a) {
-      const r = 16.2 + Math.cos(a * 2) * 1.8;
-      return { x: btX + Math.cos(a) * r, y: Y + 4.8 + Math.sin(a * 2) * 3.4 + Math.cos(a * 3) * 1.2, z: btZ + Math.sin(a) * r };
-    }
-    const bigThunderRide = {
-      id: 'big_thunder', name: '巨雷山失控矿车（Big Thunder Mountain）', land: 'Frontierland',
-      boardPos: { x: btX + 4, y: Y, z: btZ + 20.5 },
-      exitPos:  { x: btX + 6, y: Y, z: btZ + 24.0, yaw: 0 },
-      start: () => { btState.running = true; },
-      stop:  () => { btState.running = false; },
-      isRunning: () => btState.running,
-      getCameraPose: (thirdPerson) => {
-        const p0 = sampleBT(btState.ang), p1 = sampleBT(btState.ang + 0.06);
-        const dx = p1.x - p0.x, dy = p1.y - p0.y, dz = p1.z - p0.z, L = Math.hypot(dx, dy, dz) || 1;
-        const fx = dx / L, fy = dy / L, fz = dz / L;
-        if (thirdPerson) return { px: p0.x - fx * 8.5, py: p0.y + 3.8, pz: p0.z - fz * 8.5, tx: p0.x + fx * 6, ty: p0.y + 1.0, tz: p0.z + fz * 6 };
-        return { px: p0.x + fx * 0.6, py: p0.y + 1.55, pz: p0.z + fz * 0.6, tx: p0.x + fx * 16, ty: p0.y + fy * 16 + 0.4, tz: p0.z + fz * 16 };
-      }
-    };
+    const btX = 188, btZ = 154; // buttes + mine-train track now built by california-plus.js (TPCalifornia)
 
     /* ============================================================================
      * 5. TRUE-SCALE RIVERS OF AMERICA: WALKABLE TOM SAWYER ISLAND, MARK TWAIN & SAILING SHIP COLUMBIA!
@@ -474,31 +377,12 @@
     mGlow.mesh(warmGlowMat, false); mConc.mesh(concreteMat, true);
 
     function update(dt, elapsed, onEvent) {
-      // Matterhorn Bobsleds + Roaring Yeti Harold!
-      yetiGrp.rotation.y = -0.6 + Math.sin(elapsed * 2.8) * 0.32;
-      if (mhState.running) mhState.ang += dt * 0.68;
-      bobsleds.forEach((bg, idx) => {
-        const a = mhState.ang - idx * 0.19;
-        const p0 = sampleMH(a), p1 = sampleMH(a + 0.05);
-        bg.position.set(p0.x, p0.y, p0.z);
-        bg.rotation.y = Math.atan2(p1.x - p0.x, p1.z - p0.z);
-        bg.rotation.z = Math.cos(a * 2) * 0.24;
-      });
 
       dumboGrp.rotation.y = elapsed * 0.62;
       dumbos.forEach((d) => { d.arm.rotation.z = 0.14 + Math.sin(elapsed * 2.2 + d.phase) * 0.18; });
       teaGrp.rotation.y = -elapsed * 0.55;
       teacups.forEach((c, idx) => { c.rotation.y = elapsed * (2.2 + (idx % 2) * 0.8); });
 
-      // Big Thunder Runaway Mine Train!
-      if (btState.running) btState.ang += dt * 0.66;
-      mineCars.forEach((mg, idx) => {
-        const a = btState.ang - idx * 0.20;
-        const p0 = sampleBT(a), p1 = sampleBT(a + 0.05);
-        mg.position.set(p0.x, p0.y, p0.z);
-        mg.rotation.y = Math.atan2(p1.x - p0.x, p1.z - p0.z);
-        mg.rotation.z = Math.sin(a * 2) * 0.20;
-      });
 
       // Rivers of America: Mark Twain & Sailing Ship Columbia circling opposite arcs on the West Channel + Harper's Mill!
       millWheel.rotation.x = elapsed * 1.4;
@@ -540,7 +424,7 @@
       });
     }
 
-    return { update, matterhornRide, bigThunderRide };
+    return { update };
   }
 
   root.TPLandmarks = { build };
