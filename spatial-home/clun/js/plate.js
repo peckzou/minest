@@ -22,15 +22,17 @@
     path: [[300, 990], [830, 990], [830, 1112], [300, 1112]],
     ladders: [],   /* 原图树屋的两架木梯：抹掉，换成一条绳梯 */
     rope: [332, 808, 1152],                     /* 绳梯：挂在平台右端前沿（x, 平台底 y），下面地面 y */
-    walkOut: [[262, 1110], [420, 1060], [600, 1035], [790, 1032], [880, 1060], [835, 1130], [870, 1200], [930, 1270], [985, 1340], [1045, 1420], [760, 1428], [520, 1390], [330, 1320], [255, 1210]],   /* 右边沿着小路栏杆的内侧（不站到栏杆外面） */   /* 屋外能走的范围：门前、左边草坪和石板路 */
-    walkBank: [[1690, 1205], [1820, 1120], [2120, 1150], [2420, 1230], [2555, 1330], [2555, 1430], [1720, 1430], [1700, 1330]],   /* 小溪对岸：石桌那片草坡 */
-    walkHill: [[0, 935], [58, 950], [90, 975], [92, 1085], [150, 1128], [262, 1128], [262, 1160], [120, 1160], [0, 1150]],   /* 大树左边的山坡（从树根前面绕过去，一路爬到坡顶） */
+    walkOut: [[262, 1096], [330, 1060], [430, 1048], [600, 1035], [790, 1032], [880, 1060], [835, 1130], [870, 1200], [930, 1270], [985, 1340], [1045, 1420], [760, 1428], [520, 1390], [330, 1320], [255, 1210]],   /* 右边沿着小路栏杆的内侧（不站到栏杆外面） */   /* 屋外能走的范围：门前、左边草坪和石板路 */
+    walkBank: [[1885, 1115], [2120, 1150], [2420, 1215], [2576, 1290], [2576, 1432], [1605, 1432], [1636, 1400], [1692, 1350], [1738, 1290], [1808, 1230], [1868, 1170]],   /* 小溪对岸：整片草坡，左边一直到水边 */
+    walkHill: [[0, 935], [58, 950], [90, 975], [92, 1085], [150, 1128], [300, 1128], [300, 1165], [120, 1165], [0, 1150]],   /* 大树左边的山坡（从树根前面绕过去，一路爬到坡顶） */
     walkYard: [[870, 1200], [1000, 1192], [1138, 1192], [1200, 1178], [1330, 1152], [1420, 1140], [1420, 1172], [1330, 1198], [1215, 1222], [1140, 1250], [1010, 1262], [930, 1270]],   /* 石阶脚下的小路和前院花园那条草带 */
     stairs: [[1000, 1192], [1138, 1192], [1100, 1126], [1040, 1066], [948, 1066], [985, 1104], [1000, 1140]],   /* 前院的石阶（底图里画着的） */
     walkPorch: [[856, 1050], [948, 1068], [1040, 1068], [1010, 1032], [880, 1030]],   /* 石阶顶上到房门前 */
     bench: [1300, 1160], hilltop: [40, 956],   /* 花园里的长椅、山坡顶上坐下看山谷的地方 */
     hops: [[1010, 1405], [1215, 1428], [1365, 1338], [1555, 1318], [1745, 1315]],   /* 从小路尽头跳过栏杆，经溪里的石头到对岸 */   /* 踩着溪里的石头过溪（两头在两边草地上） */
-    waterSpots: [[1760, 1290, 1610, 1300], [1800, 1395, 1650, 1410]],   /* 玩水：小人站的地方 → 水面的点 */
+    waterSpots: [[1800, 1245, 1700, 1255], [1676, 1398, 1560, 1408]],
+    gardens: [[430, 1272, 352, 1262], [1004, 1052, 1078, 1040], [1180, 1206, 1186, 1150], [1905, 1345, 1885, 1402]],   /* 能打理的花草：小人站的地方 → 花丛 */
+    stool: [2060, 1325, 2108, 1296],   /* 石桌边：走到的地方 → 坐的那只石凳 */   /* 玩水：小人站的地方 → 水面的点 */
     fence: [[1962, 1080], [2000, 1080], [2012, 1190], [2018, 1300], [2020, 1438], [1680, 1438], [1680, 1395], [1730, 1360], [1870, 1205]],   /* 石桌边沿河那道木栅栏和它的影子：铺成草地 */          /* 房前那条土路：铺成草地 */
     bush: { rect: [322, 790, 560, 1046], src: [200, 70, 420, 420] },    /* 房子左前方一丛树叶（取自左上大树的叶子），挡住左端 */
     /* 动画区域（底图像素） */
@@ -924,15 +926,69 @@
       OUT.pos.copy(porchW); OUT.yaw = Math.atan2(cam.pos.x - porchW.x, cam.pos.z - porchW.z);
       veil.style.transition = 'none'; veil.style.opacity = 1; setTimeout(function () { veil.style.transition = 'opacity .6s'; veil.style.opacity = 0; }, 60);
       skipEl.hidden = true; outEl.hidden = true; viewEl.hidden = true; readEl.hidden = true; sitEl.hidden = true; actsEl.hidden = false; stickEl.hidden = false; barEl.hidden = false; doorEl.hidden = true; goEl.hidden = true;
-      if (C.setLampLevel) C.setLampLevel(0); toast('在门前草坪和小路上走走：树屋、小溪都可以去');
+      if (C.setLampLevel) C.setLampLevel(0); toast('点一下图标或草地就能走过去：树屋、小溪、花丛都可以去');
     }
     function startOutdoorHere() {                                           /* 从开屏直接开始：小人从它现在站的地方走起 */
       OUT.on = true; OUT.act = null; OUT.frame = null; OUT.pos.copy(hero.root.position); settle(OUT.pos); if (!walkable(OUT.pos)) OUT.pos.copy(porchW);
       OUT.yaw = hero.root.rotation.y; actsEl.hidden = false; barEl.hidden = false; doorEl.hidden = true;
     }
+    function walkTo(px, py) {                                                /* 点画面：点在图标上就走到那个地方，点在能走的草地上就走到那一点 */
+      if (OUT.act) return false;
+      var best = null, bd = 64;
+      SPOTS.forEach(function (sp) { var ip = toPx(sp.sp.position), d = Math.min(Math.hypot(ip[0] - px, ip[1] - py), Math.hypot(sp.px[0] - px, sp.px[1] - py)); if (d < bd) { bd = d; best = sp; } });
+      var to = best ? best.at.clone() : onTerrain(px, py); if (!best && !walkable(to)) return false;
+      OUT.goal = to; OUT.stuck = 0; OUT.left = null; return true;
+    }
     function leaveOutdoor() { OUT.on = false; OUT.act = null; blob.visible = false; hero.pose(null); ctxEl.innerHTML = ''; OUT.key = ''; TH.swing(0); }
     function goInside() { leaveOutdoor(); startExplore(); }
     function nearPt(v, d) { return Math.hypot(v.x - OUT.pos.x, v.z - OUT.pos.z) < d; }
+    /* —— 能互动的地方：每处上方飘一个小图标（好找），走到画面上 REACH 像素以内就出按钮；点图标 / 点草地，小人自己走过去 —— */
+    var REACH = 105, SPOTS = [], marks = new THREE.Group(), FLOWERS = [];
+    marks.visible = false; root.add(marks);
+    function ppm(v) { var p0 = toPx(v), p1 = toPx(new THREE.Vector3(v.x, v.y + 1, v.z)); return Math.max(8, Math.hypot(p0[0] - p1[0], p0[1] - p1[1])); }   /* 这里 1 米在底图上是多少像素 */
+    function iconTex(ch) {
+      var c = document.createElement('canvas'); c.width = c.height = 128; var g = c.getContext('2d');
+      g.shadowColor = 'rgba(20,40,10,.45)'; g.shadowBlur = 10; g.shadowOffsetY = 3; g.fillStyle = 'rgba(255,253,244,.94)'; g.beginPath(); g.arc(64, 60, 46, 0, 6.2832); g.fill();
+      g.shadowColor = 'transparent'; g.lineWidth = 5; g.strokeStyle = 'rgba(232,170,60,.95)'; g.stroke();
+      g.font = '58px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#3a2a14'; g.fillText(ch, 64, 64);
+      var t = new THREE.CanvasTexture(c); disp.push(t); return t;
+    }
+    function addSpot(at, icon, r, ctx) {
+      var k = 46 / ppm(at), sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: iconTex(icon), transparent: true, depthTest: false, depthWrite: false }));
+      sp.scale.setScalar(k); sp.position.set(at.x, at.y + k * 1.3, at.z); sp.renderOrder = 9; marks.add(sp); disp.push(sp.material);
+      var s = { at: at, px: toPx(at), r: r, ctx: ctx, sp: sp, y0: sp.position.y, k: k }; SPOTS.push(s); return s;
+    }
+    var gardensW = PL.gardens.map(function (g) { return { at: onTerrain(g[0], g[1]), f: onTerrain(g[2], g[3]) }; });
+    var stoolAt = onTerrain(PL.stool[0], PL.stool[1]), stoolW = onTerrain(PL.stool[2], PL.stool[3]);
+    addSpot(porchW, '🚪', 1.0, function () { return [{ label: '🚪 进屋', run: goInside }]; });
+    addSpot(TH.ladder, '🪜', 1.0, function () {
+      if (TH.moving()) return null;
+      if (!TH.down()) return [{ label: '⬇ 放下绳梯', run: function () { TH.roll(false); } }];
+      return [{ label: '🪜 爬树屋', run: function () { OUT.pos.copy(TH.ladder); startAct('up'); } }, { label: '🎠 荡秋千', run: function () { startAct('swing'); } }, { label: '⬆ 收起绳梯', run: function () { TH.roll(true); } }];
+    });
+    addSpot(benchAt, '🪑', 1.5, function () { return [{ label: '🪑 坐长椅', run: function () { startAct('rest', { p: benchW, yaw: bench.rotation.y, h: 0.38, back: benchAt }); } }]; });
+    addSpot(hillW, '🌄', 1.8, function () { return [{ label: '🌄 坐下看山谷', run: function () { startAct('rest', { p: OUT.pos.clone(), yaw: 0.9, h: 0.1, back: OUT.pos.clone() }); } }]; });
+    waterW.forEach(function (w) { addSpot(w.at, '💧', 1.0, function () { return [{ label: '💧 玩水', run: function () { startAct('water', w); } }]; }); });
+    addSpot(hopsW[0], '🪨', 1.0, function () { return [{ label: '🪨 踩石头过溪', run: function () { OUT.pos.copy(hopsW[0]); startAct('hop', hopsW); } }]; });
+    addSpot(hopsW[hopsW.length - 1], '🪨', 1.0, function () { return [{ label: '🪨 踩石头过溪', run: function () { OUT.pos.copy(hopsW[hopsW.length - 1]); startAct('hop', hopsW.slice().reverse()); } }]; });
+    gardensW.forEach(function (g) { addSpot(g.at, '🌷', 1.0, function () { return [{ label: '💧 浇花', run: function () { startAct('tend', { mode: 'water', g: g }); } }, { label: '✂️ 修剪花草', run: function () { startAct('tend', { mode: 'trim', g: g }); } }]; }); });
+    addSpot(stoolAt, '🍵', 1.0, function () { return [{ label: '🍵 坐石凳歇歇', run: function () { startAct('rest', { p: stoolW, yaw: Math.atan2(cam.pos.x - stoolW.x, cam.pos.z - stoolW.z) - 0.7, h: 0.4, back: stoolAt }); } }]; });
+    var flowerTex = ['#f06a8c', '#f7c948', '#ffffff', '#b07cf0', '#f08a3c'].map(function (col) {      /* 新开的小花：一根茎、两片叶、一朵五瓣花 */
+      var c = document.createElement('canvas'); c.width = 64; c.height = 96; var g = c.getContext('2d');
+      g.strokeStyle = '#3f8a2e'; g.lineWidth = 4; g.lineCap = 'round'; g.beginPath(); g.moveTo(32, 94); g.quadraticCurveTo(28, 62, 32, 34); g.stroke();
+      g.fillStyle = '#4fa238'; g.beginPath(); g.ellipse(22, 70, 11, 5, -0.6, 0, 6.2832); g.fill(); g.beginPath(); g.ellipse(42, 62, 11, 5, 0.6, 0, 6.2832); g.fill();
+      g.fillStyle = col; for (var i = 0; i < 5; i++) { var an = i * 1.2566 - 1.5708; g.beginPath(); g.arc(32 + Math.cos(an) * 12, 26 + Math.sin(an) * 12, 10, 0, 6.2832); g.fill(); }
+      g.fillStyle = col === '#f7c948' ? '#b8742a' : '#ffd95a'; g.beginPath(); g.arc(32, 26, 7, 0, 6.2832); g.fill();
+      var t = new THREE.CanvasTexture(c); disp.push(t); return t;
+    });
+    function sprout(center, spread, n) {                                    /* 在 center 周围（按底图像素散开）长出 n 朵花 */
+      var cp = toPx(center);
+      for (var i = 0; i < n; i++) {
+        var p = onTerrain(cp[0] + (Math.random() - 0.5) * spread, cp[1] + (Math.random() - 0.5) * spread * 0.4), m = new THREE.SpriteMaterial({ map: flowerTex[Math.floor(Math.random() * flowerTex.length)], transparent: true, alphaTest: 0.05 });
+        var f = new THREE.Sprite(m); f.center.set(0.5, 0); f.position.copy(p); f.userData = { g: 0, s: 0.2 + Math.random() * 0.1, ph: Math.random() * 6 }; f.scale.set(0.001, 0.001, 1); root.add(f); FLOWERS.push(f);
+      }
+      while (FLOWERS.length > 60) { var old = FLOWERS.shift(); root.remove(old); old.material.dispose(); }
+    }
     function outdoorCtx() {                                                 /* 现在附近能做什么 */
       if (OUT.act) {
         if (OUT.act.kind === 'deck') return [{ label: '🚪 进树屋', run: enterTree }, { label: '⬇ 下来', run: function () { startAct('down'); } }];
@@ -941,18 +997,12 @@
         if (OUT.act.kind === 'swing') return { label: '🧍 下来', run: function () { OUT.act.stop = performance.now() / 1000; } };
         return null;
       }
-      if (nearPt(porchW, 1.0)) return { label: '🚪 进屋', run: goInside };
-      if (nearPt(TH.ladder, 1.0)) {
-        if (TH.moving()) return null;
-        if (!TH.down()) return { label: '⬇ 放下绳梯', run: function () { TH.roll(false); } };
-        return [{ label: '🪜 爬树屋', run: function () { startAct('up'); } }, { label: '🎠 荡秋千', run: function () { startAct('swing'); } }, { label: '⬆ 收起绳梯', run: function () { TH.roll(true); } }];
-      }
-      if (nearPt(benchAt, 1.5)) return { label: '🪑 坐长椅', run: function () { startAct('rest', { p: benchW, yaw: bench.rotation.y, h: 0.38, back: benchAt }); } };
-      if (nearPt(hillW, 1.8)) return { label: '🌄 坐下看山谷', run: function () { startAct('rest', { p: OUT.pos.clone(), yaw: 0.9, h: 0.1, back: OUT.pos.clone() }); } };
-      for (var i = 0; i < waterW.length; i++) { if (nearPt(waterW[i].at, 1.0)) { var w = waterW[i]; return { label: '💧 玩水', run: function () { startAct('water', w); } }; } }
-      if (nearPt(hopsW[0], 1.0)) return { label: '🪨 踩石头过溪', run: function () { startAct('hop', hopsW); } };
-      if (nearPt(hopsW[hopsW.length - 1], 1.0)) return { label: '🪨 踩石头过溪', run: function () { startAct('hop', hopsW.slice().reverse()); } };
-      return null;
+      var hp = toPx(OUT.pos), near = SPOTS.map(function (sp) { return { s: sp, d: Math.hypot(sp.px[0] - hp[0], (sp.px[1] - hp[1]) * 1.6) }; }).filter(function (o) { return o.d < REACH || nearPt(o.s.at, o.s.r); }).sort(function (x, y) { return x.d - y.d; });
+      var list = []; OUT.near = near.map(function (o) { return o.s; });
+      near.forEach(function (o) { if (list.length < 4) list = list.concat(o.s.ctx() || []); });
+      if (!list.length && (inPoly(hp, PL.walkOut) || inPoly(hp, PL.walkBank) || inPoly(hp, PL.walkHill)))        /* 空草地上：种花、躺下 */
+        list = [{ label: '🌱 种一朵花', run: function () { startAct('tend', { mode: 'plant' }); } }, { label: '🌿 躺草地', run: function () { startAct('lie'); } }];
+      return list.slice(0, 4);
     }
     function startAct(kind, arg) {
       var t = performance.now() / 1000;
@@ -962,13 +1012,20 @@
       else if (kind === 'swing') { OUT.act = { kind: 'swing', t0: t }; hero.pose('sit', 0.42); }
       else if (kind === 'rest') { OUT.pos.copy(arg.p); OUT.yaw = arg.yaw; OUT.act = { kind: 'rest', back: arg.back.clone() }; hero.pose('sit', arg.h); }
       else if (kind === 'hop') { OUT.act = { kind: 'hop', t0: t, pts: arg, seg: 0.55 }; hero.pose(null); }
+      else if (kind === 'lie') { var bk = OUT.pos.clone(); OUT.pos.z += 0.4; OUT.pos.y += 0.1; OUT.yaw = 0; OUT.act = { kind: 'rest', back: bk }; hero.pose('lie'); }
+      else if (kind === 'tend') {                                           /* 打理花草：浇水 / 修剪 / 种花，做完长出新花 */
+        var tgt = arg.g ? arg.g.f : OUT.pos.clone().addScaledVector(new THREE.Vector3(cam.pos.x - OUT.pos.x, 0, cam.pos.z - OUT.pos.z).normalize(), 0.45);
+        OUT.yaw = Math.atan2(tgt.x - OUT.pos.x, tgt.z - OUT.pos.z); OUT.act = { kind: 'tend', mode: arg.mode, t0: t, next: t + 0.4, dur: arg.mode === 'water' ? 3.4 : 2.6, tgt: tgt };
+        hero.pose(arg.mode === 'water' ? 'water' : 'crouch');
+      }
+      OUT.goal = null;
     }
     var splashGeo = new THREE.SphereGeometry(0.035, 6, 4), splashMat = new THREE.MeshBasicMaterial({ color: 0xf2f8ff, transparent: true, opacity: 0.9 });
     function setCtx(list) {                                                 /* 底部那排「附近能做的事」按钮：内容变了才重建 */
       var key = list.map(function (c) { return c.label; }).join('|'); if (key === OUT.key) return;
       OUT.key = key; ctxEl.innerHTML = ''; list.forEach(function (c) { var b = document.createElement('button'); b.type = 'button'; b.textContent = c.label; b.addEventListener('click', function (e) { e.stopPropagation(); wake(); c.run(); }); ctxEl.appendChild(b); });
     }
-    function splash(at, n) { for (var i = 0; i < n; i++) { var m = new THREE.Mesh(splashGeo, splashMat.clone()); m.position.copy(at); m.userData.v = new THREE.Vector3((Math.random() - 0.5) * 1.2, 1.6 + Math.random() * 1.4, (Math.random() - 0.5) * 1.2); m.userData.t = 0; root.add(m); OUT.splash.push(m); } }
+    function splash(at, n, col, soft) { for (var i = 0; i < n; i++) { var m = new THREE.Mesh(splashGeo, splashMat.clone()); if (col) m.material.color.set(col); m.position.copy(at); m.userData.v = new THREE.Vector3((Math.random() - 0.5) * (soft ? 0.5 : 1.2), soft ? Math.random() * 0.5 : 1.6 + Math.random() * 1.4, (Math.random() - 0.5) * (soft ? 0.5 : 1.2)); m.userData.t = 0; root.add(m); OUT.splash.push(m); } }
     function outdoorStep(now) {
       var dt = Math.min(0.05, now - (OUT.last || now)); OUT.last = now;
       var a = OUT.act, moving = false, faceYaw = OUT.yaw;
@@ -989,27 +1046,47 @@
       } else if (a && a.kind === 'crouch') {
         if (now > a.next) { splash(a.water, 6); a.next = now + 0.35; }
         hero.drive(OUT.pos, OUT.yaw, false, dt);
+      } else if (a && a.kind === 'tend') {
+        var fw3 = new THREE.Vector3(Math.sin(OUT.yaw), 0, Math.cos(OUT.yaw));
+        if (now > a.next) {
+          if (a.mode === 'water') splash(OUT.pos.clone().addScaledVector(fw3, 0.42).setY(OUT.pos.y + 0.52), 3, 0xbfe4ff, true);
+          else splash(OUT.pos.clone().addScaledVector(fw3, 0.32).setY(OUT.pos.y + 0.12), 2, a.mode === 'trim' ? 0x5c9a34 : 0x8a6238, false);
+          a.next = now + (a.mode === 'water' ? 0.09 : 0.3);
+        }
+        hero.drive(OUT.pos, OUT.yaw, false, dt);
+        if (now - a.t0 > a.dur) {
+          sprout(a.tgt, a.mode === 'plant' ? 8 : 90, a.mode === 'plant' ? 1 : a.mode === 'water' ? 4 : 2);
+          toast(a.mode === 'water' ? '浇好了，新开了几朵花' : a.mode === 'trim' ? '修剪整齐了' : '种下了一朵花'); OUT.act = null; hero.pose(null);
+        }
       } else if (a && (a.kind === 'deck' || a.kind === 'rest')) {
         hero.drive(OUT.pos, OUT.yaw, false, dt);
       } else {                                                              /* 自由走动：摇杆往上 = 往画面里走 */
         var fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quat); fwd.y = 0; fwd.normalize(); var rgt = new THREE.Vector3(-fwd.z, 0, fwd.x);
         var f2 = (EX.keys.w || EX.keys.arrowup ? 1 : 0) - (EX.keys.s || EX.keys.arrowdown ? 1 : 0) - EX.stick[1], r2 = (EX.keys.d || EX.keys.arrowright ? 1 : 0) - (EX.keys.a || EX.keys.arrowleft ? 1 : 0) + EX.stick[0], m = Math.hypot(f2, r2);
-        if (m > 0.05) {
-          if (m > 1) { f2 /= m; r2 /= m; }
-          var spd = 1.6 * Math.max(1, Math.min(2.6, -OUT.pos.z / 26)) / (1 + 1.6 * Math.max(0, OUT.slope || 0));   /* 离镜头远的地方走快些（画面上看速度差不多），上坡慢下来 */
-          var mv = fwd.multiplyScalar(f2).add(rgt.multiplyScalar(r2)).multiplyScalar(spd * dt);
+        var spd = 1.6 * Math.max(1, Math.min(2.6, -OUT.pos.z / 26)) / (1 + 1.6 * Math.max(0, OUT.slope || 0)), mv = null;   /* 离镜头远的地方走快些（画面上看速度差不多），上坡慢下来 */
+        if (m > 0.05) { if (m > 1) { f2 /= m; r2 /= m; } OUT.goal = null; mv = fwd.multiplyScalar(f2).add(rgt.multiplyScalar(r2)).multiplyScalar(spd * dt); }
+        else if (OUT.goal) {                                                /* 点了图标 / 草地：朝那儿走，到了或走不动了就停 */
+          var gx = OUT.goal.x - OUT.pos.x, gz = OUT.goal.z - OUT.pos.z, gd = Math.hypot(gx, gz);
+          if (gd < 0.12) OUT.goal = null; else mv = new THREE.Vector3(gx / gd, 0, gz / gd).multiplyScalar(Math.min(gd, spd * dt));
+        }
+        if (mv) {
           var inside = walkable(OUT.pos);
-          [mv, new THREE.Vector3(mv.x, 0, 0), new THREE.Vector3(0, 0, mv.z)].some(function (st2) { var np = settle(OUT.pos.clone().add(st2)); if (inside && !walkable(np)) return false; OUT.slope = (OUT.slope || 0) + (Math.max(-0.5, Math.min(0.5, (np.y - OUT.pos.y) / Math.max(1e-4, Math.hypot(st2.x, st2.z)))) - (OUT.slope || 0)) * 0.15; OUT.pos.copy(np); moving = true; return true; });   /* 万一站到了范围外（跳过溪、玩水之后），往哪走都行，好走回来 */
-          if (moving) OUT.yaw = Math.atan2(mv.x, mv.z);
+          [mv, new THREE.Vector3(mv.x, 0, 0), new THREE.Vector3(0, 0, mv.z)].some(function (st2) { if (Math.abs(st2.x) + Math.abs(st2.z) < 1e-6) return false; var np = settle(OUT.pos.clone().add(st2)); if (inside && !walkable(np)) return false; OUT.slope = (OUT.slope || 0) + (Math.max(-0.5, Math.min(0.5, (np.y - OUT.pos.y) / Math.max(1e-4, Math.hypot(st2.x, st2.z)))) - (OUT.slope || 0)) * 0.15; OUT.pos.copy(np); OUT.yaw = Math.atan2(st2.x, st2.z); moving = true; return true; });   /* 万一站到了范围外（跳过溪、玩水之后），往哪走都行，好走回来 */
+          if (OUT.goal) {
+            var left = Math.hypot(OUT.goal.x - OUT.pos.x, OUT.goal.z - OUT.pos.z);
+            OUT.stuck = moving && left < (OUT.left == null ? 1e9 : OUT.left) - 1e-4 ? 0 : (OUT.stuck || 0) + dt; OUT.left = left; if (OUT.stuck > 0.4) OUT.goal = null;
+          }
         }
         if (!moving) OUT.slope = (OUT.slope || 0) * 0.8;
         OUT.sy = OUT.sy == null ? OUT.pos.y : OUT.sy + (OUT.pos.y - OUT.sy) * Math.min(1, dt * 11);                 /* 上台阶时身子不一格一格地跳 */
         hero.drive(new THREE.Vector3(OUT.pos.x, OUT.sy, OUT.pos.z), OUT.yaw, moving, dt);
       }
       if (OUT.act) OUT.sy = null;
-      blob.visible = !OUT.act || OUT.act.kind === 'crouch'; if (blob.visible) { blob.position.set(OUT.pos.x, (OUT.sy == null ? OUT.pos.y : OUT.sy) + 0.03, OUT.pos.z); blob.scale.setScalar(PL.heroScale * (moving ? 0.92 : 1)); }
+      blob.visible = !OUT.act || OUT.act.kind === 'crouch' || OUT.act.kind === 'tend'; if (blob.visible) { blob.position.set(OUT.pos.x, (OUT.sy == null ? OUT.pos.y : OUT.sy) + 0.03, OUT.pos.z); blob.scale.setScalar(PL.heroScale * (moving ? 0.92 : 1)); }
       OUT.splash = OUT.splash.filter(function (m2) { m2.userData.t += dt; m2.userData.v.y -= 6 * dt; m2.position.addScaledVector(m2.userData.v, dt); m2.material.opacity = Math.max(0, 0.9 - m2.userData.t * 1.2); if (m2.userData.t > 0.8) { root.remove(m2); m2.material.dispose(); return false; } return true; });
       var list = outdoorCtx() || []; if (!Array.isArray(list)) list = [list];      /* 附近能做的事，可以有好几个按钮 */
+      SPOTS.forEach(function (sp, i) { sp.sp.visible = !OUT.act && (OUT.near || []).indexOf(sp) < 0; sp.sp.position.y = sp.y0 + Math.sin(now * 2.2 + i * 1.7) * sp.k * 0.12; });
+      FLOWERS.forEach(function (fl) { var u = fl.userData; u.g = Math.min(1, u.g + dt * 1.6); var e2 = 1 - Math.pow(1 - u.g, 3), sw = 1 + Math.sin(now * 1.8 + u.ph) * 0.04; fl.scale.set(u.s * 0.67 * e2 * sw, u.s * e2, 1); });
       setCtx(list);
       door2El.hidden = true; sitEl.hidden = true;
     }
@@ -1141,10 +1218,12 @@
       enter: enter, skipEntry: finish, walking: function () { return !!walk; },
       tap: function (cx, cy) {                                           /* 点在房门上（底图坐标）就进门 */
         if (walk && walk.explore && lastCam) return exploreTap(cx, cy, lastCam);
-        if (OUT.on) { if (lastC) { var rc = renderer.domElement.getBoundingClientRect(), ppx = lastC.x + (cx - rc.left) / rc.width * lastC.w, ppy = lastC.y + (cy - rc.top) / rc.height * lastC.h; if (hitDoor(ppx, ppy)) { leaveOutdoor(); enter(); return true; } } return false; }   /* 屋外点正门 → 进门动画 */
+        if (OUT.on) { if (lastC) { var rc = renderer.domElement.getBoundingClientRect(), ppx = lastC.x + (cx - rc.left) / rc.width * lastC.w, ppy = lastC.y + (cy - rc.top) / rc.height * lastC.h; if (hitDoor(ppx, ppy)) { leaveOutdoor(); enter(); return true; } return walkTo(ppx, ppy); } return false; }   /* 屋外点正门 → 进门动画 */
         if (!lastC || walk) return false;
         var rect = renderer.domElement.getBoundingClientRect(), px = lastC.x + (cx - rect.left) / rect.width * lastC.w, py = lastC.y + (cy - rect.top) / rect.height * lastC.h;
-        if (hitDoor(px, py)) { enter(); return true; } return false;
+        if (hitDoor(px, py)) { enter(); return true; }
+        if (!trans && walkable(onTerrain(px, py))) { startOutdoorHere(); return walkTo(px, py); }   /* 开屏点草地：小人直接走过去 */
+        return false;
       },
       root: root, holder: holder, distance: d, hero: hero,
       kind: function () { return kind; },
@@ -1154,6 +1233,7 @@
         var sz = renderer.getSize(new THREE.Vector2()), va = sz.x / Math.max(1, sz.y), now = performance.now() / 1000;
         if (TREE) { var it = inTree(); if (TREE.group.visible !== it) TREE.group.visible = it; if (!it && (EX.scope || !scopeEl.hidden || !mapEl.hidden)) { EX.scope = null; scopeEl.hidden = true; mapEl.hidden = true; } }
         if (!OUT.on && blob.visible) blob.visible = false;
+        marks.visible = OUT.on && !walk;
         if (walkCamera(camera, sz, va, now)) { churchEl.hidden = true; FX.outdoor(!walk.explore && !walk.done && now - walk.t0 < WALK.zoom); return; }   /* 推到门口那一段还算屋外，之后进屋 */
         FX.outdoor(true);
         awakeUi(); TH.tick(Math.min(0.05, now - (TH.lastT || now))); TH.lastT = now; TH.idle(now, !!OUT.act);
