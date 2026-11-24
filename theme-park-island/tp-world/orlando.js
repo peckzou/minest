@@ -1,13 +1,8 @@
-/* Minest My World · Orlando Walt Disney World Resort 2x Expansion — Filmic Architectural Master Edition!
- * - PARK 2: EPCOT (1,280-Facet Real flatShading Silver Geodesic Spaceship Earth + Wireframe Lattice + Beacon of Magic LEDs,
- *           Translucent Glass-Crystal Entrance Prisms, World Showcase 5 Pavilions + Lagoon Railings + Friendship Boat)
- * - PARK 3: Disney's Hollywood Studios (Multi-Tier Pueblo-Deco Tower of Terror w/ Arched Lobby Loggia, Porte-Cochere,
- *           Moorish Belfry & Mullioned Plunging Elevator Shaft, Textured 1930s Art-Deco Sunset Blvd, California Palms,
- *           Grauman's Chinese Theatre & Echo Lake Gertie the Dinosaur)
- * - PARK 4: Disney's Animal Kingdom (28-Cluster Layered Organic Tree of Life w/ Twisting Boughs, Craggy Multi-Tier
- *           Pandora Floating Hallelujah Mountains w/ Mist Waterfalls, Glowing Alien Lotus Trees & Soaring Banshees,
- *           Multi-Ridge Expedition Everest w/ Broken Trestle & Coaster Train, Kilimanjaro Giraffes)
- * - RIDE F: RIDEABLE DISNEY SKYLINER AERIAL GONDOLAS! */
+/* Minest My World · Orlando Walt Disney World Resort Campus (East & South Sectors of 768x768 Resort)
+ * - PARK 2: EPCOT (x=620, z=220 — 1,280-Facet Silver Geodesic Spaceship Earth + World Showcase Lagoon + Friendship Boat)
+ * - PARK 3: Disney's Hollywood Studios (x=628, z=560 — Pueblo-Deco Tower of Terror w/ Plunging Elevator, Chinese Theatre & Toy Story)
+ * - PARK 4: Disney's Animal Kingdom (x=272, z=628 — 28-Cluster Organic Tree of Life, Pandora Floating Mountains & Rideable Everest!)
+ * - RIDE: RIDEABLE DISNEY SKYLINER AERIAL GONDOLAS (EPCOT <-> Hollywood Studios)! */
 (function (root) {
   'use strict';
 
@@ -24,18 +19,15 @@
       return tx;
     }
 
-    // 1. Tower of Terror Weathered Pueblo-Deco Stucco & Recessed Spanish-Revival Arched Windows!
     function makeTowerTex() {
       const c = cvs(256, 256), x = c.getContext('2d');
       const g = x.createLinearGradient(0, 0, 0, 256);
       g.addColorStop(0, '#cfa08e'); g.addColorStop(0.55, '#b57f6e'); g.addColorStop(1, '#7d554a');
       x.fillStyle = g; x.fillRect(0, 0, 256, 256);
-      // Subtle stucco weathering patches
       for (let i = 0; i < 36; i++) {
         x.fillStyle = i % 2 === 0 ? 'rgba(65,40,32,0.12)' : 'rgba(248,232,222,0.12)';
         x.fillRect((i * 41) % 240, (i * 29) % 240, 26, 16);
       }
-      // Arched recessed hotel windows with warm eerie amber glow in select rooms
       for (let r = 0; r < 4; r++) for (let k = 0; k < 4; k++) {
         const wx = 18 + k * 60, wy = 16 + r * 60;
         x.fillStyle = '#191620';
@@ -46,20 +38,16 @@
       return finTex(c, true);
     }
 
-    // 2. 1930s Hollywood Art-Deco Sunset Boulevard Shopfront Texture!
     function makeArtDecoShopTex(wallHex, accentHex) {
       const c = cvs(256, 256), x = c.getContext('2d');
       x.fillStyle = wallHex; x.fillRect(0, 0, 256, 256);
-      // Stepped Art-Deco horizontal speedlines & frieze
       x.fillStyle = accentHex; x.fillRect(0, 0, 256, 22); x.fillRect(0, 118, 256, 12);
       x.fillStyle = '#fef3c7'; x.fillRect(0, 24, 256, 5); x.fillRect(0, 132, 256, 4);
-      // Upper Deco vertical fluted windows
       for (const wx of [24, 104, 184]) {
         x.fillStyle = '#1e293b'; x.fillRect(wx, 40, 48, 66);
         x.fillStyle = 'rgba(253,230,138,0.28)'; x.fillRect(wx + 5, 45, 38, 56);
         x.strokeStyle = '#f8fafc'; x.lineWidth = 4; x.strokeRect(wx, 40, 48, 66);
       }
-      // Ground-floor warm golden 1930s display windows
       for (const wx of [18, 138]) {
         const wg = x.createLinearGradient(0, 152, 0, 238);
         wg.addColorStop(0, '#fef9c3'); wg.addColorStop(0.5, '#f59e0b'); wg.addColorStop(1, '#78350f');
@@ -69,7 +57,6 @@
       return finTex(c, false);
     }
 
-    // 3. Tree of Life Sculpted Animal-Carved Bark Texture!
     function makeTreeOfLifeBarkTex() {
       const c = cvs(256, 256), x = c.getContext('2d');
       x.fillStyle = '#6e533e'; x.fillRect(0, 0, 256, 256);
@@ -106,10 +93,9 @@
         const pos = new Float32Array(total * 3), norm = new Float32Array(total * 3), uv = new Float32Array(total * 2);
         let o = 0;
         for (const g of parts) {
-          const p = g.attributes.position.array, n = g.attributes.normal.array, u = g.attributes.uv ? g.attributes.uv.array : null;
           const cnt = g.attributes.position.count;
-          pos.set(p, o * 3); norm.set(n, o * 3);
-          if (u) uv.set(u, o * 2);
+          pos.set(g.attributes.position.array, o * 3); norm.set(g.attributes.normal.array, o * 3);
+          if (g.attributes.uv) uv.set(g.attributes.uv.array, o * 2);
           o += cnt; g.dispose();
         }
         const bg = new T.BufferGeometry();
@@ -132,7 +118,6 @@
     const cyl = (rt, rb, h, seg) => new T.CylinderGeometry(rt, rb, h, seg || 10);
     const sph = (r, seg) => new T.SphereGeometry(r, seg || 8, Math.max(6, (seg || 8) - 2));
 
-    // High-Craft Architectural Materials
     const seSilverMat = new T.MeshPhongMaterial({ color: 0xdbe4ef, specular: 0xffffff, shininess: 85, flatShading: true, emissive: 0x101824 });
     const seWireMat = new T.MeshBasicMaterial({ color: 0x64748b, wireframe: true, transparent: true, opacity: 0.34 });
     const glassPrismMat = new T.MeshPhongMaterial({ color: 0x7dd3fc, specular: 0xffffff, shininess: 120, transparent: true, opacity: 0.78, flatShading: true });
@@ -162,23 +147,18 @@
     const mSnow = new Merger(), mLeaf = new Merger(), mLeafD = new Merger(), mLeafS = new Merger();
     const mBark = new Merger(), mGlow = new Merger(), mCyan = new Merger(), mPurple = new Merger();
 
-    /* ============================================================================
-     * PARK 2: ORLANDO EPCOT (TRUE 1,280-FACET GEODESIC SPACESHIP EARTH + WORLD SHOWCASE!)
-     * ============================================================================ */
-    const epX = 438, epZ = 192;
-    // REAL 3D flatShading Silver Geodesic Sphere (1,280 crisp Alucobond facets — ZERO blurry stretched UV stripes!)
+    /* ================= PARK 2: EPCOT (x=620, z=220, Lagoon z=169) ================= */
+    const epX = 620, epZ = 220, lagZ = 169;
     const seSphere = new T.Mesh(new T.IcosahedronGeometry(19.2, 3), seSilverMat);
     seSphere.position.set(epX, Y + 25.2, epZ); group.add(seSphere);
     const seLattice = new T.Mesh(new T.IcosahedronGeometry(19.30, 3), seWireMat);
     seLattice.position.set(epX, Y + 25.2, epZ); group.add(seLattice);
 
-    // EPCOT "Beacon of Magic" 160 Shimmering LED Constellation Points wrapping Spaceship Earth!
     const ledGeo = new T.BufferGeometry();
     const ledCount = 160, ledPos = new Float32Array(ledCount * 3), ledCol = new Float32Array(ledCount * 3);
     const ledPal = [[0.22, 0.74, 0.97], [0.96, 0.45, 0.71], [0.99, 0.88, 0.28], [0.75, 0.52, 0.99]];
-    for (let i = 0; i < ledCount; i++) {
-      const phi = Math.acos(1 - 2 * (i + 0.5) / ledCount), theta = Math.PI * (1 + Math.sqrt(5)) * i;
-      const r = 19.62;
+    for (let i = 0; i < 160; i++) {
+      const phi = Math.acos(1 - 2 * (i + 0.5) / ledCount), theta = Math.PI * (1 + Math.sqrt(5)) * i, r = 19.62;
       ledPos[i * 3] = Math.sin(phi) * Math.cos(theta) * r;
       ledPos[i * 3 + 1] = Math.cos(phi) * r;
       ledPos[i * 3 + 2] = Math.sin(phi) * Math.sin(theta) * r;
@@ -190,44 +170,41 @@
     const seLeds = new T.Points(ledGeo, new T.PointsMaterial({ size: 1.1, vertexColors: true, transparent: true, opacity: 0.75, blending: T.AdditiveBlending, depthWrite: false }));
     seLeds.position.set(epX, Y + 25.2, epZ); group.add(seLeds);
 
-    // 6 Sculpted Tapered V-Support Legs + Translucent Glass-Crystal Entrance Prism Fountain!
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * Math.PI * 2;
       mWhite.add(cyl(0.9, 1.45, 11.8, 8), M(epX + Math.cos(a) * 11.5, Y + 5.6, epZ + Math.sin(a) * 11.5, Math.sin(a) * 0.25, 0, -Math.cos(a) * 0.25));
     }
-    mWhite.add(cyl(6.8, 7.4, 0.65, 24), M(epX, Y + 0.32, 222));
+    mWhite.add(cyl(6.8, 7.4, 0.65, 24), M(epX, Y + 0.32, epZ + 30));
     const epWater = new T.Mesh(new T.CircleGeometry(6.3, 24), waterFallMat);
-    epWater.rotation.x = -Math.PI / 2; epWater.position.set(epX, Y + 0.68, 222); group.add(epWater);
+    epWater.rotation.x = -Math.PI / 2; epWater.position.set(epX, Y + 0.68, epZ + 30); group.add(epWater);
     for (const [dx, ph] of [[-2.4, 4.8], [0, 6.4], [2.4, 4.8]]) {
       const pr = new T.Mesh(new T.CylinderGeometry(0.18, 0.85, ph, 4), glassPrismMat);
-      pr.position.set(epX + dx, Y + 0.7 + ph / 2, 222); pr.rotation.y = Math.PI / 4; group.add(pr);
+      pr.position.set(epX + dx, Y + 0.7 + ph / 2, epZ + 30); pr.rotation.y = Math.PI / 4; group.add(pr);
     }
-    // World Showcase Promenade Lampposts & Pavilions (France, Japan, Mexico, China, Italy!)
     for (let i = 0; i < 12; i++) {
       const a = (i / 12) * Math.PI * 2;
-      const lx = 438 + Math.cos(a) * 32, lz = 141 + Math.sin(a) * 24;
+      const lx = epX + Math.cos(a) * 32, lz = lagZ + Math.sin(a) * 24;
       mDark.add(cyl(0.08, 0.14, 4.2, 6), M(lx, Y + 2.1, lz));
       mGlow.add(sph(0.26, 6), M(lx, Y + 4.4, lz));
     }
-    mGold.add(new T.ConeGeometry(3.6, 22.0, 4), M(408, Y + 11.0, 122)); box(mGold, 5.2, 0.5, 5.2, 408, Y + 6.5, 122); // France Eiffel
-    for (const sd of [-1, 1]) mRed.add(cyl(0.45, 0.55, 8.5, 8), M(438 + sd * 3.8, Y + 1.5, 124)); // Japan Torii
-    box(mRed, 10.6, 0.75, 0.9, 438, Y + 5.8, 124); box(mDark, 11.2, 0.35, 1.0, 438, Y + 6.3, 124);
+    mGold.add(new T.ConeGeometry(3.6, 22.0, 4), M(epX - 30, Y + 11.0, lagZ - 19)); box(mGold, 5.2, 0.5, 5.2, epX - 30, Y + 6.5, lagZ - 19);
+    for (const sd of [-1, 1]) mRed.add(cyl(0.45, 0.55, 8.5, 8), M(epX + sd * 3.8, Y + 1.5, lagZ - 17));
+    box(mRed, 10.6, 0.75, 0.9, epX, Y + 5.8, lagZ - 17); box(mDark, 11.2, 0.35, 1.0, epX, Y + 6.3, lagZ - 17);
     for (let k = 0; k < 5; k++) {
-      box(mWhite, 5.2 - k * 0.6, 1.6, 5.2 - k * 0.6, 438, Y + 1.0 + k * 2.4, 110);
-      mDark.add(new T.ConeGeometry(4.4 - k * 0.5, 1.2, 4), M(438, Y + 2.2 + k * 2.4, 110, 0, Math.PI / 4, 0));
+      box(mWhite, 5.2 - k * 0.6, 1.6, 5.2 - k * 0.6, epX, Y + 1.0 + k * 2.4, lagZ - 31);
+      mDark.add(new T.ConeGeometry(4.4 - k * 0.5, 1.2, 4), M(epX, Y + 2.2 + k * 2.4, lagZ - 31, 0, Math.PI / 4, 0));
     }
-    for (let k = 0; k < 5; k++) box(mRock, 14 - k * 2.2, 2.0, 14 - k * 2.2, 468, Y + 1.0 + k * 2.0, 122); // Mexico Pyramid
-    mRed.add(cyl(4.2, 4.5, 3.8, 12), M(474, Y + 1.9, 146)); // China Temple of Heaven
-    for (let k = 0; k < 3; k++) mBlue.add(new T.ConeGeometry(5.6 - k * 1.3, 2.2, 12), M(474, Y + 4.4 + k * 2.2, 146));
-    mGold.add(sph(0.65, 6), M(474, Y + 10.2, 146));
-    box(mRed, 3.8, 18.0, 3.8, 402, Y + 9.0, 148); box(mWhite, 4.2, 3.2, 4.2, 402, Y + 19.6, 148); // Italy Campanile
-    mGold.add(new T.ConeGeometry(3.0, 6.0, 4), M(402, Y + 24.2, 148, 0, Math.PI / 4, 0));
+    for (let k = 0; k < 5; k++) box(mRock, 14 - k * 2.2, 2.0, 14 - k * 2.2, epX + 30, Y + 1.0 + k * 2.0, lagZ - 19);
+    mRed.add(cyl(4.2, 4.5, 3.8, 12), M(epX + 36, Y + 1.9, lagZ + 5));
+    for (let k = 0; k < 3; k++) mBlue.add(new T.ConeGeometry(5.6 - k * 1.3, 2.2, 12), M(epX + 36, Y + 4.4 + k * 2.2, lagZ + 5));
+    mGold.add(sph(0.65, 6), M(epX + 36, Y + 10.2, lagZ + 5));
+    box(mRed, 3.8, 18.0, 3.8, epX - 36, Y + 9.0, lagZ + 7); box(mWhite, 4.2, 3.2, 4.2, epX - 36, Y + 19.6, lagZ + 7);
+    mGold.add(new T.ConeGeometry(3.0, 6.0, 4), M(epX - 36, Y + 24.2, lagZ + 7, 0, Math.PI / 4, 0));
     const friendBoat = new T.Group();
     const fbHull = new T.Mesh(new T.BoxGeometry(2.6, 0.9, 7.2), whiteMat); fbHull.position.y = 0.45; friendBoat.add(fbHull);
     const fbCab = new T.Mesh(new T.BoxGeometry(2.2, 1.2, 5.2), blueMat); fbCab.position.y = 1.45; friendBoat.add(fbCab);
     group.add(friendBoat);
-    // EPCOT World Showcase Lagoon Nighttime Luminous Laser Fountain Centerpiece (x=438, z=141)!
-    const epcotLaserGrp = new T.Group(); epcotLaserGrp.position.set(438, WY + 0.5, 141);
+    const epcotLaserGrp = new T.Group(); epcotLaserGrp.position.set(epX, WY + 0.5, lagZ);
     const epLaserMat = new T.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.0, blending: T.AdditiveBlending, depthWrite: false });
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * Math.PI * 2;
@@ -237,35 +214,26 @@
       epcotLaserGrp.add(beam);
     }
     group.add(epcotLaserGrp);
+    mBlue.add(new T.ConeGeometry(4.2, 16.5, 4), M(epX + 44, Y + 9.2, epZ + 22, 0, Math.PI / 4, 0));
+    box(mGold, 11.5, 1.8, 1.6, epX + 44, Y + 7.5, epZ + 22); mCyan.add(sph(1.8, 8), M(epX + 44, Y + 9.5, epZ + 22));
 
-    // Guardians of the Galaxy: Nova Corps Starblaster Ship (x=482, z=214)
-    mBlue.add(new T.ConeGeometry(4.2, 16.5, 4), M(482, Y + 9.2, 214, 0, Math.PI / 4, 0));
-    box(mGold, 11.5, 1.8, 1.6, 482, Y + 7.5, 214); mCyan.add(sph(1.8, 8), M(482, Y + 9.5, 214));
-
-    /* ============================================================================
-     * PARK 3: DISNEY'S HOLLYWOOD STUDIOS (MULTI-TIER PUEBLO-DECO TOWER OF TERROR & ART-DECO SUNSET BLVD!)
-     * ============================================================================ */
-    const ttX = 446, ttZ = 390;
-    // Wide 3-Story Spanish-Colonial Grand Lobby Base + Porte-Cochere Canopy!
+    /* ================= PARK 3: HOLLYWOOD STUDIOS (ttX=638, ttZ=558) ================= */
+    const ttX = 638, ttZ = 558;
     const ttLobby = new T.Mesh(new T.BoxGeometry(31.0, 10.5, 17.5), towerMat); ttLobby.position.set(ttX - 4.0, Y + 5.25, ttZ + 2.0); group.add(ttLobby);
-    box(mRed, 32.0, 1.4, 18.5, ttX - 4.0, Y + 11.1, ttZ + 2.0); // Terracotta hipped lobby roof
-    box(mCream, 9.5, 0.85, 6.5, ttX - 2.0, Y + 4.8, ttZ + 13.0); // Grand Porte-Cochere canopy
+    box(mRed, 32.0, 1.4, 18.5, ttX - 4.0, Y + 11.1, ttZ + 2.0);
+    box(mCream, 9.5, 0.85, 6.5, ttX - 2.0, Y + 4.8, ttZ + 13.0);
     for (const px of [-6.0, 2.0]) mCream.add(cyl(0.45, 0.55, 4.8, 8), M(ttX + px, Y + 2.4, ttZ + 15.8));
-    // Asymmetric Stepped Pueblo-Deco Main Tower Shaft & West Belfry Wing!
     const ttMain = new T.Mesh(new T.BoxGeometry(16.0, 44.0, 13.0), towerMat); ttMain.position.set(ttX, Y + 22.0, ttZ); group.add(ttMain);
     const ttWing = new T.Mesh(new T.BoxGeometry(10.2, 34.0, 11.2), towerMat); ttWing.position.set(ttX - 11.6, Y + 17.0, ttZ + 1.0); group.add(ttWing);
     const ttEastTur = new T.Mesh(new T.BoxGeometry(6.8, 28.0, 9.5), towerMat); ttEastTur.position.set(ttX + 10.4, Y + 14.0, ttZ + 0.5); group.add(ttEastTur);
-    // 3D Carved Cream Art-Deco Pilasters, Tiered Cornices & Open Moorish-Arched Top Belfry!
     for (const px of [-7.8, -2.5, 7.8]) box(mCream, 1.15, 44.4, 1.25, ttX + px, Y + 22.2, ttZ + 6.5);
     for (const cy of [12.0, 24.0, 36.0, 44.2]) box(mCream, 17.2, 0.85, 14.2, ttX, Y + cy, ttZ);
     box(mCream, 11.4, 0.9, 12.2, ttX - 11.6, Y + 34.2, ttZ + 1.0);
-    // Moorish Belfry Colonnade Pavilion + Terracotta Cupola Domes!
     for (const bx of [-5.2, 0, 5.2]) mCream.add(cyl(0.45, 0.52, 4.6, 8), M(ttX + bx, Y + 46.6, ttZ + 4.8));
     mRed.add(new T.ConeGeometry(7.8, 6.8, 8), M(ttX, Y + 51.4, ttZ));
     mRed.add(new T.ConeGeometry(5.8, 5.4, 8), M(ttX - 11.6, Y + 37.2, ttZ + 1.0));
     mRed.add(new T.ConeGeometry(4.2, 4.2, 8), M(ttX + 10.4, Y + 30.2, ttZ + 0.5));
     mGold.add(cyl(0.18, 0.24, 4.0, 6), M(ttX, Y + 56.2, ttZ));
-    // 3D Recessed Elevator Drop Shaft with Dark Steel Horizontal Mullions + Plunging Elevator Cab!
     box(mDark, 4.6, 32.0, 0.9, ttX + 2.6, Y + 24.0, ttZ + 6.4);
     for (let my = 12; my <= 38; my += 4.2) box(mCream, 4.8, 0.25, 1.1, ttX + 2.6, Y + my, ttZ + 6.7);
     const ttElevator = new T.Group(); ttElevator.position.set(ttX + 2.6, Y + 28.0, ttZ + 6.65);
@@ -274,37 +242,31 @@
     const ttSign = new T.Mesh(new T.PlaneGeometry(13.5, 2.8), new T.MeshBasicMaterial({ map: makeBannerTex('恐怖魔塔 · TOWER OF TERROR', 'THE HOLLYWOOD TOWER HOTEL · DROP SHAFT', '#1c1018', '#f43f5e', '#fde047'), side: T.DoubleSide }));
     ttSign.position.set(ttX - 2.0, Y + 40.5, ttZ + 6.95); group.add(ttSign);
 
-    // Textured 1930s Art-Deco Sunset Boulevard Vintage Shopfronts + Tall Sculpted California Fan Palms!
-    const decoShops = [[418, 412, decoTealShopMat], [418, 428, decoRoseShopMat], [464, 416, decoRoseShopMat], [464, 432, decoTealShopMat]];
+    const decoShops = [[610, 580, decoTealShopMat], [610, 596, decoRoseShopMat], [656, 584, decoRoseShopMat], [656, 600, decoTealShopMat]];
     decoShops.forEach(([bx, bz, mat]) => {
       const m = new T.Mesh(new T.BoxGeometry(9.6, 8.2, 11.4), mat); m.position.set(bx, Y + 4.1, bz); group.add(m);
       box(mTeal, 10.2, 0.9, 11.8, bx, Y + 8.5, bz);
       box(mGold, 10.4, 0.22, 12.0, bx, Y + 9.05, bz);
     });
-    for (const [px, pz] of [[426, 408], [426, 422], [426, 436], [454, 412], [454, 426], [454, 440]]) {
+    for (const [px, pz] of [[618, 576], [618, 590], [618, 604], [646, 580], [646, 594], [646, 608]]) {
       mBark.add(cyl(0.22, 0.36, 9.2, 6), M(px, Y + 4.6, pz));
       for (let f = 0; f < 6; f++) {
         const fa = (f / 6) * Math.PI * 2;
         box(mLeaf, 0.55, 0.14, 3.4, px + Math.cos(fa) * 1.4, Y + 9.2, pz + Math.sin(fa) * 1.4, 0.32, Math.PI / 2 - fa, 0);
       }
     }
+    box(mRed, 16.0, 11.5, 11.0, 588, Y + 5.75, 580); box(mGold, 16.8, 0.55, 11.8, 588, Y + 11.6, 580);
+    mRed.add(new T.ConeGeometry(9.2, 6.2, 4), M(588, Y + 14.8, 580, 0, Math.PI / 4, 0));
+    mGold.add(new T.ConeGeometry(5.5, 4.2, 4), M(588, Y + 19.2, 580, 0, Math.PI / 4, 0));
+    for (const sd of [-1, 1]) mGold.add(cyl(0.65, 0.78, 10.5, 8), M(588 + sd * 5.2, Y + 5.2, 585.8));
+    mLeaf.add(sph(3.8, 8), M(583, WY + 2.2, 610, 0, 0, 0, 1.0, 0.75, 1.45));
+    mLeaf.add(cyl(0.65, 1.15, 6.2, 8), M(583, WY + 5.6, 614.2, 0.35, 0, 0)); mLeaf.add(sph(1.15, 8), M(583, WY + 8.6, 615.8));
+    box(mRed, 5.2, 5.2, 5.2, 580, Y + 2.6, 530); box(mBlue, 5.2, 5.2, 5.2, 586, Y + 2.6, 528); box(mGold, 5.2, 5.2, 5.2, 583, Y + 7.8, 529);
+    mRed.add(new T.TorusGeometry(9.5, 0.55, 6, 18, Math.PI), M(600, Y + 1.0, 530));
 
-    // GRAUMAN'S CHINESE THEATRE (x=396, z=412) + Echo Lake GERTIE THE DINOSAUR + TOY STORY LAND!
-    box(mRed, 16.0, 11.5, 11.0, 396, Y + 5.75, 412); box(mGold, 16.8, 0.55, 11.8, 396, Y + 11.6, 412);
-    mRed.add(new T.ConeGeometry(9.2, 6.2, 4), M(396, Y + 14.8, 412, 0, Math.PI / 4, 0));
-    mGold.add(new T.ConeGeometry(5.5, 4.2, 4), M(396, Y + 19.2, 412, 0, Math.PI / 4, 0));
-    for (const sd of [-1, 1]) mGold.add(cyl(0.65, 0.78, 10.5, 8), M(396 + sd * 5.2, Y + 5.2, 417.8));
-    mLeaf.add(sph(3.8, 8), M(391, WY + 2.2, 442, 0, 0, 0, 1.0, 0.75, 1.45));
-    mLeaf.add(cyl(0.65, 1.15, 6.2, 8), M(391, WY + 5.6, 446.2, 0.35, 0, 0)); mLeaf.add(sph(1.15, 8), M(391, WY + 8.6, 447.8));
-    box(mRed, 5.2, 5.2, 5.2, 388, Y + 2.6, 362); box(mBlue, 5.2, 5.2, 5.2, 394, Y + 2.6, 360); box(mGold, 5.2, 5.2, 5.2, 391, Y + 7.8, 361);
-    mRed.add(new T.TorusGeometry(9.5, 0.55, 6, 18, Math.PI), M(408, Y + 1.0, 362));
-
-    /* ============================================================================
-     * PARK 4: DISNEY'S ANIMAL KINGDOM (28-CLUSTER ORGANIC TREE OF LIFE, CRAGGY PANDORA & MULTI-RIDGE EVEREST!)
-     * ============================================================================ */
-    const tolX = 192, tolZ = 436;
+    /* ================= PARK 4: ANIMAL KINGDOM (tolX=272, tolZ=628, Pandora x=192, Everest x=344) ================= */
+    const tolX = 272, tolZ = 628;
     const tolTrunk = new T.Mesh(cyl(4.4, 8.8, 20.5, 12), barkLifeMat); tolTrunk.position.set(tolX, Y + 10.2, tolZ); group.add(tolTrunk);
-    // 8 Sweeping Gnarled Root Buttresses + 6 Radiating Upper Boughs!
     for (let i = 0; i < 8; i++) {
       const a = (i / 8) * Math.PI * 2;
       mBark.add(cyl(1.2, 2.7, 10.5, 6), M(tolX + Math.cos(a) * 7.6, Y + 4.0, tolZ + Math.sin(a) * 7.6, Math.sin(a) * 0.45, 0, -Math.cos(a) * 0.45));
@@ -313,31 +275,26 @@
       const a = (i / 6) * Math.PI * 2;
       mBark.add(cyl(0.95, 1.85, 12.0, 6), M(tolX + Math.cos(a) * 7.5, Y + 21.5, tolZ + Math.sin(a) * 7.5, -Math.sin(a) * 0.65, 0, Math.cos(a) * 0.65));
     }
-    // 28 Varied-Size Layered Rainforest Canopy Clusters in 3 Natural Greens (ZERO Giant Soccer Balls!)
     for (let i = 0; i < 28; i++) {
-      const tier = i < 14 ? 0 : i < 23 ? 1 : 2;
-      const a = (i * 2.39996); // Golden angle phyllotaxis!
+      const tier = i < 14 ? 0 : i < 23 ? 1 : 2, a = i * 2.39996;
       const rad = tier === 0 ? 13.5 + (i % 3) * 2.4 : tier === 1 ? 8.2 + (i % 2) * 2.0 : 3.2;
       const cy = tier === 0 ? 25.5 + (i % 3) * 1.8 : tier === 1 ? 32.5 + (i % 2) * 2.0 : 38.5;
       const cr = tier === 0 ? 5.6 + (i % 3) * 1.1 : tier === 1 ? 5.2 + (i % 2) * 0.9 : 4.8;
       const lm = i % 3 === 0 ? mLeafD : i % 3 === 1 ? mLeaf : mLeafS;
       lm.add(new T.IcosahedronGeometry(cr, 1), M(tolX + Math.cos(a) * rad, Y + cy, tolZ + Math.sin(a) * rad, 0, a, 0, 1.25, 0.72, 1.25));
     }
-    // Kilimanjaro Safari Grazing Giraffes
-    for (const [gx, gz] of [[168, 446], [163, 450], [216, 448]]) {
+    for (const [gx, gz] of [[248, 638], [243, 642], [296, 640]]) {
       box(mGold, 1.1, 1.0, 2.1, gx, Y + 2.2, gz);
       mGold.add(cyl(0.20, 0.30, 3.2, 6), M(gx, Y + 4.0, gz + 0.85, 0.15, 0, 0));
       for (const [lx, lz] of [[-0.4, -0.7], [0.4, -0.7], [-0.4, 0.7], [0.4, 0.7]]) mGold.add(cyl(0.10, 0.12, 2.2, 5), M(gx + lx, Y + 1.1, gz + lz));
     }
 
-    // PANDORA — THE WORLD OF AVATAR (Craggy Multi-Tier Floating Hallelujah Mountains + Waterfalls + Glowing Alien Lotus Trees + Banshees!)
     const panMountains = [
-      { x: 112, y: 31, z: 438, r: 10.5, h: 17.5 },
-      { x: 92,  y: 25, z: 448, r: 7.8,  h: 13.5 },
-      { x: 130, y: 26, z: 448, r: 7.5,  h: 13.0 }
+      { x: 192, y: 31, z: 630, r: 10.5, h: 17.5 },
+      { x: 172, y: 25, z: 640, r: 7.8,  h: 13.5 },
+      { x: 210, y: 26, z: 640, r: 7.5,  h: 13.0 }
     ];
     panMountains.forEach((pm, idx) => {
-      // Craggy multi-tier floating rock massif + offset rock crag + draped rainforest moss crown!
       mRock.add(new T.ConeGeometry(pm.r, pm.h, 7), M(pm.x, Y + pm.y, pm.z, Math.PI, idx * 0.8, 0));
       mRock.add(new T.ConeGeometry(pm.r * 0.62, pm.h * 0.75, 6), M(pm.x + pm.r * 0.5, Y + pm.y - 2.0, pm.z + 1.8, Math.PI, idx, 0.12));
       for (let k = 0; k < 4; k++) {
@@ -349,9 +306,8 @@
       const wf = new T.Mesh(new T.PlaneGeometry(3.8, pm.y + 3), waterFallMat);
       wf.position.set(pm.x, Y + pm.y * 0.5, pm.z + pm.r * 0.35); group.add(wf);
     });
-    // Giant Glowing Alien Pandora Bioluminescent Lotus Trees along the River!
     for (let i = 0; i < 8; i++) {
-      const fx = 94 + i * 5.2, fz = 456 + (i % 2) * 3.5;
+      const fx = 174 + i * 5.2, fz = 648 + (i % 2) * 3.5;
       mBark.add(cyl(0.18, 0.32, 3.6, 5), M(fx, Y + 1.8, fz));
       (i % 2 === 0 ? mCyan : mPurple).add(new T.ConeGeometry(1.8, 1.2, 7), M(fx, Y + 4.1, fz, Math.PI, 0, 0));
     }
@@ -364,15 +320,13 @@
       group.add(bg); banshees.push({ grp: bg, wingL, wingR, phase: (i / 3) * Math.PI * 2 });
     }
 
-    // MULTI-RIDGE 48m EXPEDITION EVEREST — FORBIDDEN MOUNTAIN + BROKEN TRESTLE + COASTER TRAIN!
-    const evX = 264, evZ = 446;
+    const evX = 344, evZ = 638;
     mRock.add(new T.ConeGeometry(20.5, 36.0, 8), M(evX, Y + 18.0, evZ, 0, 0.4, 0));
     mRock.add(new T.ConeGeometry(14.5, 28.0, 7), M(evX - 12.0, Y + 14.0, evZ + 5.2));
     mRock.add(new T.ConeGeometry(13.0, 25.0, 7), M(evX + 11.5, Y + 12.5, evZ + 4.5));
     mSnow.add(new T.ConeGeometry(10.8, 25.0, 7), M(evX + 1.2, Y + 38.0, evZ - 1.0));
     mSnow.add(new T.ConeGeometry(6.8, 14.5, 6), M(evX - 12.0, Y + 23.0, evZ + 5.2));
-    box(mDark, 4.2, 4.5, 3.2, evX + 4.5, Y + 18.5, evZ + 11.2); // Yeti mountain cavern!
-    // RIDE G: EXPEDITION EVEREST 3-CAR RIDEABLE HIMALAYAN MOUNTAIN COASTER!
+    box(mDark, 4.2, 4.5, 3.2, evX + 4.5, Y + 18.5, evZ + 11.2);
     const evCars = [];
     for (let c = 0; c < 3; c++) {
       const cg = new T.Group();
@@ -383,7 +337,7 @@
       }
       group.add(cg); evCars.push(cg);
     }
-    const evState = { running: true, ang: 0, eventIdx: -1 };
+    const evState = { running: true, ang: 0 };
     const everestRide = {
       id: 'everest_ride', name: '珠峰探险过山车（动物王国）', land: 'Animal Kingdom',
       boardPos: { x: evX, y: Y, z: evZ + 22.0 }, exitPos: { x: evX - 6, y: Y, z: evZ + 24.0, yaw: 0 },
@@ -397,15 +351,13 @@
       }
     };
 
-    /* ============================================================================
-     * RIDE F: RIDEABLE DISNEY SKYLINER AERIAL GONDOLAS (EPCOT <-> Hollywood Studios!)
-     * ============================================================================ */
-    for (const tz of [256, 290, 324, 356]) {
-      mWhite.add(cyl(0.65, 0.95, 15.5, 8), M(438, Y + 7.75, tz));
-      box(mWhite, 6.2, 0.55, 0.75, 438, Y + 15.6, tz);
+    /* ================= DISNEY SKYLINER (x=620, z=288..522) ================= */
+    for (const tz of [288, 346, 404, 462, 520]) {
+      mWhite.add(cyl(0.65, 0.95, 15.5, 8), M(epX, Y + 7.75, tz));
+      box(mWhite, 6.2, 0.55, 0.75, epX, Y + 15.6, tz);
     }
-    box(mDark, 0.14, 0.14, 102, 435.5, Y + 15.4, 306);
-    box(mDark, 0.14, 0.14, 102, 440.5, Y + 15.4, 306);
+    box(mDark, 0.14, 0.14, 236, epX - 2.5, Y + 15.4, 404);
+    box(mDark, 0.14, 0.14, 236, epX + 2.5, Y + 15.4, 404);
     const skylinerCabs = [];
     const skyMats = [redMat, blueMat, goldMat, leafMat, redMat, blueMat];
     for (let i = 0; i < 6; i++) {
@@ -417,7 +369,7 @@
     const skyState = { running: true, t: 0 };
     const skylinerRide = {
       id: 'skyliner_ride', name: '迪士尼高空缆车（EPCOT ↔ 好莱坞影城）', land: 'Orlando Resort',
-      boardPos: { x: 438, y: Y, z: 256 }, exitPos: { x: 438, y: Y, z: 244, yaw: 0 },
+      boardPos: { x: epX, y: Y, z: 288 }, exitPos: { x: epX, y: Y, z: 274, yaw: 0 },
       start: () => { skyState.running = true; }, stop: () => { skyState.running = false; },
       isRunning: () => skyState.running,
       getCameraPose: (thirdPerson) => {
@@ -428,34 +380,31 @@
       }
     };
 
-    // 95 Sculpted 3D Florida Parkland Trees across the 2x Orlando Expansion!
+    // Resort Campus Parkland Trees
     let oSeed = 19711001;
     const orng = () => { oSeed = (oSeed * 1664525 + 1013904223) >>> 0; return oSeed / 4294967296; };
     const zi = (x, z) => (x | 0) + (z | 0) * world.W;
     let oPlaced = 0;
-    for (let att = 0; att < 500 && oPlaced < 95; att++) {
-      const tx = 44 + orng() * (world.W - 88), tz = 44 + orng() * (world.D - 88);
-      if (tx < 352 && tz < 358) continue;
+    for (let att = 0; att < 700 && oPlaced < 120; att++) {
+      const tx = 60 + orng() * (world.W - 120), tz = 60 + orng() * (world.D - 120);
+      if (tx < 508 && tz < 516) continue;
       const cell = zi(tx, tz);
       if (world.occ[cell] || world.hm[cell] < Y) continue;
-      if (Math.hypot(tx - 438, tz - 192) < 28 || Math.hypot(tx - 446, tz - 390) < 24) continue;
-      if (Math.hypot(tx - 192, tz - 436) < 24 || Math.hypot(tx - 264, tz - 446) < 24 || Math.hypot(tx - 112, tz - 442) < 26) continue;
+      if (Math.hypot(tx - epX, tz - epZ) < 28 || Math.hypot(tx - ttX, tz - ttZ) < 26) continue;
+      if (Math.hypot(tx - tolX, tz - tolZ) < 24 || Math.hypot(tx - evX, tz - evZ) < 24 || Math.hypot(tx - 192, tz - 634) < 26) continue;
       const h = 4.6 + orng() * 2.8, r = 2.2 + orng() * 1.1;
       mBark.add(cyl(0.28, 0.48, h, 5), M(tx, Y + h / 2, tz));
       (orng() < 0.34 ? mLeaf : orng() < 0.68 ? mLeafD : mLeafS).add(new T.IcosahedronGeometry(r, 1), M(tx, Y + h + r * 0.65, tz));
       oPlaced++;
     }
 
-    /* ---------------- Flush All Merged Static Orlando Meshes ---------------- */
     mWhite.mesh(whiteMat); mCream.mesh(creamMat); mTeal.mesh(tealDecoMat); mGold.mesh(goldMat);
     mRed.mesh(redMat); mBlue.mesh(blueMat); mDark.mesh(darkMat); mRock.mesh(rockMat);
     mSnow.mesh(snowMat); mLeaf.mesh(leafMat); mLeafD.mesh(leafDarkMat); mLeafS.mesh(leafSunMat);
     mBark.mesh(barkLifeMat); mGlow.mesh(warmGlowMat); mCyan.mesh(pandoraGlowMat); mPurple.mesh(pandoraPurpleMat);
 
-    /* ---------------- Live Animations for Orlando Attractions ---------------- */
-    function update(dt, elapsed, nightF, onEvent) {
+    function update(dt, elapsed, nightF) {
       seLeds.rotation.y = elapsed * 0.08;
-      // EPCOT Nighttime Luminous Lagoon Lasers + Pandora Bioluminescent Night Pulse!
       const nf = nightF || 0;
       epcotLaserGrp.rotation.y = elapsed * 0.35;
       epLaserMat.opacity = nf * (0.36 + Math.sin(elapsed * 2.4) * 0.12);
@@ -464,11 +413,10 @@
       pandoraPurpleMat.color.setRGB(0.75 * bio, 0.52 * bio, 0.99 * bio);
 
       const fbA = elapsed * 0.24;
-      const fbx = 438 + Math.cos(fbA) * 18, fbz = 141 + Math.sin(fbA) * 13;
-      const fbnx = 438 + Math.cos(fbA + 0.05) * 18, fbnz = 141 + Math.sin(fbA + 0.05) * 13;
+      const fbx = epX + Math.cos(fbA) * 18, fbz = lagZ + Math.sin(fbA) * 13;
+      const fbnx = epX + Math.cos(fbA + 0.05) * 18, fbnz = lagZ + Math.sin(fbA + 0.05) * 13;
       friendBoat.position.set(fbx, WY + 0.05, fbz); friendBoat.rotation.y = Math.atan2(fbnx - fbx, fbnz - fbz);
 
-      // Tower of Terror Plunging Elevator + Spooky Lightning Flash on Drop!
       const dropCyc = (elapsed * 0.22) % 1.0;
       const dropping = dropCyc >= 0.80;
       const dropY = dropCyc < 0.65 ? (dropCyc / 0.65) : dropCyc < 0.80 ? 1.0 : Math.max(0, 1.0 - ((dropCyc - 0.80) / 0.20) * ((dropCyc - 0.80) / 0.20));
@@ -477,15 +425,14 @@
 
       banshees.forEach((b) => {
         const a = elapsed * 0.42 + b.phase;
-        const bx = 112 + Math.cos(a) * 26, bz = 442 + Math.sin(a) * 20;
-        const bnx = 112 + Math.cos(a + 0.06) * 26, bnz = 442 + Math.sin(a + 0.06) * 20;
+        const bx = 192 + Math.cos(a) * 26, bz = 634 + Math.sin(a) * 20;
+        const bnx = 192 + Math.cos(a + 0.06) * 26, bnz = 634 + Math.sin(a + 0.06) * 20;
         b.grp.position.set(bx, Y + 32 + Math.sin(a * 2) * 3.5, bz);
         b.grp.rotation.y = Math.atan2(bnx - bx, bnz - bz);
         const flap = Math.sin(elapsed * 4.5 + b.phase) * 0.42;
         b.wingL.rotation.z = flap; b.wingR.rotation.z = -flap;
       });
 
-      // Expedition Everest 3-Car Himalayan Mountain Coaster!
       if (evState.running) evState.ang += dt * 0.62;
       evCars.forEach((cg, idx) => {
         const a = evState.ang - idx * 0.21;
@@ -497,12 +444,12 @@
         cg.rotation.z = Math.cos(a * 2) * 0.22;
       });
 
-      if (skyState.running) skyState.t += dt * 0.045;
+      if (skyState.running) skyState.t += dt * 0.032;
       skylinerCabs.forEach((sc) => {
         const u = (skyState.t + sc.off) % 1.0;
         const goingSouth = u < 0.5;
         const leg = goingSouth ? u * 2 : (1 - u) * 2;
-        sc.grp.position.set(goingSouth ? 435.5 : 440.5, Y + 15.4, 256 + leg * 100);
+        sc.grp.position.set(goingSouth ? epX - 2.5 : epX + 2.5, Y + 15.4, 288 + leg * 232);
       });
     }
 

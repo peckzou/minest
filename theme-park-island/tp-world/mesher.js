@@ -36,12 +36,14 @@
     const opaque = Attr(), glow = Attr(), lit = Attr();
     const hash3 = PIWorld.hash3;
     const WD = W * D;
+    const yLo = world.minSolidY != null ? world.minSolidY : 0;
+    const yHi = world.maxSolidY != null ? Math.min(H, world.maxSolidY + 1) : H;
     const solid = (x, y, z) => {
       if (y < 0) return 1;
       if (x < 0 || x >= W || z < 0 || z >= D || y >= H) return 0;
       return blocks[x + W * z + WD * y] !== 0 ? 1 : 0;
     };
-    for (let y = 0; y < H; y++) {
+    for (let y = yLo; y < yHi; y++) {
       for (let z = z0; z < z1; z++) {
         for (let x = x0; x < x1; x++) {
           const id = blocks[x + W * z + WD * y];

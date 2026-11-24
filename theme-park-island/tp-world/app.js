@@ -44,7 +44,7 @@
     activeRide: null, rideThirdPerson: false, rideLookYaw: 0, rideLookPitch: 0
   };
   const keys = Object.create(null);
-  const player = { pos: new V3(192.5, 40, 292), vel: new V3(), yaw: 0, pitch: 0.08, onGround: false, fly: false };
+  const player = { pos: new V3(VW.CX || 272.5, 40, 396), vel: new V3(), yaw: 0, pitch: 0.08, onGround: false, fly: false };
 
   const hemi = new THREE.HemisphereLight(0xd8ecff, 0x6a5a48, 0.68);
   scene.add(hemi);
@@ -169,8 +169,8 @@
       ' float fog = 1.0 - exp(-uFogD*uFogD*vD*vD); gl_FragColor = vec4(mix(col, uFog, fog), mix(0.76, 0.94, fr)); }'
     ].join('\n')
   });
-  const waterMesh = new THREE.Mesh(new THREE.PlaneGeometry(1400, 1400), waterMat);
-  waterMesh.rotation.x = -Math.PI / 2; waterMesh.position.set(272, VW.WATER_Y, 272); waterMesh.renderOrder = 5; scene.add(waterMesh);
+  const waterMesh = new THREE.Mesh(new THREE.PlaneGeometry(2400, 2400), waterMat);
+  waterMesh.rotation.x = -Math.PI / 2; waterMesh.position.set(VW.W * 0.5, VW.WATER_Y, VW.D * 0.5); waterMesh.renderOrder = 5; scene.add(waterMesh);
 
   const KEYS = [
     [0, 0x050818, 0x10183c, 0x04101c, 0x0a2838], [6.3, 0x3a64a8, 0xf6a67e, 0x0e2a38, 0x2a6a74],
@@ -523,28 +523,39 @@
   /* ================= Boot & Main Loop ================= */
   async function boot() {
     const bar = $('bar').firstElementChild, msg = $('loadMsg');
-    msg.textContent = '正在铺设奇想主题乐园五大分区地形与护城河…'; bar.style.width = '22%'; await nextFrame();
+    msg.textContent = '正在铺设 1:1 迪士尼乐园 16 大主题分区地形与美国河水系…'; bar.style.width = '18%'; await nextFrame();
     world = VW.create();
 
-    msg.textContent = '正在烘焙乐园砖石、彩瓦与霓虹纹理…'; bar.style.width = '44%'; await nextFrame();
+    msg.textContent = '正在烘焙维多利亚砖石、法式铁艺与童话彩瓦纹理…'; bar.style.width = '36%'; await nextFrame();
     const atlas = new THREE.CanvasTexture(PITex.buildCanvas());
     atlas.magFilter = THREE.NearestFilter; atlas.minFilter = THREE.LinearMipmapLinearFilter;
     matWorld.map = matGlow.map = matLit.map = atlas;
 
-    msg.textContent = '正在构建岛屿区块…'; bar.style.width = '64%'; await nextFrame();
-    const CX = Math.ceil(world.W / CH), CZ = Math.ceil(world.D / CH);
-    for (let cz = 0; cz < CZ; cz++) for (let cx = 0; cx < CX; cx++) {
-      const g = PIMesher.buildChunk(world, cx, cz, CH);
-      if (g.opaque) { const m = new THREE.Mesh(g.opaque, matWorld); m.castShadow = m.receiveShadow = true; worldGroup.add(m); }
-      if (g.glow) { const m = new THREE.Mesh(g.glow, matGlow); worldGroup.add(m); }
-      if (g.lit) { const m = new THREE.Mesh(g.lit, matLit); worldGroup.add(m); }
+    msg.textContent = '正在流式构建 1:1 全境地形区块…'; bar.style.width = '54%'; await nextFrame();
+    const CX = Math.ceil(world.W / CH), CZ = Math.ceil(world.D / CH), totalChunks = CX * CZ;
+    let builtChunks = 0;
+    for (let cz = 0; cz < CZ; cz++) {
+      for (let cx = 0; cx < CX; cx++) {
+        const g = PIMesher.buildChunk(world, cx, cz, CH);
+        if (g.opaque) { const m = new THREE.Mesh(g.opaque, matWorld); m.castShadow = m.receiveShadow = true; worldGroup.add(m); }
+        if (g.glow) { const m = new THREE.Mesh(g.glow, matGlow); worldGroup.add(m); }
+        if (g.lit) { const m = new THREE.Mesh(g.lit, matLit); worldGroup.add(m); }
+        builtChunks++;
+        if ((builtChunks % 192) === 0) {
+          bar.style.width = (54 + Math.round((builtChunks / totalChunks) * 24)) + '%';
+          await nextFrame();
+        }
+      }
     }
 
-    msg.textContent = '正在搭建星光城堡、维多利亚主街与三大可乘坐游乐设施…'; bar.style.width = '86%'; await nextFrame();
+    msg.textContent = '正在搭建小镇大街、童话城堡、加勒比海盗、卡通城与 12 大可乘坐设施…'; bar.style.width = '86%'; await nextFrame();
     props = TPProps.build(world, THREE, scene);
     spawnParkHosts();
     buildMinimap();
     buildHotbar();
+    $('mm').title = '点击打开 1:1 迪士尼乐园导览地图 (M)';
+    $('mm').style.cursor = 'pointer';
+    $('mm').onclick = () => portals && portals.openGuideModal();
 
     portals = TPPortals.attach({
       world, props, player, teleport, toast, setTime, exitLock, boardRide, launchFireworks,
@@ -552,7 +563,7 @@
     });
     $('guide-top-btn').onclick = () => portals.openGuideModal();
 
-    // Start on Main Street looking straight down the iconic Disneyland axial vista toward Starlight Castle!
+    // Start on Main Street looking straight down the iconic 224m 1:1 Disneyland axial vista toward the Castle!
     const startLand = world.LANDS.find((l) => l.id === 'main_street');
     if (startLand) teleport(startLand.tp);
 
@@ -562,7 +573,7 @@
       getProps: () => props,
       getPortals: () => portals,
       player, state: S,
-      groundY, teleport, toast, launchFireworks, exitLock, setMode,
+      groundY, teleport, toast, launchFireworks, exitLock, setMode, boardRide, exitRide,
       setUI: (flag) => { S.ui = !!flag; if (flag) exitLock(); }
     };
     window.dispatchEvent(new CustomEvent('tp:park-ready', { detail: window.TPParkAPI }));

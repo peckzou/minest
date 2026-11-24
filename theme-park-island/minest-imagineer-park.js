@@ -34,16 +34,18 @@
     return Object.keys(set);
   }
 
-  /* 7 Golden Dream Plots across Disney World where kids can teleport and build immediately! */
+  /* 10 Golden Dream Plots across 1:1 Disneyland & Disney Resort where kids can teleport and build immediately! */
   var DREAM_PLOTS = [
-    { id: 'castle_hub', icon: '🏰', name: '星光城堡中央广场', desc: '正对童话城堡中轴线的黄金展位', p: [192.5, 40, 224], t: [192.5, 46, 176] },
-    { id: 'main_street', icon: '🎈', name: '梦幻主街迎宾广场', desc: '一进乐园就能看见你的作品', p: [192.5, 40, 312], t: [192.5, 45, 266] },
-    { id: 'fantasyland', icon: '🎠', name: '梦幻世界童话花园', desc: '旋转木马与小小世界旁的童话空地', p: [176, 40, 126], t: [192.5, 45, 114] },
-    { id: 'tomorrowland', icon: '🚀', name: '明日世界星际广场', desc: '太空山与轨道飞行器前的科幻展区', p: [252, 40, 206], t: [270, 46, 194] },
-    { id: 'star_wars', icon: '🛸', name: '星球大战千年隼停机坪', desc: '巴图星黑尖塔前哨站宽阔广场', p: [126, 40, 96], t: [116, 46, 78] },
-    { id: 'epcot', icon: '🌐', name: '奥兰多 EPCOT 未来广场', desc: '银色巨球未来地球前的世界橱窗', p: [438, 40, 242], t: [438, 54, 196] },
-    { id: 'hollywood', icon: '🎬', name: '好莱坞星光大道广场', desc: '中国大剧院与玩具总动员园区旁', p: [414, 40, 434], t: [424, 52, 396] },
-    { id: 'pandora', icon: '🌿', name: '阿凡达潘多拉秘境', desc: '动物王国生命之树与悬浮山瀑布前', p: [176, 40, 476], t: [148, 52, 442] }
+    { id: 'castle_hub', icon: '🏰', name: '伙伴铜像中央城堡广场', desc: '1:1 迪士尼心脏枢纽，正对 18 塔童话城堡', p: [272.5, 40, 272], t: [272.5, 48, 208] },
+    { id: 'town_square', icon: '🏛️', name: '美国小镇迎宾广场', desc: '市政厅与 101 号消防局前，一进大门就能看见', p: [272.5, 40, 448], t: [272.5, 46, 396] },
+    { id: 'main_street', icon: '🌸', name: '小镇大街中央十字花市', desc: '百年百货 Emporium 与鲜花集市交汇口', p: [272.5, 40, 350], t: [272.5, 46, 208] },
+    { id: 'fantasyland', icon: '🎠', name: '梦幻世界中世纪童话庭院', desc: '旋转木马、石中剑与小飞侠大本钟旁', p: [272.5, 40, 180], t: [272.5, 46, 158] },
+    { id: 'toontown', icon: '🐭', name: '米奇卡通城欢乐广场', desc: '米奇与米妮小屋、唐老鸭汽船前的卡通街区', p: [256, 40, 74], t: [252, 46, 46] },
+    { id: 'new_orleans', icon: '🏴‍☠️', name: '新奥尔良与美国河畔', desc: '加勒比海盗法式阳台街巷与汤姆索亚岛对岸', p: [152, 40, 254], t: [138, 46, 204] },
+    { id: 'tomorrowland', icon: '🚀', name: '明日世界太空山星际港', desc: '轨道飞行器、巴斯光年与 32 肋太空山前', p: [364, 40, 258], t: [428, 48, 286] },
+    { id: 'star_wars', icon: '🛸', name: '星球大战千年隼停机坪', desc: '巴图星西北前哨站 5 号停机坪宽阔广场', p: [126, 40, 96], t: [116, 46, 78] },
+    { id: 'epcot', icon: '🌐', name: '艾波卡特未来地球广场', desc: '度假区银色晶面巨球与世界橱窗前', p: [620, 40, 272], t: [620, 54, 220] },
+    { id: 'pandora', icon: '🌿', name: '阿凡达潘多拉悬浮秘境', desc: '动物王国生命之树与哈利路亚悬浮山飞瀑前', p: [262, 40, 676], t: [194, 52, 636] }
   ];
 
   /* Curated Standalone 3D Models kids love placing in Disney World */
@@ -284,6 +286,7 @@
     while (holder.children.length) holder.remove(holder.children[0]);
     meshMap = {};
     placed.forEach(function (it) {
+      if (API.groundY) it.y = API.groundY(it.x, it.z, Math.floor((it.y || 40) + 10));
       var node = buildPlacedNode(it, false);
       holder.add(node.group);
       meshMap[it.id] = node;
