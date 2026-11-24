@@ -51,7 +51,10 @@
   /* 教堂小岛 Cathedrals' Island (cathedrals-island/, Antigravity): the second built-in island, next to the philosophers' */
   function cathedrals() { full(SITE + 'cathedrals-island/cathedrals.html', '教堂小岛 · Cathedrals’ Island'); }
   /* 奇想主题乐园 Theme Park (theme-park-island/, Antigravity): the third built-in island */
-  function themepark() { full(SITE + 'theme-park-island/theme-park.html', '奇想主题乐园 · Theme Park'); }
+  function themepark(placeId) {
+    var q = placeId && /^[A-Za-z0-9_-]{1,40}$/.test(String(placeId)) ? '?place=' + placeId : '';
+    full(SITE + 'theme-park-island/theme-park.html' + q, '奇想主题乐园 · Disney Imagineering Park');
+  }
   /* 梦工坊 Dream Workshop (dream-workshop/): direct an experience — characters, voices, triggers, a show timeline, then walk in as a guest */
   function workshop(id, play) {   /* (id, true): walk straight into that work as its guest — a placed experience in a room or on an island */
     var q = id && /^[A-Za-z0-9_-]{1,40}$/.test(String(id)) ? '?' + (play ? 'play=' : 'open=') + id : '';

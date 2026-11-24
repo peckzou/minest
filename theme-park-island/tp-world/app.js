@@ -556,6 +556,17 @@
     const startLand = world.LANDS.find((l) => l.id === 'main_street');
     if (startLand) teleport(startLand.tp);
 
+    window.TPParkAPI = {
+      THREE, scene, camera, renderer, canvas,
+      getWorld: () => world,
+      getProps: () => props,
+      getPortals: () => portals,
+      player, state: S,
+      groundY, teleport, toast, launchFireworks, exitLock, setMode,
+      setUI: (flag) => { S.ui = !!flag; if (flag) exitLock(); }
+    };
+    window.dispatchEvent(new CustomEvent('tp:park-ready', { detail: window.TPParkAPI }));
+
     bar.style.width = '100%';
     $('loading').classList.add('done');
 

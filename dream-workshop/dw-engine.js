@@ -159,6 +159,7 @@
   }
   function roundRect(x, a, b, w, h, r) { x.beginPath(); x.moveTo(a + r, b); x.arcTo(a + w, b, a + w, b + h, r); x.arcTo(a + w, b + h, a, b + h, r); x.arcTo(a, b + h, a, b, r); x.arcTo(a, b, a + w, b, r); x.closePath(); }
   function drawHelpers() {
+    if (!helpers) return;
     while (helpers.children.length) { var c = helpers.children.pop(); if (c.geometry) c.geometry.dispose(); }
     if (!work) return;
     (work.zones || []).forEach(function (z) {
@@ -182,6 +183,7 @@
     helpers.visible = helpersOn && !guest;
   }
   function placeRing() {
+    if (!selRing) return;
     var n = sel && sel.type === 'obj' && nodes[sel.id];
     if (!n || guest) { selRing.visible = false; return; }
     var b = new T.Box3().setFromObject(n.g), s = b.getSize(new T.Vector3()), r = Math.max(0.5, Math.max(s.x, s.z) / 2 + 0.15);
@@ -299,6 +301,79 @@
       if (!guest && !play.playing && t < 0.001) lv = 1;
       rig.plant.scale.set(Math.max(0.05, lv), Math.max(0.02, lv), Math.max(0.05, lv)); rig.plant.rotation.z = (1 - lv) * 0.3 * (o.x > 0 ? 1 : -1) * (gl.some(function (c) { return c.op === 'wilt' && c.now >= c.a; }) ? 1 : 0);
       rig.label.visible = lv > 0.7; rig.plant.rotation.y = Math.sin(clock * 0.8 + o.z) * 0.08;
+    } else if (rig.prop === 'carousel') {
+      var csp = (on ? 0.65 : 0.15) + 2.2 * boost('spin');
+      rig.spin.rotation.y += dt * csp;
+      rig.horses.forEach(function (h) { h.position.y = 0.95 + Math.sin(clock * 2.6 + h.userData.phase) * (0.16 * Math.min(1, csp)); });
+    } else if (rig.prop === 'ferris') {
+      var fsp = (on ? 0.32 : 0.08) + 1.6 * boost('spin');
+      rig.wheel.rotation.z += dt * fsp;
+      rig.cars.forEach(function (cg) { cg.rotation.z = -rig.wheel.rotation.z; });
+    } else if (rig.prop === 'crystal') {
+      var crb = boost('spin');
+      rig.gem.rotation.y += dt * (0.8 + 4.5 * crb);
+      rig.gem.position.y = 1.65 + Math.sin(clock * 2.2 + o.x) * 0.12;
+      rig.halo.rotation.z += dt * 0.9;
+      rig.mat.emissiveIntensity = 0.85 + 0.3 * Math.sin(clock * 3) + 1.4 * crb;
+    } else if (rig.prop === 'rocket') {
+      var rb = boost('spin');
+      rig.ship.position.y = rb > 0.01 ? rb * 3.8 : (on ? Math.sin(clock * 2.4) * 0.08 : 0);
+      rig.ship.rotation.y += dt * (rb * 3.5);
+      rig.flame.scale.setScalar(0.75 + 0.35 * Math.sin(clock * 18) + rb * 1.1);
+      rig.flame.visible = !!(on || rb > 0.01);
+    } else if (rig.prop === 'treasure') {
+      var tOpen = Math.max(level2(line, 'open', 'close', 0), tapW('open'));
+      rig.lid.rotation.x = -1.35 * tOpen;
+      rig.coins.scale.setScalar(0.85 + 0.25 * tOpen);
+    }
+  }
+  /* ---------------------------------------------------------------- celebration fireworks */
+  var fwBursts = [], fwTimer = 0, fwCooldown = 0;
+  function spawnBurst(bx, bz) {
+    var cols = ['#fbbf24', '#f472b6', '#38bdf8', '#a855f7', '#34d399', '#fb7185'];
+    var col = cols[(Math.random() * cols.length) | 0], N = 72;
+    var pos = new Float32Array(N * 3), vels = [];
+    var ox = bx != null ? bx : (Math.random() - 0.5) * 14, oy = 6.5 + Math.random() * 4.5, oz = bz != null ? bz : -3 - Math.random() * 8;
+    for (var i = 0; i < N; i++) {
+      var th = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1), sp = 2.4 + Math.random() * 3.8;
+      vels.push([Math.sin(ph) * Math.cos(th) * sp, Math.cos(ph) * sp + 1.2, Math.sin(ph) * Math.sin(th) * sp]);
+    }
+    var g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3));
+    var m = new T.PointsMaterial({ color: col, size: 0.24, transparent: true, opacity: 1, depthWrite: false, blending: T.AdditiveBlending });
+    var pts = new T.Points(g, m); pts.position.set(ox, oy, oz); pts.frustumCulled = false; scene.add(pts);
+    fwBursts.push({ pts: pts, g: g, m: m, vels: vels, age: 0, life: 1.7 + Math.random() * 0.5 });
+    var ctx = actx();
+    if (ctx) {
+      var now = ctx.currentTime, osc = ctx.createOscillator(), gn = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.setValueAtTime(160 + Math.random() * 60, now); osc.frequency.exponentialRampToValueAtTime(38, now + 0.45);
+      gn.gain.setValueAtTime(0.14, now); gn.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      osc.connect(gn); gn.connect(A.master); osc.start(now); osc.stop(now + 0.55);
+    }
+  }
+  E.launchFireworks = function (dur, x, z) {
+    actx();
+    fwTimer = Math.max(fwTimer, dur || 6.5);
+    spawnBurst(x, z);
+  };
+  function updateFireworks(dt) {
+    var onTrack = play.playing && clips('light').some(function (c) { return c.op === 'fireworks' && play.t >= c.t0 && play.t <= c.t1; });
+    if (fwTimer > 0 || onTrack) {
+      if (fwTimer > 0) fwTimer -= dt;
+      fwCooldown -= dt;
+      if (fwCooldown <= 0) { spawnBurst(); fwCooldown = 0.45 + Math.random() * 0.35; }
+    }
+    for (var i = fwBursts.length - 1; i >= 0; i--) {
+      var b = fwBursts[i]; b.age += dt;
+      if (b.age >= b.life) { scene.remove(b.pts); b.g.dispose(); b.m.dispose(); fwBursts.splice(i, 1); continue; }
+      var a = b.g.attributes.position.array, p = b.age / b.life;
+      for (var k = 0; k < b.vels.length; k++) {
+        var v = b.vels[k];
+        a[k * 3] = v[0] * b.age * (1 - p * 0.3);
+        a[k * 3 + 1] = v[1] * b.age - 3.2 * b.age * b.age;
+        a[k * 3 + 2] = v[2] * b.age * (1 - p * 0.3);
+      }
+      b.g.attributes.position.needsUpdate = true;
+      b.m.opacity = Math.max(0, 1 - p * p);
     }
   }
   /* appear / vanish on the timeline: a thing that first appears starts hidden; the director still sees it all at 0 s */
@@ -539,14 +614,23 @@
   E.guestTap = function (cx, cy) {
     if (!guest) return null; var h = E.pick(cx, cy); if (!h || h.type !== 'obj') return null;
     var o = objOf(h.id); if (o && nodes[o.id] && !nodes[o.id].g.visible) return null;
-    if (!o || !o.life || !o.life.on) return { still: true, name: o && o.name };
-    var d = distTo(o); if (d > 6.5) return { far: true, name: o.name };
-    var tp = o.life.tap || {}; if (!tp.text && !tp.op) return { none: true, name: o.name };
+    if (!o) return null;
+    if (o.kind === 'firework') { E.unlock(); E.launchFireworks(6, o.x, o.z); return { ok: true, name: o.name || '烟花礼花台' }; }
+    if (!o.life || !o.life.on) {
+      if (M.canLive(o.kind)) { E.unlock(); taps[o.id] = { op: M.actions(o.kind)[0] || 'raiseHand', c0: clock, dur: 3 }; return { ok: true, name: o.name }; }
+      return { still: true, name: o.name };
+    }
+    var d = distTo(o); if (d > 11.5) return { far: true, name: o.name };
+    var tp = o.life.tap || {};
+    var fallbackOp = M.actions(o.kind)[0] || 'raiseHand';
+    var tapText = tp.text || '';
+    var tapOp = tp.op || fallbackOp;
     E.unlock();
-    if (tp.text) { var v = Object.assign({}, o.life.voice || {}, { text: tp.text }); if (E.speak(tp.text, v, 0, falloff(d))) tapSpeak[o.id] = clock + E.sayTime(v); }
-    if (tp.op === 'startShow') { if (!play.playing) { play.t = 0; play.fadeK = 1; E.play(); } }
-    else if (tp.op) taps[o.id] = { op: tp.op, c0: clock, dur: tp.op === 'turnHead' ? 4 : tp.op === 'spin' || tp.op === 'timeTravel' ? 4 : 3 };
-    return { ok: true, name: o.name };
+    if (tapText) { var v = Object.assign({}, o.life.voice || {}, { text: tapText }); if (E.speak(tapText, v, 0, falloff(d))) tapSpeak[o.id] = clock + E.sayTime(v); }
+    if (tapOp === 'startShow') { if (!play.playing) { play.t = 0; play.fadeK = 1; E.play(); } }
+    else if (tapOp === 'fireworks') { E.launchFireworks(6.5, o.x, o.z); taps[o.id] = { op: 'spin', c0: clock, dur: 3.5 }; }
+    else if (tapOp) taps[o.id] = { op: tapOp, c0: clock, dur: tapOp === 'turnHead' ? 4 : tapOp === 'spin' || tapOp === 'timeTravel' ? 4 : 3 };
+    return { ok: true, name: o.name, text: tapText };
   };
   function say(t) { if (E.on.guest) E.on.guest(t); }
   function zoneAt(x, z) { return (work.zones || []).filter(function (q) { return Math.hypot(x - q.x, z - q.z) <= q.r; })[0] || null; }
@@ -618,6 +702,7 @@
     advance(dt);
     if (guest) guestTick(dt); else { if (A.master && A.ctx) { A.master.gain.setTargetAtTime(0.9, A.ctx.currentTime, 0.2); Object.keys(play.music).forEach(function (k) { var hd = play.music[k]; if (hd && hd.out) hd.out.gain.setTargetAtTime(1, A.ctx.currentTime, 0.2); }); } placeCam(); }
     applyLights(dt);
+    updateFireworks(dt);
     work.objects.forEach(function (o) {
       var n = nodes[o.id]; if (!n) return;
       var k = visOf(o, play.t), s0 = o.s || 1, e = k >= 1 ? 1 : k <= 0 ? 0 : 1 + 2.7 * Math.pow(k - 1, 3) + 1.7 * Math.pow(k - 1, 2);   /* a little overshoot as it pops in */

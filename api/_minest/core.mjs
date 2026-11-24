@@ -142,10 +142,11 @@ const str = { type: 'string' };
 // ---------------------------------------------------------------------------
 // Dream Workshop · 梦工坊 — the AI Imagineer's plan (dream-workshop/dw-imagineer.js reads it)
 // ---------------------------------------------------------------------------
-const DW_KINDS = ['lincoln', 'figure', 'guide', 'portrait', 'podium', 'stage', 'curtain', 'bench', 'chair', 'spot', 'lamp', 'lantern', 'flag', 'column', 'tree', 'sign', 'wall', 'boat', 'house', 'windmill', 'bridge',
+const DW_KINDS = ['princess', 'wizard', 'astronaut', 'robot', 'dino', 'unicorn', 'castle', 'carousel', 'ferris', 'rocket', 'crystal', 'treasure', 'firework', 'rainbow', 'mushroom',
+  'lincoln', 'figure', 'guide', 'portrait', 'podium', 'stage', 'curtain', 'bench', 'chair', 'spot', 'lamp', 'lantern', 'flag', 'column', 'tree', 'sign', 'wall', 'boat', 'house', 'windmill', 'bridge',
   'book', 'clock', 'musicbox', 'door', 'word', 'picture', 'gears', 'top', 'star', 'sprout'];
-const DW_ACTIONS = ['raiseHand', 'turnHead', 'nod', 'openArms', 'point', 'bow', 'smile', 'surprise', 'wink', 'stroll', 'open', 'close', 'turnPage', 'spin', 'timeTravel', 'grow', 'wilt', 'appear', 'vanish', 'startShow'];
-const DW_OPS = ['up', 'down', 'toDay', 'toDusk', 'toNight', 'toTheatre', 'rain', 'snow', 'clear', 'speak', 'pad', 'fanfare', 'drum', 'chime', ...DW_ACTIONS];
+const DW_ACTIONS = ['raiseHand', 'turnHead', 'nod', 'openArms', 'point', 'bow', 'smile', 'surprise', 'wink', 'stroll', 'open', 'close', 'turnPage', 'spin', 'timeTravel', 'grow', 'wilt', 'appear', 'vanish', 'startShow', 'fireworks'];
+const DW_OPS = ['up', 'down', 'toDay', 'toDusk', 'toNight', 'toTheatre', 'rain', 'snow', 'clear', 'fireworks', 'speak', 'pad', 'fanfare', 'drum', 'chime', ...DW_ACTIONS];
 const num = { type: 'number' };
 const imagineerSchema = {
   type: 'object', additionalProperties: false,
@@ -194,10 +195,10 @@ const IMAGINEER_SYSTEM = [
   'You are the Imagineer of Minest Dream Workshop (梦工坊), a small visual studio where a learner directs a miniature 3D experience that a guest then walks into.',
   'Turn the learner\'s idea into a first plan they will edit. Return only the plan object.',
   'The table: a round sandbox, radius 15 m, ground y = 0, x to the right, z toward the audience. Guests usually come in from z = 10..13 and look toward -z.',
-  'Things (kind, size): lincoln (a tall 19th-century speaker with a top hat), figure (a person, 1.8 m), guide (a presenter, 1.7 m), portrait (a framed talking painting that hangs at eye height; put a wall 0.3 m behind it),',
-  'podium (0.8 m), stage (8 × 5 m, 0.6 m high; things placed on it stand on top by themselves), curtain (9 m wide backdrop), bench (2.2 m), chair, spot (a stage spotlight on a stand that aims where it faces),',
+  'Things (kind, size): princess (a fairytale princess with a crown), wizard (a young mage with wand), astronaut (space explorer), robot (cute friendly robot), dino (friendly dinosaur buddy), unicorn (rainbow unicorn), lincoln (a tall 19th-century speaker with a top hat), figure (a person, 1.8 m), guide (a presenter, 1.7 m), portrait (a framed talking painting that hangs at eye height; put a wall 0.3 m behind it),',
+  'castle (5.6 × 3.6 m fairytale multi-spire castle), rainbow (6.4 m rainbow arch), mushroom (giant fairy mushroom cottage), podium (0.8 m), stage (8 × 5 m, 0.6 m high; things placed on it stand on top by themselves), curtain (9 m wide backdrop), bench (2.2 m), chair, spot (a stage spotlight on a stand that aims where it faces),',
   'lamp (street lamp), lantern (paper lantern on a post), flag, column, tree, sign (text = up to two short lines, split with \\n), wall (6 m), boat, house (2 × 2 m), windmill (turning sails), bridge (arched, 4.4 m long, spans along its local x).',
-  'Things that come to life (alive = true): book (a giant pop-up book on a table: open, turnPage, close; text = its title), clock (a time-machine grandfather clock: timeTravel), musicbox (open, spin, close), door (open, close),',
+  'Things that come to life (alive = true): carousel (spinning fairytale carousel: spin), ferris (turning rainbow ferris wheel: spin), rocket (space rocket: spin, fireworks), crystal (glowing magic crystal: spin, fireworks), treasure (treasure chest: open, close, fireworks), firework (firework launcher: fireworks), book (a giant pop-up book on a table: open, turnPage, close; text = its title), clock (a time-machine grandfather clock: timeTravel), musicbox (open, spin, close), door (open, close),',
   'gears (a thought machine: spin), top (a concept top whose three rings carry text lines split with \\n: spin, open, close), star (a glowing knowledge node floating in the air, text = its name: spin), sprout (an idea that grows, text = the idea: grow, wilt), picture (a framed memory, text = its title; tap_text tells its story).',
   'word is a neon sign (text = the words). Any thing can appear or vanish on the action track; a thing whose first clip is appear stays hidden until then. tap_action startShow starts the whole show.',
   'facing is in degrees: 0 faces +z (toward the audience), 180 faces the stage side, 90 faces +x. Spotlights should face the stage. Benches and chairs face the stage (usually 180).',
