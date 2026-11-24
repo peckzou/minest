@@ -144071,7 +144071,7 @@ function apply(){
     coverOn(false);   /* folded: the quick Glance page comes up (what you were doing stays under it — 完整 App › goes back), unless you are in
                            the middle of something: placing a piece, the build library or the study desk */
     var busy = !!(desk || document.querySelector('.mn-bq, .duo-lib') || (window.MinestDuoWorld && MinestDuoWorld.holding && MinestDuoWorld.holding()));
-    if (!busy) { dismissed = false; glance(); } else dismissed = true;
+    dismissed = true; closeGlance();   /* 2026-11-24: no Glance page any more — the opening and Home are the Clun house */
   }
   else { closeGlance(); if (!unfolded && fit && prefs().split) openWorld(); }
   document.documentElement.classList.toggle('duo-halfopen', posture() === 'folded');
@@ -144185,7 +144185,7 @@ function onAdd(e){
 /* the way back to Glance on the outer screen once it was put away */
 function pill(){
   var p = document.querySelector('.duo-back');
-  if (kind !== 'outer' || !dismissed) { if (p) p.remove(); return; }
+  if (p) p.remove(); return;   /* 2026-11-24: no Glance, no way back to it */
   if (!p) { p = document.createElement('button'); p.type = 'button'; p.className = 'duo-back'; p.textContent = '⌂ 速览'; p.setAttribute('aria-label', '回到速览'); document.body.appendChild(p);
     p.addEventListener('click', function(){ dismissed = false; p.remove(); glance(); }); }
 }
@@ -144366,12 +144366,12 @@ function rail(){
       if (w === 'split') return toggleSplit();
       if (w === 'desk') { if (desk) { desk.remove(); desk = null; document.documentElement.classList.remove('duo-desk-on'); } else deskOpen(); return rail(); }
       if (w === 'world') { if (desk) { desk.remove(); desk = null; document.documentElement.classList.remove('duo-desk-on'); } if (worldOpen()) { try { MinestUniverse.close(); } catch(x){} } else openWorld(); return setTimeout(rail, 400); }
-      if (w === 'glance') { if (gl && !gl.hidden) closeGlance(); else { dismissed = false; glance(); } return rail(); }
+      if (w === 'glance') { closeGlance(); try { window.MinestSpatialHome.home(); } catch(x){} return rail(); }
     }); }
   var sp = !!prefs().split || R0.classList.contains('duo-cover'), html = (splitFits() ? '<button type="button" data-rail="split" class="' + (sp ? 'on' : '') + '" aria-label="' + (sp ? '取消分栏' : '分栏') + '"><i>' + (sp ? '▣' : '▥') + '</i><small>' + (sp ? '全屏' : '分栏') + '</small></button>' : '') +
     '<button type="button" data-rail="desk" class="' + (desk ? 'on' : '') + '" aria-label="学习书桌"><i>📚</i><small>书桌</small></button>' +
     '<button type="button" data-rail="world" class="' + (worldOpen() ? 'on' : '') + '" aria-label="My World"><i>🏝</i><small>岛屿</small></button>' +
-    '<button type="button" data-rail="glance" class="' + (gl && !gl.hidden ? 'on' : '') + '" aria-label="速览"><i>⌂</i><small>速览</small></button>';
+    '<button type="button" data-rail="glance" class="' + (gl && !gl.hidden ? 'on' : '') + '" aria-label="Home"><i>⌂</i><small>Home</small></button>';
   if (r.innerHTML !== html) r.innerHTML = html;
 }
 
@@ -200079,6 +200079,13 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
 /* the Duo's pinned Dock: shown (not slid away) without being moved off its place */
 html.mn-sysbar.duo-dockpin:not(.mn-sys-reading) body .mn-bdock.mn-bdock, html.mn-sysbar.duo-docktop:not(.mn-sys-reading) body .mn-bdock.mn-bdock { opacity: 1 !important; pointer-events: auto !important; visibility: visible !important; }
 
+/* the Dock's default place (2026-11-24, the user): standing in the bottom right corner on every screen — the opening, the board,
+   the room — growing upward; "=" is always its lowest key, so it never moves under the pointer when the Dock folds or unfolds.
+   On the Duo held sideways it stands at the bottom of the black status column. Placed by hand (mn-dock-free) or set to Bottom / Top: as chosen. */
+html[data-mn-bd=right][data-mn-bd][data-mn-bd][data-mn-bd]:not(.mn-dock-free):not(.mn-sys-reading):not(.mn-start-reading) body .mn-bdock.mn-bdock { left: auto !important; right: calc(env(safe-area-inset-right, 0px) + 8px) !important; top: auto !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px) !important; inset-inline: auto; transform: none !important; margin: 0 !important; flex-direction: column !important; justify-content: flex-end !important; max-height: calc(100% - env(safe-area-inset-top, 0px) - 24px) !important; }
+html.duo-dockpin[data-mn-bd][data-mn-bd][data-mn-bd][data-mn-bd]:not(.mn-dock-free):not(.mn-sys-reading):not(.mn-start-reading) body .mn-bdock.mn-bdock { left: auto !important; right: calc((var(--duo-dock, 84px) - 52px) / 2) !important; top: auto !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px) !important; transform: none !important; margin: 0 !important; flex-direction: column !important; justify-content: flex-end !important; max-height: calc(100% - var(--sat, 0px) - 20px) !important; }
+html[data-mn-bd=right]:not(.mn-dock-free) body .mn-bdock .mn-bapp.mn-sk-tools, html.duo-dockpin:not(.mn-dock-free) body .mn-bdock .mn-bapp.mn-sk-tools { order: 99 !important; }
+
 /* the Dock placed freely (hold, then drag) — wins over every side / centring rule */
 html.mn-dock-free.mn-dock-free .mn-bdock.mn-bdock { left: var(--mn-fx, 50%) !important; top: var(--mn-fy, 50%) !important; right: auto !important; bottom: auto !important; transform: none !important; margin: 0 !important; }
 .mn-bdock.mn-bdock { touch-action: none; -webkit-user-select: none; user-select: none; }   /* a press-and-move drags the Dock (the page must not scroll instead) */
@@ -200403,7 +200410,7 @@ html.student-mode .mn-sk-world { display: none !important; }
     var lens = mc ? 0 : (h ? 1.6 : 1.35), room = (h ? innerWidth : innerHeight) - 28 - (h ? 0 : 20);
     if (R.classList.contains('mn-dock-free')) room = (h ? innerWidth : innerHeight) - 24;   // placed freely: the whole screen is the limit
     else if (R.classList.contains('duo-dockpin') || R.classList.contains('duo-docktop')) {   // the Duo's pinned Dock starts at its own place: the room left from there
-      var dr = d.getBoundingClientRect(); room = h ? innerWidth - Math.max(0, dr.left) - 16 : innerHeight - Math.max(0, dr.top) - 16;
+      var dr = d.getBoundingClientRect(); room = h ? innerWidth - Math.max(0, dr.left) - 16 : innerHeight - 44;   /* it stands on the bottom now: the whole column is its room */
     }
     var k = Math.floor((room - 10 - seps * 10 - Math.max(0, keys - 1) * 4) / (keys + lens));
     k = Math.max(22, Math.min(mc ? 38 : 40, k));

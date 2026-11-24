@@ -28,9 +28,10 @@
     walkYard: [[870, 1200], [1000, 1192], [1138, 1192], [1200, 1178], [1330, 1152], [1420, 1140], [1420, 1172], [1330, 1198], [1215, 1222], [1140, 1250], [1010, 1262], [930, 1270]],   /* 石阶脚下的小路和前院花园那条草带 */
     stairs: [[1000, 1192], [1138, 1192], [1100, 1126], [1040, 1066], [948, 1066], [985, 1104], [1000, 1140]],   /* 前院的石阶（底图里画着的） */
     walkPorch: [[856, 1050], [948, 1068], [1040, 1068], [1010, 1032], [880, 1030]],   /* 石阶顶上到房门前 */
-    bench: [1300, 1160], hilltop: [40, 956],   /* 花园里的长椅、山坡顶上坐下看山谷的地方 */
+    bench: [1300, 1160], hilltop: [40, 956],   /* 前院花园（原来放长椅的地方，长椅已去掉）、山坡顶上坐下看山谷的地方 */
     hops: [[1010, 1405], [1215, 1428], [1365, 1338], [1555, 1318], [1745, 1315]],   /* 从小路尽头跳过栏杆，经溪里的石头到对岸 */   /* 踩着溪里的石头过溪（两头在两边草地上） */
     waterSpots: [[1800, 1245, 1700, 1255], [1676, 1398, 1560, 1408]],
+    yardFlowers: [[1118, 1152, 0], [1172, 1130, 2], [1212, 1166, 1], [1252, 1142, 3], [1318, 1122, 0], [1384, 1130, 4], [1432, 1150, 2], [1196, 1208, 1], [1262, 1202, 3], [1352, 1178, 0], [1092, 1246, 4]],   /* 前院花园里零星的花：底图坐标 + 花色 */
     gardens: [[430, 1272, 352, 1262], [1004, 1052, 1078, 1040], [1180, 1206, 1186, 1150], [1905, 1345, 1885, 1402]],   /* 能打理的花草：小人站的地方 → 花丛 */
     stool: [2060, 1325, 2108, 1296],   /* 石桌边：走到的地方 → 坐的那只石凳 */   /* 玩水：小人站的地方 → 水面的点 */
     fence: [[1962, 1080], [2000, 1080], [2012, 1190], [2018, 1300], [2020, 1438], [1680, 1438], [1680, 1395], [1730, 1360], [1870, 1205]],   /* 石桌边沿河那道木栅栏和它的影子：铺成草地 */          /* 房前那条土路：铺成草地 */
@@ -452,6 +453,10 @@
       var bar = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.055, 0.72, 8), wood(0x5e452c, 0.7)); bar.quaternion.setFromUnitVectors(Y, side); bar.position.set(0, 0.04, 0); pivot.add(bar);   /* 平台下的木挂杆，绳子绕在上面打结 */
       [-HW, HW].forEach(function (o) { var kn = new THREE.Mesh(new THREE.SphereGeometry(0.065, 10, 8), knotM); kn.position.copy(side).multiplyScalar(o); kn.position.y = 0.03; pivot.add(kn); });
       var roll = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.46, 14), ropeM); roll.quaternion.setFromUnitVectors(Y, side); roll.position.set(0, -0.05, 0); pivot.add(roll);
+      /* 秋千板：荡秋千时才有，搭在最下一档前面（朝镜头），小人坐在板上，身子在绳梯前面，头和背包都碰不到上面的横档 */
+      var out = new THREE.Vector3().crossVectors(side, Y); if (out.dot(toCam) < 0) out.negate();
+      var seat = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.035, 0.3), wood(0x7d5a38, 0.95)); seat.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(side, Y, side.clone().cross(Y)));
+      seat.position.set(0, -full + 0.02, 0).addScaledVector(out, 0.16); seat.visible = false; pivot.add(seat);
       C.Paint.toonTree(pivot, function () { return { rim: 0.12 }; });   /* 细杆上的暖色边缘光会把整架梯子染成亮黄，这里只留一点 */
       var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches, breeze = new THREE.Quaternion();
       var st = { k: 0, want: 0, ang: 0 };
@@ -464,7 +469,7 @@
       var foot = new THREE.Vector3(top.x, base.y, top.z).addScaledVector(toCam, 0.35), ladderTop = new THREE.Vector3(top.x, top.y + 0.05, top.z).addScaledVector(toCam, 0.25);
       var deck = atDepth(R[0] - 70, R[1] - 12, 0.4); deck.y = top.y + 0.08;            /* 平台上站的地方（栏杆后面一点） */
       return {
-        pivot: pivot, ladder: foot, ladderTop: ladderTop, deck: deck, face: Math.atan2(-toCam.x, -toCam.z), toCam: toCam, len: full,
+        pivot: pivot, ladder: foot, ladderTop: ladderTop, deck: deck, face: Math.atan2(-toCam.x, -toCam.z), toCam: toCam, out: out, len: full, calm: calm, seat: function (on) { seat.visible = !!on; },
         down: function () { return st.want === 0 && st.k < 0.01; },
         moving: function () { return Math.abs(st.k - st.want) > 0.001; },
         roll: function (up) { st.want = up ? 1 : 0; },
@@ -631,7 +636,7 @@
       '<div class="ce-scope" hidden><div class="ce-scope-tag" aria-live="polite"></div></div>' +
       '<div class="ce-map" hidden role="dialog" aria-modal="true" aria-label="山谷地图"><div class="ce-map-sheet"><h3>山谷地图</h3><div class="ce-map-scroll"><div class="ce-map-pic"><img alt="从树屋望出去的整片山谷，做成了一张旧地图"></div></div><p>带 ➜ 的地方，点一下就从树屋过去</p><button type="button" class="ce-map-x">收起地图</button></div></div>';
     document.body.appendChild(ui);
-    var churchEl = document.createElement('button'); churchEl.className = 'ce-mac-web'; churchEl.type = 'button'; churchEl.setAttribute('aria-label', '教堂 · Mac 网页版看板'); churchEl.title = 'Mac Web · 看板'; churchEl.innerHTML = '<span>Mac Web ↗</span>'; ui.appendChild(churchEl);
+    var churchEl = document.createElement('button'); churchEl.className = 'ce-mac-web'; churchEl.type = 'button'; churchEl.setAttribute('aria-label', '教堂 · Mac 网页版看板'); churchEl.innerHTML = '<span class="ce-ring" aria-hidden="true"></span>';   /* 和进屋一样的波纹圆圈，不再是文字标签 */ ui.appendChild(churchEl);
     churchEl.addEventListener('click', function (e) { e.stopPropagation(); if (window.parent !== window) { if (window.parent.MinestStartControls) window.parent.MinestStartControls.openWeb(true); else window.parent.postMessage({clun:'web'}, '*'); } else location.href = '../../web31.0.html?dock=1&from=clun'; });
 
     var css = document.createElement('style'); css.textContent =
@@ -662,7 +667,7 @@
       '.clun-entry .ce-stick[hidden],.clun-entry .ce-help[hidden]{display:none}' +
       '.clun-entry .ce-knob{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:rgba(255,255,255,.75);box-shadow:0 2px 8px rgba(0,0,0,.25)}' +
       '.clun-entry .ce-help{position:fixed;z-index:40;left:50%;transform:translateX(-50%);top:calc(16px + env(safe-area-inset-top));font:500 12px/1 -apple-system,"PingFang SC",sans-serif;color:#fff;padding:7px 12px;border-radius:12px;background:rgba(30,36,30,.45);pointer-events:none;white-space:nowrap}';
-    css.textContent += '.clun-entry .ce-mac-web{position:fixed;z-index:35;padding:0;border:0;border-radius:12px;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;cursor:pointer;transform:none;min-width:44px;min-height:44px}.ce-mac-web span{position:absolute;bottom:-28px;left:50%;transform:translateX(-50%);white-space:nowrap;font:600 11px/1.2 -apple-system,sans-serif;letter-spacing:.05em;padding:7px 10px;border:1px solid #ffffff65;border-radius:20px;color:#fff;background:#1d2b4f99;backdrop-filter:blur(10px);opacity:0;transition:opacity .25s}.ce-mac-web:hover span,.ce-mac-web:focus-visible span{opacity:1}.ce-mac-web:focus-visible{outline:2px solid #fff;outline-offset:3px}';
+    css.textContent += '.clun-entry .ce-mac-web{position:fixed;z-index:35;padding:0;border:0;border-radius:12px;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;cursor:pointer;transform:none;min-width:44px;min-height:44px}.clun-entry .ce-mac-web{display:flex;align-items:center;justify-content:center}.ce-mac-web:focus-visible{outline:2px solid #fff;outline-offset:3px}';
     css.textContent += '.clun-entry .ce-scope{position:fixed;inset:0;z-index:30;pointer-events:none;background:radial-gradient(circle at 50% 50%,transparent 0,transparent calc(min(38vw,38vh) - 1px),rgba(8,10,8,.97) min(38vw,38vh))}.clun-entry .ce-scope[hidden]{display:none}' +
       '.clun-entry .ce-scope::before{content:"";position:absolute;left:50%;top:50%;width:calc(2 * min(38vw,38vh));height:calc(2 * min(38vw,38vh));transform:translate(-50%,-50%);border-radius:50%;border:4px solid #c79a3a;box-shadow:inset 0 0 46px rgba(0,0,0,.6);box-sizing:border-box}' +
       '.clun-entry .ce-scope::after{content:"";position:absolute;left:50%;top:50%;width:26px;height:26px;transform:translate(-50%,-50%);background:linear-gradient(rgba(255,244,214,.8),rgba(255,244,214,.8)) 50% 50%/100% 1.5px no-repeat,linear-gradient(rgba(255,244,214,.8),rgba(255,244,214,.8)) 50% 50%/1.5px 100% no-repeat}' +
@@ -838,15 +843,6 @@
     var hopsW = PL.hops.map(function (h, i) { if (i === 0 || i === PL.hops.length - 1) return onTerrain(h[0], h[1]); var r = onGround(h[0], h[1]); r.y = gy - 0.1; return r; });
     var porchW = onTerrain(PL.door[0], PL.door[1] + 45);
     var benchW = onTerrain(PL.bench[0], PL.bench[1]), benchAt = onTerrain(PL.bench[0], PL.bench[1] + 10), hillW = onTerrain(PL.hilltop[0], PL.hilltop[1]);
-    var bench = (function () {                                              /* 前院花园里的木长椅：朝着镜头（山谷）这边 */
-      var g = new THREE.Group(), wd = function (hex) { return new THREE.MeshStandardMaterial({ color: new THREE.Color(hex).convertSRGBToLinear(), roughness: 1 }); }, m1 = wd(0xa67c4c), m2 = wd(0x6e5030);
-      function b(w, h, d, m, x, y, z) { var o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); g.add(o); disp.push(o.geometry); }
-      [-0.14, 0, 0.14].forEach(function (z) { b(1.3, 0.04, 0.12, m1, 0, 0.4, z); });
-      [0.62, 0.8].forEach(function (y) { b(1.3, 0.1, 0.035, m1, 0, y, -0.22); });
-      [-0.56, 0.56].forEach(function (x) { b(0.07, 0.4, 0.07, m2, x, 0.2, 0.16); b(0.07, 0.9, 0.07, m2, x, 0.45, -0.22); b(0.07, 0.05, 0.42, m2, x, 0.56, -0.02); });
-      g.position.copy(benchW); g.rotation.y = Math.atan2(cam.pos.x - benchW.x, cam.pos.z - benchW.z) - 0.2; g.scale.setScalar(0.9); root.add(g); disp.push(m1, m2);
-      C.Paint.toonTree(g, function () { return { cel: true }; }); return g;
-    })();
     var blob = new THREE.Mesh(new THREE.CircleGeometry(0.3, 20), new THREE.MeshBasicMaterial({ color: 0x0c1a08, transparent: true, opacity: 0.3, depthWrite: false }));   /* 小人脚下的影子 */
     blob.rotation.x = -Math.PI / 2; blob.renderOrder = 3; blob.visible = false; root.add(blob); disp.push(blob.geometry, blob.material);
     C._out = { st: OUT, surf: surf, heightAt: heightAt, toPx: toPx, walkable: walkable, step: STEP, tree: function () { return TREE; }, enterTree: function () { enterTree(); }, th: function () { return TH; }, hops: function () { return hopsW; }, water: function () { return waterW; } };   /* 调试用 */
@@ -930,7 +926,7 @@
       if (C.setLampLevel) C.setLampLevel(0); toast('点一下图标或草地就能走过去：树屋、小溪、花丛都可以去');
     }
     function startOutdoorHere() {                                           /* 从开屏直接开始：小人从它现在站的地方走起 */
-      OUT.on = true; OUT.act = null; OUT.frame = null; OUT.pos.copy(hero.root.position); settle(OUT.pos); if (!walkable(OUT.pos)) OUT.pos.copy(porchW);
+      idleOff(); OUT.on = true; OUT.act = null; OUT.frame = null; OUT.pos.copy(hero.root.position); settle(OUT.pos); if (!walkable(OUT.pos)) OUT.pos.copy(porchW);
       OUT.yaw = hero.root.rotation.y; actsEl.hidden = false; barEl.hidden = false; doorEl.hidden = true;
     }
     function walkTo(px, py) {                                                /* 点画面：点在图标上就走到那个地方，点在能走的草地上就走到那一点 */
@@ -940,7 +936,21 @@
       var to = best ? best.at.clone() : onTerrain(px, py); if (!best && !walkable(to)) return false;
       OUT.goal = to; OUT.stuck = 0; OUT.left = null; return true;
     }
-    function leaveOutdoor() { OUT.on = false; OUT.act = null; blob.visible = false; hero.pose(null); ctxEl.innerHTML = ''; OUT.key = ''; TH.swing(0); }
+    /* 荡秋千的一帧：小人跟绳梯是一体的（位置、倾斜都跟着摆），坐在秋千板上；往前荡时伸腿后仰，往后荡时收腿前倾 */
+    var SW = { w: Math.max(1.5, Math.min(2.4, Math.sqrt(9.8 / Math.max(1, TH.len)))), yawQ: new THREE.Quaternion(), yaw: Math.atan2(TH.out.x, TH.out.z), idle: false, t0: 0 };
+    SW.yawQ.setFromAxisAngle(new THREE.Vector3(0, 1, 0), SW.yaw);
+    function swingAt(ang, dt) {
+      TH.seat(true); TH.swing(ang || 1e-6); var q = TH.pivot.quaternion, up = new THREE.Vector3(0, 1, 0).applyQuaternion(q), fw = TH.out.clone().applyQuaternion(q);
+      var pos = TH.bottom().addScaledVector(fw, 0.23).addScaledVector(up, 0.05 - 0.42), n = Math.max(-1, Math.min(1, -up.dot(TH.out) / 0.4));
+      if (hero.posed() !== 'sit') hero.pose('sit', 0.42);
+      hero.drive(pos, SW.yaw, false, dt); hero.root.quaternion.copy(q).multiply(SW.yawQ);
+      [0, 1].forEach(function (k) { hero.legs[k].knee.rotation.x = 1.25 - 0.85 * n; hero.legs[k].hip.rotation.x = -1.45 - 0.12 * n; hero.arms[k].sh.rotation.x = 0.28; hero.arms[k].el.rotation.x = -0.12; });
+      hero.torso.rotation.x = -0.04 - 0.22 * n; hero.head.rotation.x = 0.1 * n;
+      return pos;
+    }
+    function swingOff() { TH.swing(0); TH.seat(false); hero.root.rotation.set(0, SW.yaw, 0); }
+    function idleOff() { if (!SW.idle) return; SW.idle = false; swingOff(); hero.release(); spot = null; hero.root.position.copy(TH.ladder); }
+    function leaveOutdoor() { OUT.on = false; OUT.act = null; blob.visible = false; hero.pose(null); ctxEl.innerHTML = ''; OUT.key = ''; swingOff(); }
     function goInside() { leaveOutdoor(); startExplore(); }
     function nearPt(v, d) { return Math.hypot(v.x - OUT.pos.x, v.z - OUT.pos.z) < d; }
     /* —— 能互动的地方：每处上方飘一个小图标（好找），走到画面上 REACH 像素以内就出按钮；点图标 / 点草地，小人自己走过去 —— */
@@ -967,7 +977,6 @@
       if (!TH.down()) return [{ label: '⬇ 放下绳梯', run: function () { TH.roll(false); } }];
       return [{ label: '🪜 爬树屋', run: function () { OUT.pos.copy(TH.ladder); startAct('up'); } }, { label: '🎠 荡秋千', run: function () { startAct('swing'); } }, { label: '⬆ 收起绳梯', run: function () { TH.roll(true); } }];
     });
-    addSpot(benchAt, '🪑', 1.5, function () { return [{ label: '🪑 坐长椅', run: function () { startAct('rest', { p: benchW, yaw: bench.rotation.y, h: 0.38, back: benchAt }); } }]; });
     addSpot(hillW, '🌄', 1.8, function () { return [{ label: '🌄 坐下看山谷', run: function () { startAct('rest', { p: OUT.pos.clone(), yaw: 0.9, h: 0.1, back: OUT.pos.clone() }); } }]; });
     waterW.forEach(function (w) { addSpot(w.at, '💧', 1.0, function () { return [{ label: '💧 玩水', run: function () { startAct('water', w); } }]; }); });
     addSpot(hopsW[0], '🪨', 1.0, function () { return [{ label: '🪨 踩石头过溪', run: function () { OUT.pos.copy(hopsW[0]); startAct('hop', hopsW); } }]; });
@@ -981,6 +990,11 @@
       g.fillStyle = col; for (var i = 0; i < 5; i++) { var an = i * 1.2566 - 1.5708; g.beginPath(); g.arc(32 + Math.cos(an) * 12, 26 + Math.sin(an) * 12, 10, 0, 6.2832); g.fill(); }
       g.fillStyle = col === '#f7c948' ? '#b8742a' : '#ffd95a'; g.beginPath(); g.arc(32, 26, 7, 0, 6.2832); g.fill();
       var t = new THREE.CanvasTexture(c); disp.push(t); return t;
+    });
+    /* 前院花园：零星几朵花点缀在草带和灌木脚下（不成片），随风轻轻晃 */
+    var GARDEN = PL.yardFlowers.map(function (p, i) {
+      var m = new THREE.SpriteMaterial({ map: flowerTex[p[2]], transparent: true, alphaTest: 0.05 }), fl = new THREE.Sprite(m), h = 0.3 + 0.1 * ((i * 7) % 5) / 4;
+      fl.center.set(0.5, 0); fl.position.copy(onTerrain(p[0], p[1])); fl.scale.set(h * 0.67, h, 1); fl.userData = { h: h, ph: i * 1.9 }; root.add(fl); disp.push(m); return fl;
     });
     function sprout(center, spread, n) {                                    /* 在 center 周围（按底图像素散开）长出 n 朵花 */
       var cp = toPx(center);
@@ -1041,9 +1055,8 @@
         hero.drive(OUT.pos, faceYaw, true, dt);
       } else if (a && a.kind === 'swing') {                                 /* 荡秋千：坐在最下一档，整条绳梯绕顶上前后摆；「下来」后慢慢停住再落地 */
         var ts = now - a.t0, amp = 0.42 * Math.min(1, ts / 1.5); if (a.stop) amp *= Math.max(0, 1 - (now - a.stop) / 1.2);
-        TH.swing(amp * Math.sin(ts * 2.3)); var bt = TH.bottom(), seatPos = bt.clone().addScaledVector(TH.toCam, 0.06); seatPos.y -= 0.42;
-        OUT.pos.copy(seatPos); hero.drive(seatPos, Math.atan2(TH.toCam.x, TH.toCam.z), false, dt);
-        if (a.stop && now - a.stop > 1.2) { TH.swing(0); OUT.act = null; hero.pose(null); OUT.pos.copy(TH.ladder); }
+        OUT.pos.copy(swingAt(amp * Math.sin(ts * SW.w), dt));
+        if (a.stop && now - a.stop > 1.2) { swingOff(); OUT.act = null; hero.pose(null); OUT.pos.copy(TH.ladder); }
       } else if (a && a.kind === 'crouch') {
         if (now > a.next) { splash(a.water, 6); a.next = now + 0.35; }
         hero.drive(OUT.pos, OUT.yaw, false, dt);
@@ -1235,18 +1248,24 @@
         if (TREE) { var it = inTree(); if (TREE.group.visible !== it) TREE.group.visible = it; if (!it && (EX.scope || !scopeEl.hidden || !mapEl.hidden)) { EX.scope = null; scopeEl.hidden = true; mapEl.hidden = true; } }
         if (!OUT.on && blob.visible) blob.visible = false;
         marks.visible = OUT.on && !walk;
+        if (SW.idle && (walk || OUT.on)) idleOff();
         if (walkCamera(camera, sz, va, now)) { churchEl.hidden = true; FX.outdoor(!walk.explore && !walk.done && now - walk.t0 < WALK.zoom); return; }   /* 推到门口那一段还算屋外，之后进屋 */
         FX.outdoor(true);
-        awakeUi(); TH.tick(Math.min(0.05, now - (TH.lastT || now))); TH.lastT = now; TH.idle(now, !!OUT.act);
+        GARDEN.forEach(function (fl) { var u = fl.userData; fl.scale.x = u.h * 0.67 * (1 + Math.sin(now * 1.6 + u.ph) * 0.05); });
+        awakeUi(); TH.tick(Math.min(0.05, now - (TH.lastT || now))); TH.lastT = now; TH.idle(now, !!OUT.act || SW.idle);
         if (!walk && !OUT.on && !trans && Math.abs(EX.stick[0]) + Math.abs(EX.stick[1]) + (EX.keys.w || EX.keys.a || EX.keys.s || EX.keys.d ? 1 : 0) > 0.15) startOutdoorHere();   /* 开屏推摇杆：小人直接在屋外走起来 */
         if (OUT.on) outdoorStep(now);
+        else if (TH.down()) {                                              /* 开屏默认：小人坐在树屋的绳梯秋千上慢慢荡（点草地 / 推摇杆就下来走） */
+          if (!SW.idle) { SW.idle = true; SW.t0 = now; hero.pose('sit', 0.42); }
+          var ti = now - SW.t0; swingAt(TH.calm ? 0 : 0.3 * Math.min(1, ti / 2) * Math.sin(ti * SW.w), Math.min(0.05, now - (SW.last || now))); SW.last = now;
+        } else idleOff();
         var k = screenKind(sz.x, sz.y);
         if (k !== kind) { document.body.classList.toggle('duo-screen', (k === 'outer' || k === 'inner') && !PL.sim); var from = kind == null ? bootFrom : kind; kind = k; if (from && from !== k) { beginTransition(from, k, va, now); O.zoom = 1; O.az = O.el = 0; } else try { sessionStorage.setItem('clun.duo.kind', JSON.stringify({ k: k, t: Date.now() })); } catch (e) {} }
         var tgt = frameFor(k, va), r = tgt;
         if (OUT.on) {                                                       /* 屋外：画框跟着小人（略推近），平滑移动 */
           var hp = toPx(OUT.pos), fh = Math.min(PL.H, 640), want = { cx: hp[0], cy: hp[1] - 150, w: Math.min(PL.W, fh * va), h: Math.min(PL.W, fh * va) / va };
           OUT.frame = OUT.frame ? lerpR(OUT.frame, want, 0.08) : want; tgt = OUT.frame; r = tgt;
-        } else heroAt(k !== 'outer' && shows(tgt, PL.table[1][0]) ? 'table' : 'walk');   /* 远景看得到石桌就在石桌边，否则（外屏 / 接近方形的内屏）在门前小路上 */
+        } else if (!SW.idle) heroAt(k !== 'outer' && shows(tgt, PL.table[1][0]) ? 'table' : 'walk');   /* 远景看得到石桌就在石桌边，否则（外屏 / 接近方形的内屏）在门前小路上 */
         if (trans) {
           var p = Math.max(0, Math.min(1, (now - trans.t0 - trans.hold) / trans.dur)), e = ease(p);
           r = lerpR(trans.from, tgt, e);
