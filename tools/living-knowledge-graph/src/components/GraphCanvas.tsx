@@ -18,6 +18,7 @@ import {
   expandPolygonFromCentroid,
 } from '../utils/graphAlgorithms';
 import { RELATIONSHIP_META } from '../data/livingKnowledgeData';
+import { REL_TYPE_META } from '../data/minestSource';
 
 export interface GraphCanvasHandle {
   resetCamera: () => void;
@@ -51,6 +52,12 @@ interface GraphCanvasProps {
   onSelectNode: (nodeId: string | null) => void;
   onHoverNode: (nodeId: string | null) => void;
   onDoubleClickNode: (nodeId: string) => void;
+  // Living Knowledge: a line can be picked (to read why two notes are linked); several notes can be picked for a synthesis
+  selectedEdgeId?: string | null;
+  multiSelectedIds?: Set<string>;
+  multiMode?: boolean;
+  onSelectEdge?: (edgeId: string | null) => void;
+  onToggleMulti?: (nodeId: string) => void;
 }
 
 interface CameraTransform {
@@ -157,6 +164,11 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       onSelectNode,
       onHoverNode,
       onDoubleClickNode,
+      selectedEdgeId = null,
+      multiSelectedIds,
+      multiMode = false,
+      onSelectEdge,
+      onToggleMulti,
     },
     ref
   ) => {
@@ -189,6 +201,9 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
     const localCenterIdRef = useRef<string | null>(localCenterId);
     const scopeModeRef = useRef<'global' | 'local'>(scopeMode);
     const isDarkRef = useRef<boolean>(isDark);
+    const selectedEdgeIdRef = useRef<string | null>(selectedEdgeId);
+    const multiRef = useRef<Set<string> | undefined>(multiSelectedIds);
+    const multiModeRef = useRef<boolean>(multiMode);
 
     const interactionRef = useRef<{
       isDraggingNode: boolean;
@@ -240,7 +255,13 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       localCenterIdRef.current = localCenterId;
       scopeModeRef.current = scopeMode;
       isDarkRef.current = isDark;
+      selectedEdgeIdRef.current = selectedEdgeId;
+      multiRef.current = multiSelectedIds;
+      multiModeRef.current = multiMode;
     }, [
+      selectedEdgeId,
+      multiSelectedIds,
+      multiMode,
       adjacencyMap,
       incidentEdgesMap,
       degreeMap,
@@ -305,6 +326,36 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
     );
 
     // Helper that applies mode-specific spatial forces (ExcaliBrain Compass, Radial Orbit, Timeline River, or Free Force)
+    // the line under the pointer: the closest one within a few pixels (lines are straight in the Obsidian view)
+    const findEdgeAtScreenPos = useCallback(
+      (sx: number, sy: number): KnowledgeEdge | null => {
+        const canvas = canvasRef.current;
+        if (!canvas) return null;
+        const rect = canvas.getBoundingClientRect();
+        const p = screenToWorld(sx, sy, rect.width, rect.height);
+        const reach = 7 / Math.max(0.12, cameraRef.current.k);
+        const nMap = nodeMapRef.current;
+        let best: KnowledgeEdge | null = null;
+        let bestD = reach * reach;
+        const list = edgesRef.current;
+        for (let i = 0; i < list.length; i++) {
+          const ends = getEdgeEndpointIds(list[i]);
+          const a = nMap.get(ends.sourceId);
+          const b = nMap.get(ends.targetId);
+          if (!a || !b) continue;
+          const ax = a.x || 0, ay = a.y || 0, bx = b.x || 0, by = b.y || 0;
+          const vx = bx - ax, vy = by - ay;
+          const len2 = vx * vx + vy * vy || 1;
+          const t = Math.max(0, Math.min(1, ((p.x - ax) * vx + (p.y - ay) * vy) / len2));
+          const dx = p.x - (ax + t * vx), dy = p.y - (ay + t * vy);
+          const d2 = dx * dx + dy * dy;
+          if (d2 <= bestD) { bestD = d2; best = list[i]; }
+        }
+        return best;
+      },
+      [screenToWorld]
+    );
+
     const applyModeForces = useCallback(
       (
         sim: d3Force.Simulation<KnowledgeNode, undefined>,
@@ -969,14 +1020,21 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             continue;
           }
 
-          const isHighlightedEdge = activeFocusId ? focusEdges?.has(edge.id) ?? false : false;
+          const isPickedEdge = selectedEdgeIdRef.current === edge.id;
+          const isHighlightedEdge = isPickedEdge || (activeFocusId ? focusEdges?.has(edge.id) ?? false : false);
 
           if (nodeCount >= 3500 && cam.k < 0.25 && !isHighlightedEdge && i % 2 === 1) {
             continue;
           }
 
           const relMeta = RELATIONSHIP_META[edge.relationshipType];
-          let strokeColor = isHighlightedEdge
+          // a Living Knowledge relation keeps the colour of its kind, also when it is highlighted
+          const typeMeta = edge.relationType ? REL_TYPE_META[edge.relationType] : undefined;
+          let strokeColor = typeMeta
+            ? dark
+              ? typeMeta.colorDark
+              : typeMeta.colorLight
+            : isHighlightedEdge
             ? '#8B7CF6'
             : dark
             ? relMeta.colorDark
@@ -990,8 +1048,10 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             strokeColor = getHeatColor(cScore);
           }
 
-          let edgeAlpha = disp.colorOpacity * (edge.verified ? 0.38 : 0.48);
-          if (spotlightWeight > 0.02) {
+          let edgeAlpha = disp.colorOpacity * (typeMeta ? 0.62 : edge.verified ? 0.38 : 0.48);
+          if (edge.mark === 'new') edgeAlpha = Math.min(1, disp.colorOpacity);
+          if (isPickedEdge) edgeAlpha = 1;
+          else if (spotlightWeight > 0.02) {
             const targetAlpha = isHighlightedEdge
               ? Math.min(1, disp.colorOpacity * 0.94)
               : disp.colorOpacity * 0.06;
@@ -1001,15 +1061,21 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           ctx.save();
           ctx.globalAlpha = Math.max(0.03, Math.min(1, edgeAlpha));
           ctx.strokeStyle = strokeColor;
-          ctx.lineWidth = isHighlightedEdge
+          ctx.lineWidth = isPickedEdge
+            ? baseThickness * 2.6
+            : isHighlightedEdge
             ? baseThickness * 1.85
+            : edge.mark === 'new'
+            ? baseThickness * 1.7
             : mode === 'extended-graph'
             ? baseThickness * (0.7 + edge.weight * 0.85)
             : baseThickness;
 
+          // dashed: a suggestion waiting for the user. A relation the user confirmed is solid, whoever found it.
           if (
-            (!edge.verified || edge.relationshipType === 'ai-extracted') &&
-            disp.distinguishAIEgesDashed
+            edge.status
+              ? edge.status === 'suggested'
+              : (!edge.verified || edge.relationshipType === 'ai-extracted') && disp.distinguishAIEgesDashed
           ) {
             const dashLen = 4.5 / Math.pow(cam.k, 0.3);
             ctx.setLineDash([dashLen, dashLen * 0.85]);
@@ -1289,12 +1355,14 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           const isLocalCenter =
             scopeModeRef.current === 'local' && localCenterIdRef.current === node.id;
 
-          let nodeAlpha = disp.colorOpacity * (node.resolved ? 0.94 : 0.55);
+          let nodeAlpha = disp.colorOpacity * (node.faded ? 0.38 : node.resolved ? 0.94 : 0.55);
+          const isMulti = multiRef.current ? multiRef.current.has(node.id) : false;
           if (spotlightWeight > 0.02) {
             const targetAlpha =
               isPrimaryFocus || isNeighborFocus ? 1.0 : disp.colorOpacity * 0.13;
             nodeAlpha = nodeAlpha * (1 - spotlightWeight) + targetAlpha * spotlightWeight;
           }
+          if (isMulti) nodeAlpha = 1; // what was picked stays clear while the pointer is over something else
 
           ctx.save();
           ctx.globalAlpha = Math.max(0.05, Math.min(1, nodeAlpha));
@@ -1344,6 +1412,30 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             ctx.globalAlpha = Math.max(0.05, Math.min(1, nodeAlpha));
           }
 
+          // Time travel: what is new at this step has a green ring, what was changed an amber one
+          if (node.mark) {
+            ctx.beginPath();
+            ctx.arc(nx, ny, radius + 6.5 / Math.pow(cam.k, 0.3), 0, Math.PI * 2);
+            ctx.strokeStyle = node.mark === 'new' ? '#34D399' : '#FBBF24';
+            ctx.lineWidth = 2 / Math.pow(cam.k, 0.3);
+            if (node.mark === 'changed') ctx.setLineDash([3 / Math.pow(cam.k, 0.3), 3 / Math.pow(cam.k, 0.3)]);
+            ctx.globalAlpha = 1;
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.globalAlpha = Math.max(0.05, Math.min(1, nodeAlpha));
+          }
+          // Picked for a synthesis: a square frame, so it does not depend on colour alone
+          if (isMulti) {
+            const side = radius + 5.5 / Math.pow(cam.k, 0.3);
+            ctx.beginPath();
+            ctx.rect(nx - side, ny - side, side * 2, side * 2);
+            ctx.strokeStyle = dark ? '#FFFFFF' : '#0F172A';
+            ctx.lineWidth = 1.6 / Math.pow(cam.k, 0.3);
+            ctx.globalAlpha = 1;
+            ctx.stroke();
+            ctx.globalAlpha = Math.max(0.05, Math.min(1, nodeAlpha));
+          }
+
           // Halo ring for active hovered/selected node or local graph center
           if (isPrimaryFocus || isLocalCenter || selectedIdRef.current === node.id) {
             ctx.beginPath();
@@ -1369,12 +1461,14 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
               ctx.beginPath();
               ctx.arc(nx, ny, radius, 0, Math.PI * 2);
             }
+          } else if (node.type === 'insight') {
+            drawPolygonPath(ctx, nx, ny, radius * 1.25, 4, 0); // an insight is a diamond: an inference, not a page
           } else {
             ctx.beginPath();
             ctx.arc(nx, ny, radius, 0, Math.PI * 2);
           }
 
-          if (!node.resolved || node.type === 'unresolved') {
+          if (!node.resolved || node.type === 'unresolved' || node.draft) {
             ctx.fillStyle = dark ? '#1E2028' : '#F1F5F9';
             ctx.fill();
             ctx.lineWidth = 1.4 / Math.pow(cam.k, 0.3);
@@ -1731,14 +1825,21 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           ) {
             onDoubleClickNode(releasedNode.id);
             state.lastClickedNodeId = null;
+          } else if ((e.shiftKey || e.metaKey || e.ctrlKey || multiModeRef.current) && onToggleMulti) {
+            onToggleMulti(releasedNode.id);
+            state.lastClickedNodeId = null;
           } else {
             onSelectNode(releasedNode.id);
+            if (onSelectEdge) onSelectEdge(null);
             state.lastClickedNodeId = releasedNode.id;
             state.lastClickTime = now;
           }
         }
       } else if (state.isPanning && state.movedDistance < 5) {
+        const rect = canvas ? canvas.getBoundingClientRect() : null;
+        const hitEdge = rect && onSelectEdge ? findEdgeAtScreenPos(e.clientX - rect.left, e.clientY - rect.top) : null;
         onSelectNode(null);
+        if (onSelectEdge) onSelectEdge(hitEdge ? hitEdge.id : null);
       }
 
       state.isDraggingNode = false;

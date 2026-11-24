@@ -24,6 +24,7 @@
     relation: { coll: 'lk_relations', prefix: 'rl_' },
     decision: { coll: 'lk_decisions', prefix: 'dc_' },
     run: { coll: 'lk_runs', prefix: 'run_' },
+    insight: { coll: 'lk_insights', prefix: 'ins_' },
     meta: { coll: 'lk_meta', prefix: '' }
   };
   var PAGE_TYPES = ['concept', 'person', 'event', 'project', 'topic', 'howto', 'note'];
@@ -34,7 +35,13 @@
   var RELATION_STATUS = ['suggested', 'confirmed', 'rejected'];
   function relationStatus(r) { return r && (r.status === 'suggested' || r.status === 'rejected') ? r.status : 'confirmed'; }
   var ORIGINS = ['verified', 'ai_inferred', 'user'];
-  var DECISION_STATES = ['Proposed', 'Confirmed', 'Superseded', 'Rejected'];
+  var DECISION_STATES = ['Proposed', 'Confirmed', 'Superseded', 'Rejected', 'Disputed'];
+  /* an insight is what a synthesis of several pages and decisions concluded. It is its own kind of document, apart from the
+     pages: it starts as a Draft (written by AI or by the device), and only the user can make it Reviewed or Confirmed, or
+     reject it. A point of an insight is "supported" (it cites claims that were given) or a "hypothesis" (it cites nothing). */
+  var INSIGHT_STATUS = ['Draft', 'Reviewed', 'Confirmed', 'Rejected'];
+  var INSIGHT_MODES = ['synthesize', 'themes', 'compare', 'connections', 'insight'];
+  var POINT_KINDS = ['supported', 'hypothesis'];
   var MODULES = ['living-knowledge', 'journal', 'study', 'myworld', 'routine', 'agents', 'decisions'];
   var META_FIELDS = ['rev', 'updatedAt', 'updatedBy', 'createdAt', 'createdBy', 'baseRev'];
 
@@ -90,6 +97,8 @@
   function decisionId(title) { var s = slug(title); return 'dc_' + (s || hash(title)); }
   function relationId(from, type, to) { return 'rl_' + hash(from + '|' + type + '|' + to); }
   function sourceId(text) { return sha256Hex(normalizeText(text)).then(function (h) { return 'src_' + h.slice(0, 20); }); }
+  // the same nodes synthesised the same way are the same insight, whatever order they were picked in
+  function insightId(nodeIds, mode) { return 'ins_' + hash((mode || 'synthesize') + '|' + (nodeIds || []).slice().sort().join('|')); }
   function runId(now) { return 'run_' + (now || Date.now()).toString(36) + hash(Math.random()).slice(0, 4); }
 
   // [[target]] and [[target|label]] → [{ target, label, id }]
@@ -169,6 +178,17 @@
       if (!doc.title || !String(doc.title).trim()) errs.push('决策需要标题');
       enumErr(errs, 'state', doc.state, DECISION_STATES);
     }
+    if (kind === 'insight') {
+      if (!doc.title || !String(doc.title).trim()) errs.push('洞察需要标题');
+      enumErr(errs, 'status', doc.status, INSIGHT_STATUS);
+      if (doc.mode != null) enumErr(errs, 'mode', doc.mode, INSIGHT_MODES);
+      if (!(Array.isArray(doc.supportingNodeIds) && doc.supportingNodeIds.length && doc.supportingNodeIds.every(function (x) { return typeof x === 'string' && /^(pg_|dc_)/.test(x); }))) errs.push('洞察需要它所依据的知识页或决策');
+      (doc.points || []).forEach(function (pt, i) {
+        if (!pt || !pt.text) errs.push('points[' + i + '] 缺少 text');
+        else if (POINT_KINDS.indexOf(pt.kind) < 0) errs.push('points[' + i + '].kind 必须是 ' + POINT_KINDS.join(' / '));
+        else if (pt.kind === 'supported' && !((pt.claimIds || []).length + (pt.nodeIds || []).length)) errs.push('points[' + i + '] 标为有依据却没有引用');
+      });
+    }
     if (!errs.length && byteSize(doc) > MAX_DOC_BYTES) errs.push('内容超过 900 KB（Firestore 单个文档上限 1 MiB）');
     return errs;
   }
@@ -212,6 +232,13 @@
       if (doc.status !== 'suggested') return fail('agent-suggests-only', 'AI 只能提出待确认的关联');
       if (current && relationStatus(current) !== 'suggested') return fail('relation-decided', '这条关联你已经确认或否决过，AI 不能修改');
     }
+    if (kind === 'insight' && actor.type !== 'user') {
+      // AI (and the device's own synthesis) only writes drafts. One the user reviewed or confirmed is never written over;
+      // a rejected one only when the knowledge it rests on has changed since.
+      if (doc.status !== 'Draft') return fail('agent-drafts-only', 'AI 只能写出草稿状态的洞察');
+      if (current && (current.status === 'Reviewed' || current.status === 'Confirmed')) return fail('insight-decided', '这条洞察你已经审阅或确认过，AI 不能覆盖');
+      if (current && current.status === 'Rejected' && stable(current.seen || {}) === stable(doc.seen || {})) return fail('insight-rejected', '这条洞察你已经否决，它依据的内容没有变化，不再重复生成');
+    }
     if (kind === 'page') {
       if (current && current.lockedBy === 'user' && actor.type !== 'user') return fail('page-locked', '这一页被你锁定了，AI 只能提建议');
       if (actor.type !== 'user' && (doc.lockedBy || null) !== ((current && current.lockedBy) || null)) return fail('page-locked', 'AI 不能改锁定状态');
@@ -224,6 +251,8 @@
     doc.updatedAt = now;
     doc.updatedBy = by;
     var version = { id: String(doc.rev), rev: doc.rev, at: now, by: by, reason: String(opts.reason || (current ? '修改' : '新建')).slice(0, 200), snapshot: clone(doc) };
+    // where the change came from (an import run, a synthesis, another part of Minest); the previous state is the version before
+    if (opts.source) version.source = String(opts.source).slice(0, 120);
     if (byteSize(version) > MAX_DOC_BYTES + 2000) return fail('invalid', '内容超过 900 KB（Firestore 单个文档上限 1 MiB）');
     return { ok: true, doc: doc, version: version };
   }
@@ -288,6 +317,20 @@
       '\n\n## 选项 Options\n\n' + list(d.options) + '\n\n## 决定 Decision\n\n' + (d.decision || '-') +
       '\n\n## 理由 Reasons\n\n' + list(d.reasons) + '\n\n## 待解决 Open questions\n\n' + list(d.openQuestions) + '\n';
   }
+  function insightToMarkdown(n, ctx) {
+    var titles = (ctx && ctx.titles) || {};
+    var name = function (id) { return titles[id] ? '[[' + titles[id] + ']]' : id; };
+    var pts = (n.points || []).map(function (pt) {
+      return '- ' + pt.text + ' _(' + (pt.kind === 'supported' ? '有依据' : '假设 · 没有引用') + ')_' + ((pt.nodeIds || []).length ? ' — ' + pt.nodeIds.map(name).join('、') : '');
+    }).join('\n');
+    var ev = (n.evidence || []).map(function (e) { return '- ' + name(e.nodeId) + '：“' + e.quote + '”'; }).join('\n');
+    var list = function (a) { return (a || []).filter(Boolean).map(function (x) { return '- ' + x; }).join('\n') || '-'; };
+    return frontMatter({ id: n.id, title: n.title, status: n.status, mode: n.mode, origin: n.origin, engine: n.engine, rev: n.rev, created: iso(n.createdAt), updated: iso(n.updatedAt) }) +
+      '\n# ' + n.title + '\n\n**状态 Status:** ' + n.status + ' · ' + (n.status === 'Confirmed' ? '你确认的洞察' : n.status === 'Reviewed' ? '你审阅过的推断' : 'AI / 本机的推断，不是事实') +
+      '\n\n## 核心洞察 Core insight\n\n' + (n.insight || '-') + '\n\n## 依据的知识 Supporting knowledge\n\n' + list((n.supportingNodeIds || []).map(name)) +
+      '\n\n## 推理 Reasoning\n\n' + (n.reasoning || '-') + '\n\n## 要点 Points\n\n' + (pts || '-') + '\n\n## 出处 Evidence\n\n' + (ev || '-') +
+      '\n\n## 知识缺口 Gaps\n\n' + list(n.gaps) + '\n\n## 可以继续研究的问题 Questions\n\n' + list(n.questions) + '\n';
+  }
   function sourceToMarkdown(s) {
     return frontMatter({ id: s.id, title: s.title, kind: s.kind, contentHash: s.contentHash, url: s.origin && s.origin.url, file: s.origin && s.origin.fileName, supersedes: s.supersedes, imported: iso(s.createdAt) }) +
       '\n# ' + (s.title || s.id) + '\n\n' + String(s.text || '') + '\n';
@@ -351,6 +394,9 @@
     pages.forEach(function (p) { files.push({ name: 'pages/' + pageFile[p.id] + '.md', data: pageToMarkdown(p, { titles: titles, sources: sources, sourceFiles: sourceFile }) }); });
     (data.decisions || []).forEach(function (d) { files.push({ name: 'decisions/' + unique('decisions/', d.title, d.id) + '.md', data: decisionToMarkdown(d) }); });
     (data.sources || []).forEach(function (s) { files.push({ name: 'sources/' + sourceFile[s.id] + '.md', data: sourceToMarkdown(s) }); });
+    var nodeTitles = {}; Object.keys(titles).forEach(function (id) { nodeTitles[id] = titles[id]; });
+    (data.decisions || []).forEach(function (d) { nodeTitles[d.id] = nodeTitles[d.id] || fileName(d.title, d.id); });
+    (data.insights || []).forEach(function (n) { files.push({ name: 'insights/' + unique('insights/', n.title, n.id) + '.md', data: insightToMarkdown(n, { titles: nodeTitles }) }); });
     var index = '# Minest Living Knowledge\n\n导出时间 ' + new Date(when || Date.now()).toISOString() + '\n\n## 知识页 Pages (' + pages.length + ')\n\n' +
       (pages.map(function (p) { return '- [[' + pageFile[p.id] + ']] · ' + (p.type || 'note'); }).join('\n') || '-') +
       '\n\n## 决策 Decisions (' + (data.decisions || []).length + ')\n\n' + ((data.decisions || []).map(function (d) { return '- ' + d.title + ' · ' + d.state; }).join('\n') || '-') +
@@ -359,13 +405,14 @@
     var log = (data.log || []).slice().sort(function (a, b) { return b.at - a.at; }).slice(0, 500)
       .map(function (v) { return '- ' + iso(v.at) + ' · ' + v.kind + ' · ' + (v.title || v.id) + ' · 第 ' + v.rev + ' 版 · ' + v.by + ' · ' + v.reason; }).join('\n');
     files.push({ name: 'log.md', data: '# 修改记录 Log\n\n' + (log || '-') + '\n' });
-    files.push({ name: 'living-knowledge.json', data: JSON.stringify({ format: 'minest.living-knowledge/1', exportedAt: when || Date.now(), pages: data.pages || [], decisions: data.decisions || [], sources: data.sources || [], relations: data.relations || [] }, null, 1) });
+    files.push({ name: 'living-knowledge.json', data: JSON.stringify({ format: 'minest.living-knowledge/1', exportedAt: when || Date.now(), pages: data.pages || [], decisions: data.decisions || [], sources: data.sources || [], relations: data.relations || [], insights: data.insights || [] }, null, 1) });
     return files;
   }
 
   return {
     SCHEMA_VERSION: SCHEMA_VERSION, MAX_DOC_BYTES: MAX_DOC_BYTES, KINDS: KINDS, PAGE_TYPES: PAGE_TYPES, SOURCE_KINDS: SOURCE_KINDS,
     RELATION_TYPES: RELATION_TYPES, RELATION_STATUS: RELATION_STATUS, relationStatus: relationStatus, ORIGINS: ORIGINS, DECISION_STATES: DECISION_STATES, MODULES: MODULES,
+    INSIGHT_STATUS: INSIGHT_STATUS, INSIGHT_MODES: INSIGHT_MODES, POINT_KINDS: POINT_KINDS, insightId: insightId, insightToMarkdown: insightToMarkdown,
     clone: clone, stable: stable, sameContent: sameContent, hash: hash, sha256Hex: sha256Hex, normalizeText: normalizeText, slug: slug,
     pageId: pageId, decisionId: decisionId, relationId: relationId, sourceId: sourceId, runId: runId, parseLinks: parseLinks,
     defaultPermissions: defaultPermissions, defaultSchema: defaultSchema, can: can, validate: validate, byteSize: byteSize,

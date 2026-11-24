@@ -11,13 +11,13 @@
   var FB_SDK = ['app', 'auth', 'firestore'].map(function (n) { return 'https://www.gstatic.com/firebasejs/10.8.0/firebase-' + n + '-compat.js'; });
   var LAST_UID = 'minest.lk.lastUid', TAB_KEY = 'minest.lk.tab';
   var TYPE_NAMES = { concept: '概念', person: '人物', event: '事件', project: '项目', topic: '主题', howto: '方法', note: '笔记' };
-  var STATE_NAMES = { Proposed: '提议中', Confirmed: '已确认', Superseded: '已被取代', Rejected: '已否决' };
+  var STATE_NAMES = { Proposed: '提议中', Confirmed: '已确认', Superseded: '已被取代', Rejected: '已否决', Disputed: '有争议' };
   var MODULE_NAMES = { 'living-knowledge': '活知识本身', journal: 'Journal 日记', study: 'Study 学习', myworld: 'My World', routine: 'Routine 日程', agents: 'AI Agents', decisions: '设计 / 决策记录' };
 
   var $ = function (id) { return document.getElementById(id); };
   var main = $('lk-main');
   var store = null, ns = null, cloudOn = false, user = null, fb = null, unsubStore = null;
-  var ui = { tab: 'home', sel: { pages: null, decisions: null, sources: null }, edit: false, draft: null, dirty: false, q: '', hist: null, showRev: null, imp: null, ingest: null, run: null, choice: {}, qa: null, qaHist: [], composing: null, link: null };
+  var ui = { tab: 'home', sel: { pages: null, decisions: null, sources: null, insights: null }, edit: false, draft: null, dirty: false, q: '', hist: null, showRev: null, cmp: null, imp: null, ingest: null, run: null, choice: {}, qa: null, qaHist: [], composing: null, link: null, ins: null, insBusy: null };
   // inside Minest's Knowledge page: ?embed=1 (no title link back), ?theme=light|dark (follows Knowledge's appearance)
   var EMBED = /[?&]embed=1\b/.test(location.search);
   if (EMBED) document.documentElement.classList.add('lk-embed');
@@ -74,7 +74,7 @@
     ns = name; cloudOn = !!cloud;
     store = S.createStore({ local: S.idbLocal('minest.lk.v1:' + name), cloud: cloud, userId: 'me' });
     unsubStore = store.onChange(function (what) { paintStatus(); sendGraph(); sendHolo(); postStats(); if (what && (what.pulled || what.conflict)) render(); });
-    ui.sel = { pages: null, decisions: null, sources: null }; ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null;
+    ui.sel = { pages: null, decisions: null, sources: null, insights: null }; ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null; ui.ins = null;
     return store.ready().then(function () { render(); paintStatus(); postStats(); if (cloud) store.pull().then(function (n) { if (n) render(); }); });
   }
   function paintStatus() {
@@ -157,7 +157,8 @@
   // ================================================================== tabs
   function setTab(t) {
     if (t === ui.tab || !guard()) return;
-    ui.tab = t; ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null; ui.q = ''; ui.imp = null;
+    ui.tab = t; ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null; ui.cmp = null; ui.q = ''; ui.imp = null;
+    if (!(ui.ins && ui.ins.running)) ui.ins = null;
     lsSet(TAB_KEY, t);
     document.querySelectorAll('.lk-tabs [data-tab]').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === t)); });
     render();
@@ -168,7 +169,7 @@
     paintReviewCount(); paintChips();
     var askBtn = $('lk-ask-ai'); if (askBtn) askBtn.textContent = isLocal() ? '问知识库' : '问 AI';
     document.body.classList.toggle('lk-on-graph', ui.tab === 'graph');
-    var f = { home: renderHome, graph: renderGraph, pages: renderPages, decisions: renderDecisions, sources: renderSources, review: renderReview, conflicts: renderConflicts, perms: renderPerms }[ui.tab] || renderPages;
+    var f = { home: renderHome, graph: renderGraph, pages: renderPages, decisions: renderDecisions, sources: renderSources, insights: renderInsights, review: renderReview, conflicts: renderConflicts, perms: renderPerms }[ui.tab] || renderPages;
     return Promise.resolve(f()).then(function () {
       var t = main.querySelector('input.title[autofocus]');   // autofocus does not fire for HTML put in later
       if (t && document.activeElement !== t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); }
@@ -182,16 +183,45 @@
       }).join('') : '<li class="lk-empty">' + (ui.q ? '没有找到' : '还没有内容') + '</li>') + '</ul></aside>';
   }
   function matches(q, parts) { if (!q) return true; q = q.toLowerCase(); return parts.some(function (p) { return String(p || '').toLowerCase().indexOf(q) >= 0; }); }
+  /* Temporal Memory: the versions that were really saved, as a timeline. Each one says when, who, why and what changed
+     since the one before; any two can be compared line by line; an old one can be written back as a new version. */
+  var TM = window.MinestLKTime;
+  var INS_NAMES = { Draft: '草稿 · 未审阅', Reviewed: '已审阅', Confirmed: '已确认', Rejected: '已否决' };
+  var LINK_ST = { suggested: '待确认', confirmed: '已确认', rejected: '已否决' };
+  function who(by) { by = String(by || ''); return /^user:/.test(by) ? '你' : by === 'agent:link' ? '关联查找' : by === 'agent:synth' ? '知识综合' : /^agent:/.test(by) ? '自动整理（' + by.slice(6) + '）' : by; }
+  function stName(kind, s) { return (kind === 'decision' ? STATE_NAMES[s] : kind === 'insight' ? INS_NAMES[s] : LINK_ST[s]) || s || '—'; }
+  function diffLine(x) { return '<div class="' + (x.op === '+' ? 'add' : x.op === '-' ? 'del' : 'same') + '"><i>' + (x.op === '+' ? '+' : x.op === '-' ? '−' : '') + '</i><span>' + (esc(x.text) || '&nbsp;') + '</span></div>'; }
+  function diffHtml(d) {
+    var out = '', run = [];
+    var flush = function () {
+      if (run.length > 6) out += run.slice(0, 2).map(diffLine).join('') + '<div class="skip">… ' + (run.length - 4) + ' 行没有变化 …</div>' + run.slice(-2).map(diffLine).join('');
+      else out += run.map(diffLine).join('');
+      run = [];
+    };
+    d.forEach(function (x) { if (x.op === ' ') run.push(x); else { flush(); out += diffLine(x); } });
+    flush();
+    var c = TM.count(d);
+    return '<div class="lk-diff" role="group" aria-label="版本对比"><p class="lk-note">' + (c.added || c.removed ? '<b class="add">+' + c.added + ' 行</b> <b class="del">−' + c.removed + ' 行</b>' : '两版内容相同') + '</p>' + out + '</div>';
+  }
   function histHtml(kind, id, cur) {
-    if (!ui.hist) return '<div class="lk-hist"><button type="button" class="lk-btn ghost" data-act="hist">版本历史</button></div>';
-    return '<div class="lk-hist"><div class="lk-bar"><b>版本历史</b><span class="lk-note">恢复会把旧内容写成新的一版，历史不会被改写</span><span class="sp"></span><button type="button" class="lk-btn ghost" data-act="hist-close">收起</button></div><ol>' +
-      ui.hist.map(function (v) {
-        var open = ui.showRev === v.rev, snap = v.snapshot || {};
-        var body = kind === 'page' ? snap.markdown : M.decisionToMarkdown(snap);
-        return '<li><b>第 ' + v.rev + ' 版</b><span class="who">' + esc(when(v.at)) + ' · ' + esc(v.by) + ' · ' + esc(v.reason) + '</span>' +
-          '<button type="button" class="lk-btn ghost" data-act="show-rev" data-rev="' + v.rev + '">' + (open ? '收起' : '查看') + '</button>' +
-          (cur && v.rev !== cur.rev ? '<button type="button" class="lk-btn ghost" data-act="restore" data-rev="' + v.rev + '">恢复</button>' : '<span class="lk-badge">当前</span>') +
-          (open ? '<pre>' + esc(body || '') + '</pre>' : '') + '</li>';
+    if (!ui.hist) return '<div class="lk-hist"><button type="button" class="lk-btn ghost" data-act="hist">时间轴 · 版本历史</button></div>';
+    var tl = TM.timeline(kind, ui.hist), byRev = {};
+    tl.forEach(function (v) { byRev[v.rev] = v; });
+    var btn = function (act, rev, label) { return '<button type="button" class="lk-btn ghost" data-act="' + act + '" data-rev="' + rev + '">' + label + '</button>'; };
+    return '<div class="lk-hist"><div class="lk-bar"><b>时间轴</b><span class="lk-note">' + tl.length + ' 版 · 都是当时保存下来的记录。恢复会把旧内容写成新的一版，历史不会被改写。</span><span class="sp"></span><button type="button" class="lk-btn ghost" data-act="hist-close">收起</button></div><ol class="lk-tl">' +
+      tl.map(function (v) {
+        var open = ui.showRev === v.rev, cmp = ui.cmp && ui.cmp.rev === v.rev ? ui.cmp.base : null, isCur = !!cur && v.rev === cur.rev;
+        var named = function (c) { var m = /^被取代：(dc_.+)$/.exec(c); return m && dcache[m[1]] ? '被取代：' + dcache[m[1]].title : c; };
+        var chips = v.changes.map(function (c) { return typeof c === 'string' ? '<span class="lk-badge">' + esc(named(c)) + '</span>' : '<span class="lk-badge st">' + esc(stName(kind, c.from)) + ' → ' + esc(stName(kind, c.to)) + '</span>'; }).join('') +
+          (v.added || v.removed ? '<span class="lk-note">+' + v.added + ' −' + v.removed + ' 行</span>' : '');
+        var body = '';
+        if (open) body = '<pre>' + esc(TM.docText(kind, v.snapshot).join('\n')) + '</pre>';
+        else if (cmp === 'prev' && byRev[v.prevRev]) body = diffHtml(TM.diffDocs(kind, byRev[v.prevRev].snapshot, v.snapshot));
+        else if (cmp === 'cur' && cur) body = diffHtml(TM.diffDocs(kind, v.snapshot, cur));
+        return '<li' + (isCur ? ' class="cur"' : '') + '><div class="lk-tl-h"><b>第 ' + v.rev + ' 版</b><span class="who">' + esc(when(v.at)) + ' · ' + esc(who(v.by)) + ' · ' + esc(v.reason) + (v.source ? ' · 来自 ' + esc(v.source) : '') + '</span>' + (isCur ? '<span class="lk-badge Confirmed">当前</span>' : '') + '</div>' +
+          (chips ? '<div class="lk-tl-c">' + chips + '</div>' : '') +
+          '<div class="lk-tl-a">' + btn('show-rev', v.rev, open ? '收起' : '查看') + (v.prevRev != null ? btn('cmp-prev', v.rev, cmp === 'prev' ? '收起对比' : '和上一版对比') : '') +
+          (!isCur && cur ? btn('cmp-cur', v.rev, cmp === 'cur' ? '收起对比' : '和当前对比') + btn('restore', v.rev, '恢复这一版') : '') + '</div>' + body + '</li>';
       }).join('') + '</ol></div>';
   }
 
@@ -211,7 +241,7 @@
   }
   function tags(list) { return list.length ? '<span class="lk-tags">' + list.slice(0, 4).map(function (t) { return '<i>' + esc(t) + '</i>'; }).join('') + '</span>' : ''; }
   function renderHome() {
-    return Promise.all([store.list('page'), store.list('source'), store.list('decision'), store.list('run'), store.list('relation')]).then(function (r) {
+    return Promise.all([store.list('page'), store.list('source'), store.list('decision'), store.list('run'), store.list('relation'), store.list('insight')]).then(function (r) {
       var pages = r[0].sort(by('updatedAt')), srcs = r[1].sort(by('createdAt')), decs = r[2].sort(by('updatedAt')), runs = r[3], rels = r[4].filter(liveRel);
       cache.pages = {}; pages.forEach(function (p) { cache.pages[p.id] = p; });
       var claims = pages.reduce(function (n, p) { return n + (p.claims || []).length; }, 0);
@@ -234,7 +264,8 @@
       var recent = [].concat(
         pages.map(function (p) { return { t: p.updatedAt, kind: '知识页', title: p.title, to: 'pages', id: p.id }; }),
         decs.map(function (d) { return { t: d.updatedAt, kind: '决策 · ' + (STATE_NAMES[d.state] || d.state), title: d.title, to: 'decisions', id: d.id }; }),
-        srcs.map(function (s) { return { t: s.createdAt, kind: '来源', title: s.title, to: 'sources', id: s.id }; })
+        srcs.map(function (s) { return { t: s.createdAt, kind: '来源', title: s.title, to: 'sources', id: s.id }; }),
+        r[5].map(function (n) { return { t: n.updatedAt, kind: '洞察 · ' + (INS_NAMES[n.status] || n.status), title: n.title, to: 'insights', id: n.id }; })
       ).sort(function (a, b) { return b.t - a.t; }).slice(0, 8);
       main.innerHTML = '<div class="lk-home-h"><h2><small>Living Knowledge</small>我的知识库</h2><span class="lk-note">在一张卡里做的，其他卡里都看得到。</span></div>' +
         '<div class="lk-grid">' + cards.map(function (c, i) { return five(i, c); }).join('') + '</div>' +
@@ -300,8 +331,10 @@
      'open' (a tap on 打开原卡) — the page opens here; edits are made here, not in the projection. */
   var TYPE_GROUP = { concept: '概念', person: '人物', event: '事件', project: '项目', topic: '主题', howto: '方法', note: '笔记' };
   function holoContent() {
-    return Promise.all([store.list('page'), store.list('decision'), store.list('relation')]).then(function (r) {
+    return Promise.all([store.list('page'), store.list('decision'), store.list('relation'), store.list('insight')]).then(function (r) {
       r[2] = r[2].filter(liveRel);
+      // an insight the user reviewed or confirmed is a star too, tied to the nodes it rests on; drafts and rejected ones are not
+      var ins = r[3].filter(function (n) { return n.status === 'Reviewed' || n.status === 'Confirmed'; });
       var have = {}; r[0].forEach(function (p) { have[p.id] = 1; }); r[1].forEach(function (d) { have[d.id] = 1; });
       // the console reads parents as a tree, so every link points from the newer page to the older one (never a cycle)
       var rank = {}; r[0].concat(r[1]).sort(function (x, y) { return (x.createdAt || 0) - (y.createdAt || 0) || (x.id < y.id ? -1 : 1); }).forEach(function (x, i) { rank[x.id] = i; });
@@ -320,6 +353,9 @@
           tags: [], parents: parents[p.id] || [], board: TYPE_GROUP[p.type] || '笔记' };
       }).concat(r[1].map(function (d) {
         return { id: d.id, t: d.updatedAt, title: d.title, text: (STATE_NAMES[d.state] || d.state) + '\n\n' + (d.decision || d.requirement || ''), tags: [], parents: parents[d.id] || [], board: '决策' };
+      })).concat(ins.map(function (n) {
+        return { id: n.id, t: n.updatedAt, title: n.title, text: (INS_NAMES[n.status] || n.status) + ' · 综合得出的推断\n\n' + (n.insight || ''), tags: [],
+          parents: (n.supportingNodeIds || []).filter(function (x) { return have[x]; }), board: '洞察' };
       }));
       var layout = null; try { layout = JSON.parse(lsGet(HOLO_LAYOUT) || 'null'); } catch (e) {}
       return { knowledge: knowledge, lk: true, layout: layout };
@@ -350,30 +386,47 @@
       var id = String(m.id || '');
       if (!guard()) return;
       ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null; ui.imp = null; ui.q = '';
-      if (/^dc_/.test(id)) { ui.tab = 'decisions'; ui.sel.decisions = id; } else { ui.tab = 'pages'; ui.sel.pages = id; }
+      if (/^dc_/.test(id)) { ui.tab = 'decisions'; ui.sel.decisions = id; } else if (/^ins_/.test(id)) { ui.tab = 'insights'; ui.ins = null; ui.sel.insights = id; } else { ui.tab = 'pages'; ui.sel.pages = id; }
       render(); window.scrollTo({ top: 0, behavior: 'smooth' }); return;
     }
     if (m.op === 'open') return say('这一项在活知识里没有原页');
   });
   // only confirmed relations are lines in the graph and the projection; a suggested or rejected one is not a link yet
   function liveRel(r) { return M.relationStatus(r) === 'confirmed'; }
-  // the graph labels a line with its first quote: for a link found by Semantic Linking that is its reason
-  function graphRel(r) { return r.explanation ? Object.assign({}, r, { evidence: [{ sourceId: r.id, quote: r.explanation }] }) : r; }
+  /* The 2D graph gets everything it draws from here: pages, decisions, insights, every relation with its type, status and
+     reason (a suggested one is a dashed line there, a rejected one is only kept for the time slider), and the history kept
+     on this device (when each thing was created, changed, confirmed or replaced). It writes nothing itself: confirming or
+     rejecting a link and starting a synthesis are asked of this page, and go through the same gate as everywhere else. */
   function sendGraph() {
     if (!graphFrame || !graphFrame.isConnected || !graphFrame.contentWindow || !store) return;
-    Promise.all([store.list('page'), store.list('decision'), store.list('source'), store.list('relation')]).then(function (r) {
-      try { graphFrame.contentWindow.postMessage({ type: 'lk-graph-data', data: { pages: r[0], decisions: r[1], sources: r[2], relations: r[3].filter(liveRel).map(graphRel) } }, location.origin); } catch (e) {}
+    Promise.all([store.list('page'), store.list('decision'), store.list('source'), store.list('relation'), store.list('insight'), store.history ? store.history() : {}]).then(function (r) {
+      try { graphFrame.contentWindow.postMessage({ type: 'lk-graph-data', data: { pages: r[0], decisions: r[1], sources: r[2], relations: r[3], insights: r[4], history: r[5] } }, location.origin); } catch (e) {}
     });
   }
   window.addEventListener('message', function (e) {
     if (!graphFrame || e.source !== graphFrame.contentWindow || e.origin !== location.origin) return;
     var m = e.data || {};
     if (m.type === 'lk-graph-ready') return sendGraph();
+    if (m.type === 'lk-link-decide') {
+      var to = m.to === 'confirmed' || m.to === 'rejected' || m.to === 'suggested' ? m.to : null;
+      if (to && /^rl_/.test(String(m.id || ''))) decideLink(String(m.id), to, true);
+      return;
+    }
+    if (m.type === 'lk-synthesize') {
+      if (!guard()) return;
+      var picks = {}; (Array.isArray(m.ids) ? m.ids : []).slice(0, 12).forEach(function (x) { if (KY && KY.kindOf(String(x))) picks[String(x)] = true; });
+      ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null; ui.imp = null; ui.q = '';
+      ui.tab = 'insights'; lsSet(TAB_KEY, 'insights'); ui.sel.insights = null;
+      ui.ins = { picks: picks, mode: KY && KY.MODES[m.mode] ? m.mode : 'synthesize' };
+      render(); runSynth(isLocal()); window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     if (m.type === 'lk-open' || m.type === 'lk-new') {
       if (!guard()) return;
       var id = String(m.id || ''), title = String(m.title || '').slice(0, 200);
       ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null; ui.imp = null; ui.q = '';
       if (/^dc_/.test(id)) { ui.tab = 'decisions'; ui.sel.decisions = id; return render(); }
+      if (/^ins_/.test(id)) { ui.tab = 'insights'; ui.ins = null; ui.sel.insights = id; return render(); }
       ui.tab = 'pages';
       store.get('page', id || M.pageId(title)).then(function (p) {
         if (p && m.type === 'lk-open') { ui.sel.pages = p.id; render(); }
@@ -481,13 +534,32 @@
       '<h2 style="margin:0">' + esc(d.title) + '</h2><div class="lk-md">' +
       '<h3>需求</h3><p>' + esc(d.requirement || '—') + '</p><h3>选项</h3>' + listHtml(d.options) + '<h3>决定</h3><p>' + esc(d.decision || '—') + '</p>' +
       '<h3>理由</h3>' + listHtml(d.reasons) + '<h3>还没解决的问题</h3>' + listHtml(d.openQuestions) +
-      (d.supersededBy ? '<p class="lk-note">被取代：' + esc(d.supersededBy) + '</p>' : '') + '</div>' + histHtml('decision', d.id, d) + '</section>';
+      '</div>' + chainHtml(d) + histHtml('decision', d.id, d) + '</section>';
+  }
+  /* how this decision came to be: the ones it replaced and the ones that replaced it (supersededBy), oldest first.
+     The decision in force is the end of that line, when it is Confirmed — an older one is never shown as the current one. */
+  function chainHtml(d) {
+    var all = Object.keys(dcache).map(function (k) { return dcache[k]; }), ch = TM.chain(all, d.id);
+    if (ch.items.length < 2) return ch.broken ? '<p class="lk-note">被取代：' + esc(ch.broken) + '（这台设备上没有这条决策）</p>' : '';
+    var cur = ch.currentId && dcache[ch.currentId];
+    return '<div class="lk-chain"><div class="lk-bar"><b>决策演变</b><span class="lk-note">' + (cur ? (cur.id === d.id ? '这一条就是现在有效的决定' : '现在有效的是“' + esc(cur.title) + '”') : '这条线上还没有已确认的现行决定') + '</span></div><ol>' +
+      ch.items.map(function (it) {
+        var x = it.decision, t = x.state === 'Confirmed' && x.confirmedAt ? '确认于 ' + when(x.confirmedAt) : '记于 ' + when(x.createdAt);
+        return '<li class="' + (it.current ? 'now' : '') + (it.self ? ' self' : '') + '"><div class="lk-bar">' +
+          (it.self ? '<b>' + esc(x.title) + '</b>' : '<button type="button" class="lk-q" data-act="open" data-id="' + esc(x.id) + '">' + esc(x.title) + '</button>') +
+          '<span class="lk-badge ' + esc(x.state) + '">' + esc(STATE_NAMES[x.state] || x.state) + '</span>' + (it.current ? '<span class="lk-badge Confirmed">现在有效</span>' : '') + (it.self ? '<span class="lk-note">正在看</span>' : '') +
+          '<span class="lk-note">' + esc(t) + '</span></div>' + (x.decision ? '<p>' + esc(x.decision.length > 160 ? x.decision.slice(0, 159) + '…' : x.decision) + '</p>' : '') +
+          ((x.reasons || []).length ? '<p class="lk-note">理由：' + esc(x.reasons.slice(0, 2).map(function (r) { return typeof r === 'string' ? r : r.text; }).join('；')) + '</p>' : '') + '</li>';
+      }).join('') + '</ol><p class="lk-note">每一条改变状态的原因，在它自己的时间轴里。这里只显示记录过的决策；没有记下来的过程不会出现。</p></div>';
   }
   function decisionEditor(cur) {
     var d = ui.draft, ta = function (f, label, rows) { return '<label class="lk-field">' + label + '<textarea data-f="' + f + '" rows="' + (rows || 3) + '">' + esc(d[f]) + '</textarea></label>'; };
     return '<section class="lk-card lk-ed"><div class="head"><input class="title" type="text" data-f="title" value="' + esc(d.title) + '" placeholder="这个决定是关于什么的" aria-label="决策标题"' + (cur ? '' : ' autofocus') + '></div>' +
       '<div class="lk-meta"><label>状态<select data-f="state">' + M.DECISION_STATES.map(function (s) { return '<option value="' + s + '"' + (s === d.state ? ' selected' : '') + '>' + STATE_NAMES[s] + ' ' + s + '</option>'; }).join('') + '</select></label>' +
-      '<label>被哪个决策取代（可选）<input type="text" data-f="supersededBy" value="' + esc(d.supersededBy) + '"></label></div>' +
+      '<label>被哪个决策取代（可选；选了以后这一条会标为“已被取代”）<select data-f="supersededBy"><option value="">（没有）</option>' +
+      (d.supersededBy && !dcache[d.supersededBy] ? '<option value="' + esc(d.supersededBy) + '" selected>旧记录：' + esc(d.supersededBy) + '</option>' : '') +
+      Object.keys(dcache).map(function (k) { return dcache[k]; }).filter(function (x) { return !cur || x.id !== cur.id; }).sort(by('updatedAt')).map(function (x) {
+        return '<option value="' + esc(x.id) + '"' + (x.id === d.supersededBy ? ' selected' : '') + '>' + esc(x.title) + '（' + esc(STATE_NAMES[x.state] || x.state) + '）</option>'; }).join('') + '</select></label></div>' +
       ta('requirement', '需求') + ta('options', '选项（每行一个）', 4) + ta('decision', '决定') + ta('reasons', '理由（每行一个）', 4) + ta('openQuestions', '还没解决的问题（每行一个）', 3) +
       '<div class="lk-bar"><span class="lk-note">' + (cur ? '从第 ' + d.baseRev + ' 版改起' : '') + '</span><span class="sp"></span><button type="button" class="lk-btn ghost" data-act="cancel">取消</button><button type="button" class="lk-btn" data-act="save">保存</button></div></section>';
   }
@@ -505,8 +577,15 @@
     if (!cur && dcache[id]) { ui.edit = false; ui.dirty = false; ui.sel.decisions = id; render(); return toast('已经有同名的决策了，已为你打开'); }
     var doc = Object.assign({}, cur || {}, { id: id, title: title, state: d.state, requirement: d.requirement.trim(), options: lines(d.options), decision: d.decision.trim(), reasons: lines(d.reasons), openQuestions: lines(d.openQuestions) });
     if (d.supersededBy.trim()) doc.supersededBy = d.supersededBy.trim(); else delete doc.supersededBy;
+    var by2 = doc.supersededBy && dcache[doc.supersededBy], newly = by2 && (!cur || cur.supersededBy !== doc.supersededBy);
+    if (by2) {
+      // a decision cannot end up replacing itself through the ones that replaced it
+      for (var hop = by2, n = 0; hop && n < 60; n++, hop = hop.supersededBy && dcache[hop.supersededBy]) if (hop.id === id) return toast('“' + by2.title + '”最终又被这一条取代了，不能互相取代');
+      if (newly && (doc.state === 'Proposed' || doc.state === 'Confirmed')) doc.state = 'Superseded';
+    }
     if (cur && cur.state === 'Confirmed' && !confirm('这是已确认的决策。确定要修改吗？（会留下新的一版）')) return;
-    store.put('decision', doc, { baseRev: d.baseRev, reason: cur ? (cur.state !== d.state ? '状态：' + STATE_NAMES[cur.state] + ' → ' + STATE_NAMES[d.state] : '编辑') : '新建' }).then(function (r) {
+    var why = newly ? '被“' + by2.title + '”取代' : cur ? (cur.state !== doc.state ? '状态：' + STATE_NAMES[cur.state] + ' → ' + STATE_NAMES[doc.state] : '编辑') : '新建';
+    store.put('decision', doc, { baseRev: d.baseRev, reason: why }).then(function (r) {
       if (!r.ok) return toast('保存失败：' + r.error);
       ui.edit = false; ui.dirty = false; ui.draft = null; ui.sel.decisions = id; ui.hist = null;
       toast(r.noop ? '没有变化，不另存一版' : '已保存（第 ' + r.doc.rev + ' 版）'); render();
@@ -1048,11 +1127,163 @@
       .then(function (rep) { g.rep = rep; }, function (e) { g.error = e; })
       .then(function () { g.running = false; paintReviewCount(); if (ui.tab === 'review' && ui.run === 'links') render(); });
   }
-  function decideLink(id, to) {
+  // fromGraph: asked by the graph, which is told by the store's change — the page around it is not painted again
+  function decideLink(id, to, fromGraph) {
     KL.decide(store, id, to).then(function (w) {
-      if (!w.ok) toast('没有保存：' + w.error); else toast(to === 'confirmed' ? '已确认，现在是图谱里的一条线' : to === 'rejected' ? '已否决，不会再被提出' : '已恢复为待确认');
-      paintReviewCount(); render();
+      if (!w.ok) toast('没有保存：' + w.error); else toast(to === 'confirmed' ? '已确认，现在是图谱里的一条实线' : to === 'rejected' ? '已否决，不会再被提出' : '已恢复为待确认');
+      paintReviewCount(); if (!fromGraph) render();
     }, function (e) { toast('没有保存：' + (e && e.message || e)); });
+  }
+
+  // ---------------------------------------------------------------- insights: Knowledge Synthesis and its Insight Cards
+  /* An insight is kept apart from the pages. It starts as a draft written by AI or by the device; it is an inference, and
+     says so. Only the user can mark it reviewed, confirm it or reject it. Each point shows the claims it rests on, or is
+     marked as a hypothesis when it rests on none. */
+  var KY = window.MinestLKSynth, icache = {};
+  var ORIGIN_NAMES = { verified: '有原文出处', user: '你写的', ai_inferred: 'AI 推断，未核对' };
+  function nodeDoc(id) { return cache.pages[id] || dcache[id] || null; }
+  function nodeChip(id) {
+    var x = nodeDoc(id);
+    return x ? '<button type="button" class="lk-q" data-act="open-node" data-id="' + esc(id) + '">' + (/^dc_/.test(id) ? '决策 · ' : '') + esc(x.title) + '</button>' : '<span class="lk-q">' + esc(id) + '（这台设备上没有）</span>';
+  }
+  function renderInsights() {
+    return Promise.all([store.list('insight'), store.list('page'), store.list('decision')]).then(function (r) {
+      icache = {}; r[0].forEach(function (n) { icache[n.id] = n; });
+      cache.pages = {}; r[1].forEach(function (p) { cache.pages[p.id] = p; });
+      dcache = {}; r[2].forEach(function (d) { dcache[d.id] = d; });
+      var cur = !ui.ins && ui.sel.insights && icache[ui.sel.insights] || null;
+      var items = r[0].filter(function (n) { return matches(ui.q, [n.title, n.insight]); }).sort(by('updatedAt')).map(function (n) {
+        return { id: n.id, title: n.title, sub: (INS_NAMES[n.status] || n.status) + ' · ' + ((KY.MODES[n.mode] || {}).name || '综合') + ' · ' + when(n.updatedAt) };
+      });
+      var right;
+      if (ui.ins) right = builderHtml(r[1], r[2]);
+      else if (cur && ui.edit && ui.draft) right = insightEditor(cur);
+      else if (cur) right = insightView(cur);
+      else right = '<section class="lk-card lk-ed"><p class="lk-empty">选几个知识页或决策，综合出一张洞察卡。<br>洞察是推断，不是事实：它单独存放，不会写进任何知识页；要你审阅或确认才算数。<br>也可以在 2D 图谱里多选节点后点“综合”。</p>' +
+        '<div class="lk-bar"><span class="sp"></span><button type="button" class="lk-btn" data-act="new">新的综合</button><span class="sp"></span></div></section>';
+      main.innerHTML = '<div class="lk-split' + (cur || ui.ins ? ' editing' : '') + '">' + sideList(items, cur && cur.id, '搜索洞察', '新的综合') + right + '</div>';
+    });
+  }
+  function builderHtml(pages, decs) {
+    var g = ui.ins, n = Object.keys(g.picks).filter(function (k) { return g.picks[k]; }).length, busy = g.running ? ' disabled' : '';
+    var row = function (id, title, sub) {
+      return '<label class="lk-check lk-pick" data-t="' + esc(String(title).toLowerCase()) + '"><input type="checkbox" data-ins-pick="' + esc(id) + '"' + (g.picks[id] ? ' checked' : '') + busy + '> <span><b>' + esc(title) + '</b> <small class="lk-note">' + sub + '</small></span></label>';
+    };
+    var rows = pages.slice().sort(by('updatedAt')).map(function (p) { return row(p.id, p.title, esc(TYPE_NAMES[p.type] || '笔记') + ' · ' + (p.claims || []).length + ' 条说法'); })
+      .concat(decs.slice().sort(by('updatedAt')).map(function (d) { return row(d.id, d.title, '决策 · ' + esc(STATE_NAMES[d.state] || d.state)); })).join('');
+    var status = '';
+    if (g.running) status = '<p role="status" class="lk-ans-wait">' + (g.local ? '正在这台设备上比较所选内容的说法…' : '正在请 Minest AI 综合所选的内容…') + ' <button type="button" class="lk-btn ghost" data-act="ins-stop">停止</button></p>';
+    else if (g.error) status = '<p role="status" style="color:var(--bad)">' + esc(g.error.message || g.error) + '</p>' +
+      (g.error.code === 'ai-not-allowed' ? '<div class="lk-bar"><button type="button" class="lk-btn ghost" data-act="go-perms">去“权限”</button></div>' : '') +
+      (g.error.id && icache[g.error.id] ? '<div class="lk-bar"><button type="button" class="lk-btn ghost" data-act="open" data-id="' + esc(g.error.id) + '">打开那条洞察</button></div>' : '');
+    return '<section class="lk-card lk-ed"><div class="lk-bar"><button type="button" class="lk-btn ghost lk-only-narrow" data-act="back">‹ 列表</button><b>新的综合</b><span class="sp"></span><button type="button" class="lk-btn ghost" data-act="back"' + busy + '>取消</button></div>' +
+      '<p class="lk-note">选 ' + KY.MIN_NODES + ' 到 ' + KY.MAX_NODES + ' 个知识页或决策。只用到它们的标题、开头和已接受的说法。“在本机综合”不联网，只把用词重合的说法对在一起，不下结论；“用 Minest AI 综合”把这些内容发给 Minest AI，由它写出结论和理由，每个要点都要指出依据的说法，指不出的会标成“假设”。</p>' +
+      '<fieldset class="lk-modes"><legend>要做什么</legend>' + Object.keys(KY.MODES).map(function (k) {
+        return '<label class="lk-check"><input type="radio" name="lk-ins-mode" value="' + k + '"' + (g.mode === k ? ' checked' : '') + busy + '> <span>' + KY.MODES[k].name + ' <small class="lk-note">' + KY.MODES[k].en + '</small></span></label>';
+      }).join('') + '</fieldset>' +
+      '<input type="search" id="lk-ins-q" placeholder="筛选知识页和决策" aria-label="筛选知识页和决策">' +
+      '<div class="lk-cards lk-picks" id="lk-picks">' + (rows || '<p class="lk-empty">还没有知识页。先去“知识页”写一页，或者在首页跑一遍演示。</p>') + '</div>' + status +
+      '<div class="lk-bar lk-sticky"><span class="lk-note" id="lk-ins-n">已选 ' + n + ' 项</span><span class="sp"></span>' +
+      '<button type="button" class="lk-btn ghost" data-act="ins-run" data-engine="local"' + busy + '>在本机综合</button><button type="button" class="lk-btn" data-act="ins-run" data-engine="cloud"' + busy + '>用 Minest AI 综合</button></div></section>';
+  }
+  function runSynth(local) {
+    var g = ui.ins; if (!g || g.running || !KY) return;
+    var ids = Object.keys(g.picks).filter(function (k) { return g.picks[k]; });
+    g.running = true; g.error = null; g.local = local; g.ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    if (ui.tab === 'insights') render();
+    KY.synthesize(store, ids, g.mode, { transport: transport, local: local, signal: g.ctl && g.ctl.signal }).then(function (res) {
+      if (ui.ins === g) ui.ins = null;
+      ui.sel.insights = res.doc.id; ui.hist = null; ui.edit = false;
+      toast('已生成洞察草稿：' + res.supported + ' 个要点有依据' + (res.hypotheses ? '，' + res.hypotheses + ' 个是假设' : '') + (res.usage ? ' · 约 ' + (res.usage.input + res.usage.output) + ' token' : ''));
+    }, function (e) {
+      g.running = false;
+      if (!(e && e.name === 'AbortError')) g.error = e;
+    }).then(function () { if (ui.tab === 'insights') render(); });
+  }
+  function insightView(n) {
+    var ev = {}; (n.evidence || []).forEach(function (e) { ev[e.claimId] = e; });
+    var claimOrigin = function (e) {
+      var p = cache.pages[e.nodeId], c = p && (p.claims || []).filter(function (x) { return x.id === e.claimId; })[0];
+      return c ? ORIGIN_NAMES[c.origin] || '知识页里的说法' : /^dc_/.test(e.nodeId) ? '决策记录' : /^s_/.test(e.claimId) ? '页面正文' : '这条说法后来改过或删掉了';
+    };
+    var quote = function (e) {
+      return '<button type="button" class="lk-q" data-act="open-node" data-id="' + esc(e.nodeId) + '" title="' + esc(claimOrigin(e)) + '">' + esc((nodeDoc(e.nodeId) || {}).title || e.nodeId) + '：“' + esc(e.quote) + '”</button>';
+    };
+    var changed = (n.supportingNodeIds || []).filter(function (id) { var x = nodeDoc(id); return x && n.seen && n.seen[id] !== x.rev; });
+    var note = n.status === 'Confirmed' ? '<p class="lk-ins-note ok">你确认的洞察' + (n.decidedAt ? '（' + esc(when(n.decidedAt)) + '）' : '') + '。AI 不能修改它。它仍然单独存放，不是知识页里的事实。</p>'
+      : n.status === 'Reviewed' ? '<p class="lk-ins-note">你审阅过的推断。AI 不能覆盖它；它不是知识页里的事实。</p>'
+      : n.status === 'Rejected' ? '<p class="lk-ins-note bad">你否决了这条洞察。只要它依据的内容没有变化，就不会再被生成。</p>'
+      : '<p class="lk-ins-note warn">这是' + (n.engine === 'local' ? '本机比较出来的结果' : ' AI 的推断') + '，不是事实。它没有写进任何知识页；在你审阅或确认之前，只是一份草稿。</p>';
+    var pts = (n.points || []).map(function (p) {
+      var refs = (p.claimIds || []).map(function (c) { return ev[c] ? quote(ev[c]) : ''; }).join('');
+      return '<li' + (p.kind === 'supported' ? '' : ' class="inf"') + '>' + esc(p.text) + '<div class="refs">' +
+        (p.kind === 'supported' ? '<span>依据</span>' + refs : '<span class="inf-tag">假设</span><span>没有引用任何说法，尚未验证</span>') + '</div></li>';
+    }).join('');
+    var chips = function (a) { return a.map(function (t) { return '<i>' + esc(t) + '</i>'; }).join(''); };
+    var id = ' data-id="' + esc(n.id) + '"', busy = ui.insBusy === n.id ? ' disabled' : '';
+    var b = function (act, label, cls) { return '<button type="button" class="lk-btn' + (cls ? ' ' + cls : '') + '" data-act="' + act + '"' + id + busy + '>' + label + '</button>'; };
+    var acts = n.status === 'Draft' ? b('ins-reject', '否决', 'ghost') + b('ins-redo', ui.insBusy === n.id ? '正在重新综合…' : '重新综合', 'ghost') + b('ins-review', '标为已审阅', 'ghost') + b('ins-confirm', '确认')
+      : n.status === 'Reviewed' ? b('ins-draft', '改回草稿', 'ghost') + b('ins-reject', '否决', 'ghost') + b('ins-confirm', '确认')
+      : n.status === 'Confirmed' ? b('ins-draft', '改回草稿', 'ghost')
+      : b('ins-draft', '恢复为草稿', 'ghost') + (changed.length ? b('ins-redo', '重新综合', 'ghost') : '');
+    return '<section class="lk-card lk-ed lk-ins"><div class="lk-bar"><button type="button" class="lk-btn ghost lk-only-narrow" data-act="back">‹ 列表</button>' +
+      '<span class="lk-badge ins-' + esc(n.status) + '">' + esc(INS_NAMES[n.status] || n.status) + '</span><span class="lk-badge ai">' + (n.engine === 'local' ? '本机综合' : 'AI 综合') + '</span>' +
+      '<span class="lk-note">' + esc((KY.MODES[n.mode] || {}).name || '') + ' · 第 ' + n.rev + ' 版 · ' + esc(when(n.updatedAt)) + (n.edited ? ' · 你改过' : '') + '</span><span class="sp"></span>' +
+      (n.status !== 'Rejected' ? '<button type="button" class="lk-btn" data-act="edit">编辑</button>' : '') + '</div>' + note +
+      (changed.length ? '<p class="lk-ins-note warn">它依据的内容后来改过：' + changed.map(function (x) { return esc(nodeDoc(x).title); }).join('、') + '。这张卡说的是改之前的内容' + (n.status === 'Draft' || n.status === 'Rejected' ? '，可以重新综合。' : '。') + '</p>' : '') +
+      '<h2 style="margin:0">' + esc(n.title) + '</h2>' +
+      '<h3>核心洞察 <small>Core Insight</small></h3><p class="lk-core">' + esc(n.insight || '—') + '</p>' +
+      '<h3>依据的知识 <small>Supporting Knowledge</small></h3><div class="lk-srcs">' + (n.supportingNodeIds || []).map(nodeChip).join('') + '</div>' +
+      '<h3>推理 <small>Reasoning</small></h3><p>' + esc(n.reasoning || '—') + '</p>' +
+      (pts ? '<h3>要点 <small>有依据的和假设分开标出</small></h3><ol class="lk-ans-pts">' + pts + '</ol>' : '') +
+      '<h3>出处 <small>Evidence</small></h3>' + ((n.evidence || []).length ? '<ul class="lk-evi">' + n.evidence.map(function (e) { return '<li>' + quote(e) + '<span class="lk-note">' + esc(claimOrigin(e)) + '</span></li>'; }).join('') + '</ul>' : '<p class="lk-note">没有可以指给你看的出处：这张卡里没有任何有依据的要点。</p>') +
+      ((n.themes || []).length ? '<h3>共同主题</h3><div class="lk-tags">' + chips(n.themes) + '</div>' : '') +
+      ((n.gaps || []).length ? '<h3>知识缺口</h3>' + listHtml(n.gaps) : '') +
+      ((n.questions || []).length ? '<h3>可以继续研究的问题</h3>' + listHtml(n.questions) : '') +
+      '<h3>相关概念 <small>Related Concepts</small></h3><div class="lk-srcs">' + ((n.relatedIds || []).length ? n.relatedIds.map(nodeChip).join('') : '<span class="lk-note">还没有。点“编辑”可以把这条洞察连到其他知识页或决策。</span>') + '</div>' +
+      '<div class="lk-bar"><span class="sp"></span>' + acts + '</div>' + histHtml('insight', n.id, n) + '</section>';
+  }
+  function insightEditor(cur) {
+    var d = ui.draft;
+    var options = Object.keys(cache.pages).map(function (k) { return cache.pages[k]; }).concat(Object.keys(dcache).map(function (k) { return dcache[k]; }))
+      .filter(function (x) { return cur.supportingNodeIds.indexOf(x.id) < 0 && d.related.indexOf(x.id) < 0; }).sort(by('updatedAt'));
+    return '<section class="lk-card lk-ed"><div class="head"><input class="title" type="text" data-f="title" value="' + esc(d.title) + '" placeholder="洞察标题" aria-label="洞察标题"></div>' +
+      '<label class="lk-field">核心洞察<textarea data-f="insight" rows="4">' + esc(d.insight) + '</textarea></label>' +
+      '<label class="lk-field">推理<textarea data-f="reasoning" rows="4">' + esc(d.reasoning) + '</textarea></label>' +
+      '<div class="lk-field">相关概念<div class="lk-srcs">' + (d.related.length ? d.related.map(function (id) {
+        return '<button type="button" class="lk-q" data-act="ins-unrelate" data-id="' + esc(id) + '" aria-label="移除 ' + esc((nodeDoc(id) || {}).title || id) + '">' + esc((nodeDoc(id) || {}).title || id) + ' ×</button>'; }).join('') : '<span class="lk-note">（还没有）</span>') + '</div>' +
+      '<select id="lk-ins-add" aria-label="添加相关的知识页或决策"><option value="">添加相关的知识页或决策…</option>' + options.slice(0, 300).map(function (x) { return '<option value="' + esc(x.id) + '">' + (/^dc_/.test(x.id) ? '决策 · ' : '') + esc(x.title) + '</option>'; }).join('') + '</select></div>' +
+      '<p class="lk-note">要点和出处是综合时记下的，不在这里改；要换一组依据，请重新综合。</p>' +
+      '<div class="lk-bar"><span class="lk-note">从第 ' + d.baseRev + ' 版改起</span><span class="sp"></span><button type="button" class="lk-btn ghost" data-act="cancel">取消</button><button type="button" class="lk-btn" data-act="save">保存</button></div></section>';
+  }
+  function startInsight(cur) {
+    ui.edit = true; ui.dirty = false; ui.hist = null; ui.showRev = null; ui.cmp = null;
+    ui.draft = { title: cur.title, insight: cur.insight || '', reasoning: cur.reasoning || '', related: (cur.relatedIds || []).slice(), baseRev: cur.rev };
+    render();
+  }
+  function saveInsight() {
+    var d = ui.draft, id = ui.sel.insights;
+    if (!String(d.title || '').trim()) return toast('先写一个标题');
+    KY.update(store, id, { title: d.title, insight: d.insight, reasoning: d.reasoning, relatedIds: d.related }, d.baseRev).then(function (r) {
+      if (!r.ok) return toast('保存失败：' + r.error);
+      ui.edit = false; ui.dirty = false; ui.draft = null; ui.hist = null;
+      toast(r.noop ? '没有变化，不另存一版' : '已保存（第 ' + r.doc.rev + ' 版）'); render();
+    }, function (e) { toast('保存失败：' + (e && e.message || e)); });
+  }
+  var INS_DONE = { Reviewed: '已标为审阅过', Confirmed: '已确认。AI 不能再修改这条洞察', Rejected: '已否决，内容不变就不会再生成', Draft: '已改回草稿' };
+  function setInsight(id, status) {
+    KY.setStatus(store, id, status).then(function (w) {
+      toast(w.ok ? INS_DONE[status] : '没有保存：' + w.error); ui.hist = null; render();
+    }, function (e) { toast('没有保存：' + (e && e.message || e)); });
+  }
+  function redoInsight(id) {
+    var n = icache[id]; if (!n || ui.insBusy) return;
+    if (n.status === 'Draft' && !confirm('重新综合会用新的结果替换这份草稿。现在的内容会留在时间轴里。')) return;
+    var local = isLocal();
+    ui.insBusy = id; render();
+    KY.synthesize(store, n.supportingNodeIds, n.mode, { transport: transport, local: local }).then(function (res) {
+      toast('已重新综合（第 ' + res.doc.rev + ' 版）' + (local ? ' · 本机' : ''));
+    }, function (e) { toast('没有综合成功：' + (e && e.message || e)); }).then(function () { ui.insBusy = null; ui.hist = null; if (ui.tab === 'insights') render(); });
   }
 
   // ---------------------------------------------------------------- permissions
@@ -1081,6 +1312,11 @@
   document.querySelector('.lk-tabs').addEventListener('click', function (e) { var b = e.target.closest('[data-tab]'); if (b) setTab(b.dataset.tab); });
   main.addEventListener('input', function (e) {
     var t = e.target;
+    if (t.id === 'lk-ins-q') {         // the list of what can be picked is filtered in place, so the ticks stay
+      var fq = t.value.trim().toLowerCase();
+      main.querySelectorAll('#lk-picks .lk-pick').forEach(function (l) { l.hidden = !!fq && l.dataset.t.indexOf(fq) < 0; });
+      return;
+    }
     if (t.id === 'lk-q') { ui.q = t.value; var pos = t.selectionStart; render().then(function () { var q = $('lk-q'); if (q) { q.focus(); try { q.setSelectionRange(pos, pos); } catch (x) {} } }); return; }
     if (t.dataset.imp && ui.imp && t.dataset.imp !== 'bid') {
       ui.imp[t.dataset.imp] = t.value;
@@ -1093,10 +1329,19 @@
   main.addEventListener('change', function (e) {
     var t = e.target;
     if (t.dataset.f && ui.draft && t.type === 'checkbox') { ui.draft[t.dataset.f] = t.checked; ui.dirty = true; }
+    if (t.dataset.f && ui.draft && t.tagName === 'SELECT') { ui.draft[t.dataset.f] = t.value; ui.dirty = true; }
     if (t.id === 'lk-file') { readFiles(t.files); t.value = ''; }
     if (t.dataset.card && ui.imp) { ui.imp.picked[t.dataset.card] = t.checked; var n = Object.keys(ui.imp.picked).filter(function (k) { return ui.imp.picked[k]; }).length, b = main.querySelector('[data-act="imp-cards"]'); if (b) { b.disabled = !n; b.textContent = '导入所选 ' + n + ' 张'; } }
     if (t.dataset.imp === 'bid' && ui.imp) { ui.imp.bid = t.value; render(); }
     if (t.dataset.pick) { ui.choice[t.dataset.pick] = t.checked; }
+    if (t.dataset.insPick && ui.ins) {
+      var g = ui.ins, cnt = Object.keys(g.picks).filter(function (k) { return g.picks[k]; }).length;
+      if (t.checked && cnt >= KY.MAX_NODES) { t.checked = false; toast('一次最多综合 ' + KY.MAX_NODES + ' 项'); return; }
+      g.picks[t.dataset.insPick] = t.checked;
+      var lab = $('lk-ins-n'); if (lab) lab.textContent = '已选 ' + (cnt + (t.checked ? 1 : -1)) + ' 项';
+    }
+    if (t.name === 'lk-ins-mode' && ui.ins && t.checked) ui.ins.mode = t.value;
+    if (t.id === 'lk-ins-add' && ui.draft && ui.draft.related && t.value) { ui.draft.related.push(t.value); ui.dirty = true; render(); }
   });
   // files dropped anywhere on the import panel
   main.addEventListener('dragover', function (e) { if (ui.imp && e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], 'Files') >= 0) { e.preventDefault(); var d = $('lk-drop'); if (d) d.classList.add('over'); } });
@@ -1104,7 +1349,8 @@
   main.addEventListener('drop', function (e) { if (!ui.imp) return; e.preventDefault(); var d = $('lk-drop'); if (d) d.classList.remove('over'); readFiles(e.dataTransfer && e.dataTransfer.files); });
   main.addEventListener('click', function (e) {
     var a = e.target.closest('[data-act]'); if (!a) return;
-    var act = a.dataset.act, tab = ui.tab, key = tab === 'pages' ? 'pages' : tab === 'decisions' ? 'decisions' : 'sources';
+    var act = a.dataset.act, tab = ui.tab, key = tab === 'pages' ? 'pages' : tab === 'decisions' ? 'decisions' : tab === 'insights' ? 'insights' : 'sources';
+    var hkind = tab === 'pages' ? 'page' : tab === 'decisions' ? 'decision' : 'insight';
     if (act === 'wiki') {
       e.preventDefault(); if (!guard()) return;
       var id = a.dataset.id; ui.tab = 'pages'; ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null;
@@ -1116,6 +1362,7 @@
       if (!guard()) return;
       var dest = a.dataset.to; ui.tab = dest; lsSet(TAB_KEY, dest); ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null; ui.imp = null; ui.q = '';
       if (a.dataset.id) ui.sel[dest] = a.dataset.id;
+      ui.ins = null; ui.cmp = null;
       if (dest === 'review') ui.run = null;
       render(); window.scrollTo({ top: 0, behavior: 'smooth' }); return;
     }
@@ -1145,10 +1392,25 @@
     if (act === 'link-confirm' || act === 'link-reject' || act === 'link-restore') { decideLink(a.dataset.id, act === 'link-confirm' ? 'confirmed' : act === 'link-reject' ? 'rejected' : 'suggested'); return; }
     if (act === 'review-accept' || act === 'review-accept-close') { submitReview(act === 'review-accept' ? 'accept' : 'close'); return; }
     if (act === 'review-reject-all') { if (confirm('拒绝这次整理里所有还没处理的建议？')) submitReview('reject'); return; }
-    if (act === 'open') { if (!guard()) return; ui.sel[key] = a.dataset.id; ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null; ui.showRev = null; ui.imp = null; render(); return; }
-    if (act === 'back') { ui.sel[key] = null; ui.hist = null; ui.imp = null; render(); return; }
+    if (act === 'open-node') {
+      if (!guard()) return;
+      var nid = a.dataset.id, nt = /^dc_/.test(nid) ? 'decisions' : 'pages';
+      ui.tab = nt; lsSet(TAB_KEY, nt); ui.sel[nt] = nid; ui.ins = null; ui.imp = null; ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null; ui.cmp = null; ui.q = '';
+      render(); window.scrollTo({ top: 0, behavior: 'smooth' }); return;
+    }
+    if (act === 'ins-run') { runSynth(a.dataset.engine === 'local'); return; }
+    if (act === 'ins-stop') { if (ui.ins && ui.ins.ctl) ui.ins.ctl.abort(); return; }
+    if (act === 'ins-review' || act === 'ins-confirm' || act === 'ins-reject' || act === 'ins-draft') {
+      if (act === 'ins-reject' && !confirm('否决这条洞察？它会留在列表里；只要依据的内容不变，就不会再被生成。')) return;
+      setInsight(a.dataset.id, { 'ins-review': 'Reviewed', 'ins-confirm': 'Confirmed', 'ins-reject': 'Rejected', 'ins-draft': 'Draft' }[act]); return;
+    }
+    if (act === 'ins-redo') { redoInsight(a.dataset.id); return; }
+    if (act === 'ins-unrelate') { if (ui.draft && ui.draft.related) { ui.draft.related = ui.draft.related.filter(function (x) { return x !== a.dataset.id; }); ui.dirty = true; render(); } return; }
+    if (act === 'open') { if (!guard()) return; ui.sel[key] = a.dataset.id; ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null; ui.showRev = null; ui.cmp = null; ui.imp = null; if (tab === 'insights') ui.ins = null; render(); return; }
+    if (act === 'back') { if (ui.ins && ui.ins.running) return; ui.sel[key] = null; ui.hist = null; ui.imp = null; ui.ins = null; render(); return; }
     if (act === 'new') {
       if (!guard()) return;
+      if (tab === 'insights') { ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null; ui.ins = { picks: {}, mode: 'synthesize' }; render(); return; }
       if (tab === 'sources') { ui.imp = ui.imp || { title: '', url: '', text: '', cards: null, bid: '', cq: '', picked: {}, report: null }; render(); return; }
       ui.sel[key] = null; if (tab === 'pages') startPage(null); else startDecision(null); return;
     }
@@ -1186,23 +1448,26 @@
       return;
     }
     if (act === 'compose') { composePage(); return; }
-    if (act === 'edit') { if (tab === 'pages') startPage(cache.pages[ui.sel.pages]); else startDecision(dcache[ui.sel.decisions]); return; }
+    if (act === 'edit') { if (tab === 'pages') startPage(cache.pages[ui.sel.pages]); else if (tab === 'insights') startInsight(icache[ui.sel.insights]); else startDecision(dcache[ui.sel.decisions]); return; }
     if (act === 'cancel') { if (!guard()) return; ui.edit = false; ui.draft = null; ui.dirty = false; render(); return; }
-    if (act === 'save') { if (tab === 'pages') savePage(); else saveDecision(); return; }
+    if (act === 'save') { if (tab === 'pages') savePage(); else if (tab === 'insights') saveInsight(); else saveDecision(); return; }
     if (act === 'hist' || act === 'hist-close') {
-      if (act === 'hist-close') { ui.hist = null; render(); return; }
-      var k = tab === 'pages' ? 'page' : 'decision';
-      store.versions(k, ui.sel[key]).then(function (vs) { ui.hist = vs; ui.showRev = null; render(); });
+      if (act === 'hist-close') { ui.hist = null; ui.cmp = null; render(); return; }
+      store.versions(hkind, ui.sel[key]).then(function (vs) { ui.hist = vs; ui.showRev = null; ui.cmp = null; render(); });
       return;
     }
-    if (act === 'show-rev') { var r = +a.dataset.rev; ui.showRev = ui.showRev === r ? null : r; render(); return; }
+    if (act === 'show-rev') { var r = +a.dataset.rev; ui.showRev = ui.showRev === r ? null : r; ui.cmp = null; render(); return; }
+    if (act === 'cmp-prev' || act === 'cmp-cur') {
+      var cr = +a.dataset.rev, base = act === 'cmp-prev' ? 'prev' : 'cur';
+      ui.cmp = ui.cmp && ui.cmp.rev === cr && ui.cmp.base === base ? null : { rev: cr, base: base }; ui.showRev = null; render(); return;
+    }
     if (act === 'restore') {
-      var rev = +a.dataset.rev, kind = tab === 'pages' ? 'page' : 'decision';
+      var rev = +a.dataset.rev, kind = hkind;
       if (!confirm('把第 ' + rev + ' 版的内容写成新的一版？现在的内容也会留在历史里。')) return;
       store.restore(kind, ui.sel[key], rev).then(function (res) {
         if (!res.ok) return toast('恢复失败：' + res.error);
         toast(res.noop ? '内容和现在一样，不需要恢复' : '已恢复为第 ' + res.doc.rev + ' 版');
-        return store.versions(kind, ui.sel[key]).then(function (vs) { ui.hist = vs; ui.showRev = null; render(); });
+        return store.versions(kind, ui.sel[key]).then(function (vs) { ui.hist = vs; ui.showRev = null; ui.cmp = null; render(); });
       });
       return;
     }

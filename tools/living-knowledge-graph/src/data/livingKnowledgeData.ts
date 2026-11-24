@@ -105,6 +105,7 @@ export const KNOWLEDGE_TYPE_META: Record<
   wiki: { label: 'Wiki 规范文档', description: '体系化工程与产品结构文档' },
   concept: { label: '领域概念实体', description: '从知识库中提取并归档的核心技术概念' },
   decision: { label: '项目决策 (ADR)', description: '架构与技术选型决策记录' },
+  insight: { label: '洞察 (Insight)', description: '综合多个节点得出的推断，草稿画成空心' },
   unresolved: { label: '未解析链接节点', description: '已被 [[引用]] 但尚未创建正文的页面' },
 };
 

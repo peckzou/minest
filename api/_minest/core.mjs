@@ -5,7 +5,7 @@ import { readFileSync, readdirSync, writeFileSync, existsSync, mkdirSync } from 
 import { createHash, randomBytes } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { lkExtract, lkAsk, lkCompose, lkLink } from './living-knowledge.mjs';
+import { lkExtract, lkAsk, lkCompose, lkLink, lkSynthesize } from './living-knowledge.mjs';
 
 // 42.0: the board-building manual and the data blocks travel with every request
 // (the API keeps no memory between calls).
@@ -339,6 +339,8 @@ export async function handle(path, input) {
   if (path.endsWith('/lk-ask')) return lkAsk(input, (messages, options) => callModel(input, messages, options));
   // Living Knowledge (Semantic Linking): pairs of pages the app found on the device → a typed, explained link or "none"
   if (path.endsWith('/lk-link')) return lkLink(input, (messages, options) => callModel(input, messages, options));
+  // Living Knowledge (Knowledge Synthesis): the nodes the user picked → an Insight Card whose points cite the claims they rest on
+  if (path.endsWith('/lk-synthesize')) return lkSynthesize(input, (messages, options) => callModel(input, messages, options));
   if (path.endsWith('/lk-compose')) return lkCompose(input, (messages, options) => callModel(input, messages, options));
   const attachmentContext = (input.attachments || []).filter(a => a && typeof a.text === 'string').map(a => `\n\n[Attached file: ${String(a.name || 'text file').slice(0, 160)}]\n${a.text.slice(0, 50000)}`).join('');
   const imageParts = (input.attachments || []).filter(a => a && typeof a.data === 'string' && /^data:image\/(png|jpeg|webp|gif);base64,/i.test(a.data)).map(a => ({ type: 'image_url', image_url: { url: a.data } }));
