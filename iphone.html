@@ -128648,10 +128648,11 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
         var sk = setKey(), D = SETS[sk], pn = W.panel[sk] || 'smart', S = W.S && W.S.set === sk ? W.S : null, nl = Object.keys(locks(sk)).length;
         var acts = [['smart', '✨', 'Smart'], ['suggest', '💡', 'Suggest'], ['lock', nl ? '🔒' : '🔓', 'Lock' + (nl ? ' ' + nl : '')], ['confirm', '✓', 'Confirm'], ['edit', '✎', 'Edit']];
         var menu = [['new', '＋', D.menu[0]], ['gallery', '🖼', D.menu[1]], ['group', '🧩', D.menu[2]], ['smart', '✨', D.smart], ['more', '⋯', 'More tools ▾']];
+        var fold = HUD_FOLD.map(hudBtn).join('') + (lv === 1 ? '<button type="button" data-wfter="toggle"' + (W.terr ? ' class="on"' : '') + '><i>' + px('hill') + '</i><span>' + (W.terr ? '✓ Done' : 'Terrain') + '</span></button><button type="button" data-wfview><i>' + px('eye') + '</i><span>阅览 View</span></button>' : '') + HUD_MORE.map(hudBtn).join('');   // what More ▾ holds
         c.classList.add('wf3');   // 53.89 · tools down both sides, the console and a gallery in the middle
         c.innerHTML = head + '<div class="wf-main">' +
           // left column: the five steps fold into one button (it pops the others), then the hands-on build tools
-          '<nav class="wf-acts" aria-label="Actions">' + stepBtn(acts, pn, S) + HUD_MAIN.map(hudBtn).join('') + (lv === 1 ? '<button type="button" data-wfter="toggle"' + (W.terr ? ' class="on"' : '') + '><i>' + px('hill') + '</i><span>' + (W.terr ? '✓ Done' : 'Terrain') + '</span></button><button type="button" data-wfview><i>' + px('eye') + '</i><span>阅览 View</span></button>' : '') + '<button type="button" class="wf-popb' + (W.pop === 'tools' ? ' on' : '') + '" data-wfpop="tools" aria-expanded="' + (W.pop === 'tools') + '"><i>' + px('tools') + '</i><span>Tools ▾</span></button></nav>' +
+          '<nav class="wf-acts wf-fold" aria-label="Actions">' + stepBtn(acts, pn, S) + HUD_MAIN.map(hudBtn).join('') + '<button type="button" class="wf-pack' + (packIsOpen() ? ' on' : '') + '" data-wfpack aria-label="Backpack: every building, object and interior, ready to set out"><i>' + pxi('🎒') + '</i><span>Backpack</span></button><button type="button" class="wf-popb' + (W.pop === 'tools' ? ' on' : '') + '" data-wfpop="tools" aria-expanded="' + (W.pop === 'tools') + '" aria-label="More tools"><i>' + pxi('⋯') + '</i><span>More ▾</span></button></nav>' +
           (V && V.expand ? '<div class="wf-center">' + landPanel() + '</div>' : W.terr && lv === 1 ? '<div class="wf-center">' + terrPanel() + '</div>' :
           '<div class="wf-center">' + (lv === 1 && V ? megaRow() : '') +
           (lv === 4 ? '<div class="wf-seg" role="tablist" aria-label="Which tools"><button type="button" data-wfset="roomd"' + (sk === 'roomd' ? ' class="on"' : '') + '>🛋 Room tools · 建房</button><button type="button" data-wfset="disp"' + (sk === 'disp' ? ' class="on"' : '') + '>🗄 Display tools · 陈列</button></div>' : '') +
@@ -128659,7 +128660,8 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
           '<div class="wf-body">' + panelHtml(lv, sk, pn) + '</div>' + (pn === 'smart' ? '<section class="wf-gal"><h4>🖼 ' + esc(D.menu[1]) + '</h4>' + D.gallery() + '</section>' : '') + '<p class="wf-hint">' + esc(HINT[lv]) + '</p></div>') +
           '<nav class="wf-menu" aria-label="' + esc(D.name) + '">' + menu.map(function (a) { return '<button type="button" data-wfpanel="' + a[0] + '"' + (a[0] === pn ? ' class="on"' : '') + '><i>' + pxi(a[1]) + '</i><span>' + esc(String(a[2]).replace(/ ▾$/, '')) + '</span></button>'; }).join('') + '</nav></div>';
         emoji(c);
-        if (W.pop) popOpen(c, acts, pn, S);
+        if (W.foldObs) { W.foldObs.disconnect(); W.foldObs = null; }
+        if (W.pop) popOpen(c, acts, pn, S, fold);
       }
       var nav = c.querySelector('.wf-crumbs'); if (nav) nav.scrollLeft = nav.scrollWidth;   // where you are stays in sight
       clearTimeout(W.fill); W.fill = setTimeout(libFill, 400);
@@ -128746,7 +128748,8 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
     function pxi(sym, fallback) { var n = PXMAP[sym] || sym; return PX[n] ? px(n) : (fallback != null ? fallback : sym); }
 
     // ---- hands-on build tools: each presses the island HUD's own button, so they behave exactly as before
-    var HUD_MAIN = [['fpv', '🚶', 'Walk in', '[data-fpv]'], ['expand', '⛰', 'More land', '[data-expand]'], ['undo', '↶', 'Undo', '[data-hudundo]']];
+    var HUD_MAIN = [['fpv', '🚶', 'Walk in', '[data-fpv]'], ['expand', '⛰', 'More land', '[data-expand]']];
+    var HUD_FOLD = [['undo', '↶', 'Undo', '[data-hudundo]']];   // first in More ▾
     var HUD_MORE = [['redo', '↷', 'Redo', '[data-hudredo]'], ['snap', '▦', 'Grid', '[data-hudsnap]'], ['auto', '✦', 'Arrange for me', '[data-auto]'], ['reorg', '🔀', 'Reorganize', '[data-reorg]'],
       ['arch', 'map', 'Tile mode', '[data-arch]'], ['box', 'box', 'Box', '[data-hudsheet="box"]'], ['in', 'zin', 'Zoom in', '[data-cam="in"]'], ['out', 'zout', 'Zoom out', '[data-cam="out"]'],
       ['left', 'tleft', 'Turn left', '[data-cam="left"]'], ['right', 'tright', 'Turn right', '[data-cam="right"]'], ['fit', 'fit', 'See it all', '[data-cam="fit"]']];
@@ -128759,13 +128762,22 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
       var cur = S && S.i >= 0 ? acts[3] : acts.filter(function (a) { return a[0] === pn; })[0] || acts[0];
       return '<button type="button" class="wf-popb wf-step on' + (W.pop === 'steps' ? ' open' : '') + '" data-wfpop="steps" aria-expanded="' + (W.pop === 'steps') + '"><i>' + pxi(cur[1]) + '</i><span>' + esc(cur[2]) + ' ▾</span></button>';
     }
-    function popOpen(c, acts, pn, S) {   // the pop-out beside the left column
+    function extBtns(c) { return c ? [].slice.call(c.querySelectorAll('.wf-acts.wf-fold > button')).slice(5) : []; }   // keys other features add to the column: kept there (hidden) so they keep finding them
+    function foldSync(c, pop) {
+      [].slice.call(pop.querySelectorAll('[data-wfext]')).forEach(function (x) { x.remove(); });
+      extBtns(c).forEach(function (b, i) { var x = document.createElement('button'); x.type = 'button'; x.setAttribute('data-wfext', i); x.innerHTML = b.innerHTML; if (b.disabled) x.disabled = true; pop.appendChild(x); });
+    }
+    function popOpen(c, acts, pn, S, fold) {   // the pop-out beside the left column
       var html = W.pop === 'steps'
         ? acts.map(function (a) { var on = a[0] === pn || (a[0] === 'confirm' && S && S.i >= 0); return '<button type="button" data-wfact="' + a[0] + '"' + (on ? ' class="on"' : '') + (a[0] === 'confirm' && !(S && S.i >= 0) ? ' disabled' : '') + '><i>' + pxi(a[1]) + '</i><span>' + esc(a[2]) + '</span></button>'; }).join('')
-        : HUD_MORE.map(hudBtn).join('');
+        : (fold || '');
       var pop = document.createElement('div'); pop.className = 'wf-pop ' + W.pop; pop.setAttribute('role', 'menu'); pop.innerHTML = html;
       var main = c.querySelector('.wf-main'); main.appendChild(pop);
-      var b = c.querySelector('[data-wfpop="' + W.pop + '"]'); if (b) pop.style.top = Math.max(0, Math.min(b.offsetTop - 4, main.clientHeight - pop.offsetHeight)) + 'px';   // beside its button, never off the screen
+      if (W.pop === 'tools') {
+        var nav = c.querySelector('.wf-acts.wf-fold'); foldSync(c, pop);
+        if (nav && window.MutationObserver) { W.foldObs = new MutationObserver(function () { if (pop.isConnected) { foldSync(c, pop); place(); } }); W.foldObs.observe(nav, { childList: true, subtree: true, characterData: true }); }
+      }
+      var b = c.querySelector('[data-wfpop="' + W.pop + '"]'); var place = function () { var vis = Math.min(main.clientHeight, window.innerHeight - main.getBoundingClientRect().top); pop.style.maxHeight = Math.max(120, vis - 8) + 'px'; if (b) pop.style.top = Math.max(0, Math.min(b.offsetTop - 4, vis - pop.offsetHeight - 4)) + 'px'; }; place();   // beside its button, never off the screen
     }
     // first person on the folded Duo: the view stays above, the joystick and the fly / run / up / down pad move to the lower screen
     // The walk view's own joystick / pad stay in place (hidden); a stand-in set lives at the top of the page in the middle
@@ -130124,12 +130136,14 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
       if (g.hasAttribute('data-wfadmont') && window.MinestAdmont) { hap(); return MinestAdmont.open(); }
       if (g.hasAttribute('data-wfalps') && window.MinestAlps) { hap(); return MinestAlps.open(); }   // 🏔 the Alpine Chalet valley, in My World   // 🇬🇷 the voxel Oia, in My World   // 3D Venezia Voxel, full screen
       if (g.hasAttribute('data-wfview')) { W.pop = null; hap(); return wkView(); }   // 阅览: the whole island in 3D, full screen
-      if ((v = g.getAttribute('data-wfter'))) return terrAct(v);
+      if ((v = g.getAttribute('data-wfter'))) { if (g.closest('.wf-pop')) W.pop = null; return terrAct(v); }
       if ((v = g.getAttribute('data-wfbrush'))) { W.brush = W.brush === v ? null : v; hap(); return draw(); }
       if ((v = g.getAttribute('data-wfland'))) { dspPress('data-landfast', v); return setTimeout(draw, 60); }
       if ((v = g.getAttribute('data-wfgr'))) { dspPress('data-gr', v); return setTimeout(draw, 60); }
       if ((v = g.getAttribute('data-wfpop'))) { W.pop = W.pop === v ? null : v; return draw(); }
       if ((v = g.getAttribute('data-wfhud'))) { W.pop = null; var hb = hudEl(v); if (hb) hb.click(); setTimeout(draw, 60); return; }
+      if (g.hasAttribute('data-wfpack')) { W.pop = null; hap(); return packOpen(); }
+      if ((v = g.getAttribute('data-wfext')) != null) { W.pop = null; var xb = extBtns(g.closest('.wf'))[+v]; if (xb) xb.click(); setTimeout(draw, 60); return; }
       if (W.pop && g.closest('.wf-pop')) W.pop = null;
       if ((v = g.getAttribute('data-wfset'))) { if (W.S) sCancel(true); W.set4 = v; return draw(); }
       if ((v = g.getAttribute('data-wfact'))) {
@@ -130172,7 +130186,7 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
       // the 53.86 tools
       if ((v = g.getAttribute('data-wftab'))) { W.tab[lv] = v; return draw(); }
       if ((v = g.getAttribute('data-wfgrp')) != null) { var lb = g.closest('[data-lib]'), lk = lb ? lb.getAttribute('data-lib') : W.tab[lv]; W.grp[lk] = +v; W.grp[lk + ':p'] = 0; return draw(); }
-      if ((v = g.getAttribute('data-pkkind'))) { editOn(); if (W.S) sCancel(true); try { lib4Kind(v); } catch (x) {} if (DUO_API) DUO_API.placeKind(v); else change(function () { var q = add(v, (lbox().x0 + lbox().x1) / 2, (lbox().y0 + lbox().y1) / 2); if (q) V.sel = { pc: q.id }; }); if (V.sel && V.sel.pc && sk) W.panel[sk] = 'edit'; return draw(); }
+      if ((v = g.getAttribute('data-pkkind'))) { placeKind(v); return draw(); }
       if ((v = g.getAttribute('data-wk'))) { if (DUO_API) DUO_API.wkAct(v); return draw(); }
       if ((v = g.getAttribute('data-wfbld'))) { editOn(); return bldOpen(v); }
       if ((v = g.getAttribute('data-wfopen'))) return openPiece(v);
@@ -130628,6 +130642,40 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
 
     // ---------------------------------------------------------------- Studio's assets (MinestAssets3D): pictures, groups by theme, placed where they fit
     function AS() { return window.MinestAssets3D || null; }
+    function placeKind(v) {   // a library piece, set down where it fits and selected, ready to move
+      var sk = level() < 6 ? setKey() : null;
+      editOn(); if (W.S) sCancel(true); try { lib4Kind(v); } catch (x) {}
+      if (DUO_API) DUO_API.placeKind(v); else change(function () { var q = add(v, (lbox().x0 + lbox().x1) / 2, (lbox().y0 + lbox().y1) / 2); if (q) V.sel = { pc: q.id }; });
+      if (V.sel && V.sel.pc && sk) W.panel[sk] = 'edit';
+    }
+    function packIsOpen() { var BP = window.MinestBackpack; try { return !!(BP && BP.isOpen && BP.isOpen()); } catch (e) { return false; } }
+    function packPlace(id) {   // from the backpack's Index: a building, an object or an interior goes onto the island
+      var A0 = AS(), C = (A0 && A0.catalog) || {}, has = function (k) { return (C[k] || []).some(function (a) { return a.id === id; }); };
+      var name = ((A0 && A0.info && A0.info(id)) || {}).name || id;
+      if (!V || !V.d) { toast('先打开一座岛'); return false; }
+      if (has('world') || has('subisland') || has('center')) { toast('「' + name + '」是岛的外观 · 在 Island Gallery 里选用'); return false; }
+      var k = (has('building') ? 'bld:' : has('diorama') ? 'dio:' : 'obj:') + id;
+      if (V.at && V.at.room && /^bld:/.test(k)) { toast('建筑放在岛上 · 先走出房间'); return false; }
+      var before = (V.d.pc || []).length;
+      try { placeKind(k); } catch (e) { toast('「' + name + '」放不下'); return false; }
+      if ((V.d.pc || []).length > before) toast('🎒 「' + name + '」放好了 · 拖动它换位置，↶ 可撤销');
+      return true;
+    }
+    var packHost = {
+      world: 'myworld', THREE: window.THREE, placeLib: packPlace,
+      reduced: function () { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } },
+      toast: function (m) { toast(m); }, hotbarVisible: function () { return false; }, functionObjects: function () { return []; },
+      listBoard: function () { return V ? V.bid : null; },
+      status: function () { return { badge: '', cls: 'bag', text: '在 Spatial Home 或圣托里尼里摆放', placed: false, home: true }; },
+      place: function () { toast('这一件在 Spatial Home 或圣托里尼里摆放'); }, stash: function () {},
+      onClose: function () { setTimeout(draw, 0); }
+    };
+    function packOpen() {
+      var BP = window.MinestBackpack; if (!BP || !BP.open) { toast('🎒 背包还没准备好'); return; }
+      if (packIsOpen()) { BP.close(); return draw(); }
+      packHost.THREE = window.THREE; try { a3(); } catch (e) {}
+      BP.open(packHost, 'index'); draw();
+    }
     function art(id, sz) { sz = sz || 112; var u = a3Url(id, 0); return u ? '<img class="ic" alt="" src="' + esc(u) + '" width="' + sz + '" height="' + sz + '" style="object-fit:contain">' : '<span class="ic mn-a3wait" data-a3="' + esc(id) + '" style="width:' + sz + 'px;height:' + sz + 'px"></span>'; }
     function themeOf(a) { return String(a.categoryName || a.category || (a.subcategories || [])[0] || 'More').replace(/[_-]/g, ' '); }
     function studioGrid(key, list, attr, prefix, on) {   // chips by theme, then a page of pictures (24 at a time: they are drawn one by one)
@@ -146674,6 +146722,9 @@ html body .wf.wf3 .wf-pop > button i { font-style:normal;font-size:24px;line-hei
 html body .wf.wf3 .wf-pop > button span { font-size:11px;opacity:.8;text-align:center;line-height:1.15; }
 html body .wf.wf3 .wf-pop > button.on { background:rgba(125,211,252,.2);border-color:rgba(125,211,252,.5); }
 html body .wf.wf3 .wf-pop > button[disabled] { opacity:.35; }
+html body .wf.wf3 .wf-acts.wf-fold > button:nth-of-type(n+6) { display:none; }
+html body .wf.wf3 .wf-pop.tools { grid-template-columns:repeat(auto-fill,minmax(68px,1fr));box-sizing:border-box;width:min(344px,calc(100% - 92px));overflow-y:auto;scrollbar-width:none; }
+html body .wf.wf3 .wf-pop.tools > button[data-wfext] { font-size:11px;line-height:1.15;text-align:center; }
 @keyframes wfPop { from { opacity:0;transform:translateX(-6px) scale(.97); } to { opacity:1;transform:none; } }
 /* first person (Walk in) while half folded: the view above, the controls in the middle of the lower screen */
 html.wf-fold.wf-walk body .wf .wf-center { visibility:hidden; }
@@ -196749,6 +196800,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       '#mn-bp .ix button{border:1px solid #d9bf96;background:#fbf2e0;color:#3a2412;border-radius:999px;padding:4px 10px;font:inherit;font-size:12px;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
       '#mn-bp .ix button.sel{background:#5b3a20;color:#fbf2e0;border-color:#5b3a20}#mn-bp .ix button.off{opacity:.55}',
       '#mn-bp .ixnote{font-size:12.5px;color:#8a6a48}',
+      '#mn-bp .grid .bpown{order:2}',
       '#mn-bp .pv .ixpic{width:100%;aspect-ratio:1;object-fit:contain;border-radius:12px;background:#f6ead2;display:grid;place-items:center;color:#8a6a48}',
       '#mn-bp .pv{width:240px;flex:none;display:flex;flex-direction:column;gap:6px;overflow:auto}',
       '#mn-bp .pv canvas{width:240px;height:200px;border-radius:14px;background:radial-gradient(#fffdf6,#ead8b6);touch-action:none;cursor:grab}',
@@ -196764,7 +196816,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
   /* block-style pixel icon for a thing that has one (pixicons.js), else its emoji */
   function pix(it) { var P = root.SpatialPixIcons, id = it && it.ref && it.ref.fn; return P && id && P.has(id) ? P.svg(id) : (it.icon || ''); }
-  function open(host) {
+  function open(host, cat) {
     css();
     if (!ui) {
       var el = document.createElement('div'); el.id = 'mn-bp'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Magical Backpack');
@@ -196779,7 +196831,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       });
       el.addEventListener('keydown', function (e) { e.stopPropagation(); if (e.key === 'Escape') { e.preventDefault(); close(false); } });
     }
-    ui.host = host; ui.el.hidden = false;
+    ui.host = host; if (cat) { ui.cat = cat; ui.sel = null; } ui.el.hidden = false;
     if (!host.reduced || !host.reduced()) { ui.el.classList.remove('opening'); void ui.el.offsetWidth; ui.el.classList.add('opening'); }
     render();
   }
@@ -196809,11 +196861,12 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   var BP_GROUPS = [['creations', '我的作品'], ['fixtures', '陈列装置'], ['tools', '工坊工具'], ['magic', '魔法道具'], ['collections', '我的收藏']];
   function renderIndex(all, grid) {
     var q = ui.q, hit = function (t) { return !q || String(t).toLowerCase().indexOf(q) >= 0; };
-    var h = '<h5>背包里的物品 · 可以直接放出来</h5>';
+    var here = !!(ui.host && ui.host.placeLib);   // My World's island: the library is what goes down here, so it comes first
+    var h = '<h5' + (here ? ' class="bpown"' : '') + '>' + (here ? '背包里的物品 · 在 Spatial Home 和圣托里尼里摆放' : '背包里的物品 · 可以直接放出来') + '</h5>';
     BP_GROUPS.forEach(function (g) {
       var list = all.filter(function (it) { return it.cat === g[0] && hit(it.name + ' ' + (it.note || '') + ' ' + (it.en || '')); });
       if (!list.length) return;
-      h += '<div class="ix"><b>' + g[1] + ' <em>' + list.length + '</em></b>' + list.map(function (it) {
+      h += '<div class="ix' + (here ? ' bpown' : '') + '"><b>' + g[1] + ' <em>' + list.length + '</em></b>' + list.map(function (it) {
         return '<button type="button" data-key="' + esc(it.key) + '" class="' + (ui.sel === it.key ? 'sel' : '') + (it.ready === false ? ' off' : '') + '">' + esc(it.name) + (it.ready === false ? ' · 未完成' : '') + '</button>';
       }).join('') + '</div>';
     });
@@ -196825,7 +196878,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     }
     var C = LIB.catalog || {}, total = 0;
     LIB_GROUPS.forEach(function (g) { total += (C[g[0]] || []).length; });
-    h += '<h5>My World 3D 库 · 共 ' + total + ' 件已上线 · 在 My World 的「建造」里摆放</h5>';
+    h += '<h5>My World 3D 库 · 共 ' + total + ' 件已上线 · ' + (here ? '点一件，再点「放到岛上」' : '在 My World 的「建造」里摆放') + '</h5>';
     LIB_GROUPS.forEach(function (g) {
       var list = (C[g[0]] || []).filter(function (a) { return hit(a.name + ' ' + (a.subtitle || '') + ' ' + (a.category || '') + ' ' + a.id); });
       if (!list.length) return;
@@ -196842,9 +196895,12 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     LIB_GROUPS.some(function (g) { row = (C[g[0]] || []).filter(function (x) { return x.id === id; })[0]; return !!row; });
     row = row || a || { id: id, name: id };
     var names = { building: '建筑', object: '物件', diorama: '室内', world: '世界', subisland: '小岛', center: '中心岛样式' };
-    pv.innerHTML = '<div class="ixpic" aria-hidden="true">…</div><h4>' + esc(row.name) + '</h4><dl><dt>类型</dt><dd>' + esc(names[kind] || kind || '') + '</dd>' +
+    var grp = ''; LIB_GROUPS.some(function (g) { if ((C[g[0]] || []).some(function (x) { return x.id === id; })) { grp = g[0]; return true; } return false; });
+    var here = !!(ui.host && ui.host.placeLib), canPut = here && (grp === 'building' || grp === 'object' || grp === 'diorama');
+    var put = canPut ? '<div class="acts"><button type="button" class="pri" data-bp="libplace">放到岛上</button></div>' : '';
+    pv.innerHTML = '<div class="ixpic" aria-hidden="true">…</div><h4>' + esc(row.name) + '</h4>' + put + '<dl><dt>类型</dt><dd>' + esc(names[kind] || names[grp] || kind || '') + '</dd>' +
       (row.subtitle ? '<dt>说明</dt><dd>' + esc(row.subtitle) + '</dd>' : '') + (row.category ? '<dt>分类</dt><dd>' + esc(row.category) + '</dd>' : '') +
-      '<dt>编号</dt><dd>' + esc(id) + '</dd><dt>状态</dt><dd>已上线 · 在 My World 的「建造」里摆放</dd></dl>';
+      '<dt>编号</dt><dd>' + esc(id) + '</dd><dt>状态</dt><dd>' + (canPut ? '已上线 · 可以放到这座岛上' : here ? '已上线 · 岛的外观，在 Island Gallery 里选用' : '已上线 · 在 My World 的「建造」里摆放') + '</dd></dl>';
     if (LIB.thumb) LIB.thumb(id).then(function (src) { var pic = pv.querySelector('.ixpic'); if (pic && src && ui.lib === id) pic.outerHTML = '<img class="ixpic" alt="' + esc(row.name) + '" src="' + src + '">'; else if (pic) pic.textContent = ''; }, function () {});
   }
   function render() {
@@ -196939,6 +196995,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     if (b.dataset.lib) { ui.lib = b.dataset.lib; ui.sel = null; render(); return; }
     var a = b.dataset.bp, it = selected();
     if (a === 'close') { close(); return; }
+    if (a === 'libplace') { if (host.placeLib && ui.lib && host.placeLib(ui.lib) !== false) close(true); return; }
     if (!it) return;
     if (a === 'fav') { var on = toggleFav(it.key); host.toast(on ? '★ 加入收藏夹和快捷栏' : '已从收藏夹拿出'); render(); return; }
     if (a === 'place' || a === 'move') { touch(it.key); close(true); host.place(it, a === 'move'); return; }
