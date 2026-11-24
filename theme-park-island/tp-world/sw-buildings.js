@@ -71,7 +71,7 @@
     add(s2, new T.ConeGeometry(R + 0.9, 3.6, 12), L(0x5a3d28, { side: T.DoubleSide }), 0, H2 + 2.0, 0); add(s2, new T.CylinderGeometry(0.5, 0.7, 1.2, 10), L(0x3a2c20), 0, H2 + 4.2, 0);
     for (var b = 0; b < 12; b++) { var ba = b / 12 * Math.PI * 2 + 0.26; add(s2, new T.BoxGeometry(0.3, H2 + 0.6, 0.5), L(0x4a3a2a), Math.sin(ba) * (R + 0.15), (H2 + 0.6) / 2, Math.cos(ba) * (R + 0.15), ba); }
     slide(s2, 0, R - 0.1, 3.2, 3.3, 0x3a2c20, { x: SAVI.x, z: SAVI.z + R });
-    sign(s2, "SAVI'S", '光剑工坊', '#a78bfa', 5.2, 0, 4.5, R + 0.5); [-2.4, 2.4].forEach(function (x) { add(s2, new T.CylinderGeometry(0.05, 0.05, 3.4, 6), L(0x3a2c20), x, 1.9, R + 0.7); add(s2, new T.SphereGeometry(0.2, 10, 8), B(0xffc46b), x, 3.7, R + 0.7); });
+    sign(s2, "SAVI'S", '光剑工坊', '#a78bfa', 4.4, 0, 4.0, R + 1.5); add(s2, new T.BoxGeometry(4.6, 1.25, 0.12), L(0x1f1811), 0, 4.0, R + 1.42); [-2.1, 2.1].forEach(function (x) { add(s2, new T.BoxGeometry(0.14, 3.6, 0.14), L(0x3a2c20), x, 1.9, R + 1.42); });   /* the sign stands clear of the eaves, on two posts either side of the way in */ [-2.4, 2.4].forEach(function (x) { add(s2, new T.CylinderGeometry(0.05, 0.05, 3.4, 6), L(0x3a2c20), x, 1.9, R + 0.7); add(s2, new T.SphereGeometry(0.2, 10, 8), B(0xffc46b), x, 3.7, R + 0.7); });
     /* inside: dim; the kyber table, the crystals, the Gatherers with their sabers, lamps round the wall */
     /* the kyber table: a ribbed drum, an inlaid top with a brass rim and rivets, a clawed pedestal for the great crystal, a stand and a ring of light for each of the six, and trays of hilt parts */
     var drum = new T.MeshLambertMaterial({ map: tex(128, 128, [12, 1], function (c, w, h) { c.fillStyle = '#3a2c1e'; c.fillRect(0, 0, w, h); c.fillStyle = '#231a11'; c.fillRect(0, 0, 14, h); c.fillRect(w - 14, 0, 14, h); c.fillStyle = '#6b5236'; c.fillRect(30, 18, w - 60, h - 36); c.fillStyle = '#3a2c1e'; c.fillRect(38, 26, w - 76, h - 52); c.fillStyle = '#c9a24a'; [[22, 10], [w - 28, 10], [22, h - 16], [w - 28, h - 16]].forEach(function (q) { c.fillRect(q[0], q[1], 6, 6); }); }) });
@@ -123,10 +123,16 @@
 
     var list = API.getProps().interactables, reg = function (x, z, name, kind) { var e = { id: 'swb-' + kind, name: name, x: x, z: z }; Object.defineProperty(e, 'msg', { get: function () { setTimeout(function () { W.open(kind); }, 0); return name; } }); list.push(e); };
     reg(DEPOT.x, DEPOT.z + 1.6, '机器人工坊 · 造一个自己的机器人', 'droid'); reg(SAVI.x, SAVI.z + 1.8, '光剑工坊 · 造一把自己的光剑', 'saber');
+    /* a way straight to the two workshops: the button in the park's top bar, or ?goto=savi / ?goto=depot */
+    var goTo = function (at, r) { var x = document.getElementById('tp-close-guide'); if (x) x.click(); API.teleport({ mode: 'walk', p: [at.x, API.groundY(at.x, at.z + r + 7, 62), at.z + r + 7], t: [at.x, 41.6, at.z] }); API.toast(at === SAVI ? '⚔️ 光剑工坊就在前面：一直往前走，门会自己打开' : '🤖 机器人工坊就在前面：一直往前走，门会自己打开'); };
+    root.TPStarWarsBuildings.goSavi = function () { goTo(SAVI, R); }; root.TPStarWarsBuildings.goDepot = function () { goTo(DEPOT, HD); };
+    var addBtn = function () { var row = document.getElementById('mn-pav-btns'); if (!row || document.getElementById('sw-go-btn')) return; [['sw-go-btn', '⚔️ 光剑工坊', SAVI, R], ['sw-go-btn2', '🤖 机器人工坊', DEPOT, HD]].forEach(function (q) { var b = document.createElement('button'); b.type = 'button'; b.id = q[0]; b.textContent = q[1]; b.style.cssText = 'padding:5px 12px;border-radius:999px;border:none;background:linear-gradient(135deg,#0f172a,#4c1d95);color:#e0e7ff;font-weight:900;font-size:11.5px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.35)'; b.onclick = function (e) { e.stopPropagation(); goTo(q[2], q[3]); }; row.appendChild(b); }); };
+    addBtn(); new MutationObserver(addBtn).observe(document.body, { childList: true, subtree: true });
+    var want = /[?&]goto=(savi|depot)/.exec(location.search); if (want) setTimeout(function () { goTo(want[1] === 'savi' ? SAVI : DEPOT, want[1] === 'savi' ? R : HD); }, 600);
     var last = performance.now();
     (function tick(now) {
       requestAnimationFrame(tick); var dt = Math.min(0.05, (now - last) / 1000); last = now; clock += dt; var P = API.player.pos;
-      doors.forEach(function (d) { var open = Math.max(0, Math.min(1, (9 - Math.hypot(P.x - d.at.x, P.z - d.at.z)) / 4)), to = d.x0 + d.s * d.w * 0.96 * open; d.m.position.x += (to - d.m.position.x) * Math.min(1, dt * 5); });
+      doors.forEach(function (d) { var open = Math.max(0, Math.min(1, (14 - Math.hypot(P.x - d.at.x, P.z - d.at.z)) / 4))   /* wide open well before the guest reaches them */, to = d.x0 + d.s * d.w * 0.96 * open; d.m.position.x += (to - d.m.position.x) * Math.min(1, dt * 5); });
       parts.forEach(function (p, i) { p.position.x += dt * 0.8; if (p.position.x > 6.4) p.position.x -= 12.98; p.rotation.y += dt * (i % 2 ? 1 : -0.7); });
       arms.forEach(function (a, i) { var w = Math.sin(clock * 0.9 + i * 2.2), weld = Math.sin(clock * 0.9 + i * 2.2 + 1.2) > 0.45;
         a.turret.rotation.y = w * 0.35; a.shoulder.rotation.z = a.s * (0.52 + w * 0.16); a.elbow.rotation.z = a.s * (0.95 + Math.sin(clock * 1.5 + i) * 0.22); a.wrist.rotation.y += dt * 2.4;
