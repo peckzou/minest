@@ -55,7 +55,7 @@
   /* 梦工坊 Dream Workshop (dream-workshop/): direct an experience — characters, voices, triggers, a show timeline, then walk in as a guest */
   function workshop(id, play) {   /* (id, true): walk straight into that work as its guest — a placed experience in a room or on an island */
     var q = id && /^[A-Za-z0-9_-]{1,40}$/.test(String(id)) ? '?' + (play ? 'play=' : 'open=') + id : '';
-    full(SITE + 'dream-workshop/index.html' + q, '梦工坊 · Dream Workshop');
+    full(SITE + 'dream-workshop/wed-studio/index.html' + String(q || '').replace(/([?&])(open|play)=([A-Za-z0-9_-]+)/, function (m, a, k, id) { return a + 'work=' + id + (k === 'play' ? '&play=1' : ''); }), '造梦大楼 · Minest Imagineer');
   }
   function full(url, title) {
     if (phEl) phEl.remove();
