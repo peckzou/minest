@@ -47094,6 +47094,7 @@ var CoverKiosk = function() {
         if (!e.isTrusted || e.detail === 0) return;   // keyboard / scripted clicks open at once
         var t = tiles().filter(function (x) { return x.contains(e.target); })[0];
         if (!t) return;
+        if (t.dataset.direct === '1') return;   // a key that leaves the page (iPhone version) goes at once
         if (t === sel) { clearTimeout(selT); sel = null; return; }   // the second click: open
         e.preventDefault(); e.stopImmediatePropagation();
         pick(t);
@@ -47309,7 +47310,7 @@ var CoverKiosk = function() {
       if (b.k === 'search') bar.appendChild(search);
       el.className = 'mn31-s'; bar.appendChild(el);
     } else {
-      el.className = 'mn31-app'; dock.appendChild(el);
+      el.className = 'mn31-app'; if (b.k === 'iphone') el.dataset.direct = '1'; dock.appendChild(el);
     }
     el.onclick = function (e) { e.stopPropagation(); anchor = el; b.run(); watchPop(); setTimeout(refresh, 80); };
     els[b.k] = el;

@@ -1,9 +1,9 @@
 /* The opening landscape uses Minest's original Dock and opens the desktop board.
-   The "=" / "||" key only folds the Dock's tools: it stays on the opening. */
+   The "=" / "||" key only folds the Dock's tools, and the back key steps back inside the opening: both stay on it. */
 (function () {
   'use strict';
   if (window.MinestStartControls) return;
-  var root = document.documentElement, frame = null, dock = null, idle = 0, down = false, reading = false, nativeFull = false, opening = false, unwatch = [], dockPopover = false;
+  var root = document.documentElement, cameFromOpening = false, frame = null, dock = null, idle = 0, down = false, reading = false, nativeFull = false, opening = false, unwatch = [], dockPopover = false;
   var enterIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg>';
   var exitIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8h5V3m8 0v5h5M8 21v-5H3m18 0h-5v5"/></svg>';
   var css = document.createElement('style'); css.id = 'mn-start-controls-style'; css.textContent = `
@@ -42,7 +42,7 @@ html.mn-start-reading body .mn-bdock.mn-bdock,html.sh-reading body .mn-bdock.mn-
   function restoreDock() { if(dockPopover&&dock){try{dock.hidePopover();}catch(e){} dock.removeAttribute('popover');dockPopover=false;} }
   function openWeb(desktop) {
     if(desktop){ var url = new URL('web31.0.html',location.href); url.searchParams.set('dock','1');url.searchParams.set('from','clun');location.href=url.href;return; }
-    if(opening)return; opening=true;if(reading)setReading(false);restoreDock();showBoardDock();
+    if(opening)return; opening=true;cameFromOpening=true;if(reading)setReading(false);restoreDock();showBoardDock();
     if(frame)frame.dispatchEvent(new Event('minest:open-web'));
   }
   function mountChild() {
@@ -69,17 +69,19 @@ html.mn-start-reading #mn-start-exit{visibility:visible!important;pointer-events
     if(dock&&dock.showPopover){try{dock.setAttribute('popover','manual');dock.showPopover();dockPopover=true;}catch(e){dock.removeAttribute('popover');}}
   }
   function attach(f) {
-    frame=f;opening=false;root.classList.add('mn-start-active');root.classList.remove('mn-mac-web');
+    frame=f;opening=false;cameFromOpening=false;root.classList.add('mn-start-active');root.classList.remove('mn-mac-web');
     ensureDock();
     var load=mountChild;f.addEventListener('load',load);unwatch.push(function(){f.removeEventListener('load',load);});mountChild();wake();
   }
   function detach() {
     if(reading)setReading(false);restoreDock();clearTimeout(idle);unwatch.forEach(function(fn){fn();});unwatch=[];down=false;frame=null;dock=null;root.classList.remove('mn-start-active','mn-start-idle','mn-start-reading');
   }
-  document.addEventListener('click',function(e){if(frame&&e.target.closest&&e.target.closest('.mn-bdock button')&&!e.target.closest('.mn-sk-tools'))openWeb(false);},true);
+  document.addEventListener('click',function(e){if(frame&&e.target.closest&&e.target.closest('.mn-bdock button')&&!e.target.closest('.mn-sk-tools,.mn-sk-back'))openWeb(false);},true);
   ['pointermove','pointerdown','wheel','keydown','focusin'].forEach(function(t){document.addEventListener(t,wake,{capture:true,passive:true});});
   document.addEventListener('fullscreenchange',function(){if(reading&&nativeFull&&!document.fullscreenElement)setReading(false);});
   var queued=false;new MutationObserver(function(){if(queued)return;queued=true;queueMicrotask(function(){queued=false;var f=document.getElementById('mn-clun-splash');if(f===frame){if(frame)ensureDock();return;}if(frame)detach();if(f)attach(f);});}).observe(document.body,{childList:true,subtree:true});
-  window.MinestStartControls={openWeb:openWeb,showBoardDock:showBoardDock,setReading:setReading};
+  /* the system back key: one layer of the opening (map, telescope, treehouse, inside the house); false = already at the opening itself */
+  function back(){ if(!frame)return false; if(reading){setReading(false);return true;} try{var w=frame.contentWindow;return !!(w&&w.ClunBack&&w.ClunBack());}catch(e){return false;} }
+  window.MinestStartControls={openWeb:openWeb,showBoardDock:showBoardDock,setReading:setReading,active:function(){return !!frame;},back:back,fromOpening:function(){return cameFromOpening&&!frame;}};
   var existing=document.getElementById('mn-clun-splash');if(existing)attach(existing);
 })();

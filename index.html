@@ -182827,7 +182827,7 @@ html.mn70 #minest-pet-raising-overlay .minest-pet-x.idle:active { opacity: 1; }
   };
 })();
 </script>
-<script src="spatial-home/js/start-controls.js?v=2"></script>
+<script src="spatial-home/js/start-controls.js?v=3"></script>
 
 <!-- Shared 13-level Live runtime: all teacher and student entry points. -->
 <link rel="stylesheet" href="live-games/extra-games.css?v=13-1">
@@ -200282,7 +200282,27 @@ html.student-mode .mn-sk-world { display: none !important; }
   function dockKey(sel) { var b = document.querySelector('.mn-bdock ' + sel); if (b) { b.click(); return true; } return false; }
   function esc() { return document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true, cancelable: true })); }
   function close(b) { var s0 = snap(); if (ctx === 'room' && press('sh-exitBtn')) return; if (!dockKey('.mn-sys-exit')) esc(); orNothing(b, s0, '没有可关闭的'); }
-  function back(b) { var s0 = snap(); if (ctx === 'room') { if (esc() && !press('sh-exitBtn')) {} return; } if (!dockKey('.mn-sys-back') && esc() && location.hash.length > 1) history.back(); orNothing(b, s0, '已经是最前一页'); }
+  /* 2026-11-24 (the user: "系统返回键要真正返回之前的页面或操作，最重要的是层级的返回"): one level per press, innermost first —
+     the opening's own layers (map / telescope / treehouse / inside the house) → what is open over the board (the Dock's back, Esc) →
+     the room → the opening the board was opened from → the page before this one (Mac ⇄ iPhone); only then "已经是最前一页" */
+  function pageBack() {
+    try {
+      var r = document.referrer, can = window.navigation && typeof navigation.canGoBack === 'boolean' ? navigation.canGoBack : history.length > 1;
+      if (!r || !can) return false; var u = new URL(r); if (u.origin !== location.origin || u.pathname === location.pathname) return false;
+      history.back(); return true;
+    } catch (e) { return false; }
+  }
+  function back(b) {
+    var s0 = snap(), SC = window.MinestStartControls;
+    if (SC && SC.active && SC.active()) { if (!SC.back() && !pageBack()) nothing(b, '已经是最前一页'); return; }
+    if (ctx === 'room') { if (esc() && !press('sh-exitBtn')) {} return; }
+    if (!dockKey('.mn-sys-back') && esc() && location.hash.length > 1) { history.back(); return; }
+    setTimeout(function () {
+      if (snap() !== s0) return;
+      if (SC && SC.fromOpening && SC.fromOpening() && window.MinestSpatialHome && MinestSpatialHome.home) { try { MinestSpatialHome.home(); return; } catch (e) {} }
+      if (!pageBack()) nothing(b, '已经是最前一页');
+    }, 280);
+  }
   /* 3: reading mode, here and in every open frame of the same site */
   var HIDE = 'button,[role="button"],[role="toolbar"],header.iphone-topbar,.ios-bottom-tab-bar,.mn-bdock,#minest-mini-pet-p0,#cs-btn,' +
     '#sh-top,#sh-labels,#sh-stick,#sh-hint,#sh-credit,#sh-pill,#sh-reading-enter,#sh-dock,#sh-settings,#sh-pack,#sh-edit,#sh-card,#sh-toast,#sh-skip,.clun-entry,.mn-start-control';

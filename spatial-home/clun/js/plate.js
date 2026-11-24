@@ -952,6 +952,16 @@
     function idleOff() { if (!SW.idle) return; SW.idle = false; swingOff(); hero.release(); spot = null; hero.root.position.copy(TH.ladder); }
     function leaveOutdoor() { OUT.on = false; OUT.act = null; blob.visible = false; hero.pose(null); ctxEl.innerHTML = ''; OUT.key = ''; swingOff(); }
     function goInside() { leaveOutdoor(); startExplore(); }
+    /* 系统返回键：一次退一层 —— 地图 / 望远镜 → 起身 → 出树屋回阳台 → 出屋回门外；已经在开屏本身就返回 false */
+    window.ClunBack = function () {
+      if (!mapEl.hidden) { closeMap(); return true; }
+      if (EX.scope) { EX.scope = null; scopeEl.hidden = true; return true; }
+      if (walk && walk.done) return false;
+      if (walk && walk.explore && EX.pose) { standUp(); return true; }
+      if (walk && walk.tree) { exitTree(); return true; }
+      if (walk) { leaveExplore(); return true; }
+      return false;
+    };
     function nearPt(v, d) { return Math.hypot(v.x - OUT.pos.x, v.z - OUT.pos.z) < d; }
     /* —— 能互动的地方：每处上方飘一个小图标（好找），走到画面上 REACH 像素以内就出按钮；点图标 / 点草地，小人自己走过去 —— */
     var REACH = 105, SPOTS = [], marks = new THREE.Group(), FLOWERS = [];
