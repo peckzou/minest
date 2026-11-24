@@ -5,7 +5,7 @@
  * Both stand on the Docking Bay 5 plaza; walk up and press E. What you made is kept on this device ('tp.sw'). */
 (function (root) {
   'use strict';
-  var sbBtn = null;
+  var sbBtn = null, busy = false;
   var API = null, T = null, st = { droid: null, saber: null }, droid = null, saber = null, clock = 0, ui = null;
   var DEPOT = { x: 134, z: 102 }, SAVI = { x: 118, z: 102 };
   var COLS = [['#2563eb', '蓝'], ['#f97316', '橙'], ['#dc2626', '红'], ['#16a34a', '绿'], ['#7c3aed', '紫'], ['#f8fafc', '白']];
@@ -15,6 +15,7 @@
   var L = function (c, o) { return new T.MeshLambertMaterial(Object.assign({ color: c }, o || {})); };
 
   function buildDroid(d) {
+    if (root.TPSWParts && d && d.parts) return root.TPSWParts.droid(d);   /* built at the Droid Depot: the very parts the guest picked */
     var g = new T.Group(), white = L(0xf1f5f9), col = L(d.color), dark = L(0x1f2937);
     if (d.body === 'bb') {
       var ball = new T.Mesh(new T.SphereGeometry(0.42, 18, 14), white); ball.position.y = 0.42; g.add(ball);
@@ -37,6 +38,7 @@
     return g;
   }
   function buildSaber(s) {
+    if (root.TPSWParts && s && s.theme) { var h = root.TPSWParts.saber(s); h.userData.on = 1; h.userData.k = 0; h.position.set(0.32, -0.3, -0.62); h.rotation.set(0.35, 0, -0.35); return h; }   /* built at Savi's */
     var g = new T.Group(), hilt = new T.Mesh(new T.CylinderGeometry(0.022, s.hilt === 'curved' ? 0.03 : 0.022, 0.26, 10), L(s.hilt === 'gold' ? 0xd9b25a : 0x9aa3ad)); g.add(hilt);
     [-0.06, 0.02, 0.09].forEach(function (y) { var r = new T.Mesh(new T.CylinderGeometry(0.028, 0.028, 0.02, 10), L(0x1f2937)); r.position.y = y; g.add(r); });
     var blade = new T.Group(); blade.position.y = 0.13; g.add(blade);
@@ -265,17 +267,17 @@
       if (droid) {   /* it rolls after its maker, a little behind and to the side */
         var P = API.player, tx = P.pos.x + Math.sin(P.yaw) * 1.6 + Math.cos(P.yaw) * 1.2, tz = P.pos.z + Math.cos(P.yaw) * 1.6 - Math.sin(P.yaw) * 1.2, dx = tx - droid.position.x, dz = tz - droid.position.z, d = Math.hypot(dx, dz);
         if (d > 40) droid.position.set(tx, P.pos.y, tz); else if (d > 0.25) { var sp = Math.min(d, (d > 4 ? 9 : 4.5) * dt); droid.position.x += dx / d * sp; droid.position.z += dz / d * sp; droid.rotation.y = Math.atan2(dx, dz); if (droid.userData.ball) droid.userData.ball.rotation.x += sp / 0.42; }
-        droid.position.y = API.groundY(droid.position.x, droid.position.z, Math.floor(P.pos.y + 6)); droid.visible = !API.state.activeRide;
+        droid.position.y = API.groundY(droid.position.x, droid.position.z, Math.floor(P.pos.y + 6)); droid.visible = !API.state.activeRide && !busy;
         droid.userData.head.rotation.y = Math.sin(clock * 1.7) * 0.7; if (droid.userData.lamp) droid.userData.lamp.visible = Math.sin(clock * 5) > 0;
         if (Math.random() < dt * 0.12 && d < 12) beep(true);
       }
       try { hallTick(dt); } catch (e) {}
-      if (saber) { var u = saber.userData; u.k += ((u.on ? 1 : 0) - u.k) * Math.min(1, dt * 9); u.blade.scale.y = Math.max(0.001, u.k); u.blade.visible = u.k > 0.02; saber.visible = !API.state.activeRide && API.state.mode !== 'tour'; saber.rotation.z = -0.35 + Math.sin(clock * 1.3) * 0.04 - swing * 0.05; }
+      if (saber) { var u = saber.userData; u.k += ((u.on ? 1 : 0) - u.k) * Math.min(1, dt * 9); u.blade.scale.y = Math.max(0.001, u.k); u.blade.visible = u.k > 0.02; saber.visible = !API.state.activeRide && API.state.mode !== 'tour' && !busy; saber.rotation.z = -0.35 + Math.sin(clock * 1.3) * 0.04 - swing * 0.05; }
       try { saberSound(dt); } catch (e) {}
       if (!sbBtn) { sbBtn = document.createElement('button'); sbBtn.type = 'button'; sbBtn.id = 'sw-saber-btn'; sbBtn.textContent = '⚔️'; sbBtn.title = '收起 / 点亮光剑 (L)'; sbBtn.onclick = function (e) { e.stopPropagation(); saberToggle(); }; document.body.appendChild(sbBtn); }
       sbBtn.style.display = saber && saber.visible && !ui ? 'block' : 'none';
     })(last);
   }
   if (root.TPParkAPI) attach(root.TPParkAPI); else root.addEventListener('tp:park-ready', function (e) { attach(e.detail || root.TPParkAPI); });
-  root.TPStarWarsWorkshops = { saberToggle: saberToggle, level: level, buildDroid: buildDroid, buildSaber: buildSaber, open: open, state: function () { return st; } };
+  root.TPStarWarsWorkshops = { actx: actx, fx: saberFx, hum: saberHum, swing: function (v) { if (!sab) return; var c = beep.c, t = c.currentTime, k = 1 + Math.min(0.42, v * 0.07); sab.os.forEach(function (o) { o.o.frequency.setTargetAtTime(o.f * k, t, 0.04); }); sab.lp.frequency.setTargetAtTime(850 + v * 420, t, 0.05); sab.out.gain.setTargetAtTime(sab.level * (1 + Math.min(1.3, v * 0.28)), t, 0.05); }, beep: beep, busy: function (v) { busy = !!v; }, set: function (kind, spec) { st[kind] = spec; save(); if (API) apply(); }, reapply: function () { if (API) apply(); }, saberToggle: saberToggle, level: level, buildDroid: buildDroid, buildSaber: buildSaber, open: open, state: function () { return st; } };
 })(window);

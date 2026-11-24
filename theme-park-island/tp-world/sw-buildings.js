@@ -93,7 +93,8 @@
       add(s2, new T.CylinderGeometry(0.09, 0.12, 0.12, 10), iron, cx, 1.25, cz); add(s2, new T.CylinderGeometry(0.02, 0.02, 0.1, 6), brass, cx, 1.34, cz);
       var halo = add(s2, new T.RingGeometry(0.14, 0.24, 20), new T.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.7, side: T.DoubleSide }), cx, 1.195, cz); halo.rotation.x = -Math.PI / 2;
       var m = add(s2, new T.OctahedronGeometry(0.13, 0), B(c), cx, 1.52, cz); m.scale.y = 1.4; return m; });
-    for (var tr = 0; tr < 6; tr++) { var ta = tr / 6 * Math.PI * 2, tg = new T.Group(); tg.position.set(Math.sin(ta) * 1.62, 1.2, -0.6 + Math.cos(ta) * 1.62); tg.rotation.y = ta; s2.add(tg);
+    var trays = [];
+    for (var tr = 0; tr < 6; tr++) { var ta = tr / 6 * Math.PI * 2, tg = new T.Group(); tg.position.set(Math.sin(ta) * 1.62, 1.2, -0.6 + Math.cos(ta) * 1.62); tg.rotation.y = ta; s2.add(tg); trays.push(tg);
       add(tg, new T.BoxGeometry(0.56, 0.03, 0.3), L(0x1f1811), 0, 0, 0); [[-0.17, steel], [0, brass], [0.17, gun]].forEach(function (q, i) { var pc = add(tg, new T.CylinderGeometry(0.035, i === 2 ? 0.045 : 0.035, 0.22, 10), q[1], q[0], 0.05, 0); pc.rotation.x = Math.PI / 2; add(tg, new T.CylinderGeometry(0.04, 0.04, 0.03, 10), i ? gun : brass, q[0], 0.05, 0.06).rotation.x = Math.PI / 2; }); }
     var pillar = add(s2, new T.CylinderGeometry(0.1, 0.22, 2.2, 12, 1, true), new T.MeshBasicMaterial({ color: 0x9bd8ff, transparent: true, opacity: 0.3, side: T.DoubleSide, depthWrite: false }), 0, 3.1, -0.6);
     var chand = add(s2, new T.TorusGeometry(1.7, 0.05, 6, 32), iron, 0, 3.9, -0.6); chand.rotation.x = Math.PI / 2;
@@ -121,8 +122,9 @@
     for (var sh = 0; sh < 6; sh++) { var sa = Math.PI + (sh - 2.5) * 0.3; add(s2, new T.BoxGeometry(1.4, 0.08, 0.5), L(0x4a3a2a), Math.sin(sa) * (R - 0.6), 1.5, Math.cos(sa) * (R - 0.6), sa); add(s2, new T.CylinderGeometry(0.04, 0.04, 0.5, 8), L(0x9aa3ad), Math.sin(sa) * (R - 0.6), 1.8, Math.cos(sa) * (R - 0.6)); }
     var lamp2 = new T.PointLight(0x9bd0ff, 0.8, 12, 2); lamp2.position.set(0, 3.2, -0.6); s2.add(lamp2);
 
-    var list = API.getProps().interactables, reg = function (x, z, name, kind) { var e = { id: 'swb-' + kind, name: name, x: x, z: z }; Object.defineProperty(e, 'msg', { get: function () { setTimeout(function () { W.open(kind); }, 0); return name; } }); list.push(e); };
+    var list = API.getProps().interactables, reg = function (x, z, name, kind) { var e = { id: 'swb-' + kind, name: name, x: x, z: z }; Object.defineProperty(e, 'msg', { get: function () { setTimeout(function () { if (root.TPSWExperience) root.TPSWExperience.start(kind); else W.open(kind); }, 0); return name; } }); list.push(e); };
     reg(DEPOT.x, DEPOT.z + 1.6, '机器人工坊 · 造一个自己的机器人', 'droid'); reg(SAVI.x, SAVI.z + 1.8, '光剑工坊 · 造一把自己的光剑', 'saber');
+    Object.assign(root.TPStarWarsBuildings, { saviGroup: s2, depotGroup: g, gath: gath, lamp2: lamp2, trays: trays, parts: parts, demo: typeof demo === 'undefined' ? null : demo, ring: ring, great: great, R: R, HD: HD });
     /* a way straight to the two workshops: the button in the park's top bar, or ?goto=savi / ?goto=depot */
     var goTo = function (at, r) { var x = document.getElementById('tp-close-guide'); if (x) x.click(); API.teleport({ mode: 'walk', p: [at.x, API.groundY(at.x, at.z + r + 7, 62), at.z + r + 7], t: [at.x, 41.6, at.z] }); API.toast(at === SAVI ? '⚔️ 光剑工坊就在前面：一直往前走，门会自己打开' : '🤖 机器人工坊就在前面：一直往前走，门会自己打开'); };
     root.TPStarWarsBuildings.goSavi = function () { goTo(SAVI, R); }; root.TPStarWarsBuildings.goDepot = function () { goTo(DEPOT, HD); };
