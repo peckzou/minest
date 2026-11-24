@@ -69,7 +69,7 @@
     if (unsubStore) unsubStore();
     ns = name; cloudOn = !!cloud;
     store = S.createStore({ local: S.idbLocal('minest.lk.v1:' + name), cloud: cloud, userId: 'me' });
-    unsubStore = store.onChange(function (what) { paintStatus(); if (what && (what.pulled || what.conflict)) render(); });
+    unsubStore = store.onChange(function (what) { paintStatus(); sendGraph(); if (what && (what.pulled || what.conflict)) render(); });
     ui.sel = { pages: null, decisions: null, sources: null }; ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null;
     return store.ready().then(function () { render(); paintStatus(); if (cloud) store.pull().then(function (n) { if (n) render(); }); });
   }
@@ -162,7 +162,8 @@
     if (!store) return;
     document.querySelectorAll('.lk-tabs [data-tab]').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === ui.tab)); });
     paintReviewCount(); paintChips();
-    var f = { home: renderHome, pages: renderPages, decisions: renderDecisions, sources: renderSources, review: renderReview, conflicts: renderConflicts, perms: renderPerms }[ui.tab] || renderPages;
+    document.body.classList.toggle('lk-on-graph', ui.tab === 'graph');
+    var f = { home: renderHome, graph: renderGraph, pages: renderPages, decisions: renderDecisions, sources: renderSources, review: renderReview, conflicts: renderConflicts, perms: renderPerms }[ui.tab] || renderPages;
     return Promise.resolve(f()).then(function () {
       var t = main.querySelector('input.title[autofocus]');   // autofocus does not fire for HTML put in later
       if (t && document.activeElement !== t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); }
@@ -222,7 +223,7 @@
           pv: '<span class="big">' + decs.length + '<small>个</small></span><span>' + conf + ' 已确认 · ' + prop + ' 提议中</span>' + tags(decs.map(function (d) { return d.title; })) },
         { to: 'review', cc: 'var(--c4)', ic: IC.review, name: 'AI 审核', en: 'Knowledge Agent', line: '让 AI 整理来源；它只提建议，你决定留下什么。',
           pv: '<span class="big">' + pend + '<small>条待审核</small></span><span>' + (last ? '上次整理 ' + esc(when(last.startedAt)) : '还没有整理过') + '</span>' },
-        { to: 'pages', cc: 'var(--c5)', ic: IC.graph, name: '知识关系', en: 'Knowledge Graph', line: '页面之间的链接与关系，矛盾会被标出来。',
+        { to: 'graph', cc: 'var(--c5)', ic: IC.graph, name: '知识图谱', en: 'Knowledge Graph', line: '页面之间的链接与关系，矛盾会被标出来。',
           pv: '<span class="big">' + pages.length + '<small>节点</small> ' + links + '<small>连接</small></span>' + (conflicts ? '<span style="color:var(--bad)">⚠️ ' + conflicts + ' 条说法有矛盾</span>' : '<span>没有矛盾</span>') }
       ];
       var recent = [].concat(
@@ -256,6 +257,44 @@
       ui.q = ''; ui.sel.pages = null; startPage(null, q);
     });
   }
+
+  // ---------------------------------------------------------------- 知识图谱: the browse canvas (living-knowledge/graph/, built from tools/living-knowledge-graph/)
+  // It only reads: this page sends it the data and tells it when anything changes; a double click on a node asks this page
+  // to open the page (or start one, for a link not written yet), and "新增知识节点" starts a real page here.
+  var graphFrame = null;
+  function renderGraph() {
+    if (!graphFrame) {
+      graphFrame = document.createElement('iframe');
+      graphFrame.className = 'lk-graph'; graphFrame.title = '知识图谱 · 浏览画布'; graphFrame.src = 'graph/index.html';
+      graphFrame.setAttribute('allow', 'fullscreen');
+    }
+    main.innerHTML = '';
+    main.appendChild(graphFrame);
+    sendGraph();
+  }
+  function sendGraph() {
+    if (!graphFrame || !graphFrame.isConnected || !graphFrame.contentWindow || !store) return;
+    Promise.all([store.list('page'), store.list('decision'), store.list('source'), store.list('relation')]).then(function (r) {
+      try { graphFrame.contentWindow.postMessage({ type: 'lk-graph-data', data: { pages: r[0], decisions: r[1], sources: r[2], relations: r[3] } }, location.origin); } catch (e) {}
+    });
+  }
+  window.addEventListener('message', function (e) {
+    if (!graphFrame || e.source !== graphFrame.contentWindow || e.origin !== location.origin) return;
+    var m = e.data || {};
+    if (m.type === 'lk-graph-ready') return sendGraph();
+    if (m.type === 'lk-open' || m.type === 'lk-new') {
+      if (!guard()) return;
+      var id = String(m.id || ''), title = String(m.title || '').slice(0, 200);
+      ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null; ui.imp = null; ui.q = '';
+      if (/^dc_/.test(id)) { ui.tab = 'decisions'; ui.sel.decisions = id; return render(); }
+      ui.tab = 'pages';
+      store.get('page', id || M.pageId(title)).then(function (p) {
+        if (p && m.type === 'lk-open') { ui.sel.pages = p.id; render(); }
+        else if (p) { ui.sel.pages = p.id; render(); toast('已经有“' + p.title + '”这一页了'); }
+        else { ui.sel.pages = null; startPage(null, title || id.replace(/^pg_/, '')); }
+      });
+    }
+  });
 
   // ---------------------------------------------------------------- pages
   var cache = { pages: {}, sources: {} };

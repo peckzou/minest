@@ -1,0 +1,110 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  html, body, #root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-sans);
+    overscroll-behavior: none;
+  }
+}
+
+.font-mono-tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom minimal Obsidian-style range slider */
+input[type="range"].graph-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"].graph-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #8B7CF6;
+  border: 2px solid #1E2028;
+  cursor: pointer;
+  transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1), background-color 120ms ease;
+}
+
+html:not(.dark) input[type="range"].graph-slider::-webkit-slider-thumb {
+  background: #6D5CE7;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+input[type="range"].graph-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.18);
+}
+
+input[type="range"].graph-slider::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #8B7CF6;
+  border: 2px solid #1E2028;
+  cursor: pointer;
+}
+
+/* Subtle custom scrollbars for Obsidian-like floating panels */
+.panel-scroll::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.panel-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.panel-scroll::-webkit-scrollbar-thumb {
+  background: rgba(139, 142, 155, 0.25);
+  border-radius: 3px;
+}
+
+.panel-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 142, 155, 0.45);
+}
+
+/* ---------------- Minest: the sample-library note */
+.lk-sample-note { padding: 6px 16px; font-size: 12px; text-align: center; color: #fde68a; background: rgba(245, 158, 11, .14); border-bottom: 1px solid rgba(245, 158, 11, .3); }
+
+/* ---------------- 全息操作台 · holographic console, laid over the canvas (Minest's Holo Lab look: cyan light, scan lines, a floor grid) */
+html.holo body { background: #03070f; }
+html.holo main { background: radial-gradient(120% 90% at 50% 40%, rgba(16, 60, 92, .35), transparent 70%), #03070f; }
+html.holo main canvas { filter: drop-shadow(0 0 3px rgba(80, 225, 255, .55)) drop-shadow(0 0 10px rgba(80, 225, 255, .22)) saturate(1.25); animation: holoFlicker 6s infinite steps(1); }
+html.holo header, html.holo main [class*="backdrop-blur"] { box-shadow: 0 0 0 1px rgba(90, 225, 255, .35), inset 0 0 18px rgba(90, 225, 255, .12); }
+.holo-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 15; overflow: hidden; }
+.holo-grid { position: absolute; left: -25%; right: -25%; bottom: -10%; height: 55%; transform: perspective(520px) rotateX(62deg); transform-origin: 50% 100%;
+  background-image: linear-gradient(rgba(80, 225, 255, .22) 1px, transparent 1px), linear-gradient(90deg, rgba(80, 225, 255, .22) 1px, transparent 1px);
+  background-size: 48px 48px; mask-image: linear-gradient(to top, #000 10%, transparent 85%); -webkit-mask-image: linear-gradient(to top, #000 10%, transparent 85%); animation: holoGrid 8s linear infinite; }
+.holo-scan { position: absolute; inset: 0; background: repeating-linear-gradient(to bottom, rgba(120, 235, 255, .05) 0 1px, transparent 1px 3px); }
+.holo-scan::after { content: ''; position: absolute; left: 0; right: 0; height: 18%; top: -20%; background: linear-gradient(to bottom, transparent, rgba(120, 235, 255, .10), transparent); animation: holoSweep 5.5s linear infinite; }
+.holo-vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 55%, rgba(40, 190, 255, .16) 85%, rgba(0, 20, 40, .55)); }
+.holo-corner { position: absolute; width: 34px; height: 34px; border: 2px solid rgba(110, 235, 255, .8); filter: drop-shadow(0 0 6px rgba(110, 235, 255, .7)); }
+.holo-corner.tl { top: 92px; left: 12px; border-right: 0; border-bottom: 0; } .holo-corner.tr { top: 92px; right: 12px; border-left: 0; border-bottom: 0; }
+.holo-corner.bl { bottom: 12px; left: 12px; border-right: 0; border-top: 0; } .holo-corner.br { bottom: 12px; right: 12px; border-left: 0; border-top: 0; }
+.holo-hud { position: absolute; left: 50%; transform: translateX(-50%); font: 600 10.5px/1 var(--font-mono); letter-spacing: .22em; color: rgba(150, 240, 255, .85); text-shadow: 0 0 8px rgba(80, 225, 255, .8); white-space: nowrap; }
+.holo-hud.top { top: 100px; } .holo-hud.bottom { bottom: 18px; }
+@keyframes holoSweep { to { top: 110%; } }
+@keyframes holoGrid { to { background-position: 0 48px, 0 0; } }
+@keyframes holoFlicker { 0%, 100% { opacity: 1; } 47% { opacity: .93; } 48% { opacity: 1; } 82% { opacity: .96; } }
+@media (prefers-reduced-motion: reduce) { html.holo main canvas, .holo-grid, .holo-scan::after { animation: none; } }
+@media (max-width: 640px) { .holo-hud.top, .holo-corner.tl, .holo-corner.tr { top: 150px; } .holo-hud { font-size: 9px; letter-spacing: .12em; } }
