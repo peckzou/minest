@@ -44,7 +44,7 @@
     activeRide: null, rideThirdPerson: false, rideLookYaw: 0, rideLookPitch: 0
   };
   const keys = Object.create(null);
-  const player = { pos: new V3(192.5, 40, 292), vel: new V3(), yaw: 0, pitch: 0.08, onGround: false, fly: false };
+  const player = { pos: new V3(VW.CX || 272.5, 40, 396), vel: new V3(), yaw: 0, pitch: 0.08, onGround: false, fly: false };
 
   const hemi = new THREE.HemisphereLight(0xd8ecff, 0x6a5a48, 0.68);
   scene.add(hemi);
@@ -169,8 +169,8 @@
       ' float fog = 1.0 - exp(-uFogD*uFogD*vD*vD); gl_FragColor = vec4(mix(col, uFog, fog), mix(0.76, 0.94, fr)); }'
     ].join('\n')
   });
-  const waterMesh = new THREE.Mesh(new THREE.PlaneGeometry(1400, 1400), waterMat);
-  waterMesh.rotation.x = -Math.PI / 2; waterMesh.position.set(272, VW.WATER_Y, 272); waterMesh.renderOrder = 5; scene.add(waterMesh);
+  const waterMesh = new THREE.Mesh(new THREE.PlaneGeometry(2400, 2400), waterMat);
+  waterMesh.rotation.x = -Math.PI / 2; waterMesh.position.set(VW.W * 0.5, VW.WATER_Y, VW.D * 0.5); waterMesh.renderOrder = 5; scene.add(waterMesh);
 
   const KEYS = [
     [0, 0x050818, 0x10183c, 0x04101c, 0x0a2838], [6.3, 0x3a64a8, 0xf6a67e, 0x0e2a38, 0x2a6a74],
@@ -249,7 +249,10 @@
       const legs = new THREE.Mesh(unitBox, new THREE.MeshLambertMaterial({ color: 0x1e293b })); legs.scale.set(0.46, 0.56, 0.26); legs.position.y = 0.28;
       const head = new THREE.Mesh(unitBox, new THREE.MeshLambertMaterial({ color: 0xf4cfa8 })); head.scale.set(0.34, 0.34, 0.34); head.position.y = 1.56;
       const hair = new THREE.Mesh(unitBox, new THREE.MeshLambertMaterial({ color: land.hair })); hair.scale.set(0.38, 0.16, 0.38); hair.position.y = 1.75;
-      g.add(body, legs, head, hair); scene.add(g);
+      g.add(body, legs, head, hair);
+      [-0.13, 0.13].forEach((fx) => { const shoe = new THREE.Mesh(unitBox, new THREE.MeshLambertMaterial({ color: 0x111827 })); shoe.scale.set(0.2, 0.1, 0.36); shoe.position.set(fx, 0.05, 0.05); g.add(shoe); });   /* feet */
+      [-0.33, 0.33].forEach((ax) => { const arm = new THREE.Mesh(unitBox, new THREE.MeshLambertMaterial({ color: land.robe })); arm.scale.set(0.13, 0.62, 0.16); arm.position.set(ax, 1.05, 0); g.add(arm); });
+      scene.add(g);
 
       const cv = document.createElement('canvas'); cv.width = 420; cv.height = 72;
       const x = cv.getContext('2d');
@@ -515,36 +518,49 @@
   function drawMinimap() {
     if (!mmBase) return;
     const cv = $('mm'), x = cv.getContext('2d');
-    x.drawImage(mmBase, 0, 0, cv.width, cv.height);
-    const px = camera.position.x / world.W * cv.width, pz = camera.position.z / world.D * cv.height;
+    const sc = Math.min(cv.width / world.W, cv.height / world.D), ox = (cv.width - world.W * sc) / 2, oz = (cv.height - world.D * sc) / 2;
+    x.fillStyle = '#2888ac'; x.fillRect(0, 0, cv.width, cv.height);
+    x.drawImage(mmBase, ox, oz, world.W * sc, world.D * sc);
+    const px = ox + camera.position.x * sc, pz = oz + camera.position.z * sc;
     x.fillStyle = '#fff'; x.beginPath(); x.arc(px, pz, 3.8, 0, Math.PI * 2); x.fill();
   }
 
   /* ================= Boot & Main Loop ================= */
   async function boot() {
     const bar = $('bar').firstElementChild, msg = $('loadMsg');
-    msg.textContent = '正在铺设奇想主题乐园五大分区地形与护城河…'; bar.style.width = '22%'; await nextFrame();
+    msg.textContent = '正在铺设 1:1 迪士尼乐园 16 大主题分区地形与美国河水系…'; bar.style.width = '18%'; await nextFrame();
     world = VW.create();
 
-    msg.textContent = '正在烘焙乐园砖石、彩瓦与霓虹纹理…'; bar.style.width = '44%'; await nextFrame();
+    msg.textContent = '正在烘焙维多利亚砖石、法式铁艺与童话彩瓦纹理…'; bar.style.width = '36%'; await nextFrame();
     const atlas = new THREE.CanvasTexture(PITex.buildCanvas());
     atlas.magFilter = THREE.NearestFilter; atlas.minFilter = THREE.LinearMipmapLinearFilter;
     matWorld.map = matGlow.map = matLit.map = atlas;
 
-    msg.textContent = '正在构建岛屿区块…'; bar.style.width = '64%'; await nextFrame();
-    const CX = Math.ceil(world.W / CH), CZ = Math.ceil(world.D / CH);
-    for (let cz = 0; cz < CZ; cz++) for (let cx = 0; cx < CX; cx++) {
-      const g = PIMesher.buildChunk(world, cx, cz, CH);
-      if (g.opaque) { const m = new THREE.Mesh(g.opaque, matWorld); m.castShadow = m.receiveShadow = true; worldGroup.add(m); }
-      if (g.glow) { const m = new THREE.Mesh(g.glow, matGlow); worldGroup.add(m); }
-      if (g.lit) { const m = new THREE.Mesh(g.lit, matLit); worldGroup.add(m); }
+    msg.textContent = '正在流式构建 1:1 全境地形区块…'; bar.style.width = '54%'; await nextFrame();
+    const CX = Math.ceil(world.W / CH), CZ = Math.ceil(world.D / CH), totalChunks = CX * CZ;
+    let builtChunks = 0;
+    for (let cz = 0; cz < CZ; cz++) {
+      for (let cx = 0; cx < CX; cx++) {
+        const g = PIMesher.buildChunk(world, cx, cz, CH);
+        if (g.opaque) { const m = new THREE.Mesh(g.opaque, matWorld); m.castShadow = m.receiveShadow = true; worldGroup.add(m); }
+        if (g.glow) { const m = new THREE.Mesh(g.glow, matGlow); worldGroup.add(m); }
+        if (g.lit) { const m = new THREE.Mesh(g.lit, matLit); worldGroup.add(m); }
+        builtChunks++;
+        if ((builtChunks % 192) === 0) {
+          bar.style.width = (54 + Math.round((builtChunks / totalChunks) * 24)) + '%';
+          await nextFrame();
+        }
+      }
     }
 
-    msg.textContent = '正在搭建星光城堡、维多利亚主街与三大可乘坐游乐设施…'; bar.style.width = '86%'; await nextFrame();
+    msg.textContent = '正在搭建小镇大街、童话城堡、加勒比海盗、卡通城与 12 大可乘坐设施…'; bar.style.width = '86%'; await nextFrame();
     props = TPProps.build(world, THREE, scene);
     spawnParkHosts();
     buildMinimap();
     buildHotbar();
+    $('mm').title = '点击打开 1:1 迪士尼乐园导览地图 (M)';
+    $('mm').style.cursor = 'pointer';
+    $('mm').onclick = () => portals && portals.openGuideModal();
 
     portals = TPPortals.attach({
       world, props, player, teleport, toast, setTime, exitLock, boardRide, launchFireworks,
@@ -552,9 +568,20 @@
     });
     $('guide-top-btn').onclick = () => portals.openGuideModal();
 
-    // Start on Main Street looking straight down the iconic Disneyland axial vista toward Starlight Castle!
+    // Start on Main Street looking straight down the iconic 224m 1:1 Disneyland axial vista toward the Castle!
     const startLand = world.LANDS.find((l) => l.id === 'main_street');
     if (startLand) teleport(startLand.tp);
+
+    window.TPParkAPI = {
+      THREE, scene, camera, renderer, canvas,
+      getWorld: () => world,
+      getProps: () => props,
+      getPortals: () => portals,
+      player, state: S,
+      groundY, teleport, toast, launchFireworks, exitLock, setMode, boardRide, exitRide,
+      setUI: (flag) => { S.ui = !!flag; if (flag) exitLock(); }
+    };
+    window.dispatchEvent(new CustomEvent('tp:park-ready', { detail: window.TPParkAPI }));
 
     bar.style.width = '100%';
     $('loading').classList.add('done');
@@ -570,8 +597,10 @@
       if (S.activeRide && props && props.rides[S.activeRide]) {
         const r = props.rides[S.activeRide];
         if (r.steer) {
-          const sx = (keys['KeyD'] || keys['ArrowRight'] ? 1 : 0) - (keys['KeyA'] || keys['ArrowLeft'] ? 1 : 0);
-          const sy = (keys['KeyW'] || keys['ArrowUp'] ? 1 : 0) - (keys['KeyS'] || keys['ArrowDown'] ? 1 : 0);
+          const ar = !!r.aim;   /* a ride with a gunner's stick: WASD flies, the arrow keys turn the cannons */
+          const sx = (keys['KeyD'] || (!ar && keys['ArrowRight']) ? 1 : 0) - (keys['KeyA'] || (!ar && keys['ArrowLeft']) ? 1 : 0);
+          const sy = (keys['KeyW'] || (!ar && keys['ArrowUp']) ? 1 : 0) - (keys['KeyS'] || (!ar && keys['ArrowDown']) ? 1 : 0);
+          if (ar) { const ax = (keys['ArrowRight'] ? 1 : 0) - (keys['ArrowLeft'] ? 1 : 0), ay = (keys['ArrowUp'] ? 1 : 0) - (keys['ArrowDown'] ? 1 : 0); if (ax || ay) r.aim(ax * dt * 1.6, ay * dt * 1.6); }
           if (sx || sy) r.steer(sx * dt * 11, sy * dt * 8);
         }
         if (r.fire && keys['Space']) r.fire((evMsg) => toast(evMsg));
@@ -580,7 +609,7 @@
         const pose = r.getCameraPose(S.rideThirdPerson);
         camera.position.set(pose.px, pose.py, pose.pz);
         const f = look(pose.px, pose.py, pose.pz, pose.tx, pose.ty, pose.tz);
-        camera.rotation.set(clamp(f.pitch + S.rideLookPitch, -1.2, 1.2), f.yaw + S.rideLookYaw, 0, 'YXZ');
+        camera.rotation.set(clamp(f.pitch + S.rideLookPitch, -1.2, 1.2), f.yaw + S.rideLookYaw, pose.roll || 0, 'YXZ');
         if (!r.isRunning()) updateRideHud();
       } else if (S.mode === 'tour') {
         S.tourT = (S.tourT + dt) % world.tour.dur;
