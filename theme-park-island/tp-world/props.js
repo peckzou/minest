@@ -750,6 +750,7 @@
     const landmarks = root.TPLandmarks ? root.TPLandmarks.build(scene, world, group) : null;
     const dl1to1 = root.TPDisneyland1to1 ? root.TPDisneyland1to1.build(scene, world, group) : null;
     const starWars = root.TPStarWars ? root.TPStarWars.build(scene, world, group) : null;
+    const smallWorld = root.TPSmallWorld ? root.TPSmallWorld.build(scene, world, group) : null;
     const orlando = root.TPOrlando ? root.TPOrlando.build(scene, world, group) : null;
     const paris = root.TPParis ? root.TPParis.build(scene, world, group) : null;
 
@@ -834,7 +835,6 @@
       }
     };
     if (landmarks) {
-      if (landmarks.smallWorldRide) rides.small_world_boat = landmarks.smallWorldRide;
       if (landmarks.matterhornRide) rides.matterhorn_bobsleds = landmarks.matterhornRide;
       if (landmarks.bigThunderRide) rides.big_thunder = landmarks.bigThunderRide;
     }
@@ -843,6 +843,7 @@
       if (dl1to1.spaceMountainRide) rides.space_mountain = dl1to1.spaceMountainRide;
     }
     if (starWars && starWars.falconRide) rides.falcon_flight = starWars.falconRide;
+    if (smallWorld) rides.small_world_boat = smallWorld.ride;
     if (orlando) {
       if (orlando.skylinerRide) rides.skyliner_ride = orlando.skylinerRide;
       if (orlando.everestRide) rides.everest_ride = orlando.everestRide;
@@ -863,6 +864,7 @@
       if (landmarks) landmarks.update(dt, elapsed, onEvent);
       if (dl1to1) dl1to1.update(dt, elapsed, onEvent);
       if (starWars) starWars.update(dt, elapsed, onEvent);
+      if (smallWorld) smallWorld.update(dt, elapsed, onEvent, cam);
       if (orlando) orlando.update(dt, elapsed, nightF, onEvent);
       if (paris) paris.update(dt, elapsed, onEvent);
 
