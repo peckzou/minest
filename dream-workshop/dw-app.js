@@ -93,6 +93,12 @@
     location.href = '../theme-park-island/theme-park.html?place=' + encodeURIComponent(work.id);
   }
   $('#dw-place-park').onclick = sendToDisneyPark;
+  /* 🏛 WED 工作坊 (wed-studio/, built from tools/wed-studio): the 1954 studio, with this work built on its model table */
+  $('#dw-wed').onclick = function () {
+    if (!work) return;
+    E.hush(); save(true);
+    location.href = 'wed-studio/index.html?work=' + encodeURIComponent(work.id);
+  };
   $('#dw-gpark').onclick = sendToDisneyPark;
 
   function adopt(w) {
@@ -838,6 +844,11 @@
   if (root.speechSynthesis && speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = function () {};
   setTimeout(function () {
     var qs = {}; location.search.replace(/[?&]([a-zA-Z]+)=([A-Za-z0-9_-]+)/g, function (m, k, v) { qs[k] = v; });
+    if (qs.from === 'wed') {
+      $('#dw-exit').hidden = false;
+      $('#dw-exit').innerHTML = '🏛<span class="dw-lbl"> 回 WED 工作坊</span>';
+      $('#dw-exit').onclick = function () { E.hush(); save(true); location.href = 'wed-studio/index.html' + (work ? '?work=' + encodeURIComponent(work.id) : ''); };
+    }
     if (qs.from === 'park') {
       $('#dw-exit').hidden = false;
       $('#dw-exit').onclick = function () {
