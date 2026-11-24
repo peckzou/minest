@@ -8,7 +8,8 @@
   var T = root.THREE, M = root.DWModels, E = root.DWEngine = { on: {} };
   var TABLE_R = 16;
   var renderer, scene, cam, canvas, work = null, clock = 0;
-  var hemi, sun, grid, rim, helpers, selRing;
+  var hemi, sun, grid, rim, helpers, selRing, ground, plaza;
+  var host = null, rayCam = null;   /* host mode (the WED studio): the host owns the renderer and the frame, and shows this scene as a miniature */
   var nodes = {};                 // object id -> { g, sig, look }
   var view = { yaw: 0.42, pitch: 0.5, dist: 19, target: new T.Vector3(0, 0.8, -0.8) };
   var play = { t: 0, playing: false, music: {}, voice: null, fadeK: 1, fading: 0 };
@@ -22,19 +23,21 @@
   E.MOODS = MOODS;
 
   /* ---------------------------------------------------------------- set-up */
-  E.init = function (cv) {
-    canvas = cv;
-    renderer = new T.WebGLRenderer({ canvas: cv, antialias: true });
-    renderer.setPixelRatio(Math.min(2, root.devicePixelRatio || 1));
-    renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
+  E.init = function (cv, hostOpts) {
+    canvas = cv; host = hostOpts || null;
+    if (!host) {
+      renderer = new T.WebGLRenderer({ canvas: cv, antialias: true });
+      renderer.setPixelRatio(Math.min(2, root.devicePixelRatio || 1));
+      renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
+    }
     scene = new T.Scene(); scene.fog = new T.FogExp2('#0d1422', 0.018);
     cam = new T.PerspectiveCamera(50, 1, 0.1, 300);
     hemi = new T.HemisphereLight('#c9d6f0', '#2a2118', 0.4); scene.add(hemi);
     sun = new T.DirectionalLight('#fff4e0', 0.6); sun.position.set(8, 16, 10); sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024); var sc = sun.shadow.camera; sc.left = sc.bottom = -18; sc.right = sc.top = 18; sc.far = 60; scene.add(sun);
-    var ground = new T.Mesh(new T.CircleGeometry(90, 64), new T.MeshStandardMaterial({ color: '#4b5e43', roughness: 1 }));
+    ground = new T.Mesh(new T.CircleGeometry(90, 64), new T.MeshStandardMaterial({ color: '#4b5e43', roughness: 1 }));
     ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
-    var plaza = new T.Mesh(new T.CircleGeometry(TABLE_R, 64), new T.MeshStandardMaterial({ color: '#5a6b4c', roughness: 1 }));
+    plaza = new T.Mesh(new T.CircleGeometry(TABLE_R, 64), new T.MeshStandardMaterial({ color: '#5a6b4c', roughness: 1 }));
     plaza.rotation.x = -Math.PI / 2; plaza.position.y = 0.005; plaza.receiveShadow = true; scene.add(plaza);
     rim = new T.Mesh(new T.TorusGeometry(TABLE_R, 0.22, 8, 96), new T.MeshStandardMaterial({ color: '#7a5233', roughness: 0.6 }));
     rim.rotation.x = Math.PI / 2; rim.position.y = 0.05; scene.add(rim);
@@ -43,8 +46,9 @@
     helpers = new T.Group(); scene.add(helpers);
     selRing = new T.Mesh(new T.RingGeometry(0.92, 1.06, 48), new T.MeshBasicMaterial({ color: '#ffd166', side: T.DoubleSide, transparent: true, opacity: 0.95, depthWrite: false }));
     selRing.rotation.x = -Math.PI / 2; selRing.visible = false; scene.add(selRing);
-    resize(); if (root.ResizeObserver) new ResizeObserver(resize).observe(cv.parentNode); else root.addEventListener('resize', resize);
     bindKeys();
+    if (host) { ground.visible = false; scene.fog.density = 0; return; }
+    resize(); if (root.ResizeObserver) new ResizeObserver(resize).observe(cv.parentNode); else root.addEventListener('resize', resize);
     var last = performance.now();
     (function loop(now) {
       requestAnimationFrame(loop);
@@ -52,6 +56,15 @@
       tick(dt); renderer.render(scene, cam);
     })(last);
   };
+  /* host mode: the host calls frame(dt) each frame, renders scene() itself (with its own camera over the miniature, or
+     camera() while a guest is inside), and gives the camera that picking should use */
+  E.frame = function (dt) {
+    clock += dt;
+    plaza.visible = !!work; if (!guest) grid.visible = rim.visible = !!work;   /* no work on the host's table: no disc either */
+    tick(dt);
+  };
+  E.scene = function () { return scene; };
+  E.useCamera = function (c) { rayCam = c; };
   function resize() {
     var p = canvas.parentNode, w = p.clientWidth || 1, h = p.clientHeight || 1;
     renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix();
@@ -159,6 +172,7 @@
   }
   function roundRect(x, a, b, w, h, r) { x.beginPath(); x.moveTo(a + r, b); x.arcTo(a + w, b, a + w, b + h, r); x.arcTo(a + w, b + h, a, b + h, r); x.arcTo(a, b + h, a, b, r); x.arcTo(a, b, a + w, b, r); x.closePath(); }
   function drawHelpers() {
+    if (!helpers) return;
     while (helpers.children.length) { var c = helpers.children.pop(); if (c.geometry) c.geometry.dispose(); }
     if (!work) return;
     (work.zones || []).forEach(function (z) {
@@ -182,6 +196,7 @@
     helpers.visible = helpersOn && !guest;
   }
   function placeRing() {
+    if (!selRing) return;
     var n = sel && sel.type === 'obj' && nodes[sel.id];
     if (!n || guest) { selRing.visible = false; return; }
     var b = new T.Box3().setFromObject(n.g), s = b.getSize(new T.Vector3()), r = Math.max(0.5, Math.max(s.x, s.z) / 2 + 0.15);
@@ -192,7 +207,7 @@
 
   /* ---------------------------------------------------------------- picking */
   var ray = new T.Raycaster(), ndc = new T.Vector2();
-  function setRay(cx, cy) { var r = canvas.getBoundingClientRect(); ndc.set(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1); ray.setFromCamera(ndc, cam); }
+  function setRay(cx, cy) { var r = canvas.getBoundingClientRect(); ndc.set(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1); ray.setFromCamera(ndc, !guest && rayCam ? rayCam : cam); }
   E.pick = function (cx, cy) {
     setRay(cx, cy);
     var list = Object.keys(nodes).map(function (k) { return nodes[k].g; });
@@ -299,6 +314,83 @@
       if (!guest && !play.playing && t < 0.001) lv = 1;
       rig.plant.scale.set(Math.max(0.05, lv), Math.max(0.02, lv), Math.max(0.05, lv)); rig.plant.rotation.z = (1 - lv) * 0.3 * (o.x > 0 ? 1 : -1) * (gl.some(function (c) { return c.op === 'wilt' && c.now >= c.a; }) ? 1 : 0);
       rig.label.visible = lv > 0.7; rig.plant.rotation.y = Math.sin(clock * 0.8 + o.z) * 0.08;
+    } else if (rig.prop === 'carousel') {
+      var csp = (on ? 0.65 : 0.15) + 2.2 * boost('spin');
+      rig.spin.rotation.y += dt * csp;
+      rig.horses.forEach(function (h) { h.position.y = 0.95 + Math.sin(clock * 2.6 + h.userData.phase) * (0.16 * Math.min(1, csp)); });
+    } else if (rig.prop === 'ferris') {
+      var fsp = (on ? 0.32 : 0.08) + 1.6 * boost('spin');
+      rig.wheel.rotation.z += dt * fsp;
+      rig.cars.forEach(function (cg) { cg.rotation.z = -rig.wheel.rotation.z; });
+    } else if (rig.prop === 'crystal') {
+      var crb = boost('spin');
+      rig.gem.rotation.y += dt * (0.8 + 4.5 * crb);
+      rig.gem.position.y = 1.65 + Math.sin(clock * 2.2 + o.x) * 0.12;
+      rig.halo.rotation.z += dt * 0.9;
+      rig.mat.emissiveIntensity = 0.85 + 0.3 * Math.sin(clock * 3) + 1.4 * crb;
+    } else if (rig.prop === 'rocket') {
+      var rb = boost('spin');
+      rig.ship.position.y = rb > 0.01 ? rb * 3.8 : (on ? Math.sin(clock * 2.4) * 0.08 : 0);
+      rig.ship.rotation.y += dt * (rb * 3.5);
+      rig.flame.scale.setScalar(0.75 + 0.35 * Math.sin(clock * 18) + rb * 1.1);
+      rig.flame.visible = !!(on || rb > 0.01);
+    } else if (rig.prop === 'treasure') {
+      var tOpen = Math.max(level2(line, 'open', 'close', 0), tapW('open'));
+      rig.lid.rotation.x = -1.35 * tOpen;
+      rig.coins.scale.setScalar(0.85 + 0.25 * tOpen);
+    } else if (rig.prop === 'motion') {   /* parts that turn (wheels, a propeller, a globe) and things that float (a balloon) */
+      var mb = boost('spin'), mk = (on ? (rig.idle == null ? 1 : rig.idle) : 0) + 4 * mb;
+      (rig.spins || []).forEach(function (q) { q[0].rotation[q[1]] += dt * q[2] * mk; });
+      if (rig.bob) rig.bob.obj.position.y = rig.bob.base + Math.sin(clock * rig.bob.speed + o.x) * rig.bob.amp + mb * (rig.bob.lift || 0);
+    }
+  }
+  /* ---------------------------------------------------------------- celebration fireworks */
+  var fwBursts = [], fwTimer = 0, fwCooldown = 0;
+  function spawnBurst(bx, bz) {
+    var cols = ['#fbbf24', '#f472b6', '#38bdf8', '#a855f7', '#34d399', '#fb7185'];
+    var col = cols[(Math.random() * cols.length) | 0], N = 72;
+    var pos = new Float32Array(N * 3), vels = [];
+    var ox = bx != null ? bx : (Math.random() - 0.5) * 14, oy = 6.5 + Math.random() * 4.5, oz = bz != null ? bz : -3 - Math.random() * 8;
+    for (var i = 0; i < N; i++) {
+      var th = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1), sp = 2.4 + Math.random() * 3.8;
+      vels.push([Math.sin(ph) * Math.cos(th) * sp, Math.cos(ph) * sp + 1.2, Math.sin(ph) * Math.sin(th) * sp]);
+    }
+    var g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3));
+    var m = new T.PointsMaterial({ color: col, size: 0.24, transparent: true, opacity: 1, depthWrite: false, blending: T.AdditiveBlending });
+    var pts = new T.Points(g, m); pts.position.set(ox, oy, oz); pts.frustumCulled = false; scene.add(pts);
+    fwBursts.push({ pts: pts, g: g, m: m, vels: vels, age: 0, life: 1.7 + Math.random() * 0.5 });
+    var ctx = actx();
+    if (ctx) {
+      var now = ctx.currentTime, osc = ctx.createOscillator(), gn = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.setValueAtTime(160 + Math.random() * 60, now); osc.frequency.exponentialRampToValueAtTime(38, now + 0.45);
+      gn.gain.setValueAtTime(0.14, now); gn.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      osc.connect(gn); gn.connect(A.master); osc.start(now); osc.stop(now + 0.55);
+    }
+  }
+  E.launchFireworks = function (dur, x, z) {
+    actx();
+    fwTimer = Math.max(fwTimer, dur || 6.5);
+    spawnBurst(x, z);
+  };
+  function updateFireworks(dt) {
+    var onTrack = play.playing && clips('light').some(function (c) { return c.op === 'fireworks' && play.t >= c.t0 && play.t <= c.t1; });
+    if (fwTimer > 0 || onTrack) {
+      if (fwTimer > 0) fwTimer -= dt;
+      fwCooldown -= dt;
+      if (fwCooldown <= 0) { spawnBurst(); fwCooldown = 0.45 + Math.random() * 0.35; }
+    }
+    for (var i = fwBursts.length - 1; i >= 0; i--) {
+      var b = fwBursts[i]; b.age += dt;
+      if (b.age >= b.life) { scene.remove(b.pts); b.g.dispose(); b.m.dispose(); fwBursts.splice(i, 1); continue; }
+      var a = b.g.attributes.position.array, p = b.age / b.life;
+      for (var k = 0; k < b.vels.length; k++) {
+        var v = b.vels[k];
+        a[k * 3] = v[0] * b.age * (1 - p * 0.3);
+        a[k * 3 + 1] = v[1] * b.age - 3.2 * b.age * b.age;
+        a[k * 3 + 2] = v[2] * b.age * (1 - p * 0.3);
+      }
+      b.g.attributes.position.needsUpdate = true;
+      b.m.opacity = Math.max(0, 1 - p * p);
     }
   }
   /* appear / vanish on the timeline: a thing that first appears starts hidden; the director still sees it all at 0 s */
@@ -479,6 +571,7 @@
     }
     var work_light = !guest && !play.playing ? 0.32 : 0;   // the director's work light: editing in the dark is no fun; playing and the guest see the real show
     hemi.intensity = m.hemi[0] + m.hemi[1] * L + work_light; sun.intensity = m.sun;
+    if (host) { ground.visible = !!guest; if (!guest) { scene.background = null; scene.fog.density = 0; if (host.light) { hemi.intensity = Math.max(hemi.intensity, host.light); sun.intensity = Math.max(sun.intensity, host.light * 0.8); } } }   /* a miniature on the host's table: no sky of its own, and never darker than the room */
     Object.keys(nodes).forEach(function (id) {
       var u = nodes[id].g.userData;
       if (u.spot) {
@@ -539,14 +632,23 @@
   E.guestTap = function (cx, cy) {
     if (!guest) return null; var h = E.pick(cx, cy); if (!h || h.type !== 'obj') return null;
     var o = objOf(h.id); if (o && nodes[o.id] && !nodes[o.id].g.visible) return null;
-    if (!o || !o.life || !o.life.on) return { still: true, name: o && o.name };
-    var d = distTo(o); if (d > 6.5) return { far: true, name: o.name };
-    var tp = o.life.tap || {}; if (!tp.text && !tp.op) return { none: true, name: o.name };
+    if (!o) return null;
+    if (o.kind === 'firework') { E.unlock(); E.launchFireworks(6, o.x, o.z); return { ok: true, name: o.name || '烟花礼花台' }; }
+    if (!o.life || !o.life.on) {
+      if (M.canLive(o.kind)) { E.unlock(); taps[o.id] = { op: M.actions(o.kind)[0] || 'raiseHand', c0: clock, dur: 3 }; return { ok: true, name: o.name }; }
+      return { still: true, name: o.name };
+    }
+    var d = distTo(o); if (d > 11.5) return { far: true, name: o.name };
+    var tp = o.life.tap || {};
+    var fallbackOp = M.actions(o.kind)[0] || 'raiseHand';
+    var tapText = tp.text || '';
+    var tapOp = tp.op || fallbackOp;
     E.unlock();
-    if (tp.text) { var v = Object.assign({}, o.life.voice || {}, { text: tp.text }); if (E.speak(tp.text, v, 0, falloff(d))) tapSpeak[o.id] = clock + E.sayTime(v); }
-    if (tp.op === 'startShow') { if (!play.playing) { play.t = 0; play.fadeK = 1; E.play(); } }
-    else if (tp.op) taps[o.id] = { op: tp.op, c0: clock, dur: tp.op === 'turnHead' ? 4 : tp.op === 'spin' || tp.op === 'timeTravel' ? 4 : 3 };
-    return { ok: true, name: o.name };
+    if (tapText) { var v = Object.assign({}, o.life.voice || {}, { text: tapText }); if (E.speak(tapText, v, 0, falloff(d))) tapSpeak[o.id] = clock + E.sayTime(v); }
+    if (tapOp === 'startShow') { if (!play.playing) { play.t = 0; play.fadeK = 1; E.play(); } }
+    else if (tapOp === 'fireworks') { E.launchFireworks(6.5, o.x, o.z); taps[o.id] = { op: 'spin', c0: clock, dur: 3.5 }; }
+    else if (tapOp) taps[o.id] = { op: tapOp, c0: clock, dur: tapOp === 'turnHead' ? 4 : tapOp === 'spin' || tapOp === 'timeTravel' ? 4 : 3 };
+    return { ok: true, name: o.name, text: tapText };
   };
   function say(t) { if (E.on.guest) E.on.guest(t); }
   function zoneAt(x, z) { return (work.zones || []).filter(function (q) { return Math.hypot(x - q.x, z - q.z) <= q.r; })[0] || null; }
@@ -616,8 +718,9 @@
   function tick(dt) {
     if (!work) { placeCam(); return; }
     advance(dt);
-    if (guest) guestTick(dt); else { if (A.master && A.ctx) { A.master.gain.setTargetAtTime(0.9, A.ctx.currentTime, 0.2); Object.keys(play.music).forEach(function (k) { var hd = play.music[k]; if (hd && hd.out) hd.out.gain.setTargetAtTime(1, A.ctx.currentTime, 0.2); }); } placeCam(); }
+    if (guest) guestTick(dt); else { if (A.master && A.ctx) { A.master.gain.setTargetAtTime(0.9, A.ctx.currentTime, 0.2); Object.keys(play.music).forEach(function (k) { var hd = play.music[k]; if (hd && hd.out) hd.out.gain.setTargetAtTime(1, A.ctx.currentTime, 0.2); }); } if (!host) placeCam(); }
     applyLights(dt);
+    updateFireworks(dt);
     work.objects.forEach(function (o) {
       var n = nodes[o.id]; if (!n) return;
       var k = visOf(o, play.t), s0 = o.s || 1, e = k >= 1 ? 1 : k <= 0 ? 0 : 1 + 2.7 * Math.pow(k - 1, 3) + 1.7 * Math.pow(k - 1, 2);   /* a little overshoot as it pops in */

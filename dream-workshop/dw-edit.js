@@ -6,8 +6,8 @@
 (function (root) {
   'use strict';
   var MK = root.DWModels.KINDS, canLive = root.DWModels.canLive, E = root.DWEngine, uid = root.DWTemplates.uid, PI = Math.PI;
-  var ACTIONS = ['raiseHand', 'turnHead', 'nod', 'openArms', 'point', 'bow', 'smile', 'surprise', 'wink', 'stroll', 'open', 'close', 'turnPage', 'spin', 'timeTravel', 'grow', 'wilt', 'appear', 'vanish', 'startShow'];
-  var LIGHTS = ['up', 'down', 'toDay', 'toDusk', 'toNight', 'toTheatre', 'rain', 'snow', 'clear'], MUSIC = ['pad', 'fanfare', 'drum', 'chime'];
+  var ACTIONS = ['raiseHand', 'turnHead', 'nod', 'openArms', 'point', 'bow', 'smile', 'surprise', 'wink', 'stroll', 'open', 'close', 'turnPage', 'spin', 'timeTravel', 'grow', 'wilt', 'appear', 'vanish', 'startShow', 'fireworks'];
+  var LIGHTS = ['up', 'down', 'toDay', 'toDusk', 'toNight', 'toTheatre', 'rain', 'snow', 'clear', 'fireworks'], MUSIC = ['pad', 'fanfare', 'drum', 'chime'];
   var MOODS = { theatre: '剧场', day: '白天', dusk: '黄昏', night: '夜晚' };
   function n(v, a, b, d) { v = +v; if (!isFinite(v)) v = d; return Math.max(a, Math.min(b, v)); }
   function inTable(x, z) { var d = Math.hypot(x, z), m = 14.5; return d > m ? { x: x / d * m, z: z / d * m } : { x: x, z: z }; }
@@ -90,18 +90,19 @@
   var CN = { 一: 1, 两: 2, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10, 半: 0.5 };
   function num(s) { if (s == null) return null; s = String(s); if (/^\d+(\.\d+)?$/.test(s)) return +s; if (s === '十') return 10; if (/^十.$/.test(s)) return 10 + (CN[s[1]] || 0); if (/^.十$/.test(s)) return (CN[s[0]] || 1) * 10; if (/^.十.$/.test(s)) return (CN[s[0]] || 1) * 10 + (CN[s[2]] || 0); return CN[s] != null ? CN[s] : null; }
   var N = '(\\d+(?:\\.\\d+)?|[一两二三四五六七八九十半]+)';
-  var THINGS = { 树: 'tree', 灯笼: 'lantern', 路灯: 'lamp', 聚光灯: 'spot', 旗帜: 'flag', 旗: 'flag', 立柱: 'column', 柱子: 'column', 长椅: 'bench', 椅子: 'chair', 座椅: 'chair', 小屋: 'house', 房子: 'house', 风车: 'windmill', 星星: 'star', 花: 'sprout', 告示牌: 'sign', 演讲台: 'podium', 讲解员: 'guide', 人: 'figure' };
+  var THINGS = { 公主: 'princess', 女王: 'princess', 艾莎: 'princess', 魔法师: 'wizard', 巫师: 'wizard', 宇航员: 'astronaut', 太空人: 'astronaut', 机器人: 'robot', 恐龙: 'dino', 霸王龙: 'dino', 独角兽: 'unicorn', 小马: 'unicorn', 城堡: 'castle', 皇宫: 'castle', 旋转木马: 'carousel', 木马: 'carousel', 摩天轮: 'ferris', 火箭: 'rocket', 飞船: 'rocket', 水晶: 'crystal', 宝石: 'crystal', 宝箱: 'treasure', 彩虹: 'rainbow', 蘑菇屋: 'mushroom', 蘑菇: 'mushroom', 烟花台: 'firework', 礼花: 'firework', 故事书: 'book', 音乐盒: 'musicbox', 八音盒: 'musicbox', 树: 'tree', 灯笼: 'lantern', 路灯: 'lamp', 聚光灯: 'spot', 旗帜: 'flag', 旗: 'flag', 立柱: 'column', 柱子: 'column', 长椅: 'bench', 椅子: 'chair', 座椅: 'chair', 小屋: 'house', 房子: 'house', 风车: 'windmill', 星星: 'star', 花: 'sprout', 告示牌: 'sign', 欢迎牌: 'sign', 演讲台: 'podium', 讲解员: 'guide', 向导: 'guide', 人: 'figure' };
   function local(text, w) {
     var s = String(text || ''), ops = [], m;
     if ((m = s.match(new RegExp('[加添多再]\\s*' + N + '?\\s*排\\s*(观众席|长椅|座位|座椅|椅子)')))) ops.push({ action: 'add_rows', kind: /椅子|座椅|座位/.test(m[2]) ? 'chair' : 'bench', count: num(m[1]) || 1 });
     if (/更?温暖|暖一点|暖一些|暖色|暖暖|暖和/.test(s)) ops.push({ action: 'warmth', value: 0.9 });
-    else if (/冷一点|冷一些|冷色|清冷|冷冷/.test(s)) ops.push({ action: 'warmth', value: 0.15 });
+    else if (/冷一点|冷一些|冷色|清冷|冷冷|冰雪/.test(s)) ops.push({ action: 'warmth', value: 0.15 });
     var near = s.match(new RegExp(N + '\\s*米[^，。,；;]*?(开始|触发|亮|播放|演讲|说话)')), far = s.match(new RegExp('离开\\s*' + N + '\\s*米[^，。,；;]*?(减弱|变小|变轻|淡出|变弱|消失)'));
     if (near) { ops.push({ action: 'zone_radius', value: num(near[1]) }); if (far) ops.push({ action: 'zone_exit', op: 'none' }); }
     if (far) { var fv = num(far[1]); ops.push({ action: 'audio', value: fv, value2: fv + 7 }); }
-    var md = s.match(/(变成?|换成?|调成?)\s*(白天|黄昏|傍晚|晚上|夜晚|夜里|剧场)/); if (md) ops.push({ action: 'mood', text: { 白天: 'day', 黄昏: 'dusk', 傍晚: 'dusk', 晚上: 'night', 夜晚: 'night', 夜里: 'night', 剧场: 'theatre' }[md[2]] });
-    if (/下雨/.test(s)) ops.push({ action: 'clip_add', track: 'light', op: 'rain', start: -1, end: 2 }); if (/下雪/.test(s)) ops.push({ action: 'clip_add', track: 'light', op: 'snow', start: -1, end: 2 }); if (/放晴|雨停|雪停/.test(s)) ops.push({ action: 'clip_add', track: 'light', op: 'clear', start: -1, end: 2 });
-    var re = new RegExp('[加添放]\\s*' + N + '?\\s*[棵盏个张面根座位朵颗]?\\s*(' + Object.keys(THINGS).sort(function (a, b) { return b.length - a.length; }).join('|') + ')', 'g');
+    var md = s.match(/(变成?|换成?|调成?)\s*(白天|黄昏|傍晚|晚上|夜晚|夜里|星空|剧场)/); if (md) ops.push({ action: 'mood', text: { 白天: 'day', 黄昏: 'dusk', 傍晚: 'dusk', 晚上: 'night', 夜晚: 'night', 夜里: 'night', 星空: 'night', 剧场: 'theatre' }[md[2]] });
+    if (/下雨/.test(s)) ops.push({ action: 'clip_add', track: 'light', op: 'rain', start: 0, end: 25 }); if (/下雪|飘雪/.test(s)) ops.push({ action: 'clip_add', track: 'light', op: 'snow', start: 0, end: 25 }); if (/放晴|雨停|雪停/.test(s)) ops.push({ action: 'clip_add', track: 'light', op: 'clear', start: -1, end: 2 });
+    if (/放烟花|烟花秀|点燃烟花/.test(s)) ops.push({ action: 'clip_add', track: 'light', op: 'fireworks', start: 0, end: Math.max(15, w.timeline.len || 25) });
+    var re = new RegExp('[加添放摆造]\\s*' + N + '?\\s*[棵盏个张面根座位朵颗只匹架艘台本顶道]?\\s*[小大]?\\s*(' + Object.keys(THINGS).sort(function (a, b) { return b.length - a.length; }).join('|') + ')', 'g');
     while ((m = re.exec(s))) { if (/排/.test(s.slice(Math.max(0, m.index - 1), m.index + m[0].length + 1))) continue; var k = THINGS[m[2]], cnt = num(m[1]) || 1, st = w.objects.filter(function (o) { return o.kind === 'stage'; })[0], bx = st ? st.x : 0, bz = st ? st.z + 2 : 0;
       for (var i = 0; i < Math.min(cnt, 8); i++) { var side = i % 2 ? 1 : -1, row = Math.floor(i / 2); ops.push({ action: 'add', kind: k, x: bx + side * (4.6 + row * 1.4), z: bz + row * 1.6, facing: k === 'spot' ? side * -145 : 0, count: 1 }); } }
     var rm = s.match(/(删掉|删除|去掉|拿走|移除)\s*([^\s，。,]+)/); if (rm) ops.push({ action: 'remove', target: rm[2].replace(/^(那个|这个|一个)/, '') });

@@ -380,38 +380,335 @@
     return g;
   }
 
+  /* ---------------------------------------------------------------- phase 7: kid-loved IP characters, castles, rides & magic props */
+  function princess(o) {
+    var col = o.color || '#ec4899', g = figure({ height: 1.72, coat: col, legs: col, skin: '#f5cdb0', hair: '#fde047', shirt: '#fbcfe8' });
+    var rig = g.userData.rig, skirt = cyl(0.22, 0.56, 0.88, mat(col, { roughness: 0.55 }), 0, -0.42, 0, 20);
+    rig.spine.add(skirt);
+    var trim = cyl(0.565, 0.575, 0.06, mat('#fde68a', { metalness: 0.45, roughness: 0.35 }), 0, -0.83, 0, 20);
+    rig.spine.add(trim);
+    var crown = new T.Group(); crown.position.y = 0.41 * rig.k; rig.head.add(crown);
+    var gold = mat('#fbbf24', { metalness: 0.65, roughness: 0.25 });
+    crown.add(cyl(0.11, 0.10, 0.07, gold, 0, 0, 0, 16));
+    for (var i = 0; i < 5; i++) { var a = i / 5 * Math.PI * 2; crown.add(cone(0.025, 0.07, gold, Math.cos(a) * 0.095, 0.06, Math.sin(a) * 0.095)); }
+    crown.add(sph(0.022, mat('#38bdf8', { emissive: '#38bdf8', emissiveIntensity: 0.8 }), 0, 0.02, 0.105));
+    return g;
+  }
+  function wizard(o) {
+    var col = o.color || '#6d28d9', g = figure({ height: 1.74, coat: col, legs: '#1e1b4b', skin: '#f1c6a7', hair: '#475569', shirt: '#fde68a' });
+    var rig = g.userData.rig, hatM = mat(col, { roughness: 0.7 }), gold = mat('#fbbf24', { metalness: 0.55, roughness: 0.3 });
+    rig.spine.add(cyl(0.24, 0.48, 0.82, mat(col), 0, -0.38, -0.04, 16));
+    var hat = new T.Group(); hat.position.y = 0.38 * rig.k; rig.head.add(hat);
+    hat.add(cyl(0.26, 0.26, 0.025, hatM, 0, 0, 0, 20));
+    hat.add(cyl(0.13, 0.14, 0.05, gold, 0, 0.03, 0, 16));
+    hat.add(cone(0.14, 0.46, hatM, 0, 0.26, 0));
+    var wand = new T.Group(); wand.position.set(0, -0.64 * rig.k, 0.06); rig.armR.add(wand);
+    wand.add(cyl(0.015, 0.02, 0.46, mat('#78350f'), 0, 0.18, 0.14, 8)); wand.children[0].rotation.x = Math.PI / 3;
+    wand.add(sph(0.055, mat('#fef08a', { emissive: '#fbbf24', emissiveIntensity: 1.4 }), 0, 0.31, 0.34));
+    return g;
+  }
+  function astronaut(o) {
+    var col = o.color || '#f8fafc', acc = mat('#0ea5e9', { roughness: 0.4 }), g = figure({ height: 1.76, coat: col, legs: col, skin: '#e2e8f0', shirt: '#38bdf8' });
+    var rig = g.userData.rig;
+    rig.spine.add(box(0.36, 0.48, 0.22, mat('#cbd5e1', { metalness: 0.3 }), 0, 0.32, -0.22));
+    rig.spine.add(box(0.22, 0.16, 0.04, acc, 0, 0.36, 0.14));
+    rig.head.add(sph(0.21, mat('#f8fafc', { roughness: 0.3, metalness: 0.2 }), 0, 0.23, 0));
+    rig.head.add(sph(0.165, mat('#0f172a', { metalness: 0.85, roughness: 0.12 }), 0, 0.23, 0.07));
+    return g;
+  }
+  function robot(o) {
+    var g = new T.Group(), bodyM = mat(o.color || '#38bdf8', { metalness: 0.45, roughness: 0.35 }), dark = mat('#1e293b', { metalness: 0.5 }), glow = mat('#fde047', { emissive: '#facc15', emissiveIntensity: 1.2 });
+    var hips = new T.Group(); hips.position.y = 0.72; g.add(hips);
+    var legG = [-1, 1].map(function (s) {
+      var lg = new T.Group(); lg.position.x = s * 0.16; hips.add(lg);
+      lg.add(cyl(0.08, 0.09, 0.58, dark, 0, -0.32, 0, 12));
+      lg.add(box(0.22, 0.12, 0.3, bodyM, 0, -0.64, 0.04));
+      return lg;
+    });
+    var spine = new T.Group(); hips.add(spine);
+    spine.add(box(0.58, 0.64, 0.38, bodyM, 0, 0.34, 0));
+    spine.add(box(0.38, 0.28, 0.03, mat('#0f172a'), 0, 0.38, 0.195));
+    spine.add(box(0.26, 0.08, 0.04, mat('#34d399', { emissive: '#10b981', emissiveIntensity: 1 }), 0, 0.38, 0.205));
+    function rArm(s) {
+      var a = new T.Group(); a.position.set(s * 0.36, 0.56, 0); spine.add(a);
+      a.add(cyl(0.06, 0.06, 0.52, dark, 0, -0.26, 0, 10));
+      a.add(sph(0.085, bodyM, 0, -0.54, 0));
+      return a;
+    }
+    var armL = rArm(-1), armR = rArm(1);
+    var head = new T.Group(); head.position.y = 0.7; spine.add(head);
+    head.add(box(0.44, 0.34, 0.34, bodyM, 0, 0.2, 0));
+    head.add(box(0.36, 0.2, 0.02, mat('#0f172a'), 0, 0.21, 0.172));
+    [-1, 1].forEach(function (s) { head.add(sph(0.045, glow, s * 0.09, 0.22, 0.18)); });
+    var mouth = box(0.14, 0.03, 0.02, glow, 0, 0.14, 0.182); head.add(mouth);
+    head.add(cyl(0.018, 0.025, 0.2, dark, 0, 0.46, 0, 8));
+    head.add(sph(0.05, mat('#fb7185', { emissive: '#f43f5e', emissiveIntensity: 1.2 }), 0, 0.58, 0));
+    g.userData.rig = { spine: spine, head: head, armL: armL, armR: armR, mouth: mouth, legL: legG[0], legR: legG[1], k: 1 };
+    return g;
+  }
+  function dino(o) {
+    var g = new T.Group(), skin = mat(o.color || '#22c55e', { roughness: 0.7 }), belly = mat('#bbf7d0'), crest = mat('#f59e0b');
+    var hips = new T.Group(); hips.position.y = 0.78; g.add(hips);
+    var legG = [-1, 1].map(function (s) {
+      var lg = new T.Group(); lg.position.x = s * 0.24; hips.add(lg);
+      lg.add(box(0.24, 0.65, 0.3, skin, 0, -0.36, 0));
+      lg.add(box(0.28, 0.14, 0.42, skin, 0, -0.71, 0.08));
+      return lg;
+    });
+    var spine = new T.Group(); hips.add(spine);
+    var torso = sph(0.52, skin, 0, 0.22, -0.05); torso.scale.set(0.88, 1.08, 1.15); spine.add(torso);
+    var bel = sph(0.42, belly, 0, 0.2, 0.15); bel.scale.set(0.75, 0.95, 0.8); spine.add(bel);
+    var tail = cone(0.26, 1.15, skin, 0, 0.05, -0.82); tail.rotation.x = -1.15; spine.add(tail);
+    for (var i = 0; i < 4; i++) spine.add(cone(0.08, 0.2, crest, 0, 0.55 - i * 0.15, -0.35 - i * 0.18));
+    function dArm(s) {
+      var a = new T.Group(); a.position.set(s * 0.38, 0.42, 0.22); spine.add(a);
+      a.add(box(0.11, 0.28, 0.12, skin, 0, -0.1, 0.08));
+      return a;
+    }
+    var armL = dArm(-1), armR = dArm(1);
+    var head = new T.Group(); head.position.set(0, 0.72, 0.2); spine.add(head);
+    head.add(box(0.46, 0.38, 0.56, skin, 0, 0.2, 0.14));
+    head.add(box(0.42, 0.2, 0.42, skin, 0, 0.12, 0.42));
+    var mouth = box(0.34, 0.05, 0.3, mat('#fb7185'), 0, 0.03, 0.38); head.add(mouth);
+    [-1, 1].forEach(function (s) {
+      head.add(sph(0.065, mat('#fff'), s * 0.21, 0.27, 0.24));
+      head.add(sph(0.035, mat('#0f172a'), s * 0.23, 0.27, 0.29));
+    });
+    head.add(cone(0.07, 0.18, crest, 0, 0.45, 0.05));
+    g.userData.rig = { spine: spine, head: head, armL: armL, armR: armR, mouth: mouth, legL: legG[0], legR: legG[1], k: 1 };
+    return g;
+  }
+  function unicorn(o) {
+    var g = new T.Group(), bodyM = mat(o.color || '#fdf4ff', { roughness: 0.5 }), gold = mat('#fbbf24', { metalness: 0.7, roughness: 0.2 }), maneCols = ['#f472b6', '#a855f7', '#38bdf8', '#fbbf24'];
+    var hips = new T.Group(); hips.position.y = 0.85; g.add(hips);
+    var legL = new T.Group(), legR = new T.Group(); hips.add(legL); hips.add(legR);
+    [[-0.18, 0.35, legL], [0.18, 0.35, legR], [-0.18, -0.35, legR], [0.18, -0.35, legL]].forEach(function (p) {
+      p[2].add(cyl(0.075, 0.065, 0.82, bodyM, p[0], -0.41, p[1], 10));
+      p[2].add(cyl(0.072, 0.08, 0.1, gold, p[0], -0.81, p[1], 10));
+    });
+    var spine = new T.Group(); hips.add(spine);
+    var body = cyl(0.32, 0.34, 1.05, bodyM, 0, 0.18, 0, 16); body.rotation.x = Math.PI / 2; spine.add(body);
+    maneCols.forEach(function (mc, i) { spine.add(sph(0.13 - i * 0.015, mat(mc), 0, 0.22 - i * 0.11, -0.58 - i * 0.1)); });
+    var armL = new T.Group(), armR = new T.Group(); spine.add(armL); spine.add(armR);
+    var head = new T.Group(); head.position.set(0, 0.42, 0.42); spine.add(head);
+    var neck = cyl(0.16, 0.22, 0.5, bodyM, 0, 0.2, 0.05, 12); neck.rotation.x = 0.35; head.add(neck);
+    head.add(box(0.28, 0.28, 0.44, bodyM, 0, 0.44, 0.22));
+    var mouth = box(0.18, 0.04, 0.15, mat('#f9a8d4'), 0, 0.33, 0.38); head.add(mouth);
+    var horn = cone(0.055, 0.38, gold, 0, 0.72, 0.28); horn.rotation.x = 0.35; head.add(horn);
+    maneCols.forEach(function (mc, i) { head.add(sph(0.09, mat(mc), 0, 0.54 - i * 0.11, 0.0 - i * 0.03)); });
+    [-1, 1].forEach(function (s) { head.add(sph(0.038, mat('#1e1b4b'), s * 0.145, 0.47, 0.28)); head.add(cone(0.045, 0.14, bodyM, s * 0.1, 0.62, 0.14)); });
+    g.userData.rig = { spine: spine, head: head, armL: armL, armR: armR, mouth: mouth, legL: legL, legR: legR, k: 1 };
+    return g;
+  }
+  function castle(o) {
+    var g = new T.Group(), wallM = mat(o.color || '#fce7f3', { roughness: 0.75 }), roofM = mat('#2563eb', { roughness: 0.45, metalness: 0.15 }), gold = mat('#fbbf24', { metalness: 0.65, roughness: 0.25 }), glow = mat('#fef08a', { emissive: '#fde047', emissiveIntensity: 0.9 });
+    g.add(box(5.6, 2.8, 3.6, wallM, 0, 1.4, 0));
+    g.add(box(2.6, 4.4, 2.4, wallM, 0, 2.2, -0.2));
+    g.add(cyl(0.65, 0.75, 2.6, wallM, 0, 5.5, -0.2, 16));
+    g.add(cone(0.92, 2.4, roofM, 0, 7.9, -0.2));
+    g.add(sph(0.14, gold, 0, 9.15, -0.2));
+    [[-2.6, 1.6], [2.6, 1.6], [-2.6, -1.6], [2.6, -1.6]].forEach(function (p) {
+      g.add(cyl(0.58, 0.64, 3.8, wallM, p[0], 1.9, p[1], 14));
+      g.add(cone(0.78, 1.7, roofM, p[0], 4.65, p[1]));
+      g.add(sph(0.09, gold, p[0], 5.55, p[1]));
+    });
+    [[-1.2, 4.9], [1.2, 4.9]].forEach(function (p) {
+      g.add(cyl(0.36, 0.4, 2.2, wallM, p[0], p[1], -0.2, 12));
+      g.add(cone(0.5, 1.3, roofM, p[0], p[1] + 1.75, -0.2));
+    });
+    g.add(box(1.3, 1.9, 0.18, mat('#78350f'), 0, 0.95, 1.82));
+    g.add(cyl(0.65, 0.65, 0.18, mat('#78350f'), 0, 1.9, 1.82, 16)); g.children[g.children.length - 1].rotation.x = Math.PI / 2;
+    g.add(sph(0.45, mat('#f472b6', { emissive: '#ec4899', emissiveIntensity: 0.7 }), 0, 3.4, 1.05));
+    [-1.7, 1.7].forEach(function (x) { g.add(box(0.42, 0.72, 0.08, glow, x, 1.8, 1.82)); });
+    var L = new T.PointLight('#fde68a', 0.85, 10, 2); L.position.set(0, 4.2, 2.2); g.add(L);
+    g.userData.lamp = { light: L, bulb: glow };
+    return g;
+  }
+  function carouselM(o) {
+    var g = new T.Group(), col = o.color || '#ec4899', gold = mat('#fbbf24', { metalness: 0.6, roughness: 0.3 }), white = mat('#fffbeb');
+    g.add(cyl(2.4, 2.55, 0.26, mat('#78350f'), 0, 0.13, 0, 28));
+    g.add(cyl(2.3, 2.3, 0.08, gold, 0, 0.28, 0, 28));
+    var spinG = new T.Group(); spinG.position.y = 0.32; g.add(spinG);
+    spinG.add(cyl(0.24, 0.28, 2.9, gold, 0, 1.45, 0, 16));
+    var horses = [], hCols = ['#ffffff', '#fde68a', '#fbcfe8', '#bae6fd', '#ddd6fe', '#fed7aa'];
+    for (var i = 0; i < 6; i++) {
+      var a = i / 6 * Math.PI * 2, px = Math.cos(a) * 1.65, pz = Math.sin(a) * 1.65;
+      spinG.add(cyl(0.03, 0.03, 2.85, gold, px, 1.42, pz, 8));
+      var hg = new T.Group(); hg.position.set(px, 0.95, pz); hg.rotation.y = -a + Math.PI / 2; hg.userData.phase = i * 1.05;
+      var hm = mat(hCols[i]);
+      var bd = cyl(0.14, 0.15, 0.52, hm, 0, 0, 0, 10); bd.rotation.x = Math.PI / 2; hg.add(bd);
+      hg.add(box(0.14, 0.28, 0.16, hm, 0, 0.2, 0.22));
+      hg.add(box(0.2, 0.06, 0.22, mat(col), 0, 0.15, 0));
+      spinG.add(hg); horses.push(hg);
+    }
+    var roof = new T.Group(); roof.position.y = 2.9; spinG.add(roof);
+    roof.add(cone(2.55, 1.25, mat(col, { roughness: 0.5 }), 0, 0.62, 0));
+    roof.add(cyl(2.56, 2.56, 0.18, gold, 0, 0, 0, 28));
+    roof.add(sph(0.18, gold, 0, 1.32, 0));
+    var glow = mat('#fef08a', { emissive: '#fde047', emissiveIntensity: 1 });
+    roof.add(cyl(2.2, 2.2, 0.06, glow, 0, -0.05, 0, 24));
+    var L = new T.PointLight('#fde68a', 0.8, 8, 2); L.position.set(0, 2.4, 0); g.add(L);
+    g.userData.lamp = { light: L, bulb: glow };
+    g.userData.rig = { prop: 'carousel', spin: spinG, horses: horses };
+    return g;
+  }
+  function ferris(o) {
+    var g = new T.Group(), col = o.color || '#38bdf8', steel = mat('#e2e8f0', { metalness: 0.5, roughness: 0.35 }), gold = mat('#fbbf24', { metalness: 0.55 });
+    g.add(box(2.6, 0.24, 1.8, mat('#334155'), 0, 0.12, 0));
+    [-0.55, 0.55].forEach(function (z) {
+      var l1 = cyl(0.07, 0.1, 3.6, steel, -0.9, 1.8, z, 10); l1.rotation.z = -0.25; g.add(l1);
+      var l2 = cyl(0.07, 0.1, 3.6, steel, 0.9, 1.8, z, 10); l2.rotation.z = 0.25; g.add(l2);
+    });
+    var wheel = new T.Group(); wheel.position.set(0, 3.45, 0); g.add(wheel);
+    wheel.add(cyl(0.18, 0.18, 1.3, gold, 0, 0, 0, 16)); wheel.children[0].rotation.x = Math.PI / 2;
+    [-0.42, 0.42].forEach(function (z) {
+      var rim = mesh(new T.TorusGeometry(2.35, 0.055, 10, 36), mat(col, { emissive: col, emissiveIntensity: 0.35 }), 0, 0, z);
+      wheel.add(rim);
+      for (var i = 0; i < 8; i++) {
+        var sp = box(0.04, 4.7, 0.04, steel, 0, 0, z); sp.rotation.z = i * Math.PI / 8; wheel.add(sp);
+      }
+    });
+    var cars = [], cCols = ['#f472b6', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa', '#fb7185', '#fde047', '#2dd4bf'];
+    for (var j = 0; j < 8; j++) {
+      var a = j / 8 * Math.PI * 2, cg = new T.Group();
+      cg.position.set(Math.cos(a) * 2.35, Math.sin(a) * 2.35, 0);
+      cg.add(cyl(0.025, 0.025, 0.86, steel, 0, 0, 0, 8)); cg.children[0].rotation.x = Math.PI / 2;
+      cg.add(box(0.42, 0.36, 0.56, mat(cCols[j]), 0, -0.28, 0));
+      cg.add(box(0.46, 0.06, 0.6, gold, 0, -0.06, 0));
+      wheel.add(cg); cars.push(cg);
+    }
+    g.userData.rig = { prop: 'ferris', wheel: wheel, cars: cars };
+    return g;
+  }
+  function crystal(o) {
+    var g = new T.Group(), col = o.color || '#38bdf8';
+    g.add(cyl(0.62, 0.78, 0.32, mat('#cbd5e1', { roughness: 0.6 }), 0, 0.16, 0, 8));
+    var coreM = new T.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.95, roughness: 0.15, metalness: 0.2, transparent: true, opacity: 0.9 });
+    var gem = new T.Group(); gem.position.y = 1.65; g.add(gem);
+    gem.add(cone(0.45, 1.2, coreM, 0, 0.6, 0));
+    var bot = cone(0.45, 0.7, coreM, 0, -0.35, 0); bot.rotation.x = Math.PI; gem.add(bot);
+    for (var i = 0; i < 4; i++) { var a = i * Math.PI / 2, sh = cone(0.2, 0.75, coreM, Math.cos(a) * 0.42, -0.95, Math.sin(a) * 0.42); sh.rotation.z = -Math.cos(a) * 0.35; sh.rotation.x = Math.sin(a) * 0.35; gem.add(sh); }
+    var halo = mesh(new T.TorusGeometry(0.75, 0.03, 8, 32), new T.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.65 }), 0, 1.5, 0); halo.rotation.x = Math.PI / 2; g.add(halo);
+    var L = new T.PointLight(col, 1.1, 8, 2); L.position.set(0, 1.8, 0); g.add(L);
+    g.userData.rig = { prop: 'crystal', gem: gem, halo: halo, mat: coreM };
+    return g;
+  }
+  function rocket(o) {
+    var g = new T.Group(), col = o.color || '#ef4444', bodyM = mat('#f8fafc', { metalness: 0.3, roughness: 0.35 }), acc = mat(col, { roughness: 0.4 }), dark = mat('#334155', { metalness: 0.6 });
+    g.add(cyl(0.95, 1.1, 0.16, dark, 0, 0.08, 0, 20));
+    var ship = new T.Group(); g.add(ship);
+    ship.add(cyl(0.48, 0.56, 2.2, bodyM, 0, 1.55, 0, 20));
+    ship.add(cone(0.48, 1.05, acc, 0, 3.17, 0));
+    ship.add(cyl(0.36, 0.48, 0.35, dark, 0, 0.32, 0, 16));
+    var flameM = new T.MeshBasicMaterial({ color: '#fbbf24', transparent: true, opacity: 0.85 });
+    var flame = cone(0.32, 0.65, flameM, 0, 0.0, 0); flame.rotation.x = Math.PI; ship.add(flame);
+    ship.add(sph(0.22, mat('#38bdf8', { emissive: '#0ea5e9', emissiveIntensity: 0.7, metalness: 0.5 }), 0, 1.95, 0.42));
+    for (var i = 0; i < 4; i++) {
+      var fg = new T.Group(); fg.rotation.y = i * Math.PI / 2;
+      fg.add(box(0.1, 0.85, 0.48, acc, 0, 0.65, 0.62));
+      ship.add(fg);
+    }
+    g.userData.rig = { prop: 'rocket', ship: ship, flame: flame };
+    return g;
+  }
+  function treasure(o) {
+    var g = new T.Group(), wood = mat(o.color || '#92400e', { roughness: 0.7 }), gold = mat('#fbbf24', { metalness: 0.75, roughness: 0.2 }), gemM = mat('#ec4899', { emissive: '#f472b6', emissiveIntensity: 1.1 });
+    g.add(box(1.35, 0.68, 0.92, wood, 0, 0.34, 0));
+    [-0.48, 0.48].forEach(function (x) { g.add(box(0.1, 0.7, 0.96, gold, x, 0.35, 0)); });
+    g.add(box(0.2, 0.22, 0.08, gold, 0, 0.58, 0.47));
+    var coins = new T.Group(); coins.position.y = 0.66; g.add(coins);
+    for (var i = 0; i < 12; i++) coins.add(sph(0.12 + (i % 3) * 0.03, i % 4 === 0 ? gemM : gold, (i % 4 - 1.5) * 0.26, (i % 2) * 0.05, (Math.floor(i / 4) - 1) * 0.2));
+    var lid = new T.Group(); lid.position.set(0, 0.68, -0.46); g.add(lid);
+    var top = cyl(0.46, 0.46, 1.35, wood, 0, 0, 0.46, 16); top.rotation.z = Math.PI / 2; lid.add(top);
+    [-0.48, 0.48].forEach(function (x) { var bd = cyl(0.48, 0.48, 0.1, gold, x, 0, 0.46, 16); bd.rotation.z = Math.PI / 2; lid.add(bd); });
+    g.userData.rig = { prop: 'treasure', lid: lid, coins: coins };
+    return g;
+  }
+  function rainbow(o) {
+    var g = new T.Group(), cols = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#38bdf8', '#6366f1', '#a855f7'];
+    cols.forEach(function (c, i) {
+      var r = 3.2 - i * 0.14;
+      var arc = mesh(new T.TorusGeometry(r, 0.085, 10, 40, Math.PI), mat(c, { emissive: c, emissiveIntensity: 0.35, roughness: 0.4 }), 0, 0.3, 0);
+      g.add(arc);
+    });
+    var cloudM = mat('#ffffff', { roughness: 0.9 });
+    [-3.0, 3.0].forEach(function (x) {
+      g.add(sph(0.55, cloudM, x, 0.45, 0));
+      g.add(sph(0.42, cloudM, x - 0.4, 0.35, 0.2));
+      g.add(sph(0.42, cloudM, x + 0.4, 0.35, -0.15));
+    });
+    return g;
+  }
+  function mushroom(o) {
+    var g = new T.Group(), capCol = o.color || '#ef4444', stemM = mat('#fef3c7'), capM = mat(capCol, { roughness: 0.55 }), glow = mat('#fde68a', { emissive: '#fbbf24', emissiveIntensity: 0.9 });
+    g.add(cyl(0.68, 0.88, 1.65, stemM, 0, 0.82, 0, 18));
+    var cap = sph(1.45, capM, 0, 1.65, 0); cap.scale.y = 0.62; g.add(cap);
+    for (var i = 0; i < 8; i++) { var a = i / 8 * Math.PI * 2, r = 0.78 + (i % 2) * 0.3; g.add(sph(0.16, mat('#ffffff'), Math.cos(a) * r, 2.15 - (i % 2) * 0.22, Math.sin(a) * r)); }
+    g.add(box(0.44, 0.78, 0.1, mat('#78350f'), 0, 0.4, 0.8));
+    [-0.5, 0.5].forEach(function (x) { g.add(sph(0.16, glow, x, 1.05, 0.72)); });
+    var L = new T.PointLight('#fde68a', 0.6, 6, 2); L.position.set(0, 1.2, 1.1); g.add(L);
+    g.userData.lamp = { light: L, bulb: glow };
+    return g;
+  }
+  function fireworkBox(o) {
+    var g = new T.Group(), col = o.color || '#ec4899', boxM = mat(col, { roughness: 0.5 }), gold = mat('#fbbf24', { metalness: 0.6 });
+    g.add(box(0.95, 0.65, 0.95, boxM, 0, 0.325, 0));
+    g.add(box(1.0, 0.08, 1.0, gold, 0, 0.66, 0));
+    [[-0.24, -0.24], [0.24, -0.24], [-0.24, 0.24], [0.24, 0.24], [0, 0]].forEach(function (p, i) {
+      g.add(cyl(0.08, 0.08, 0.42, mat('#1e293b'), p[0], 0.85, p[1], 10));
+      g.add(cone(0.11, 0.18, mat(i % 2 ? '#38bdf8' : '#facc15', { emissive: '#fde047', emissiveIntensity: 0.7 }), p[0], 1.12, p[1]));
+    });
+    g.userData.rig = { prop: 'firework' };
+    return g;
+  }
+
   var KINDS = {
-    lincoln: { name: '林肯', icon: '🎩', cat: 'character', build: function (o) { return figure({ height: 1.93, coat: '#17171b', legs: '#26262c', skin: '#d9a982', beard: '#2a211c', hair: '#2a211c', hat: '#141417', tails: true, shirt: '#f2efe6', tie: '#0e0e10' }); } },
-    figure: { name: '人物', icon: '🧍', cat: 'character', color: '#4f6d8f', build: function (o) { return figure({ coat: o.color || '#4f6d8f', hair: '#3a2a20', shirt: '#f2efe6' }); } },
-    guide: { name: '讲解员', icon: '🧑‍🏫', cat: 'character', color: '#2f7d6b', build: function (o) { return figure({ height: 1.7, coat: o.color || '#2f7d6b', hair: '#191514', legs: '#3b3b44', shirt: '#fff' }); } },
-    podium: { name: '演讲台', icon: '🪧', cat: 'prop', build: podium },
-    stage: { name: '舞台', icon: '🟫', cat: 'set', build: stage },
-    curtain: { name: '幕布', icon: '🎭', cat: 'set', color: '#7d1424', build: curtain },
-    bench: { name: '长椅', icon: '🪑', cat: 'set', build: bench },
-    chair: { name: '座椅', icon: '💺', cat: 'set', color: '#8c2f39', build: chair },
-    spot: { name: '聚光灯', icon: '🔦', cat: 'light', color: '#fff1cf', build: spot },
-    lamp: { name: '路灯', icon: '🏮', cat: 'light', build: lamp },
-    flag: { name: '旗帜', icon: '🚩', cat: 'prop', build: flag },
-    column: { name: '立柱', icon: '🏛️', cat: 'set', color: '#e8e2d4', build: column },
-    tree: { name: '树', icon: '🌳', cat: 'nature', color: '#4f7a3d', build: tree },
-    sign: { name: '告示牌', icon: '📜', cat: 'prop', text: '梦工坊', build: sign },
-    portrait: { name: '魔法画像', icon: '🖼️', cat: 'portrait', color: '#5b2a3a', build: portrait },
-    wall: { name: '墙面', icon: '🧱', cat: 'set', color: '#3d5a4a', build: wall },
-    boat: { name: '小船', icon: '🛶', cat: 'prop', color: '#8a5a35', build: boat },
-    house: { name: '小屋', icon: '🏠', cat: 'set', color: '#efe1c4', build: house },
-    windmill: { name: '风车', icon: '🌬️', cat: 'set', color: '#e9dcc0', build: windmill },
-    bridge: { name: '拱桥', icon: '🌉', cat: 'set', color: '#b9ad98', build: bridge },
-    lantern: { name: '灯笼', icon: '🏮', cat: 'light', color: '#ff5a4a', build: lantern },
-    book: { name: '立体故事书', icon: '📖', cat: 'animated', color: '#2f5d8a', text: '故事书', build: book },
-    clock: { name: '时光钟', icon: '🕰️', cat: 'animated', color: '#6b3f24', build: clockM },
-    musicbox: { name: '音乐盒', icon: '🎶', cat: 'animated', color: '#7a2f3a', build: musicbox },
-    door: { name: '神秘之门', icon: '🚪', cat: 'animated', color: '#2f6b5a', build: door },
-    word: { name: '霓虹字', icon: '✨', cat: 'prop', color: '#ff5ac8', text: 'Minest', build: word },
-    picture: { name: '画框', icon: '🖼', cat: 'animated', text: '我的收藏', build: picture },
-    gears: { name: '思想机械仪', icon: '⚙️', cat: 'animated', color: '#c9a24a', build: gearsM },
-    top: { name: '概念陀螺', icon: '🌀', cat: 'animated', text: '感知\n理解\n行动', build: topM },
-    star: { name: '知识之星', icon: '⭐', cat: 'animated', color: '#ffd86b', text: '想法', build: star },
-    sprout: { name: '思想之芽', icon: '🌱', cat: 'animated', color: '#6abf4b', text: '一个想法', build: sprout }
+    princess: { name: '童话公主', icon: '👑', cat: 'character', kidCat: 'character', color: '#ec4899', build: princess },
+    wizard: { name: '小魔法师', icon: '🧙', cat: 'character', kidCat: 'character', color: '#6d28d9', build: wizard },
+    astronaut: { name: '太空宇航员', icon: '🧑‍🚀', cat: 'character', kidCat: 'character', color: '#f8fafc', build: astronaut },
+    robot: { name: '快乐机器人', icon: '🤖', cat: 'character', kidCat: 'character', color: '#38bdf8', build: robot },
+    dino: { name: '友善小恐龙', icon: '🦕', cat: 'character', kidCat: 'character', color: '#22c55e', build: dino },
+    unicorn: { name: '彩虹独角兽', icon: '🦄', cat: 'character', kidCat: 'character', color: '#fdf4ff', build: unicorn },
+    castle: { name: '童话城堡', icon: '🏰', cat: 'set', kidCat: 'castle', color: '#fce7f3', build: castle },
+    carousel: { name: '旋转木马', icon: '🎠', cat: 'animated', kidCat: 'ride', color: '#ec4899', build: carouselM },
+    ferris: { name: '彩虹摩天轮', icon: '🎡', cat: 'animated', kidCat: 'ride', color: '#38bdf8', build: ferris },
+    rocket: { name: '星际火箭', icon: '🚀', cat: 'animated', kidCat: 'ride', color: '#ef4444', build: rocket },
+    crystal: { name: '魔法水晶', icon: '💎', cat: 'animated', kidCat: 'magic', color: '#38bdf8', build: crystal },
+    treasure: { name: '惊喜宝箱', icon: '🎁', cat: 'animated', kidCat: 'magic', color: '#92400e', build: treasure },
+    firework: { name: '烟花礼花台', icon: '🎆', cat: 'animated', kidCat: 'magic', color: '#ec4899', build: fireworkBox },
+    rainbow: { name: '彩虹拱门', icon: '🌈', cat: 'set', kidCat: 'castle', build: rainbow },
+    mushroom: { name: '精灵蘑菇屋', icon: '🍄', cat: 'set', kidCat: 'castle', color: '#ef4444', build: mushroom },
+    lincoln: { name: '林肯', icon: '🎩', cat: 'character', kidCat: 'character', build: function (o) { return figure({ height: 1.93, coat: '#17171b', legs: '#26262c', skin: '#d9a982', beard: '#2a211c', hair: '#2a211c', hat: '#141417', tails: true, shirt: '#f2efe6', tie: '#0e0e10' }); } },
+    figure: { name: '人物伙伴', icon: '🧍', cat: 'character', kidCat: 'character', color: '#4f6d8f', build: function (o) { return figure({ coat: o.color || '#4f6d8f', hair: '#3a2a20', shirt: '#f2efe6' }); } },
+    guide: { name: '乐园向导', icon: '🧑‍🏫', cat: 'character', kidCat: 'character', color: '#2f7d6b', build: function (o) { return figure({ height: 1.7, coat: o.color || '#2f7d6b', hair: '#191514', legs: '#3b3b44', shirt: '#fff' }); } },
+    podium: { name: '演讲台', icon: '🪧', cat: 'prop', kidCat: 'castle', build: podium },
+    stage: { name: '舞台', icon: '🟫', cat: 'set', kidCat: 'castle', build: stage },
+    curtain: { name: '幕布', icon: '🎭', cat: 'set', kidCat: 'castle', color: '#7d1424', build: curtain },
+    bench: { name: '长椅', icon: '🪑', cat: 'set', kidCat: 'nature', build: bench },
+    chair: { name: '座椅', icon: '💺', cat: 'set', kidCat: 'nature', color: '#8c2f39', build: chair },
+    spot: { name: '聚光灯', icon: '🔦', cat: 'light', kidCat: 'magic', color: '#fff1cf', build: spot },
+    lamp: { name: '路灯', icon: '🏮', cat: 'light', kidCat: 'nature', build: lamp },
+    flag: { name: '旗帜', icon: '🚩', cat: 'prop', kidCat: 'nature', build: flag },
+    column: { name: '立柱', icon: '🏛️', cat: 'set', kidCat: 'castle', color: '#e8e2d4', build: column },
+    tree: { name: '树', icon: '🌳', cat: 'nature', kidCat: 'nature', color: '#4f7a3d', build: tree },
+    sign: { name: '欢迎牌', icon: '📜', cat: 'prop', kidCat: 'nature', text: '梦工坊', build: sign },
+    portrait: { name: '魔法画像', icon: '🖼️', cat: 'portrait', kidCat: 'magic', color: '#5b2a3a', build: portrait },
+    wall: { name: '背景墙', icon: '🧱', cat: 'set', kidCat: 'castle', color: '#3d5a4a', build: wall },
+    boat: { name: '游览小船', icon: '🛶', cat: 'prop', kidCat: 'ride', color: '#8a5a35', build: boat },
+    house: { name: '童话小屋', icon: '🏠', cat: 'set', kidCat: 'castle', color: '#efe1c4', build: house },
+    windmill: { name: '大风车', icon: '🌬️', cat: 'set', kidCat: 'ride', color: '#e9dcc0', build: windmill },
+    bridge: { name: '石拱桥', icon: '🌉', cat: 'set', kidCat: 'castle', color: '#b9ad98', build: bridge },
+    lantern: { name: '许愿灯笼', icon: '🏮', cat: 'light', kidCat: 'nature', color: '#ff5a4a', build: lantern },
+    book: { name: '立体故事书', icon: '📖', cat: 'animated', kidCat: 'magic', color: '#2f5d8a', text: '故事书', build: book },
+    clock: { name: '时光钟', icon: '🕰️', cat: 'animated', kidCat: 'magic', color: '#6b3f24', build: clockM },
+    musicbox: { name: '八音盒', icon: '🎶', cat: 'animated', kidCat: 'ride', color: '#7a2f3a', build: musicbox },
+    door: { name: '任意神秘门', icon: '🚪', cat: 'animated', kidCat: 'magic', color: '#2f6b5a', build: door },
+    word: { name: '霓虹发光字', icon: '✨', cat: 'prop', kidCat: 'magic', color: '#ff5ac8', text: 'Dream!', build: word },
+    picture: { name: '记忆画框', icon: '🖼', cat: 'animated', kidCat: 'magic', text: '我的收藏', build: picture },
+    gears: { name: '奇妙齿轮机', icon: '⚙️', cat: 'animated', kidCat: 'ride', color: '#c9a24a', build: gearsM },
+    top: { name: '星环陀螺', icon: '🌀', cat: 'animated', kidCat: 'magic', text: '梦想\n勇气\n快乐', build: topM },
+    star: { name: '许愿星', icon: '⭐', cat: 'animated', kidCat: 'magic', color: '#ffd86b', text: '心愿', build: star },
+    sprout: { name: '魔法花芽', icon: '🌱', cat: 'animated', kidCat: 'nature', color: '#6abf4b', text: '奇思妙想', build: sprout }
   };
   KINDS.lamp.icon = '💡';
   function build(o) {
@@ -420,7 +717,7 @@
     return g;
   }
   root.DWModels = {
-    KINDS: KINDS, build: build,
+    KINDS: KINDS, build: build, figure: figure,
     isFigure: function (kind) { return (KINDS[kind] || {}).cat === 'character'; },
     /* what Bring to Life works on: characters and the magic portrait */
     canLive: function (kind) { var c = (KINDS[kind] || {}).cat; return c === 'character' || c === 'portrait' || c === 'animated'; },
@@ -428,8 +725,9 @@
     /* what each living thing can do on the timeline (and when a guest taps it) */
     actions: function (kind) {
       return ({ portrait: ['smile', 'surprise', 'wink', 'turnHead', 'nod'], book: ['open', 'turnPage', 'close'], clock: ['timeTravel'], musicbox: ['open', 'spin', 'close'], door: ['open', 'close'],
-        picture: [], word: [], gears: ['spin'], top: ['spin', 'open', 'close'], star: ['spin'], sprout: ['grow', 'wilt'] })[kind] ||
-        ['raiseHand', 'turnHead', 'nod', 'openArms', 'point', 'bow', 'smile', 'stroll'];
+        picture: [], word: [], gears: ['spin'], top: ['spin', 'open', 'close'], star: ['spin'], sprout: ['grow', 'wilt'],
+        carousel: ['spin'], ferris: ['spin'], crystal: ['spin', 'fireworks'], rocket: ['spin', 'fireworks'], treasure: ['open', 'close', 'fireworks'], firework: ['fireworks'] })[kind] ||
+        ['raiseHand', 'openArms', 'bow', 'smile', 'nod', 'turnHead', 'point', 'stroll'];
     }
   };
 })(window);

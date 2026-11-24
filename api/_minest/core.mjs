@@ -143,7 +143,11 @@ const str = { type: 'string' };
 // Dream Workshop · 梦工坊 — the AI Imagineer's plan (dream-workshop/dw-imagineer.js reads it)
 // ---------------------------------------------------------------------------
 const DW_KINDS = ['lincoln', 'figure', 'guide', 'portrait', 'podium', 'stage', 'curtain', 'bench', 'chair', 'spot', 'lamp', 'lantern', 'flag', 'column', 'tree', 'sign', 'wall', 'boat', 'house', 'windmill', 'bridge',
-  'book', 'clock', 'musicbox', 'door', 'word', 'picture', 'gears', 'top', 'star', 'sprout'];
+  'book', 'clock', 'musicbox', 'door', 'word', 'picture', 'gears', 'top', 'star', 'sprout',
+  // the theme-world kinds (dw-models.js) and the world & history library (dw-models-world.js)
+  'princess', 'wizard', 'astronaut', 'robot', 'dino', 'unicorn', 'castle', 'carousel', 'ferris', 'rocket', 'crystal', 'treasure', 'firework', 'rainbow', 'mushroom',
+  'pyramid', 'sphinx', 'greatwall', 'pagoda', 'eiffel', 'bigben', 'colosseum', 'parthenon', 'tajmahal', 'torii', 'liberty', 'moai', 'igloo', 'stonehenge', 'maya',
+  'confucius', 'zhenghe', 'cleopatra', 'davinci', 'mozart', 'curie', 'einstein', 'panda', 'elephant', 'camel', 'lion', 'giraffe', 'penguin', 'junk', 'train', 'balloon', 'biplane', 'globe'];
 const DW_ACTIONS = ['raiseHand', 'turnHead', 'nod', 'openArms', 'point', 'bow', 'smile', 'surprise', 'wink', 'stroll', 'open', 'close', 'turnPage', 'spin', 'timeTravel', 'grow', 'wilt', 'appear', 'vanish', 'startShow'];
 const DW_OPS = ['up', 'down', 'toDay', 'toDusk', 'toNight', 'toTheatre', 'rain', 'snow', 'clear', 'speak', 'pad', 'fanfare', 'drum', 'chime', ...DW_ACTIONS];
 const num = { type: 'number' };
@@ -198,6 +202,10 @@ const IMAGINEER_SYSTEM = [
   'podium (0.8 m), stage (8 × 5 m, 0.6 m high; things placed on it stand on top by themselves), curtain (9 m wide backdrop), bench (2.2 m), chair, spot (a stage spotlight on a stand that aims where it faces),',
   'lamp (street lamp), lantern (paper lantern on a post), flag, column, tree, sign (text = up to two short lines, split with \\n), wall (6 m), boat, house (2 × 2 m), windmill (turning sails), bridge (arched, 4.4 m long, spans along its local x).',
   'Things that come to life (alive = true): book (a giant pop-up book on a table: open, turnPage, close; text = its title), clock (a time-machine grandfather clock: timeTravel), musicbox (open, spin, close), door (open, close),',
+  'Characters who can speak and act like figure (alive = true): princess, wizard, astronaut, robot, dino (a friendly dinosaur), unicorn; people from history: confucius, zhenghe (the Ming admiral), cleopatra, davinci, mozart, curie, einstein; animals: panda, elephant, camel, lion, giraffe, penguin.',
+  'Landmarks (large set pieces, 4–9 m wide, never alive): castle, pyramid, sphinx, greatwall (a 7 m stretch with a beacon tower), pagoda, eiffel, bigben, colosseum, parthenon, tajmahal, torii, liberty, moai, igloo, stonehenge, maya (a stepped pyramid); also rainbow (an arch), mushroom (a fairy house). Give each room: keep landmarks at least 6 m apart.',
+  'Rides and moving things (alive = true, action spin): carousel, ferris, rocket, train (a steam engine on a short track), balloon (a hot-air balloon), biplane, globe; crystal and treasure (open, close) and firework (a launcher) are magic props. junk is a Chinese treasure ship (a set piece).',
+  'When the idea is about a place, a time or a person in history, use the matching landmark and person together (pyramid + sphinx + cleopatra + camel; greatwall + pagoda + confucius + panda), and let the person say one true, simple fact a child can understand.',
   'gears (a thought machine: spin), top (a concept top whose three rings carry text lines split with \\n: spin, open, close), star (a glowing knowledge node floating in the air, text = its name: spin), sprout (an idea that grows, text = the idea: grow, wilt), picture (a framed memory, text = its title; tap_text tells its story).',
   'word is a neon sign (text = the words). Any thing can appear or vanish on the action track; a thing whose first clip is appear stays hidden until then. tap_action startShow starts the whole show.',
   'facing is in degrees: 0 faces +z (toward the audience), 180 faces the stage side, 90 faces +x. Spotlights should face the stage. Benches and chairs face the stage (usually 180).',
