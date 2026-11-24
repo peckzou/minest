@@ -7,7 +7,8 @@
 (function () {
   'use strict';
   var touch = ('ontouchstart' in window) || (window.matchMedia && matchMedia('(pointer:coarse)').matches);
-  if (!touch) return;
+  /* a screen that did not say it was a touch screen: the controls come the first time a finger touches it */
+  if (!touch && !window.__mntForce) { var src = document.currentScript && document.currentScript.src; window.addEventListener('touchstart', function once() { window.removeEventListener('touchstart', once, true); if (window.__mntForce || !src) return; window.__mntForce = 1; var sc = document.createElement('script'); sc.src = src; document.body.appendChild(sc); }, true); return; }
   function key(code, down) {
     var k = code === 'Space' ? ' ' : code.replace(/^Key/, '').toLowerCase();
     window.dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', { code: code, key: k, bubbles: true, cancelable: true }));
