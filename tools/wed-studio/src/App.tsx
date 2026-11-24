@@ -24,6 +24,7 @@ import { GuestHud } from './components/GuestHud';
 import { ThingCard } from './components/ThingCard';
 import { HallHud } from './components/HallHud';
 import { Stations } from './dream/stations';
+import { Apprentice } from './dream/apprentice';
 import { BuildingHud } from './components/BuildingHud';
 import { Building2, Footprints } from 'lucide-react';
 import { StudioWalk } from './dream/studioWalk';
@@ -639,11 +640,13 @@ export default function App() {
     let dreamTook = false;
     let walkLook: { x: number; y: number } | null = null;
     let flower: Flower | null = null;   // 1401 Flower Street: what is behind the building's doors (dream/flowerStreet.ts)
+    let apprentice: Apprentice | null = null;   // the six lessons of an Imagineer's apprenticeship (dream/apprentice.ts)
     let stations: Stations | null = null;   // what the departments do, as things in their rooms (dream/stations.ts)
     const openFlower = () => {
       if (flower || !dreamHost) return;
       flower = buildFlowerStreet((window as any).DWModels); walkRef.current!.use(flower);
       stations = new Stations(flower.root, dreamHost, (window as any).DWModels); stations.refresh();
+      apprentice = new Apprentice(flower.root, dreamHost); walkRef.current!.party(flower.root, (window as any).DWModels);
     };
     // from walking to the table view: the camera goes straight to its place over the table, and the hands take over
     const toTable = () => {
@@ -992,6 +995,7 @@ export default function App() {
       if (dreamHost && dreamHost.mode === 'mini') {
         controls.enabled = !walkNow && !dreamTook;
         const w = walkRef.current!.frame(delta, camera); stations?.frame(delta);
+        apprentice?.frame(delta, walkNow);
         if (walkNow) { if (w.table) toTable(); else if (w.near !== nearRef.current) { nearRef.current = w.near; setNear(w.near); } }
       }
       if (st.cameraTransitionActive && !dreamOwnsCamera) {

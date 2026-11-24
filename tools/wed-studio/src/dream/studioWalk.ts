@@ -69,8 +69,19 @@ export class StudioWalk {
   look(dx: number, dy: number) { this.p.yaw -= dx * 0.005; this.p.pitch = Math.max(-0.8, Math.min(0.7, this.p.pitch - dy * 0.004)); }
   setJoy(x: number, y: number) { this.joy.x = x; this.joy.y = y; }
   /** one frame of walking; tells what the guest is near, and whether they have walked up to the model table */
+  /** the traveller (seen from behind) and the three friends who walk along, as in the park */
+  private av: THREE.Object3D | null = null; private pals: { g: THREE.Object3D; x: number; z: number; off: [number, number] }[] = []; private ph = 0;
+  party(root: THREE.Object3D, M: any) {
+    if (this.av) return;
+    this.av = M.figure({ height: 1.7, coat: '#6b4a2a', hair: '#3a2a20', shirt: '#d9c8a0', legs: '#3b3f4a', skin: '#e2b48c' }); root.add(this.av!);
+    ([['#3a4a5a', '#191514', '#c98f62', 1.7, [-1.3, 0.5]], ['#7c3aed', '#6b4a2a', '#e2b48c', 1.35, [1.3, 0.6]], ['#2f6b5a', '#c9a24a', '#f0c8a0', 1.45, [2.3, 1.2]]] as [string, string, string, number, [number, number]][]).forEach(([coat, hair, skin, h, off]) => {
+      const g: THREE.Object3D = M.figure({ height: h, coat, hair, shirt: '#f2efe6', skin }); root.add(g); this.pals.push({ g, x: this.p.x + off[0], z: this.p.z + off[1], off });
+    });
+  }
+  private stride(g: THREE.Object3D, v: number, ph: number) { const r = (g.userData as any).rig; if (!r || !r.legL) return; const sw = Math.sin(ph) * 0.6 * Math.min(1, v / 2); r.legL.rotation.x = sw; r.legR.rotation.x = -sw; if (r.armL) { r.armL.rotation.x = -sw * 0.8; r.armR.rotation.x = sw * 0.8; } }
   frame(dt: number, cam: THREE.PerspectiveCamera): { near: RoomId | null; table: boolean } {
     this.t += dt; workCrew(this.crew, this.t);
+    if (this.av) this.av.visible = this.on;
     if (!this.on) return { near: null, table: false };
     const p = this.p, k = this.keys; let mx = this.joy.x, my = this.joy.y;
     if (k.KeyW || k.ArrowUp) my = 1; if (k.KeyS || k.ArrowDown) my = -1; if (k.KeyA) mx = -1; if (k.KeyD) mx = 1;
@@ -83,6 +94,14 @@ export class StudioWalk {
     if (nx > TABLE.x0 && nx < TABLE.x1 && nz > TABLE.z0 && nz < TABLE.z1) { table = !!(mx || my); nx = p.x; nz = p.z; }                                             // up against the table
     p.x = nx; p.z = nz;
     cam.position.set(p.x, EYE + ((mx || my) ? Math.sin(this.t * 9) * 0.03 : 0), p.z); cam.rotation.set(p.pitch, p.yaw, 0, 'YXZ');
+    if (this.av) {   // third person: the camera steps back behind the traveller, as far as the walls allow
+      const moving = mx || my ? (k.ShiftLeft || k.ShiftRight ? 5.5 : 3.0) : 0; this.ph += moving * dt * 3;
+      let d = 3.2; for (; d > 0.6; d -= 0.4) if (!this.blocked(p.x, p.z, -fx * d, -fz * d)) break;
+      this.av.visible = d > 1.0; this.av.position.set(p.x, 0.02, p.z); this.av.rotation.y = p.yaw + Math.PI; this.stride(this.av, moving, this.ph);
+      if (d > 1.0) cam.position.set(p.x - fx * d, EYE + 0.45 + d * 0.12, p.z - fz * d);
+      this.pals.forEach((q, i) => { const tx = p.x - fz * q.off[0] - fx * q.off[1], tz = p.z + fx * q.off[0] - fz * q.off[1], dx = tx - q.x, dz = tz - q.z, l = Math.hypot(dx, dz), v = l > 12 ? 99 : l > 0.5 ? Math.min(l * 2, 5) : 0;
+        if (v) { const stp = Math.min(l, v * dt); if (!this.blocked(q.x, q.z, dx / l * stp, dz / l * stp) || l > 6) { q.x += dx / l * stp; q.z += dz / l * stp; } q.g.rotation.y = Math.atan2(dx, dz); } q.g.position.set(q.x, 0.02, q.z); this.stride(q.g, v, this.ph + i * 1.3); });
+    }
     let near: RoomId | null = null, best = 2.6;
     this.places.forEach((d) => { const l = Math.hypot(p.x - d.x, p.z - d.z) - d.r; if (l < best) { best = l; near = d.id; } });
     return { near, table };

@@ -13,7 +13,7 @@
   var BOOTH = { x: 265.5, z: 502 };
   var Q = [
     { id: 'ticket', icon: '🎟', name: '买一张门票', tip: '去大门左边的售票亭', at: function () { return [BOOTH.x + 1.6, BOOTH.z + 2.4]; } },
-    { id: 'imagineer', icon: '🎩', name: '成为小小 Imagineer', tip: '走进造梦大楼', need: 'ticket', at: function () { var d = root.MinestImagineerBuilding && root.MinestImagineerBuilding.door; return d ? [d.x - 3, d.z] : [297, 545]; }, test: function () { return root.MinestImagineerBuilding && root.MinestImagineerBuilding.isOpen(); } },
+    { id: 'imagineer', icon: '🎩', name: '成为小小 Imagineer', tip: '在造梦大楼完成学徒五课', need: 'ticket', at: function () { var d = root.MinestImagineerBuilding && root.MinestImagineerBuilding.door; return d ? [d.x - 3, d.z] : [297, 545]; }, test: function () { try { return +(localStorage.getItem('dw.apprentice') || 0) >= 5; } catch (e) { return false; } } },
     { id: 'gate', icon: '🏰', name: '走进乐园', tip: '穿过大门到小镇广场', need: 'imagineer', at: function () { return [272.5, 432]; }, near: 9 },
     { id: 'falcon', icon: '🚀', name: '驾驶千年隼', tip: '巴图星 5 号停机坪', need: 'gate', ride: 'falcon_flight' },
     { id: 'saber', icon: '⚔️', name: '亲手造一把光剑', tip: '萨维的工坊', need: 'gate', at: function () { var a = root.TPSWSavi && root.TPSWSavi.at; return a ? [a.x, a.z + 22] : [198, 126]; }, test: function () { var s = root.TPStarWarsWorkshops && root.TPStarWarsWorkshops.state(); return s && s.saber && s.saber.theme; } },
