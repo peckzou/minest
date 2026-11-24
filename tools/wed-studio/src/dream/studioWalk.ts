@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { CrewMember, RoomId, workCrew } from './building';
 import type { Flower } from './flowerStreet';
+import { animateTraveler, buildTraveler } from './traveler';
 
 export const PLACES: { id: RoomId; name: string; icon: string; x: number; z: number; r: number }[] = [
   { id: 'drafting', name: '绘图室', icon: '📐', x: -5.2, z: 1.85, r: 1.5 },
@@ -73,12 +74,12 @@ export class StudioWalk {
   private av: THREE.Object3D | null = null; private pals: { g: THREE.Object3D; x: number; z: number; off: [number, number] }[] = []; private ph = 0;
   party(root: THREE.Object3D, M: any) {
     if (this.av) return;
-    this.av = M.figure({ height: 1.7, coat: '#6b4a2a', hair: '#3a2a20', shirt: '#d9c8a0', legs: '#3b3f4a', skin: '#e2b48c' }); root.add(this.av!);
-    ([['#3a4a5a', '#191514', '#c98f62', 1.7, [-1.3, 0.5]], ['#7c3aed', '#6b4a2a', '#e2b48c', 1.35, [1.3, 0.6]], ['#2f6b5a', '#c9a24a', '#f0c8a0', 1.45, [2.3, 1.2]]] as [string, string, string, number, [number, number]][]).forEach(([coat, hair, skin, h, off]) => {
-      const g: THREE.Object3D = M.figure({ height: h, coat, hair, shirt: '#f2efe6', skin }); root.add(g); this.pals.push({ g, x: this.p.x + off[0], z: this.p.z + off[1], off });
+    void M; this.av = buildTraveler(); root.add(this.av);
+    ([[{ tunic: 0x8fa3b8, vest: 0x3a4a5a, scarf: 0xd97706, hair: 0x191514, skin: 0xc98f62 }, 1, [-1.3, 0.5]], [{ tunic: 0xf0b8c8, vest: 0x7c3aed, scarf: 0xfde047, hair: 0x6b4a2a, long: true }, 0.8, [1.3, 0.6]], [{ tunic: 0x9ad0a0, vest: 0x2f6b5a, scarf: 0xb3202a, hair: 0xc9a24a, skin: 0xf0c8a0, long: true }, 0.86, [2.3, 1.2]]] as [any, number, [number, number]][]).forEach(([look, sc, off]) => {
+      const g = buildTraveler(look); g.scale.setScalar(sc); root.add(g); this.pals.push({ g, x: this.p.x + off[0], z: this.p.z + off[1], off });
     });
   }
-  private stride(g: THREE.Object3D, v: number, ph: number) { const r = (g.userData as any).rig; if (!r || !r.legL) return; const sw = Math.sin(ph) * 0.6 * Math.min(1, v / 2); r.legL.rotation.x = sw; r.legR.rotation.x = -sw; if (r.armL) { r.armL.rotation.x = -sw * 0.8; r.armR.rotation.x = sw * 0.8; } }
+  private stride(g: THREE.Object3D, v: number, _ph: number) { animateTraveler(g, 1 / 60, v, this.t); }
   frame(dt: number, cam: THREE.PerspectiveCamera): { near: RoomId | null; table: boolean } {
     this.t += dt; workCrew(this.crew, this.t);
     if (this.av) this.av.visible = this.on;
