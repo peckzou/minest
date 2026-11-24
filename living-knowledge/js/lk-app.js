@@ -17,7 +17,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var main = $('lk-main');
   var store = null, ns = null, cloudOn = false, user = null, fb = null, unsubStore = null;
-  var ui = { tab: 'home', sel: { pages: null, decisions: null, sources: null }, edit: false, draft: null, dirty: false, q: '', hist: null, showRev: null, imp: null, ingest: null, run: null, choice: {}, qa: null, qaHist: [], composing: null };
+  var ui = { tab: 'home', sel: { pages: null, decisions: null, sources: null }, edit: false, draft: null, dirty: false, q: '', hist: null, showRev: null, imp: null, ingest: null, run: null, choice: {}, qa: null, qaHist: [], composing: null, link: null };
   // inside Minest's Knowledge page: ?embed=1 (no title link back), ?theme=light|dark (follows Knowledge's appearance)
   var EMBED = /[?&]embed=1\b/.test(location.search);
   if (EMBED) document.documentElement.classList.add('lk-embed');
@@ -212,7 +212,7 @@
   function tags(list) { return list.length ? '<span class="lk-tags">' + list.slice(0, 4).map(function (t) { return '<i>' + esc(t) + '</i>'; }).join('') + '</span>' : ''; }
   function renderHome() {
     return Promise.all([store.list('page'), store.list('source'), store.list('decision'), store.list('run'), store.list('relation')]).then(function (r) {
-      var pages = r[0].sort(by('updatedAt')), srcs = r[1].sort(by('createdAt')), decs = r[2].sort(by('updatedAt')), runs = r[3], rels = r[4];
+      var pages = r[0].sort(by('updatedAt')), srcs = r[1].sort(by('createdAt')), decs = r[2].sort(by('updatedAt')), runs = r[3], rels = r[4].filter(liveRel);
       cache.pages = {}; pages.forEach(function (p) { cache.pages[p.id] = p; });
       var claims = pages.reduce(function (n, p) { return n + (p.claims || []).length; }, 0);
       var conflicts = pages.reduce(function (n, p) { return n + (p.claims || []).filter(function (c) { return (c.conflictsWith || []).length; }).length; }, 0);
@@ -301,6 +301,7 @@
   var TYPE_GROUP = { concept: '概念', person: '人物', event: '事件', project: '项目', topic: '主题', howto: '方法', note: '笔记' };
   function holoContent() {
     return Promise.all([store.list('page'), store.list('decision'), store.list('relation')]).then(function (r) {
+      r[2] = r[2].filter(liveRel);
       var have = {}; r[0].forEach(function (p) { have[p.id] = 1; }); r[1].forEach(function (d) { have[d.id] = 1; });
       // the console reads parents as a tree, so every link points from the newer page to the older one (never a cycle)
       var rank = {}; r[0].concat(r[1]).sort(function (x, y) { return (x.createdAt || 0) - (y.createdAt || 0) || (x.id < y.id ? -1 : 1); }).forEach(function (x, i) { rank[x.id] = i; });
@@ -354,10 +355,14 @@
     }
     if (m.op === 'open') return say('这一项在活知识里没有原页');
   });
+  // only confirmed relations are lines in the graph and the projection; a suggested or rejected one is not a link yet
+  function liveRel(r) { return M.relationStatus(r) === 'confirmed'; }
+  // the graph labels a line with its first quote: for a link found by Semantic Linking that is its reason
+  function graphRel(r) { return r.explanation ? Object.assign({}, r, { evidence: [{ sourceId: r.id, quote: r.explanation }] }) : r; }
   function sendGraph() {
     if (!graphFrame || !graphFrame.isConnected || !graphFrame.contentWindow || !store) return;
     Promise.all([store.list('page'), store.list('decision'), store.list('source'), store.list('relation')]).then(function (r) {
-      try { graphFrame.contentWindow.postMessage({ type: 'lk-graph-data', data: { pages: r[0], decisions: r[1], sources: r[2], relations: r[3] } }, location.origin); } catch (e) {}
+      try { graphFrame.contentWindow.postMessage({ type: 'lk-graph-data', data: { pages: r[0], decisions: r[1], sources: r[2], relations: r[3].filter(liveRel).map(graphRel) } }, location.origin); } catch (e) {}
     });
   }
   window.addEventListener('message', function (e) {
@@ -916,10 +921,10 @@
 
   // ---------------------------------------------------------------- review: what was proposed
   var ITEM_NAMES = { claim: '新说法', support: '为已有说法补充出处', relation: '关系', page: '新页面' };
-  var REL_NAMES = { related: '相关', part_of: '是…的一部分', person_event: '人物—事件', project_decision: '项目—决策', topic_point: '主题—要点', supports: '支持', contradicts: '反驳', derived_from: '来自' };
+  var REL_NAMES = { related: '相关', part_of: '是…的一部分', person_event: '人物—事件', project_decision: '项目—决策', topic_point: '主题—要点', supports: '支持', contradicts: '反驳', derived_from: '来自', applied_to: '应用于', evolved_from: '演变自' };
   function paintReviewCount() {
     if (!store || !AG) return;
-    store.list('run').then(function (runs) { var n = AG.pendingCount(runs), b = $('lk-rcount'); b.hidden = !n; b.textContent = n; });
+    Promise.all([store.list('run'), store.list('relation')]).then(function (r) { var n = AG.pendingCount(r[0]) + (KL ? KL.pendingCount(r[1]) : 0), b = $('lk-rcount'); b.hidden = !n; b.textContent = n; });
   }
   function defaultChoice(it) {
     if (it.type === 'claim') return it.claim.origin === 'verified';
@@ -927,19 +932,23 @@
     return true;
   }
   function renderReview() {
-    return Promise.all([store.list('run'), store.list('source'), store.list('page')]).then(function (r) {
+    return Promise.all([store.list('run'), store.list('source'), store.list('page'), store.list('relation')]).then(function (r) {
+      var rels = r[3], waiting = KL ? KL.pendingCount(rels) : 0;
       var runs = r[0].sort(function (a, b) { return (b.startedAt || 0) - (a.startedAt || 0); });
       cache.sources = {}; r[1].forEach(function (s) { cache.sources[s.id] = s; });
       cache.pages = {}; r[2].forEach(function (p) { cache.pages[p.id] = p; });
       // ui.run: null = not chosen yet (the first one with something to review opens), '' = the list on purpose
-      var cur = ui.run ? runs.filter(function (x) { return x.id === ui.run; })[0] || null : ui.run === null ? runs.filter(function (x) { return AG.pendingCount([x]); })[0] || null : null;
+      var cur = ui.run && ui.run !== 'links' ? runs.filter(function (x) { return x.id === ui.run; })[0] || null : ui.run === null ? runs.filter(function (x) { return AG.pendingCount([x]); })[0] || null : null;
       if (cur && ui.run !== cur.id) { ui.run = cur.id; ui.choice = {}; }
+      if (ui.run === null && !cur && waiting) ui.run = 'links';
+      var links = KL && ui.run === 'links';
       var items = runs.filter(function (x) { return matches(ui.q, [x.scope.sourceIds.map(function (id) { return (cache.sources[id] || {}).title; }).join(' ')]); }).map(function (x) {
         var n = AG.pendingCount([x]);
         return { id: x.id, title: x.scope.sourceIds.map(function (id) { return (cache.sources[id] || {}).title || id; }).join('、'), sub: when(x.startedAt) + ' · ' + (n ? n + ' 条待审核' : x.status === 'done' ? '已审核' : x.status === 'empty' ? '没有新内容' : x.status === 'failed' ? '失败' : '已处理') };
       });
-      var right = cur ? runView(cur) : '<section class="lk-card lk-ed"><p class="lk-empty">整理来源后，建议会出现在这里。<br>每一条都要你接受才会写进知识页；没接受的不会有任何影响。</p></section>';
-      main.innerHTML = '<div class="lk-split' + (cur ? ' editing' : '') + '">' + sideList(items, cur && cur.id, '搜索整理记录', '') + right + '</div>';
+      if (KL) items.unshift({ id: 'links', title: '知识关联', sub: waiting ? waiting + ' 条待确认' : '找出页面之间的联系' });
+      var right = links ? linkView(rels) : cur ? runView(cur) : '<section class="lk-card lk-ed"><p class="lk-empty">整理来源后，建议会出现在这里。<br>每一条都要你接受才会写进知识页；没接受的不会有任何影响。</p></section>';
+      main.innerHTML = '<div class="lk-split' + (cur || links ? ' editing' : '') + '">' + sideList(items, links ? 'links' : cur && cur.id, '搜索整理记录', '') + right + '</div>';
     });
   }
   function runView(run) {
@@ -984,6 +993,66 @@
       toast((rep.claims ? '新增 ' + rep.claims + ' 条说法 · ' : '') + (rep.supports ? rep.supports + ' 条补充出处 · ' : '') + (rep.pages ? rep.pages + ' 个新页面 · ' : '') + (rep.relations ? rep.relations + ' 个关系 · ' : '') + (rep.rejected ? '拒绝 ' + rep.rejected + ' 条' : '') + (rep.errors.length ? ' · ' + rep.errors.length + ' 条没写成：' + rep.errors[0] : ''));
       render();
     }, function (e) { toast('没有处理成功：' + (e && e.message || e)); });
+  }
+
+  // ---------------------------------------------------------------- semantic linking: links between pages, each with its reason
+  var KL = window.MinestLKLink;
+  function linkRow(r) {
+    var st = M.relationStatus(r);
+    var name = function (id) { var p = cache.pages[id]; return p ? '<button type="button" class="lk-q" data-act="open-page" data-id="' + esc(id) + '">' + esc(p.title) + '</button>' : '<span class="lk-q">' + esc(id) + '</span>'; };
+    var badges = (st === 'suggested' ? '<span class="lk-badge ai">' + (r.engine === 'local' ? '本机发现' : 'AI 推断') + '</span>' : r.origin === 'ai_inferred' && st === 'confirmed' && r.explanation ? '<span class="lk-badge Confirmed">你确认的</span>' : '') +
+      (r.confidence != null ? '<span class="lk-note">把握 ' + Math.round(r.confidence * 100) + '%</span>' : '') +
+      (r.downgraded ? '<span class="lk-note">页面里没有说明是哪一种关系，所以只标为“相关”</span>' : '');
+    var quotes = (r.evidence || []).map(function (e) {
+      return e.pageId ? '<button type="button" class="lk-q" data-act="open-page" data-id="' + esc(e.pageId) + '">' + esc((cache.pages[e.pageId] || {}).title || '') + '：“' + esc(e.quote) + '”</button>'
+        : e.sourceId ? '<button type="button" class="lk-q" data-act="open-src" data-id="' + esc(e.sourceId) + '">原文：“' + esc(e.quote) + '”</button>' : '';
+    }).join('');
+    var id = ' data-id="' + esc(r.id) + '"';
+    var buttons = st === 'suggested' ? '<button type="button" class="lk-btn ghost" data-act="link-reject"' + id + '>否决</button><button type="button" class="lk-btn" data-act="link-confirm"' + id + '>确认</button>'
+      : st === 'confirmed' ? '<button type="button" class="lk-btn ghost" data-act="link-reject"' + id + '>改为否决</button>'
+      : '<button type="button" class="lk-btn ghost" data-act="link-restore"' + id + '>恢复为待确认</button>';
+    return '<li class="lk-lk ' + st + '"><div class="lk-bar">' + name(r.from) + '<span class="lk-rel">' + esc(REL_NAMES[r.type] || r.type) + ' →</span>' + name(r.to) + badges + '</div>' +
+      (r.explanation ? '<p>' + esc(r.explanation) + '</p>' : '') + (quotes ? '<span class="lk-srcs">' + quotes + '</span>' : (st === 'suggested' ? '<p class="lk-note">没有可以逐字核对的出处，需要你自己判断。</p>' : '')) +
+      '<div class="lk-bar"><span class="sp"></span>' + buttons + '</div></li>';
+  }
+  function linkView(rels) {
+    var g = ui.link, by = { suggested: [], confirmed: [], rejected: [] };
+    rels.forEach(function (r) { by[M.relationStatus(r)].push(r); });
+    by.suggested.sort(function (a, b) { return (b.confidence || 0) - (a.confidence || 0); });
+    by.confirmed.sort(function (a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); }); by.rejected.sort(function (a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); });
+    var status = '';
+    if (g && g.running) status = '<p role="status"><span id="lk-link-prog">' + (g.local ? '正在这台设备上比较页面…' : '正在请 Minest AI 判断…') + '</span> <button type="button" class="lk-btn ghost" data-act="link-stop">停止</button></p>';
+    else if (g && g.error) status = '<p role="status" style="color:var(--bad)">' + esc(g.error.message || g.error) + '</p>' + (g.error.code === 'ai-not-allowed' ? '<div class="lk-bar"><button type="button" class="lk-btn ghost" data-act="go-perms">去“权限”</button></div>' : '');
+    else if (g && g.rep) {
+      var p = g.rep;
+      status = '<p role="status">' + (p.status === 'review' ? '找到 ' + p.suggested.length + ' 条可能的关联，在下面等你确认。' : p.status === 'stopped' ? '已停止。' : p.status === 'failed' ? '没有查找成功。' : !p.candidates ? '没有新的候选：在还没有关联的页面之间，没找到互相提到、共有少见的词或来自同一份来源的。' : '比较了 ' + p.judged + ' 对页面，没有发现值得保留的关联。') +
+        ' <span class="lk-note">' + (p.engine === 'local' ? '本机 · 没有联网' : '发送 ' + p.calls + ' 次' + (p.used.input ? ' · 约 ' + (p.used.input + p.used.output) + ' token' : '')) + ' · 候选 ' + p.candidates + ' 对' + (p.none ? ' · ' + p.none + ' 对判断为没有关联（页面不变就不再比较）' : '') + '</span></p>' +
+        (p.errors.length ? '<p class="lk-note" style="color:var(--bad)">' + p.errors.map(esc).join('<br>') + '</p>' : '');
+    }
+    var list = function (title, rows, note, open) {
+      return rows.length ? '<details class="lk-lks"' + (open ? ' open' : '') + '><summary><b>' + title + '</b> <span class="lk-note">' + rows.length + ' 条' + (note ? ' · ' + note : '') + '</span></summary><ul>' + rows.slice(0, 100).map(linkRow).join('') + '</ul>' + (rows.length > 100 ? '<p class="lk-note">只显示最近 100 条</p>' : '') + '</details>' : '';
+    };
+    var busy = g && g.running ? ' disabled' : '';
+    return '<section class="lk-card lk-ed"><div class="lk-bar"><button type="button" class="lk-btn ghost lk-only-narrow" data-act="back">‹ 列表</button><b>知识关联</b><span class="sp"></span>' +
+      '<button type="button" class="lk-btn ghost" data-act="link-run" data-engine="local"' + busy + '>在本机查找</button><button type="button" class="lk-btn" data-act="link-run" data-engine="cloud"' + busy + '>用 Minest AI 查找</button></div>' +
+      '<p class="lk-note">先在这台设备上挑出可能有关的页面（互相提到、共有少见的词、同一份来源），这一步不联网。“在本机查找”只提出能逐字指给你看的关联；“用 Minest AI 查找”把每一对的标题、开头和几条说法发给 Minest AI，由它判断关系的类型并写出理由。' +
+      '每一页最多 ' + KL.PER_NODE + ' 条待确认的建议。确认之前，它们不会出现在图谱里。</p>' + status +
+      (list('待确认', by.suggested, '', true) + list('已确认', by.confirmed, '', !by.suggested.length) + list('已否决', by.rejected, '保留在这里，不会再被提出', false) ||
+        '<p class="lk-empty">还没有关联。<br>有两页以上的知识页后，点上面的按钮查找。</p>') + '</section>';
+  }
+  function startLink(local) {
+    if (!KL || (ui.link && ui.link.running)) return;
+    var g = ui.link = { running: true, local: local, ctl: new AbortController() };
+    render();
+    KL.suggest(store, { transport: transport, local: local, signal: g.ctl.signal, onProgress: function (p) { var el = $('lk-link-prog'); if (el) el.textContent = (local ? '正在这台设备上比较页面… ' : '正在请 Minest AI 判断… ') + p.done + ' / ' + p.total + ' 对'; } })
+      .then(function (rep) { g.rep = rep; }, function (e) { g.error = e; })
+      .then(function () { g.running = false; paintReviewCount(); if (ui.tab === 'review' && ui.run === 'links') render(); });
+  }
+  function decideLink(id, to) {
+    KL.decide(store, id, to).then(function (w) {
+      if (!w.ok) toast('没有保存：' + w.error); else toast(to === 'confirmed' ? '已确认，现在是图谱里的一条线' : to === 'rejected' ? '已否决，不会再被提出' : '已恢复为待确认');
+      paintReviewCount(); render();
+    }, function (e) { toast('没有保存：' + (e && e.message || e)); });
   }
 
   // ---------------------------------------------------------------- permissions
@@ -1071,6 +1140,9 @@
     }
     if (act === 'go-perms') { ui.ingest = null; setTab('perms'); return; }
     if (act === 'open-run') { if (ui.ingest) clearTimeout(ui.ingest.timer); ui.ingest = null; ui.run = a.dataset.id; ui.choice = {}; setTab('review'); return; }
+    if (act === 'link-run') { startLink(a.dataset.engine === 'local'); return; }
+    if (act === 'link-stop') { if (ui.link && ui.link.ctl) ui.link.ctl.abort(); return; }
+    if (act === 'link-confirm' || act === 'link-reject' || act === 'link-restore') { decideLink(a.dataset.id, act === 'link-confirm' ? 'confirmed' : act === 'link-reject' ? 'rejected' : 'suggested'); return; }
     if (act === 'review-accept' || act === 'review-accept-close') { submitReview(act === 'review-accept' ? 'accept' : 'close'); return; }
     if (act === 'review-reject-all') { if (confirm('拒绝这次整理里所有还没处理的建议？')) submitReview('reject'); return; }
     if (act === 'open') { if (!guard()) return; ui.sel[key] = a.dataset.id; ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null; ui.showRev = null; ui.imp = null; render(); return; }

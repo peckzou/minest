@@ -75,7 +75,7 @@ export function toGraph(d: LKData): { nodes: KnowledgeNode[]; edges: KnowledgeEd
   (d.pages || []).forEach((p) => linkFrom(p.id, p.markdown, 'markdown-link'));
   (d.decisions || []).forEach((x) => linkFrom(x.id, [x.requirement, x.decision].concat(x.reasons || []).join('\n'), 'project-decision'));
   (d.relations || []).forEach((r) => {
-    if (!have.has(r.from) || !have.has(r.to)) return;
+    if (!have.has(r.from) || !have.has(r.to) || r.status === 'suggested' || r.status === 'rejected') return;
     const ai = r.origin === 'ai_inferred', ev = (r.evidence || [])[0];
     const type: RelationshipType = ai ? 'ai-extracted' : r.type === 'project_decision' ? 'project-decision' : r.origin === 'user' ? 'user-manual' : 'wiki-relation';
     edge(r.from, r.to, type, !ai, ev ? ev.quote : r.type, ai ? 'living-knowledge-ai' : 'wiki-engine', ev ? ev.sourceId : r.id);

@@ -28,7 +28,11 @@
   };
   var PAGE_TYPES = ['concept', 'person', 'event', 'project', 'topic', 'howto', 'note'];
   var SOURCE_KINDS = ['pdf', 'web', 'note', 'chat', 'card', 'markdown'];
-  var RELATION_TYPES = ['related', 'part_of', 'person_event', 'project_decision', 'topic_point', 'supports', 'contradicts', 'derived_from'];
+  var RELATION_TYPES = ['related', 'part_of', 'person_event', 'project_decision', 'topic_point', 'supports', 'contradicts', 'derived_from', 'applied_to', 'evolved_from'];
+  /* a relation is suggested (found by AI or by the device, waiting for the user), confirmed, or rejected (kept, so it is
+     not suggested again). Relations written before this field existed have no status, or 'accepted': both read as confirmed. */
+  var RELATION_STATUS = ['suggested', 'confirmed', 'rejected'];
+  function relationStatus(r) { return r && (r.status === 'suggested' || r.status === 'rejected') ? r.status : 'confirmed'; }
   var ORIGINS = ['verified', 'ai_inferred', 'user'];
   var DECISION_STATES = ['Proposed', 'Confirmed', 'Superseded', 'Rejected'];
   var MODULES = ['living-knowledge', 'journal', 'study', 'myworld', 'routine', 'agents', 'decisions'];
@@ -157,6 +161,9 @@
       if (!doc.from || !doc.to) errs.push('关系需要 from 和 to');
       enumErr(errs, 'type', doc.type, RELATION_TYPES);
       enumErr(errs, 'origin', doc.origin, ORIGINS);
+      if (doc.status != null) enumErr(errs, 'status', doc.status, RELATION_STATUS.concat(['accepted']));
+      if (doc.explanation != null && typeof doc.explanation !== 'string') errs.push('explanation 必须是文本');
+      if (doc.confidence != null && !(typeof doc.confidence === 'number' && doc.confidence >= 0 && doc.confidence <= 1)) errs.push('confidence 必须在 0 和 1 之间');
     }
     if (kind === 'decision') {
       if (!doc.title || !String(doc.title).trim()) errs.push('决策需要标题');
@@ -199,6 +206,11 @@
       if (doc.state === 'Confirmed' && !(current && current.state === 'Confirmed')) { doc.confirmedBy = actor.id || 'user'; doc.confirmedAt = now; }
       if (doc.state !== 'Confirmed') { delete doc.confirmedBy; delete doc.confirmedAt; }
       else if (current && current.state === 'Confirmed') { doc.confirmedBy = current.confirmedBy; doc.confirmedAt = current.confirmedAt; }
+    }
+    if (kind === 'relation' && actor.type !== 'user') {
+      // AI (and every other module) can only suggest a link, and cannot touch one the user has confirmed or rejected
+      if (doc.status !== 'suggested') return fail('agent-suggests-only', 'AI 只能提出待确认的关联');
+      if (current && relationStatus(current) !== 'suggested') return fail('relation-decided', '这条关联你已经确认或否决过，AI 不能修改');
     }
     if (kind === 'page') {
       if (current && current.lockedBy === 'user' && actor.type !== 'user') return fail('page-locked', '这一页被你锁定了，AI 只能提建议');
@@ -353,7 +365,7 @@
 
   return {
     SCHEMA_VERSION: SCHEMA_VERSION, MAX_DOC_BYTES: MAX_DOC_BYTES, KINDS: KINDS, PAGE_TYPES: PAGE_TYPES, SOURCE_KINDS: SOURCE_KINDS,
-    RELATION_TYPES: RELATION_TYPES, ORIGINS: ORIGINS, DECISION_STATES: DECISION_STATES, MODULES: MODULES,
+    RELATION_TYPES: RELATION_TYPES, RELATION_STATUS: RELATION_STATUS, relationStatus: relationStatus, ORIGINS: ORIGINS, DECISION_STATES: DECISION_STATES, MODULES: MODULES,
     clone: clone, stable: stable, sameContent: sameContent, hash: hash, sha256Hex: sha256Hex, normalizeText: normalizeText, slug: slug,
     pageId: pageId, decisionId: decisionId, relationId: relationId, sourceId: sourceId, runId: runId, parseLinks: parseLinks,
     defaultPermissions: defaultPermissions, defaultSchema: defaultSchema, can: can, validate: validate, byteSize: byteSize,
