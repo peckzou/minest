@@ -291,6 +291,7 @@
       back.material.uniforms.map.value = rt.texture; back.visible = true;
       bush.material.uniforms.map.value = rt.texture; bush.visible = true;
       mound.material.uniforms.map.value = rt.texture; mound.visible = true;
+      requestAnimationFrame(function () { requestAnimationFrame(function () { if (window.__clunPoster) window.__clunPoster.off(); }); });   /* 底图画出来了：页面里先铺的那张预览图淡掉 */
     };
     img.src = PL.img;
 

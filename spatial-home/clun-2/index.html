@@ -50,6 +50,38 @@
 </head>
 <body>
 <div id="stage"></div>
+<script>
+/* 外景首屏：底图（1 MB 多）下载、上色之前先铺一张小预览图，取景和 plate.js 的 frameFor / clampRect 一致（改了那边这里要跟着改）；
+   同时提前开始下载底图。底图画出来以后 plate.js 调 __clunPoster.off() 把它淡掉。 */
+(function () {
+  var q = new URLSearchParams(location.search); if (q.get('scene') !== 'valley') return;
+  var pre = document.createElement('link'); pre.rel = 'preload'; pre.as = 'image'; pre.href = 'art/delivery-plate-tree-v2.jpg'; document.head.appendChild(pre);
+  document.body.classList.add('valley'); if (q.get('entry') === '1') document.body.classList.add('clun-entry-mode');
+  if (q.get('inside') === '1' || q.get('tree') === '1') return;
+  var W = 2576, H = 1438, A = W / H, HOUSE = [860, 868], R = document.documentElement;
+  var p = document.createElement('div'); p.id = 'plate-poster'; p.setAttribute('aria-hidden', 'true');
+  p.style.cssText = 'position:fixed;inset:0;z-index:1;pointer-events:none;background:#9cc3e6 url(art/plate-poster.jpg) no-repeat;transition:opacity .45s ease';
+  function kind(w, h) {
+    var f = q.get('duo'); if (f === 'outer' || f === 'inner') return f;
+    if (R.classList.contains('duo-inner')) return 'inner'; if (R.classList.contains('duo-outer')) return 'outer';
+    if (!(navigator.maxTouchPoints > 0)) return 'normal';
+    if (Math.min(w, h) >= 600 && Math.max(w, h) / Math.min(w, h) < 1.6) return 'inner';
+    return w < h ? 'outer' : 'normal';
+  }
+  function fit() {
+    var vw = window.innerWidth || 1, vh = window.innerHeight || 1, va = vw / vh, k = kind(vw, vh), r;
+    if (k === 'outer') { var ho = Math.min(H, Math.max(1100, 640 / va)); r = { cx: HOUSE[0], cy: HOUSE[1] - 30, w: ho * va, h: ho }; }
+    else { var fw = va > A ? W : H * va; r = { cx: va > A ? W / 2 : (k === 'inner' ? 520 + fw / 2 : W / 2), cy: H / 2, w: fw, h: fw / va }; }
+    var w = Math.min(r.w, W, H * r.w / r.h), h = w * r.h / r.w, x = Math.max(0, Math.min(W - w, r.cx - w / 2)), y = Math.max(0, Math.min(H - h, r.cy - h / 2)), s = vw / w;
+    p.style.backgroundSize = (W * s).toFixed(1) + 'px ' + (H * s).toFixed(1) + 'px'; p.style.backgroundPosition = (-x * s).toFixed(1) + 'px ' + (-y * s).toFixed(1) + 'px';
+  }
+  fit(); window.addEventListener('resize', fit); document.body.appendChild(p);
+  window.__clunPoster = { off: function () {
+    window.__clunPoster = null; window.removeEventListener('resize', fit); p.style.opacity = '0';
+    setTimeout(function () { if (p.parentNode) p.parentNode.removeChild(p); }, 520);
+  } };
+})();
+</script>
 <div id="title" class="card">
   <h1>Clun · 7 South Drive</h1>
   <p>Wokingham, Berkshire · 约 1908–09 · Edwardian Arts &amp; Crafts</p>
@@ -82,7 +114,7 @@
 <script src="js/painterly.js?v=cel6"></script>
 <script src="js/hero.js?v=cel6"></script>
 <script src="js/treehouse.js?v=1"></script>
-<script src="js/plate.js?v=cel9"></script>
+<script src="js/plate.js?v=cel10"></script>
 <script src="js/model.js?v=cel5"></script>
 <script src="../js/home-store.js?v=4"></script>
 <script src="../js/home-defaults.js?v=3"></script>
