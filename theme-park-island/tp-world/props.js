@@ -750,7 +750,10 @@
     const landmarks = root.TPLandmarks ? root.TPLandmarks.build(scene, world, group) : null;
     const dl1to1 = root.TPDisneyland1to1 ? root.TPDisneyland1to1.build(scene, world, group) : null;
     const starWars = root.TPStarWars ? root.TPStarWars.build(scene, world, group) : null;
+    const smallWorld = root.TPSmallWorld ? root.TPSmallWorld.build(scene, world, group) : null;
     const orlando = root.TPOrlando ? root.TPOrlando.build(scene, world, group) : null;
+    const california = root.TPCalifornia ? root.TPCalifornia.build(scene, world, group) : null;
+    const paris = root.TPParis ? root.TPParis.build(scene, world, group) : null;
 
     /* ---------------- Flush All Static Merged Architectural Meshes ---------------- */
     mBase.mesh(castleBaseMat); mUpper.mesh(castleUpperMat); mBlush.mesh(castleBlushMat, false); mBlueRoof.mesh(blueSlateMat);
@@ -832,20 +835,13 @@
         }
       }
     };
-    if (landmarks) {
-      if (landmarks.smallWorldRide) rides.small_world_boat = landmarks.smallWorldRide;
-      if (landmarks.matterhornRide) rides.matterhorn_bobsleds = landmarks.matterhornRide;
-      if (landmarks.bigThunderRide) rides.big_thunder = landmarks.bigThunderRide;
-    }
     if (dl1to1) {
       if (dl1to1.piratesRide) rides.pirates_ride = dl1to1.piratesRide;
       if (dl1to1.spaceMountainRide) rides.space_mountain = dl1to1.spaceMountainRide;
     }
     if (starWars && starWars.falconRide) rides.falcon_flight = starWars.falconRide;
-    if (orlando) {
-      if (orlando.skylinerRide) rides.skyliner_ride = orlando.skylinerRide;
-      if (orlando.everestRide) rides.everest_ride = orlando.everestRide;
-    }
+    if (smallWorld) rides.small_world_boat = smallWorld.ride;
+    if (orlando) Object.assign(rides, orlando.rides);
 
     const interactables = [
       { id: 'wishing_well', name: '白雪公主许愿井飞瀑', x: 302, y: Y, z: 214, msg: '✨ 城堡东岸的白雪公主许愿井泛起回声与星光，你的愿望已飞向城堡尖塔！' },
@@ -854,6 +850,9 @@
       { id: 'savi_lightsaber', name: '萨维光剑工坊', x: 141.5, y: Y, z: 84, msg: '⚔️ 凯伯水晶共鸣！你已亲手组装并点亮专属绝地光剑——愿原力与你同在！' }
     ];
     if (dl1to1 && dl1to1.extraInteractables) interactables.push(...dl1to1.extraInteractables);
+    if (california) { Object.assign(rides, california.rides); interactables.push(...california.interactables); }
+    if (orlando) interactables.push(...orlando.interactables);
+    if (paris) { Object.assign(rides, paris.rides); interactables.push(...paris.interactables); }
 
     let elapsed = 0;
     function update(dt, time, cam, nightF, onEvent) {
@@ -861,7 +860,10 @@
       if (landmarks) landmarks.update(dt, elapsed, onEvent);
       if (dl1to1) dl1to1.update(dt, elapsed, onEvent);
       if (starWars) starWars.update(dt, elapsed, onEvent);
+      if (smallWorld) smallWorld.update(dt, elapsed, onEvent, cam);
       if (orlando) orlando.update(dt, elapsed, nightF, onEvent);
+      if (california) california.update(dt, elapsed, onEvent);
+      if (paris) paris.update(dt, elapsed, onEvent);
 
       // Main Street Streetcar & Double-Decker Omnibus cruising the full 120m Boulevard!
       trolleyGrp.position.z = 352 + Math.sin(elapsed * 0.16) * 52;

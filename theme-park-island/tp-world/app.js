@@ -515,8 +515,10 @@
   function drawMinimap() {
     if (!mmBase) return;
     const cv = $('mm'), x = cv.getContext('2d');
-    x.drawImage(mmBase, 0, 0, cv.width, cv.height);
-    const px = camera.position.x / world.W * cv.width, pz = camera.position.z / world.D * cv.height;
+    const sc = Math.min(cv.width / world.W, cv.height / world.D), ox = (cv.width - world.W * sc) / 2, oz = (cv.height - world.D * sc) / 2;
+    x.fillStyle = '#2888ac'; x.fillRect(0, 0, cv.width, cv.height);
+    x.drawImage(mmBase, ox, oz, world.W * sc, world.D * sc);
+    const px = ox + camera.position.x * sc, pz = oz + camera.position.z * sc;
     x.fillStyle = '#fff'; x.beginPath(); x.arc(px, pz, 3.8, 0, Math.PI * 2); x.fill();
   }
 
@@ -602,7 +604,7 @@
         const pose = r.getCameraPose(S.rideThirdPerson);
         camera.position.set(pose.px, pose.py, pose.pz);
         const f = look(pose.px, pose.py, pose.pz, pose.tx, pose.ty, pose.tz);
-        camera.rotation.set(clamp(f.pitch + S.rideLookPitch, -1.2, 1.2), f.yaw + S.rideLookYaw, 0, 'YXZ');
+        camera.rotation.set(clamp(f.pitch + S.rideLookPitch, -1.2, 1.2), f.yaw + S.rideLookYaw, pose.roll || 0, 'YXZ');
         if (!r.isRunning()) updateRideHud();
       } else if (S.mode === 'tour') {
         S.tourT = (S.tourT + dt) % world.tour.dur;

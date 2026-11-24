@@ -15,7 +15,25 @@
 (function (root) {
   'use strict';
 
-  const W = 768, D = 768, H = 88, WATER_Y = 36.4, PARK_Y = 40;
+  // The grid extends south (z 736..1152) for the Disneyland Park Paris expansion lobe.
+  const W = 768, D = 1152, H = 64, WATER_Y = 36.4, PARK_Y = 40;
+  // Disneyland Park Paris anchor points. The park is rotated 180° from its real orientation so its gates face
+  // the existing island: entrance north, castle south, Frontierland east (guest's left), Discoveryland west.
+  // Walt Disney World resort parks (east & south sectors). Shared by world paving and the resort-*.js builders.
+  const RESORT = {
+    epcot: { x: 620, zEarth: 228, zGate: 262, lagoon: { x: 620, z: 126, rx: 42, rz: 30 }, ring: { rx: 68, rz: 52 } },
+    studios: { x: 616, zGate: 516, zTheatre: 606, zSunset: 566, tower: { x: 704, z: 566 }, lake: { x: 578, z: 606 }, toy: { x: 574, z: 668 } },
+    kingdom: { x: 272, z: 640, pandora: { x: 196, z: 638 }, everest: { x: 344, z: 650 }, savanna: { x: 196, z: 702, rx: 48, rz: 20 }, harambe: { x: 262, z: 692 } }
+  };
+  const PARIS = {
+    x: 384, zGate: 790, zStation: 808, zSquare: 830, zHub: 946, zCastle: 1002,
+    rail: { x: 384, z: 958, rx: 225, rz: 150 },
+    lake: { x: 512, z: 928, rx: 60, rz: 48, ix: 34, iz: 26 },
+    manor: { x: 545, z: 868 },
+    isle: { x: 500, z: 1042 },
+    space: { x: 286, z: 944 },
+    lagoon: { x: 318, z: 1004 }
+  };
   const CX = 272.5; // 1:1 Disneyland Axial Centerline (Main Gate -> Town Square -> Main Street -> Hub -> Castle -> Carrousel)
 
   const T = {
@@ -210,31 +228,103 @@
       tp: { mode: 'walk', p: [340, PARK_Y, 258], t: [418, PARK_Y + 12, 274] }
     },
     {
-      id: 'epcot', num: 14, park: 'resort', zone: 'orlando', badge: '度假区 · EPCOT', color: '#06b6d4',
-      name: '艾波卡特 · EPCOT（未来地球 & 世界橱窗）', en: 'Spaceship Earth Geodesic Sphere, World Showcase & Skyliner',
-      x: 620, z: 250, rideId: 'skyliner_ride',
+      id: 'epcot', num: 14, park: 'resort', zone: 'orlando', badge: '奥兰多 · EPCOT 未来世界', color: '#06b6d4',
+      name: 'EPCOT · 地球号太空船 & 世界探索区', en: 'Spaceship Earth, World Celebration, Test Track, Mission: SPACE & Cosmic Rewind',
+      x: 606, z: 262, rideId: 'test_track',
       host: '未来领航员艾娃 · EPCOT Ambassador', robe: 0x0891b2, hair: 0xe2e8f0,
-      quote: '从明日世界向东穿过度假区大道即达艾波卡特！1,280 晶面银色巨球「未来地球」闪耀天际，还可搭乘高空缆车俯瞰世界橱窗五大国家馆！',
-      highlights: ['【可乘坐设施 #11】迪士尼高空缆车（Disney Skyliner）空中往返艾波卡特与好莱坞影城', '44 米银色晶面巨球「未来地球 Spaceship Earth」与水晶棱柱喷泉', '世界橱窗泻湖（法、日、墨、中、意五国地标）与银河护卫队新星战舰'],
-      tp: { mode: 'walk', p: [620, PARK_Y, 270], t: [620, PARK_Y + 20, 220] }
+      quote: '欢迎来到 EPCOT！眼前这颗由 11,324 块三角铝板拼成的银色巨球就是「地球号太空船」，三对斜撑把它托在半空。东侧是测试赛道与火星任务，西侧是海洋馆、陆地馆与想象力玻璃金字塔，往北穿过庆典花园就是世界橱窗泻湖。',
+      highlights: ['【可乘坐设施 #11】测试赛道（Test Track）：SIM 概念车冲出展馆，驶上高架外环高速弯道', '【可乘坐设施 #12】迪士尼天际缆车（Skyliner）：EPCOT ↔ 好莱坞影城 空中往返', '【故事过山车】银河护卫队：宇宙倒带（Cosmic Rewind）：星系厅与相位舱前秀 → 传送到星图号 → 逃生舱倒退弹射、车厢自转，随银河护卫队追击天神伊森直到大爆炸', '地球号太空船、火星任务、海洋馆 / 陆地馆 / 想象力馆'],
+      tp: { mode: 'walk', p: [620, PARK_Y, 288], t: [620, PARK_Y + 22, 228] }
     },
     {
-      id: 'hollywood', num: 15, park: 'resort', zone: 'orlando', badge: '度假区 · 好莱坞影城', color: '#e11d48',
-      name: '好莱坞影城 · Hollywood Studios', en: 'Tower of Terror Drop Hotel, Chinese Theatre & Toy Story Land',
-      x: 612, z: 590,
+      id: 'epcot_showcase', num: 15, park: 'resort', zone: 'orlando', badge: '奥兰多 · EPCOT 世界橱窗', color: '#0ea5e9',
+      name: 'EPCOT · 世界橱窗环湖十一国', en: 'World Showcase Lagoon — Canada, UK, France, Morocco, Japan, America, Italy, Germany, China, Norway, Mexico',
+      x: 612, z: 164, rideId: 'friendship_boat',
+      host: '世界橱窗文化大使 · World Showcase Host', robe: 0x1d4ed8, hair: 0x5c3a21,
+      quote: '环绕泻湖一圈就是一次环球旅行：加拿大城堡酒店、英国都铎酒馆、巴黎埃菲尔铁塔、摩洛哥宣礼塔、日本五重塔与水中鸟居、美国独立厅、威尼斯钟楼、德国钟楼广场、北京天坛祈年殿、挪威木板教堂，还有墨西哥玛雅金字塔。登上友谊号游船可以一次看全！',
+      highlights: ['【可乘坐设施 #13】友谊号游船（Friendship Boat）：环湖一周巡游十一国展馆', '1:1 布局的环湖步道与十一座国家馆地标建筑', '泻湖中央的烟花驳船与夜间灯光'],
+      tp: { mode: 'walk', p: [620, PARK_Y, 170], t: [620, PARK_Y + 8, 76] }
+    },
+    {
+      id: 'hollywood', num: 16, park: 'resort', zone: 'orlando', badge: '奥兰多 · 好莱坞影城', color: '#e11d48',
+      name: '好莱坞影城 · 好莱坞大道 & 日落大道', en: 'Hollywood Blvd, Chinese Theatre, Sunset Blvd, Tower of Terror & Rock ’n’ Roller Coaster',
+      x: 608, z: 532, rideId: 'tower_of_terror',
       host: '好莱坞导演维克多 · Studio Director', robe: 0xbe123c, hair: 0x27272a,
-      quote: '欢迎踏上 1930 年代装饰艺术日落大道！右侧 52 米「恐怖魔塔」电梯正伴随闪电急速坠落，左侧是中国大剧院、回声湖恐龙葛蒂与玩具总动员园区！',
-      highlights: ['52 米西班牙复兴式「恐怖魔塔 Tower of Terror」与实时闪电坠落电梯', '好莱坞中国大剧院、复古棕榈日落大道与回声湖恐龙葛蒂', '玩具总动员园区巨型彩色积木与弹簧狗过山车拱门'],
-      tp: { mode: 'walk', p: [612, PARK_Y, 614], t: [636, PARK_Y + 22, 560] }
+      quote: '穿过薄荷绿的泛太平洋礼堂大门，就回到了 1930 年代的好莱坞！大道尽头是中国大剧院，向东拐进日落大道，尽头那栋被闪电劈中的粉色高塔酒店就是「暮光之城恐怖魔塔」——电梯会把你拉上 13 层再整厢抛下去。',
+      highlights: ['【可乘坐设施 #14】暮光之城恐怖魔塔（Tower of Terror）：升至 13 层开门俯瞰影城后多段自由落体', '装饰艺术风好莱坞大道、十字路口塔、中国大剧院（米奇米妮失控火车）', '日落大道、摇滚过山车巨型电吉他与耳朵水塔（Earffel Tower）'],
+      tp: { mode: 'walk', p: [616, PARK_Y, 530], t: [616, PARK_Y + 10, 606] }
     },
     {
-      id: 'animal_kingdom', num: 16, park: 'resort', zone: 'orlando', badge: '度假区 · 动物王国', color: '#22c55e',
-      name: '动物王国 & 阿凡达潘多拉 · Animal Kingdom', en: 'Tree of Life, Pandora Floating Mountains & Rideable Everest',
-      x: 272, z: 660, rideId: 'everest_ride',
-      host: '潘多拉探险家内蒂莉 · Pandora Naturalist', robe: 0x15803d, hair: 0x18181b,
-      quote: '南区度假园是壮丽的自然奇境！正中是 46 米生命之树与草原长颈鹿，西侧是高空悬浮的阿凡达哈利路亚山飞瀑，东侧即可登上珠穆朗玛雪山过山车！',
-      highlights: ['【可乘坐设施 #12】珠峰探险过山车（Expedition Everest）盘旋 48 米喜马拉雅雪峰', '阿凡达·潘多拉世界：悬浮哈利路亚群峰、荧光莲花树与盘旋斑溪兽', '46 米有机树冠「生命之树（Tree of Life）」与乞力马扎罗长颈鹿草原'],
-      tp: { mode: 'walk', p: [262, PARK_Y, 680], t: [230, PARK_Y + 18, 628] }
+      id: 'toy_story', num: 17, park: 'resort', zone: 'orlando', badge: '奥兰多 · 玩具总动员', color: '#f59e0b',
+      name: '回声湖 & 玩具总动员乐园', en: 'Echo Lake (Gertie), Toy Story Land — Slinky Dog Dash, Alien Swirling Saucers',
+      x: 580, z: 634, rideId: 'slinky_dog',
+      host: '安迪的玩具警长 · Andy’s Backyard Sheriff', robe: 0xb45309, hair: 0x7c2d12,
+      quote: '你已经缩小成玩具那么大啦！这里是安迪家的后院：他用过山车积木搭了一条「弹簧狗冲刺」轨道，旁边是外星人旋转飞碟、叠叠乐积木塔、小孩玩具棒和彩色圣诞灯串。回声湖边还站着冰淇淋恐龙葛蒂呢。',
+      highlights: ['【可乘坐设施 #15】弹簧狗冲刺（Slinky Dog Dash）：安迪后院里的家庭过山车', '外星人旋转飞碟、叠叠乐塔、巨型 Tinkertoy 与字母积木', '回声湖恐龙葛蒂（Gertie）、码头小汽船餐厅与印第安纳琼斯特技剧场'],
+      tp: { mode: 'walk', p: [578, PARK_Y, 636], t: [574, PARK_Y + 6, 674] }
+    },
+    {
+      id: 'animal_kingdom', num: 18, park: 'resort', zone: 'orlando', badge: '奥兰多 · 动物王国', color: '#22c55e',
+      name: '动物王国 · 生命之树 & 非洲哈兰贝', en: 'The Oasis, Discovery Island Tree of Life, Harambe Village & Kilimanjaro Safaris',
+      x: 264, z: 606, rideId: 'safari_ride',
+      host: '哈兰贝保护区向导 · Safari Ranger', robe: 0x15803d, hair: 0x18181b,
+      quote: 'Jambo！穿过绿洲就能看到探索河环绕的发现岛，岛中央是 44 米高、树干刻满动物浮雕的「生命之树」。向南走到非洲哈兰贝村，登上敞篷卡车就能开进稀树草原，看长颈鹿、大象、斑马、犀牛和岩石上的狮子！',
+      highlights: ['【可乘坐设施 #16】乞力马扎罗野生动物园（Kilimanjaro Safaris）：敞篷卡车穿越稀树草原', '生命之树：盘根、动物浮雕树干与巨型树冠，四座木桥跨越探索河', '哈兰贝村茅草市集、猴面包树、金合欢与火烈鸟水塘'],
+      tp: { mode: 'walk', p: [272, PARK_Y, 602], t: [272, PARK_Y + 22, 640] }
+    },
+    {
+      id: 'pandora_everest', num: 19, park: 'resort', zone: 'orlando', badge: '奥兰多 · 潘多拉 & 亚洲', color: '#14b8a6',
+      name: '潘多拉阿凡达世界 & 珠峰探险', en: 'Pandora — Valley of Mo’ara floating mountains · Asia — Expedition Everest',
+      x: 307, z: 664, rideId: 'everest_ride',
+      host: '潘多拉探险家内蒂莉 · Pandora Naturalist', robe: 0x0f766e, hair: 0x18181b,
+      quote: '发现岛西边的木桥通向潘多拉：莫阿拉山谷里的哈利路亚群山真的悬浮在空中，藤蔓和瀑布从岩底垂下，夜里满地都是发光植物。东边则是喜马拉雅山脚的塞尔卡宗村——登上采茶小火车冲上禁忌之山，小心山洞里的雪怪！',
+      highlights: ['【可乘坐设施 #17】珠峰探险（Expedition Everest）：栈桥爬升 26 米后绕峰俯冲，途经雪怪洞', '潘多拉悬浮群山、垂藤瀑布、发光植物与盘旋的斑溪兽（Banshee）', '塞尔卡宗藏式村落、经幡、白塔与卡斯帕万河'],
+      tp: { mode: 'walk', p: [307, PARK_Y, 692], t: [344, PARK_Y + 26, 650] }
+    },
+    {
+      id: 'paris_main', num: 20, park: 'paris', zone: 'paris', badge: '巴黎 · 美国小镇大街', color: '#f9a8d4',
+      name: '巴黎迪士尼乐园酒店 & 美国小镇大街', en: 'Disneyland Hotel, Main Street Station, Liberty & Discovery Arcades',
+      x: 384, z: 838, rideId: 'paris_railroad',
+      host: '巴黎站长皮埃尔 · Chef de Gare', robe: 0x7c2d12, hair: 0x3f2a1a,
+      quote: '欢迎来到巴黎迪士尼乐园！您刚刚穿过粉红色维多利亚式「迪士尼乐园酒店」的拱门——全球唯一横跨在乐园大门之上的酒店。前方小镇广场的音乐凉亭后面，就是 1900 年代的美国小镇大街，两侧还藏着煤气灯长廊「自由拱廊」与「发现拱廊」。',
+      highlights: ['【可乘坐设施 #13】巴黎迪士尼铁路（Disneyland Railroad）蒸汽火车环园四站', '粉墙红瓦的迪士尼乐园酒店、梦幻花园与米奇花坛大钟', '小镇广场音乐凉亭、Main Street 维多利亚商铺与两条煤气灯拱廊'],
+      tp: { mode: 'walk', p: [384, PARK_Y, 762], t: [384, PARK_Y + 14, 792] }
+    },
+    {
+      id: 'paris_castle', num: 21, park: 'paris', zone: 'paris', badge: '巴黎 · 幻想世界', color: '#f472b6',
+      name: '睡美人城堡 & 幻想世界 · Fantasyland', en: 'Le Château de la Belle au Bois Dormant, Carrousel de Lancelot, Alice’s Curious Labyrinth',
+      x: 384, z: 968,
+      host: '奥罗拉公主的侍女 · Dame de Compagnie', robe: 0xdb2777, hair: 0xfbbf24,
+      quote: '这是全世界最梦幻的迪士尼城堡——「睡美人城堡」。它建在岩石山丘之上，粉色高塔配蓝色石板尖顶，山坡上是动画里方方正正的修剪树，右侧有瀑布，地下还沉睡着一条巨龙。穿过城堡就是幻想世界：兰斯洛特旋转木马、小飞象、疯帽子茶杯、爱丽丝迷宫与小小世界。',
+      highlights: ['43 米粉色睡美人城堡：16 座蓝顶塔楼、金色尖顶、螺旋楼梯塔与彩绘玻璃长廊', '城堡山丘的方形修剪树、瀑布与地下巨龙洞穴（La Tanière du Dragon）', '兰斯洛特旋转木马、小飞象、疯帽子茶杯、爱丽丝奇幻迷宫与小小世界钟楼立面'],
+      tp: { mode: 'walk', p: [384, PARK_Y, 950], t: [384, PARK_Y + 24, 1002] }
+    },
+    {
+      id: 'paris_frontier', num: 22, park: 'paris', zone: 'paris', badge: '巴黎 · 边域世界', color: '#ea580c',
+      name: '边域世界 · 巨雷山 & 幽灵庄园', en: 'Frontierland — Big Thunder Mountain island, Phantom Manor, Molly Brown Riverboat',
+      x: 446, z: 938, rideId: 'paris_big_thunder',
+      host: '雷霆台地警长 · Thunder Mesa Sheriff', robe: 0x92400e, hair: 0x44403c,
+      quote: '穿过科姆斯托克木堡就到了淘金小镇「雷霆台地」。巴黎的巨雷山与众不同——整座红岩山矗立在远西河中央的小岛上，矿车要先钻进河底隧道才能上岛！山丘上那栋阴森的维多利亚大宅是幽灵庄园，河面上航行的是莫莉·布朗号明轮船。',
+      highlights: ['【可乘坐设施 #14】巨雷山（Big Thunder Mountain）：河心岛红岩矿山失控矿车', '山丘上的幽灵庄园（Phantom Manor）与靴山墓园', '科姆斯托克堡、幸运金块沙龙与莫莉·布朗号明轮船'],
+      tp: { mode: 'walk', p: [440, PARK_Y, 944], t: [512, PARK_Y + 16, 928] }
+    },
+    {
+      id: 'paris_adventure', num: 23, park: 'paris', zone: 'paris', badge: '巴黎 · 探险世界', color: '#16a34a',
+      name: '探险世界 · 骷髅岩 & 印第安纳琼斯', en: 'Adventureland — Agrabah Bazaar, Skull Rock, Pirate Galleon, Temple du Péril',
+      x: 452, z: 1012, rideId: 'paris_indiana',
+      host: '探险岛向导萨米拉 · Guide de l’Île', robe: 0x166534, hair: 0x1c1917,
+      quote: '探险世界的大门是一座一千零一夜风格的阿格拉巴集市。往里走是探险岛：骷髅岩、虎克船长的海盗船和鲁滨逊树屋；最深处的丛林里藏着「危险神殿」——迪士尼第一座带 360° 回环的过山车！',
+      highlights: ['【可乘坐设施 #15】印第安纳琼斯与危险神殿：带 360° 垂直回环的矿车过山车', '探险岛骷髅岩、虎克船长海盗船与鲁滨逊树屋', '阿格拉巴集市洋葱圆顶与加勒比海盗西班牙要塞'],
+      tp: { mode: 'walk', p: [456, PARK_Y, 1004], t: [508, PARK_Y + 10, 1042] }
+    },
+    {
+      id: 'paris_discovery', num: 24, park: 'paris', zone: 'paris', badge: '巴黎 · 发现世界', color: '#b45309',
+      name: '发现世界 · 太空山 & 鹦鹉螺号', en: 'Discoveryland — Space Mountain, Orbitron, Nautilus, Hyperion Airship',
+      x: 340, z: 938, rideId: 'paris_space_mountain',
+      host: '凡尔纳学会教授 · Professeur Verne', robe: 0x78350f, hair: 0xd6d3d1,
+      quote: '发现世界不是科幻未来，而是儒勒·凡尔纳笔下的黄铜与铆钉之梦。那座青铜色的巨山就是太空山，侧面斜架着「哥伦比亚德」巨炮，会把列车直接射向月球！旁边的泻湖里停泊着尼摩船长的鹦鹉螺号，远处剧院上方悬着亥伯龙号飞艇。',
+      highlights: ['【可乘坐设施 #16】太空山：从哥伦比亚德巨炮弹射升空的室内过山车', '达芬奇风格行星仪「轨道飞行器 Orbitron」与鹦鹉螺号潜艇泻湖', 'Videopolis 剧院亥伯龙号飞艇与星际旅行 X 翼战机'],
+      tp: { mode: 'walk', p: [346, PARK_Y, 944], t: [286, PARK_Y + 18, 944] }
     }
   ];
 
@@ -261,6 +351,10 @@
     addCol('woodWalk', 0x8b5e38); addCol('nolaStone', 0xc6baa6); addCol('toonRoad', 0xf3d4dc);
     addCol('tomSilver', 0xbccad8); addCol('tomCyan', 0x38bdf8); addCol('railGravel', 0x847f74);
     addCol('asphalt', 0x4b5563); addCol('waterDeep', 0x1a6a8a); addCol('stoneL', 0xe4dccb);
+    addCol('redRock', 0xb9583a); addCol('prairie', 0x8fa24e); addCol('pRose', 0xe7b4bd); addCol('pCream', 0xf0e4cf);
+    addCol('pBrick', 0xa5503f); addCol('pOchre', 0xc9935f); addCol('pSand', 0xdcbb82); addCol('pBronze', 0xb39160);
+    addCol('pTeal', 0x4d9a94); addCol('pSlate', 0x8d97a6); addCol('pLilac', 0xd4c4e2);
+    addCol('savanna', 0xb7a45a); addCol('pandora', 0x2f6f5e); addCol('decoMint', 0xbfe3d6); addCol('toyGreen', 0x7cc95a);
 
     const inb = (x, y, z) => x >= 0 && x < W && z >= 0 && z < D && y >= 0 && y < H;
     const zi = (x, z) => x + z * W;
@@ -273,7 +367,10 @@
       for (let x = 0; x < W; x++) {
         const dx = Math.max(0, Math.abs(x - 384) - 292) / 68;
         const dz = Math.max(0, Math.abs(z - 380) - 294) / 68;
-        const r = Math.hypot(dx, dz);
+        const pdx = Math.max(0, Math.abs(x - PARIS.x) - 200) / 68;
+        const pdz = Math.max(0, Math.abs(z - 925) - 150) / 68;
+        const r = Math.min(Math.hypot(dx, dz), Math.hypot(pdx, pdz));
+        const inParis = z >= 738;
         const edge = 0.96 + (vnoise(x * 0.022, z * 0.022, 7) - 0.5) * 0.08;
         if (r > edge) {
           const sy = Math.max(32, Math.floor(35 - (r - edge) * 18));
@@ -294,18 +391,31 @@
           gy = Math.max(gy, Math.floor(PARK_Y + (1 - wfDist) * 11));
         }
 
+        // Paris: castle rock hill, Phantom Manor hill and the Big Thunder Mountain island mound.
+        let parisRock = false;
+        if (inParis && gy >= PARK_Y) {
+          const ch = Math.hypot((x - PARIS.x) / 27, (z - PARIS.zCastle) / 23);
+          if (ch < 1) gy = PARK_Y + Math.min(4, Math.round((1 - ch) * 9));
+          const mh = Math.hypot((x - PARIS.manor.x) / 22, (z - PARIS.manor.z) / 19);
+          if (mh < 1) gy = PARK_Y + Math.min(5, Math.round((1 - mh) * 10));
+          const bt = Math.hypot((x - PARIS.lake.x) / PARIS.lake.ix, (z - PARIS.lake.z) / PARIS.lake.iz);
+          if (bt < 1) { gy = PARK_Y + Math.min(3, Math.round((1 - bt) * 8)); parisRock = true; }
+        }
+
         const isToon = z <= 88 && x >= 214 && x <= 298;
-        const isAdv = (x >= 126 && x <= 226 && z >= 274 && z <= 372) || (z > 550 && x < 420);
+        const isAdv = (x >= 126 && x <= 226 && z >= 274 && z <= 372) || (z > 550 && z < 738 && x < 420) || (inParis && x > 440 && z > 985);
         const isBayou = x < 126 && z >= 156 && z <= 250;
         const isFan = x >= 216 && x <= 346 && z >= 90 && z <= 198;
 
-        const topBlock = gy <= WATER_Y + 1 ? B.SAND : (wfDist < 0.88 ? B.ROCK : (isToon ? B.MEADOW : B.GRASS));
-        const topCol = gy <= WATER_Y + 1 ? C.sand : (wfDist < 0.88 ? C.rock : isToon ? C.toonGreen : isAdv ? C.jungle : isBayou ? C.bayou : isFan ? C.grassL : C.grass);
+        const isFrontier = inParis && x > 430 && z <= 985;
+        const topBlock = gy <= WATER_Y + 1 ? B.SAND : parisRock ? B.PATH : (wfDist < 0.88 ? B.ROCK : (isToon ? B.MEADOW : B.GRASS));
+        const topCol = gy <= WATER_Y + 1 ? C.sand : parisRock ? C.redRock : (wfDist < 0.88 ? C.rock : isToon ? C.toonGreen : isAdv ? C.jungle : isBayou ? C.bayou : isFrontier ? C.prairie : (isFan || inParis) ? C.grassL : C.grass);
 
         const yStart = Math.max(32, gy - 5);
-        for (let y = yStart; y < gy - 1; y++) set(x, y, z, B.DIRT, C.dirt);
+        for (let y = yStart; y < gy - 1; y++) set(x, y, z, B.DIRT, parisRock ? C.redRock : C.dirt);
         set(x, gy - 1, z, topBlock, topCol);
         hm[zi(x, z)] = gy;
+        if (inParis && gy >= PARK_Y) occ[zi(x, z)] = 3;
         if (gy > maxSolidY) maxSolidY = gy;
       }
     }
@@ -378,17 +488,6 @@
       const isOuterCanal = z >= 94 && z <= 100 && Math.abs(x - 306) > 4.5;
       const isIndoorWater = z >= 48 && z <= 83 && x >= 286 && x <= 326;
       if (isFrontEntry || isOuterCanal || isIndoorWater) carveWater(x, z);
-    }
-
-    // 2I. ORLANDO RESORT LAGOONS (EPCOT Lagoon, Hollywood Echo Lake, Animal Kingdom Pandora River)
-    for (let z = 146; z <= 192; z++) for (let x = 590; x <= 650; x++) {
-      if (Math.hypot((x - 620) / 28, (z - 169) / 21) <= 1.0) carveWater(x, z);
-    }
-    for (let z = 598; z <= 622; z++) for (let x = 568; x <= 598; x++) {
-      if (Math.hypot((x - 583) / 14, (z - 610) / 11) <= 1.0) carveWater(x, z);
-    }
-    for (let z = 648; z <= 666; z++) for (let x = 166; x <= 222; x++) {
-      if (Math.hypot((x - 194) / 26, (z - 657) / 8) <= 1.0) carveWater(x, z);
     }
 
     /* ================= 3. 1:1 DISNEYLAND STREETS, TOWN SQUARE, SPOKE BRIDGES & PROMENADES ================= */
@@ -531,23 +630,189 @@
       }
     }
 
-    // 3M. ORLANDO RESORT EXPANSION BOULEVARDS & 3 RESORT PARK PLAZAS (East & South Sectors!)
-    for (let z = 250; z <= 266; z++) for (let x = 446; x <= 620; x++) pave(x, z, B.LIMES, C.tomSilver); // Tomorrowland -> EPCOT
-    for (let z = 132; z <= 292; z++) for (let x = 566; x <= 678; x++) {
-      const inPlaza = Math.hypot((x - 620) / 54, (z - 236) / 48) <= 1.0 || Math.hypot((x - 620) / 40, (z - 169) / 32) <= 1.0;
-      if (inPlaza) pave(x, z, B.FLAGS, ((x + z) % 2 === 0) ? C.tomSilver : C.plazaBlue);
-    }
-    for (let z = 284; z <= 550; z++) for (let x = 606; x <= 622; x++) pave(x, z, B.PATH, C.plazaCream); // EPCOT -> Hollywood
-    for (let z = 516; z <= 638; z++) for (let x = 550; x <= 680; x++) {
-      if (Math.hypot((x - 616) / 62, (z - 576) / 56) <= 1.0) pave(x, z, B.FLAGS, ((x + z) % 3 === 0) ? C.plazaPink : C.plazaCream);
-    }
-    for (let z = 506; z <= 616; z++) for (let x = 264; x <= 280; x++) pave(x, z, B.PATH, C.advDirt); // Esplanade -> Animal Kingdom
-    for (let z = 612; z <= 626; z++) for (let x = 350; x <= 560; x++) pave(x, z, B.PATH, C.advDirt); // Hollywood -> Animal Kingdom
-    for (let z = 592; z <= 692; z++) for (let x = 156; x <= 386; x++) {
-      if (Math.hypot((x - 270) / 110, (z - 640) / 44) <= 1.0) pave(x, z, B.PATH, C.advDirt);
+    /* ================= 4. DISNEYLAND PARK PARIS — WATERWAYS & PAVING (south lobe, z >= 738) ================= */
+    {
+      const P = PARIS, L = P.lake;
+      const ell = (cx, cz, rx, rz, fn) => {
+        for (let z = Math.floor(cz - rz); z <= cz + rz; z++) for (let x = Math.floor(cx - rx); x <= cx + rx; x++) {
+          const d = Math.hypot((x - cx) / rx, (z - cz) / rz);
+          if (d <= 1) fn(x, z, d);
+        }
+      };
+      const rect = (x0, x1, z0, z1, fn) => { for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) fn(x, z); };
+      const pv = (x, z, b, c) => {
+        if (!inb(x, PARK_Y, z)) return;
+        const k = zi(x, z);
+        if (occ[k] === 2 || hm[k] < PARK_Y) return;
+        set(x, hm[k] - 1, z, b, c); occ[k] = 1;
+      };
+      const chk = (x, z, a, b, n) => (((Math.floor(x / n) + Math.floor(z / n)) & 1) ? a : b);
+
+      // Rivers of the Far West (Big Thunder Mountain stands on the island in the middle).
+      ell(L.x, L.z, L.rx, L.rz, (x, z) => {
+        if (Math.hypot((x - L.x) / L.ix, (z - L.z) / L.iz) >= 1) carveWater(x, z);
+      });
+      // Castle moat wrapping the front and flanks of the rock hill (causeway left on the axis).
+      ell(P.x, P.zCastle, 36, 31, (x, z) => {
+        const d = Math.hypot((x - P.x) / 27, (z - P.zCastle) / 23);
+        if (d >= 1.04 && z <= P.zCastle + 10 && Math.abs(x - P.x) > 4) carveWater(x, z);
+      });
+      // Adventure Isle lagoon (Skull Rock islet kept), Nautilus lagoon, Fantasia Gardens ponds.
+      ell(P.isle.x, P.isle.z, 32, 19, (x, z) => {
+        if (Math.hypot((x - P.isle.x - 7) / 13, (z - P.isle.z) / 8) >= 1) carveWater(x, z);
+      });
+      ell(P.lagoon.x, P.lagoon.z, 20, 12, carveWater);
+      ell(P.x - 32, 764, 9, 5, carveWater);
+      ell(P.x + 32, 764, 9, 5, carveWater);
+
+      // Disneyland Railroad roadbed.
+      const R = P.rail;
+      rect(R.x - R.rx - 4, R.x + R.rx + 4, R.z - R.rz - 4, R.z + R.rz + 4, (x, z) => {
+        const d = Math.hypot((x - R.x) / R.rx, (z - R.z) / R.rz);
+        if (d >= 0.989 && d <= 1.011) pv(x, z, B.GRAVEL, C.railGravel);
+      });
+
+      // Resort promenade from the Hollywood/Animal Kingdom boulevard, Fantasia Gardens and the hotel forecourt.
+      rect(374, 394, 618, 752, (x, z) => pv(x, z, B.FLAGS, Math.abs(x - 384) <= 1 ? C.pRose : C.pCream));
+      ell(P.x, 766, 64, 20, (x, z, d) => pv(x, z, B.FLAGS, d > 0.9 ? C.pRose : chk(x, z, C.pCream, C.stoneL, 3)));
+      rect(326, 442, 782, 800, (x, z) => pv(x, z, B.FLAGS, chk(x, z, C.pRose, C.pCream, 2)));
+
+      // Main Street Station forecourt and Town Square (lawn ring around the bandstand).
+      rect(346, 422, 800, 850, (x, z) => {
+        const d = Math.hypot(x - P.x, z - P.zSquare);
+        if (d > 5 && d < 11) return;
+        pv(x, z, B.FLAGS, d <= 5 ? C.pRose : (d < 14 ? C.pBrick : C.pCream));
+      });
+      // Main Street, U.S.A.: arcades, building floors, kerbs and the brick roadway with trolley rails.
+      rect(352, 416, 850, 918, (x, z) => {
+        const a = Math.abs(x - P.x);
+        if (a <= 5) pv(x, z, B.BRICK, a === 2 ? C.pSlate : C.pBrick);
+        else if (a <= 8) pv(x, z, B.FLAGS, C.pCream);
+        else if (a <= 26) pv(x, z, B.FLAGS, C.stoneL);
+        else pv(x, z, B.FLAGS, chk(x, z, C.pRose, C.pCream, 2));
+      });
+      // Central Plaza hub with the round flower bed.
+      ell(P.x, P.zHub, 30, 30, (x, z, d) => {
+        if (d < 0.2) return;
+        pv(x, z, B.FLAGS, d > 0.92 ? C.pRose : (d < 0.3 ? C.pBrick : chk(x, z, C.pCream, C.stoneL, 3)));
+      });
+      // Castle causeway, courtyard and the passage through to Fantasyland.
+      rect(380, 388, 968, 1040, (x, z) => pv(x, z, B.PATH, C.pSlate));
+      ell(P.x, P.zCastle, 15, 12, (x, z) => pv(x, z, B.FLAGS, chk(x, z, C.pSlate, C.pLilac, 2)));
+      ell(P.x, 1062, 92, 36, (x, z, d) => pv(x, z, B.PATH, d > 0.94 ? C.pRose : C.pLilac));
+      rect(296, 472, 1052, 1060, (x, z) => pv(x, z, B.PATH, C.pLilac));
+
+      // Frontierland: Fort Comstock spoke, Thunder Mesa lakeside street, Phantom Manor drive.
+      rect(412, 456, 941, 951, (x, z) => pv(x, z, B.PLANKS, C.woodWalk));
+      ell(L.x, L.z, L.rx + 13, L.rz + 13, (x, z) => {
+        if (Math.hypot((x - L.x) / L.ix, (z - L.z) / L.iz) < 1) return;
+        pv(x, z, B.PATH, C.pOchre);
+      });
+      rect(P.manor.x - 4, P.manor.x + 4, P.manor.z + 6, P.manor.z + 24, (x, z) => pv(x, z, B.PATH, C.pSlate));
+      rect(518, 527, 984, 1016, (x, z) => pv(x, z, B.PATH, C.pOchre));
+
+      // Adventureland: bazaar spoke, Adventure Isle shore walk, paths to the Temple and the pirate fortress.
+      for (let t = 0; t <= 1; t += 0.004) {
+        const lx = 404 + (456 - 404) * t, lz = 964 + (1010 - 964) * t;
+        rect(Math.round(lx - 5), Math.round(lx + 5), Math.round(lz - 5), Math.round(lz + 5), (x, z) => pv(x, z, B.PATH, C.pSand));
+      }
+      ell(P.isle.x, P.isle.z, 45, 31, (x, z) => pv(x, z, B.PATH, C.pSand));
+      rect(538, 584, 1004, 1012, (x, z) => pv(x, z, B.PATH, C.pSand));
+      rect(466, 475, 1066, 1082, (x, z) => pv(x, z, B.PATH, C.pSand));
+
+      // Discoveryland: spoke, Space Mountain concourse, Nautilus lagoon quay and Videopolis plaza.
+      rect(314, 356, 941, 951, (x, z) => pv(x, z, B.LIMES, C.pBronze));
+      ell(P.space.x + 6, P.space.z + 4, 66, 50, (x, z, d) => pv(x, z, B.LIMES, d > 0.93 ? C.pTeal : chk(x, z, C.pBronze, C.pCream, 4)));
+      ell(P.lagoon.x, P.lagoon.z, 28, 19, (x, z) => pv(x, z, B.LIMES, C.pBronze));
+      ell(262, 1040, 42, 24, (x, z) => pv(x, z, B.LIMES, chk(x, z, C.pBronze, C.pTeal, 4)));
+      rect(296, 306, 1016, 1056, (x, z) => pv(x, z, B.LIMES, C.pBronze));
     }
 
-    // Compute topH & topC for crisp 768x768 Minimap!
+    /* ================= 5. WALT DISNEY WORLD RESORT PARKS — WATERWAYS & PAVING ================= */
+    {
+      const E = RESORT.epcot, HS = RESORT.studios, AK = RESORT.kingdom;
+      const ell = (cx, cz, rx, rz, fn) => {
+        for (let z = Math.floor(cz - rz); z <= cz + rz; z++) for (let x = Math.floor(cx - rx); x <= cx + rx; x++) {
+          const d = Math.hypot((x - cx) / rx, (z - cz) / rz);
+          if (d <= 1) fn(x, z, d);
+        }
+      };
+      const rect = (x0, x1, z0, z1, fn) => { for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) fn(x, z); };
+      const pv = (x, z, b, c) => {
+        if (!inb(x, PARK_Y, z)) return;
+        const k = zi(x, z);
+        if (occ[k] === 2 || hm[k] < PARK_Y) return;
+        set(x, hm[k] - 1, z, b, c); occ[k] = 1;
+      };
+      const chk = (x, z, a, b, n) => (((Math.floor(x / n) + Math.floor(z / n)) & 1) ? a : b);
+
+      /* ---- Water first ---- */
+      const L = E.lagoon;
+      ell(L.x, L.z, L.rx, L.rz, carveWater);                                   // World Showcase Lagoon
+      ell(HS.lake.x, HS.lake.z, 15, 11, carveWater);                           // Echo Lake
+      ell(AK.x, AK.z, 31, 27, (x, z) => {                                      // Discovery River ring + 4 bridges
+        if (Math.hypot((x - AK.x) / 23, (z - AK.z) / 19) < 1) return;
+        if (Math.abs(x - AK.x) <= 3 || Math.abs(z - AK.z) <= 3) return;
+        carveWater(x, z);
+      });
+      ell(194, 662, 26, 7, carveWater);                                        // Pandora · Kaspavan River
+      ell(AK.savanna.x - 6, AK.savanna.z + 1, 11, 5, carveWater);              // Savanna watering hole
+
+      /* ---- EPCOT ---- */
+      rect(446, 620, 250, 266, (x, z) => pv(x, z, B.LIMES, C.tomSilver));      // Tomorrowland -> EPCOT boulevard
+      ell(E.x, 274, 36, 24, (x, z, d) => pv(x, z, B.FLAGS, d > 0.92 ? C.tomCyan : chk(x, z, C.tomSilver, C.plazaBlue, 3)));
+      ell(E.x, E.zEarth, 31, 31, (x, z, d) => pv(x, z, B.FLAGS, d < 0.36 ? C.pLilac : chk(x, z, C.tomSilver, C.stoneL, 3)));
+      ell(E.x, 186, 46, 24, (x, z, d) => {
+        if (d > 0.38 && d < 0.66 && Math.abs(x - E.x) > 3 && Math.abs(z - 186) > 2) return;   // World Celebration garden lawns
+        pv(x, z, B.FLAGS, d <= 0.38 ? C.plazaBlue : chk(x, z, C.tomSilver, C.stoneL, 3));
+      });
+      ell(566, 214, 28, 46, (x, z) => pv(x, z, B.LIMES, chk(x, z, C.tomSilver, C.decoMint, 4)));   // World Nature
+      ell(676, 234, 30, 48, (x, z) => pv(x, z, B.LIMES, chk(x, z, C.tomSilver, C.plazaBlue, 4)));  // World Discovery
+      ell(L.x, L.z, L.rx + 11, L.rz + 11, (x, z, d) => pv(x, z, B.FLAGS, d > 0.94 ? C.pBrick : chk(x, z, C.pCream, C.plazaPink, 3)));
+      for (let k = 0; k < 11; k++) {
+        const a = (120 + k * 30) * Math.PI / 180;
+        ell(L.x + Math.cos(a) * E.ring.rx, L.z + Math.sin(a) * E.ring.rz, 14, 14, (x, z) => pv(x, z, B.FLAGS, chk(x, z, C.stoneL, C.pCream, 2)));
+      }
+      rect(606, 634, 284, 512, (x, z) => pv(x, z, Math.abs(x - 620) <= 8 ? B.PATH : B.FLAGS, Math.abs(x - 620) <= 8 ? C.plazaCream : C.plazaBlue));
+
+      /* ---- Disney's Hollywood Studios ---- */
+      ell(HS.x, HS.zGate, 32, 15, (x, z) => pv(x, z, B.FLAGS, chk(x, z, C.decoMint, C.plazaCream, 3)));
+      rect(594, 638, 526, 594, (x, z) => {
+        const a = Math.abs(x - HS.x);
+        if (a <= 5) pv(x, z, B.LANE, a === 0 ? C.pCream : C.asphalt);
+        else if (a <= 9) pv(x, z, B.FLAGS, chk(x, z, C.plazaPink, C.plazaCream, 2));
+        else pv(x, z, B.FLAGS, C.stoneL);
+      });
+      ell(HS.x, 596, 26, 15, (x, z) => pv(x, z, B.FLAGS, chk(x, z, C.pBrick, C.plazaCream, 2)));
+      rect(630, 690, 556, 576, (x, z) => {
+        const a = Math.abs(z - HS.zSunset);
+        pv(x, z, a <= 4 ? B.LANE : B.FLAGS, a <= 4 ? C.asphalt : chk(x, z, C.plazaPink, C.plazaCream, 2));
+      });
+      ell(688, HS.zSunset + 6, 22, 30, (x, z) => pv(x, z, B.FLAGS, chk(x, z, C.pRose, C.pCream, 3)));
+      ell(HS.lake.x, HS.lake.z, 25, 21, (x, z) => pv(x, z, B.FLAGS, chk(x, z, C.plazaCream, C.decoMint, 3)));
+      rect(571, 585, 624, 642, (x, z) => pv(x, z, B.PATH, C.pSand));
+      ell(HS.toy.x, HS.toy.z, 46, 36, (x, z, d) => pv(x, z, B.FLAGS, d > 0.93 ? C.toyGreen : chk(x, z, C.pSand, C.pCream, 5)));
+      rect(634, 646, 596, 622, (x, z) => pv(x, z, B.FLAGS, C.plazaCream));
+      ell(652, 632, 22, 17, (x, z) => pv(x, z, B.FLAGS, chk(x, z, C.plazaBlue, C.plazaCream, 3)));
+
+      /* ---- Disney's Animal Kingdom ---- */
+      rect(264, 280, 506, 600, (x, z) => pv(x, z, B.PATH, C.advDirt));                    // Esplanade -> The Oasis
+      rect(300, 560, 612, 626, (x, z) => pv(x, z, B.PATH, C.advDirt));                    // Hollywood Studios link
+      rect(374, 394, 618, 752, (x, z) => pv(x, z, B.FLAGS, Math.abs(x - 384) <= 1 ? C.pRose : C.pCream));
+      ell(AK.x, 598, 24, 13, (x, z) => pv(x, z, B.PATH, C.pSand));
+      ell(AK.x, AK.z, 41, 37, (x, z) => pv(x, z, B.PATH, C.advDirt));                     // Discovery Island ring walk
+      ell(AK.x, AK.z, 23, 19, (x, z, d) => pv(x, z, d > 0.52 ? B.PATH : B.GRASS, d > 0.52 ? C.pOchre : C.jungle));
+      rect(214, 236, 636, 644, (x, z) => pv(x, z, B.PLANKS, C.woodWalk));
+      ell(AK.pandora.x, AK.pandora.z, 24, 17, (x, z, d) => pv(x, z, d > 0.9 ? B.GRASS : B.PATH, d > 0.9 ? C.pandora : chk(x, z, C.advDirt, C.pandora, 6)));
+      rect(303, 311, 644, 694, (x, z) => pv(x, z, B.PATH, C.pOchre));
+      ell(332, 699, 31, 9, (x, z) => pv(x, z, B.PATH, chk(x, z, C.pOchre, C.pSand, 3)));
+      rect(268, 276, 662, 686, (x, z) => pv(x, z, B.PATH, C.pOchre));
+      ell(AK.harambe.x, AK.harambe.z, 27, 12, (x, z) => pv(x, z, B.PATH, chk(x, z, C.pOchre, C.pSand, 4)));
+      const SV = AK.savanna;
+      ell(SV.x, SV.z, SV.rx, SV.rz, (x, z, d) => pv(x, z, d > 0.7 && d < 0.86 ? B.PATH : B.GRASS, d > 0.7 && d < 0.86 ? C.advDirt : C.savanna));
+    }
+
+    // Compute topH & topC for the minimap.
     for (let z = 0; z < D; z++) {
       for (let x = 0; x < W; x++) {
         let ty = 0, tc = 0;
@@ -602,7 +867,7 @@
     };
 
     return {
-      W, D, H, WATER_Y, PARK_Y, CX, B, BI, T,
+      W, D, H, WATER_Y, PARK_Y, CX, B, BI, T, PARIS, RESORT,
       minSolidY, maxSolidY,
       blocks, cols, hm, occ, topH, topC, palette,
       LANDS, lamps, tour, props

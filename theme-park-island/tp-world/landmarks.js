@@ -1,7 +1,7 @@
 /* Minest My World · 1:1 Disneyland Iconic Mountain Landmarks, Rivers of America & Sculpted 3D Parkland (`landmarks.js`)
  * Includes:
  *  1. RIDEABLE Matterhorn Bobsleds (`matterhornRide`, x=330, z=176 — 46m Alpine Peak, Glowing Ice Cavern & Abominable Snowman Harold!)
- *  2. RIDEABLE "it's a small world" (`smallWorldRide`, x=306, z=84 — 44m Mary Blair Clock Facade + 6-Hall Indoor Boat Ride w/ Mr. Lincoln!)
+ *  2. "it's a small world" moved to smallworld.js (`TPSmallWorld`, x=306, z=84 — 8-room boat dark ride w/ Mr. Lincoln)
  *  3. Fantasyland Spin Rides: Dumbo the Flying Elephant (x=236, z=132) & Mad Tea Party (x=296, z=120)
  *  4. RIDEABLE Big Thunder Mountain Railroad (`bigThunderRide`, x=186, z=158 — 37m Red-Rock Mesas, Dinosaur Ribs & Runaway Mine Train!)
  *  5. True-Scale Rivers of America (x=134, z=191): Walkable Tom Sawyer Island (Suspension Bridge, Harper's Cider Mill, Skull Rock & Fort Wilderness),
@@ -126,313 +126,9 @@
     /* ============================================================================
      * 1. RIDEABLE MATTERHORN BOBSLEDS (x=330, z=176 — 46m Snow Peak + Ice Crystal Cavern + Harold!)
      * ============================================================================ */
-    const mhX = 330, mhZ = 176;
-    mRock.add(new T.ConeGeometry(19.5, 35, 9), M(mhX, Y + 17.5, mhZ, 0, 0.3, 0));
-    mRock.add(new T.ConeGeometry(14.0, 44, 7), M(mhX - 1.5, Y + 22, mhZ - 1.0, 0.04, 0.8, -0.05));
-    mRock.add(new T.ConeGeometry(12.5, 25, 7), M(mhX + 9.0, Y + 12.5, mhZ + 4.5, 0, 0.5, 0.08));
-    mRock.add(new T.ConeGeometry(11.5, 22, 7), M(mhX - 9.5, Y + 11.0, mhZ + 5.5, 0, 1.2, -0.08));
-    mRock.add(new T.ConeGeometry(11.0, 23, 7), M(mhX + 3.0, Y + 11.5, mhZ - 9.5, -0.06, 0.2, 0));
-    mSnow.add(new T.ConeGeometry(9.0, 22, 7), M(mhX - 1.8, Y + 37.5, mhZ - 1.2, 0.05, 0.8, -0.06));
-    mSnow.add(new T.ConeGeometry(7.2, 13.5, 7), M(mhX + 7.5, Y + 22.0, mhZ + 3.8, 0, 0.5, 0.08));
-    mSnow.add(new T.ConeGeometry(6.4, 12.5, 7), M(mhX - 8.2, Y + 20.0, mhZ + 4.8, 0, 1.2, -0.08));
-    // Swiss Chalet Bobsled Loading Station + Glowing Ice Crystal Cavern & Abominable Snowman Harold!
-    box(mWood, 8.2, 3.8, 5.8, mhX - 13.5, Y + 1.9, mhZ + 14.5);
-    mRed.add(new T.ConeGeometry(6.2, 3.0, 4), M(mhX - 13.5, Y + 5.3, mhZ + 14.5, 0, Math.PI / 4, 0));
-    box(mIron, 3.8, 3.8, 3.2, mhX + 12.5, Y + 13.5, mhZ + 9.5); // Cavern opening!
-    // Abominable Snowman (Harold) standing menacingly at the mountain cavern ledge (x=mhX+14, y=Y+13, z=mhZ+8)!
-    const yetiGrp = new T.Group(); yetiGrp.position.set(mhX + 14.2, Y + 12.2, mhZ + 8.5);
-    const yTorso = new T.Mesh(sph(1.25, 8), snowMat); yTorso.scale.set(1.0, 1.35, 0.85); yTorso.position.y = 1.6; yetiGrp.add(yTorso);
-    const yHead = new T.Mesh(sph(0.68, 8), snowMat); yHead.position.y = 3.2; yetiGrp.add(yHead);
-    for (const ex of [-0.22, 0.22]) {
-      const eye = new T.Mesh(sph(0.11, 5), new T.MeshBasicMaterial({ color: 0xef4444 }));
-      eye.position.set(ex, 3.3, 0.58); yetiGrp.add(eye);
-    }
-    const yIce = new T.Mesh(new T.ConeGeometry(0.65, 2.8, 5), iceGlowMat); yIce.position.set(-1.6, 1.4, 0.4); yetiGrp.add(yIce);
-    group.add(yetiGrp);
+    const mhX = 330, mhZ = 176; // mountain + bobsled track now built by california-plus.js (TPCalifornia)
 
-    const mhFall = new T.Mesh(new T.PlaneGeometry(4.6, 20.0), waterFallMat);
-    mhFall.position.set(mhX + 13.5, Y + 9.5, mhZ + 5.5); mhFall.rotation.y = Math.PI / 2.5;
-    group.add(mhFall);
-
-    // Rideable 2-Car Matterhorn Alpine Bobsled!
-    const bobsleds = [];
-    for (let c = 0; c < 2; c++) {
-      const bg = new T.Group();
-      const body = new T.Mesh(new T.BoxGeometry(1.35, 0.85, 3.1), c === 0 ? crimsonMat : pastelBlueMat);
-      body.position.y = 0.52; bg.add(body);
-      const stripe = new T.Mesh(new T.BoxGeometry(1.42, 0.16, 3.16), whiteMat); stripe.position.y = 0.62; bg.add(stripe);
-      group.add(bg); bobsleds.push(bg);
-    }
-    const mhState = { running: true, ang: 0, eventIdx: -1 };
-    function sampleMH(a) {
-      const r = 17.2 + Math.sin(a * 3) * 2.2;
-      return { x: mhX + Math.cos(a) * r, y: Y + 8.5 + Math.sin(a) * 6.8 + Math.cos(a * 2) * 2.4, z: mhZ + Math.sin(a) * r };
-    }
-    const matterhornRide = {
-      id: 'matterhorn_bobsleds', name: '马特宏峰雪山雪橇（Matterhorn Bobsleds）', land: 'Fantasyland',
-      boardPos: { x: mhX - 13.5, y: Y, z: mhZ + 18.2 },
-      exitPos:  { x: mhX - 16.5, y: Y, z: mhZ + 20.0, yaw: -0.5 },
-      start: () => { mhState.running = true; mhState.eventIdx = -1; },
-      stop:  () => { mhState.running = false; },
-      isRunning: () => mhState.running,
-      getCameraPose: (thirdPerson) => {
-        const p0 = sampleMH(mhState.ang), p1 = sampleMH(mhState.ang + 0.06);
-        const dx = p1.x - p0.x, dy = p1.y - p0.y, dz = p1.z - p0.z, L = Math.hypot(dx, dy, dz) || 1;
-        const fx = dx / L, fy = dy / L, fz = dz / L;
-        if (thirdPerson) return { px: p0.x - fx * 8.2, py: p0.y + 3.8, pz: p0.z - fz * 8.2, tx: p0.x + fx * 6, ty: p0.y + 1.0, tz: p0.z + fz * 6 };
-        return { px: p0.x + fx * 0.6, py: p0.y + 1.45, pz: p0.z + fz * 0.6, tx: p0.x + fx * 16, ty: p0.y + fy * 16 + 0.6, tz: p0.z + fz * 16 };
-      }
-    };
-
-    /* ============================================================================
-     * 2. "it's a small world" — FULL INDOOR CANAL BOAT DARK RIDE + MR. LINCOLN (swX=306, swZ=84)!
-     * ============================================================================ */
-    const swX = 306, swZ = 84;
-    const dxSW = swX - 192.5, dzSW = swZ - 74;
-
-    function makeMaryBlairPanelTex() {
-      const c = cvs(256, 256), x = c.getContext('2d');
-      x.fillStyle = '#fffdf7'; x.fillRect(0, 0, 256, 256);
-      x.strokeStyle = '#eab308'; x.lineWidth = 4;
-      for (let gy = 0; gy < 256; gy += 64) for (let gx = 0; gx < 256; gx += 64) {
-        x.strokeRect(gx + 6, gy + 6, 52, 52);
-        x.fillStyle = ((gx + gy) / 64) % 2 === 0 ? 'rgba(250,204,21,0.28)' : 'rgba(125,211,252,0.22)';
-        x.beginPath(); x.moveTo(gx + 32, gy + 10); x.lineTo(gx + 54, gy + 32); x.lineTo(gx + 32, gy + 54); x.lineTo(gx + 10, gy + 32); x.closePath(); x.fill();
-        x.fillStyle = '#f59e0b'; x.beginPath(); x.arc(gx + 32, gy + 32, 5, 0, Math.PI * 2); x.fill();
-      }
-      return finTex(c, true);
-    }
-    function makeCurtainTex() {
-      const c = cvs(128, 256), x = c.getContext('2d');
-      for (let i = 0; i < 16; i++) {
-        const g = x.createLinearGradient(i * 8, 0, i * 8 + 8, 0);
-        g.addColorStop(0, '#6b0f1a'); g.addColorStop(0.5, '#b91c1c'); g.addColorStop(1, '#5c0b14');
-        x.fillStyle = g; x.fillRect(i * 8, 0, 8, 256);
-      }
-      x.fillStyle = '#eab308'; x.fillRect(0, 0, 128, 12); x.fillRect(0, 240, 128, 16);
-      return finTex(c, true);
-    }
-    function makeUSFlagTex() {
-      const c = cvs(256, 160), x = c.getContext('2d');
-      for (let i = 0; i < 13; i++) {
-        x.fillStyle = i % 2 === 0 ? '#b91c1c' : '#f8fafc';
-        x.fillRect(0, i * (160 / 13), 256, 160 / 13 + 1);
-      }
-      x.fillStyle = '#1e3a8a'; x.fillRect(0, 0, 108, 86);
-      x.fillStyle = '#ffffff';
-      for (let r = 0; r < 5; r++) for (let col = 0; col < 6; col++) {
-        x.beginPath(); x.arc(12 + col * 17, 10 + r * 16, 2.6, 0, Math.PI * 2); x.fill();
-      }
-      return finTex(c, false);
-    }
-    function makePresidentialSealTex() {
-      const c = cvs(256, 256), x = c.getContext('2d');
-      x.fillStyle = '#172554'; x.fillRect(0, 0, 256, 256);
-      x.strokeStyle = '#facc15'; x.lineWidth = 10;
-      x.beginPath(); x.arc(128, 128, 112, 0, Math.PI * 2); x.stroke();
-      x.fillStyle = '#1e3a8a'; x.beginPath(); x.arc(128, 128, 102, 0, Math.PI * 2); x.fill();
-      x.fillStyle = '#fef08a';
-      for (let i = 0; i < 16; i++) {
-        const a = (i / 16) * Math.PI * 2;
-        x.beginPath(); x.arc(128 + Math.cos(a) * 86, 128 + Math.sin(a) * 86, 4.5, 0, Math.PI * 2); x.fill();
-      }
-      x.fillStyle = '#eab308';
-      x.beginPath(); x.moveTo(128, 62); x.lineTo(192, 108); x.lineTo(156, 134); x.lineTo(164, 178); x.lineTo(128, 158);
-      x.lineTo(92, 178); x.lineTo(100, 134); x.lineTo(64, 108); x.closePath(); x.fill();
-      x.fillStyle = '#b91c1c'; x.fillRect(112, 108, 32, 34);
-      x.fillStyle = '#ffffff'; x.fillRect(118, 114, 6, 26); x.fillRect(130, 114, 6, 26);
-      return finTex(c, false);
-    }
-    function makeEiffelLatticeTex() {
-      const c = cvs(128, 256), x = c.getContext('2d');
-      x.fillStyle = '#d97706'; x.fillRect(0, 0, 128, 256);
-      x.strokeStyle = '#fef08a'; x.lineWidth = 4;
-      for (let y = 0; y < 256; y += 32) {
-        x.beginPath(); x.moveTo(0, y); x.lineTo(128, y + 32); x.moveTo(128, y); x.lineTo(0, y + 32); x.moveTo(0, y); x.lineTo(128, y); x.stroke();
-      }
-      return finTex(c, true);
-    }
-
-    const maryBlairMat = new T.MeshLambertMaterial({ map: makeMaryBlairPanelTex(), emissive: 0x1e1a12 });
-    const curtainMat = new T.MeshBasicMaterial({ map: makeCurtainTex() });
-    const usFlagMat = new T.MeshBasicMaterial({ map: makeUSFlagTex(), side: T.DoubleSide });
-    const sealMat = new T.MeshBasicMaterial({ map: makePresidentialSealTex() });
-    const eiffelMat = new T.MeshBasicMaterial({ map: makeEiffelLatticeTex() });
-
-    const swWallL = new T.Mesh(new T.BoxGeometry(15.6, 11.5, 3.4), maryBlairMat); swWallL.position.set(swX - 12.2, Y + 5.75, swZ); group.add(swWallL);
-    const swWallR = new T.Mesh(new T.BoxGeometry(15.6, 11.5, 3.4), maryBlairMat); swWallR.position.set(swX + 12.2, Y + 5.75, swZ); group.add(swWallR);
-    box(mWhite, 9.2, 6.2, 3.4, swX, Y + 8.4, swZ);
-    box(mGold, 40.6, 0.45, 3.8, swX, Y + 11.6, swZ);
-    box(mWhite, 12.0, 12.8, 4.4, swX, Y + 12.1, swZ + 0.6);
-    box(mGold, 12.6, 0.50, 4.8, swX, Y + 18.6, swZ + 0.6);
-    mGold.add(new T.ConeGeometry(3.2, 8.5, 8), M(swX, Y + 23.0, swZ + 0.6));
-    box(mGold, 0.45, 5.4, 3.8, swX - 4.4, Y + 2.7, swZ);
-    box(mGold, 0.45, 5.4, 3.8, swX + 4.4, Y + 2.7, swZ);
-    box(mGold, 9.2, 0.45, 3.8, swX, Y + 5.35, swZ);
-    const swClockMat = new T.MeshLambertMaterial({ map: makeSmallWorldClockTex(), emissive: 0x261d06 });
-    const swClock = new T.Mesh(new T.CircleGeometry(3.8, 24), swClockMat);
-    swClock.position.set(swX, Y + 12.2, swZ + 2.95); group.add(swClock);
-    const swPendulum = new T.Group(); swPendulum.position.set(swX, Y + 8.8, swZ + 3.05);
-    const pendRod = new T.Mesh(new T.BoxGeometry(0.18, 2.8, 0.12), goldMat); pendRod.position.y = -1.4; swPendulum.add(pendRod);
-    const pendDisc = new T.Mesh(cyl(0.85, 0.85, 0.16, 14), goldMat); pendDisc.rotation.x = Math.PI / 2; pendDisc.position.y = -2.8; swPendulum.add(pendDisc);
-    group.add(swPendulum);
-    for (const sd of [-1, 1]) {
-      box(mPBlue, 4.6, 13.5, 2.8, swX + sd * 10.5, Y + 6.75, swZ + 0.8);
-      mGold.add(new T.ConeGeometry(2.6, 7.5, 6), M(swX + sd * 10.5, Y + 17.2, swZ + 0.8));
-      box(mPPink, 5.2, 11.0, 2.8, swX + sd * 16.8, Y + 5.5, swZ + 0.8);
-      mWhite.add(sph(2.4, 10), M(swX + sd * 16.8, Y + 12.5, swZ + 0.8));
-      mGold.add(cyl(0.12, 0.22, 4.2, 6), M(swX + sd * 16.8, Y + 16.2, swZ + 0.8));
-      for (const tx of [6.8, 13.5]) {
-        mLeafM.add(new T.ConeGeometry(1.2, 3.8, 8), M(swX + sd * tx, Y + 2.2, swZ + 17.5));
-        mWhite.add(cyl(1.1, 1.3, 0.7, 10), M(swX + sd * tx, Y + 0.35, swZ + 17.5));
-        mGold.add(sph(0.28, 6), M(swX + sd * tx, Y + 4.3, swZ + 17.5));
-      }
-      box(mWhite, 2.2, 0.55, 8.8, swX + sd * 5.6, Y + 0.28, swZ + 12.5);
-      box(mGold, 0.18, 1.0, 8.8, swX + sd * 4.5, Y + 0.85, swZ + 12.5);
-    }
-
-    // Indoor Dark-Ride Show-Building Group (shifted cleanly to swX=306, swZ=84!)
-    const swHallGrp = new T.Group(); swHallGrp.position.set(dxSW, 0, dzSW); group.add(swHallGrp);
-    const darkHallMat = new T.MeshBasicMaterial({ color: 0x111530, side: T.DoubleSide });
-    const addDarkWall = (w, h, x, y, z, ry) => {
-      const m = new T.Mesh(new T.PlaneGeometry(w, h), darkHallMat);
-      m.position.set(x, y, z); if (ry) m.rotation.y = ry; swHallGrp.add(m);
-    };
-    addDarkWall(47, 14.0, 192.5, Y + 6.4, 37.2, 0);
-    addDarkWall(36, 14.0, 169.0, Y + 6.4, 55.2, Math.PI / 2);
-    addDarkWall(36, 14.0, 216.0, Y + 6.4, 55.2, -Math.PI / 2);
-    const swRoof = new T.Mesh(new T.PlaneGeometry(47, 36), darkHallMat);
-    swRoof.rotation.x = Math.PI / 2; swRoof.position.set(192.5, Y + 13.0, 55.2); swHallGrp.add(swRoof);
-    for (let sx = 175; sx <= 210; sx += 6.5) for (let sz = 43; sz <= 68; sz += 6.0) {
-      mGlow.add(sph(0.26, 5), M(sx + dxSW, Y + 10.8 + ((sx + sz) % 3) * 0.45, sz + dzSW));
-    }
-    const showWhite = new T.MeshBasicMaterial({ color: 0xfffdf5 });
-    const showGold = new T.MeshBasicMaterial({ color: 0xfacc15 });
-    const showPink = new T.MeshBasicMaterial({ color: 0xf472b6 });
-    const showCyan = new T.MeshBasicMaterial({ color: 0x38bdf8 });
-    const showRed = new T.MeshBasicMaterial({ color: 0xdc2626 });
-    const showNavy = new T.MeshBasicMaterial({ color: 0x172554 });
-    const showSkin = new T.MeshBasicMaterial({ color: 0xf5cfa8 });
-    const showSuit = new T.MeshBasicMaterial({ color: 0x18181b });
-    const showWalnut = new T.MeshBasicMaterial({ color: 0x5c361a });
-    const swDolls = [];
-
-    function addDancingDoll(dx, dy, dz, dressMat, hatMat) {
-      const dg = new T.Group(); dg.position.set(dx, dy, dz);
-      const skirt = new T.Mesh(new T.ConeGeometry(0.46, 1.05, 8), dressMat); skirt.position.y = 0.55; dg.add(skirt);
-      const sash = new T.Mesh(cyl(0.28, 0.34, 0.22, 8), showGold); sash.position.y = 0.85; dg.add(sash);
-      const head = new T.Mesh(sph(0.32, 8), showSkin); head.position.y = 1.32; dg.add(head);
-      const hat = new T.Mesh(cyl(0.22, 0.34, 0.28, 8), hatMat || showGold); hat.position.y = 1.64; dg.add(hat);
-      const arms = new T.Mesh(new T.BoxGeometry(1.15, 0.14, 0.14), dressMat); arms.position.y = 0.98; dg.add(arms);
-      swHallGrp.add(dg);
-      swDolls.push({ grp: dg, baseY: dy, phase: dx * 0.7 + dz * 0.5 });
-    }
-    function makeStageBanner(title, sub, bg, border) {
-      const c = cvs(512, 112), x = c.getContext('2d');
-      x.fillStyle = bg; x.fillRect(0, 0, 512, 112);
-      x.strokeStyle = border; x.lineWidth = 6; x.strokeRect(5, 5, 502, 102);
-      x.fillStyle = '#fef3c7'; x.font = '800 28px "Songti SC", Georgia, serif';
-      x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(title, 256, 42);
-      x.fillStyle = '#fde047'; x.font = '700 17px Georgia, serif'; x.fillText(sub, 256, 80);
-      return new T.MeshBasicMaterial({ map: finTex(c, false) });
-    }
-
-    // Europe, Asia, Americas/Mr. Lincoln, Africa & Finale Halls inside swHallGrp
-    const euStage = new T.Mesh(new T.BoxGeometry(6.5, 1.4, 11.2), showWhite); euStage.position.set(211.5, Y - 2.6, 63); swHallGrp.add(euStage);
-    const efBase = new T.Mesh(cyl(1.1, 1.8, 2.4, 4), eiffelMat); efBase.position.set(211.5, Y - 0.7, 66.2); swHallGrp.add(efBase);
-    const efMid = new T.Mesh(cyl(0.45, 1.05, 2.8, 4), eiffelMat); efMid.position.set(211.5, Y + 2.0, 66.2); swHallGrp.add(efMid);
-    const efTop = new T.Mesh(new T.ConeGeometry(0.42, 2.6, 4), showGold); efTop.position.set(211.5, Y + 4.7, 66.2); swHallGrp.add(efTop);
-    const millBody = new T.Mesh(cyl(0.85, 1.42, 4.2, 8), showCyan); millBody.position.set(211.5, Y + 0.2, 59.8); swHallGrp.add(millBody);
-    const windmillBlades = new T.Group(); windmillBlades.position.set(210.3, Y + 1.8, 59.8);
-    for (let i = 0; i < 4; i++) { const bl = new T.Mesh(new T.BoxGeometry(0.12, 3.6, 0.52), showWhite); bl.rotation.x = (i * Math.PI) / 2; windmillBlades.add(bl); }
-    swHallGrp.add(windmillBlades);
-    addDancingDoll(209.4, Y - 1.9, 65.0, showPink, showWhite); addDancingDoll(209.4, Y - 1.9, 60.4, showGold, showRed);
-
-    const asStage = new T.Mesh(new T.BoxGeometry(6.5, 1.4, 10.8), showPink); asStage.position.set(211.5, Y - 2.6, 48); swHallGrp.add(asStage);
-    for (let k = 0; k < 3; k++) {
-      const pgWall = new T.Mesh(cyl(1.3 - k * 0.28, 1.3 - k * 0.28, 0.95, 6), showWhite); pgWall.position.set(211.5, Y - 1.35 + k * 1.45, 50.8); swHallGrp.add(pgWall);
-      const pgRoof = new T.Mesh(new T.ConeGeometry(2.1 - k * 0.42, 0.85, 6), showRed); pgRoof.position.set(211.5, Y - 0.55 + k * 1.45, 50.8); swHallGrp.add(pgRoof);
-    }
-    const tajBase = new T.Mesh(new T.BoxGeometry(3.4, 1.8, 3.4), showWhite); tajBase.position.set(211.5, Y - 1.0, 45.0); swHallGrp.add(tajBase);
-    const tajDome = new T.Mesh(sph(1.35, 10), showWhite); tajDome.position.set(211.5, Y + 0.85, 45.0); swHallGrp.add(tajDome);
-    addDancingDoll(209.4, Y - 1.9, 49.4, showGold, showRed); addDancingDoll(209.4, Y - 1.9, 46.8, showRed, showGold);
-
-    const lnStage = new T.Mesh(new T.BoxGeometry(18.0, 2.2, 5.8), showNavy); lnStage.position.set(192.5, Y - 2.2, 40.5); swHallGrp.add(lnStage);
-    const lnBack = new T.Mesh(new T.BoxGeometry(16.6, 9.2, 0.5), showNavy); lnBack.position.set(192.5, Y + 3.4, 38.0); swHallGrp.add(lnBack);
-    for (const sd of [-1, 1]) {
-      const curt = new T.Mesh(new T.BoxGeometry(3.0, 9.2, 1.2), curtainMat); curt.position.set(192.5 + sd * 7.4, Y + 3.4, 39.0); swHallGrp.add(curt);
-      const col = new T.Mesh(cyl(0.32, 0.36, 8.6, 10), showWhite); col.position.set(192.5 + sd * 5.6, Y + 3.2, 39.2); swHallGrp.add(col);
-      const flag = new T.Mesh(new T.PlaneGeometry(2.1, 1.3), usFlagMat); flag.position.set(192.5 + sd * 3.05, Y + 4.1, 39.85); swHallGrp.add(flag);
-    }
-    const lnBanner = new T.Mesh(new T.PlaneGeometry(11.6, 2.2), makeStageBanner('林肯总统演讲大厅 · MR. LINCOLN', 'GREAT MOMENTS WITH MR. LINCOLN · LIBERTY & PEACE', '#172554', '#facc15'));
-    lnBanner.position.set(192.5, Y + 6.45, 38.55); swHallGrp.add(lnBanner);
-    const sealDisc = new T.Mesh(new T.CircleGeometry(1.75, 24), sealMat); sealDisc.position.set(192.5, Y + 3.25, 38.55); swHallGrp.add(sealDisc);
-    const podium = new T.Mesh(new T.BoxGeometry(1.5, 1.85, 1.0), showWalnut); podium.position.set(192.5, Y - 0.18, 42.1); swHallGrp.add(podium);
-    const lincolnGrp = new T.Group(); lincolnGrp.position.set(192.5, Y - 1.1, 41.0);
-    const lLegs = new T.Mesh(new T.BoxGeometry(0.68, 1.25, 0.42), showSuit); lLegs.position.y = 0.62; lincolnGrp.add(lLegs);
-    const lTorso = new T.Mesh(new T.BoxGeometry(0.92, 1.42, 0.50), showSuit); lTorso.position.y = 1.88; lincolnGrp.add(lTorso);
-    const lHeadGrp = new T.Group(); lHeadGrp.position.set(0, 2.86, 0);
-    lHeadGrp.add(new T.Mesh(sph(0.32, 10), showSkin));
-    const lHat = new T.Mesh(cyl(0.32, 0.31, 0.72, 12), showSuit); lHat.position.y = 0.72; lHeadGrp.add(lHat);
-    lincolnGrp.add(lHeadGrp);
-    const lArmR = new T.Group(); lArmR.position.set(-0.56, 2.38, 0.12);
-    const lSleeveR = new T.Mesh(new T.BoxGeometry(0.24, 0.95, 0.24), showSuit); lSleeveR.position.y = -0.45; lArmR.add(lSleeveR);
-    lincolnGrp.add(lArmR);
-    const lArmL = new T.Group(); lArmL.position.set(0.56, 2.38, 0.12);
-    const lSleeveL = new T.Mesh(new T.BoxGeometry(0.24, 0.95, 0.24), showSuit); lSleeveL.position.y = -0.45; lArmL.add(lSleeveL);
-    lincolnGrp.add(lArmL);
-    swHallGrp.add(lincolnGrp);
-
-    const afStage = new T.Mesh(new T.BoxGeometry(6.5, 1.4, 11.0), showGold); afStage.position.set(174.0, Y - 2.6, 49); swHallGrp.add(afStage);
-    addDancingDoll(176.0, Y - 1.9, 48.5, showCyan, showPink);
-    const finStage = new T.Mesh(new T.BoxGeometry(6.5, 1.4, 10.5), showWhite); finStage.position.set(174.0, Y - 2.6, 63); swHallGrp.add(finStage);
-    const finCarGrp = new T.Group(); finCarGrp.position.set(174.2, Y - 1.9, 63);
-    const finCanopy = new T.Mesh(new T.ConeGeometry(2.6, 1.8, 12), showGold); finCanopy.position.y = 3.8; finCarGrp.add(finCanopy);
-    const finPole = new T.Mesh(cyl(0.25, 0.3, 3.4, 8), showWhite); finPole.position.y = 1.7; finCarGrp.add(finPole);
-    swHallGrp.add(finCarGrp);
-    addDancingDoll(176.0, Y - 1.9, 61.5, showWhite, showGold); addDancingDoll(176.0, Y - 1.9, 64.5, showGold, showWhite);
-
-    const swBoatGrp = new T.Group();
-    swBoatGrp.position.set(swX, WY + 0.05, swZ + 9.5);
-    const swHull = new T.Mesh(new T.BoxGeometry(2.6, 0.72, 5.6), pastelBlueMat); swHull.position.y = 0.36; swBoatGrp.add(swHull);
-    const swDeck = new T.Mesh(new T.BoxGeometry(2.2, 0.20, 4.9), whiteMat); swDeck.position.y = 0.72; swBoatGrp.add(swDeck);
-    for (const bz of [-1.4, 0, 1.4]) { const seat = new T.Mesh(new T.BoxGeometry(2.0, 0.32, 0.65), pastelPinkMat); seat.position.set(0, 0.92, bz); swBoatGrp.add(seat); }
-    group.add(swBoatGrp);
-
-    const swWaypoints = [
-      [192.5, 84.0], [192.5, 72.0], [202.5, 67.5], [205.5, 62.0],
-      [205.5, 51.0], [199.5, 49.5], [192.5, 49.5], [185.5, 49.5],
-      [180.0, 51.5], [180.0, 62.5], [184.5, 68.5], [192.5, 72.5], [192.5, 84.0]
-    ].map(([x, z]) => [x + dxSW, z + dzSW]);
-    function sampleSW(t) {
-      const n = swWaypoints.length - 1, u = Math.max(0, Math.min(0.9999, t)) * n;
-      const i = Math.floor(u), f = u - i, a = swWaypoints[i], b = swWaypoints[i + 1];
-      return { x: a[0] + (b[0] - a[0]) * f, z: a[1] + (b[1] - a[1]) * f };
-    }
-    const swState = { running: false, t: 0, speed: 0.032, eventIdx: -1 };
-    const smallWorldRide = {
-      id: 'small_world_boat', name: '小小世界室内游船（含林肯演讲）', land: 'Fantasyland',
-      boardPos: { x: swX, y: Y, z: swZ + 14.5 },
-      exitPos:  { x: swX, y: Y, z: swZ + 20.5, yaw: 0 },
-      start: () => { swState.running = true; },
-      stop:  () => { swState.running = false; },
-      isRunning: () => swState.running,
-      getCameraPose: (thirdPerson) => {
-        const bp = swBoatGrp.position, yaw = swBoatGrp.rotation.y;
-        const fwdX = Math.sin(yaw), fwdZ = Math.cos(yaw);
-        const nearLincoln = swState.t >= 0.42 && swState.t <= 0.62;
-        if (thirdPerson) {
-          return {
-            px: bp.x - fwdX * 5.8, py: bp.y + 3.2, pz: bp.z - fwdZ * 5.8,
-            tx: nearLincoln ? swX : bp.x + fwdX * 6, ty: nearLincoln ? Y + 2.3 : bp.y + 1.4, tz: nearLincoln ? 39.2 + dzSW : bp.z + fwdZ * 6
-          };
-        }
-        return {
-          px: bp.x + fwdX * 0.6, py: bp.y + 2.15, pz: bp.z + fwdZ * 0.6,
-          tx: nearLincoln ? swX : bp.x + fwdX * 12, ty: nearLincoln ? Y + 2.5 : bp.y + 1.8, tz: nearLincoln ? 39.2 + dzSW : bp.z + fwdZ * 12
-        };
-      }
-    };
+    /* 2. "it's a small world" now lives in smallworld.js (TPSmallWorld) — full dark ride rebuild. */
 
     /* ============================================================================
      * 3. FANTASYLAND SPINNERS: DUMBO (x=238, z=132) & MAD TEA PARTY (x=296, z=120)
@@ -478,48 +174,7 @@
     /* ============================================================================
      * 4. RIDEABLE BIG THUNDER MOUNTAIN RAILROAD (btX=188, btZ=154 — 37m Red-Rock Mesas & Dinosaur Ribs!)
      * ============================================================================ */
-    const btX = 188, btZ = 154;
-    mRedRock.add(cyl(10.5, 15.5, 16, 9), M(btX, Y + 8.0, btZ));
-    mRedRock.add(cyl(5.8, 9.5, 14, 8), M(btX - 2.0, Y + 21.0, btZ - 1.5));
-    mRedDark.add(new T.ConeGeometry(4.4, 14.0, 7), M(btX - 2.5, Y + 31.5, btZ - 1.8));
-    mRedRock.add(cyl(4.8, 8.2, 18, 8), M(btX + 9.0, Y + 9.0, btZ + 4.5));
-    mRedDark.add(new T.ConeGeometry(4.0, 11.0, 6), M(btX + 9.0, Y + 22.5, btZ + 4.5));
-    mRedRock.add(cyl(5.4, 8.8, 14, 8), M(btX - 9.2, Y + 7.0, btZ + 5.8));
-    mRedDark.add(new T.ConeGeometry(3.6, 9.5, 6), M(btX - 9.2, Y + 18.0, btZ + 5.8));
-    // Tumbleweed Mining Water Tower + Giant Bleached Dinosaur Ribcage Arch over Track!
-    mWood.add(cyl(1.8, 1.9, 2.8, 10), M(btX + 14.5, Y + 6.2, btZ + 13.0));
-    mRedDark.add(new T.ConeGeometry(2.1, 1.6, 10), M(btX + 14.5, Y + 8.3, btZ + 13.0));
-    for (let r = -2; r <= 2; r++) {
-      mWhite.add(new T.TorusGeometry(3.2, 0.18, 5, 12, Math.PI), M(btX, Y + 2.2, btZ + 16.5 + r * 1.1));
-    }
-    const mineCars = [];
-    for (let c = 0; c < 4; c++) {
-      const mg = new T.Group();
-      const mb = new T.Mesh(new T.BoxGeometry(1.45, 1.05, 2.7), c === 0 ? ironMat : woodMat);
-      mb.position.y = 0.65; mg.add(mb);
-      if (c === 0) { const st = new T.Mesh(cyl(0.24, 0.16, 0.95, 6), goldMat); st.position.set(0, 1.45, 0.85); mg.add(st); }
-      group.add(mg); mineCars.push(mg);
-    }
-    const btState = { running: true, ang: 0 };
-    function sampleBT(a) {
-      const r = 16.2 + Math.cos(a * 2) * 1.8;
-      return { x: btX + Math.cos(a) * r, y: Y + 4.8 + Math.sin(a * 2) * 3.4 + Math.cos(a * 3) * 1.2, z: btZ + Math.sin(a) * r };
-    }
-    const bigThunderRide = {
-      id: 'big_thunder', name: '巨雷山失控矿车（Big Thunder Mountain）', land: 'Frontierland',
-      boardPos: { x: btX + 4, y: Y, z: btZ + 20.5 },
-      exitPos:  { x: btX + 6, y: Y, z: btZ + 24.0, yaw: 0 },
-      start: () => { btState.running = true; },
-      stop:  () => { btState.running = false; },
-      isRunning: () => btState.running,
-      getCameraPose: (thirdPerson) => {
-        const p0 = sampleBT(btState.ang), p1 = sampleBT(btState.ang + 0.06);
-        const dx = p1.x - p0.x, dy = p1.y - p0.y, dz = p1.z - p0.z, L = Math.hypot(dx, dy, dz) || 1;
-        const fx = dx / L, fy = dy / L, fz = dz / L;
-        if (thirdPerson) return { px: p0.x - fx * 8.5, py: p0.y + 3.8, pz: p0.z - fz * 8.5, tx: p0.x + fx * 6, ty: p0.y + 1.0, tz: p0.z + fz * 6 };
-        return { px: p0.x + fx * 0.6, py: p0.y + 1.55, pz: p0.z + fz * 0.6, tx: p0.x + fx * 16, ty: p0.y + fy * 16 + 0.4, tz: p0.z + fz * 16 };
-      }
-    };
+    const btX = 188, btZ = 154; // buttes + mine-train track now built by california-plus.js (TPCalifornia)
 
     /* ============================================================================
      * 5. TRUE-SCALE RIVERS OF AMERICA: WALKABLE TOM SAWYER ISLAND, MARK TWAIN & SAILING SHIP COLUMBIA!
@@ -722,65 +377,12 @@
     mGlow.mesh(warmGlowMat, false); mConc.mesh(concreteMat, true);
 
     function update(dt, elapsed, onEvent) {
-      // Matterhorn Bobsleds + Roaring Yeti Harold!
-      yetiGrp.rotation.y = -0.6 + Math.sin(elapsed * 2.8) * 0.32;
-      if (mhState.running) mhState.ang += dt * 0.68;
-      bobsleds.forEach((bg, idx) => {
-        const a = mhState.ang - idx * 0.19;
-        const p0 = sampleMH(a), p1 = sampleMH(a + 0.05);
-        bg.position.set(p0.x, p0.y, p0.z);
-        bg.rotation.y = Math.atan2(p1.x - p0.x, p1.z - p0.z);
-        bg.rotation.z = Math.cos(a * 2) * 0.24;
-      });
-
-      // Small World + Abraham Lincoln
-      swPendulum.rotation.z = Math.sin(elapsed * 2.2) * 0.38;
-      windmillBlades.rotation.x = elapsed * 1.4;
-      finCarGrp.rotation.y = elapsed * 0.85;
-      swDolls.forEach((d) => {
-        d.grp.rotation.z = Math.sin(elapsed * 3.2 + d.phase) * 0.16;
-        d.grp.position.y = d.baseY + Math.abs(Math.sin(elapsed * 2.8 + d.phase)) * 0.18;
-      });
-      lincolnGrp.position.y = Y - 1.05 + Math.max(0, Math.sin(elapsed * 0.9)) * 0.28;
-      lHeadGrp.rotation.y = Math.sin(elapsed * 1.3) * 0.28;
-      lArmR.rotation.x = -0.55 + Math.sin(elapsed * 2.6) * 0.42;
-      lArmL.rotation.x = -0.35 + Math.cos(elapsed * 2.1) * 0.32;
-      if (swState.running) {
-        swState.t += dt * swState.speed;
-        const p0 = sampleSW(swState.t), p1 = sampleSW(Math.min(0.9999, swState.t + 0.015));
-        swBoatGrp.position.set(p0.x, WY + 0.06 + Math.sin(elapsed * 3.2) * 0.04, p0.z);
-        swBoatGrp.rotation.y = Math.atan2(p1.x - p0.x, p1.z - p0.z);
-        const msgs = [
-          '⛵ 游船启航！穿过微笑金色太阳钟，驶入「小小世界」奇幻运河！',
-          '🗼 欢迎来到【欧洲馆】：旋转的荷兰风车、金色埃菲尔铁塔与欢舞人偶！',
-          '🏮 欢迎来到【亚洲馆】：朱红宝塔、泰姬陵穹顶与点点彩灯！',
-          '🎩【林肯总统演讲大厅】林肯起立挥手演讲："Four score and seven years ago… 自由、平等与和平属于世界每一个角落！"',
-          '🌴 欢迎来到【非洲与太平洋馆】：金色太阳图腾与热带岛屿欢歌！',
-          '✨ 欢迎来到【纯白鎏金大合唱厅】：世界儿童齐唱《It\'s a Small World》！'
-        ];
-        const ev = Math.min(msgs.length - 1, Math.floor((swState.t % 1) * msgs.length));
-        if (ev !== swState.eventIdx) { swState.eventIdx = ev; if (onEvent) onEvent(msgs[ev]); }
-        if (swState.t >= 1.0) {
-          swState.t = 0; swState.running = false; swState.eventIdx = -1;
-          swBoatGrp.position.set(swX, WY + 0.05, swZ + 9.5); swBoatGrp.rotation.y = Math.PI;
-          if (onEvent) onEvent('⚓ 「小小世界」游船已安全靠岸！');
-        }
-      }
 
       dumboGrp.rotation.y = elapsed * 0.62;
       dumbos.forEach((d) => { d.arm.rotation.z = 0.14 + Math.sin(elapsed * 2.2 + d.phase) * 0.18; });
       teaGrp.rotation.y = -elapsed * 0.55;
       teacups.forEach((c, idx) => { c.rotation.y = elapsed * (2.2 + (idx % 2) * 0.8); });
 
-      // Big Thunder Runaway Mine Train!
-      if (btState.running) btState.ang += dt * 0.66;
-      mineCars.forEach((mg, idx) => {
-        const a = btState.ang - idx * 0.20;
-        const p0 = sampleBT(a), p1 = sampleBT(a + 0.05);
-        mg.position.set(p0.x, p0.y, p0.z);
-        mg.rotation.y = Math.atan2(p1.x - p0.x, p1.z - p0.z);
-        mg.rotation.z = Math.sin(a * 2) * 0.20;
-      });
 
       // Rivers of America: Mark Twain & Sailing Ship Columbia circling opposite arcs on the West Channel + Harper's Mill!
       millWheel.rotation.x = elapsed * 1.4;
@@ -822,7 +424,7 @@
       });
     }
 
-    return { update, smallWorldRide, matterhornRide, bigThunderRide };
+    return { update };
   }
 
   root.TPLandmarks = { build };
