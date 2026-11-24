@@ -93,8 +93,8 @@
   var HALL = { x: 166, z: 112 }, OY = 700, hall = null;
   var STEPS = [
     { t: 5, cam: [0, 2.0, 15, 0, 1.6, 4], say: '欢迎来到黑尖塔前哨站的机器人工坊。传送带上是从银河各处收来的零件——造一个属于你的机器人吧。' },
-    { t: 10, cam: [-2.5, 2.1, 8.5, -2.5, 1.2, 3], pick: 'body', say: '先选机身：圆桶一样的宇航技工机器人，还是会滚的球形机器人？' },
-    { t: 9, cam: [2.5, 2.1, 8.5, 2.5, 1.2, 3], pick: 'color', say: '再选一种颜色，给它涂上自己的标记。' },
+    { t: 10, cam: [0, 3.0, 11.5, -2.5, 1.2, 3], pick: 'body', say: '先选机身：圆桶一样的宇航技工机器人，还是会滚的球形机器人？' },
+    { t: 9, cam: [0, 3.0, 11.5, 2.5, 1.2, 3], pick: 'color', say: '再选一种颜色，给它涂上自己的标记。' },
     { t: 6, cam: [0, 1.9, 3.2, 0, 1.0, -1.5], build: 1, say: '零件送上了组装台……拧紧，接线，装上头部。' },
     { t: 6, cam: [0.9, 1.5, 1.6, 0, 0.8, -1.5], wake: 1, say: '启动！听——它在和你打招呼。从现在起，它会跟着你走遍整个乐园。' },
     { t: 6, cam: [0, 1.9, -6, 0, 1.5, -14], say: '穿过这道门，是萨维的秘密工坊。采集者们守护着原力的传统，声音轻一点。' },
@@ -118,11 +118,22 @@
     try { var r2 = buildDroid({ body: 'r2', color: '#2563eb', head: 'dome' }); r2.position.set(-3.4, 0.5, 7.6); r2.scale.setScalar(1.3); out.add(r2); var bb = buildDroid({ body: 'bb', color: '#f97316' }); bb.position.set(3.4, 0.5, 7.6); bb.scale.setScalar(1.3); out.add(bb); } catch (e) {}
     /* inside */
     var g = new T.Group(); g.position.set(HALL.x, OY, HALL.z); g.visible = false; API.scene.add(g);
-    var wall = M(0x3d342a), dark = M(0x15110d), metal = M(0x6b7280), glow = function (c2) { return new T.MeshBasicMaterial({ color: c2 }); };
-    add(g, new T.BoxGeometry(14, 0.2, 40), M(0x4a4035), 0, -0.1, -2); add(g, new T.BoxGeometry(14, 0.2, 40), dark, 0, 5.2, -2);
+    var tx = function (w, h, rep, draw) { var cv = document.createElement('canvas'); cv.width = w; cv.height = h; draw(cv.getContext('2d'), w, h); var t = new T.CanvasTexture(cv); t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(rep[0], rep[1]); return new T.MeshBasicMaterial({ map: t }); };
+    /* weathered Batuuan plaster with panel seams and pipes; a plated floor; a dark vaulted wall for Savi's */
+    var wall = tx(256, 256, [6, 1], function (c, w, h) { c.fillStyle = '#5a4c3c'; c.fillRect(0, 0, w, h); for (var i = 0; i < 260; i++) { c.fillStyle = 'rgba(' + (i % 2 ? '30,22,14' : '150,128,100') + ',.10)'; c.fillRect((i * 97) % w, (i * 53) % h, 6 + i % 22, 2 + i % 5); } c.strokeStyle = '#2f261c'; c.lineWidth = 4; c.strokeRect(2, 2, w - 4, h - 4); c.beginPath(); c.moveTo(0, h * 0.62); c.lineTo(w, h * 0.62); c.stroke(); c.fillStyle = '#8a7558'; c.fillRect(0, h * 0.64, w, 10); c.fillStyle = '#f97316'; c.fillRect(20, h * 0.2, 46, 8); c.fillStyle = '#38bdf8'; c.fillRect(w - 70, h * 0.3, 40, 6); c.fillStyle = '#3a3026'; c.fillRect(w * 0.48, 0, 12, h); });
+    var floorM = tx(128, 128, [7, 20], function (c, w, h) { c.fillStyle = '#4a4238'; c.fillRect(0, 0, w, h); c.strokeStyle = '#2a241d'; c.lineWidth = 3; c.strokeRect(1, 1, w - 2, h - 2); c.fillStyle = '#6b5f50'; [[12, 12], [w - 18, 12], [12, h - 18], [w - 18, h - 18]].forEach(function (q) { c.fillRect(q[0], q[1], 6, 6); }); });
+    var dark = tx(256, 256, [5, 1], function (c, w, h) { c.fillStyle = '#17120d'; c.fillRect(0, 0, w, h); c.strokeStyle = '#3a2c1c'; c.lineWidth = 5; for (var i = 0; i < 4; i++) { c.beginPath(); c.arc(w / 2, h * 1.05, 60 + i * 44, Math.PI, 0); c.stroke(); } c.fillStyle = '#fbbf24'; for (var k = 0; k < 9; k++) c.fillRect(20 + k * 26, h * 0.86, 4, 12); });
+    var metal = M(0x6b7280), glow = function (c2) { return new T.MeshBasicMaterial({ color: c2 }); };
+    add(g, new T.BoxGeometry(14, 0.2, 40), floorM, 0, -0.1, -2); add(g, new T.BoxGeometry(14, 0.2, 40), dark, 0, 5.2, -2);
     [-7, 7].forEach(function (x) { add(g, new T.BoxGeometry(0.3, 5.4, 40), wall, x, 2.6, -2); }); add(g, new T.BoxGeometry(14, 5.4, 0.3), wall, 0, 2.6, 18); add(g, new T.BoxGeometry(14, 5.4, 0.3), dark, 0, 2.6, -22);
     [-1, 1].forEach(function (s2) { add(g, new T.BoxGeometry(5.6, 5.4, 0.4), wall, s2 * 4.2, 2.6, -8); }); add(g, new T.BoxGeometry(2.8, 2.4, 0.4), wall, 0, 4.1, -8);   /* the wall between the depot and Savi's */
     for (var i = 0; i < 6; i++) { add(g, new T.BoxGeometry(0.5, 0.12, 0.5), glow(0xfff1c2), -4 + (i % 3) * 4, 5.05, 12 - Math.floor(i / 3) * 9); add(g, new T.BoxGeometry(0.2, 3.2, 0.2), metal, i < 3 ? -6.7 : 6.7, 1.6, 12 - (i % 3) * 7); }
+    /* neon over each station, a row of droids waiting on the shelf, hanging cables, and Savi's ring of lamps */
+    var neon = function (txt, col, x, y, z, w) { var cv = document.createElement('canvas'); cv.width = 512; cv.height = 96; var c = cv.getContext('2d'); c.fillStyle = '#0b0f1a'; c.fillRect(0, 0, 512, 96); c.shadowColor = col; c.shadowBlur = 18; c.fillStyle = col; c.font = '800 54px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(txt, 256, 50); add(g, new T.PlaneGeometry(w, w * 0.1875), new T.MeshBasicMaterial({ map: new T.CanvasTexture(cv) }), x, y, z); };
+    neon('PARTS · 零件', '#f97316', -2.5, 3.6, -7.7, 3.6); neon('BUILD · 组装', '#38bdf8', 2.5, 3.6, -7.7, 3.6); neon('DROID DEPOT', '#fde047', 0, 4.4, 17.7, 6);
+    for (var d = 0; d < 6; d++) { try { var sh = buildDroid({ body: d % 2 ? 'bb' : 'r2', color: COLS[d][0], head: d % 3 ? 'dome' : 'cone' }); sh.position.set(d < 3 ? -6.2 : 6.2, 0, 12 - (d % 3) * 5.5); sh.rotation.y = d < 3 ? Math.PI / 2 : -Math.PI / 2; g.add(sh); } catch (e) {} }
+    for (var cb = 0; cb < 7; cb++) add(g, new T.CylinderGeometry(0.03, 0.03, 0.8 + (cb % 3) * 0.5, 5), M(0x111827), -5 + cb * 1.7, 4.7 - (cb % 3) * 0.25, 2 + (cb % 4) * 2.5);
+    for (var lp = 0; lp < 10; lp++) { var la = lp / 10 * Math.PI * 2; add(g, new T.SphereGeometry(0.12, 8, 6), glow(0xffc46b), Math.sin(la) * 5.4, 3.9, -15.5 + Math.cos(la) * 5.4); add(g, new T.CylinderGeometry(0.02, 0.02, 1.2, 4), M(0x111827), Math.sin(la) * 5.4, 4.6, -15.5 + Math.cos(la) * 5.4); }
     /* two conveyors of parts */
     var belts = [], parts = [];
     [-2.5, 2.5].forEach(function (x, bi) {
@@ -147,12 +158,23 @@
     API.getProps().rides.sw_workshop = {
       id: 'sw_workshop', name: '机器人工坊与光剑工坊（Droid Depot & Savi\'s Workshop）', land: 'star_wars',
       boardPos: { x: HALL.x, y: gy, z: doorZ }, exitPos: { x: HALL.x, y: gy, z: doorZ + 2, yaw: Math.PI },
-      start: function () { if (hall.i < 0 || hall.i >= STEPS.length) { hall.i = 0; hall.t = 0; hall.pick = { body: 'r2', color: COLS[0][0], head: 'dome', kyber: KYBER[0][0], hilt: 'steel' }; while (hall.stand.children.length) hall.stand.remove(hall.stand.children[0]); while (hall.mine.children.length) hall.mine.remove(hall.mine.children[0]); hall.d = hall.sb = null; enterStep(); } hall.run = true; hall.g.visible = true; },
+      start: function () { if (hall.i < 0 || hall.i >= STEPS.length) { hall.i = 0; hall.t = 0; hall.pick = { body: 'r2', color: COLS[0][0], head: 'dome', kyber: KYBER[0][0], hilt: 'steel' }; while (hall.stand.children.length) hall.stand.remove(hall.stand.children[0]); while (hall.mine.children.length) hall.mine.remove(hall.mine.children[0]); hall.d = hall.sb = null; enterStep(); } hall.run = true; hall.g.visible = true; sound(true); },
       stop: function () { hall.run = false; }, isRunning: function () { return hall.run; },
-      onExit: function () { hall.run = false; hall.i = -1; hall.g.visible = false; showBar(null); try { root.speechSynthesis.cancel(); } catch (e) {} },
+      onExit: function () { hall.run = false; hall.i = -1; hall.g.visible = false; showBar(null); sound(false); try { root.speechSynthesis.cancel(); } catch (e) {} },
       getHudInfo: function () { return (hall.i < 5 ? '机器人工坊' : '光剑工坊') + ' · ' + Math.min(hall.i + 1, STEPS.length) + '/' + STEPS.length; },
       getCameraPose: function () { var p = hall.pose; return { px: HALL.x + p[0], py: OY + p[1], pz: HALL.z + p[2], tx: HALL.x + p[3], ty: OY + p[4], tz: HALL.z + p[5] }; }
     };
+  }
+  var snd = null;
+  function sound(on) {
+    try { var C = root.AudioContext || root.webkitAudioContext; if (!C) return; var c = beep.c || (beep.c = new C());
+      if (!on) { if (snd) { snd.g.gain.setTargetAtTime(0, c.currentTime, 0.3); clearInterval(snd.iv); var old = snd; setTimeout(function () { old.o.forEach(function (x) { try { x.stop(); } catch (e) {} }); }, 1200); snd = null; } return; }
+      if (snd) return; var g = c.createGain(); g.gain.value = 0; g.gain.setTargetAtTime(0.05, c.currentTime, 0.8); g.connect(c.destination);
+      var hum = c.createOscillator(); hum.type = 'sawtooth'; hum.frequency.value = 55; var lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 220; hum.connect(lp); lp.connect(g); hum.start();
+      var NOTES = [196, 233, 294, 262, 196, 175, 233, 196], n = 0;
+      var iv = setInterval(function () { if (!hall || !hall.run) return; var o = c.createOscillator(), e = c.createGain(), t = c.currentTime, f = NOTES[n++ % 8] * (hall.i >= 5 ? 0.5 : 1); o.type = hall.i >= 5 ? 'sine' : 'triangle'; o.frequency.value = f; e.gain.setValueAtTime(0.0001, t); e.gain.exponentialRampToValueAtTime(0.5, t + 0.05); e.gain.exponentialRampToValueAtTime(0.0001, t + (hall.i >= 5 ? 1.6 : 0.5)); o.connect(e); e.connect(g); o.start(t); o.stop(t + 1.7); }, 620);
+      snd = { g: g, o: [hum], iv: iv };
+    } catch (e) {}
   }
   function speakLine(t) { API.toast(t); try { var ss = root.speechSynthesis; if (!ss) return; ss.cancel(); var u = new root.SpeechSynthesisUtterance(t); u.lang = 'zh-CN'; u.rate = 1.02; u.pitch = 0.95; ss.speak(u); } catch (e) {} }
   function showBar(kind) {
@@ -179,7 +201,7 @@
     var dim = h.i >= 5 ? 1 : 0; h.pool.material.opacity += ((s.rise ? 0.35 : 0) - h.pool.material.opacity) * Math.min(1, dt * 2);
     if (s.rise && h.sb) { var k2 = Math.min(1, h.t / 3); h.mine.position.y = 1.25 + k2 * 0.7; h.sb.userData.blade.scale.y = Math.max(0.001, Math.min(1, (h.t - 1.5) / 1.2)); h.sb.userData.blade.visible = h.t > 1.5; h.gatherers.forEach(function (g2, i) { g2.userData.blade.visible = h.t > 2.4 + i * 0.25; g2.userData.blade.scale.y = Math.max(0.001, Math.min(1, (h.t - 2.4 - i * 0.25) / 0.8)); }); if (h.t > 1.5 && h.t - dt <= 1.5) beep(false); }
     void dim;
-    if (h.t >= s.t) { h.i++; if (h.i >= STEPS.length) { st.droid = { body: h.pick.body, color: h.pick.color, head: h.pick.head }; st.saber = { color: h.pick.kyber, hilt: h.pick.hilt }; save(); apply(); showBar(null); h.run = false; if (API.exitRide) API.exitRide(); API.toast('🤖⚔️ 你的机器人和光剑造好了！按 L 收起或点亮光剑'); } else enterStep(); }
+    if (h.t >= s.t) { h.i++; if (h.i >= STEPS.length) { st.droid = { body: h.pick.body, color: h.pick.color, head: h.pick.head }; st.saber = { color: h.pick.kyber, hilt: h.pick.hilt }; save(); apply(); showBar(null); h.run = false; sound(false); if (API.exitRide) API.exitRide(); API.toast('🤖⚔️ 你的机器人和光剑造好了！按 L 收起或点亮光剑'); } else enterStep(); }
   }
   root.addEventListener('keydown', function (e) { if (hall && hall.run && hall.i >= 0 && STEPS[hall.i] && STEPS[hall.i].pick && /^Digit[1-6]$/.test(e.code)) { var b = hall.bar && hall.bar.querySelectorAll('button')[+e.code.slice(5) - 1]; if (b) b.click(); } });
   css.textContent += '#sw-pick{display:none;position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 150px);transform:translateX(-50%);z-index:80;gap:12px;padding:12px 16px;border-radius:999px;background:rgba(15,23,42,.9);border:1.5px solid #38bdf8}#sw-pick button{position:relative;width:60px;height:60px;border-radius:50%;border:3px solid rgba(255,255,255,.3);font-size:28px;cursor:pointer;background:rgba(255,255,255,.1)}#sw-pick button.on{border-color:#fde047;transform:scale(1.18)}#sw-pick i{position:absolute;right:-4px;bottom:-4px;font:700 11px sans-serif;background:#0f172a;color:#fde68a;border-radius:50%;width:18px;height:18px;line-height:18px}';

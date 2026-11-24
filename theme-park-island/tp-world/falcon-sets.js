@@ -307,7 +307,7 @@
         [-0.09, 0.09].forEach((dy) => { const b = new T.Mesh(new T.CylinderGeometry(0.035, 0.045, 1.5, 8), gunMat); b.rotation.x = PI / 2; b.position.set(0, dy, -0.75); g.add(b); const t = new T.Mesh(new T.SphereGeometry(0.06, 8, 6), tipMat); t.position.set(0, dy, -1.52); t.visible = false; g.add(t); });
         const m = new T.Mesh(new T.BoxGeometry(0.2, 0.34, 0.4), gunMat); g.add(m); grp.add(g); return g;
       });
-      const stick = new T.Group(); stick.position.set(0, -0.2, -0.72);
+      const stick = new T.Group(); stick.position.set(0.34, -0.36, -0.8); stick.scale.setScalar(0.5);   /* small, low and to the right: out of the view ahead */
       const sShaft = new T.Mesh(new T.CylinderGeometry(0.018, 0.022, 0.3, 8), gunMat); sShaft.position.y = 0.15; stick.add(sShaft);
       const sGrip = new T.Mesh(new T.CylinderGeometry(0.035, 0.03, 0.12, 8), new T.MeshLambertMaterial({ color: 0x1f2430 })); sGrip.position.y = 0.33; stick.add(sGrip);
       const sBtn = new T.Mesh(new T.SphereGeometry(0.022, 8, 6), tipMat); sBtn.position.set(0, 0.4, 0); stick.add(sBtn);
