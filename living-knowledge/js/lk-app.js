@@ -69,7 +69,7 @@
     if (unsubStore) unsubStore();
     ns = name; cloudOn = !!cloud;
     store = S.createStore({ local: S.idbLocal('minest.lk.v1:' + name), cloud: cloud, userId: 'me' });
-    unsubStore = store.onChange(function (what) { paintStatus(); sendGraph(); if (what && (what.pulled || what.conflict)) render(); });
+    unsubStore = store.onChange(function (what) { paintStatus(); sendGraph(); sendHolo(); if (what && (what.pulled || what.conflict)) render(); });
     ui.sel = { pages: null, decisions: null, sources: null }; ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null;
     return store.ready().then(function () { render(); paintStatus(); if (cloud) store.pull().then(function (n) { if (n) render(); }); });
   }
@@ -261,17 +261,91 @@
   // ---------------------------------------------------------------- 知识图谱: the browse canvas (living-knowledge/graph/, built from tools/living-knowledge-graph/)
   // It only reads: this page sends it the data and tells it when anything changes; a double click on a node asks this page
   // to open the page (or start one, for a link not written yet), and "新增知识节点" starts a real page here.
-  var graphFrame = null;
+  var graphFrame = null, holoFrame = null;
+  var GVIEW_KEY = 'minest.lk.gview', HOLO_LAYOUT = 'minest.lk.holoLayout';
+  function gview() { return lsGet(GVIEW_KEY) === '2d' ? '2d' : '3d'; }
   function renderGraph() {
-    if (!graphFrame) {
-      graphFrame = document.createElement('iframe');
-      graphFrame.className = 'lk-graph'; graphFrame.title = '知识图谱 · 浏览画布'; graphFrame.src = 'graph/index.html';
-      graphFrame.setAttribute('allow', 'fullscreen');
+    var v = gview();
+    var bar = document.createElement('div'); bar.className = 'lk-viewsw';
+    bar.innerHTML = '<div class="lk-seg" role="group" aria-label="图谱视图"><button type="button" data-act="gview" data-v="3d" aria-pressed="' + (v === '3d') + '">3D 全息星图</button>' +
+      '<button type="button" data-act="gview" data-v="2d" aria-pressed="' + (v === '2d') + '">2D 平面</button></div>' +
+      '<span class="lk-note">' + (v === '3d' ? '单指拖动旋转（甩一下会继续转）· 双指捏合缩放 · 双指拖动平移 · 轻点打开 · 双击聚焦 · 长按取出卡片 · 右下 ✋ 看全部手势' : '单击高亮相邻笔记 · 双击打开 · 右上 ⚙ 图谱设置') + '</span>';
+    main.innerHTML = ''; main.appendChild(bar);
+    if (v === '3d') {
+      if (!holoFrame) {
+        holoFrame = document.createElement('iframe');
+        holoFrame.className = 'lk-graph lk-holo'; holoFrame.title = '知识图谱 · 3D 全息星图'; holoFrame.src = '../holo-lab-2/index.html';
+        holoFrame.setAttribute('allow', 'fullscreen');
+      }
+      main.appendChild(holoFrame); sendHolo();
+    } else {
+      if (!graphFrame) {
+        graphFrame = document.createElement('iframe');
+        graphFrame.className = 'lk-graph'; graphFrame.title = '知识图谱 · 2D 平面'; graphFrame.src = 'graph/index.html';
+        graphFrame.setAttribute('allow', 'fullscreen');
+      }
+      main.appendChild(graphFrame); sendGraph();
     }
-    main.innerHTML = '';
-    main.appendChild(graphFrame);
-    sendGraph();
   }
+  /* 3D: Minest's 全息操作台 2.0 · 知识星图 (holo-lab-2/), with its own hand gestures. Each page is a star, grouped by type
+     (概念, 人物, 事件 … 决策), and every [[link]] or accepted relation is a bright line between two stars. It sends back
+     'open' (a tap on 打开原卡) — the page opens here; edits are made here, not in the projection. */
+  var TYPE_GROUP = { concept: '概念', person: '人物', event: '事件', project: '项目', topic: '主题', howto: '方法', note: '笔记' };
+  function holoContent() {
+    return Promise.all([store.list('page'), store.list('decision'), store.list('relation')]).then(function (r) {
+      var have = {}; r[0].forEach(function (p) { have[p.id] = 1; }); r[1].forEach(function (d) { have[d.id] = 1; });
+      // the console reads parents as a tree, so every link points from the newer page to the older one (never a cycle)
+      var rank = {}; r[0].concat(r[1]).sort(function (x, y) { return (x.createdAt || 0) - (y.createdAt || 0) || (x.id < y.id ? -1 : 1); }).forEach(function (x, i) { rank[x.id] = i; });
+      var parents = {};
+      var add = function (a, b) {
+        if (a === b || !have[a] || !have[b]) return;
+        var child = rank[a] > rank[b] ? a : b, par = child === a ? b : a;
+        (parents[child] = parents[child] || []).indexOf(par) < 0 && parents[child].push(par);
+      };
+      r[0].forEach(function (p) { (p.links || []).forEach(function (id) { add(p.id, id); }); });
+      r[1].forEach(function (d) { M.parseLinks([d.requirement, d.decision].concat(d.reasons || []).join('\n')).forEach(function (l) { add(d.id, l.id); }); });
+      r[2].forEach(function (x) { add(x.from, x.to); });
+      var knowledge = r[0].sort(by('updatedAt')).map(function (p) {
+        var claims = (p.claims || []).map(function (c) { return '· ' + c.text; }).join('\n');
+        return { id: p.id, t: p.updatedAt, title: p.title, text: String(p.markdown || '').replace(/\[\[([^\]|]+)(\|[^\]]+)?\]\]/g, '$1').slice(0, 900) + (claims ? '\n\n' + claims : ''),
+          tags: [], parents: parents[p.id] || [], board: TYPE_GROUP[p.type] || '笔记' };
+      }).concat(r[1].map(function (d) {
+        return { id: d.id, t: d.updatedAt, title: d.title, text: (STATE_NAMES[d.state] || d.state) + '\n\n' + (d.decision || d.requirement || ''), tags: [], parents: parents[d.id] || [], board: '决策' };
+      }));
+      var layout = null; try { layout = JSON.parse(lsGet(HOLO_LAYOUT) || 'null'); } catch (e) {}
+      return { knowledge: knowledge, lk: true, layout: layout };
+    });
+  }
+  function sendHolo() {
+    if (!holoFrame || !holoFrame.isConnected || !holoFrame.contentWindow || !store) return;
+    holoContent().then(function (data) {
+      if (!data.knowledge.length) return;    // with nothing yet, the console shows its own example
+      try { holoFrame.contentWindow.postMessage({ holo: 1, op: 'content', data: data }, location.origin); } catch (e) {}
+    });
+  }
+  window.addEventListener('message', function (e) {
+    if (!holoFrame || e.source !== holoFrame.contentWindow || e.origin !== location.origin) return;
+    var m = e.data || {}; if (m.holo !== 1) return;
+    if (m.op === 'ready') {
+      // from Living Knowledge it opens straight on the star map: booted, without the console's other modes (words, rings, armor)
+      try { var st = holoFrame.contentDocument.createElement('style'); st.textContent = '#modes{display:none!important}'; holoFrame.contentDocument.head.appendChild(st); } catch (x) {}
+      sendHolo();
+      try { holoFrame.contentWindow.postMessage({ holo: 1, op: 'boot' }, location.origin); } catch (x) {}
+      return;
+    }
+    if (m.op === 'close') { ui.tab = 'home'; lsSet(TAB_KEY, 'home'); render(); return; }
+    if (m.op === 'save' && m.layout) { lsSet(HOLO_LAYOUT, JSON.stringify(m.layout)); return; }
+    var say = function (t) { try { holoFrame.contentWindow.postMessage({ holo: 1, op: 'toast', text: t }, location.origin); } catch (x) {} };
+    if (m.op === 'edit') return say('请在活知识的知识页里编辑 · 这里只是投影');
+    if (m.op === 'open' && m.kind === 'knowledge') {
+      var id = String(m.id || '');
+      if (!guard()) return;
+      ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null; ui.imp = null; ui.q = '';
+      if (/^dc_/.test(id)) { ui.tab = 'decisions'; ui.sel.decisions = id; } else { ui.tab = 'pages'; ui.sel.pages = id; }
+      render(); window.scrollTo({ top: 0, behavior: 'smooth' }); return;
+    }
+    if (m.op === 'open') return say('这一项在活知识里没有原页');
+  });
   function sendGraph() {
     if (!graphFrame || !graphFrame.isConnected || !graphFrame.contentWindow || !store) return;
     Promise.all([store.list('page'), store.list('decision'), store.list('source'), store.list('relation')]).then(function (r) {
@@ -721,6 +795,7 @@
       if (cache.pages[id]) { ui.sel.pages = id; render(); } else { ui.sel.pages = null; startPage(null, a.dataset.title); }
       return;
     }
+    if (act === 'gview') { lsSet(GVIEW_KEY, a.dataset.v); render(); return; }
     if (act === 'go') {
       if (!guard()) return;
       var dest = a.dataset.to; ui.tab = dest; lsSet(TAB_KEY, dest); ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null; ui.imp = null; ui.q = '';

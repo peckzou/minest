@@ -562,7 +562,7 @@
     if (HL.wikiLoading) { HL.empty('正在读取维基百科… · Reading Wikipedia…', HL.wikiLoading); return; }
     var wk = HL.wiki ? S.wikiGraph(HL.wiki) : null;
     var c = HL.content, items = [];
-    if (!wk) items = items.concat(c.charts.slice(0, 24), c.knowledge.slice(0, 48));
+    if (!wk) items = items.concat(c.charts.slice(0, 24), c.knowledge.slice(0, c.lk ? 112 : 48));
     var lists = c.lists.slice(0, 12).map(function (l) { return l.items.slice(); }), room = 112 - items.length, more = true;
     if (wk) room = 0;
     while (room > 0 && more) { more = false; for (var li = 0; li < lists.length && room > 0; li++) { var x = lists[li].shift(); if (x) { items.push(x); room--; more = true; } } }

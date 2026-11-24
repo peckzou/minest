@@ -90,7 +90,7 @@
     if (m.pulled) return 0;
     if (timeT && m.t && m.t > timeT) return 0;
     if (slice && !slice[m.depth]) return 0;
-    var p = m.parent; while (p >= 0) { if (!expanded[nodes[p].uid] && !(slice && !slice[meta[p].depth])) return 0; p = meta[p].parent; }
+    var p = m.parent, hops = 0; while (p >= 0 && hops++ < 12) { if (!expanded[nodes[p].uid] && !(slice && !slice[meta[p].depth])) return 0; p = meta[p].parent; }   // hops: a cycle of parents must not hang the page
     if (m.depth > level && !slice) return 0;
     return 1;
   }
