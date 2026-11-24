@@ -63,7 +63,7 @@
   function settings() {
     var items = [['🗺', '导览图', function () { var b = document.getElementById('guide-top-btn'); if (b) b.click(); }], ['🧱', '放模型', function () { if (root.MinestImagineerPark) root.MinestImagineerPark.openDrawer(); }], ['🛠', '造乐园', function () { if (root.MinestParkBuilder) root.MinestParkBuilder.setBrush('p'); }],
       ['🏛', '幻想展馆', function () { if (root.MinestPavilion) root.MinestPavilion.open(); }], ['🌐', '中 / EN', function () { var b = document.getElementById('tp-lang-btn'); if (b) b.click(); }], ['⛶', '全屏', function () { try { var d = document; if (d.fullscreenElement) d.exitFullscreen(); else d.documentElement.requestFullscreen(); } catch (e) {} }],
-      ['🌗', '昼夜', function () { root.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyT', key: 't', bubbles: true })); }], ['🎬', '重看开场', function () { intro(); }], ['♻️', '重新开始', function () { if (root.confirm('清空任务进度，从头开始？')) { G = { done: {}, track: 'ticket', intro: 0 }; save(); render(); spawn(); } }]];
+      ['🌗', '昼夜', function () { root.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyT', key: 't', bubbles: true })); }], ['🎥', '视角', function () { if (root.TPGame2) root.TPGame2.view(); }], ['🎒', '背包', function () { if (root.TPGame2) root.TPGame2.bag(); }], ['🎬', '重看开场', function () { intro(); }], ['♻️', '重新开始', function () { if (root.confirm('清空任务进度，从头开始？')) { G = { done: {}, track: 'ticket', intro: 0 }; save(); render(); spawn(); } }]];
     var p = panel('⚙ 设置', '<div class="gm-set">' + items.map(function (it, i) { return '<button type="button" data-i="' + i + '"><i>' + it[0] + '</i>' + it[1] + '</button>'; }).join('') + '</div>');
     [].forEach.call(p.querySelectorAll('[data-i]'), function (b) { b.onclick = function () { closePanel(); items[+b.dataset.i][2](); }; });
   }
@@ -89,7 +89,8 @@
     cine = { t: 0, crew: crew, el: el, h1: h1, cap: cap, gy: gy }; if (K) cine.music = K.seq([392, 494, 587, 784, 659, 587, 494, 587, 440, 523, 659, 880, 784, 659, 523, 659], 0.36, 'triangle', 0.05);
     var skip = function () { if (cine && cine.t > 1) endIntro(); }; cine.skip = skip; el.addEventListener('pointerdown', skip); root.addEventListener('keydown', skip, true);
   }
-  function endIntro() { var c = cine; cine = null; if (!c) return; if (c.music) c.music.stop(); c.el.removeEventListener('pointerdown', c.skip); root.removeEventListener('keydown', c.skip, true); document.body.classList.remove('cine-on');
+  var crewLeft = [];
+  function endIntro() { var c = cine; cine = null; if (c) crewLeft = c.crew.slice(1); if (!c) return; if (c.music) c.music.stop(); c.el.removeEventListener('pointerdown', c.skip); root.removeEventListener('keydown', c.skip, true); document.body.classList.remove('cine-on');
     c.crew.forEach(function (a, i) { if (!i) { API.scene.remove(a); return; } a.position.set(268.5 + i * 1.5, c.gy, 509 + (i % 2)); a.rotation.y = 0.4 - i * 0.3; a.userData.mode = ''; root.TPSWSavi.animate(a, 0.016, 0); }); G.friends = 1; G.intro = 1; save(); API.setUI(false); spawn(); banner('🎟 第一个任务', '去售票亭买一张门票'); }
   function cineTick(dt) {
     var c = cine, t = (c.t += dt), P = API.player, gz = 546 - Math.max(0, t - 4.5) * 3.0, sm = function (k) { k = Math.max(0, Math.min(1, k)); return k * k * (3 - 2 * k); }, cam, look;
@@ -115,5 +116,5 @@
     root.addEventListener('keydown', function (e) { if (cine || /INPUT|TEXTAREA/.test((e.target && e.target.tagName) || '')) return; if (e.code === 'Tab') { e.preventDefault(); if (hud.panel) closePanel(); else if (!API.state.activeRide) board(); } else if (e.key === 'Escape' && hud.panel) closePanel(); });
     requestAnimationFrame(tick); }
   if (root.TPParkAPI) attach(root.TPParkAPI); else root.addEventListener('tp:park-ready', function (e) { attach(e.detail || root.TPParkAPI); });
-  root.TPGame = { state: function () { return G; }, board: board, settings: settings, intro: intro, complete: function (id) { var q = Q.filter(function (x) { return x.id === id; })[0]; if (q) complete(q); }, cine: function () { return cine; } };
+  root.TPGame = { save: save, banner: banner, quests: Q, render: function () { if (hud) render(); }, panel: function (t, h) { return panel(t, h); }, closePanel: function () { closePanel(); }, open: open, track: function (id) { G.track = id; save(); render(); }, crew: function () { return crewLeft; }, state: function () { return G; }, board: board, settings: settings, intro: intro, complete: function (id) { var q = Q.filter(function (x) { return x.id === id; })[0]; if (q) complete(q); }, cine: function () { return cine; } };
 })(window);

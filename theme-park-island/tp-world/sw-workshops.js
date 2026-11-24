@@ -5,7 +5,7 @@
  * Both stand on the Docking Bay 5 plaza; walk up and press E. What you made is kept on this device ('tp.sw'). */
 (function (root) {
   'use strict';
-  var sbBtn = null, busy = false;
+  var sbBtn = null, busy = false, third = false;
   var API = null, T = null, st = { droid: null, saber: null }, droid = null, saber = null, clock = 0, ui = null;
   var DEPOT = { x: 134, z: 102 }, SAVI = { x: 118, z: 102 };
   var COLS = [['#2563eb', '蓝'], ['#f97316', '橙'], ['#dc2626', '红'], ['#16a34a', '绿'], ['#7c3aed', '紫'], ['#f8fafc', '白']];
@@ -272,12 +272,12 @@
         if (Math.random() < dt * 0.12 && d < 12) beep(true);
       }
       try { hallTick(dt); } catch (e) {}
-      if (saber) { var u = saber.userData; u.k += ((u.on ? 1 : 0) - u.k) * Math.min(1, dt * 9); u.blade.scale.y = Math.max(0.001, u.k); u.blade.visible = u.k > 0.02; saber.visible = !API.state.activeRide && API.state.mode !== 'tour' && !busy; saber.rotation.z = -0.35 + Math.sin(clock * 1.3) * 0.04 - swing * 0.05; }
+      if (saber) { var u = saber.userData; u.k += ((u.on ? 1 : 0) - u.k) * Math.min(1, dt * 9); u.blade.scale.y = Math.max(0.001, u.k); u.blade.visible = u.k > 0.02; saber.visible = !API.state.activeRide && API.state.mode !== 'tour' && !busy && !third; saber.rotation.z = -0.35 + Math.sin(clock * 1.3) * 0.04 - swing * 0.05; }
       try { saberSound(dt); } catch (e) {}
       if (!sbBtn) { sbBtn = document.createElement('button'); sbBtn.type = 'button'; sbBtn.id = 'sw-saber-btn'; sbBtn.textContent = '⚔️'; sbBtn.title = '收起 / 点亮光剑 (L)'; sbBtn.onclick = function (e) { e.stopPropagation(); saberToggle(); }; document.body.appendChild(sbBtn); }
       sbBtn.style.display = saber && saber.visible && !ui ? 'block' : 'none';
     })(last);
   }
   if (root.TPParkAPI) attach(root.TPParkAPI); else root.addEventListener('tp:park-ready', function (e) { attach(e.detail || root.TPParkAPI); });
-  root.TPStarWarsWorkshops = { actx: actx, fx: saberFx, hum: saberHum, swing: function (v) { if (!sab) return; var c = beep.c, t = c.currentTime, k = 1 + Math.min(0.42, v * 0.07); sab.os.forEach(function (o) { o.o.frequency.setTargetAtTime(o.f * k, t, 0.04); }); sab.lp.frequency.setTargetAtTime(850 + v * 420, t, 0.05); sab.out.gain.setTargetAtTime(sab.level * (1 + Math.min(1.3, v * 0.28)), t, 0.05); }, beep: beep, busy: function (v) { busy = !!v; }, set: function (kind, spec) { st[kind] = spec; save(); if (API) apply(); }, reapply: function () { if (API) apply(); }, saberToggle: saberToggle, level: level, buildDroid: buildDroid, buildSaber: buildSaber, open: open, state: function () { return st; } };
+  root.TPStarWarsWorkshops = { third: function (v) { third = !!v; }, actx: actx, fx: saberFx, hum: saberHum, swing: function (v) { if (!sab) return; var c = beep.c, t = c.currentTime, k = 1 + Math.min(0.42, v * 0.07); sab.os.forEach(function (o) { o.o.frequency.setTargetAtTime(o.f * k, t, 0.04); }); sab.lp.frequency.setTargetAtTime(850 + v * 420, t, 0.05); sab.out.gain.setTargetAtTime(sab.level * (1 + Math.min(1.3, v * 0.28)), t, 0.05); }, beep: beep, busy: function (v) { busy = !!v; }, set: function (kind, spec) { st[kind] = spec; save(); if (API) apply(); }, reapply: function () { if (API) apply(); }, saberToggle: saberToggle, level: level, buildDroid: buildDroid, buildSaber: buildSaber, open: open, state: function () { return st; } };
 })(window);
