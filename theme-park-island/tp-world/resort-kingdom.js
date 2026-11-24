@@ -253,7 +253,7 @@
     const rg = new T.Group(); rg.name = 'wdw-resort'; (group || scene).add(rg);
     const K = root.TPKit.create(rg, world), Y = world.PARK_Y;
     const feet = [], updaters = [], rides = {}, interactables = [];
-    const ctx = { K, R, Y, WY: world.WATER_Y, world, updaters, rides, interactables, foot: (x, z, r) => feet.push([x, z, r * r]) };
+    const ctx = { K, R, Y, rg, WY: world.WATER_Y, world, updaters, rides, interactables, foot: (x, z, r) => feet.push([x, z, r * r]) };
     (root.TPResortParts || []).forEach((part) => part(ctx));
 
     const avoid = (x, z) => {

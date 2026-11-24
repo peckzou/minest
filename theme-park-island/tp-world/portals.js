@@ -165,6 +165,7 @@
       const quickRides = [
         ['paris_space_mountain', '🚀 巴黎太空山 · 巨炮弹射', 'cyan'],
         ['paris_big_thunder', '⛏️ 巴黎巨雷山 · 河心岛矿车', 'gold'],
+        ['cosmic_rewind', '🌌 银河护卫队：宇宙倒带', 'gold'],
         ['paris_indiana', '🗿 危险神殿 360° 回环', 'gold'],
         ['paris_railroad', '🚂 巴黎迪士尼铁路', 'cyan'],
         ['railroad_tour', '🚂 蒸汽火车 4 站环游', 'gold'],

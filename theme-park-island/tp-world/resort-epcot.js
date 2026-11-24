@@ -6,7 +6,7 @@
   'use strict';
 
   (root.TPResortParts = root.TPResortParts || []).push(function (ctx) {
-    const { K, R, Y, WY, foot, updaters, rides, interactables } = ctx;
+    const { K, R, Y, WY, foot, updaters, rides, interactables, rg } = ctx;
     const { S, G, W, T, bldg, sign, tree, lamp } = K;
     const PI = Math.PI, E = R.epcot, EX = E.x, L = E.lagoon;
     const WHITE = 0xf4f6f8, SILVER = 0xcfd8e3, STEEL = 0x8fa0b4, DARK = 0x27303c, GOLD = 0xe7b83a;
@@ -121,6 +121,16 @@
     sb.grp.rotation.set(-0.3, -PI / 2 + 0.4, 0); sb.done();
     S.cyl(STEEL, 0.4, 0.8, 6, GX - 14, Y, GZ, 6);
     sign('COSMIC REWIND', 9, 1.3, GX - 9.2, Y + 8, GZ - 8, -PI / 2, '#0b1220', '#fbbf24', 'GUARDIANS OF THE GALAXY · 银河护卫队');
+    // Phase-chamber entrance portal; the story coaster itself is staged by cosmic-rewind.js (TPCosmicRewind).
+    S.box(0x0b1220, 0.5, 5.4, 5.6, GX - 9.3, Y, GZ + 5); G.box(0x22d3ee, 0.3, 5.6, 0.3, GX - 9.5, Y, GZ + 2.1); G.box(0x22d3ee, 0.3, 5.6, 0.3, GX - 9.5, Y, GZ + 7.9);
+    G.box(0xfbbf24, 0.3, 0.3, 6.1, GX - 9.5, Y + 5.5, GZ + 5);
+    sign('入口 · 相位舱', 4.6, 0.9, GX - 9.7, Y + 6.6, GZ + 5, -PI / 2, '#0b1220', '#67e8f9', '故事过山车 · STORY COASTER');
+    for (let i = 0; i < 4; i++) { S.cyl(GOLD, 0.08, 0.1, 1, GX - 11 - i * 1.4, Y, GZ + 2.4, 6); S.cyl(GOLD, 0.08, 0.1, 1, GX - 11 - i * 1.4, Y, GZ + 7.6, 6); }
+    if (root.TPCosmicRewind && rg) {
+      const cr = root.TPCosmicRewind.build(T, rg, { x: GX, z: GZ, board: { x: GX - 11.5, y: Y, z: GZ + 5 }, exit: { x: GX - 15, y: Y, z: GZ + 10, yaw: PI / 2 } });
+      rides.cosmic_rewind = cr.ride;
+      updaters.push((dt, t, ev) => cr.update(dt, ev));
+    }
     foot(GX, GZ, 17);
 
     // Mission: SPACE — swept red façade with the planets.
