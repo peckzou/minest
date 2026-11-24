@@ -23,14 +23,14 @@
     ladders: [],   /* 原图树屋的两架木梯：抹掉，换成一条绳梯 */
     rope: [332, 808, 1152],                     /* 绳梯：挂在平台右端前沿（x, 平台底 y），下面地面 y */
     walkOut: [[262, 1096], [330, 1060], [430, 1048], [600, 1035], [790, 1032], [880, 1060], [835, 1130], [870, 1200], [930, 1270], [985, 1340], [1045, 1420], [760, 1428], [520, 1390], [330, 1320], [255, 1210]],   /* 右边沿着小路栏杆的内侧（不站到栏杆外面） */   /* 屋外能走的范围：门前、左边草坪和石板路 */
-    walkBank: [[1885, 1115], [2120, 1150], [2420, 1215], [2576, 1290], [2576, 1432], [1605, 1432], [1636, 1400], [1692, 1350], [1738, 1290], [1808, 1230], [1868, 1170]],   /* 小溪对岸：整片草坡，左边一直到水边 */
+    walkBank: [[1840, 1115], [2120, 1150], [2420, 1215], [2576, 1290], [2576, 1432], [1470, 1432], [1478, 1400], [1508, 1350], [1592, 1290], [1688, 1230], [1782, 1170]],   /* 小溪对岸：整片草坡，左边一直到水边 */
     walkHill: [[0, 935], [58, 950], [90, 975], [92, 1085], [150, 1128], [300, 1128], [300, 1165], [120, 1165], [0, 1150]],   /* 大树左边的山坡（从树根前面绕过去，一路爬到坡顶） */
     walkYard: [[870, 1200], [1000, 1192], [1138, 1192], [1200, 1178], [1330, 1152], [1420, 1140], [1420, 1172], [1330, 1198], [1215, 1222], [1140, 1250], [1010, 1262], [930, 1270]],   /* 石阶脚下的小路和前院花园那条草带 */
     stairs: [[1000, 1192], [1138, 1192], [1100, 1126], [1040, 1066], [948, 1066], [985, 1104], [1000, 1140]],   /* 前院的石阶（底图里画着的） */
     walkPorch: [[856, 1050], [948, 1068], [1040, 1068], [1010, 1032], [880, 1030]],   /* 石阶顶上到房门前 */
     bench: [1300, 1160], hilltop: [40, 956],   /* 前院花园（原来放长椅的地方，长椅已去掉）、山坡顶上坐下看山谷的地方 */
-    hops: [[1010, 1405], [1215, 1428], [1365, 1338], [1555, 1318], [1745, 1315]],   /* 从小路尽头跳过栏杆，经溪里的石头到对岸 */   /* 踩着溪里的石头过溪（两头在两边草地上） */
-    waterSpots: [[1800, 1245, 1700, 1255], [1676, 1398, 1560, 1408]],
+    hops: [[1010, 1405], [1215, 1428], [1322, 1350], [1428, 1318], [1600, 1315]],   /* 从小路尽头跳过栏杆，经溪里的石头到对岸 */   /* 踩着溪里的石头过溪（两头在两边草地上） */
+    waterSpots: [[1672, 1245, 1560, 1255], [1500, 1398, 1385, 1408]],
     yardBeds: [[1172, 1136], [1262, 1092], [1340, 1106]],   /* 前院花园里的三小丛花（底图坐标，都在花园的灌木花坛里，不在路边 / 草带上） */
     gardens: [[430, 1272, 352, 1262], [1004, 1052, 1078, 1040], [1180, 1206, 1186, 1150], [1905, 1345, 1885, 1402]],   /* 能打理的花草：小人站的地方 → 花丛 */
     stool: [2060, 1325, 2108, 1296],   /* 石桌边：走到的地方 → 坐的那只石凳 */   /* 玩水：小人站的地方 → 水面的点 */
@@ -39,12 +39,12 @@
     /* 动画区域（底图像素） */
     fall: [[1973, 52], [1999, 52], [1986, 320], [1967, 540], [1948, 705], [1890, 705], [1922, 540], [1946, 320]],
     fallMist: [1918, 700, 95],
-    river: [[1665, 1022], [1855, 1022], [1862, 1110], [1832, 1170], [1768, 1230], [1698, 1290], [1628, 1350], [1560, 1400], [1505, 1438],
+    river: [[1665, 1022], [1815, 1022], [1775, 1110], [1725, 1170], [1630, 1230], [1535, 1290], [1450, 1350], [1420, 1400], [1408, 1438],
       [1198, 1438], [1218, 1368], [1280, 1318], [1380, 1268], [1488, 1218], [1578, 1168], [1628, 1108]],
     bridge: [1760, 1018],
     /* 小溪收窄：右岸往里推，原来的水面铺成向下的缓草坡（这一圈点 = 新岸线 + 原来右岸外的草地） */
-    bank: [[1855, 1030], [1862, 1110], [1832, 1170], [1768, 1230], [1698, 1290], [1628, 1350], [1560, 1400], [1505, 1438], [1760, 1438], [1800, 1330], [1860, 1230], [1885, 1120], [1880, 1030]],
-    rocks: [[1585, 1175, 15], [1468, 1248, 21], [1555, 1318, 18], [1365, 1338, 27], [1440, 1410, 31]],   /* 溪里的石头：中心 x, y, 半径（像素） */
+    bank: [[1815, 1030], [1775, 1110], [1725, 1170], [1630, 1230], [1535, 1290], [1450, 1350], [1420, 1400], [1408, 1438], [1760, 1438], [1800, 1330], [1860, 1230], [1885, 1120], [1880, 1030]],
+    rocks: [[1612, 1168, 13], [1500, 1246, 18], [1428, 1318, 17], [1322, 1350, 24], [1305, 1418, 27]],   /* 溪里的石头：中心 x, y, 半径（像素） */
     walk: [[760, 1330], [985, 1222]],   /* 小旅人来回走的石板路两端（近景） */
     table: [[1985, 1405], [2095, 1392]], /* 远景里小旅人的位置：石桌左前方的草地 */
     heroScale: 0.72,                     /* 小旅人整体缩小 */
@@ -192,7 +192,7 @@
     bg2.save(); bpath(bg2); bg2.clip();
     for (var by = 1000, brow = 0; by < H; brow++) {
       var bsc = 0.4 + 0.6 * Math.max(0, by - 1000) / 438, bw = 300 * bsc, bh = 70 * bsc;
-      for (var bx = 1480 - (brow % 2) * bw * 0.5, bcol = 0; bx < 1900; bx += bw, bcol++) {
+      for (var bx = 1340 - (brow % 2) * bw * 0.5, bcol = 0; bx < 1900; bx += bw, bcol++) {
         bg2.save(); if ((brow + bcol) % 2) { bg2.translate(bx + bw, by); bg2.scale(-1, 1); bg2.drawImage(img, 2150, 1365, 300, 70, 0, 0, bw, bh); } else bg2.drawImage(img, 2150, 1365, 300, 70, bx, by, bw, bh);
         bg2.restore();
       }
@@ -218,9 +218,21 @@
     g.save(); g.beginPath();
     [bankPoly, PL.fence].forEach(function (poly) { poly.forEach(function (q, i2) { if (i2) g.lineTo(q[0], q[1]); else g.moveTo(q[0], q[1]); }); g.closePath(); });
     g.clip();
+    /* 新铺的草坡：几块向阳的亮斑和背阴的暗斑，再长出一簇簇深浅不一的草，不是一整片平的 */
+    [[1610, 1150, 150, 1], [1570, 1300, 190, 1], [1705, 1405, 170, 0], [1500, 1420, 120, 1], [1765, 1240, 130, 0], [1730, 1085, 90, 1]].forEach(function (b) {
+      var rg = g.createRadialGradient(b[0], b[1], 0, b[0], b[1], b[2]);
+      rg.addColorStop(0, b[3] ? 'rgba(214,236,120,0.26)' : 'rgba(28,70,22,0.22)'); rg.addColorStop(1, 'rgba(0,0,0,0)');
+      g.save(); g.translate(0, b[1]); g.scale(1, 0.45); g.translate(0, -b[1]); g.fillStyle = rg; g.beginPath(); g.arc(b[0], b[1], b[2], 0, 6.283); g.fill(); g.restore();
+    });
+    g.lineCap = 'round';
+    for (var gi = 0; gi < 150; gi++) {
+      var gy2 = 1050 + Math.pow(rnd(), 0.75) * 388, gx2 = 1420 + rnd() * 460, gs = 0.8 + 2.2 * (gy2 - 1050) / 388;
+      g.strokeStyle = rnd() < 0.5 ? 'rgba(46,96,26,0.55)' : 'rgba(150,196,70,0.6)'; g.lineWidth = 0.9 * gs;
+      for (var gb = 0; gb < 5; gb++) { var lean = (gb - 2) * 1.8 * gs + (rnd() - 0.5) * 2 * gs; g.beginPath(); g.moveTo(gx2 + (gb - 2) * 1.2 * gs, gy2); g.quadraticCurveTo(gx2 + lean * 0.5, gy2 - 5 * gs, gx2 + lean, gy2 - (6 + rnd() * 5) * gs); g.stroke(); }
+    }
     var FL = ['#fbfaf2', '#f6d84a', '#f2a6c2', '#b78ad8', '#fbfaf2', '#f6d84a'];
-    for (var fi = 0; fi < 60; fi++) {
-      var fy = 1060 + Math.pow(rnd(), 0.8) * 378, fx = 1560 + rnd() * 480, fs = 1.1 + 2.6 * (fy - 1060) / 378, fc2 = FL[Math.floor(rnd() * FL.length)], fn = 1 + Math.floor(rnd() * 3);
+    for (var fi = 0; fi < 90; fi++) {
+      var fy = 1060 + Math.pow(rnd(), 0.8) * 378, fx = 1430 + rnd() * 610, fs = 1.1 + 2.6 * (fy - 1060) / 378, fc2 = FL[Math.floor(rnd() * FL.length)], fn = 1 + Math.floor(rnd() * 3);
       for (var fk = 0; fk < fn; fk++) {
         var ax = fx + (rnd() - 0.5) * 14 * fs, ay = fy + (rnd() - 0.5) * 6 * fs;
         g.strokeStyle = 'rgba(70,110,30,0.8)'; g.lineWidth = 0.8 * fs; g.beginPath(); g.moveTo(ax, ay); g.lineTo(ax + (rnd() - 0.5) * 2, ay + 5 * fs); g.stroke();
@@ -229,6 +241,13 @@
       }
     }
     g.restore();
+    /* 水边的卵石：沿新岸线零零星星几颗，一半在草里一半在水里 */
+    for (var pi = 3; pi < edge.length - 1; pi += 5 + Math.floor(rnd() * 6)) {
+      var pe = edge[pi], ps = 0.55 + 0.9 * (pe[1] - 1030) / 408, pr = (4 + rnd() * 5) * ps, pbx = pe[0] - 3 + rnd() * 8 * ps, pby = pe[1] + 1;
+      g.fillStyle = 'rgba(20,40,30,0.35)'; g.beginPath(); g.ellipse(pbx + pr * 0.2, pby + pr * 0.45, pr * 1.1, pr * 0.4, 0, 0, 6.283); g.fill();
+      g.fillStyle = ['#9a9a90', '#b4b0a2', '#84887f'][pi % 3]; g.beginPath(); g.ellipse(pbx, pby, pr, pr * 0.68, 0, 0, 6.283); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.35)'; g.beginPath(); g.ellipse(pbx - pr * 0.25, pby - pr * 0.25, pr * 0.45, pr * 0.25, 0, 0, 6.283); g.fill();
+    }
     /* 溪里的石头：先画水撞上来的白浪（在石头后面），再画露出水面的圆顶石头，最后是前面一圈白沫 */
     PL.rocks.forEach(function (r, ri) {
       var x = r[0], y = r[1], R = r[2];
@@ -684,7 +703,7 @@
     document.head.appendChild(css);
     var doorEl = ui.querySelector('.ce-door'), skipEl = ui.querySelector('.ce-skip'), goEl = ui.querySelector('.ce-go'), exEl = ui.querySelector('.ce-explore'), outEl = ui.querySelector('.ce-out'), stickEl = ui.querySelector('.ce-stick'), viewEl = ui.querySelector('.ce-view'), actsEl = ui.querySelector('.ce-acts'), sitEl = ui.querySelector('.ce-sit'), readEl = ui.querySelector('.ce-read'), waveEl = ui.querySelector('.ce-wave'), door2El = ui.querySelector('.ce-door2'), menuEl = ui.querySelector('.ce-menu'), featsEl = ui.querySelector('.ce-feats'), barEl = ui.querySelector('.ce-bar'), ctxEl = ui.querySelector('.ce-ctx'), knobEl = ui.querySelector('.ce-knob'), helpEl = ui.querySelector('.ce-help');
     var scopeEl = ui.querySelector('.ce-scope'), scopeTag = ui.querySelector('.ce-scope-tag'), mapEl = ui.querySelector('.ce-map'), mapImg = mapEl.querySelector('img'), mapPic = mapEl.querySelector('.ce-map-pic');
-    var PINS = [['树屋 · 你在这里', 190, 640, 'here'], ['家', 868, 905, 'door'], ['前院花园', 1262, 1128, 'garden'], ['山坡', 44, 930, 'hill'], ['大树下', 345, 1175, 'tree'], ['小溪', 1640, 1290, 'creek'], ['石桌', 2235, 1235, 'table'], ['教堂', 1636, 705, ''], ['瀑布', 1965, 300, ''], ['雪山', 1150, 400, ''], ['村庄', 1905, 835, '']];
+    var PINS = [['树屋 · 你在这里', 190, 640, 'here'], ['家', 868, 905, 'door'], ['前院花园', 1262, 1128, 'garden'], ['山坡', 44, 930, 'hill'], ['大树下', 345, 1175, 'tree'], ['小溪', 1440, 1290, 'creek'], ['石桌', 2235, 1235, 'table'], ['教堂', 1636, 705, ''], ['瀑布', 1965, 300, ''], ['雪山', 1150, 400, ''], ['村庄', 1905, 835, '']];
     PINS.forEach(function (q) {
       var go = q[3] && q[3] !== 'here', el = document.createElement(go ? 'button' : 'span'); if (go) { el.type = 'button'; el.setAttribute('data-go', q[3]); }
       el.className = 'ce-pin' + (q[3] === 'here' ? ' here' : ''); el.textContent = q[0] + (go ? ' ➜' : ''); el.style.left = (q[1] / PL.W * 100) + '%'; el.style.top = (q[2] / PL.H * 100) + '%'; mapPic.appendChild(el);
