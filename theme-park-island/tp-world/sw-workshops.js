@@ -5,6 +5,7 @@
  * Both stand on the Docking Bay 5 plaza; walk up and press E. What you made is kept on this device ('tp.sw'). */
 (function (root) {
   'use strict';
+  var sbBtn = null;
   var API = null, T = null, st = { droid: null, saber: null }, droid = null, saber = null, clock = 0, ui = null;
   var DEPOT = { x: 134, z: 102 }, SAVI = { x: 118, z: 102 };
   var COLS = [['#2563eb', '蓝'], ['#f97316', '橙'], ['#dc2626', '红'], ['#16a34a', '绿'], ['#7c3aed', '紫'], ['#f8fafc', '白']];
@@ -45,6 +46,50 @@
     return g;
   }
   function beep(hi) { try { var C = root.AudioContext || root.webkitAudioContext; if (!C) return; var c = beep.c || (beep.c = new C()), o = c.createOscillator(), gn = c.createGain(), t = c.currentTime; o.type = hi ? 'square' : 'sawtooth'; o.frequency.setValueAtTime(hi ? 900 + Math.random() * 900 : 90, t); if (hi) o.frequency.exponentialRampToValueAtTime(500 + Math.random() * 1400, t + 0.12); gn.gain.setValueAtTime(0.05, t); gn.gain.exponentialRampToValueAtTime(0.001, t + (hi ? 0.16 : 0.5)); o.connect(gn); gn.connect(c.destination); o.start(t); o.stop(t + (hi ? 0.18 : 0.55)); } catch (e) {} }
+  /* ---------------------------------------------------------------- the lightsaber's voice
+   * The hum: two saws a hair apart (they beat against each other), an octave above and a sub below, through a low-pass,
+   * with a slow tremble; swinging the blade (turning) bends the pitch up and opens the filter — the Doppler swoosh.
+   * Ignition: a crack, then noise swept up through a band-pass while the tone climbs to the hum. Retraction: the reverse. */
+  var sab = null, humOn = false, swing = 0, lastYaw = null;
+  function actx() { try { var C = root.AudioContext || root.webkitAudioContext; if (!C) return null; var c = beep.c || (beep.c = new C()); if (c.state === 'suspended') c.resume(); return c; } catch (e) { return null; } }
+  function saberHum(on) {
+    var c = actx(); if (!c) return; var t = c.currentTime;
+    if (on && !sab) {
+      var out = c.createGain(); out.gain.value = 0; var an = c.createAnalyser(); an.fftSize = 2048; out.connect(an); an.connect(c.destination);
+      var lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 850; lp.Q.value = 0.8; lp.connect(out);
+      var os = [[92, 'sawtooth', 0.5], [92.8, 'sawtooth', 0.5], [185, 'square', 0.1], [46, 'sine', 0.7]].map(function (q) { var o = c.createOscillator(), g = c.createGain(); o.type = q[1]; o.frequency.value = q[0]; g.gain.value = q[2]; o.connect(g); g.connect(lp); o.start(); return { o: o, f: q[0] }; });
+      var lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = 7.3; lg.gain.value = 0.012; lfo.connect(lg); lg.connect(out.gain); lfo.start();
+      sab = { out: out, os: os, lp: lp, an: an, level: 0.06 };
+    }
+    if (!sab) return; sab.out.gain.cancelScheduledValues(t); sab.out.gain.setTargetAtTime(on ? sab.level : 0, t, on ? 0.14 : 0.07);
+  }
+  function saberFx(on) {
+    var c = actx(); if (!c) return; var t = c.currentTime, d = on ? 0.42 : 0.5;
+    try {
+      var buf = saberFx.buf; if (!buf) { buf = saberFx.buf = c.createBuffer(1, c.sampleRate * 0.6, c.sampleRate); var ch = buf.getChannelData(0); for (var i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1; }
+      var src = c.createBufferSource(); src.buffer = buf; var bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.4; var g = c.createGain();
+      bp.frequency.setValueAtTime(on ? 260 : 2800, t); bp.frequency.exponentialRampToValueAtTime(on ? 3400 : 180, t + d);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.28, t + 0.04); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      src.connect(bp); bp.connect(g); g.connect(c.destination); src.start(t); src.stop(t + d + 0.05);
+      var o = c.createOscillator(), og = c.createGain(), olp = c.createBiquadFilter(); olp.type = 'lowpass'; olp.frequency.value = 1200; o.type = 'sawtooth';
+      o.frequency.setValueAtTime(on ? 38 : 92, t); o.frequency.exponentialRampToValueAtTime(on ? 92 : 30, t + d);
+      og.gain.setValueAtTime(0.0001, t); og.gain.exponentialRampToValueAtTime(0.2, t + 0.05); og.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.1);
+      o.connect(olp); olp.connect(og); og.connect(c.destination); o.start(t); o.stop(t + d + 0.15);
+      if (on) { var k = c.createOscillator(), kg = c.createGain(); k.type = 'square'; k.frequency.setValueAtTime(2400, t); k.frequency.exponentialRampToValueAtTime(300, t + 0.06); kg.gain.setValueAtTime(0.12, t); kg.gain.exponentialRampToValueAtTime(0.0001, t + 0.07); k.connect(kg); kg.connect(c.destination); k.start(t); k.stop(t + 0.08); }
+    } catch (e) {}
+  }
+  function saberToggle() { if (!saber) return; saber.userData.on = saber.userData.on ? 0 : 1; saberFx(!!saber.userData.on); }
+  function saberSound(dt) {   /* each frame: the hum is on while the blade is, and it swooshes as the guest turns */
+    var want = !!(saber && saber.userData.on && saber.visible);
+    if (want !== humOn) { humOn = want; saberHum(want); }
+    if (!sab || !humOn) { lastYaw = null; return; }
+    var yaw = API.player.yaw, rate = lastYaw == null ? 0 : Math.abs(Math.atan2(Math.sin(yaw - lastYaw), Math.cos(yaw - lastYaw))) / Math.max(dt, 0.001); lastYaw = yaw;
+    swing += (Math.min(6, rate) - swing) * Math.min(1, dt * 9);
+    var c = beep.c, t = c.currentTime, k = 1 + Math.min(0.42, swing * 0.07);
+    sab.os.forEach(function (o) { o.o.frequency.setTargetAtTime(o.f * k, t, 0.04); }); sab.lp.frequency.setTargetAtTime(850 + swing * 420, t, 0.05); sab.out.gain.setTargetAtTime(sab.level * (1 + Math.min(1.3, swing * 0.28)), t, 0.05);
+  }
+  function level() { if (!sab) return 0; var a = new Float32Array(sab.an.fftSize); sab.an.getFloatTimeDomainData(a); var s2 = 0; for (var i = 0; i < a.length; i++) s2 += a[i] * a[i]; return Math.sqrt(s2 / a.length); }
+
   function apply() {
     if (droid) { API.scene.remove(droid); droid = null; } if (saber) { API.camera.remove(saber); saber = null; }
     if (st.droid) { droid = buildDroid(st.droid); droid.position.set(DEPOT.x, API.groundY(DEPOT.x, DEPOT.z, 62), DEPOT.z + 2); API.scene.add(droid); }
@@ -66,14 +111,16 @@
         '<div><button type="button" class="go" data-go>' + (kind === 'droid' ? '🔧 组装' : '✨ 点亮') + '</button><button type="button" class="x" data-x>✕</button></div></div>';
       [].forEach.call(ui.querySelectorAll('[data-k]'), function (b) { b.onclick = function () { d[b.dataset.k] = b.dataset.v; render(); }; });
       ui.querySelector('[data-x]').onclick = close;
-      ui.querySelector('[data-go]').onclick = function () { st[kind] = d; save(); apply(); close(); beep(kind === 'droid'); API.toast(kind === 'droid' ? '🤖 你的机器人造好了！它会跟着你走' : '⚔️ 光剑点亮了！按 L 收起或点亮'); };
+      ui.querySelector('[data-go]').onclick = function () { st[kind] = d; save(); apply(); close(); if (kind === 'droid') beep(true); else saberFx(true); API.toast(kind === 'droid' ? '🤖 你的机器人造好了！它会跟着你走' : '⚔️ 光剑点亮了！按 L 收起或点亮'); };
     }
     render();
   }
   var css = document.createElement('style');
   css.textContent = '#sw-ui{position:fixed;inset:0;z-index:220;display:flex;align-items:center;justify-content:center;background:rgba(2,6,23,.55)}#sw-ui .box{background:rgba(15,23,42,.96);border:1.5px solid #38bdf8;border-radius:18px;padding:16px 18px;display:flex;flex-direction:column;gap:12px;align-items:center;color:#e0f2fe;font:700 15px -apple-system,"PingFang SC",sans-serif}' +
     '#sw-ui button{cursor:pointer;border:2px solid rgba(255,255,255,.25);border-radius:50%;width:48px;height:48px;font-size:22px;margin:0 4px;background:rgba(255,255,255,.08);color:#fff}#sw-ui button.on{border-color:#fde047;transform:scale(1.15)}#sw-ui .go{width:auto;border-radius:999px;padding:0 22px;background:linear-gradient(135deg,#38bdf8,#6366f1);font-weight:800;font-size:15px}';
+  css.textContent += '#sw-saber-btn{display:none;position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 150px);z-index:60;width:54px;height:54px;border-radius:50%;border:2px solid #7dd3fc;background:rgba(15,23,42,.85);font-size:24px;cursor:pointer;box-shadow:0 0 18px rgba(125,211,252,.5)}';
   document.head.appendChild(css);
+  ['pointerdown', 'keydown', 'touchstart'].forEach(function (ev) { root.addEventListener(ev, function () { try { if (beep.c && beep.c.state === 'suspended') beep.c.resume(); } catch (e) {} }, true); });
 
   function bench(at, col, icon, name) {
     var y = API.groundY(at.x, at.z, 62), g = new T.Group(); g.position.set(at.x, y, at.z);
@@ -209,9 +256,9 @@
   function attach(api) {
     if (API || !api) return; API = api; T = api.THREE;
     try {
-      apply(); buildHall();
+      apply();
     } catch (e) { if (root.console) console.warn('[sw workshops]', e); }
-    root.addEventListener('keydown', function (e) { if (e.code === 'KeyL' && saber && !ui) { saber.userData.on = saber.userData.on ? 0 : 1; beep(false); } if (e.key === 'Escape' && ui) close(); });
+    root.addEventListener('keydown', function (e) { if (e.code === 'KeyL' && saber && !ui) saberToggle(); if (e.key === 'Escape' && ui) close(); });
     var last = performance.now();
     (function tick(now) {
       requestAnimationFrame(tick); var dt = Math.min(0.05, (now - last) / 1000); last = now; clock += dt;
@@ -223,9 +270,12 @@
         if (Math.random() < dt * 0.12 && d < 12) beep(true);
       }
       try { hallTick(dt); } catch (e) {}
-      if (saber) { var u = saber.userData; u.k += ((u.on ? 1 : 0) - u.k) * Math.min(1, dt * 9); u.blade.scale.y = Math.max(0.001, u.k); u.blade.visible = u.k > 0.02; saber.visible = !API.state.activeRide && API.state.mode !== 'tour'; saber.rotation.z = -0.35 + Math.sin(clock * 1.3) * 0.04; }
+      if (saber) { var u = saber.userData; u.k += ((u.on ? 1 : 0) - u.k) * Math.min(1, dt * 9); u.blade.scale.y = Math.max(0.001, u.k); u.blade.visible = u.k > 0.02; saber.visible = !API.state.activeRide && API.state.mode !== 'tour'; saber.rotation.z = -0.35 + Math.sin(clock * 1.3) * 0.04 - swing * 0.05; }
+      try { saberSound(dt); } catch (e) {}
+      if (!sbBtn) { sbBtn = document.createElement('button'); sbBtn.type = 'button'; sbBtn.id = 'sw-saber-btn'; sbBtn.textContent = '⚔️'; sbBtn.title = '收起 / 点亮光剑 (L)'; sbBtn.onclick = function (e) { e.stopPropagation(); saberToggle(); }; document.body.appendChild(sbBtn); }
+      sbBtn.style.display = saber && saber.visible && !ui ? 'block' : 'none';
     })(last);
   }
   if (root.TPParkAPI) attach(root.TPParkAPI); else root.addEventListener('tp:park-ready', function (e) { attach(e.detail || root.TPParkAPI); });
-  root.TPStarWarsWorkshops = { open: open, state: function () { return st; } };
+  root.TPStarWarsWorkshops = { saberToggle: saberToggle, level: level, buildDroid: buildDroid, buildSaber: buildSaber, open: open, state: function () { return st; } };
 })(window);
