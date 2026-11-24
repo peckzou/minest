@@ -110668,28 +110668,51 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     ['lmap', 'Learning Map', '#ff6b8a', G('<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>'), function () { return window.MinestLearnMap; }],
     ['wiki', 'Portal', '#38bdf8', G('<rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/>'), function () { return window.MinestWiki; }]
   ];
+  // 2026-11-24: Knowledge is a full-screen page — its views on the left, Living Knowledge (living-knowledge/index.html?embed=1) living inside it
   var CSS = [
-    '.kh{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);transform:translateX(-50%);z-index:2147482500;width:min(440px,calc(100vw - 20px));max-height:calc(100dvh - 40px);overflow:auto;padding:16px;border-radius:28px;color:#fff;font:15px -apple-system,BlinkMacSystemFont,system-ui,sans-serif;' +
-      'background:linear-gradient(180deg,rgba(66,76,92,.94),rgba(28,34,46,.97));-webkit-backdrop-filter:blur(30px) saturate(170%);backdrop-filter:blur(30px) saturate(170%);border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 30px 80px rgba(0,0,0,.5)}',
-    '.kh h3{margin:2px 4px 12px;font-size:22px;font-weight:750;letter-spacing:-.3px}',
+    '.kh{position:fixed;inset:0;z-index:2147482500;display:flex;flex-direction:column;color:var(--kh-ink);background:var(--kh-bg);font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",system-ui,sans-serif;--kh-bg:#14121f;--kh-ink:#ece9fb;--kh-mute:#a29dc0;--kh-line:#34304a;--kh-panel:#1e1b2e;--kh-accent:#9b85ff;--kh-on:#14121f}',
+    'html.kn-light .kh{--kh-bg:#f4f2fb;--kh-ink:#1d1838;--kh-mute:#6d6889;--kh-line:#e3dff2;--kh-panel:#fff;--kh-accent:#6b4ce6;--kh-on:#fff}',
+    '.kh *{box-sizing:border-box}',
+    '.kh-top{display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;border-bottom:1px solid var(--kh-line)}',
+    '.kh-x{flex:none;width:40px;height:40px;border-radius:50%;border:1px solid var(--kh-line);background:var(--kh-panel);color:inherit;display:grid;place-items:center;cursor:pointer;padding:0}',
+    '.kh-x svg{width:20px;height:20px}',
+    '.kh h3{margin:0;font-size:20px;font-weight:750;letter-spacing:-.3px;flex:1;min-width:0}',
+    '.kh-seg{display:none;padding:3px;border-radius:999px;background:var(--kh-panel);border:1px solid var(--kh-line)}',
+    '.kh-seg button{height:34px;padding:0 14px;border:0;border-radius:999px;background:none;color:var(--kh-mute);font:600 14px -apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",system-ui,sans-serif;cursor:pointer}',
+    '.kh-seg button[aria-selected=true]{background:var(--kh-accent);color:var(--kh-on)}',
+    '.kh-body{flex:1;min-height:0;display:flex}',
+    '.kh-side{width:340px;flex:none;overflow:auto;-webkit-overflow-scrolling:touch;padding:16px 14px calc(env(safe-area-inset-bottom,0px) + 20px);border-right:1px solid var(--kh-line)}',
+    '.kh-lk{flex:1;min-width:0;display:flex}',
+    '.kh-lk iframe{flex:1;width:100%;height:100%;border:0;background:var(--kh-bg)}',
+    '@media (max-width:899px){.kh-seg{display:flex}.kh-side{width:auto;flex:1;border-right:0}.kh[data-pane=views] .kh-lk{display:none}.kh[data-pane=lk] .kh-side{display:none}}',
     '.kh-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}',
-    '.kh-m{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:18px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.06);color:#fff;text-align:left;cursor:pointer;font:inherit;min-height:56px;transition:transform .15s}',
-    '.kh-m:active{background:rgba(255,255,255,.13);transform:scale(.97)}',
+    '.kh-m{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:18px;border:1px solid var(--kh-line);background:var(--kh-panel);color:inherit;text-align:left;cursor:pointer;font:inherit;min-height:56px;transition:transform .15s}',
+    '.kh-m:hover{border-color:var(--kh-accent)}',
+    '.kh-m:active{transform:scale(.97)}',
     '.kh-m b{font-size:15px;font-weight:650;letter-spacing:-.1px;min-width:0}',
     '.kh-m i{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;' +
       'background:radial-gradient(120% 80% at 30% 15%,rgba(255,255,255,.55),rgba(255,255,255,0) 50%),linear-gradient(160deg,color-mix(in srgb,var(--c) 85%,#fff),color-mix(in srgb,var(--c) 70%,#000));' +
       'border:1px solid rgba(255,255,255,.45);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 4px 12px color-mix(in srgb,var(--c) 40%,transparent)}',
     '.kh-m i svg{width:18px;height:18px}',
     '.kh-lom{width:100%;margin-top:8px;flex-direction:row}',
-    '.kh-lom small{margin-left:auto;font-size:12px;opacity:.55}',
+    '.kh-lom small{margin-left:auto;font-size:12px;color:var(--kh-mute)}',
     '.kh-m[disabled]{opacity:.45;cursor:default}',
-    '.kh h4{margin:16px 4px 8px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.55}',
+    '.kh h4{margin:20px 4px 8px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--kh-mute);display:flex;align-items:center;gap:8px}',
+    '.kh h4:first-child{margin-top:0}',
+    '.kh h4 a{margin-left:auto;color:var(--kh-accent);text-decoration:none;text-transform:none;letter-spacing:0;font-size:12.5px}',
+    '.kh-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}',
+    '.kh-st{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;border-radius:16px;border:1px solid var(--kh-line);background:var(--kh-panel);color:inherit;cursor:pointer;font:inherit;text-align:left}',
+    '.kh-st:hover{border-color:var(--kh-accent)}',
+    '.kh-st b{font-size:24px;font-weight:750;letter-spacing:-.5px;line-height:1.15;font-variant-numeric:tabular-nums}',
+    '.kh-st span{font-size:13px;color:var(--kh-mute)}',
+    '.kh-st.hot b{color:var(--kh-accent)}',
+    '.kh-note{margin:8px 4px 0;font-size:13px;line-height:1.5;color:var(--kh-mute)}',
     '.kh-row{display:flex;gap:8px;flex-wrap:wrap}',
-    '.kh-row button{height:40px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);color:#fff;font:600 14px -apple-system,system-ui,sans-serif;cursor:pointer}',
-    '.kh-row button.pri{background:#0a84ff;border-color:#0a84ff}',
+    '.kh-row button{height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--kh-line);background:var(--kh-panel);color:inherit;font:600 14px -apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",system-ui,sans-serif;cursor:pointer}',
+    '.kh-row button.on{border-color:var(--kh-accent);color:var(--kh-accent)}',
+    '.kh-row button.pri{background:var(--kh-accent);border-color:var(--kh-accent);color:var(--kh-on)}',
     '.kh-msg{margin:10px 4px 0;font-size:13px;line-height:1.45;white-space:pre-wrap}',
-    '.kh-msg.err{color:#ff8a80}',
-    '.kh-bd{position:fixed;inset:0;z-index:2147482499;background:rgba(0,0,0,.25)}'
+    '.kh-msg.err{color:#ef6b7f}'
   ].join('\n');
   var el = null, bd = null, origin = '50% 100%';
   var lastTap = null, reduce = false; try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
@@ -110697,37 +110720,70 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
   function originOf(box) { var r = box.getBoundingClientRect(); if (lastTap && Date.now() - lastTap.t < 2000) { var o = lastTap.r; return Math.round(o.left + o.width / 2 - r.left) + 'px ' + Math.round(o.top + o.height / 2 - r.top) + 'px'; } return '50% 100%'; }
   function css() { if (document.getElementById('kh-css')) return; var s = document.createElement('style'); s.id = 'kh-css'; s.textContent = CSS; document.head.appendChild(s); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  var frame = null, onKey = null, onMsg = null, restore = null;
+  function lk() { try { return frame && frame.contentWindow && frame.contentWindow.MinestLivingKnowledge; } catch (e) { return null; } }
   function close() {
-    var e0 = el, b0 = bd; el = null; bd = null;
-    if (b0) { if (b0.animate && !reduce) { var fb = b0.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 240, fill: 'forwards' }); fb.onfinish = function () { b0.remove(); }; } else b0.remove(); }
+    var api = lk();   // an unsaved edit in Living Knowledge: ask before it is thrown away
+    if (el && api && api.canLeave && !api.canLeave()) return;
+    var e0 = el; el = null; bd = null; frame = null;
+    if (onKey) { document.removeEventListener('keydown', onKey, true); onKey = null; }
+    if (onMsg) { window.removeEventListener('message', onMsg); onMsg = null; }
     if (!e0) return;
-    if (!e0.animate || reduce) return e0.remove();
-    e0.style.pointerEvents = 'none'; e0.style.transformOrigin = origin;   // shrink back into the button it came from
-    var a = e0.animate([{ scale: '1', opacity: 1, filter: 'blur(0px)' }, { scale: '.2', opacity: 0, filter: 'blur(5px)' }], { duration: 260, easing: 'cubic-bezier(.4,0,.6,1)', fill: 'forwards' });
-    a.onfinish = a.oncancel = function () { e0.remove(); };
+    var back = restore; restore = null;
+    var done = function () { e0.remove(); try { if (back && back.isConnected) back.focus(); } catch (e) {} };
+    if (!e0.animate || reduce) return done();
+    e0.style.pointerEvents = 'none';
+    var a = e0.animate([{ scale: '1', opacity: 1 }, { scale: '.97', opacity: 0 }], { duration: 200, easing: 'cubic-bezier(.4,0,.6,1)', fill: 'forwards' });
+    a.onfinish = a.oncancel = done;
+  }
+  function pane(p) {
+    if (!el) return;
+    el.setAttribute('data-pane', p);
+    el.querySelectorAll('.kh-seg [data-pane]').forEach(function (b) { b.setAttribute('aria-selected', String(b.getAttribute('data-pane') === p)); });
+  }
+  function paintStats(st) {
+    if (!el || !st) return;
+    [['pages', st.pages], ['sources', st.sources], ['decisions', st.decisions], ['review', st.pending]].forEach(function (x) {
+      var b = el.querySelector('.kh-st[data-lk="' + x[0] + '"]'); if (!b) return;
+      b.querySelector('b').textContent = String(x[1]);
+      if (x[0] === 'review') b.classList.toggle('hot', x[1] > 0);
+    });
+    var n = el.querySelector('.kh-note[data-lknote]');
+    if (n) n.textContent = (st.claims ? st.claims + ' 条说法' : '还没有说法') + (st.conflicts ? ' · ' + st.conflicts + ' 条互相矛盾，等你处理' : '') + (st.signedIn ? ' · 已同步到你的账号' : ' · 只在这台设备上');
   }
   function open() {
     if (el) return close();
     css(); if (window.MinestKnowledge && MinestKnowledge.applyLook) MinestKnowledge.applyLook();
     var samples = (window.MinestKJ && MinestKJ.samples()) || {}, undo = window.MinestKJ ? MinestKJ.undoList() : [];
-    bd = document.createElement('div'); bd.className = 'kh-bd'; bd.addEventListener('pointerdown', function (e) { e.stopPropagation(); close(); });
-    el = document.createElement('div'); el.className = 'kh'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Knowledge');
-    el.innerHTML = '<h3>Knowledge</h3><div class="kh-grid">' + MODES.map(function (m) { var ok = !!m[4](); return '<button type="button" class="kh-m" data-mode="' + m[0] + '" style="--c:' + m[2] + '"' + (ok ? '' : ' disabled') + '><i>' + m[3] + '</i><b>' + m[1] + '</b></button>'; }).join('') + '</div>' +
+    var dark = window.MinestKnowledge && MinestKnowledge.isDark ? MinestKnowledge.isDark() : true;
+    var lkUrl = 'living-knowledge/index.html';
+    restore = document.activeElement;
+    el = document.createElement('div'); el.className = 'kh'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', 'Knowledge'); el.setAttribute('data-pane', 'views');
+    el.innerHTML = '<header class="kh-top"><button type="button" class="kh-x" data-close aria-label="关闭 Knowledge">' + I('<path d="m15 6-6 6 6 6"/>') + '</button><h3>Knowledge</h3>' +
+      '<div class="kh-seg" role="tablist" aria-label="Knowledge"><button type="button" role="tab" data-pane="views" aria-selected="true">视图</button><button type="button" role="tab" data-pane="lk" aria-selected="false">活知识</button></div></header>' +
+      '<div class="kh-body"><aside class="kh-side"><h4>视图 Views</h4><div class="kh-grid">' + MODES.map(function (m) { var ok = !!m[4](); return '<button type="button" class="kh-m" data-mode="' + m[0] + '" style="--c:' + m[2] + '"' + (ok ? '' : ' disabled') + '><i>' + m[3] + '</i><b>' + m[1] + '</b></button>'; }).join('') + '</div>' +
       (false && window.MinestMyWorld ? '<button type="button" class="kh-m kh-lom" data-myworld style="--c:#5e5ce6"><i>' + G('<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.5 3 2.5 13 0 16M12 4c-2.5 3-2.5 13 0 16"/>') + '</i><b>My World</b><small>A little universe of mine</small></button>' : '') +
       (window.MinestCapture && !window.MinestMyWorld ? '<button type="button" class="kh-m kh-lom" data-cap style="--c:#0a84ff"><i>' + G('<path d="M12 5v14M5 12h14"/>') + '</i><b>Add to My World</b><small>Type, paste, photo, import</small></button>' : '') +
       (window.MinestDiscover && !window.MinestMyWorld ? '<button type="button" class="kh-m kh-lom" data-disc style="--c:#ff9f0a"><i>' + G('<rect x="3" y="6" width="7" height="12" rx="2"/><rect x="14" y="6" width="7" height="12" rx="2"/><path d="M12 9v6"/>') + '</i><b>Discover My World</b><small>This or That · Tier List · Tournament</small></button>' : '') +
       (window.MinestWorld && !window.MinestMyWorld ? '<button type="button" class="kh-m kh-lom" data-lom style="--c:#7c8cff"><i>' + G('<rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="10" rx="2"/><path d="M14 18h7"/>') + '</i><b>List of Mine</b><small>My world, my lists</small></button>' : '') +
-      '<h4>Appearance</h4><div class="kh-row">' + [['auto', '◐ Auto'], ['light', '☀︎ Light'], ['dark', '☾ Dark']].map(function (x) { var cur = window.MinestKnowledge ? MinestKnowledge.look() : 'auto'; return '<button type="button" data-look="' + x[0] + '"' + (cur === x[0] ? ' class="on"' : '') + '>' + x[1] + '</button>'; }).join('') + '</div>' +
-      '<h4>Import</h4><div class="kh-row"><button type="button" class="pri" data-file>Import JSON…</button>' + (undo.length ? '<button type="button" data-undo>Undo “' + esc(undo[0].title) + '”</button>' : '') + '</div>' +
-      // (the samples stay in MinestKJ.samples(); the sheet no longer lists them)
-      '<div class="kh-msg"></div><input type="file" accept=".json,application/json" hidden>';
-    document.body.appendChild(bd); document.body.appendChild(el);
-    origin = originOf(el);
-    if (el.animate && !reduce) {   // Apple Music: it grows out of the button, a touch past full size, and settles
-      el.style.transformOrigin = origin;
-      el.animate([{ scale: '.2', opacity: 0, filter: 'blur(6px)' }, { scale: '1.025', opacity: 1, filter: 'blur(0px)', offset: .68 }, { scale: '1', opacity: 1, filter: 'blur(0px)' }], { duration: 460, easing: 'cubic-bezier(.2,.85,.25,1)' });
-      bd.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300 });
-    }
+      '<h4>活知识 Living Knowledge<a href="' + lkUrl + '" target="_blank" rel="noopener">单独打开 ↗</a></h4>' +
+      '<div class="kh-stats">' + [['pages', '知识页'], ['sources', '来源'], ['decisions', '决策'], ['review', '待审核']].map(function (x) { return '<button type="button" class="kh-st" data-lk="' + x[0] + '"><b>–</b><span>' + x[1] + '</span></button>'; }).join('') + '</div>' +
+      '<p class="kh-note" data-lknote>正在打开…</p>' +
+      '<div class="kh-row" style="margin-top:10px"><button type="button" class="pri" data-lk="home">总览</button><button type="button" data-lk="graph">知识图谱</button><button type="button" data-lk="perms">AI 权限</button></div>' +
+      '<h4>外观 Appearance</h4><div class="kh-row">' + [['auto', '◐ Auto'], ['light', '☀︎ Light'], ['dark', '☾ Dark']].map(function (x) { var cur = window.MinestKnowledge ? MinestKnowledge.look() : 'auto'; return '<button type="button" data-look="' + x[0] + '"' + (cur === x[0] ? ' class="on"' : '') + '>' + x[1] + '</button>'; }).join('') + '</div>' +
+      '<h4>导入 Import</h4><div class="kh-row"><button type="button" class="pri" data-file>Import JSON…</button>' + (undo.length ? '<button type="button" data-undo>Undo “' + esc(undo[0].title) + '”</button>' : '') + '</div>' +
+      // (the samples stay in MinestKJ.samples(); the page does not list them)
+      '<div class="kh-msg"></div><input type="file" accept=".json,application/json" hidden></aside>' +
+      '<section class="kh-lk" aria-label="活知识 Living Knowledge"><iframe title="活知识 Living Knowledge" src="' + lkUrl + '?embed=1&theme=' + (dark ? 'dark' : 'light') + '"></iframe></section></div>';
+    document.body.appendChild(el);
+    frame = el.querySelector('iframe');
+    if (el.animate && !reduce) el.animate([{ scale: '.97', opacity: 0 }, { scale: '1', opacity: 1 }], { duration: 260, easing: 'cubic-bezier(.2,.85,.25,1)' });
+    onKey = function (e) { if (e.key === 'Escape' && el) { e.stopPropagation(); close(); } };
+    document.addEventListener('keydown', onKey, true);
+    // Living Knowledge tells the page around it how much there is (same origin only)
+    onMsg = function (e) { if (e.origin === location.origin && frame && e.source === frame.contentWindow && e.data && e.data.type === 'lk-stats') paintStats(e.data.stats); };
+    window.addEventListener('message', onMsg);
+    try { el.querySelector('[data-close]').focus({ preventScroll: true }); } catch (e) {}
     ['pointerdown', 'touchstart'].forEach(function (ev) { el.addEventListener(ev, function (e) { e.stopPropagation(); }, { passive: true }); });
     var msg = el.querySelector('.kh-msg'), file = el.querySelector('input[type=file]');
     function report(r) {
@@ -110755,13 +110811,17 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
       rd.readAsText(f); file.value = '';
     });
     el.addEventListener('click', function (e) {
+      if (e.target.closest('[data-close]')) return close();
+      var pn = e.target.closest('.kh-seg [data-pane]'); if (pn) return pane(pn.getAttribute('data-pane'));
+      var go = e.target.closest('[data-lk]');
+      if (go) { var api = lk(); if (api && api.go && api.go(go.getAttribute('data-lk')) === false) return; pane('lk'); return; }
       var m = e.target.closest('[data-mode]');
       if (m) { var mod = MODES.filter(function (x) { return x[0] === m.getAttribute('data-mode'); })[0], api = mod && mod[4](); close(); if (api && api.open) setTimeout(function () { api.open(); }, 120); return; }
       if (e.target.closest('[data-myworld]')) { close(); setTimeout(function () { MinestMyWorld.open(); }, 160); return; }
       if (e.target.closest('[data-cap]')) { close(); setTimeout(function () { MinestCapture.open(); }, 160); return; }
       if (e.target.closest('[data-disc]')) { close(); setTimeout(function () { MinestDiscover.open(); }, 160); return; }
       if (e.target.closest('[data-lom]')) { close(); setTimeout(function () { MinestWorld.open(); }, 160); return; }
-      var lk = e.target.closest('[data-look]'); if (lk) { MinestKnowledge.setLook(lk.getAttribute('data-look')); el.querySelectorAll('[data-look]').forEach(function (x) { x.classList.toggle('on', x === lk); }); return; }
+      var lb = e.target.closest('[data-look]'); if (lb) { MinestKnowledge.setLook(lb.getAttribute('data-look')); el.querySelectorAll('[data-look]').forEach(function (x) { x.classList.toggle('on', x === lb); }); var la = lk(); if (la && la.setTheme) la.setTheme(MinestKnowledge.isDark() ? 'dark' : 'light'); return; }
       if (e.target.closest('[data-file]')) return file.click();
       var s = e.target.closest('[data-sample]'); if (s) return run(JSON.parse(JSON.stringify(samples[s.getAttribute('data-sample')])));
       if (e.target.closest('[data-undo]')) { var u = MinestKJ.undo(); msg.className = 'kh-msg'; msg.textContent = u ? '↺ Undid the import of “' + u.title + '”.' : 'Nothing to undo.'; e.target.closest('[data-undo]').remove(); return; }
@@ -110784,7 +110844,7 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     document.body.appendChild(b);
   }
   if (document.body) { trigger(); worldTrigger(); } else document.addEventListener('DOMContentLoaded', function () { trigger(); worldTrigger(); });
-  window.MinestKnowledgeHub = { open: open, close: close, icon: ICON };
+  window.MinestKnowledgeHub = { open: open, close: close, icon: ICON, isOpen: function () { return !!el; } };
 })();
 
 /* Minest Knowledge · swipe from the left edge to go back (window.MinestEdgeBack)
@@ -198256,8 +198316,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     knowledge: { title: 'Knowledge', targets: [{
       id: 'MinestKnowledgeHub', label: 'Knowledge 知识', kind: 'host', entry: 'window.MinestKnowledgeHub.open()',
       test: function (w) { return has(w, 'MinestKnowledgeHub'); },
-      open: function (w) { if (!w.document.querySelector('.kh-bd')) w.MinestKnowledgeHub.open(); },
-      isOpen: function (w) { return !!w.document.querySelector('.kh-bd'); }, close: function (w) { if (w.document.querySelector('.kh-bd')) w.MinestKnowledgeHub.close(); }
+      open: function (w) { if (!w.document.querySelector('.kh')) w.MinestKnowledgeHub.open(); },
+      isOpen: function (w) { return !!w.document.querySelector('.kh'); }, close: function (w) { if (w.document.querySelector('.kh')) w.MinestKnowledgeHub.close(); }
     }], missing: '这个构建里没有 Knowledge（window.MinestKnowledgeHub）。' },
     carplay: { title: 'CarPlay', targets: [{
       id: 'MinestCarFlash', label: '车载闪卡 · CarPlay', kind: 'host', entry: 'window.MinestCarFlash.open()',

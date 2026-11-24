@@ -17,7 +17,11 @@
   var $ = function (id) { return document.getElementById(id); };
   var main = $('lk-main');
   var store = null, ns = null, cloudOn = false, user = null, fb = null, unsubStore = null;
-  var ui = { tab: 'home', sel: { pages: null, decisions: null, sources: null }, edit: false, draft: null, dirty: false, q: '', hist: null, showRev: null, imp: null, ingest: null, run: null, choice: {} };
+  var ui = { tab: 'home', sel: { pages: null, decisions: null, sources: null }, edit: false, draft: null, dirty: false, q: '', hist: null, showRev: null, imp: null, ingest: null, run: null, choice: {}, qa: null, qaHist: [], composing: null };
+  // inside Minest's Knowledge page: ?embed=1 (no title link back), ?theme=light|dark (follows Knowledge's appearance)
+  var EMBED = /[?&]embed=1\b/.test(location.search);
+  if (EMBED) document.documentElement.classList.add('lk-embed');
+  (function () { var t = (/[?&]theme=(light|dark)\b/.exec(location.search) || [])[1]; if (t) document.documentElement.setAttribute('data-theme', t); })();
   // always opens on 总览 (the five cards); TAB_KEY only remembers the last tab for later use
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -69,9 +73,9 @@
     if (unsubStore) unsubStore();
     ns = name; cloudOn = !!cloud;
     store = S.createStore({ local: S.idbLocal('minest.lk.v1:' + name), cloud: cloud, userId: 'me' });
-    unsubStore = store.onChange(function (what) { paintStatus(); sendGraph(); sendHolo(); if (what && (what.pulled || what.conflict)) render(); });
+    unsubStore = store.onChange(function (what) { paintStatus(); sendGraph(); sendHolo(); postStats(); if (what && (what.pulled || what.conflict)) render(); });
     ui.sel = { pages: null, decisions: null, sources: null }; ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null;
-    return store.ready().then(function () { render(); paintStatus(); if (cloud) store.pull().then(function (n) { if (n) render(); }); });
+    return store.ready().then(function () { render(); paintStatus(); postStats(); if (cloud) store.pull().then(function (n) { if (n) render(); }); });
   }
   function paintStatus() {
     var el = $('lk-status'), s = store ? store.status() : null, cls = '', txt;
@@ -391,7 +395,8 @@
     var back = pages.filter(function (x) { return (x.links || []).indexOf(p.id) >= 0 && x.id !== p.id; });
     return '<section class="lk-card lk-ed"><div class="lk-bar"><button type="button" class="lk-btn ghost lk-only-narrow" data-act="back">‹ 列表</button>' +
       '<span class="lk-badge">' + esc(TYPE_NAMES[p.type] || '笔记') + '</span><span class="lk-note">第 ' + p.rev + ' 版 · ' + esc(when(p.updatedAt)) + ' · ' + esc(p.updatedBy) + '</span>' +
-      (p.lockedBy === 'user' ? '<span class="lk-lock">🔒 已锁定：AI 只能提建议</span>' : '') + '<span class="sp"></span><button type="button" class="lk-btn" data-act="edit">编辑</button></div>' +
+      (p.lockedBy === 'user' ? '<span class="lk-lock">🔒 已锁定：AI 只能提建议</span>' : '') + '<span class="sp"></span>' + ((p.claims || []).length && p.lockedBy !== 'user' && AG ? '<button type="button" class="lk-btn ghost" data-act="compose"' + (ui.composing ? ' disabled' : '') + ' title="只用这一页已接受的说法写正文；先给你草稿，保存才生效">' + (ui.composing === p.id ? '正在起草…' : 'AI 起草正文') + '</button>' : '') +
+      '<button type="button" class="lk-btn" data-act="edit">编辑</button></div>' +
       '<h2 style="margin:0">' + esc(p.title) + '</h2>' +
       ((p.aliases || []).length || (p.tags || []).length ? '<div class="lk-note">' + ((p.aliases || []).length ? '别名：' + esc(p.aliases.join('、')) + '　' : '') + ((p.tags || []).length ? '标签：' + esc(p.tags.join('、')) : '') + '</div>' : '') +
       '<div class="lk-md">' + md(p.markdown, cache.pages) + '</div>' + claimsHtml(p) + sourceChips(p.sourceIds) +
@@ -412,6 +417,7 @@
       '<div class="lk-meta"><label>类型<select data-f="type">' + M.PAGE_TYPES.map(function (t) { return '<option value="' + t + '"' + (t === d.type ? ' selected' : '') + '>' + TYPE_NAMES[t] + '</option>'; }).join('') + '</select></label>' +
       '<label>标签（逗号分隔）<input type="text" data-f="tags" value="' + esc(d.tags) + '"></label>' +
       '<label>别名（逗号分隔）<input type="text" data-f="aliases" value="' + esc(d.aliases) + '"></label></div>' +
+      (d.aiNote ? '<p class="lk-note lk-ai-note">' + esc(d.aiNote) + '</p>' : '') +
       '<textarea class="md" data-f="markdown" placeholder="用 Markdown 写；[[另一页]] 建立双向链接" aria-label="正文">' + esc(d.markdown) + '</textarea>' +
       (d.sourceIds && d.sourceIds.length ? '<p class="lk-note">这一页引用了 ' + d.sourceIds.length + ' 个来源：' + esc(d.sourceIds.map(function (id) { return (cache.sources[id] || {}).title || id; }).join('、')) + '</p>' : '') +
       '<label class="lk-check"><input type="checkbox" data-f="locked"' + (d.locked ? ' checked' : '') + '> 锁定这一页（AI 以后只能提建议，不能直接改）</label>' +
@@ -644,6 +650,99 @@
     return {};
   }
   var transport = AG ? AG.httpTransport({ base: aiBase(), headers: aiHeaders }) : null;
+
+  // ---------------------------------------------------------------- 问 AI (M4): an answer from the library, every point with its pages
+  var CONF_NAMES = { high: ['hi', '把握高'], medium: ['mid', '把握中等'], low: ['lo', '把握低'], none: ['lo', '知识库里没有'] };
+  function askAI(q) {
+    q = String(q || '').trim();
+    if (!q) return toast('先写下你的问题');
+    if (!AG || !store) return;
+    if (ui.qa && ui.qa.ctl) try { ui.qa.ctl.abort(); } catch (e) {}
+    var qa = ui.qa = { q: q, state: 'loading', ctl: typeof AbortController !== 'undefined' ? new AbortController() : null };
+    paintAnswer();
+    AG.ask(store, q, { transport: transport, signal: qa.ctl && qa.ctl.signal, history: ui.qaHist.slice(-4) }).then(function (a) {
+      if (ui.qa !== qa) return;
+      qa.state = 'done'; qa.a = a;
+      if (a.status === 'answered' && a.summary) ui.qaHist.push({ q: q, a: a.summary });
+      paintAnswer();
+    }, function (e) {
+      if (ui.qa !== qa) return;
+      if (e && e.name === 'AbortError') { ui.qa = null; return paintAnswer(); }
+      qa.state = e && e.code === 'ai-not-allowed' ? 'need-perm' : 'error'; qa.err = (e && e.message) || String(e);
+      paintAnswer();
+    });
+  }
+  function paintAnswer() {
+    var el = $('lk-answer'), qa = ui.qa;
+    if (!el) return;
+    if (!qa) { el.hidden = true; el.innerHTML = ''; return; }
+    var body;
+    if (qa.state === 'loading') body = '<p class="lk-ans-wait" role="status">正在你的知识库里找相关的页面，再请 AI 只根据它们回答…</p><div class="lk-bar"><span class="sp"></span><button type="button" class="lk-btn ghost" data-ans="stop">停止</button></div>';
+    else if (qa.state === 'need-perm') body = '<p class="lk-ans-sum">还没有允许把知识库内容发给 Minest AI。</p><p class="lk-note">打开后，提问时只会发送和问题相关的那几页的标题、摘要和说法。</p><div class="lk-bar"><span class="sp"></span><button type="button" class="lk-btn" data-ans="perms">去“权限”打开</button></div>';
+    else if (qa.state === 'error') body = '<p class="lk-ans-sum" style="color:var(--bad)">没有回答成功：' + esc(qa.err) + '</p><div class="lk-bar"><span class="sp"></span><button type="button" class="lk-btn" data-ans="ask" data-q="' + esc(qa.q) + '">再试一次</button></div>';
+    else {
+      var a = qa.a;
+      if (a.status === 'nothing') body = '<p class="lk-ans-sum">知识库里还没有和这个问题相关的内容。</p><p class="lk-note">没有向 AI 发送任何东西。可以先导入一份资料，或者自己写一页。</p>' +
+        '<div class="lk-bar"><span class="sp"></span><button type="button" class="lk-btn ghost" data-ans="import">去导入来源</button>' + (a.suggestPage ? '<button type="button" class="lk-btn" data-ans="new" data-title="' + esc(a.suggestPage) + '">新建「' + esc(a.suggestPage) + '」</button>' : '') + '</div>';
+      else {
+        var conf = CONF_NAMES[a.confidence] || CONF_NAMES.low;
+        body = (a.summary ? '<p class="lk-ans-sum">' + esc(a.summary) + '</p>' : '') +
+          (a.points.length ? '<ol class="lk-ans-pts">' + a.points.map(function (p) {
+            var refs = (p.pageIds || []).filter(function (id) { return a.titles[id]; }).map(function (id) {
+              var mine = (p.claimIds || []).filter(function (c) { return a.claims[c] && a.claims[c].pageId === id; }).map(function (c) { return a.claims[c].text; });
+              return '<button type="button" data-ans="page" data-id="' + esc(id) + '" title="' + esc(mine.join('\n') || '打开这一页') + '">' + esc(a.titles[id]) + '</button>';
+            }).join('') + (p.decisionIds || []).filter(function (id) { return a.decisions[id]; }).map(function (id) { return '<button type="button" data-ans="decision" data-id="' + esc(id) + '">决策 · ' + esc(a.decisions[id]) + '</button>'; }).join('');
+            return '<li' + (p.grounded ? '' : ' class="inf"') + '>' + esc(p.text) + '<div class="refs">' + (p.grounded ? '<span>依据</span>' + refs : '<span class="inf-tag">AI 推断</span><span>知识库里没有这一点的出处</span>') + '</div></li>';
+          }).join('') + '</ol>' : '') +
+          (a.gaps.length ? '<div class="lk-ans-more"><span>还缺：</span>' + a.gaps.map(function (g) { return '<i>' + esc(g) + '</i>'; }).join('') + '</div>' : '') +
+          (a.followups.length ? '<div class="lk-ans-more"><span>接着问：</span>' + a.followups.map(function (f) { return '<button type="button" data-ans="ask" data-q="' + esc(f) + '">' + esc(f) + '</button>'; }).join('') + '</div>' : '') +
+          '<p class="lk-ans-meta"><span class="' + conf[0] + '">' + conf[1] + '</span> · 发送了 ' + a.sent.pages + ' 页、' + a.sent.claims + ' 条说法' + (a.sent.decisions ? '、' + a.sent.decisions + ' 个决策' : '') +
+          (a.usage ? ' · 约 ' + (a.usage.input + a.usage.output) + ' token' : '') + ' · 回答不会自动写入知识库</p>' +
+          '<div class="lk-bar"><span class="sp"></span>' + (a.suggestPage && !cache.pages[M.pageId(a.suggestPage)] ? '<button type="button" class="lk-btn ghost" data-ans="new" data-title="' + esc(a.suggestPage) + '">新建「' + esc(a.suggestPage) + '」</button>' : '') +
+          '<button type="button" class="lk-btn" data-ans="save">存成一页笔记</button></div>';
+      }
+    }
+    el.innerHTML = '<div class="lk-ans-h"><span class="lk-badge">问 AI</span><b>' + esc(qa.q) + '</b><button type="button" class="lk-ans-x" data-ans="close" aria-label="关闭回答">×</button></div>' + body;
+    el.hidden = false;
+  }
+  function openPage(id) {
+    ui.tab = 'pages'; lsSet(TAB_KEY, 'pages'); ui.sel.pages = id; ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null; ui.imp = null; ui.q = '';
+    return render();
+  }
+  function composePage() {
+    var pg = cache.pages[ui.sel.pages];
+    if (!pg || ui.composing || !AG) return;
+    ui.composing = pg.id; render();
+    AG.compose(store, pg.id, { transport: transport }).then(function (d) {
+      ui.composing = null;
+      if (ui.tab !== 'pages' || ui.sel.pages !== d.pageId || ui.edit) { toast('草稿写好了，但你已经离开那一页；回到那一页再点一次'); return render(); }
+      return store.get('page', d.pageId).then(function (cur) {
+        startPage(cur);
+        ui.draft.markdown = d.markdown; ui.dirty = true;
+        ui.draft.aiNote = 'AI 草稿：用了这一页 ' + d.usedClaimIds.length + ' 条已接受的说法' + (d.unusedClaims ? '，' + d.unusedClaims + ' 条没用上' : '') + (d.leftOut ? '（' + d.leftOut + '）' : '') + '。请读一遍再保存；保存后成为新的一版，取消则什么都不变。';
+        render();
+      });
+    }, function (e) {
+      ui.composing = null;
+      toast('没有起草成功：' + ((e && e.message) || e));
+      if (e && e.code === 'ai-not-allowed') setTab('perms'); else render();
+    });
+  }
+  // the numbers Minest's Knowledge page shows next to its own views (same origin only)
+  function stats() {
+    if (!store) return Promise.resolve(null);
+    return Promise.all([store.list('page'), store.list('source'), store.list('decision'), store.list('run')]).then(function (r) {
+      return { pages: r[0].length, claims: r[0].reduce(function (n, p) { return n + (p.claims || []).length; }, 0), sources: r[1].length, decisions: r[2].length,
+        pending: AG ? AG.pendingCount(r[3]) : 0, conflicts: r[0].reduce(function (n, p) { return n + (p.claims || []).filter(function (c) { return (c.conflictsWith || []).length; }).length; }, 0),
+        signedIn: !!user, tab: ui.tab };
+    });
+  }
+  var statsT = null;
+  function postStats() {
+    if (!EMBED || window.parent === window) return;
+    clearTimeout(statsT);
+    statsT = setTimeout(function () { stats().then(function (st) { if (st) try { window.parent.postMessage({ type: 'lk-stats', stats: st }, location.origin); } catch (e) {} }); }, 120);
+  }
   function ingestPanel(s) {
     var g = ui.ingest;
     if (!g || g.sourceId !== s.id) return '';
@@ -752,9 +851,9 @@
           return '<tr><td>' + esc(MODULE_NAMES[m] || m) + '</td><td class="c"><input type="checkbox" data-perm="' + m + '" data-a="read"' + (x.read ? ' checked' : '') + (self ? ' disabled' : '') + ' aria-label="' + esc(MODULE_NAMES[m]) + ' 读取"></td>' +
             '<td class="c"><input type="checkbox" data-perm="' + m + '" data-a="write"' + (x.write ? ' checked' : '') + (self ? ' disabled' : '') + ' aria-label="' + esc(MODULE_NAMES[m]) + ' 写入"></td></tr>';
         }).join('') + '</tbody></table>' +
-        '<h2 style="margin-top:8px">AI 整理</h2>' +
-        '<label class="lk-check"><input type="checkbox" id="lk-allow-ai"' + (p.allowAI ? ' checked' : '') + '> 允许把我选中的来源文字发给 Minest AI，让它提出要加到知识页的内容</label>' +
-        '<p class="lk-note">只在你点“让 AI 整理”时发送，只发送那一份来源（分段）和知识页的标题、已有说法的列表。AI 只提建议：每一条都要你在“审核”里接受才会写入。Minest AI 用的是你在 Vercel 上配置的模型服务。</p>' +
+        '<h2 style="margin-top:8px">AI：整理 · 问答 · 起草</h2>' +
+        '<label class="lk-check"><input type="checkbox" id="lk-allow-ai"' + (p.allowAI ? ' checked' : '') + '> 允许把我选中的内容发给 Minest AI：整理来源、回答问题（问 AI）、起草页面正文</label>' +
+        '<p class="lk-note">整理：只在你点“让 AI 整理”时发送那一份来源（分段）和知识页的标题、已有说法的列表；每一条建议都要你在“审核”里接受才会写入。问 AI：相关的页面先在这台设备上找出来，只发送那几页的标题、摘要和说法；回答不会自动写入。起草正文：只发送那一页的说法和其他页面的标题；得到的是草稿，你保存才成为新的一版。Minest AI 用的是你在 Vercel 上配置的模型服务。</p>' +
         '<div class="lk-meta"><label>每次整理最多发送几段（每段约 6 000 字）<input type="number" id="lk-max-calls" min="1" max="60" value="' + esc(p.maxCallsPerRun || 12) + '"></label>' +
         '<label>每段回答最多多少 token<input type="number" id="lk-max-tokens" min="500" max="6000" step="500" value="' + esc(p.maxTokensPerCall || 3000) + '"></label></div>' +
         '<div class="lk-bar"><span class="lk-note">' + (p.rev ? '第 ' + p.rev + ' 版 · ' + esc(when(p.updatedAt)) : '默认：只有活知识本身可以读写；AI 整理关闭') + '</span><span class="sp"></span><button type="button" class="lk-btn" data-act="save-perms">保存权限</button></div></section>';
@@ -857,6 +956,7 @@
       runImport(chosen.map(IM.cardInput), function () { z.picked = {}; });
       return;
     }
+    if (act === 'compose') { composePage(); return; }
     if (act === 'edit') { if (tab === 'pages') startPage(cache.pages[ui.sel.pages]); else startDecision(dcache[ui.sel.decisions]); return; }
     if (act === 'cancel') { if (!guard()) return; ui.edit = false; ui.draft = null; ui.dirty = false; render(); return; }
     if (act === 'save') { if (tab === 'pages') savePage(); else saveDecision(); return; }
@@ -893,6 +993,24 @@
     }
   });
   $('lk-ask').addEventListener('submit', function (e) { e.preventDefault(); var i = $('lk-ask-q'); ask(i.value); i.value = ''; i.blur(); });
+  $('lk-ask-ai').addEventListener('click', function () { var i = $('lk-ask-q'); askAI(i.value); });
+  $('lk-answer').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-ans]'); if (!b) return;
+    var k = b.dataset.ans, qa = ui.qa;
+    if (k === 'close') { if (qa && qa.ctl) try { qa.ctl.abort(); } catch (x) {} ui.qa = null; return paintAnswer(); }
+    if (k === 'stop') { if (qa && qa.ctl) qa.ctl.abort(); else { ui.qa = null; paintAnswer(); } return; }
+    if (k === 'ask') { $('lk-ask-q').value = b.dataset.q; return askAI(b.dataset.q); }
+    if (!guard()) return;
+    if (k === 'perms') { ui.dirty = false; return setTab('perms'); }
+    if (k === 'page') return openPage(b.dataset.id);
+    if (k === 'decision') { ui.tab = 'decisions'; ui.sel.decisions = b.dataset.id; ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null; return render(); }
+    if (k === 'import') { ui.dirty = false; ui.tab = 'sources'; ui.edit = false; ui.draft = null; ui.imp = { title: '', url: '', text: '', cards: null, bid: '', cq: '', picked: {}, report: null }; return render(); }
+    if (k === 'new' || k === 'save') {
+      ui.tab = 'pages'; lsSet(TAB_KEY, 'pages'); ui.sel.pages = null; ui.q = ''; ui.imp = null;
+      if (k === 'new') return startPage(null, b.dataset.title);
+      return startPage(null, qa.q.replace(/[?？。.!！]+$/, '').slice(0, 80), { type: 'note', markdown: AG.answerMarkdown(qa.a) });
+    }
+  });
   $('lk-ask-chips').addEventListener('click', function (e) {
     var b = e.target.closest('[data-chip]'); if (!b || !guard()) return;
     ui.tab = 'pages'; lsSet(TAB_KEY, 'pages'); ui.sel.pages = b.dataset.chip; ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null; ui.imp = null; ui.q = '';
@@ -916,5 +1034,10 @@
 
   // ================================================================== start: this device's last account first (works offline), then the sign-in
   openStore(lsGet(LAST_UID) || 'guest', null).then(startFirebase);
-  window.MinestLivingKnowledge = { store: function () { return store; }, access: function (module) { return store && store.access(module); } };
+  window.MinestLivingKnowledge = { store: function () { return store; }, access: function (module) { return store && store.access(module); },
+    // for Minest's Knowledge page, which shows this page inside itself
+    go: function (tab) { if (!store || !guard()) return false; ui.dirty = false; if (ui.tab === tab) { ui.edit = false; ui.draft = null; render(); } else setTab(tab); window.scrollTo(0, 0); return true; },
+    canLeave: function () { return guard(); },
+    find: ask, ask: function (q) { $('lk-ask-q').value = q; askAI(q); window.scrollTo(0, 0); },
+    stats: stats, setTheme: function (t) { if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); else document.documentElement.removeAttribute('data-theme'); } };
 })();

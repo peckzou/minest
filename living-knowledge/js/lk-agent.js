@@ -8,7 +8,9 @@
        only gain the source as support, and not even that when it is already listed
      · a claim that contradicts one already on the page is proposed with the conflict marked; both are kept
      · AI inferences are kept apart (origin ai_inferred, no source); quoted facts are origin verified once the user accepts
-   The run (lk_runs/<id>) keeps scope, budget, use, the proposal and what was accepted or rejected. */
+   The run (lk_runs/<id>) keeps scope, budget, use, the proposal and what was accepted or rejected.
+   M4 — ask(): a question answered from the user's own pages, every point citing its claims (lk-ask); the pages are found
+   on the device and only those are sent. compose(): a page body drafted from its accepted claims (lk-compose), as a draft. */
 (function (root, factory) {
   var node = typeof module === 'object' && module.exports;
   var M = node ? require('./lk-model.js') : root.MinestLKModel;
@@ -279,5 +281,110 @@
     return n;
   }
 
-  return { chunk: chunk, estimate: estimate, claimId: claimId, similar: similar, httpTransport: httpTransport, ingest: ingest, propose: propose, apply: apply, pendingCount: pendingCount };
+  // ---------------------------------------------------------------- M4: ask the library, draft a page
+  /* Which pages a question is about, found on the device (nothing is sent to find them): words and, for Chinese,
+     character pairs of the question against each page's title, aliases, tags, claims and text. A title hit weighs most. */
+  var STOP = {}; 'the of and to in is are was were be it its this that what who whom when where why how which does do did can could should would with for on at by from as an or not about me my our your their there'.split(' ').forEach(function (w) { STOP[w] = 1; });
+  function terms(s) {
+    s = normClaim(s); var out = {}, m, re = /[a-z0-9]{2,}/g;
+    while ((m = re.exec(s))) if (!STOP[m[0]]) out[m[0]] = 1;
+    var cjk = s.replace(/[^\u3400-\u9fff\u3040-\u30ff\uac00-\ud7af]+/g, ' ').split(' ');
+    cjk.forEach(function (w) { if (w.length === 1) out[w] = 1; for (var i = 0; i < w.length - 1; i++) out[w.slice(i, i + 2)] = 1; });
+    return Object.keys(out);
+  }
+  function hits(ts, text) { text = normClaim(text); var n = 0; ts.forEach(function (t) { if (text.indexOf(t) >= 0) n++; }); return n; }
+  function retrieve(pages, question, o) {
+    o = o || {};
+    var ts = terms(question), maxPages = o.maxPages || 10, perPage = o.claimsPerPage || 12;
+    if (!ts.length) return [];
+    var scored = (pages || []).map(function (p) {
+      var claims = (p.claims || []).map(function (c) { return { c: c, s: hits(ts, c.text) }; });
+      var score = hits(ts, p.title + ' ' + (p.aliases || []).join(' ')) * 5 + hits(ts, (p.tags || []).join(' ')) * 2 + hits(ts, p.markdown) +
+        claims.reduce(function (n, x) { return n + x.s; }, 0) * 1.5;
+      return { page: p, score: score, claims: claims };
+    }).filter(function (x) { return x.score > 0; }).sort(function (a, b) { return b.score - a.score || (b.page.updatedAt || 0) - (a.page.updatedAt || 0); }).slice(0, maxPages);
+    // pages linked from the best hit come along (one hop), so the answer can use what sits next to it
+    if (scored.length && scored.length < maxPages) {
+      var have = {}; scored.forEach(function (x) { have[x.page.id] = 1; });
+      (scored[0].page.links || []).forEach(function (id) {
+        var p = (pages || []).filter(function (x) { return x.id === id; })[0];
+        if (p && !have[id] && scored.length < maxPages) { have[id] = 1; scored.push({ page: p, score: 0, claims: (p.claims || []).map(function (c) { return { c: c, s: 0 }; }) }); }
+      });
+    }
+    return scored.map(function (x) {
+      var p = x.page;
+      var top = x.claims.sort(function (a, b) { return b.s - a.s; }).slice(0, perPage).map(function (y) {
+        return { id: y.c.id, text: y.c.text, kind: y.c.kind, origin: y.c.origin, disputed: !!(y.c.conflictsWith && y.c.conflictsWith.length) };
+      });
+      return { id: p.id, title: p.title, type: p.type, summary: String(p.markdown || '').replace(/\s+/g, ' ').slice(0, 900), claims: top, score: x.score };
+    });
+  }
+  function needAI(store) {
+    return store.permissions().then(function (perms) {
+      if (!perms.allowAI) throw Object.assign(new Error('还没有允许把知识库内容发给 Minest AI（在“权限”里打开）'), { code: 'ai-not-allowed' });
+      return perms;
+    });
+  }
+  /* opts: { transport, signal, history: [{ q, a }] } → { status: 'answered' | 'nothing', question, summary, points, confidence, gaps, followups,
+     suggestPage, sent: { pages, claims, decisions }, titles: { pageId: title }, claims: { claimId: { text, pageId } }, usage } */
+  function ask(store, question, opts) {
+    opts = opts || {};
+    question = String(question || '').trim();
+    if (question.length < 2) return Promise.reject(Object.assign(new Error('先写下你的问题'), { code: 'invalid' }));
+    return needAI(store).then(function (perms) {
+      return Promise.all([store.list('page'), store.list('decision')]).then(function (r) {
+        var found = retrieve(r[0], question, opts), ts = terms(question);
+        var decs = r[1].map(function (d) { return { d: d, s: hits(ts, d.title) * 3 + hits(ts, (d.decision || '') + ' ' + (d.requirement || '')) }; })
+          .filter(function (x) { return x.s > 0 && x.d.state !== 'Rejected'; }).sort(function (a, b) { return b.s - a.s; }).slice(0, 6)
+          .map(function (x) { var d = x.d; return { id: d.id, title: d.title, state: d.state, decision: d.decision || '', why: (d.reasons || []).map(function (y) { return typeof y === 'string' ? y : (y && y.text) || ''; }).join('; ') }; });
+        var titles = {}, claims = {}, nClaims = 0;
+        found.forEach(function (p) { titles[p.id] = p.title; p.claims.forEach(function (c) { claims[c.id] = { text: c.text, pageId: p.id }; nClaims++; }); });
+        var dtitles = {}; decs.forEach(function (d) { dtitles[d.id] = d.title; });
+        var base = { question: question, sent: { pages: found.length, claims: nClaims, decisions: decs.length }, titles: titles, claims: claims, decisions: dtitles };
+        // nothing in the library is about this: say so without sending anything
+        if (!found.length && !decs.length) return Object.assign(base, { status: 'nothing', summary: '', points: [], confidence: 'none', gaps: [], followups: [], suggestPage: question.length <= 40 ? question : '' });
+        var body = { question: question, pages: found.map(function (p) { return { id: p.id, title: p.title, type: p.type, summary: p.summary, claims: p.claims }; }), decisions: decs,
+          history: (opts.history || []).slice(-4), maxTokens: Math.min(perms.maxTokensPerCall || 3000, 2000) };
+        return opts.transport('lk-ask', body, opts.signal).then(function (res) {
+          return Object.assign(base, { status: 'answered', summary: res.summary || '', points: res.points || [], confidence: res.confidence || 'low', gaps: res.gaps || [], followups: res.followups || [],
+            suggestPage: res.suggestPage || '', usage: res.usage || null, model: res.model || '' });
+        });
+      });
+    });
+  }
+  // an answer as the Markdown of a note page: the points, each with the pages it rests on as [[links]]; inferences are marked
+  function answerMarkdown(a) {
+    var out = [];
+    if (a.summary) out.push(a.summary, '');
+    (a.points || []).forEach(function (p) {
+      var refs = (p.pageIds || []).map(function (id) { return a.titles[id] ? '[[' + a.titles[id] + ']]' : ''; }).filter(Boolean);
+      out.push('- ' + p.text + (p.grounded ? (refs.length ? '（' + refs.join('、') + '）' : '') : '（AI 推断，未核实）'));
+    });
+    if ((a.gaps || []).length) { out.push('', '## 还缺什么', ''); a.gaps.forEach(function (g) { out.push('- ' + g); }); }
+    return out.join('\n').trim();
+  }
+  /* The body of one page drafted from its accepted claims. Nothing is saved: the app puts the draft in the editor,
+     and it becomes a version only when the user saves it. A locked page is never drafted over.
+     → { pageId, baseRev, markdown, usedClaimIds, unusedClaims, leftOut, usage } */
+  function compose(store, pageId, opts) {
+    opts = opts || {};
+    return needAI(store).then(function (perms) {
+      return Promise.all([store.get('page', pageId), store.list('page')]).then(function (r) {
+        var p = r[0];
+        if (!p) throw Object.assign(new Error('没有这一页'), { code: 'invalid' });
+        if (p.lockedBy === 'user') throw Object.assign(new Error('这一页已锁定，AI 不能起草正文'), { code: 'locked' });
+        if (!(p.claims || []).length) throw Object.assign(new Error('这一页还没有说法；先让 AI 整理一份来源，或者手写正文'), { code: 'no-claims' });
+        var body = { title: p.title, type: p.type, markdown: p.markdown || '',
+          claims: p.claims.slice(0, 80).map(function (c) { return { id: c.id, text: c.text, kind: c.kind, origin: c.origin, disputed: !!(c.conflictsWith && c.conflictsWith.length) }; }),
+          pages: r[1].filter(function (x) { return x.id !== p.id; }).slice(0, 200).map(function (x) { return { id: x.id, title: x.title }; }),
+          maxTokens: Math.min(4000, Math.max(1500, perms.maxTokensPerCall || 3000)) };
+        return opts.transport('lk-compose', body, opts.signal).then(function (res) {
+          return { pageId: p.id, baseRev: p.rev, markdown: res.markdown, usedClaimIds: res.usedClaimIds || [], unusedClaims: res.unusedClaims || 0, leftOut: res.leftOut || '', usage: res.usage || null };
+        });
+      });
+    });
+  }
+
+  return { chunk: chunk, estimate: estimate, claimId: claimId, similar: similar, httpTransport: httpTransport, ingest: ingest, propose: propose, apply: apply, pendingCount: pendingCount,
+    terms: terms, retrieve: retrieve, ask: ask, answerMarkdown: answerMarkdown, compose: compose };
 });
