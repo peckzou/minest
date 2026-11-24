@@ -31,7 +31,7 @@
     bench: [1300, 1160], hilltop: [40, 956],   /* 前院花园（原来放长椅的地方，长椅已去掉）、山坡顶上坐下看山谷的地方 */
     hops: [[1010, 1405], [1215, 1428], [1365, 1338], [1555, 1318], [1745, 1315]],   /* 从小路尽头跳过栏杆，经溪里的石头到对岸 */   /* 踩着溪里的石头过溪（两头在两边草地上） */
     waterSpots: [[1800, 1245, 1700, 1255], [1676, 1398, 1560, 1408]],
-    yardFlowers: [[1118, 1152, 0], [1172, 1130, 2], [1212, 1166, 1], [1252, 1142, 3], [1318, 1122, 0], [1384, 1130, 4], [1432, 1150, 2], [1196, 1208, 1], [1262, 1202, 3], [1352, 1178, 0], [1092, 1246, 4]],   /* 前院花园里零星的花：底图坐标 + 花色 */
+    yardBeds: [[1172, 1136], [1262, 1092], [1340, 1106]],   /* 前院花园里的三小丛花（底图坐标，都在花园的灌木花坛里，不在路边 / 草带上） */
     gardens: [[430, 1272, 352, 1262], [1004, 1052, 1078, 1040], [1180, 1206, 1186, 1150], [1905, 1345, 1885, 1402]],   /* 能打理的花草：小人站的地方 → 花丛 */
     stool: [2060, 1325, 2108, 1296],   /* 石桌边：走到的地方 → 坐的那只石凳 */   /* 玩水：小人站的地方 → 水面的点 */
     fence: [[1962, 1080], [2000, 1080], [2012, 1190], [2018, 1300], [2020, 1438], [1680, 1438], [1680, 1395], [1730, 1360], [1870, 1205]],   /* 石桌边沿河那道木栅栏和它的影子：铺成草地 */          /* 房前那条土路：铺成草地 */
@@ -991,10 +991,21 @@
       g.fillStyle = col === '#f7c948' ? '#b8742a' : '#ffd95a'; g.beginPath(); g.arc(32, 26, 7, 0, 6.2832); g.fill();
       var t = new THREE.CanvasTexture(c); disp.push(t); return t;
     });
-    /* 前院花园：零星几朵花点缀在草带和灌木脚下（不成片），随风轻轻晃 */
-    var GARDEN = PL.yardFlowers.map(function (p, i) {
-      var m = new THREE.SpriteMaterial({ map: flowerTex[p[2]], transparent: true, alphaTest: 0.05 }), fl = new THREE.Sprite(m), h = 0.3 + 0.1 * ((i * 7) % 5) / 4;
-      fl.center.set(0.5, 0); fl.position.copy(onTerrain(p[0], p[1])); fl.scale.set(h * 0.67, h, 1); fl.userData = { h: h, ph: i * 1.9 }; root.add(fl); disp.push(m); return fl;
+    /* 前院花园：只在花园那一块的灌木花坛里开三小丛花，和左下角篱笆边那片花一个样子（粉 / 玫红 / 白的团状花，没有茎），随风轻轻晃 */
+    var bloomTex = [['#f6a6c8', '#e77fae'], ['#c93a86', '#9c2468'], ['#fff6f2', '#ecd9de'], ['#f284b4', '#d95f98']].map(function (c2, k) {
+      var c = document.createElement('canvas'); c.width = 64; c.height = 64; var g = c.getContext('2d');
+      g.fillStyle = '#3f7d2c'; [[14, 46, 0.5], [50, 44, -0.5], [32, 54, 0]].forEach(function (l) { g.beginPath(); g.ellipse(l[0], l[1], 13, 7, l[2], 0, 6.2832); g.fill(); });
+      g.fillStyle = c2[1]; for (var i = 0; i < 6; i++) { var an = i * 1.0472 + k; g.beginPath(); g.arc(32 + Math.cos(an) * 12, 28 + Math.sin(an) * 11, 11, 0, 6.2832); g.fill(); }
+      g.fillStyle = c2[0]; for (i = 0; i < 5; i++) { an = i * 1.2566 + k * 0.7; g.beginPath(); g.arc(32 + Math.cos(an) * 7, 26 + Math.sin(an) * 6, 9, 0, 6.2832); g.fill(); }
+      g.fillStyle = 'rgba(255,255,255,.45)'; g.beginPath(); g.arc(28, 22, 5, 0, 6.2832); g.fill();
+      var t = new THREE.CanvasTexture(c); disp.push(t); return t;
+    });
+    var GARDEN = [];
+    PL.yardBeds.forEach(function (bd, b) {
+      [[0, 0, 0], [-15, 6, 1], [14, 5, 2], [-6, -9, 3], [9, -8, 0], [24, -3, 1]].slice(0, b === 1 ? 6 : 5).forEach(function (o, i) {
+        var m = new THREE.SpriteMaterial({ map: bloomTex[(o[2] + b) % 4], transparent: true, alphaTest: 0.05 }), fl = new THREE.Sprite(m), h = 0.42 + 0.16 * ((i * 3 + b) % 4) / 3;
+        fl.position.copy(onTerrain(bd[0] + o[0], bd[1] + o[1])); fl.position.y += h * 0.5; fl.scale.set(h, h, 1); fl.userData = { h: h, ph: b * 2.3 + i * 1.9 }; root.add(fl); disp.push(m); GARDEN.push(fl);
+      });
     });
     function sprout(center, spread, n) {                                    /* 在 center 周围（按底图像素散开）长出 n 朵花 */
       var cp = toPx(center);
@@ -1251,7 +1262,7 @@
         if (SW.idle && (walk || OUT.on)) idleOff();
         if (walkCamera(camera, sz, va, now)) { churchEl.hidden = true; FX.outdoor(!walk.explore && !walk.done && now - walk.t0 < WALK.zoom); return; }   /* 推到门口那一段还算屋外，之后进屋 */
         FX.outdoor(true);
-        GARDEN.forEach(function (fl) { var u = fl.userData; fl.scale.x = u.h * 0.67 * (1 + Math.sin(now * 1.6 + u.ph) * 0.05); });
+        GARDEN.forEach(function (fl) { var u = fl.userData; fl.scale.x = u.h * (1 + Math.sin(now * 1.6 + u.ph) * 0.04); });
         awakeUi(); TH.tick(Math.min(0.05, now - (TH.lastT || now))); TH.lastT = now; TH.idle(now, !!OUT.act || SW.idle);
         if (!walk && !OUT.on && !trans && Math.abs(EX.stick[0]) + Math.abs(EX.stick[1]) + (EX.keys.w || EX.keys.a || EX.keys.s || EX.keys.d ? 1 : 0) > 0.15) startOutdoorHere();   /* 开屏推摇杆：小人直接在屋外走起来 */
         if (OUT.on) outdoorStep(now);
