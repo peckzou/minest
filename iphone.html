@@ -186358,6 +186358,8 @@ button.mn-fx-scan::after {
   function cathedrals() { full(SITE + 'cathedrals-island/cathedrals.html', '教堂小岛 · Cathedrals’ Island'); }
   /* 奇想主题乐园 Theme Park (theme-park-island/, Antigravity): the third built-in island */
   function themepark() { full(SITE + 'theme-park-island/theme-park.html', '奇想主题乐园 · Theme Park'); }
+  /* 施陶巴赫瀑布 Pocket City (staubbach.html, built by pocket-city/build.sh): a 250 m hand-drawn map of a real place */
+  function pocketcity() { full(SITE + 'staubbach.html?framed=1', '施陶巴赫瀑布 · Pocket City'); }
   /* 梦工坊 Dream Workshop (dream-workshop/): direct an experience — characters, voices, triggers, a show timeline, then walk in as a guest */
   function workshop(id, play) {   /* (id, true): walk straight into that work as its guest — a placed experience in a room or on an island */
     var q = id && /^[A-Za-z0-9_-]{1,40}$/.test(String(id)) ? '?' + (play ? 'play=' : 'open=') + id : '';
@@ -186469,6 +186471,12 @@ button.mn-fx-scan::after {
       rp.addEventListener('click', function (e) { e.stopPropagation(); themepark(); }, true);
       var cr = cs.parentNode.querySelector('[data-cathisland]'); cs.parentNode.insertBefore(rp, cr ? cr.nextSibling : cs);
     }
+    if (cs && !cs.parentNode.querySelector('[data-pocketcity]')) {
+      var rk = document.createElement('button'); rk.type = 'button'; rk.className = 'uv-row'; rk.setAttribute('data-pocketcity', '');
+      rk.innerHTML = '<i>💧</i><div class="mn-en-keep"><b>施陶巴赫瀑布 · Pocket City</b><small>按真实地图手绘的 250 米口袋地图 · 可旋转、切换四季</small></div>';
+      rk.addEventListener('click', function (e) { e.stopPropagation(); pocketcity(); }, true);
+      var pq = cs.parentNode.querySelector('[data-parkisland]'); cs.parentNode.insertBefore(rk, pq ? pq.nextSibling : cs);
+    }
     if (cs && !cs.parentNode.querySelector('[data-dreamws]')) {
       var rw = document.createElement('button'); rw.type = 'button'; rw.className = 'uv-row'; rw.setAttribute('data-dreamws', '');
       rw.innerHTML = '<i>🎬</i><div class="mn-en-keep"><b>梦工坊 · Dream Workshop</b><small>造物 · 赋能 · 布景 · 导演 · 让作品活起来，再走进去当观众</small></div>';
@@ -186513,6 +186521,18 @@ button.mn-fx-scan::after {
       var pt2 = [].filter.call(m.children, function (x) { return /mn-action-tip-/.test(x.className) && x.textContent === 'Philosophers’ Island'; })[0];
       if (pt2) { var kt = document.createElement('span'); kt.className = pt2.className.replace(/mn-action-tip-\d+/, 'mn-action-tip-' + n3); kt.setAttribute('aria-hidden', 'true'); kt.textContent = 'Theme Park'; m.appendChild(kt);
         kt.style.cssText = 'position:absolute;top:' + (pTop + parseFloat(pt2.style.top) - ph.offsetTop) + 'px;right:auto;bottom:auto;left:' + (b2.offsetLeft + b2.offsetWidth / 2) + 'px;transform:translateX(-50%)'; }
+    }
+    // Pocket City: on the Theme Park's row, under the philosophers' hexagon
+    if (m && ph && !m.querySelector('[data-pocketcity]')) {
+      var n4 = m.querySelectorAll('.mn-island-action').length, kb = document.createElement('button'), kTop = ph.offsetTop + ph.offsetHeight + 22;
+      kb.type = 'button'; kb.className = 'mn-island-action mn-island-action-' + n4; kb.setAttribute('data-pocketcity', ''); kb.setAttribute('role', 'menuitem'); kb.setAttribute('aria-label', '施陶巴赫瀑布 Pocket City'); kb.title = '施陶巴赫瀑布 · Pocket City';
+      kb.innerHTML = '<span class="mn-action-icon" aria-hidden="true" style="font-size:22px;line-height:1">💧</span>';
+      kb.style.cssText = 'position:absolute;left:' + ph.offsetLeft + 'px;top:' + kTop + 'px;right:auto;bottom:auto;--g:conic-gradient(from 30deg,#d1fae5 0 60deg,#a7f3d0 60deg 120deg,#34a37a 120deg 180deg,#1f6f55 180deg 240deg,#6ac7a2 240deg 300deg,#d1fae5 300deg)';
+      kb.addEventListener('click', function (e) { e.stopPropagation(); m.remove(); [].forEach.call(document.querySelectorAll('.mn-island-selected'), function (x) { x.classList.remove('mn-island-selected'); x.setAttribute('aria-expanded', 'false'); }); pocketcity(); });
+      m.appendChild(kb);
+      var pt3 = [].filter.call(m.children, function (x) { return /mn-action-tip-/.test(x.className) && x.textContent === 'Philosophers’ Island'; })[0];
+      if (pt3) { var qt = document.createElement('span'); qt.className = pt3.className.replace(/mn-action-tip-\d+/, 'mn-action-tip-' + n4); qt.setAttribute('aria-hidden', 'true'); qt.textContent = 'Pocket City'; m.appendChild(qt);
+        qt.style.cssText = 'position:absolute;top:' + (kTop + parseFloat(pt3.style.top) - ph.offsetTop) + 'px;right:auto;bottom:auto;left:' + (ph.offsetLeft + ph.offsetWidth / 2) + 'px;transform:translateX(-50%)'; }
     }
   }
   function watch() {
