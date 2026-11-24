@@ -75,13 +75,13 @@
     /* inside: dim; the kyber table, the crystals, the Gatherers with their sabers, lamps round the wall */
     /* the kyber table: a ribbed drum, an inlaid top with a brass rim and rivets, a clawed pedestal for the great crystal, a stand and a ring of light for each of the six, and trays of hilt parts */
     var drum = new T.MeshLambertMaterial({ map: tex(128, 128, [12, 1], function (c, w, h) { c.fillStyle = '#3a2c1e'; c.fillRect(0, 0, w, h); c.fillStyle = '#231a11'; c.fillRect(0, 0, 14, h); c.fillRect(w - 14, 0, 14, h); c.fillStyle = '#6b5236'; c.fillRect(30, 18, w - 60, h - 36); c.fillStyle = '#3a2c1e'; c.fillRect(38, 26, w - 76, h - 52); c.fillStyle = '#c9a24a'; [[22, 10], [w - 28, 10], [22, h - 16], [w - 28, h - 16]].forEach(function (q) { c.fillRect(q[0], q[1], 6, 6); }); }) });
-    var brass = new T.MeshPhongMaterial({ color: 0xc9a24a, shininess: 70 }), iron = L(0x2a2118);
+    var brass = new T.MeshPhongMaterial({ color: 0x5e4322, specular: 0x241a0e, shininess: 18 })   /* aged bronze, not bright yellow */, iron = L(0x2a2118);
     add(s2, new T.CylinderGeometry(2.0, 2.2, 0.9, 36), drum, 0, 0.65, -0.6); add(s2, new T.CylinderGeometry(2.25, 2.3, 0.1, 36), iron, 0, 0.25, -0.6); add(s2, new T.CylinderGeometry(2.1, 2.1, 0.08, 36), L(0x4a3826), 0, 1.14, -0.6);
     var top = add(s2, new T.CircleGeometry(2.05, 48), new T.MeshLambertMaterial({ map: tex(512, 512, [1, 1], function (c, w, h) {
       c.fillStyle = '#5a4630'; c.fillRect(0, 0, w, h); c.translate(w / 2, h / 2);
       for (var i = 0; i < 12; i++) { c.rotate(Math.PI / 6); c.fillStyle = i % 2 ? '#6b5338' : '#4a3826'; c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, 250, 0, Math.PI / 6); c.fill(); c.strokeStyle = '#2a2118'; c.lineWidth = 3; c.beginPath(); c.moveTo(0, 0); c.lineTo(250, 0); c.stroke(); }
-      [240, 196, 150, 70].forEach(function (r, i) { c.strokeStyle = i % 2 ? '#2a2118' : '#c9a24a'; c.lineWidth = i ? 4 : 8; c.beginPath(); c.arc(0, 0, r, 0, 7); c.stroke(); });
-      c.fillStyle = '#c9a24a'; for (var k = 0; k < 24; k++) { c.rotate(Math.PI / 12); c.fillRect(214, -3, 16 + (k % 3) * 5, 6); c.fillRect(170, -2, 6, 4 + (k % 4) * 3); }
+      [240, 196, 150, 70].forEach(function (r, i) { c.strokeStyle = i % 2 ? '#2a2118' : '#9a7a44'; c.lineWidth = i ? 4 : 8; c.beginPath(); c.arc(0, 0, r, 0, 7); c.stroke(); });
+      c.fillStyle = '#9a7a44'; for (var k = 0; k < 24; k++) { c.rotate(Math.PI / 12); c.fillRect(214, -3, 16 + (k % 3) * 5, 6); c.fillRect(170, -2, 6, 4 + (k % 4) * 3); }
       c.fillStyle = '#2a2118'; c.beginPath(); for (var p = 0; p < 16; p++) { var rr = p % 2 ? 26 : 62, a = p * Math.PI / 8; c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } c.fill();
     }) }), 0, 1.185, -0.6); top.rotation.x = -Math.PI / 2;
     var rim = add(s2, new T.TorusGeometry(2.1, 0.06, 8, 48), brass, 0, 1.17, -0.6); rim.rotation.x = Math.PI / 2;
@@ -113,7 +113,9 @@
       add(q, new T.ConeGeometry(0.025, 0.07, 6), skin, 0, 1.755, 0.175).rotation.x = Math.PI / 2; add(q, new T.BoxGeometry(0.06, 0.012, 0.02), L(0x7a3a2a), 0, 1.7, 0.155);
       if (n2 % 2 === 0) { add(q, new T.ConeGeometry(0.1, 0.22, 8), L(n2 ? 0xd8d8d8 : 0x8a8a8a), 0, 1.6, 0.12).rotation.x = Math.PI; }
       if (n2 % 3 === 1) { [-1, 1].forEach(function (s) { add(q, new T.CylinderGeometry(0.04, 0.04, 0.03, 10), brass, s * 0.06, 1.88, 0.14).rotation.x = Math.PI / 2; }); var gs = add(q, new T.TorusGeometry(0.17, 0.012, 4, 16), leather, 0, 1.88, 0); gs.rotation.x = Math.PI / 2; }
-      var hood = add(q, new T.SphereGeometry(0.215, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.6), mantle, 0, 1.78, -0.02); hood.rotation.x = -0.42; add(q, new T.ConeGeometry(0.11, 0.3, 8), mantle, 0, 1.93, -0.17).rotation.x = -1.0;
+      /* a hood, not a helmet: a shell round the back and sides of the head, open at the face from brow to chin, a small crown over the top, and its edge folded back */
+      add(q, new T.SphereGeometry(0.215, 18, 12, Math.PI / 2 + 0.95, Math.PI * 2 - 1.9, 0, Math.PI * 0.8), mantle, 0, 1.76, -0.015); add(q, new T.SphereGeometry(0.217, 14, 6, 0, Math.PI * 2, 0, 0.5), mantle, 0, 1.76, -0.015);
+      var brim = add(q, new T.TorusGeometry(0.2, 0.022, 6, 18, Math.PI * 1.25), mantle, 0, 1.75, 0.105); brim.rotation.z = -Math.PI * 0.125; add(q, new T.ConeGeometry(0.11, 0.3, 8), mantle, 0, 1.93, -0.17).rotation.x = -1.0;
       try { var sb = W.buildSaber({ color: KY[n2], hilt: n2 % 2 ? 'gold' : 'steel' }); sb.position.set(0, 1.12, 0.37); sb.rotation.set(0, 0, 0); q.add(sb); gath.push({ g: q, sb: sb, ry: a3 + Math.PI, ph: n2 * 1.3 }); } catch (e) {} }
     for (var lp = 0; lp < 10; lp++) { var la = lp / 10 * Math.PI * 2 + 0.3; add(s2, new T.SphereGeometry(0.13, 8, 6), B(0xffc46b), Math.sin(la) * (R - 0.5), 3.4, Math.cos(la) * (R - 0.5)); }
     for (var sh = 0; sh < 6; sh++) { var sa = Math.PI + (sh - 2.5) * 0.3; add(s2, new T.BoxGeometry(1.4, 0.08, 0.5), L(0x4a3a2a), Math.sin(sa) * (R - 0.6), 1.5, Math.cos(sa) * (R - 0.6), sa); add(s2, new T.CylinderGeometry(0.04, 0.04, 0.5, 8), L(0x9aa3ad), Math.sin(sa) * (R - 0.6), 1.8, Math.cos(sa) * (R - 0.6)); }
