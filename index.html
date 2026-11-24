@@ -8571,6 +8571,7 @@ html.mn-adm-on #minest-mini-pet-p0 { visibility:hidden !important; }
 html.duo-halfopen .mn-tr-pill { bottom:calc(50vh + 10px); }
 html.mn-tr-on #minest-mini-pet-p0 { visibility:hidden !important; }
 </style>
+<style id="mn-dock-still">html.duo-dockpin .mn-bdock,html.duo-docktop .mn-bdock{touch-action:none!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:auto!important}</style>
 <style id="mn-hermes-style">
 .mn-hermes { position:fixed; inset:0; z-index:2147483561; background:#b8c8c1; }
 .mn-hermes[hidden] { display:none; }
@@ -96106,6 +96107,7 @@ var Ve = (function(_Component) {
   function attach(box, o) {
     ensureCss();
     o = o || {};
+    /* duo-dock-plain-runtime */ var duoPlain = function () { var c = document.documentElement.classList; return c.contains('duo-inner') || c.contains('duo-outer') || (window.matchMedia && matchMedia('(pointer: coarse)').matches) || navigator.maxTouchPoints > 0; };
     var axis = o.axis || 'y', side = o.side || 'right', max = o.max || 1.65, base = 46, reach = 150, mode = o.mode || 'size';
     var boxes = o.boxes || [box];
     // axis / side are read every time, so a dock can move (left · bottom · right) without attaching again
@@ -96121,6 +96123,7 @@ var Ve = (function(_Component) {
     function restC(t) { var r = t.getBoundingClientRect(); return (axis === 'y' ? r.top + r.height / 2 : r.left + r.width / 2) - (t.__push || 0); }
     function apply() {
       raf = 0; sizes();
+      if (duoPlain()) pos = null;
       var ts = tiles(), best = null, bestS = 1;
       var info = ts.map(function (t) {
         var c = restC(t), s = 1;
@@ -96199,6 +96202,7 @@ var Ve = (function(_Component) {
     if (o.pickFirst) boxes.forEach(function (bx) {
       bx.addEventListener('click', function (e) {
         if (!e.isTrusted || e.detail === 0) return;   // keyboard / scripted clicks open at once
+        if (duoPlain()) return;
         var t = tiles().filter(function (x) { return x.contains(e.target); })[0];
         if (!t) return;
         if (t === sel) { clearTimeout(selT); sel = null; return; }   // the second click: open
@@ -96228,6 +96232,7 @@ var Ve = (function(_Component) {
       bx.addEventListener('touchend', function (e) {
         var s = scrub; scrub = null;
         if (!s) return;
+        if (duoPlain()) { leave(); return; }
         var hit = null, best = 1e9;
         tiles().forEach(function (t) { var d = Math.abs((axis === 'y' ? s.ly : s.lx) - restC(t)); if (d < best) { best = d; hit = t; } });
         if (!hit || best >= base * 0.75) { leave(); return; }
@@ -96489,7 +96494,7 @@ var Ve = (function(_Component) {
     if (!dock.isConnected) document.body.appendChild(dock);
     if (!edge.isConnected) document.body.appendChild(edge);
     refresh(); base();
-    if (!ctl && window.MinestDock) ctl = MinestDock.attach(dock, opts);
+    /* 2026-11-24 (the user: "dock取消放大效果，不然很难拖动操作"): the keys no longer swell under the pointer — they kept moving away from it, and the Dock was hard to grab and drag */
   }
   setInterval(mount, 700);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
@@ -110663,28 +110668,51 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     ['lmap', 'Learning Map', '#ff6b8a', G('<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>'), function () { return window.MinestLearnMap; }],
     ['wiki', 'Portal', '#38bdf8', G('<rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/>'), function () { return window.MinestWiki; }]
   ];
+  // 2026-11-24: Knowledge is a full-screen page — its views on the left, Living Knowledge (living-knowledge/index.html?embed=1) living inside it
   var CSS = [
-    '.kh{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);transform:translateX(-50%);z-index:2147482500;width:min(440px,calc(100vw - 20px));max-height:calc(100dvh - 40px);overflow:auto;padding:16px;border-radius:28px;color:#fff;font:15px -apple-system,BlinkMacSystemFont,system-ui,sans-serif;' +
-      'background:linear-gradient(180deg,rgba(66,76,92,.94),rgba(28,34,46,.97));-webkit-backdrop-filter:blur(30px) saturate(170%);backdrop-filter:blur(30px) saturate(170%);border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 30px 80px rgba(0,0,0,.5)}',
-    '.kh h3{margin:2px 4px 12px;font-size:22px;font-weight:750;letter-spacing:-.3px}',
+    '.kh{position:fixed;inset:0;z-index:2147482500;display:flex;flex-direction:column;color:var(--kh-ink);background:var(--kh-bg);font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",system-ui,sans-serif;--kh-bg:#14121f;--kh-ink:#ece9fb;--kh-mute:#a29dc0;--kh-line:#34304a;--kh-panel:#1e1b2e;--kh-accent:#9b85ff;--kh-on:#14121f}',
+    'html.kn-light .kh{--kh-bg:#f4f2fb;--kh-ink:#1d1838;--kh-mute:#6d6889;--kh-line:#e3dff2;--kh-panel:#fff;--kh-accent:#6b4ce6;--kh-on:#fff}',
+    '.kh *{box-sizing:border-box}',
+    '.kh-top{display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;border-bottom:1px solid var(--kh-line)}',
+    '.kh-x{flex:none;width:40px;height:40px;border-radius:50%;border:1px solid var(--kh-line);background:var(--kh-panel);color:inherit;display:grid;place-items:center;cursor:pointer;padding:0}',
+    '.kh-x svg{width:20px;height:20px}',
+    '.kh h3{margin:0;font-size:20px;font-weight:750;letter-spacing:-.3px;flex:1;min-width:0}',
+    '.kh-seg{display:none;padding:3px;border-radius:999px;background:var(--kh-panel);border:1px solid var(--kh-line)}',
+    '.kh-seg button{height:34px;padding:0 14px;border:0;border-radius:999px;background:none;color:var(--kh-mute);font:600 14px -apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",system-ui,sans-serif;cursor:pointer}',
+    '.kh-seg button[aria-selected=true]{background:var(--kh-accent);color:var(--kh-on)}',
+    '.kh-body{flex:1;min-height:0;display:flex}',
+    '.kh-side{width:340px;flex:none;overflow:auto;-webkit-overflow-scrolling:touch;padding:16px 14px calc(env(safe-area-inset-bottom,0px) + 20px);border-right:1px solid var(--kh-line)}',
+    '.kh-lk{flex:1;min-width:0;display:flex}',
+    '.kh-lk iframe{flex:1;width:100%;height:100%;border:0;background:var(--kh-bg)}',
+    '@media (max-width:899px){.kh-seg{display:flex}.kh-side{width:auto;flex:1;border-right:0}.kh[data-pane=views] .kh-lk{display:none}.kh[data-pane=lk] .kh-side{display:none}}',
     '.kh-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}',
-    '.kh-m{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:18px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.06);color:#fff;text-align:left;cursor:pointer;font:inherit;min-height:56px;transition:transform .15s}',
-    '.kh-m:active{background:rgba(255,255,255,.13);transform:scale(.97)}',
+    '.kh-m{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:18px;border:1px solid var(--kh-line);background:var(--kh-panel);color:inherit;text-align:left;cursor:pointer;font:inherit;min-height:56px;transition:transform .15s}',
+    '.kh-m:hover{border-color:var(--kh-accent)}',
+    '.kh-m:active{transform:scale(.97)}',
     '.kh-m b{font-size:15px;font-weight:650;letter-spacing:-.1px;min-width:0}',
     '.kh-m i{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;' +
       'background:radial-gradient(120% 80% at 30% 15%,rgba(255,255,255,.55),rgba(255,255,255,0) 50%),linear-gradient(160deg,color-mix(in srgb,var(--c) 85%,#fff),color-mix(in srgb,var(--c) 70%,#000));' +
       'border:1px solid rgba(255,255,255,.45);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 4px 12px color-mix(in srgb,var(--c) 40%,transparent)}',
     '.kh-m i svg{width:18px;height:18px}',
     '.kh-lom{width:100%;margin-top:8px;flex-direction:row}',
-    '.kh-lom small{margin-left:auto;font-size:12px;opacity:.55}',
+    '.kh-lom small{margin-left:auto;font-size:12px;color:var(--kh-mute)}',
     '.kh-m[disabled]{opacity:.45;cursor:default}',
-    '.kh h4{margin:16px 4px 8px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.55}',
+    '.kh h4{margin:20px 4px 8px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--kh-mute);display:flex;align-items:center;gap:8px}',
+    '.kh h4:first-child{margin-top:0}',
+    '.kh h4 a{margin-left:auto;color:var(--kh-accent);text-decoration:none;text-transform:none;letter-spacing:0;font-size:12.5px}',
+    '.kh-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}',
+    '.kh-st{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;border-radius:16px;border:1px solid var(--kh-line);background:var(--kh-panel);color:inherit;cursor:pointer;font:inherit;text-align:left}',
+    '.kh-st:hover{border-color:var(--kh-accent)}',
+    '.kh-st b{font-size:24px;font-weight:750;letter-spacing:-.5px;line-height:1.15;font-variant-numeric:tabular-nums}',
+    '.kh-st span{font-size:13px;color:var(--kh-mute)}',
+    '.kh-st.hot b{color:var(--kh-accent)}',
+    '.kh-note{margin:8px 4px 0;font-size:13px;line-height:1.5;color:var(--kh-mute)}',
     '.kh-row{display:flex;gap:8px;flex-wrap:wrap}',
-    '.kh-row button{height:40px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);color:#fff;font:600 14px -apple-system,system-ui,sans-serif;cursor:pointer}',
-    '.kh-row button.pri{background:#0a84ff;border-color:#0a84ff}',
+    '.kh-row button{height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--kh-line);background:var(--kh-panel);color:inherit;font:600 14px -apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",system-ui,sans-serif;cursor:pointer}',
+    '.kh-row button.on{border-color:var(--kh-accent);color:var(--kh-accent)}',
+    '.kh-row button.pri{background:var(--kh-accent);border-color:var(--kh-accent);color:var(--kh-on)}',
     '.kh-msg{margin:10px 4px 0;font-size:13px;line-height:1.45;white-space:pre-wrap}',
-    '.kh-msg.err{color:#ff8a80}',
-    '.kh-bd{position:fixed;inset:0;z-index:2147482499;background:rgba(0,0,0,.25)}'
+    '.kh-msg.err{color:#ef6b7f}'
   ].join('\n');
   var el = null, bd = null, origin = '50% 100%';
   var lastTap = null, reduce = false; try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
@@ -110692,37 +110720,70 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
   function originOf(box) { var r = box.getBoundingClientRect(); if (lastTap && Date.now() - lastTap.t < 2000) { var o = lastTap.r; return Math.round(o.left + o.width / 2 - r.left) + 'px ' + Math.round(o.top + o.height / 2 - r.top) + 'px'; } return '50% 100%'; }
   function css() { if (document.getElementById('kh-css')) return; var s = document.createElement('style'); s.id = 'kh-css'; s.textContent = CSS; document.head.appendChild(s); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  var frame = null, onKey = null, onMsg = null, restore = null;
+  function lk() { try { return frame && frame.contentWindow && frame.contentWindow.MinestLivingKnowledge; } catch (e) { return null; } }
   function close() {
-    var e0 = el, b0 = bd; el = null; bd = null;
-    if (b0) { if (b0.animate && !reduce) { var fb = b0.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 240, fill: 'forwards' }); fb.onfinish = function () { b0.remove(); }; } else b0.remove(); }
+    var api = lk();   // an unsaved edit in Living Knowledge: ask before it is thrown away
+    if (el && api && api.canLeave && !api.canLeave()) return;
+    var e0 = el; el = null; bd = null; frame = null;
+    if (onKey) { document.removeEventListener('keydown', onKey, true); onKey = null; }
+    if (onMsg) { window.removeEventListener('message', onMsg); onMsg = null; }
     if (!e0) return;
-    if (!e0.animate || reduce) return e0.remove();
-    e0.style.pointerEvents = 'none'; e0.style.transformOrigin = origin;   // shrink back into the button it came from
-    var a = e0.animate([{ scale: '1', opacity: 1, filter: 'blur(0px)' }, { scale: '.2', opacity: 0, filter: 'blur(5px)' }], { duration: 260, easing: 'cubic-bezier(.4,0,.6,1)', fill: 'forwards' });
-    a.onfinish = a.oncancel = function () { e0.remove(); };
+    var back = restore; restore = null;
+    var done = function () { e0.remove(); try { if (back && back.isConnected) back.focus(); } catch (e) {} };
+    if (!e0.animate || reduce) return done();
+    e0.style.pointerEvents = 'none';
+    var a = e0.animate([{ scale: '1', opacity: 1 }, { scale: '.97', opacity: 0 }], { duration: 200, easing: 'cubic-bezier(.4,0,.6,1)', fill: 'forwards' });
+    a.onfinish = a.oncancel = done;
+  }
+  function pane(p) {
+    if (!el) return;
+    el.setAttribute('data-pane', p);
+    el.querySelectorAll('.kh-seg [data-pane]').forEach(function (b) { b.setAttribute('aria-selected', String(b.getAttribute('data-pane') === p)); });
+  }
+  function paintStats(st) {
+    if (!el || !st) return;
+    [['pages', st.pages], ['sources', st.sources], ['decisions', st.decisions], ['review', st.pending]].forEach(function (x) {
+      var b = el.querySelector('.kh-st[data-lk="' + x[0] + '"]'); if (!b) return;
+      b.querySelector('b').textContent = String(x[1]);
+      if (x[0] === 'review') b.classList.toggle('hot', x[1] > 0);
+    });
+    var n = el.querySelector('.kh-note[data-lknote]');
+    if (n) n.textContent = (st.claims ? st.claims + ' 条说法' : '还没有说法') + (st.conflicts ? ' · ' + st.conflicts + ' 条互相矛盾，等你处理' : '') + (st.signedIn ? ' · 已同步到你的账号' : ' · 只在这台设备上');
   }
   function open() {
     if (el) return close();
     css(); if (window.MinestKnowledge && MinestKnowledge.applyLook) MinestKnowledge.applyLook();
     var samples = (window.MinestKJ && MinestKJ.samples()) || {}, undo = window.MinestKJ ? MinestKJ.undoList() : [];
-    bd = document.createElement('div'); bd.className = 'kh-bd'; bd.addEventListener('pointerdown', function (e) { e.stopPropagation(); close(); });
-    el = document.createElement('div'); el.className = 'kh'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Knowledge');
-    el.innerHTML = '<h3>Knowledge</h3><div class="kh-grid">' + MODES.map(function (m) { var ok = !!m[4](); return '<button type="button" class="kh-m" data-mode="' + m[0] + '" style="--c:' + m[2] + '"' + (ok ? '' : ' disabled') + '><i>' + m[3] + '</i><b>' + m[1] + '</b></button>'; }).join('') + '</div>' +
+    var dark = window.MinestKnowledge && MinestKnowledge.isDark ? MinestKnowledge.isDark() : true;
+    var lkUrl = 'living-knowledge/index.html';
+    restore = document.activeElement;
+    el = document.createElement('div'); el.className = 'kh'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', 'Knowledge'); el.setAttribute('data-pane', 'views');
+    el.innerHTML = '<header class="kh-top"><button type="button" class="kh-x" data-close aria-label="关闭 Knowledge">' + I('<path d="m15 6-6 6 6 6"/>') + '</button><h3>Knowledge</h3>' +
+      '<div class="kh-seg" role="tablist" aria-label="Knowledge"><button type="button" role="tab" data-pane="views" aria-selected="true">视图</button><button type="button" role="tab" data-pane="lk" aria-selected="false">活知识</button></div></header>' +
+      '<div class="kh-body"><aside class="kh-side"><h4>视图 Views</h4><div class="kh-grid">' + MODES.map(function (m) { var ok = !!m[4](); return '<button type="button" class="kh-m" data-mode="' + m[0] + '" style="--c:' + m[2] + '"' + (ok ? '' : ' disabled') + '><i>' + m[3] + '</i><b>' + m[1] + '</b></button>'; }).join('') + '</div>' +
       (false && window.MinestMyWorld ? '<button type="button" class="kh-m kh-lom" data-myworld style="--c:#5e5ce6"><i>' + G('<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.5 3 2.5 13 0 16M12 4c-2.5 3-2.5 13 0 16"/>') + '</i><b>My World</b><small>A little universe of mine</small></button>' : '') +
       (window.MinestCapture && !window.MinestMyWorld ? '<button type="button" class="kh-m kh-lom" data-cap style="--c:#0a84ff"><i>' + G('<path d="M12 5v14M5 12h14"/>') + '</i><b>Add to My World</b><small>Type, paste, photo, import</small></button>' : '') +
       (window.MinestDiscover && !window.MinestMyWorld ? '<button type="button" class="kh-m kh-lom" data-disc style="--c:#ff9f0a"><i>' + G('<rect x="3" y="6" width="7" height="12" rx="2"/><rect x="14" y="6" width="7" height="12" rx="2"/><path d="M12 9v6"/>') + '</i><b>Discover My World</b><small>This or That · Tier List · Tournament</small></button>' : '') +
       (window.MinestWorld && !window.MinestMyWorld ? '<button type="button" class="kh-m kh-lom" data-lom style="--c:#7c8cff"><i>' + G('<rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="10" rx="2"/><path d="M14 18h7"/>') + '</i><b>List of Mine</b><small>My world, my lists</small></button>' : '') +
-      '<h4>Appearance</h4><div class="kh-row">' + [['auto', '◐ Auto'], ['light', '☀︎ Light'], ['dark', '☾ Dark']].map(function (x) { var cur = window.MinestKnowledge ? MinestKnowledge.look() : 'auto'; return '<button type="button" data-look="' + x[0] + '"' + (cur === x[0] ? ' class="on"' : '') + '>' + x[1] + '</button>'; }).join('') + '</div>' +
-      '<h4>Import</h4><div class="kh-row"><button type="button" class="pri" data-file>Import JSON…</button>' + (undo.length ? '<button type="button" data-undo>Undo “' + esc(undo[0].title) + '”</button>' : '') + '</div>' +
-      // (the samples stay in MinestKJ.samples(); the sheet no longer lists them)
-      '<div class="kh-msg"></div><input type="file" accept=".json,application/json" hidden>';
-    document.body.appendChild(bd); document.body.appendChild(el);
-    origin = originOf(el);
-    if (el.animate && !reduce) {   // Apple Music: it grows out of the button, a touch past full size, and settles
-      el.style.transformOrigin = origin;
-      el.animate([{ scale: '.2', opacity: 0, filter: 'blur(6px)' }, { scale: '1.025', opacity: 1, filter: 'blur(0px)', offset: .68 }, { scale: '1', opacity: 1, filter: 'blur(0px)' }], { duration: 460, easing: 'cubic-bezier(.2,.85,.25,1)' });
-      bd.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300 });
-    }
+      '<h4>活知识 Living Knowledge<a href="' + lkUrl + '" target="_blank" rel="noopener">单独打开 ↗</a></h4>' +
+      '<div class="kh-stats">' + [['pages', '知识页'], ['sources', '来源'], ['decisions', '决策'], ['review', '待审核']].map(function (x) { return '<button type="button" class="kh-st" data-lk="' + x[0] + '"><b>–</b><span>' + x[1] + '</span></button>'; }).join('') + '</div>' +
+      '<p class="kh-note" data-lknote>正在打开…</p>' +
+      '<div class="kh-row" style="margin-top:10px"><button type="button" class="pri" data-lk="home">总览</button><button type="button" data-lk="graph">知识图谱</button><button type="button" data-lk="perms">AI 权限</button></div>' +
+      '<h4>外观 Appearance</h4><div class="kh-row">' + [['auto', '◐ Auto'], ['light', '☀︎ Light'], ['dark', '☾ Dark']].map(function (x) { var cur = window.MinestKnowledge ? MinestKnowledge.look() : 'auto'; return '<button type="button" data-look="' + x[0] + '"' + (cur === x[0] ? ' class="on"' : '') + '>' + x[1] + '</button>'; }).join('') + '</div>' +
+      '<h4>导入 Import</h4><div class="kh-row"><button type="button" class="pri" data-file>Import JSON…</button>' + (undo.length ? '<button type="button" data-undo>Undo “' + esc(undo[0].title) + '”</button>' : '') + '</div>' +
+      // (the samples stay in MinestKJ.samples(); the page does not list them)
+      '<div class="kh-msg"></div><input type="file" accept=".json,application/json" hidden></aside>' +
+      '<section class="kh-lk" aria-label="活知识 Living Knowledge"><iframe title="活知识 Living Knowledge" src="' + lkUrl + '?embed=1&theme=' + (dark ? 'dark' : 'light') + '"></iframe></section></div>';
+    document.body.appendChild(el);
+    frame = el.querySelector('iframe');
+    if (el.animate && !reduce) el.animate([{ scale: '.97', opacity: 0 }, { scale: '1', opacity: 1 }], { duration: 260, easing: 'cubic-bezier(.2,.85,.25,1)' });
+    onKey = function (e) { if (e.key === 'Escape' && el) { e.stopPropagation(); close(); } };
+    document.addEventListener('keydown', onKey, true);
+    // Living Knowledge tells the page around it how much there is (same origin only)
+    onMsg = function (e) { if (e.origin === location.origin && frame && e.source === frame.contentWindow && e.data && e.data.type === 'lk-stats') paintStats(e.data.stats); };
+    window.addEventListener('message', onMsg);
+    try { el.querySelector('[data-close]').focus({ preventScroll: true }); } catch (e) {}
     ['pointerdown', 'touchstart'].forEach(function (ev) { el.addEventListener(ev, function (e) { e.stopPropagation(); }, { passive: true }); });
     var msg = el.querySelector('.kh-msg'), file = el.querySelector('input[type=file]');
     function report(r) {
@@ -110750,13 +110811,17 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
       rd.readAsText(f); file.value = '';
     });
     el.addEventListener('click', function (e) {
+      if (e.target.closest('[data-close]')) return close();
+      var pn = e.target.closest('.kh-seg [data-pane]'); if (pn) return pane(pn.getAttribute('data-pane'));
+      var go = e.target.closest('[data-lk]');
+      if (go) { var api = lk(); if (api && api.go && api.go(go.getAttribute('data-lk')) === false) return; pane('lk'); return; }
       var m = e.target.closest('[data-mode]');
       if (m) { var mod = MODES.filter(function (x) { return x[0] === m.getAttribute('data-mode'); })[0], api = mod && mod[4](); close(); if (api && api.open) setTimeout(function () { api.open(); }, 120); return; }
       if (e.target.closest('[data-myworld]')) { close(); setTimeout(function () { MinestMyWorld.open(); }, 160); return; }
       if (e.target.closest('[data-cap]')) { close(); setTimeout(function () { MinestCapture.open(); }, 160); return; }
       if (e.target.closest('[data-disc]')) { close(); setTimeout(function () { MinestDiscover.open(); }, 160); return; }
       if (e.target.closest('[data-lom]')) { close(); setTimeout(function () { MinestWorld.open(); }, 160); return; }
-      var lk = e.target.closest('[data-look]'); if (lk) { MinestKnowledge.setLook(lk.getAttribute('data-look')); el.querySelectorAll('[data-look]').forEach(function (x) { x.classList.toggle('on', x === lk); }); return; }
+      var lb = e.target.closest('[data-look]'); if (lb) { MinestKnowledge.setLook(lb.getAttribute('data-look')); el.querySelectorAll('[data-look]').forEach(function (x) { x.classList.toggle('on', x === lb); }); var la = lk(); if (la && la.setTheme) la.setTheme(MinestKnowledge.isDark() ? 'dark' : 'light'); return; }
       if (e.target.closest('[data-file]')) return file.click();
       var s = e.target.closest('[data-sample]'); if (s) return run(JSON.parse(JSON.stringify(samples[s.getAttribute('data-sample')])));
       if (e.target.closest('[data-undo]')) { var u = MinestKJ.undo(); msg.className = 'kh-msg'; msg.textContent = u ? '↺ Undid the import of “' + u.title + '”.' : 'Nothing to undo.'; e.target.closest('[data-undo]').remove(); return; }
@@ -110779,7 +110844,7 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     document.body.appendChild(b);
   }
   if (document.body) { trigger(); worldTrigger(); } else document.addEventListener('DOMContentLoaded', function () { trigger(); worldTrigger(); });
-  window.MinestKnowledgeHub = { open: open, close: close, icon: ICON };
+  window.MinestKnowledgeHub = { open: open, close: close, icon: ICON, isOpen: function () { return !!el; } };
 })();
 
 /* Minest Knowledge · swipe from the left edge to go back (window.MinestEdgeBack)
@@ -128583,10 +128648,11 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
         var sk = setKey(), D = SETS[sk], pn = W.panel[sk] || 'smart', S = W.S && W.S.set === sk ? W.S : null, nl = Object.keys(locks(sk)).length;
         var acts = [['smart', '✨', 'Smart'], ['suggest', '💡', 'Suggest'], ['lock', nl ? '🔒' : '🔓', 'Lock' + (nl ? ' ' + nl : '')], ['confirm', '✓', 'Confirm'], ['edit', '✎', 'Edit']];
         var menu = [['new', '＋', D.menu[0]], ['gallery', '🖼', D.menu[1]], ['group', '🧩', D.menu[2]], ['smart', '✨', D.smart], ['more', '⋯', 'More tools ▾']];
+        var fold = HUD_FOLD.map(hudBtn).join('') + (lv === 1 ? '<button type="button" data-wfter="toggle"' + (W.terr ? ' class="on"' : '') + '><i>' + px('hill') + '</i><span>' + (W.terr ? '✓ Done' : 'Terrain') + '</span></button><button type="button" data-wfview><i>' + px('eye') + '</i><span>阅览 View</span></button>' : '') + HUD_MORE.map(hudBtn).join('');   // what More ▾ holds
         c.classList.add('wf3');   // 53.89 · tools down both sides, the console and a gallery in the middle
         c.innerHTML = head + '<div class="wf-main">' +
           // left column: the five steps fold into one button (it pops the others), then the hands-on build tools
-          '<nav class="wf-acts" aria-label="Actions">' + stepBtn(acts, pn, S) + HUD_MAIN.map(hudBtn).join('') + (lv === 1 ? '<button type="button" data-wfter="toggle"' + (W.terr ? ' class="on"' : '') + '><i>' + px('hill') + '</i><span>' + (W.terr ? '✓ Done' : 'Terrain') + '</span></button><button type="button" data-wfview><i>' + px('eye') + '</i><span>阅览 View</span></button>' : '') + '<button type="button" class="wf-popb' + (W.pop === 'tools' ? ' on' : '') + '" data-wfpop="tools" aria-expanded="' + (W.pop === 'tools') + '"><i>' + px('tools') + '</i><span>Tools ▾</span></button></nav>' +
+          '<nav class="wf-acts wf-fold" aria-label="Actions">' + stepBtn(acts, pn, S) + HUD_MAIN.map(hudBtn).join('') + '<button type="button" class="wf-pack' + (packIsOpen() ? ' on' : '') + '" data-wfpack aria-label="Backpack: every building, object and interior, ready to set out"><i>' + pxi('🎒') + '</i><span>Backpack</span></button><button type="button" class="wf-popb' + (W.pop === 'tools' ? ' on' : '') + '" data-wfpop="tools" aria-expanded="' + (W.pop === 'tools') + '" aria-label="More tools"><i>' + pxi('⋯') + '</i><span>More ▾</span></button></nav>' +
           (V && V.expand ? '<div class="wf-center">' + landPanel() + '</div>' : W.terr && lv === 1 ? '<div class="wf-center">' + terrPanel() + '</div>' :
           '<div class="wf-center">' + (lv === 1 && V ? megaRow() : '') +
           (lv === 4 ? '<div class="wf-seg" role="tablist" aria-label="Which tools"><button type="button" data-wfset="roomd"' + (sk === 'roomd' ? ' class="on"' : '') + '>🛋 Room tools · 建房</button><button type="button" data-wfset="disp"' + (sk === 'disp' ? ' class="on"' : '') + '>🗄 Display tools · 陈列</button></div>' : '') +
@@ -128594,7 +128660,8 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
           '<div class="wf-body">' + panelHtml(lv, sk, pn) + '</div>' + (pn === 'smart' ? '<section class="wf-gal"><h4>🖼 ' + esc(D.menu[1]) + '</h4>' + D.gallery() + '</section>' : '') + '<p class="wf-hint">' + esc(HINT[lv]) + '</p></div>') +
           '<nav class="wf-menu" aria-label="' + esc(D.name) + '">' + menu.map(function (a) { return '<button type="button" data-wfpanel="' + a[0] + '"' + (a[0] === pn ? ' class="on"' : '') + '><i>' + pxi(a[1]) + '</i><span>' + esc(String(a[2]).replace(/ ▾$/, '')) + '</span></button>'; }).join('') + '</nav></div>';
         emoji(c);
-        if (W.pop) popOpen(c, acts, pn, S);
+        if (W.foldObs) { W.foldObs.disconnect(); W.foldObs = null; }
+        if (W.pop) popOpen(c, acts, pn, S, fold);
       }
       var nav = c.querySelector('.wf-crumbs'); if (nav) nav.scrollLeft = nav.scrollWidth;   // where you are stays in sight
       clearTimeout(W.fill); W.fill = setTimeout(libFill, 400);
@@ -128681,7 +128748,8 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
     function pxi(sym, fallback) { var n = PXMAP[sym] || sym; return PX[n] ? px(n) : (fallback != null ? fallback : sym); }
 
     // ---- hands-on build tools: each presses the island HUD's own button, so they behave exactly as before
-    var HUD_MAIN = [['fpv', '🚶', 'Walk in', '[data-fpv]'], ['expand', '⛰', 'More land', '[data-expand]'], ['undo', '↶', 'Undo', '[data-hudundo]']];
+    var HUD_MAIN = [['fpv', '🚶', 'Walk in', '[data-fpv]'], ['expand', '⛰', 'More land', '[data-expand]']];
+    var HUD_FOLD = [['undo', '↶', 'Undo', '[data-hudundo]']];   // first in More ▾
     var HUD_MORE = [['redo', '↷', 'Redo', '[data-hudredo]'], ['snap', '▦', 'Grid', '[data-hudsnap]'], ['auto', '✦', 'Arrange for me', '[data-auto]'], ['reorg', '🔀', 'Reorganize', '[data-reorg]'],
       ['arch', 'map', 'Tile mode', '[data-arch]'], ['box', 'box', 'Box', '[data-hudsheet="box"]'], ['in', 'zin', 'Zoom in', '[data-cam="in"]'], ['out', 'zout', 'Zoom out', '[data-cam="out"]'],
       ['left', 'tleft', 'Turn left', '[data-cam="left"]'], ['right', 'tright', 'Turn right', '[data-cam="right"]'], ['fit', 'fit', 'See it all', '[data-cam="fit"]']];
@@ -128694,13 +128762,22 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
       var cur = S && S.i >= 0 ? acts[3] : acts.filter(function (a) { return a[0] === pn; })[0] || acts[0];
       return '<button type="button" class="wf-popb wf-step on' + (W.pop === 'steps' ? ' open' : '') + '" data-wfpop="steps" aria-expanded="' + (W.pop === 'steps') + '"><i>' + pxi(cur[1]) + '</i><span>' + esc(cur[2]) + ' ▾</span></button>';
     }
-    function popOpen(c, acts, pn, S) {   // the pop-out beside the left column
+    function extBtns(c) { return c ? [].slice.call(c.querySelectorAll('.wf-acts.wf-fold > button')).slice(5) : []; }   // keys other features add to the column: kept there (hidden) so they keep finding them
+    function foldSync(c, pop) {
+      [].slice.call(pop.querySelectorAll('[data-wfext]')).forEach(function (x) { x.remove(); });
+      extBtns(c).forEach(function (b, i) { var x = document.createElement('button'); x.type = 'button'; x.setAttribute('data-wfext', i); x.innerHTML = b.innerHTML; if (b.disabled) x.disabled = true; pop.appendChild(x); });
+    }
+    function popOpen(c, acts, pn, S, fold) {   // the pop-out beside the left column
       var html = W.pop === 'steps'
         ? acts.map(function (a) { var on = a[0] === pn || (a[0] === 'confirm' && S && S.i >= 0); return '<button type="button" data-wfact="' + a[0] + '"' + (on ? ' class="on"' : '') + (a[0] === 'confirm' && !(S && S.i >= 0) ? ' disabled' : '') + '><i>' + pxi(a[1]) + '</i><span>' + esc(a[2]) + '</span></button>'; }).join('')
-        : HUD_MORE.map(hudBtn).join('');
+        : (fold || '');
       var pop = document.createElement('div'); pop.className = 'wf-pop ' + W.pop; pop.setAttribute('role', 'menu'); pop.innerHTML = html;
       var main = c.querySelector('.wf-main'); main.appendChild(pop);
-      var b = c.querySelector('[data-wfpop="' + W.pop + '"]'); if (b) pop.style.top = Math.max(0, Math.min(b.offsetTop - 4, main.clientHeight - pop.offsetHeight)) + 'px';   // beside its button, never off the screen
+      if (W.pop === 'tools') {
+        var nav = c.querySelector('.wf-acts.wf-fold'); foldSync(c, pop);
+        if (nav && window.MutationObserver) { W.foldObs = new MutationObserver(function () { if (pop.isConnected) { foldSync(c, pop); place(); } }); W.foldObs.observe(nav, { childList: true, subtree: true, characterData: true }); }
+      }
+      var b = c.querySelector('[data-wfpop="' + W.pop + '"]'); var place = function () { var vis = Math.min(main.clientHeight, window.innerHeight - main.getBoundingClientRect().top); pop.style.maxHeight = Math.max(120, vis - 8) + 'px'; if (b) pop.style.top = Math.max(0, Math.min(b.offsetTop - 4, vis - pop.offsetHeight - 4)) + 'px'; }; place();   // beside its button, never off the screen
     }
     // first person on the folded Duo: the view stays above, the joystick and the fly / run / up / down pad move to the lower screen
     // The walk view's own joystick / pad stay in place (hidden); a stand-in set lives at the top of the page in the middle
@@ -130059,12 +130136,14 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
       if (g.hasAttribute('data-wfadmont') && window.MinestAdmont) { hap(); return MinestAdmont.open(); }
       if (g.hasAttribute('data-wfalps') && window.MinestAlps) { hap(); return MinestAlps.open(); }   // 🏔 the Alpine Chalet valley, in My World   // 🇬🇷 the voxel Oia, in My World   // 3D Venezia Voxel, full screen
       if (g.hasAttribute('data-wfview')) { W.pop = null; hap(); return wkView(); }   // 阅览: the whole island in 3D, full screen
-      if ((v = g.getAttribute('data-wfter'))) return terrAct(v);
+      if ((v = g.getAttribute('data-wfter'))) { if (g.closest('.wf-pop')) W.pop = null; return terrAct(v); }
       if ((v = g.getAttribute('data-wfbrush'))) { W.brush = W.brush === v ? null : v; hap(); return draw(); }
       if ((v = g.getAttribute('data-wfland'))) { dspPress('data-landfast', v); return setTimeout(draw, 60); }
       if ((v = g.getAttribute('data-wfgr'))) { dspPress('data-gr', v); return setTimeout(draw, 60); }
       if ((v = g.getAttribute('data-wfpop'))) { W.pop = W.pop === v ? null : v; return draw(); }
       if ((v = g.getAttribute('data-wfhud'))) { W.pop = null; var hb = hudEl(v); if (hb) hb.click(); setTimeout(draw, 60); return; }
+      if (g.hasAttribute('data-wfpack')) { W.pop = null; hap(); return packOpen(); }
+      if ((v = g.getAttribute('data-wfext')) != null) { W.pop = null; var xb = extBtns(g.closest('.wf'))[+v]; if (xb) xb.click(); setTimeout(draw, 60); return; }
       if (W.pop && g.closest('.wf-pop')) W.pop = null;
       if ((v = g.getAttribute('data-wfset'))) { if (W.S) sCancel(true); W.set4 = v; return draw(); }
       if ((v = g.getAttribute('data-wfact'))) {
@@ -130107,7 +130186,7 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
       // the 53.86 tools
       if ((v = g.getAttribute('data-wftab'))) { W.tab[lv] = v; return draw(); }
       if ((v = g.getAttribute('data-wfgrp')) != null) { var lb = g.closest('[data-lib]'), lk = lb ? lb.getAttribute('data-lib') : W.tab[lv]; W.grp[lk] = +v; W.grp[lk + ':p'] = 0; return draw(); }
-      if ((v = g.getAttribute('data-pkkind'))) { editOn(); if (W.S) sCancel(true); try { lib4Kind(v); } catch (x) {} if (DUO_API) DUO_API.placeKind(v); else change(function () { var q = add(v, (lbox().x0 + lbox().x1) / 2, (lbox().y0 + lbox().y1) / 2); if (q) V.sel = { pc: q.id }; }); if (V.sel && V.sel.pc && sk) W.panel[sk] = 'edit'; return draw(); }
+      if ((v = g.getAttribute('data-pkkind'))) { placeKind(v); return draw(); }
       if ((v = g.getAttribute('data-wk'))) { if (DUO_API) DUO_API.wkAct(v); return draw(); }
       if ((v = g.getAttribute('data-wfbld'))) { editOn(); return bldOpen(v); }
       if ((v = g.getAttribute('data-wfopen'))) return openPiece(v);
@@ -130563,6 +130642,40 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
 
     // ---------------------------------------------------------------- Studio's assets (MinestAssets3D): pictures, groups by theme, placed where they fit
     function AS() { return window.MinestAssets3D || null; }
+    function placeKind(v) {   // a library piece, set down where it fits and selected, ready to move
+      var sk = level() < 6 ? setKey() : null;
+      editOn(); if (W.S) sCancel(true); try { lib4Kind(v); } catch (x) {}
+      if (DUO_API) DUO_API.placeKind(v); else change(function () { var q = add(v, (lbox().x0 + lbox().x1) / 2, (lbox().y0 + lbox().y1) / 2); if (q) V.sel = { pc: q.id }; });
+      if (V.sel && V.sel.pc && sk) W.panel[sk] = 'edit';
+    }
+    function packIsOpen() { var BP = window.MinestBackpack; try { return !!(BP && BP.isOpen && BP.isOpen()); } catch (e) { return false; } }
+    function packPlace(id) {   // from the backpack's Index: a building, an object or an interior goes onto the island
+      var A0 = AS(), C = (A0 && A0.catalog) || {}, has = function (k) { return (C[k] || []).some(function (a) { return a.id === id; }); };
+      var name = ((A0 && A0.info && A0.info(id)) || {}).name || id;
+      if (!V || !V.d) { toast('先打开一座岛'); return false; }
+      if (has('world') || has('subisland') || has('center')) { toast('「' + name + '」是岛的外观 · 在 Island Gallery 里选用'); return false; }
+      var k = (has('building') ? 'bld:' : has('diorama') ? 'dio:' : 'obj:') + id;
+      if (V.at && V.at.room && /^bld:/.test(k)) { toast('建筑放在岛上 · 先走出房间'); return false; }
+      var before = (V.d.pc || []).length;
+      try { placeKind(k); } catch (e) { toast('「' + name + '」放不下'); return false; }
+      if ((V.d.pc || []).length > before) toast('🎒 「' + name + '」放好了 · 拖动它换位置，↶ 可撤销');
+      return true;
+    }
+    var packHost = {
+      world: 'myworld', THREE: window.THREE, placeLib: packPlace,
+      reduced: function () { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } },
+      toast: function (m) { toast(m); }, hotbarVisible: function () { return false; }, functionObjects: function () { return []; },
+      listBoard: function () { return V ? V.bid : null; },
+      status: function () { return { badge: '', cls: 'bag', text: '在 Spatial Home 或圣托里尼里摆放', placed: false, home: true }; },
+      place: function () { toast('这一件在 Spatial Home 或圣托里尼里摆放'); }, stash: function () {},
+      onClose: function () { setTimeout(draw, 0); }
+    };
+    function packOpen() {
+      var BP = window.MinestBackpack; if (!BP || !BP.open) { toast('🎒 背包还没准备好'); return; }
+      if (packIsOpen()) { BP.close(); return draw(); }
+      packHost.THREE = window.THREE; try { a3(); } catch (e) {}
+      BP.open(packHost, 'index'); draw();
+    }
     function art(id, sz) { sz = sz || 112; var u = a3Url(id, 0); return u ? '<img class="ic" alt="" src="' + esc(u) + '" width="' + sz + '" height="' + sz + '" style="object-fit:contain">' : '<span class="ic mn-a3wait" data-a3="' + esc(id) + '" style="width:' + sz + 'px;height:' + sz + 'px"></span>'; }
     function themeOf(a) { return String(a.categoryName || a.category || (a.subcategories || [])[0] || 'More').replace(/[_-]/g, ' '); }
     function studioGrid(key, list, attr, prefix, on) {   // chips by theme, then a page of pictures (24 at a time: they are drawn one by one)
@@ -144071,7 +144184,7 @@ function apply(){
     coverOn(false);   /* folded: the quick Glance page comes up (what you were doing stays under it — 完整 App › goes back), unless you are in
                            the middle of something: placing a piece, the build library or the study desk */
     var busy = !!(desk || document.querySelector('.mn-bq, .duo-lib') || (window.MinestDuoWorld && MinestDuoWorld.holding && MinestDuoWorld.holding()));
-    if (!busy) { dismissed = false; glance(); } else dismissed = true;
+    dismissed = true; closeGlance();   /* 2026-11-24: no Glance page any more — the opening and Home are the Clun house */
   }
   else { closeGlance(); if (!unfolded && fit && prefs().split) openWorld(); }
   document.documentElement.classList.toggle('duo-halfopen', posture() === 'folded');
@@ -144185,7 +144298,7 @@ function onAdd(e){
 /* the way back to Glance on the outer screen once it was put away */
 function pill(){
   var p = document.querySelector('.duo-back');
-  if (kind !== 'outer' || !dismissed) { if (p) p.remove(); return; }
+  if (p) p.remove(); return;   /* 2026-11-24: no Glance, no way back to it */
   if (!p) { p = document.createElement('button'); p.type = 'button'; p.className = 'duo-back'; p.textContent = '⌂ 速览'; p.setAttribute('aria-label', '回到速览'); document.body.appendChild(p);
     p.addEventListener('click', function(){ dismissed = false; p.remove(); glance(); }); }
 }
@@ -144366,12 +144479,12 @@ function rail(){
       if (w === 'split') return toggleSplit();
       if (w === 'desk') { if (desk) { desk.remove(); desk = null; document.documentElement.classList.remove('duo-desk-on'); } else deskOpen(); return rail(); }
       if (w === 'world') { if (desk) { desk.remove(); desk = null; document.documentElement.classList.remove('duo-desk-on'); } if (worldOpen()) { try { MinestUniverse.close(); } catch(x){} } else openWorld(); return setTimeout(rail, 400); }
-      if (w === 'glance') { if (gl && !gl.hidden) closeGlance(); else { dismissed = false; glance(); } return rail(); }
+      if (w === 'glance') { closeGlance(); try { window.MinestSpatialHome.home(); } catch(x){} return rail(); }
     }); }
   var sp = !!prefs().split || R0.classList.contains('duo-cover'), html = (splitFits() ? '<button type="button" data-rail="split" class="' + (sp ? 'on' : '') + '" aria-label="' + (sp ? '取消分栏' : '分栏') + '"><i>' + (sp ? '▣' : '▥') + '</i><small>' + (sp ? '全屏' : '分栏') + '</small></button>' : '') +
     '<button type="button" data-rail="desk" class="' + (desk ? 'on' : '') + '" aria-label="学习书桌"><i>📚</i><small>书桌</small></button>' +
     '<button type="button" data-rail="world" class="' + (worldOpen() ? 'on' : '') + '" aria-label="My World"><i>🏝</i><small>岛屿</small></button>' +
-    '<button type="button" data-rail="glance" class="' + (gl && !gl.hidden ? 'on' : '') + '" aria-label="速览"><i>⌂</i><small>速览</small></button>';
+    '<button type="button" data-rail="glance" class="' + (gl && !gl.hidden ? 'on' : '') + '" aria-label="Home"><i>⌂</i><small>Home</small></button>';
   if (r.innerHTML !== html) r.innerHTML = html;
 }
 
@@ -146609,6 +146722,9 @@ html body .wf.wf3 .wf-pop > button i { font-style:normal;font-size:24px;line-hei
 html body .wf.wf3 .wf-pop > button span { font-size:11px;opacity:.8;text-align:center;line-height:1.15; }
 html body .wf.wf3 .wf-pop > button.on { background:rgba(125,211,252,.2);border-color:rgba(125,211,252,.5); }
 html body .wf.wf3 .wf-pop > button[disabled] { opacity:.35; }
+html body .wf.wf3 .wf-acts.wf-fold > button:nth-of-type(n+6) { display:none; }
+html body .wf.wf3 .wf-pop.tools { grid-template-columns:repeat(auto-fill,minmax(68px,1fr));box-sizing:border-box;width:min(344px,calc(100% - 92px));overflow-y:auto;scrollbar-width:none; }
+html body .wf.wf3 .wf-pop.tools > button[data-wfext] { font-size:11px;line-height:1.15;text-align:center; }
 @keyframes wfPop { from { opacity:0;transform:translateX(-6px) scale(.97); } to { opacity:1;transform:none; } }
 /* first person (Walk in) while half folded: the view above, the controls in the middle of the lower screen */
 html.wf-fold.wf-walk body .wf .wf-center { visibility:hidden; }
@@ -173238,6 +173354,91 @@ prepare();
   window.MinestLiveTeach = { start: start, stop: stop, active: function () { return !!cur; } };
 })();
 </script>
+<script id="mn-dock-still-js">(function(){document.addEventListener("touchmove",function(e){if(e.touches.length!==1||!e.cancelable)return;var d=e.target&&e.target.closest&&e.target.closest(".mn-bdock");if(d)e.preventDefault();},{capture:true,passive:false});})();</script>
+<style id="mn-dock-looks-style">
+html.mn-bd .mn-bdock .mn-bapp[aria-label^="Light FX"],html.mn-bd .mn-bdock .mn-bapp[aria-label^="Card FX"],
+html.mn-bd .mn-bdock .mn-bapp[aria-label^="Switch to light"],html.mn-bd .mn-bdock .mn-bapp[aria-label^="Switch to dark"]{display:none!important}
+.mn-looks-fan .miv-fan-label{white-space:nowrap}
+</style>
+<script id="mn-dock-looks">
+/* the Dock's look buttons (Light FX · Card FX · light / dark) under one icon that fans them out (tools/duo/patch_dock_group.py) */
+(function () {
+  var MATCH = [/^Light FX/, /^Card FX/, /^Switch to (light|dark)/];
+  var LABEL = function (i, b) { return i === 0 ? 'Light FX' : i === 1 ? 'Card FX' : (/dark/.test(b.getAttribute('aria-label') || '') ? 'Dark mode' : 'Light mode'); };
+  var ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19L15 9"/><path d="M14 6l1-2 1 2 2 1-2 1-1 2-1-2-2-1z"/><path d="M19 13l.6-1.2L21 11l-1.4-.6L19 9l-.6 1.4L17 11l1.4.8z"/><path d="M7 4l.5-1 .5 1 1 .5-1 .5-.5 1-.5-1-1-.5z"/></svg>';
+  var fan = null, blockUntil = 0;
+  function originals() {
+    var all = document.querySelectorAll('.mn-bdock .mn-bapp:not(.mn-looks-btn)'), out = [null, null, null];
+    for (var i = 0; i < all.length; i++) { var l = all[i].getAttribute('aria-label') || ''; for (var k = 0; k < 3; k++) if (MATCH[k].test(l)) out[k] = all[i]; }
+    return out;
+  }
+  function ensure() {
+    var dock = document.querySelector('.mn-bdock'); if (!dock) return;
+    var o = originals(), first = null;
+    for (var k = 0; k < 3; k++) if (o[k] && (!first || (o[k].compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING))) first = o[k];
+    if (!first) return;
+    var b = dock.querySelector('.mn-looks-btn');
+    if (!b) {
+      b = document.createElement('button'); b.type = 'button'; b.className = 'mn-bapp mn-looks-btn';
+      b.setAttribute('aria-label', 'Looks · 外观与特效'); b.setAttribute('aria-haspopup', 'menu'); b.setAttribute('aria-expanded', 'false'); b.title = 'Looks';
+      b.innerHTML = ICON;
+      b.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); toggle(b); });
+    }
+    if (b.nextElementSibling !== first) dock.insertBefore(b, first);
+  }
+  function haptic() { try { if (window.MinestNative && MinestNative.haptic) MinestNative.haptic('light'); } catch (e) {} }
+  function close(now) {
+    var el = fan; if (!el) return; fan = null;
+    document.removeEventListener('pointerdown', outside, true);
+    var a = document.querySelector('.mn-looks-btn'); if (a) a.setAttribute('aria-expanded', 'false');
+    el.classList.remove('miv-fan-open'); el.classList.add('miv-fan-closing');
+    if (now) el.remove(); else setTimeout(function () { el.remove(); }, 260);
+  }
+  function outside(e) {
+    if (!fan || fan.contains(e.target)) return;
+    var a = document.querySelector('.mn-looks-btn');
+    if (a && (a === e.target || a.contains(e.target))) blockUntil = Date.now() + 700;   // the icon folds it; its click must not reopen
+    close();
+  }
+  function toggle(anchor) {
+    if (Date.now() < blockUntil) { blockUntil = 0; return; }
+    if (fan) { close(); return; }
+    var o = originals().filter(Boolean); if (!o.length) return;
+    haptic();
+    var r = anchor.getBoundingClientRect(), dock = anchor.closest('.mn-bdock'), d = dock.getBoundingClientRect();
+    var vertical = d.height > d.width, toLeft = vertical ? d.left > innerWidth / 2 : false;
+    var dir = vertical ? (toLeft ? 'left' : 'right') : 'up', S = 46, GAP = 58;
+    var cx = r.left + r.width / 2, cy = r.top + r.height / 2, mid = (o.length - 1) / 2;
+    var el = document.createElement('div'); el.className = 'miv-fan mn-looks-fan'; el.dataset.dir = dir; el.setAttribute('role', 'menu'); el.setAttribute('aria-label', 'Looks');
+    el.classList.toggle('miv-fan-lr', dir === 'right');
+    var pts = o.map(function (b, i) {
+      if (dir === 'up') return { x: cx + 2.6 * (i + 1) * (i + 1), y: cy - (r.height / 2 + 10 + S / 2 + i * GAP), rot: 1.2 * (i + 1) };
+      var sx = dir === 'left' ? -1 : 1;
+      return { x: cx + sx * (r.width / 2 + 14 + S / 2 + 10 * (1 - Math.pow((i - mid) / (mid + .5), 2))), y: cy + (i - mid) * GAP, rot: sx * (i - mid) * 2.2 };
+    });
+    var minY = Math.min.apply(null, pts.map(function (p) { return p.y; })) - S / 2, maxY = Math.max.apply(null, pts.map(function (p) { return p.y; })) + S / 2;
+    var shiftY = minY < 8 ? 8 - minY : maxY > innerHeight - 8 ? innerHeight - 8 - maxY : 0;
+    o.forEach(function (orig, i) {
+      var p = pts[i], it = document.createElement('button'); it.type = 'button'; it.className = 'miv-fan-item'; it.setAttribute('role', 'menuitem');
+      it.title = orig.getAttribute('aria-label') || '';
+      it.style.setProperty('--x', p.x + 'px'); it.style.setProperty('--y', (p.y + shiftY) + 'px'); it.style.setProperty('--r', p.rot + 'deg');
+      it.style.setProperty('--dx', (cx - p.x) + 'px'); it.style.setProperty('--dy', (cy - p.y - shiftY) + 'px');
+      it.style.setProperty('--d', (i * 38) + 'ms'); it.style.setProperty('--dc', ((o.length - 1 - i) * 22) + 'ms');
+      var svg = orig.querySelector('svg'), lab = LABEL(MATCH.findIndex(function (m) { return m.test(orig.getAttribute('aria-label') || ''); }), orig);
+      it.innerHTML = '<span class="miv-fan-ic">' + (svg ? svg.outerHTML.replace('<svg', '<svg class="miv-ic"') : '') + '</span><span class="miv-fan-label">' + lab + '</span>';
+      it.addEventListener('click', function (e) { e.stopPropagation(); haptic(); close(); setTimeout(function () { orig.click(); }, 60); });
+      el.appendChild(it);
+    });
+    document.body.appendChild(el); fan = el; anchor.setAttribute('aria-expanded', 'true');
+    void el.offsetWidth; el.classList.add('miv-fan-open');
+    document.addEventListener('pointerdown', outside, true);
+  }
+  var q = 0;
+  new MutationObserver(function () { if (q) return; q = requestAnimationFrame(function () { q = 0; ensure(); }); }).observe(document.documentElement, { childList: true, subtree: true });
+  addEventListener('resize', function () { close(true); });
+  ensure();
+})();
+</script>
 <script id="mn-world-shell-71">
 /* 71 · third-party voxel worlds in My World's own shell (tools/myworld/build_world_shells.py): they open straight into
    their engine page — no wrapper nav bar, no overlay back pill — where the Santorini console runs; that console's
@@ -179035,6 +179236,7 @@ if(typeof module==='object'&&module.exports)module.exports=merge;else root.Mines
 
 
 
+
 <script type="text/plain" id="mn-keyflow-src">(()=>{var hb=Object.create;var ah=Object.defineProperty;var gb=Object.getOwnPropertyDescriptor;var xb=Object.getOwnPropertyNames;var yb=Object.getPrototypeOf,vb=Object.prototype.hasOwnProperty;var oh=(e=>typeof require<"u"?require:typeof Proxy<"u"?new Proxy(e,{get:(t,a)=>(typeof require<"u"?require:t)[a]}):e)(function(e){if(typeof require<"u")return require.apply(this,arguments);throw Error('Dynamic require of "'+e+'" is not supported')});var Nt=(e,t)=>()=>(t||e((t={exports:{}}).exports,t),t.exports);var Lb=(e,t,a,o)=>{if(t&&typeof t=="object"||typeof t=="function")for(let r of xb(t))!vb.call(e,r)&&r!==a&&ah(e,r,{get:()=>t[r],enumerable:!(o=gb(t,r))||o.enumerable});return e};var q=(e,t,a)=>(a=e!=null?hb(yb(e)):{},Lb(t||!e||!e.__esModule?ah(a,"default",{value:e,enumerable:!0}):a,e));var hh=Nt(z=>{"use strict";var Wf=Symbol.for("react.transitional.element"),wb=Symbol.for("react.portal"),bb=Symbol.for("react.fragment"),Sb=Symbol.for("react.strict_mode"),Cb=Symbol.for("react.profiler"),Ib=Symbol.for("react.consumer"),Tb=Symbol.for("react.context"),Ab=Symbol.for("react.forward_ref"),kb=Symbol.for("react.suspense"),Db=Symbol.for("react.memo"),uh=Symbol.for("react.lazy"),rh=Symbol.iterator;function Mb(e){return e===null||typeof e!="object"?null:(e=rh&&e[rh]||e["@@iterator"],typeof e=="function"?e:null)}var fh={isMounted:function(){return!1},enqueueForceUpdate:function(){},enqueueReplaceState:function(){},enqueueSetState:function(){}},dh=Object.assign,ch={};function Lr(e,t,a){this.props=e,this.context=t,this.refs=ch,this.updater=a||fh}Lr.prototype.isReactComponent={};Lr.prototype.setState=function(e,t){if(typeof e!="object"&&typeof e!="function"&&e!=null)throw Error("takes an object of state variables to update or a function which returns an object of state variables.");this.updater.enqueueSetState(this,e,t,"setState")};Lr.prototype.forceUpdate=function(e){this.updater.enqueueForceUpdate(this,e,"forceUpdate")};function ph(){}ph.prototype=Lr.prototype;function Zf(e,t,a){this.props=e,this.context=t,this.refs=ch,this.updater=a||fh}var Qf=Zf.prototype=new ph;Qf.constructor=Zf;dh(Qf,Lr.prototype);Qf.isPureReactComponent=!0;var ih=Array.isArray,de={H:null,A:null,T:null,S:null},mh=Object.prototype.hasOwnProperty;function Jf(e,t,a,o,r,i){return a=i.ref,{$$typeof:Wf,type:e,key:t,ref:a!==void 0?a:null,props:i}}function Bb(e,t){return Jf(e.type,t,void 0,void 0,void 0,e.props)}function $f(e){return typeof e=="object"&&e!==null&&e.$$typeof===Wf}function Eb(e){var t={"=":"=0",":":"=2"};return"$"+e.replace(/[=:]/g,function(a){return t[a]})}var nh=/\/+/g;function Kf(e,t){return typeof e=="object"&&e!==null&&e.key!=null?Eb(""+e.key):t.toString(36)}function lh(){}function Rb(e){switch(e.status){case"fulfilled":return e.value;case"rejected":throw e.reason;default:switch(typeof e.status=="string"?e.then(lh,lh):(e.status="pending",e.then(function(t){e.status==="pending"&&(e.status="fulfilled",e.value=t)},function(t){e.status==="pending"&&(e.status="rejected",e.reason=t)})),e.status){case"fulfilled":return e.value;case"rejected":throw e.reason}}throw e}function vr(e,t,a,o,r){var i=typeof e;(i==="undefined"||i==="boolean")&&(e=null);var n=!1;if(e===null)n=!0;else switch(i){case"bigint":case"string":case"number":n=!0;break;case"object":switch(e.$$typeof){case Wf:case wb:n=!0;break;case uh:return n=e._init,vr(n(e._payload),t,a,o,r)}}if(n)return r=r(e),n=o===""?"."+Kf(e,0):o,ih(r)?(a="",n!=null&&(a=n.replace(nh,"$&/")+"/"),vr(r,t,a,"",function(u){return u})):r!=null&&($f(r)&&(r=Bb(r,a+(r.key==null||e&&e.key===r.key?"":(""+r.key).replace(nh,"$&/")+"/")+n)),t.push(r)),1;n=0;var l=o===""?".":o+":";if(ih(e))for(var s=0;s<e.length;s++)o=e[s],i=l+Kf(o,s),n+=vr(o,t,a,i,r);else if(s=Mb(e),typeof s=="function")for(e=s.call(e),s=0;!(o=e.next()).done;)o=o.value,i=l+Kf(o,s++),n+=vr(o,t,a,i,r);else if(i==="object"){if(typeof e.then=="function")return vr(Rb(e),t,a,o,r);throw t=String(e),Error("Objects are not valid as a React child (found: "+(t==="[object Object]"?"object with keys {"+Object.keys(e).join(", ")+"}":t)+"). If you meant to render a collection of children, use an array instead.")}return n}function _l(e,t,a){if(e==null)return e;var o=[],r=0;return vr(e,o,"","",function(i){return t.call(a,i,r++)}),o}function Pb(e){if(e._status===-1){var t=e._result;t=t(),t.then(function(a){(e._status===0||e._status===-1)&&(e._status=1,e._result=a)},function(a){(e._status===0||e._status===-1)&&(e._status=2,e._result=a)}),e._status===-1&&(e._status=0,e._result=t)}if(e._status===1)return e._result.default;throw e._result}var sh=typeof reportError=="function"?reportError:function(e){if(typeof window=="object"&&typeof window.ErrorEvent=="function"){var t=new window.ErrorEvent("error",{bubbles:!0,cancelable:!0,message:typeof e=="object"&&e!==null&&typeof e.message=="string"?String(e.message):String(e),error:e});if(!window.dispatchEvent(t))return}else if(typeof process=="object"&&typeof process.emit=="function"){process.emit("uncaughtException",e);return}console.error(e)};function Ob(){}z.Children={map:_l,forEach:function(e,t,a){_l(e,function(){t.apply(this,arguments)},a)},count:function(e){var t=0;return _l(e,function(){t++}),t},toArray:function(e){return _l(e,function(t){return t})||[]},only:function(e){if(!$f(e))throw Error("React.Children.only expected to receive a single React element child.");return e}};z.Component=Lr;z.Fragment=bb;z.Profiler=Cb;z.PureComponent=Zf;z.StrictMode=Sb;z.Suspense=kb;z.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE=de;z.act=function(){throw Error("act(...) is not supported in production builds of React.")};z.cache=function(e){return function(){return e.apply(null,arguments)}};z.cloneElement=function(e,t,a){if(e==null)throw Error("The argument must be a React element, but you passed "+e+".");var o=dh({},e.props),r=e.key,i=void 0;if(t!=null)for(n in t.ref!==void 0&&(i=void 0),t.key!==void 0&&(r=""+t.key),t)!mh.call(t,n)||n==="key"||n==="__self"||n==="__source"||n==="ref"&&t.ref===void 0||(o[n]=t[n]);var n=arguments.length-2;if(n===1)o.children=a;else if(1<n){for(var l=Array(n),s=0;s<n;s++)l[s]=arguments[s+2];o.children=l}return Jf(e.type,r,void 0,void 0,i,o)};z.createContext=function(e){return e={$$typeof:Tb,_currentValue:e,_currentValue2:e,_threadCount:0,Provider:null,Consumer:null},e.Provider=e,e.Consumer={$$typeof:Ib,_context:e},e};z.createElement=function(e,t,a){var o,r={},i=null;if(t!=null)for(o in t.key!==void 0&&(i=""+t.key),t)mh.call(t,o)&&o!=="key"&&o!=="__self"&&o!=="__source"&&(r[o]=t[o]);var n=arguments.length-2;if(n===1)r.children=a;else if(1<n){for(var l=Array(n),s=0;s<n;s++)l[s]=arguments[s+2];r.children=l}if(e&&e.defaultProps)for(o in n=e.defaultProps,n)r[o]===void 0&&(r[o]=n[o]);return Jf(e,i,void 0,void 0,null,r)};z.createRef=function(){return{current:null}};z.forwardRef=function(e){return{$$typeof:Ab,render:e}};z.isValidElement=$f;z.lazy=function(e){return{$$typeof:uh,_payload:{_status:-1,_result:e},_init:Pb}};z.memo=function(e,t){return{$$typeof:Db,type:e,compare:t===void 0?null:t}};z.startTransition=function(e){var t=de.T,a={};de.T=a;try{var o=e(),r=de.S;r!==null&&r(a,o),typeof o=="object"&&o!==null&&typeof o.then=="function"&&o.then(Ob,sh)}catch(i){sh(i)}finally{de.T=t}};z.unstable_useCacheRefresh=function(){return de.H.useCacheRefresh()};z.use=function(e){return de.H.use(e)};z.useActionState=function(e,t,a){return de.H.useActionState(e,t,a)};z.useCallback=function(e,t){return de.H.useCallback(e,t)};z.useContext=function(e){return de.H.useContext(e)};z.useDebugValue=function(){};z.useDeferredValue=function(e,t){return de.H.useDeferredValue(e,t)};z.useEffect=function(e,t){return de.H.useEffect(e,t)};z.useId=function(){return de.H.useId()};z.useImperativeHandle=function(e,t,a){return de.H.useImperativeHandle(e,t,a)};z.useInsertionEffect=function(e,t){return de.H.useInsertionEffect(e,t)};z.useLayoutEffect=function(e,t){return de.H.useLayoutEffect(e,t)};z.useMemo=function(e,t){return de.H.useMemo(e,t)};z.useOptimistic=function(e,t){return de.H.useOptimistic(e,t)};z.useReducer=function(e,t,a){return de.H.useReducer(e,t,a)};z.useRef=function(e){return de.H.useRef(e)};z.useState=function(e){return de.H.useState(e)};z.useSyncExternalStore=function(e,t,a){return de.H.useSyncExternalStore(e,t,a)};z.useTransition=function(){return de.H.useTransition()};z.version="19.0.1"});var G=Nt((sA,gh)=>{"use strict";gh.exports=hh()});var Th=Nt(te=>{"use strict";function od(e,t){var a=e.length;e.push(t);e:for(;0<a;){var o=a-1>>>1,r=e[o];if(0<Nl(r,t))e[o]=t,e[a]=r,a=o;else break e}}function Pt(e){return e.length===0?null:e[0]}function Xl(e){if(e.length===0)return null;var t=e[0],a=e.pop();if(a!==t){e[0]=a;e:for(var o=0,r=e.length,i=r>>>1;o<i;){var n=2*(o+1)-1,l=e[n],s=n+1,u=e[s];if(0>Nl(l,a))s<r&&0>Nl(u,l)?(e[o]=u,e[s]=a,o=s):(e[o]=l,e[n]=a,o=n);else if(s<r&&0>Nl(u,a))e[o]=u,e[s]=a,o=s;else break e}}return t}function Nl(e,t){var a=e.sortIndex-t.sortIndex;return a!==0?a:e.id-t.id}te.unstable_now=void 0;typeof performance=="object"&&typeof performance.now=="function"?(xh=performance,te.unstable_now=function(){return xh.now()}):(ed=Date,yh=ed.now(),te.unstable_now=function(){return ed.now()-yh});var xh,ed,yh,Gt=[],Oa=[],Vb=1,ht=null,_e=3,jl=!1,Ao=!1,Fi=!1,wh=typeof setTimeout=="function"?setTimeout:null,bh=typeof clearTimeout=="function"?clearTimeout:null,vh=typeof setImmediate<"u"?setImmediate:null;function Gl(e){for(var t=Pt(Oa);t!==null;){if(t.callback===null)Xl(Oa);else if(t.startTime<=e)Xl(Oa),t.sortIndex=t.expirationTime,od(Gt,t);else break;t=Pt(Oa)}}function rd(e){if(Fi=!1,Gl(e),!Ao)if(Pt(Gt)!==null)Ao=!0,id();else{var t=Pt(Oa);t!==null&&nd(rd,t.startTime-e)}}var Yl=!1,Ui=-1,Sh=5,Ch=-1;function Ih(){return!(te.unstable_now()-Ch<Sh)}function td(){if(Yl){var e=te.unstable_now();Ch=e;var t=!0;try{e:{Ao=!1,Fi&&(Fi=!1,bh(Ui),Ui=-1),jl=!0;var a=_e;try{t:{for(Gl(e),ht=Pt(Gt);ht!==null&&!(ht.expirationTime>e&&Ih());){var o=ht.callback;if(typeof o=="function"){ht.callback=null,_e=ht.priorityLevel;var r=o(ht.expirationTime<=e);if(e=te.unstable_now(),typeof r=="function"){ht.callback=r,Gl(e),t=!0;break t}ht===Pt(Gt)&&Xl(Gt),Gl(e)}else Xl(Gt);ht=Pt(Gt)}if(ht!==null)t=!0;else{var i=Pt(Oa);i!==null&&nd(rd,i.startTime-e),t=!1}}break e}finally{ht=null,_e=a,jl=!1}t=void 0}}finally{t?zi():Yl=!1}}}var zi;typeof vh=="function"?zi=function(){vh(td)}:typeof MessageChannel<"u"?(ad=new MessageChannel,Lh=ad.port2,ad.port1.onmessage=td,zi=function(){Lh.postMessage(null)}):zi=function(){wh(td,0)};var ad,Lh;function id(){Yl||(Yl=!0,zi())}function nd(e,t){Ui=wh(function(){e(te.unstable_now())},t)}te.unstable_IdlePriority=5;te.unstable_ImmediatePriority=1;te.unstable_LowPriority=4;te.unstable_NormalPriority=3;te.unstable_Profiling=null;te.unstable_UserBlockingPriority=2;te.unstable_cancelCallback=function(e){e.callback=null};te.unstable_continueExecution=function(){Ao||jl||(Ao=!0,id())};te.unstable_forceFrameRate=function(e){0>e||125<e?console.error("forceFrameRate takes a positive int between 0 and 125, forcing frame rates higher than 125 fps is not supported"):Sh=0<e?Math.floor(1e3/e):5};te.unstable_getCurrentPriorityLevel=function(){return _e};te.unstable_getFirstCallbackNode=function(){return Pt(Gt)};te.unstable_next=function(e){switch(_e){case 1:case 2:case 3:var t=3;break;default:t=_e}var a=_e;_e=t;try{return e()}finally{_e=a}};te.unstable_pauseExecution=function(){};te.unstable_requestPaint=function(){};te.unstable_runWithPriority=function(e,t){switch(e){case 1:case 2:case 3:case 4:case 5:break;default:e=3}var a=_e;_e=e;try{return t()}finally{_e=a}};te.unstable_scheduleCallback=function(e,t,a){var o=te.unstable_now();switch(typeof a=="object"&&a!==null?(a=a.delay,a=typeof a=="number"&&0<a?o+a:o):a=o,e){case 1:var r=-1;break;case 2:r=250;break;case 5:r=1073741823;break;case 4:r=1e4;break;default:r=5e3}return r=a+r,e={id:Vb++,callback:t,priorityLevel:e,startTime:a,expirationTime:r,sortIndex:-1},a>o?(e.sortIndex=a,od(Oa,e),Pt(Gt)===null&&e===Pt(Oa)&&(Fi?(bh(Ui),Ui=-1):Fi=!0,nd(rd,a-o))):(e.sortIndex=r,od(Gt,e),Ao||jl||(Ao=!0,id())),e};te.unstable_shouldYield=Ih;te.unstable_wrapCallback=function(e){var t=_e;return function(){var a=_e;_e=t;try{return e.apply(this,arguments)}finally{_e=a}}}});var kh=Nt((fA,Ah)=>{"use strict";Ah.exports=Th()});var Mh=Nt(Ke=>{"use strict";var zb=G();function Dh(e){var t="https://react.dev/errors/"+e;if(1<arguments.length){t+="?args[]="+encodeURIComponent(arguments[1]);for(var a=2;a<arguments.length;a++)t+="&args[]="+encodeURIComponent(arguments[a])}return"Minified React error #"+e+"; visit "+t+" for the full message or use the non-minified dev environment for full errors and additional helpful warnings."}function Va(){}var Ye={d:{f:Va,r:function(){throw Error(Dh(522))},D:Va,C:Va,L:Va,m:Va,X:Va,S:Va,M:Va},p:0,findDOMNode:null},Fb=Symbol.for("react.portal");function Ub(e,t,a){var o=3<arguments.length&&arguments[3]!==void 0?arguments[3]:null;return{$$typeof:Fb,key:o==null?null:""+o,children:e,containerInfo:t,implementation:a}}var qi=zb.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;function Kl(e,t){if(e==="font")return"";if(typeof t=="string")return t==="use-credentials"?t:""}Ke.__DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE=Ye;Ke.createPortal=function(e,t){var a=2<arguments.length&&arguments[2]!==void 0?arguments[2]:null;if(!t||t.nodeType!==1&&t.nodeType!==9&&t.nodeType!==11)throw Error(Dh(299));return Ub(e,t,null,a)};Ke.flushSync=function(e){var t=qi.T,a=Ye.p;try{if(qi.T=null,Ye.p=2,e)return e()}finally{qi.T=t,Ye.p=a,Ye.d.f()}};Ke.preconnect=function(e,t){typeof e=="string"&&(t?(t=t.crossOrigin,t=typeof t=="string"?t==="use-credentials"?t:"":void 0):t=null,Ye.d.C(e,t))};Ke.prefetchDNS=function(e){typeof e=="string"&&Ye.d.D(e)};Ke.preinit=function(e,t){if(typeof e=="string"&&t&&typeof t.as=="string"){var a=t.as,o=Kl(a,t.crossOrigin),r=typeof t.integrity=="string"?t.integrity:void 0,i=typeof t.fetchPriority=="string"?t.fetchPriority:void 0;a==="style"?Ye.d.S(e,typeof t.precedence=="string"?t.precedence:void 0,{crossOrigin:o,integrity:r,fetchPriority:i}):a==="script"&&Ye.d.X(e,{crossOrigin:o,integrity:r,fetchPriority:i,nonce:typeof t.nonce=="string"?t.nonce:void 0})}};Ke.preinitModule=function(e,t){if(typeof e=="string")if(typeof t=="object"&&t!==null){if(t.as==null||t.as==="script"){var a=Kl(t.as,t.crossOrigin);Ye.d.M(e,{crossOrigin:a,integrity:typeof t.integrity=="string"?t.integrity:void 0,nonce:typeof t.nonce=="string"?t.nonce:void 0})}}else t==null&&Ye.d.M(e)};Ke.preload=function(e,t){if(typeof e=="string"&&typeof t=="object"&&t!==null&&typeof t.as=="string"){var a=t.as,o=Kl(a,t.crossOrigin);Ye.d.L(e,a,{crossOrigin:o,integrity:typeof t.integrity=="string"?t.integrity:void 0,nonce:typeof t.nonce=="string"?t.nonce:void 0,type:typeof t.type=="string"?t.type:void 0,fetchPriority:typeof t.fetchPriority=="string"?t.fetchPriority:void 0,referrerPolicy:typeof t.referrerPolicy=="string"?t.referrerPolicy:void 0,imageSrcSet:typeof t.imageSrcSet=="string"?t.imageSrcSet:void 0,imageSizes:typeof t.imageSizes=="string"?t.imageSizes:void 0,media:typeof t.media=="string"?t.media:void 0})}};Ke.preloadModule=function(e,t){if(typeof e=="string")if(t){var a=Kl(t.as,t.crossOrigin);Ye.d.m(e,{as:typeof t.as=="string"&&t.as!=="script"?t.as:void 0,crossOrigin:a,integrity:typeof t.integrity=="string"?t.integrity:void 0})}else Ye.d.m(e)};Ke.requestFormReset=function(e){Ye.d.r(e)};Ke.unstable_batchedUpdates=function(e,t){return e(t)};Ke.useFormState=function(e,t,a){return qi.H.useFormState(e,t,a)};Ke.useFormStatus=function(){return qi.H.useHostTransitionStatus()};Ke.version="19.0.1"});var Rh=Nt((cA,Eh)=>{"use strict";function Bh(){if(!(typeof __REACT_DEVTOOLS_GLOBAL_HOOK__>"u"||typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE!="function"))try{__REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE(Bh)}catch(e){console.error(e)}}Bh(),Eh.exports=Mh()});var ky=Nt(pu=>{"use strict";var Me=kh(),Jg=G(),qb=Rh();function C(e){var t="https://react.dev/errors/"+e;if(1<arguments.length){t+="?args[]="+encodeURIComponent(arguments[1]);for(var a=2;a<arguments.length;a++)t+="&args[]="+encodeURIComponent(arguments[a])}return"Minified React error #"+e+"; visit "+t+" for the full message or use the non-minified dev environment for full errors and additional helpful warnings."}function $g(e){return!(!e||e.nodeType!==1&&e.nodeType!==9&&e.nodeType!==11)}var Hb=Symbol.for("react.element"),Wl=Symbol.for("react.transitional.element"),Wi=Symbol.for("react.portal"),Ar=Symbol.for("react.fragment"),ex=Symbol.for("react.strict_mode"),Fd=Symbol.for("react.profiler"),_b=Symbol.for("react.provider"),tx=Symbol.for("react.consumer"),ma=Symbol.for("react.context"),Bc=Symbol.for("react.forward_ref"),Ud=Symbol.for("react.suspense"),qd=Symbol.for("react.suspense_list"),Ec=Symbol.for("react.memo"),Ua=Symbol.for("react.lazy");Symbol.for("react.scope");Symbol.for("react.debug_trace_mode");var ax=Symbol.for("react.offscreen");Symbol.for("react.legacy_hidden");Symbol.for("react.tracing_marker");var Nb=Symbol.for("react.memo_cache_sentinel"),Ph=Symbol.iterator;function Hi(e){return e===null||typeof e!="object"?null:(e=Ph&&e[Ph]||e["@@iterator"],typeof e=="function"?e:null)}var Gb=Symbol.for("react.client.reference");function Hd(e){if(e==null)return null;if(typeof e=="function")return e.$$typeof===Gb?null:e.displayName||e.name||null;if(typeof e=="string")return e;switch(e){case Ar:return"Fragment";case Wi:return"Portal";case Fd:return"Profiler";case ex:return"StrictMode";case Ud:return"Suspense";case qd:return"SuspenseList"}if(typeof e=="object")switch(e.$$typeof){case ma:return(e.displayName||"Context")+".Provider";case tx:return(e._context.displayName||"Context")+".Consumer";case Bc:var t=e.render;return e=e.displayName,e||(e=t.displayName||t.name||"",e=e!==""?"ForwardRef("+e+")":"ForwardRef"),e;case Ec:return t=e.displayName||null,t!==null?t:Hd(e.type)||"Memo";case Ua:t=e._payload,e=e._init;try{return Hd(e(t))}catch{}}return null}var P=Jg.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE,ne=Object.assign,ld,Oh;function Zi(e){if(ld===void 0)try{throw Error()}catch(a){var t=a.stack.trim().match(/\n( *(at )?)/);ld=t&&t[1]||"",Oh=-1<a.stack.indexOf(`
     at`)?" (<anonymous>)":-1<a.stack.indexOf("@")?"@unknown:0:0":""}return`
 `+ld+e+Oh}var sd=!1;function ud(e,t){if(!e||sd)return"";sd=!0;var a=Error.prepareStackTrace;Error.prepareStackTrace=void 0;try{var o={DetermineComponentFrameRoot:function(){try{if(t){var c=function(){throw Error()};if(Object.defineProperty(c.prototype,"props",{set:function(){throw Error()}}),typeof Reflect=="object"&&Reflect.construct){try{Reflect.construct(c,[])}catch(h){var d=h}Reflect.construct(e,[],c)}else{try{c.call()}catch(h){d=h}e.call(c.prototype)}}else{try{throw Error()}catch(h){d=h}(c=e())&&typeof c.catch=="function"&&c.catch(function(){})}}catch(h){if(h&&d&&typeof h.stack=="string")return[h.stack,d.stack]}return[null,null]}};o.DetermineComponentFrameRoot.displayName="DetermineComponentFrameRoot";var r=Object.getOwnPropertyDescriptor(o.DetermineComponentFrameRoot,"name");r&&r.configurable&&Object.defineProperty(o.DetermineComponentFrameRoot,"name",{value:"DetermineComponentFrameRoot"});var i=o.DetermineComponentFrameRoot(),n=i[0],l=i[1];if(n&&l){var s=n.split(`
@@ -181432,6 +181634,127 @@ var queued=false;new MutationObserver(function(){if(!queued){queued=true;request
 window.MinestKeyflow={open:open,close:close,isOpen:function(){return !!overlay;},version:'1.0.0'};
 })();
 </script>
+<style id="mn-dock-more-style">
+html.mn-bd .mn-bdock .mn-bapp[aria-label="Knowledge"],html.mn-bd .mn-bdock .mn-bapp[aria-label^="Pet Raising"],
+html.mn-bd .mn-bdock .mn-bapp[aria-label^="Activity Rings"],html.mn-bd .mn-bdock .mn-bapp[aria-label^="Switch between the iPhone"],
+html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock .mn-bapp[data-carflash-dock],html.mn-bd .mn-bdock .mn-bapp[data-type3d-dock]{display:none!important}
+.mn-more-fan .miv-fan-label{white-space:nowrap}
+.mn-bdock .mn-sys-btn svg{width:46%!important}
+</style>
+<script id="mn-dock-more">
+/* the Dock: ⏻ exit · ‹ back at the top, ⋯ More at the bottom (tools/duo/patch_dock_more.py) */
+(function () {
+  var MORE = [
+    { m: function (l, b) { return b.hasAttribute('data-type3d-dock'); }, label: '3D Type 立体打字' },
+    { m: function (l) { return l === 'Knowledge'; }, label: 'Knowledge 知识' },
+    { m: function (l) { return /^Pet Raising/.test(l); }, label: 'Pet 宠物' },
+    { m: function (l) { return /^Activity Rings/.test(l); }, label: 'Rings 成就' },
+    { m: function (l, b) { return b.hasAttribute('data-carflash-dock'); }, label: 'CarPlay 车载闪卡' },
+    { m: function (l) { return /^Switch between the iPhone/.test(l); }, label: 'Desktop 桌面版' },
+    { m: function (l) { return /^Board settings/.test(l); }, label: 'Settings 设置' }
+  ];
+  var DOTS = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2.1"/><circle cx="12" cy="12" r="2.1"/><circle cx="19" cy="12" r="2.1"/></svg>';
+  var CROSS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  var BACK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+  var fan = null, blockUntil = 0;
+  function haptic(s) { try { if (window.MinestNative && MinestNative.haptic) MinestNative.haptic(s || 'light'); } catch (e) {} }
+  function originals() {
+    var all = document.querySelectorAll('.mn-bdock .mn-bapp:not(.mn-more-btn):not(.mn-sys-btn)'), out = MORE.map(function () { return null; });
+    for (var i = 0; i < all.length; i++) { var l = all[i].getAttribute('aria-label') || ''; for (var k = 0; k < MORE.length; k++) if (!out[k] && MORE[k].m(l, all[i])) out[k] = all[i]; }
+    return out;
+  }
+  function tile(cls, label, icon, on) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'mn-bapp mdk-tile ' + cls;
+    b.setAttribute('aria-label', label); b.title = label; b.innerHTML = icon;
+    b.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); on(b); });
+    return b;
+  }
+  /* ✕ close: the page that is open on top closes (a module, then a panel with its own ✕) */
+  function closeOpen() {
+    haptic('light');
+    try { if (window.MinestType3D && MinestType3D.isOpen && MinestType3D.isOpen()) { MinestType3D.close(); return true; } } catch (e) {}
+    try { if (window.MinestHermes && MinestHermes.isOpen && MinestHermes.isOpen()) { MinestHermes.close(); return true; } } catch (e) {}
+    try { if (window.MinestRoutine && MinestRoutine.isOpen && MinestRoutine.isOpen()) { MinestRoutine.close(); return true; } } catch (e) {}
+    // an open panel / sheet: its own close button (✕), the topmost one on screen
+    var xs = document.querySelectorAll('[data-cf-close],[aria-label="关闭"],[aria-label="Close"],[aria-label^="Close "],button.close,.close-btn');
+    for (var i = xs.length - 1; i >= 0; i--) { var r = xs[i].getBoundingClientRect(); if (r.width > 0 && r.height > 0 && getComputedStyle(xs[i]).visibility !== 'hidden') { xs[i].click(); return true; } }
+    return false;
+  }
+  /* ‹ back: one step back (Escape for what listens to it, the in-page history); nothing to step back from: close */
+  function goBack() {
+    var esc = new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true, cancelable: true });
+    if (!document.dispatchEvent(esc)) { haptic('light'); return; }
+    if (location.hash && location.hash.length > 1) { haptic('light'); history.back(); return; }   // never off the page
+    closeOpen();
+  }
+  function ensure() {
+    var dock = document.querySelector('.mn-bdock'); if (!dock) return;
+    var back = dock.querySelector('.mn-sys-back'), ex = dock.querySelector('.mn-sys-exit');
+    if (!ex) ex = tile('mn-sys-btn mn-sys-exit', 'Close · 关闭', CROSS, closeOpen);
+    if (!back) back = tile('mn-sys-btn mn-sys-back', 'Back · 返回', BACK, goBack);
+    if (dock.firstElementChild !== ex) dock.insertBefore(ex, dock.firstElementChild);
+    if (ex.nextElementSibling !== back) dock.insertBefore(back, ex.nextElementSibling);
+    var o = originals(); if (!o.some(Boolean)) return;
+    var more = dock.querySelector('.mn-more-btn');
+    if (!more) { more = tile('mn-more-btn', 'More · 更多', DOTS, toggle); more.setAttribute('aria-haspopup', 'menu'); more.setAttribute('aria-expanded', 'false'); }
+    if (dock.lastElementChild !== more) dock.appendChild(more);
+  }
+  function close(now) {
+    var el = fan; if (!el) return; fan = null;
+    document.removeEventListener('pointerdown', outside, true);
+    var a = document.querySelector('.mn-more-btn'); if (a) a.setAttribute('aria-expanded', 'false');
+    el.classList.remove('miv-fan-open'); el.classList.add('miv-fan-closing');
+    if (now) el.remove(); else setTimeout(function () { el.remove(); }, 260);
+  }
+  function outside(e) {
+    if (!fan || fan.contains(e.target)) return;
+    var a = document.querySelector('.mn-more-btn');
+    if (a && (a === e.target || a.contains(e.target))) blockUntil = Date.now() + 700;
+    close();
+  }
+  function toggle(anchor) {
+    if (Date.now() < blockUntil) { blockUntil = 0; return; }
+    if (fan) { close(); return; }
+    var all = originals(), o = [], labels = [];
+    all.forEach(function (b, i) { if (b) { o.push(b); labels.push(MORE[i].label); } });
+    if (!o.length) return;
+    haptic('light');
+    var r = anchor.getBoundingClientRect(), dock = anchor.closest('.mn-bdock'), d = dock.getBoundingClientRect();
+    var vertical = d.height > d.width, toLeft = vertical ? d.left > innerWidth / 2 : false;
+    var dir = vertical ? (toLeft ? 'left' : 'right') : 'up', S = 46, GAP = 56;
+    var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    var el = document.createElement('div'); el.className = 'miv-fan mn-more-fan'; el.dataset.dir = dir; el.setAttribute('role', 'menu'); el.setAttribute('aria-label', 'More');
+    el.classList.toggle('miv-fan-lr', dir === 'right');
+    var n = o.length;
+    var pts = o.map(function (b, i) {
+      if (dir === 'up') return { x: cx + 2.2 * (i + 1) * (i + 1) * 0.4, y: cy - (r.height / 2 + 10 + S / 2 + i * GAP), rot: 0.8 * (i + 1) };
+      var sx = dir === 'left' ? -1 : 1, j = n - 1 - i;   // from the ⋯ upward: the first item nearest the top
+      return { x: cx + sx * (r.width / 2 + 14 + S / 2 + 6 * Math.sin(Math.PI * (j + .5) / n)), y: cy - j * GAP, rot: sx * (j - (n - 1) / 2) * 1.6 };
+    });
+    var minY = Math.min.apply(null, pts.map(function (p) { return p.y; })) - S / 2, maxY = Math.max.apply(null, pts.map(function (p) { return p.y; })) + S / 2;
+    var shiftY = minY < 8 ? 8 - minY : maxY > innerHeight - 8 ? innerHeight - 8 - maxY : 0;
+    o.forEach(function (orig, i) {
+      var p = pts[i], it = document.createElement('button'); it.type = 'button'; it.className = 'miv-fan-item'; it.setAttribute('role', 'menuitem');
+      it.title = orig.getAttribute('aria-label') || '';
+      it.style.setProperty('--x', p.x + 'px'); it.style.setProperty('--y', (p.y + shiftY) + 'px'); it.style.setProperty('--r', p.rot + 'deg');
+      it.style.setProperty('--dx', (cx - p.x) + 'px'); it.style.setProperty('--dy', (cy - p.y - shiftY) + 'px');
+      it.style.setProperty('--d', ((n - 1 - i) * 32) + 'ms'); it.style.setProperty('--dc', (i * 20) + 'ms');
+      var svg = orig.querySelector('svg'), img = orig.querySelector('img');
+      var ic = svg ? svg.outerHTML.replace('<svg', '<svg class="miv-ic"') : img ? img.outerHTML : '';
+      it.innerHTML = '<span class="miv-fan-ic">' + ic + '</span><span class="miv-fan-label">' + labels[i] + '</span>';
+      it.addEventListener('click', function (e) { e.stopPropagation(); haptic('light'); close(); setTimeout(function () { orig.click(); }, 60); });
+      el.appendChild(it);
+    });
+    document.body.appendChild(el); fan = el; anchor.setAttribute('aria-expanded', 'true');
+    void el.offsetWidth; el.classList.add('miv-fan-open');
+    document.addEventListener('pointerdown', outside, true);
+  }
+  var q = 0;
+  new MutationObserver(function () { if (q) return; q = requestAnimationFrame(function () { q = 0; ensure(); }); }).observe(document.documentElement, { childList: true, subtree: true });
+  addEventListener('resize', function () { close(true); });
+  ensure();
+})();
+</script>
 <script id="minest-teaching-export-v1">
 /* Local-only vocabulary backup. Never signs in, saves, or uploads. */
 (function(){
@@ -182395,6 +182718,51 @@ window.__MTW_STROKE = { strokeGlyph: strokeGlyph, strokeAdvance: strokeAdvance, 
   window.MinestInteriorsEntry = { open: chooser };
 })();
 </script>
+<style id="mn-type3d-style">
+.mn-type3d{position:fixed;inset:0;z-index:2147483560;background:#000}
+.mn-type3d[hidden]{display:none}
+.mn-type3d iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+.mn-type3d-x{position:absolute;right:calc(env(safe-area-inset-right,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 16px);width:42px;height:42px;border-radius:50%;border:0;padding:11px;
+  color:#fff;background:rgba(255,255,255,.14);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4);box-shadow:inset 0 0 0 1px rgba(255,255,255,.24),0 4px 12px rgba(0,0,0,.4);cursor:pointer}
+.mn-type3d-x svg{width:100%;height:100%;display:block}
+html.mn-type3d-on #minest-mini-pet-p0{visibility:hidden!important}
+</style>
+<script id="mn-type3d-run">
+/* 3D Type — seven 3D typing worlds as a Minest module (tools/type3d/patch_type3d.py) */
+(function () {
+  if (window.MinestType3D) return;
+  var ov = null, SITE = 'https://minest-app.vercel.app/';
+  function src(pick) { var q = pick ? '?pick=1' : ''; return (/^https?:$/.test(location.protocol) ? new URL('type3d/index.html', location.href).href : SITE + 'type3d/index.html') + q; }
+  function open(how) {
+    if (!ov) {
+      ov = document.createElement('div'); ov.className = 'mn-type3d'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', '3D Type');
+      var fr = document.createElement('iframe'); fr.title = '3D Type'; fr.setAttribute('allow', 'autoplay; fullscreen'); fr.src = src(how === 'pick');
+      var x = document.createElement('button'); x.type = 'button'; x.className = 'mn-type3d-x'; x.setAttribute('aria-label', 'Close · 关闭'); x.title = '关闭';
+      x.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+      x.addEventListener('click', function (e) { e.stopPropagation(); close(); });
+      ov.appendChild(fr); ov.appendChild(x); document.body.appendChild(ov);
+      ['pointerdown', 'touchstart', 'wheel', 'keydown', 'click'].forEach(function (t) { ov.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
+    }
+    else if (how === 'pick') { try { var w = ov.querySelector('iframe').contentWindow; if (w.T3DPicker) w.T3DPicker.open(); } catch (e) {} }
+    ov.hidden = false; document.documentElement.classList.add('mn-type3d-on');
+    try { ov.querySelector('iframe').focus(); } catch (e) {}
+  }
+  function close() { if (!ov || ov.hidden) return; ov.hidden = true; document.documentElement.classList.remove('mn-type3d-on');
+    try { var fr = ov.querySelector('iframe'); fr.src = 'about:blank'; ov.remove(); ov = null; } catch (e) {} }   // the worlds stop rendering when closed
+  var ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12L4 7.5M12 12v9"/><path d="M9.2 9.6h5.6M12 9.6v5.2" stroke-width="1.5"/></svg>';
+  function entry() {
+    var dock = document.querySelector('.mn-bdock'); if (!dock || dock.querySelector('[data-type3d-dock]')) return;
+    var t = document.createElement('button'); t.type = 'button'; t.className = 'mn-bapp mdk-tile'; t.setAttribute('data-type3d-dock', '');
+    t.title = '3D Type · 立体打字'; t.setAttribute('aria-label', '3D Type · 立体打字'); t.innerHTML = ICON;
+    t.addEventListener('click', function (e) { e.stopPropagation(); open(); });
+    dock.appendChild(t);
+  }
+  var q = 0;
+  new MutationObserver(function () { if (q) return; q = requestAnimationFrame(function () { q = 0; entry(); }); }).observe(document.documentElement, { childList: true, subtree: true });
+  entry();
+  window.MinestType3D = { open: open, close: close, isOpen: function () { return !!(ov && !ov.hidden); }, version: '1.0.0' };
+})();
+</script>
 <style id="mn70-css">
 /* Minest Duo 70 — added by tools/duo-70/build.py */
 
@@ -182827,7 +183195,7 @@ html.mn70 #minest-pet-raising-overlay .minest-pet-x.idle:active { opacity: 1; }
   };
 })();
 </script>
-<script src="spatial-home/js/start-controls.js"></script>
+<script src="spatial-home/js/start-controls.js?v=3"></script>
 
 <!-- Shared 13-level Live runtime: all teacher and student entry points. -->
 <link rel="stylesheet" href="live-games/extra-games.css?v=13-1">
@@ -186744,6 +187112,19 @@ html.sh-main-dock-disabled body .mn-bdock { display: none !important; }
 #mn-bp .grid .it { height: 108px !important; min-height: 108px !important; min-width: 0; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
 #mn-bp .it img, #mn-bp .it i { flex: none; }
 #mn-bp .it span { flex: none; line-height: 18px; }
+#mn-bp .grid.ixg { grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)) !important; }
+#mn-bp .grid.ixg .it { height: 84px !important; min-height: 84px !important; padding: 4px 2px 3px; }
+#mn-bp .grid.ixg .it img { width: 52px; height: 52px; }
+#mn-bp .grid.ixg .it i { height: 52px; line-height: 52px; }
+#mn-bp .grid.ixg .it i.ixw { opacity: .45; }
+#mn-bp .grid.ixg .it i svg.px { width: 36px; height: 36px; margin: 8px auto; }
+#mn-bp .grid.ixg .it span { font-size: 10px; line-height: 14px; padding: 0 2px; }
+#mn-bp .grid.ixg h5.ixh { margin-top: 6px; }
+#mn-bp .grid.ixg .ixc { grid-column: 1 / -1; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; position: sticky; top: 0; z-index: 2; padding: 0 0 4px; background: #c6c6c6; touch-action: pan-x; }
+#mn-bp .grid.ixg .ixc::-webkit-scrollbar { display: none; }
+#mn-bp .grid.ixg .ixc button { flex: none; min-height: 30px; padding: 3px 9px; border: 2px solid #111; border-radius: 0; background: #8b8b8b; color: #fff; font: inherit; font-size: 11px; font-weight: 700; text-shadow: 1px 1px 0 #3f3f3f; cursor: pointer; white-space: nowrap; }
+#mn-bp .grid.ixg .ixc button.on { background: #fff; color: #111; text-shadow: none; }
+#mn-bp .grid.ixg .ixc button em { font-style: normal; opacity: .75; margin-left: 2px; }
 
 /* the magic piano (2026-11-20): a layer that takes taps on the 3D keys, the bar, the keys on the screen */
 #sh-pianohit { position: absolute; inset: 0; z-index: 11; touch-action: none; cursor: pointer; }
@@ -196401,7 +196782,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
 
   /* ---------------------------------------------------------------- the backpack UI */
-  var CATS = [['all', 'All Items', '全部'], ['creations', 'My Creations', '我的作品'], ['fixtures', 'Display Fixtures', '陈列装置'], ['tools', 'Workshop Tools', '工坊工具'], ['magic', 'Magic Items', '魔法道具'], ['collections', 'My Collections', '我的收藏'], ['fav', 'Favorites', '收藏夹']];
+  var CATS = [['all', 'All Items', '全部'], ['index', 'Index 索引', '全部已上线的建筑、物件、室内和世界'], ['creations', 'My Creations', '我的作品'], ['fixtures', 'Display Fixtures', '陈列装置'], ['tools', 'Workshop Tools', '工坊工具'], ['magic', 'Magic Items', '魔法道具'], ['collections', 'My Collections', '我的收藏'], ['fav', 'Favorites', '收藏夹']];
   var ui = null;
   function css() {
     if (document.getElementById('mn-bp-css')) return;
@@ -196427,6 +196808,13 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       '#mn-bp .it img{width:72px;height:72px;object-fit:contain;display:block;margin:0 auto}#mn-bp .it i{font-style:normal;font-size:30px;display:block;height:72px;line-height:72px}',
       '#mn-bp .it span{display:block;font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
       '#mn-bp .it b{position:absolute;top:4px;right:4px;font-size:9.5px;font-weight:800;padding:1px 5px;border-radius:6px;background:#2f6fd6;color:#fff}#mn-bp .it b.bag{background:#8a6a48}#mn-bp .it b.tpl{background:#3f7a3c}',
+      '#mn-bp .ix{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:2px 0 6px}',
+      '#mn-bp .ix b{width:100%;font-size:12.5px;color:#5b3a20}#mn-bp .ix b em{font-style:normal;color:#8a6a48;font-weight:600}',
+      '#mn-bp .ix button{border:1px solid #d9bf96;background:#fbf2e0;color:#3a2412;border-radius:999px;padding:4px 10px;font:inherit;font-size:12px;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+      '#mn-bp .ix button.sel{background:#5b3a20;color:#fbf2e0;border-color:#5b3a20}#mn-bp .ix button.off{opacity:.55}',
+      '#mn-bp .ixnote{font-size:12.5px;color:#8a6a48}',
+      '#mn-bp .grid .bpown{order:2}',
+      '#mn-bp .pv .ixpic{width:100%;aspect-ratio:1;object-fit:contain;border-radius:12px;background:#f6ead2;display:grid;place-items:center;color:#8a6a48}',
       '#mn-bp .pv{width:240px;flex:none;display:flex;flex-direction:column;gap:6px;overflow:auto}',
       '#mn-bp .pv canvas{width:240px;height:200px;border-radius:14px;background:radial-gradient(#fffdf6,#ead8b6);touch-action:none;cursor:grab}',
       '#mn-bp .pv h4{margin:2px 0 0;font-size:15px}#mn-bp .pv p{margin:0;font-size:12px;color:#5a4128}#mn-bp .pv dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:2px 8px;font-size:12px}#mn-bp .pv dt{color:#8a6a48}',
@@ -196441,7 +196829,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
   /* block-style pixel icon for a thing that has one (pixicons.js), else its emoji */
   function pix(it) { var P = root.SpatialPixIcons, id = it && it.ref && it.ref.fn; return P && id && P.has(id) ? P.svg(id) : (it.icon || ''); }
-  function open(host) {
+  function open(host, cat) {
     css();
     if (!ui) {
       var el = document.createElement('div'); el.id = 'mn-bp'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Magical Backpack');
@@ -196456,16 +196844,137 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       });
       el.addEventListener('keydown', function (e) { e.stopPropagation(); if (e.key === 'Escape') { e.preventDefault(); close(false); } });
     }
-    ui.host = host; ui.el.hidden = false;
+    ui.host = host; if (cat) { ui.cat = cat; ui.sel = null; } ui.el.hidden = false;
     if (!host.reduced || !host.reduced()) { ui.el.classList.remove('opening'); void ui.el.offsetWidth; ui.el.classList.add('opening'); }
     render();
   }
   function close(placing) { if (!ui || ui.el.hidden) return; ui.el.hidden = true; cancelAnimationFrame(ui.raf); ui.raf = 0; try { if (ui.host && ui.host.onClose) ui.host.onClose(!!placing); } catch (e) {} }
   function isOpen() { return !!(ui && !ui.el.hidden); }
   function items() { return catalog(ui.host); }
+
+  /* ---------------------------------------------------------------- Index 索引: everything that is online, on one page
+     The backpack's own entries (by kind) and My World's 3D library (MinestAssets3D.catalog: buildings, objects, interiors,
+     worlds, small islands, centre styles) — read from the Minest page; loaded from its #mn-assets3d-src the first time,
+     the same way My World 3.0 does. A library entry shows its picture and details; it is placed in My World's Build. */
+  var LIB = null, libWait = null;
+  function lib3d() {
+    if (LIB) return Promise.resolve(LIB); if (libWait) return libWait;
+    libWait = new Promise(function (res) {
+      try {
+        var ws = [HW(), root], w = null, src = null;
+        for (var i = 0; i < ws.length; i++) { try { if (ws[i] && ws[i].MinestAssets3D) { LIB = ws[i].MinestAssets3D; return res(LIB); } } catch (e) {} }
+        for (var j = 0; j < ws.length && !src; j++) { try { src = ws[j] && ws[j].document && ws[j].document.getElementById('mn-assets3d-src'); if (src) w = ws[j]; } catch (e) {} }
+        if (!src) { libWait = null; return res(null); }
+        setTimeout(function () { try { var sc = w.document.createElement('script'); sc.textContent = src.textContent; w.document.head.appendChild(sc); LIB = w.MinestAssets3D || null; } catch (e) { LIB = null; } res(LIB); }, 30);
+      } catch (e) { res(null); }
+    });
+    return libWait;
+  }
+  var LIB_GROUPS = [['building', '建筑 Buildings'], ['object', '物件 Objects'], ['diorama', '室内 Interiors'], ['world', '世界 Worlds'], ['subisland', '小岛 Islands'], ['center', '中心岛样式 Centre styles']];
+  var BP_GROUPS = [['creations', '我的作品'], ['fixtures', '陈列装置'], ['tools', '工坊工具'], ['magic', '魔法道具'], ['collections', '我的收藏']];
+  var LIBPIC = {};
+  function libPic(id) { if (LIBPIC[id]) return LIBPIC[id]; try { var c = LIB && LIB.cached && LIB.cached(id); if (c) LIBPIC[id] = c; return c || ''; } catch (e) { return ''; } }
+  function ixFill(grid) {   // pictures for the slots on screen: library stills four at a time, the backpack's own models one at a time
+    var gen = (ui.gen = (ui.gen || 0) + 1), busy = 0, T = ui.host.THREE, all = items();
+    function step() {
+      if (!ui || ui.gen !== gen || ui.el.hidden || ui.cat !== 'index') return;
+      var bounds = grid.getBoundingClientRect(), slots = grid.querySelectorAll('i[data-th],i[data-lt]');
+      for (var j = 0; j < slots.length && busy < 4; j++) {
+        var slot = slots[j], box = slot.getBoundingClientRect();
+        if (box.bottom < bounds.top - 60 || box.top > bounds.bottom + 60) continue;
+        var k = slot.getAttribute('data-th');
+        if (k != null && busy) return;
+        busy++; run(slot, k, slot.getAttribute('data-lt'));
+        if (k != null) return;
+      }
+    }
+    function run(slot, k, id) {
+      var done = false;
+      slot.removeAttribute('data-th'); slot.removeAttribute('data-lt');
+      var put = function (src) {
+        if (done) return; done = true; busy--;
+        if (src && slot.isConnected) { var im = document.createElement('img'); im.alt = ''; im.decoding = 'async'; im.src = src; slot.replaceWith(im); }
+        setTimeout(step, 0);
+      };
+      if (k != null) {
+        (root.requestIdleCallback || function (fn) { return setTimeout(fn, 60); })(function () {
+          var it = all.filter(function (x) { return x.key === k; })[0], src = '';
+          try { src = it ? thumb(T, it) : ''; } catch (e) {}
+          put(src);
+        }, { timeout: 350 });
+      } else {
+        setTimeout(function () { put(''); }, 6000);
+        try { Promise.resolve(LIB.thumb(id)).then(function (u) { if (u) LIBPIC[id] = u; put(u); }, function () { put(''); }); } catch (e) { put(''); }
+      }
+    }
+    grid.onscroll = step; step();
+  }
+  function renderIndex(all, grid) {
+    var q = ui.q, hit = function (t) { return !q || String(t).toLowerCase().indexOf(q) >= 0; };
+    var scroll = grid.scrollTop, host = ui.host, PV = null; try { PV = previewer(host.THREE); } catch (e) {}
+    var here = !!(ui.host && ui.host.placeLib);   // My World's island: the library is what goes down here, so its categories come first
+    var C = LIB ? (LIB.catalog || {}) : null;
+    var own = BP_GROUPS.map(function (g) {
+      return { id: 'bp:' + g[0], name: g[1], list: all.filter(function (it) { return it.cat === g[0] && hit(it.name + ' ' + (it.note || '') + ' ' + (it.en || '')); }) };
+    }).filter(function (c) { return c.list.length; });
+    var lib = LIB_GROUPS.map(function (g) {
+      return { id: 'lib:' + g[0], name: g[1], lib: true, list: C ? (C[g[0]] || []).filter(function (x) { return hit(x.name + ' ' + (x.subtitle || '') + ' ' + (x.category || '') + ' ' + x.id); }) : null };
+    }).filter(function (c) { return !c.list || c.list.length; });
+    var cats = here ? lib.concat(own) : own.concat(lib);
+    var cur = cats.filter(function (c) { return c.id === ui.ixc; })[0];
+    if (!cur || (q && cur.list && !cur.list.length)) cur = cats.filter(function (c) { return !q || !c.list || c.list.length; })[0] || cats[0];
+    ui.ixc = cur ? cur.id : null;
+    var h = '<div class="ixc" role="tablist" aria-label="Index 分类">' + cats.map(function (c) {
+      return '<button type="button" role="tab" aria-selected="' + (c === cur) + '" data-ixc="' + c.id + '" class="' + (c === cur ? 'on' : '') + '">' + c.name + (c.list ? ' <em>' + c.list.length + '</em>' : '') + '</button>';
+    }).join('') + '</div>';
+    if (!cur) { grid.innerHTML = h + '<h5>没有找到</h5>'; return; }
+    if (!cur.lib) {
+      h += '<h5 class="ixh">' + (here ? '背包里的物品 · 在 Spatial Home 和圣托里尼里摆放' : '背包里的物品 · 可以直接放出来') + '</h5>' + cur.list.map(function (it) {
+        var ok = it.ready !== false, src = ok && PV ? PV.cache[it.key] : '', st = {}; try { st = host.status(it) || {}; } catch (e) {}
+        var tip = it.name + (ok ? '' : ' · 未完成') + (it.note ? ' — ' + it.note : '');
+        return '<button type="button" class="it' + (ui.sel === it.key ? ' sel' : '') + (ok ? '' : ' off') + '" data-key="' + esc(it.key) + '" title="' + esc(tip) + '">' +
+          (src ? '<img alt="" src="' + src + '">' : '<i' + (ok && PV && src === undefined ? ' data-th="' + esc(it.key) + '"' : '') + '>' + pix(it) + '</i>') + '<span>' + esc(it.name) + '</span>' +
+          (st.badge ? '<b class="' + st.cls + '">' + esc(st.badge) + '</b>' : '') + '</button>';
+      }).join('');
+      grid.innerHTML = h; grid.scrollTop = scroll; ixFill(grid);
+      return;
+    }
+    if (!LIB) {   // the library is read only when one of its categories is opened
+      h += '<h5 class="ixh ixnote">正在读取 My World 3D 库…</h5>';
+      grid.innerHTML = h; grid.scrollTop = 0;
+      lib3d().then(function (L) {
+        if (!ui || ui.cat !== 'index' || ui.el.hidden) return;
+        if (L) render(); else { var n = grid.querySelector('.ixnote'); if (n) n.textContent = '这个页面里没有 My World 的 3D 库（在 Minest 里打开背包才会列出）。'; }
+      });
+      return;
+    }
+    h += '<h5 class="ixh">My World 3D 库 · ' + (here ? '点一件，再点「放到岛上」' : '在 My World 的「建造」里摆放') + '</h5>' + cur.list.map(function (x) {
+      var src = libPic(x.id), tip = x.name + (x.subtitle || x.category ? ' — ' + (x.subtitle || x.category) : '');
+      return '<button type="button" class="it' + (ui.lib === x.id ? ' sel' : '') + '" data-lib="' + esc(x.id) + '" title="' + esc(tip) + '">' +
+        (src ? '<img alt="" decoding="async" src="' + src + '">' : '<i' + (LIB.thumb ? ' data-lt="' + esc(x.id) + '"' : '') + ' class="ixw">·</i>') + '<span>' + esc(x.name) + '</span></button>';
+    }).join('');
+    grid.innerHTML = h; grid.scrollTop = scroll; ixFill(grid);
+  }
+  function libPreview(pv) {
+    var a = null, id = ui.lib;
+    try { a = (LIB.info && LIB.info(id)) || null; } catch (e) {}
+    var C = LIB.catalog || {}, kind = (LIB.kindOf ? LIB.kindOf(id) : ''), row = null;
+    LIB_GROUPS.some(function (g) { row = (C[g[0]] || []).filter(function (x) { return x.id === id; })[0]; return !!row; });
+    row = row || a || { id: id, name: id };
+    var names = { building: '建筑', object: '物件', diorama: '室内', world: '世界', subisland: '小岛', center: '中心岛样式' };
+    var grp = ''; LIB_GROUPS.some(function (g) { if ((C[g[0]] || []).some(function (x) { return x.id === id; })) { grp = g[0]; return true; } return false; });
+    var here = !!(ui.host && ui.host.placeLib), canPut = here && (grp === 'building' || grp === 'object' || grp === 'diorama');
+    var put = canPut ? '<div class="acts"><button type="button" class="pri" data-bp="libplace">放到岛上</button></div>' : '';
+    pv.innerHTML = '<div class="ixpic" aria-hidden="true">…</div><h4>' + esc(row.name) + '</h4>' + put + '<dl><dt>类型</dt><dd>' + esc(names[kind] || names[grp] || kind || '') + '</dd>' +
+      (row.subtitle ? '<dt>说明</dt><dd>' + esc(row.subtitle) + '</dd>' : '') + (row.category ? '<dt>分类</dt><dd>' + esc(row.category) + '</dd>' : '') +
+      '<dt>编号</dt><dd>' + esc(id) + '</dd><dt>状态</dt><dd>' + (canPut ? '已上线 · 可以放到这座岛上' : here ? '已上线 · 岛的外观，在 Island Gallery 里选用' : '已上线 · 在 My World 的「建造」里摆放') + '</dd></dl>';
+    if (LIB.thumb) LIB.thumb(id).then(function (src) { var pic = pv.querySelector('.ixpic'); if (pic && src && ui.lib === id) pic.outerHTML = '<img class="ixpic" alt="' + esc(row.name) + '" src="' + src + '">'; else if (pic) pic.textContent = ''; }, function () {});
+  }
   function render() {
     var all = items(), host = ui.host, p = pref(), queue = [], grid = ui.el.querySelector('.grid'), scroll = grid.scrollTop;
     ui.el.querySelector('.tabs').innerHTML = CATS.map(function (c) { return '<button type="button" data-cat="' + c[0] + '" class="' + (ui.cat === c[0] ? 'on' : '') + '" title="' + c[2] + '">' + c[1] + '</button>'; }).join('');
+    grid.classList.toggle('ixg', ui.cat === 'index');
+    if (ui.cat === 'index') { renderIndex(all, grid); preview(); hotbar(host); return; }
     var list = all.filter(function (it) { return ui.cat === 'all' || (ui.cat === 'fav' ? p.fav.indexOf(it.key) >= 0 : it.cat === ui.cat); })
       .filter(function (it) { return !ui.q || (it.name + ' ' + (it.note || '') + ' ' + (it.en || '')).toLowerCase().indexOf(ui.q) >= 0; });
     var T = host.THREE, h = '';
@@ -196515,6 +197024,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   function preview() {
     var pv = ui.el.querySelector('.pv'), it = selected(), host = ui.host, T = host.THREE;
     cancelAnimationFrame(ui.raf); ui.raf = 0;
+    if (ui.cat === 'index' && ui.lib && LIB) return libPreview(pv);
     if (!it) { pv.innerHTML = '<p style="margin-top:20px">选一件物品：看它的 3D 模型、尺寸和放置要求，然后一键放进世界。</p><p>桌面：R 旋转 · ←→↑↓ 微调 · Enter 放好 · Esc 取消</p>'; return; }
     var st = host.status(it), PLACE = { floor: '地面 / 展台 / 室外', wall: '墙面', surface: '桌面 / 柜面 / 货架 / 展台' };
     var kindName = { template: '模板 · 可以放多个', owned: '实体作品 · 只有一件', function: '功能物件 · 放好后可进入功能' }[it.kind];
@@ -196548,10 +197058,13 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   function onClick(e) {
     var b = e.target.closest('button'); if (!b || !ui) return;
     var host = ui.host;
+    if (b.dataset.ixc) { ui.ixc = b.dataset.ixc; ui.el.querySelector('.grid').scrollTop = 0; render(); return; }
     if (b.dataset.cat) { ui.cat = b.dataset.cat; render(); return; }
-    if (b.dataset.key) { ui.sel = b.dataset.key; render(); return; }
+    if (b.dataset.key) { ui.sel = b.dataset.key; ui.lib = null; render(); return; }
+    if (b.dataset.lib) { ui.lib = b.dataset.lib; ui.sel = null; render(); return; }
     var a = b.dataset.bp, it = selected();
     if (a === 'close') { close(); return; }
+    if (a === 'libplace') { if (host.placeLib && ui.lib && host.placeLib(ui.lib) !== false) close(true); return; }
     if (!it) return;
     if (a === 'fav') { var on = toggleFav(it.key); host.toast(on ? '★ 加入收藏夹和快捷栏' : '已从收藏夹拿出'); render(); return; }
     if (a === 'place' || a === 'move') { touch(it.key); close(true); host.place(it, a === 'move'); return; }
@@ -197929,8 +198442,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     knowledge: { title: 'Knowledge', targets: [{
       id: 'MinestKnowledgeHub', label: 'Knowledge 知识', kind: 'host', entry: 'window.MinestKnowledgeHub.open()',
       test: function (w) { return has(w, 'MinestKnowledgeHub'); },
-      open: function (w) { if (!w.document.querySelector('.kh-bd')) w.MinestKnowledgeHub.open(); },
-      isOpen: function (w) { return !!w.document.querySelector('.kh-bd'); }, close: function (w) { if (w.document.querySelector('.kh-bd')) w.MinestKnowledgeHub.close(); }
+      open: function (w) { if (!w.document.querySelector('.kh')) w.MinestKnowledgeHub.open(); },
+      isOpen: function (w) { return !!w.document.querySelector('.kh'); }, close: function (w) { if (w.document.querySelector('.kh')) w.MinestKnowledgeHub.close(); }
     }], missing: '这个构建里没有 Knowledge（window.MinestKnowledgeHub）。' },
     carplay: { title: 'CarPlay', targets: [{
       id: 'MinestCarFlash', label: '车载闪卡 · CarPlay', kind: 'host', entry: 'window.MinestCarFlash.open()',
@@ -200009,6 +200522,13 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
 /* the Duo's pinned Dock: shown (not slid away) without being moved off its place */
 html.mn-sysbar.duo-dockpin:not(.mn-sys-reading) body .mn-bdock.mn-bdock, html.mn-sysbar.duo-docktop:not(.mn-sys-reading) body .mn-bdock.mn-bdock { opacity: 1 !important; pointer-events: auto !important; visibility: visible !important; }
 
+/* the Dock's default place (2026-11-24, the user): standing in the bottom right corner on every screen — the opening, the board,
+   the room — growing upward; "=" is always its lowest key, so it never moves under the pointer when the Dock folds or unfolds.
+   On the Duo held sideways it stands at the bottom of the black status column. Placed by hand (mn-dock-free) or set to Bottom / Top: as chosen. */
+html[data-mn-bd=right][data-mn-bd][data-mn-bd][data-mn-bd]:not(.mn-dock-free):not(.mn-sys-reading):not(.mn-start-reading) body .mn-bdock.mn-bdock { left: auto !important; right: calc(env(safe-area-inset-right, 0px) + 8px) !important; top: auto !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px) !important; inset-inline: auto; transform: none !important; margin: 0 !important; flex-direction: column !important; justify-content: flex-end !important; max-height: calc(100% - env(safe-area-inset-top, 0px) - 24px) !important; }
+html.duo-dockpin[data-mn-bd][data-mn-bd][data-mn-bd][data-mn-bd]:not(.mn-dock-free):not(.mn-sys-reading):not(.mn-start-reading) body .mn-bdock.mn-bdock { left: auto !important; right: calc((var(--duo-dock, 84px) - 52px) / 2) !important; top: auto !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px) !important; transform: none !important; margin: 0 !important; flex-direction: column !important; justify-content: flex-end !important; max-height: calc(100% - var(--sat, 0px) - 20px) !important; }
+html[data-mn-bd=right]:not(.mn-dock-free) body .mn-bdock .mn-bapp.mn-sk-tools, html.duo-dockpin:not(.mn-dock-free) body .mn-bdock .mn-bapp.mn-sk-tools { order: 99 !important; }
+
 /* the Dock placed freely (hold, then drag) — wins over every side / centring rule */
 html.mn-dock-free.mn-dock-free .mn-bdock.mn-bdock { left: var(--mn-fx, 50%) !important; top: var(--mn-fy, 50%) !important; right: auto !important; bottom: auto !important; transform: none !important; margin: 0 !important; }
 .mn-bdock.mn-bdock { touch-action: none; -webkit-user-select: none; user-select: none; }   /* a press-and-move drags the Dock (the page must not scroll instead) */
@@ -200205,7 +200725,27 @@ html.student-mode .mn-sk-world { display: none !important; }
   function dockKey(sel) { var b = document.querySelector('.mn-bdock ' + sel); if (b) { b.click(); return true; } return false; }
   function esc() { return document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true, cancelable: true })); }
   function close(b) { var s0 = snap(); if (ctx === 'room' && press('sh-exitBtn')) return; if (!dockKey('.mn-sys-exit')) esc(); orNothing(b, s0, '没有可关闭的'); }
-  function back(b) { var s0 = snap(); if (ctx === 'room') { if (esc() && !press('sh-exitBtn')) {} return; } if (!dockKey('.mn-sys-back') && esc() && location.hash.length > 1) history.back(); orNothing(b, s0, '已经是最前一页'); }
+  /* 2026-11-24 (the user: "系统返回键要真正返回之前的页面或操作，最重要的是层级的返回"): one level per press, innermost first —
+     the opening's own layers (map / telescope / treehouse / inside the house) → what is open over the board (the Dock's back, Esc) →
+     the room → the opening the board was opened from → the page before this one (Mac ⇄ iPhone); only then "已经是最前一页" */
+  function pageBack() {
+    try {
+      var r = document.referrer, can = window.navigation && typeof navigation.canGoBack === 'boolean' ? navigation.canGoBack : history.length > 1;
+      if (!r || !can) return false; var u = new URL(r); if (u.origin !== location.origin || u.pathname === location.pathname) return false;
+      history.back(); return true;
+    } catch (e) { return false; }
+  }
+  function back(b) {
+    var s0 = snap(), SC = window.MinestStartControls;
+    if (SC && SC.active && SC.active()) { if (!SC.back() && !pageBack()) nothing(b, '已经是最前一页'); return; }
+    if (ctx === 'room') { if (esc() && !press('sh-exitBtn')) {} return; }
+    if (!dockKey('.mn-sys-back') && esc() && location.hash.length > 1) { history.back(); return; }
+    setTimeout(function () {
+      if (snap() !== s0) return;
+      if (SC && SC.fromOpening && SC.fromOpening() && window.MinestSpatialHome && MinestSpatialHome.home) { try { MinestSpatialHome.home(); return; } catch (e) {} }
+      if (!pageBack()) nothing(b, '已经是最前一页');
+    }, 280);
+  }
   /* 3: reading mode, here and in every open frame of the same site */
   var HIDE = 'button,[role="button"],[role="toolbar"],header.iphone-topbar,.ios-bottom-tab-bar,.mn-bdock,#minest-mini-pet-p0,#cs-btn,' +
     '#sh-top,#sh-labels,#sh-stick,#sh-hint,#sh-credit,#sh-pill,#sh-reading-enter,#sh-dock,#sh-settings,#sh-pack,#sh-edit,#sh-card,#sh-toast,#sh-skip,.clun-entry,.mn-start-control';
@@ -200333,7 +200873,7 @@ html.student-mode .mn-sk-world { display: none !important; }
     var lens = mc ? 0 : (h ? 1.6 : 1.35), room = (h ? innerWidth : innerHeight) - 28 - (h ? 0 : 20);
     if (R.classList.contains('mn-dock-free')) room = (h ? innerWidth : innerHeight) - 24;   // placed freely: the whole screen is the limit
     else if (R.classList.contains('duo-dockpin') || R.classList.contains('duo-docktop')) {   // the Duo's pinned Dock starts at its own place: the room left from there
-      var dr = d.getBoundingClientRect(); room = h ? innerWidth - Math.max(0, dr.left) - 16 : innerHeight - Math.max(0, dr.top) - 16;
+      var dr = d.getBoundingClientRect(); room = h ? innerWidth - Math.max(0, dr.left) - 16 : innerHeight - 44;   /* it stands on the bottom now: the whole column is its room */
     }
     var k = Math.floor((room - 10 - seps * 10 - Math.max(0, keys - 1) * 4) / (keys + lens));
     k = Math.max(22, Math.min(mc ? 38 : 40, k));

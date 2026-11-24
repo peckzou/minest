@@ -292,8 +292,8 @@ function puffLayer(cap: number, map: THREE.Texture, opts: { fogNear: number; fog
     depthWrite: false,
     uniforms: {
       uMap: { value: map },
-      uLit: { value: new THREE.Color(0xeef2fa) },
-      uShade: { value: new THREE.Color(0x56657c) },
+      uLit: { value: new THREE.Color(0xfffaf0) },
+      uShade: { value: new THREE.Color(0x8497bd) },
       uFog: { value: new THREE.Color(opts.fogColor) },
       uFogNear: { value: opts.fogNear },
       uFogFar: { value: opts.fogFar },
@@ -315,8 +315,9 @@ function puffLayer(cap: number, map: THREE.Texture, opts: { fogNear: number; fog
         float a = tx.a * vA;
         if (a < 0.01) discard;
         // light from above-right: top of each puff bright, underside cooler
-        float l = smoothstep(-0.55, 0.45, vQ.y + vQ.x*0.25 + (tx.r - 0.85)*1.4);
-        vec3 col = mix(uShade, uLit, l) * (0.94 + vSeed*0.08);
+        float l = smoothstep(-0.6, 0.4, vQ.y*0.75 + vQ.x*0.6 + (tx.r - 0.85)*1.4);
+        vec3 col = mix(uShade, uLit, l) * (0.95 + vSeed*0.07);
+        col += vec3(1.0, 0.62, 0.3) * smoothstep(0.2, 0.5, vQ.x + vQ.y*0.4) * 0.1;
         col = mix(col, uFog, vFog);
         gl_FragColor = vec4(col, a);
         #include <colorspace_fragment>
@@ -334,37 +335,66 @@ export function create(ctx: WorldContext): WorldInstance {
   const q = ctx.quality;
   const R = rng(1313);
 
-  /* ------------------------------------------------------------ night sky */
-  // minimal dark stage (classic 3D Type look): near-black night, a few faint stars
-  const NIGHT = 0x03050a;
-  ctx.scene.background = new THREE.Color(NIGHT);
-  ctx.scene.fog = new THREE.Fog(NIGHT, 60, 190);
+  /* ------------------------------------------------------------------ sky */
+  // Late afternoon above the cloud deck: deep blue overhead, warm haze at the horizon, a low sun to the right,
+  // cirrus streaks high up and a bank of cumulus drifting below the writing.
+  const SKY = 0x3f6fb4;
+  ctx.scene.background = new THREE.Color(SKY);
+  ctx.scene.fog = new THREE.Fog(0x86a6d2, 70, 260);
 
-  const amb = new THREE.HemisphereLight(0x8fa2c8, 0x0a0806, 0.35);
+  const amb = new THREE.HemisphereLight(0xcfe0ff, 0x6a5a52, 1.0);
   root.add(amb);
-  const moonLight = new THREE.DirectionalLight(0xc8d6ff, 1.1);
-  moonLight.position.set(-5, 8, 6);
-  root.add(moonLight);
+  const sunLight = new THREE.DirectionalLight(0xffe2b8, 2.6);
+  sunLight.position.set(7, 3.2, 5);
+  root.add(sunLight);
 
-  const nStars = small ? 160 : 320;
-  const starPos = new Float32Array(nStars * 3);
-  for (let i = 0; i < nStars; i++) {
-    starPos[i * 3] = (R() - 0.5) * 260;
-    starPos[i * 3 + 1] = -20 + R() * 110;
-    starPos[i * 3 + 2] = -90 - R() * 40;
-  }
-  const starGeo = new THREE.BufferGeometry();
-  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-  const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0x9aa6c0, size: 1.6, sizeAttenuation: false, fog: false, transparent: true, opacity: 0.55, depthWrite: false }));
-  stars.renderOrder = -5;
-  root.add(stars);
+  const skyMat = new THREE.ShaderMaterial({
+    side: THREE.BackSide,
+    depthWrite: false,
+    depthTest: false,
+    fog: false,
+    uniforms: { uT: { value: 0 }, uDetail: { value: q === 0 || small ? 4 : 6 } },
+    vertexShader: `varying vec3 vDir; void main(){ vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `precision highp float; varying vec3 vDir; uniform float uT; uniform float uDetail;
+      float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float noise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
+        return mix(mix(hash(i), hash(i+vec2(1,0)), f.x), mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), f.x), f.y); }
+      float fbm(vec2 p){ float a = 0.5, v = 0.0; for (int k = 0; k < 6; k++){ if (float(k) >= uDetail) break; v += a*noise(p); p = p*2.03 + vec2(17.3, 9.1); a *= 0.5; } return v; }
+      void main(){
+        vec3 d = normalize(vDir);
+        vec2 p = d.xy / max(-d.z, 0.25);                       // the sky as a painted backdrop in front of the camera
+        vec3 top = vec3(0.05, 0.16, 0.42), mid = vec3(0.22, 0.44, 0.74), haze = vec3(0.98, 0.76, 0.58);
+        vec3 col = mix(mid, top, smoothstep(-0.05, 0.62, p.y));
+        col = mix(haze, col, smoothstep(-0.52, 0.02, p.y));
+        vec2 sun = vec2(0.92, -0.2);
+        float sd = length((p - sun) * vec2(1.0, 1.25));
+        col += vec3(1.0, 0.72, 0.42) * exp(-sd*2.6) * 0.55 + vec3(1.0, 0.93, 0.78) * exp(-sd*sd*190.0) * 1.3;
+        // cirrus: long thin streaks high up
+        float ci = fbm(vec2(p.x*1.3 + uT*0.006, p.y*6.5 + 3.0));
+        col = mix(col, vec3(0.96, 0.97, 1.0), smoothstep(0.52, 0.86, ci) * smoothstep(0.1, 0.5, p.y) * 0.42);
+        // the cumulus bank below, lit from the sun's side
+        vec2 cp = vec2(p.x*1.25 + uT*0.011, p.y*2.7);
+        float n = fbm(cp*1.9), bank = n + (-p.y - 0.2)*1.55;
+        float dens = smoothstep(0.42, 0.74, bank);
+        float lit = clamp((n - fbm(cp*1.9 + vec2(0.11, -0.085))) * 5.0 + 0.55, 0.0, 1.0);
+        vec3 cloud = mix(vec3(0.47, 0.55, 0.72), vec3(1.0, 0.95, 0.88), lit);
+        cloud = mix(cloud, vec3(1.0, 0.8, 0.6), exp(-sd*1.7) * 0.55);
+        col = mix(col, cloud, dens * 0.96);
+        gl_FragColor = vec4(col, 1.0);
+        #include <colorspace_fragment>
+      }`,
+  });
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(180, 24, 16), skyMat);
+  sky.renderOrder = -10;
+  sky.frustumCulled = false;
+  root.add(sky);
 
   const puffMap = puffTexture();
 
   /* ---------------------------------------------------------------- smoke */
   const CAP = Math.round((q === 2 ? 6000 : q === 1 ? 4200 : 2600) * (small ? 0.55 : 1));
   const smoke = new SmokeField(CAP);
-  const smokeLayer = puffLayer(CAP, puffMap, { fogNear: 40, fogFar: 160, fogColor: NIGHT });
+  const smokeLayer = puffLayer(CAP, puffMap, { fogNear: 40, fogFar: 160, fogColor: 0x86a6d2 });
   smokeLayer.mesh.renderOrder = 2;
   root.add(smokeLayer.mesh);
   const SUB = q === 2 && !small ? 2 : 1;
@@ -439,7 +469,7 @@ export function create(ctx: WorldContext): WorldInstance {
   function makeRec(ev: InsertEvent, slot: Slot): LetterRec {
     const glyph = ctx.glyphs.get(ev.char, 'sans');
     const n = Math.max(1, letterCount());
-    const spacing = (small ? 0.075 : 0.055) * Math.max(1, n / (small ? 10 : 14)) * (q === 0 ? 1.2 : 1);
+    const spacing = (small ? 0.062 : 0.042) * Math.max(1, n / (small ? 10 : 14)) * (q === 0 ? 1.25 : 1);
     const rec: LetterRec = {
       id: ev.id,
       slot,
@@ -462,7 +492,7 @@ export function create(ctx: WorldContext): WorldInstance {
       const p = rec.pts[rec.emitted++];
       for (let k = 0; k < SUB; k++) {
         const off = (R() - 0.5) * 0.05;
-        smoke.anchor(rec, p.x - p.ty * off, p.y + p.tx * off, (R() - 0.5) * 0.14 * s, 0.07 * s, (0.17 + R() * 0.07) * s, R, age);
+        smoke.anchor(rec, p.x - p.ty * off, p.y + p.tx * off, (R() - 0.5) * 0.14 * s, 0.06 * s, (0.15 + R() * 0.07) * s, R, age);
       }
     }
   }
@@ -499,7 +529,7 @@ export function create(ctx: WorldContext): WorldInstance {
   const prevTip = tool.tip.clone();
   const vel = new THREE.Vector3();
   let bank = 0;
-  let planeScale = 0.55;
+  let planeScale = 0.9;
   let loiterT = 0;
   const loiterTarget = new THREE.Vector3();
   const upHint = new THREE.Vector3(0, 0.35, 1).normalize();
@@ -556,7 +586,7 @@ export function create(ctx: WorldContext): WorldInstance {
     } else bank *= 1 - Math.min(1, dt * 3);
 
     const size = (letters.size ? [...letters.values()][letters.size - 1].slot.size : 1) || 1;
-    planeScale += (0.5 * Math.max(0.6, size) - planeScale) * Math.min(1, dt * 2);
+    planeScale += (0.86 * Math.max(0.6, size) - planeScale) * Math.min(1, dt * 2);
     planeRoot.scale.setScalar(planeScale);
     // nozzle sits on the pen tip, the plane slightly in front of the smoke
     planeRoot.position.copy(tool.tip).addScaledVector(heading, TAIL * planeScale);
@@ -591,7 +621,7 @@ export function create(ctx: WorldContext): WorldInstance {
       if (f.scattered) continue;
       for (const r of f.recs) w = Math.max(w, Math.abs(r.slot.origin.x - cx) * 2 + r.slot.advance);
     }
-    const d = fitCameraToWidth(cam, Math.max(w + 2.2, 7), 11, cam.aspect || 1);
+    const d = fitCameraToWidth(cam, Math.max(w + 1.9, 5.2), 7.5, cam.aspect || 1);
     // follow the aircraft a little — the text block stays framed
     const hfov = Math.atan(Math.tan((cam.fov * Math.PI) / 360) * (cam.aspect || 1));
     const slackX = Math.max(0.3, Math.tan(hfov) * d - (w / 2 + 0.6));
@@ -744,13 +774,15 @@ export function create(ctx: WorldContext): WorldInstance {
 
       writer.update(dt);
       updatePlane(dt, t);
+      skyMat.uniforms.uT.value = t;
+      sky.position.copy(cam.position);
 
       for (let fi = finales.length - 1; fi >= 0; fi--) {
         const f = finales[fi];
         f.t += dt;
         if (!f.scattered && f.t > 3.2) {
           f.scattered = true;
-          // the word slowly melts into the night
+          // the word slowly melts into the sky
           for (const rec of f.recs) smoke.scatter(rec, 4.5, 0.5, R);
           finales.splice(fi, 1);
         }

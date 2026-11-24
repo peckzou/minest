@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>活知识 · Living Knowledge</title>
+<meta name="description" content="Minest Living Knowledge：知识页、决策、来源与版本历史，存在你自己的账号里，可导出 Markdown。">
+<link rel="stylesheet" href="lk.css">
+</head>
+<body>
+<header class="lk-top">
+  <div class="lk-title">
+    <a class="lk-back" href="/" title="回到 Minest">‹ Minest</a>
+    <h1>活知识 <span>Living Knowledge</span></h1>
+    <p class="lk-tagline">来源 · 知识页 · 关系 · 决策 · 审核 —— 从一份资料长成你自己的知识库</p>
+  </div>
+  <div class="lk-acts">
+    <span class="lk-pill" id="lk-status" role="status" aria-live="polite">打开中…</span>
+    <button type="button" class="lk-btn ghost" id="lk-sync" title="和云端核对">同步</button>
+    <button type="button" class="lk-btn ghost" id="lk-export" title="每页一个 .md 文件，打包成 zip">导出 Markdown</button>
+    <button type="button" class="lk-btn" id="lk-login" hidden>登录</button>
+  </div>
+</header>
+<div class="lk-banner" id="lk-banner" hidden></div>
+<form class="lk-ask" id="lk-ask" role="search">
+  <label for="lk-ask-q">一个词、一个问题、一个想法</label>
+  <div class="lk-askrow"><input type="search" id="lk-ask-q" placeholder="例如：间隔复习、遗忘曲线、为什么这样决定" autocomplete="off"><button type="submit" class="lk-btn ghost">查找 / 新建</button><button type="button" class="lk-btn" id="lk-ask-ai" title="只根据你的知识库回答，每一点都标出处">问知识库</button></div>
+  <div class="lk-chips" id="lk-ask-chips"></div>
+</form>
+<section class="lk-answer" id="lk-answer" aria-live="polite" hidden></section>
+<nav class="lk-tabs" role="tablist" aria-label="分类">
+  <button type="button" role="tab" data-tab="home" aria-selected="false" style="--cc:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>总览</button>
+  <button type="button" role="tab" data-tab="graph" aria-selected="false" style="--cc:var(--c5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="10" cy="18" r="2.5"/><path d="M8.2 7.1l7.4.6M7 8.3l2.2 7.4M16.6 10l-5 6.3"/></svg>知识图谱</button>
+  <button type="button" role="tab" data-tab="pages" aria-selected="false" style="--cc:var(--c1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-1.5z"/><path d="M8 7h6M8 11h4"/></svg>知识页</button>
+  <button type="button" role="tab" data-tab="sources" aria-selected="false" style="--cc:var(--c2)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>来源</button>
+  <button type="button" role="tab" data-tab="decisions" aria-selected="false" style="--cc:var(--c3)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>决策</button>
+  <button type="button" role="tab" data-tab="insights" aria-selected="false" style="--cc:var(--c1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1.1 2h5c.1-.8.5-1.5 1.1-2A6 6 0 0 0 12 3z"/></svg>洞察</button>
+  <button type="button" role="tab" data-tab="review" aria-selected="false" style="--cc:var(--c4)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 17l.8 2.2L22 20l-2.2.8L19 23l-.8-2.2L16 20l2.2-.8z"/></svg>审核 <b id="lk-rcount" hidden></b></button>
+  <button type="button" role="tab" data-tab="conflicts" aria-selected="false" style="--cc:var(--bad)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>冲突 <b id="lk-ccount" hidden></b></button>
+  <button type="button" role="tab" data-tab="perms" aria-selected="false" style="--cc:var(--c5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>权限</button>
+</nav>
+<main class="lk-main" id="lk-main"></main>
+<div class="lk-toast" id="lk-toast" role="alert" hidden></div>
+<script src="js/lk-model.js"></script>
+<script src="js/lk-store.js"></script>
+<script src="js/lk-import.js"></script>
+<script src="js/lk-agent.js"></script>
+<script src="js/lk-local.js"></script>
+<script src="js/lk-link.js"></script>
+<script src="js/lk-time.js"></script>
+<script src="js/lk-synth.js"></script>
+<script src="js/lk-demo.js"></script>
+<script src="js/lk-app.js"></script>
+</body>
+</html>

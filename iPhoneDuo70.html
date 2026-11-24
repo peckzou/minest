@@ -96494,7 +96494,7 @@ var Ve = (function(_Component) {
     if (!dock.isConnected) document.body.appendChild(dock);
     if (!edge.isConnected) document.body.appendChild(edge);
     refresh(); base();
-    if (!ctl && window.MinestDock) ctl = MinestDock.attach(dock, opts);
+    /* 2026-11-24 (the user: "dock取消放大效果，不然很难拖动操作"): the keys no longer swell under the pointer — they kept moving away from it, and the Dock was hard to grab and drag */
   }
   setInterval(mount, 700);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
@@ -144076,7 +144076,7 @@ function apply(){
     coverOn(false);   /* folded: the quick Glance page comes up (what you were doing stays under it — 完整 App › goes back), unless you are in
                            the middle of something: placing a piece, the build library or the study desk */
     var busy = !!(desk || document.querySelector('.mn-bq, .duo-lib') || (window.MinestDuoWorld && MinestDuoWorld.holding && MinestDuoWorld.holding()));
-    if (!busy) { dismissed = false; glance(); } else dismissed = true;
+    dismissed = true; closeGlance();   /* 2026-11-24: no Glance page any more — the opening and Home are the Clun house */
   }
   else { closeGlance(); if (!unfolded && fit && prefs().split) openWorld(); }
   document.documentElement.classList.toggle('duo-halfopen', posture() === 'folded');
@@ -144190,7 +144190,7 @@ function onAdd(e){
 /* the way back to Glance on the outer screen once it was put away */
 function pill(){
   var p = document.querySelector('.duo-back');
-  if (kind !== 'outer' || !dismissed) { if (p) p.remove(); return; }
+  if (p) p.remove(); return;   /* 2026-11-24: no Glance, no way back to it */
   if (!p) { p = document.createElement('button'); p.type = 'button'; p.className = 'duo-back'; p.textContent = '⌂ 速览'; p.setAttribute('aria-label', '回到速览'); document.body.appendChild(p);
     p.addEventListener('click', function(){ dismissed = false; p.remove(); glance(); }); }
 }
@@ -144371,12 +144371,12 @@ function rail(){
       if (w === 'split') return toggleSplit();
       if (w === 'desk') { if (desk) { desk.remove(); desk = null; document.documentElement.classList.remove('duo-desk-on'); } else deskOpen(); return rail(); }
       if (w === 'world') { if (desk) { desk.remove(); desk = null; document.documentElement.classList.remove('duo-desk-on'); } if (worldOpen()) { try { MinestUniverse.close(); } catch(x){} } else openWorld(); return setTimeout(rail, 400); }
-      if (w === 'glance') { if (gl && !gl.hidden) closeGlance(); else { dismissed = false; glance(); } return rail(); }
+      if (w === 'glance') { closeGlance(); try { window.MinestSpatialHome.home(); } catch(x){} return rail(); }
     }); }
   var sp = !!prefs().split || R0.classList.contains('duo-cover'), html = (splitFits() ? '<button type="button" data-rail="split" class="' + (sp ? 'on' : '') + '" aria-label="' + (sp ? '取消分栏' : '分栏') + '"><i>' + (sp ? '▣' : '▥') + '</i><small>' + (sp ? '全屏' : '分栏') + '</small></button>' : '') +
     '<button type="button" data-rail="desk" class="' + (desk ? 'on' : '') + '" aria-label="学习书桌"><i>📚</i><small>书桌</small></button>' +
     '<button type="button" data-rail="world" class="' + (worldOpen() ? 'on' : '') + '" aria-label="My World"><i>🏝</i><small>岛屿</small></button>' +
-    '<button type="button" data-rail="glance" class="' + (gl && !gl.hidden ? 'on' : '') + '" aria-label="速览"><i>⌂</i><small>速览</small></button>';
+    '<button type="button" data-rail="glance" class="' + (gl && !gl.hidden ? 'on' : '') + '" aria-label="Home"><i>⌂</i><small>Home</small></button>';
   if (r.innerHTML !== html) r.innerHTML = html;
 }
 
@@ -182621,7 +182621,7 @@ html.mn-type3d-on #minest-mini-pet-p0{visibility:hidden!important}
 (function () {
   if (window.MinestType3D) return;
   var ov = null, SITE = 'https://minest-app.vercel.app/';
-  function src(pick) { var q = pick ? '?pick=1' : ''; return (/^https?:$/.test(location.protocol) ? new URL('type3d-2/index.html', location.href).href : SITE + 'type3d-2/index.html') + q; }
+  function src(pick) { var q = pick ? '?pick=1' : ''; return (/^https?:$/.test(location.protocol) ? new URL('type3d/index.html', location.href).href : SITE + 'type3d/index.html') + q; }
   function open(how) {
     if (!ov) {
       ov = document.createElement('div'); ov.className = 'mn-type3d'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', '3D Type');
@@ -183084,7 +183084,7 @@ html.mn70 #minest-pet-raising-overlay .minest-pet-x.idle:active { opacity: 1; }
   };
 })();
 </script>
-<script src="spatial-home/js/start-controls.js"></script>
+<script src="spatial-home/js/start-controls.js?v=3"></script>
 
 <!-- Shared 13-level Live runtime: all teacher and student entry points. -->
 <link rel="stylesheet" href="live-games/extra-games.css?v=13-1">
@@ -196658,7 +196658,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
 
   /* ---------------------------------------------------------------- the backpack UI */
-  var CATS = [['all', 'All Items', '全部'], ['creations', 'My Creations', '我的作品'], ['fixtures', 'Display Fixtures', '陈列装置'], ['tools', 'Workshop Tools', '工坊工具'], ['magic', 'Magic Items', '魔法道具'], ['collections', 'My Collections', '我的收藏'], ['fav', 'Favorites', '收藏夹']];
+  var CATS = [['all', 'All Items', '全部'], ['index', 'Index 索引', '全部已上线的建筑、物件、室内和世界'], ['creations', 'My Creations', '我的作品'], ['fixtures', 'Display Fixtures', '陈列装置'], ['tools', 'Workshop Tools', '工坊工具'], ['magic', 'Magic Items', '魔法道具'], ['collections', 'My Collections', '我的收藏'], ['fav', 'Favorites', '收藏夹']];
   var ui = null;
   function css() {
     if (document.getElementById('mn-bp-css')) return;
@@ -196684,6 +196684,12 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       '#mn-bp .it img{width:72px;height:72px;object-fit:contain;display:block;margin:0 auto}#mn-bp .it i{font-style:normal;font-size:30px;display:block;height:72px;line-height:72px}',
       '#mn-bp .it span{display:block;font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
       '#mn-bp .it b{position:absolute;top:4px;right:4px;font-size:9.5px;font-weight:800;padding:1px 5px;border-radius:6px;background:#2f6fd6;color:#fff}#mn-bp .it b.bag{background:#8a6a48}#mn-bp .it b.tpl{background:#3f7a3c}',
+      '#mn-bp .ix{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:2px 0 6px}',
+      '#mn-bp .ix b{width:100%;font-size:12.5px;color:#5b3a20}#mn-bp .ix b em{font-style:normal;color:#8a6a48;font-weight:600}',
+      '#mn-bp .ix button{border:1px solid #d9bf96;background:#fbf2e0;color:#3a2412;border-radius:999px;padding:4px 10px;font:inherit;font-size:12px;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+      '#mn-bp .ix button.sel{background:#5b3a20;color:#fbf2e0;border-color:#5b3a20}#mn-bp .ix button.off{opacity:.55}',
+      '#mn-bp .ixnote{font-size:12.5px;color:#8a6a48}',
+      '#mn-bp .pv .ixpic{width:100%;aspect-ratio:1;object-fit:contain;border-radius:12px;background:#f6ead2;display:grid;place-items:center;color:#8a6a48}',
       '#mn-bp .pv{width:240px;flex:none;display:flex;flex-direction:column;gap:6px;overflow:auto}',
       '#mn-bp .pv canvas{width:240px;height:200px;border-radius:14px;background:radial-gradient(#fffdf6,#ead8b6);touch-action:none;cursor:grab}',
       '#mn-bp .pv h4{margin:2px 0 0;font-size:15px}#mn-bp .pv p{margin:0;font-size:12px;color:#5a4128}#mn-bp .pv dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:2px 8px;font-size:12px}#mn-bp .pv dt{color:#8a6a48}',
@@ -196720,9 +196726,71 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   function close(placing) { if (!ui || ui.el.hidden) return; ui.el.hidden = true; cancelAnimationFrame(ui.raf); ui.raf = 0; try { if (ui.host && ui.host.onClose) ui.host.onClose(!!placing); } catch (e) {} }
   function isOpen() { return !!(ui && !ui.el.hidden); }
   function items() { return catalog(ui.host); }
+
+  /* ---------------------------------------------------------------- Index 索引: everything that is online, on one page
+     The backpack's own entries (by kind) and My World's 3D library (MinestAssets3D.catalog: buildings, objects, interiors,
+     worlds, small islands, centre styles) — read from the Minest page; loaded from its #mn-assets3d-src the first time,
+     the same way My World 3.0 does. A library entry shows its picture and details; it is placed in My World's Build. */
+  var LIB = null, libWait = null;
+  function lib3d() {
+    if (LIB) return Promise.resolve(LIB); if (libWait) return libWait;
+    libWait = new Promise(function (res) {
+      try {
+        var ws = [HW(), root], w = null, src = null;
+        for (var i = 0; i < ws.length; i++) { try { if (ws[i] && ws[i].MinestAssets3D) { LIB = ws[i].MinestAssets3D; return res(LIB); } } catch (e) {} }
+        for (var j = 0; j < ws.length && !src; j++) { try { src = ws[j] && ws[j].document && ws[j].document.getElementById('mn-assets3d-src'); if (src) w = ws[j]; } catch (e) {} }
+        if (!src) { libWait = null; return res(null); }
+        setTimeout(function () { try { var sc = w.document.createElement('script'); sc.textContent = src.textContent; w.document.head.appendChild(sc); LIB = w.MinestAssets3D || null; } catch (e) { LIB = null; } res(LIB); }, 30);
+      } catch (e) { res(null); }
+    });
+    return libWait;
+  }
+  var LIB_GROUPS = [['building', '建筑 Buildings'], ['object', '物件 Objects'], ['diorama', '室内 Interiors'], ['world', '世界 Worlds'], ['subisland', '小岛 Islands'], ['center', '中心岛样式 Centre styles']];
+  var BP_GROUPS = [['creations', '我的作品'], ['fixtures', '陈列装置'], ['tools', '工坊工具'], ['magic', '魔法道具'], ['collections', '我的收藏']];
+  function renderIndex(all, grid) {
+    var q = ui.q, hit = function (t) { return !q || String(t).toLowerCase().indexOf(q) >= 0; };
+    var h = '<h5>背包里的物品 · 可以直接放出来</h5>';
+    BP_GROUPS.forEach(function (g) {
+      var list = all.filter(function (it) { return it.cat === g[0] && hit(it.name + ' ' + (it.note || '') + ' ' + (it.en || '')); });
+      if (!list.length) return;
+      h += '<div class="ix"><b>' + g[1] + ' <em>' + list.length + '</em></b>' + list.map(function (it) {
+        return '<button type="button" data-key="' + esc(it.key) + '" class="' + (ui.sel === it.key ? 'sel' : '') + (it.ready === false ? ' off' : '') + '">' + esc(it.name) + (it.ready === false ? ' · 未完成' : '') + '</button>';
+      }).join('') + '</div>';
+    });
+    if (!LIB) {
+      h += '<h5>My World 3D 库</h5><div class="ix"><span class="ixnote">' + (libWait ? '正在读取建筑库…' : '在 Minest 里打开背包时，这里会列出 My World 所有已上线的建筑、物件、室内和世界。') + '</span></div>';
+      grid.innerHTML = h;
+      lib3d().then(function (L) { if (L && ui && ui.cat === 'index' && !ui.el.hidden) render(); else if (!L && ui && ui.cat === 'index') { var n = grid.querySelector('.ixnote'); if (n) n.textContent = '这个页面里没有 My World 的 3D 库（在 Minest 里打开背包才会列出）。'; } });
+      return;
+    }
+    var C = LIB.catalog || {}, total = 0;
+    LIB_GROUPS.forEach(function (g) { total += (C[g[0]] || []).length; });
+    h += '<h5>My World 3D 库 · 共 ' + total + ' 件已上线 · 在 My World 的「建造」里摆放</h5>';
+    LIB_GROUPS.forEach(function (g) {
+      var list = (C[g[0]] || []).filter(function (a) { return hit(a.name + ' ' + (a.subtitle || '') + ' ' + (a.category || '') + ' ' + a.id); });
+      if (!list.length) return;
+      h += '<div class="ix"><b>' + g[1] + ' <em>' + list.length + '</em></b>' + list.map(function (a) {
+        return '<button type="button" data-lib="' + esc(a.id) + '" class="' + (ui.lib === a.id ? 'sel' : '') + '" title="' + esc(a.subtitle || a.category || '') + '">' + esc(a.name) + '</button>';
+      }).join('') + '</div>';
+    });
+    grid.innerHTML = h;
+  }
+  function libPreview(pv) {
+    var a = null, id = ui.lib;
+    try { a = (LIB.info && LIB.info(id)) || null; } catch (e) {}
+    var C = LIB.catalog || {}, kind = (LIB.kindOf ? LIB.kindOf(id) : ''), row = null;
+    LIB_GROUPS.some(function (g) { row = (C[g[0]] || []).filter(function (x) { return x.id === id; })[0]; return !!row; });
+    row = row || a || { id: id, name: id };
+    var names = { building: '建筑', object: '物件', diorama: '室内', world: '世界', subisland: '小岛', center: '中心岛样式' };
+    pv.innerHTML = '<div class="ixpic" aria-hidden="true">…</div><h4>' + esc(row.name) + '</h4><dl><dt>类型</dt><dd>' + esc(names[kind] || kind || '') + '</dd>' +
+      (row.subtitle ? '<dt>说明</dt><dd>' + esc(row.subtitle) + '</dd>' : '') + (row.category ? '<dt>分类</dt><dd>' + esc(row.category) + '</dd>' : '') +
+      '<dt>编号</dt><dd>' + esc(id) + '</dd><dt>状态</dt><dd>已上线 · 在 My World 的「建造」里摆放</dd></dl>';
+    if (LIB.thumb) LIB.thumb(id).then(function (src) { var pic = pv.querySelector('.ixpic'); if (pic && src && ui.lib === id) pic.outerHTML = '<img class="ixpic" alt="' + esc(row.name) + '" src="' + src + '">'; else if (pic) pic.textContent = ''; }, function () {});
+  }
   function render() {
     var all = items(), host = ui.host, p = pref(), queue = [], grid = ui.el.querySelector('.grid'), scroll = grid.scrollTop;
     ui.el.querySelector('.tabs').innerHTML = CATS.map(function (c) { return '<button type="button" data-cat="' + c[0] + '" class="' + (ui.cat === c[0] ? 'on' : '') + '" title="' + c[2] + '">' + c[1] + '</button>'; }).join('');
+    if (ui.cat === 'index') { renderIndex(all, grid); preview(); hotbar(host); return; }
     var list = all.filter(function (it) { return ui.cat === 'all' || (ui.cat === 'fav' ? p.fav.indexOf(it.key) >= 0 : it.cat === ui.cat); })
       .filter(function (it) { return !ui.q || (it.name + ' ' + (it.note || '') + ' ' + (it.en || '')).toLowerCase().indexOf(ui.q) >= 0; });
     var T = host.THREE, h = '';
@@ -196772,6 +196840,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   function preview() {
     var pv = ui.el.querySelector('.pv'), it = selected(), host = ui.host, T = host.THREE;
     cancelAnimationFrame(ui.raf); ui.raf = 0;
+    if (ui.cat === 'index' && ui.lib && LIB) return libPreview(pv);
     if (!it) { pv.innerHTML = '<p style="margin-top:20px">选一件物品：看它的 3D 模型、尺寸和放置要求，然后一键放进世界。</p><p>桌面：R 旋转 · ←→↑↓ 微调 · Enter 放好 · Esc 取消</p>'; return; }
     var st = host.status(it), PLACE = { floor: '地面 / 展台 / 室外', wall: '墙面', surface: '桌面 / 柜面 / 货架 / 展台' };
     var kindName = { template: '模板 · 可以放多个', owned: '实体作品 · 只有一件', function: '功能物件 · 放好后可进入功能' }[it.kind];
@@ -196806,7 +196875,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     var b = e.target.closest('button'); if (!b || !ui) return;
     var host = ui.host;
     if (b.dataset.cat) { ui.cat = b.dataset.cat; render(); return; }
-    if (b.dataset.key) { ui.sel = b.dataset.key; render(); return; }
+    if (b.dataset.key) { ui.sel = b.dataset.key; ui.lib = null; render(); return; }
+    if (b.dataset.lib) { ui.lib = b.dataset.lib; ui.sel = null; render(); return; }
     var a = b.dataset.bp, it = selected();
     if (a === 'close') { close(); return; }
     if (!it) return;
@@ -200266,6 +200336,13 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
 /* the Duo's pinned Dock: shown (not slid away) without being moved off its place */
 html.mn-sysbar.duo-dockpin:not(.mn-sys-reading) body .mn-bdock.mn-bdock, html.mn-sysbar.duo-docktop:not(.mn-sys-reading) body .mn-bdock.mn-bdock { opacity: 1 !important; pointer-events: auto !important; visibility: visible !important; }
 
+/* the Dock's default place (2026-11-24, the user): standing in the bottom right corner on every screen — the opening, the board,
+   the room — growing upward; "=" is always its lowest key, so it never moves under the pointer when the Dock folds or unfolds.
+   On the Duo held sideways it stands at the bottom of the black status column. Placed by hand (mn-dock-free) or set to Bottom / Top: as chosen. */
+html[data-mn-bd=right][data-mn-bd][data-mn-bd][data-mn-bd]:not(.mn-dock-free):not(.mn-sys-reading):not(.mn-start-reading) body .mn-bdock.mn-bdock { left: auto !important; right: calc(env(safe-area-inset-right, 0px) + 8px) !important; top: auto !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px) !important; inset-inline: auto; transform: none !important; margin: 0 !important; flex-direction: column !important; justify-content: flex-end !important; max-height: calc(100% - env(safe-area-inset-top, 0px) - 24px) !important; }
+html.duo-dockpin[data-mn-bd][data-mn-bd][data-mn-bd][data-mn-bd]:not(.mn-dock-free):not(.mn-sys-reading):not(.mn-start-reading) body .mn-bdock.mn-bdock { left: auto !important; right: calc((var(--duo-dock, 84px) - 52px) / 2) !important; top: auto !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px) !important; transform: none !important; margin: 0 !important; flex-direction: column !important; justify-content: flex-end !important; max-height: calc(100% - var(--sat, 0px) - 20px) !important; }
+html[data-mn-bd=right]:not(.mn-dock-free) body .mn-bdock .mn-bapp.mn-sk-tools, html.duo-dockpin:not(.mn-dock-free) body .mn-bdock .mn-bapp.mn-sk-tools { order: 99 !important; }
+
 /* the Dock placed freely (hold, then drag) — wins over every side / centring rule */
 html.mn-dock-free.mn-dock-free .mn-bdock.mn-bdock { left: var(--mn-fx, 50%) !important; top: var(--mn-fy, 50%) !important; right: auto !important; bottom: auto !important; transform: none !important; margin: 0 !important; }
 .mn-bdock.mn-bdock { touch-action: none; -webkit-user-select: none; user-select: none; }   /* a press-and-move drags the Dock (the page must not scroll instead) */
@@ -200462,7 +200539,27 @@ html.student-mode .mn-sk-world { display: none !important; }
   function dockKey(sel) { var b = document.querySelector('.mn-bdock ' + sel); if (b) { b.click(); return true; } return false; }
   function esc() { return document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true, cancelable: true })); }
   function close(b) { var s0 = snap(); if (ctx === 'room' && press('sh-exitBtn')) return; if (!dockKey('.mn-sys-exit')) esc(); orNothing(b, s0, '没有可关闭的'); }
-  function back(b) { var s0 = snap(); if (ctx === 'room') { if (esc() && !press('sh-exitBtn')) {} return; } if (!dockKey('.mn-sys-back') && esc() && location.hash.length > 1) history.back(); orNothing(b, s0, '已经是最前一页'); }
+  /* 2026-11-24 (the user: "系统返回键要真正返回之前的页面或操作，最重要的是层级的返回"): one level per press, innermost first —
+     the opening's own layers (map / telescope / treehouse / inside the house) → what is open over the board (the Dock's back, Esc) →
+     the room → the opening the board was opened from → the page before this one (Mac ⇄ iPhone); only then "已经是最前一页" */
+  function pageBack() {
+    try {
+      var r = document.referrer, can = window.navigation && typeof navigation.canGoBack === 'boolean' ? navigation.canGoBack : history.length > 1;
+      if (!r || !can) return false; var u = new URL(r); if (u.origin !== location.origin || u.pathname === location.pathname) return false;
+      history.back(); return true;
+    } catch (e) { return false; }
+  }
+  function back(b) {
+    var s0 = snap(), SC = window.MinestStartControls;
+    if (SC && SC.active && SC.active()) { if (!SC.back() && !pageBack()) nothing(b, '已经是最前一页'); return; }
+    if (ctx === 'room') { if (esc() && !press('sh-exitBtn')) {} return; }
+    if (!dockKey('.mn-sys-back') && esc() && location.hash.length > 1) { history.back(); return; }
+    setTimeout(function () {
+      if (snap() !== s0) return;
+      if (SC && SC.fromOpening && SC.fromOpening() && window.MinestSpatialHome && MinestSpatialHome.home) { try { MinestSpatialHome.home(); return; } catch (e) {} }
+      if (!pageBack()) nothing(b, '已经是最前一页');
+    }, 280);
+  }
   /* 3: reading mode, here and in every open frame of the same site */
   var HIDE = 'button,[role="button"],[role="toolbar"],header.iphone-topbar,.ios-bottom-tab-bar,.mn-bdock,#minest-mini-pet-p0,#cs-btn,' +
     '#sh-top,#sh-labels,#sh-stick,#sh-hint,#sh-credit,#sh-pill,#sh-reading-enter,#sh-dock,#sh-settings,#sh-pack,#sh-edit,#sh-card,#sh-toast,#sh-skip,.clun-entry,.mn-start-control';
@@ -200590,7 +200687,7 @@ html.student-mode .mn-sk-world { display: none !important; }
     var lens = mc ? 0 : (h ? 1.6 : 1.35), room = (h ? innerWidth : innerHeight) - 28 - (h ? 0 : 20);
     if (R.classList.contains('mn-dock-free')) room = (h ? innerWidth : innerHeight) - 24;   // placed freely: the whole screen is the limit
     else if (R.classList.contains('duo-dockpin') || R.classList.contains('duo-docktop')) {   // the Duo's pinned Dock starts at its own place: the room left from there
-      var dr = d.getBoundingClientRect(); room = h ? innerWidth - Math.max(0, dr.left) - 16 : innerHeight - Math.max(0, dr.top) - 16;
+      var dr = d.getBoundingClientRect(); room = h ? innerWidth - Math.max(0, dr.left) - 16 : innerHeight - 44;   /* it stands on the bottom now: the whole column is its room */
     }
     var k = Math.floor((room - 10 - seps * 10 - Math.max(0, keys - 1) * 4) / (keys + lens));
     k = Math.max(22, Math.min(mc ? 38 : 40, k));

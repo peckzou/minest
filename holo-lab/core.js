@@ -556,6 +556,7 @@
       var look = LOOK[w.look] ? w.look : 'neon';
       out.works.push({ kind: 'work', id: String(w.id != null ? w.id : 'w' + i), title: str(w.word, 40), text: '', mode: str(w.mode, 20) || 'neon', look: look, lookCss: LOOK[look], group: 'works', groupTitle: '3D Type 作品' });
     });
+    out.lk = !!d.lk;   // from Living Knowledge (living-knowledge/): its pages are the whole picture, so the star map shows more of them
     out.lists.forEach(function (l) { out.words = out.words.concat(l.items); });
     out.all = out.words.concat(out.charts, out.knowledge, out.works);
     out.all.forEach(function (it) { it.uid = it.kind + ':' + it.id; out.byUid[it.uid] = it; });

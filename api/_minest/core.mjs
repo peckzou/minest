@@ -5,6 +5,7 @@ import { readFileSync, readdirSync, writeFileSync, existsSync, mkdirSync } from 
 import { createHash, randomBytes } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { lkExtract, lkAsk, lkCompose, lkLink, lkSynthesize } from './living-knowledge.mjs';
 
 // 42.0: the board-building manual and the data blocks travel with every request
 // (the API keeps no memory between calls).
@@ -148,8 +149,8 @@ const DW_KINDS = ['lincoln', 'figure', 'guide', 'portrait', 'podium', 'stage', '
   'princess', 'wizard', 'astronaut', 'robot', 'dino', 'unicorn', 'castle', 'carousel', 'ferris', 'rocket', 'crystal', 'treasure', 'firework', 'rainbow', 'mushroom',
   'pyramid', 'sphinx', 'greatwall', 'pagoda', 'eiffel', 'bigben', 'colosseum', 'parthenon', 'tajmahal', 'torii', 'liberty', 'moai', 'igloo', 'stonehenge', 'maya',
   'confucius', 'zhenghe', 'cleopatra', 'davinci', 'mozart', 'curie', 'einstein', 'panda', 'elephant', 'camel', 'lion', 'giraffe', 'penguin', 'junk', 'train', 'balloon', 'biplane', 'globe'];
-const DW_ACTIONS = ['raiseHand', 'turnHead', 'nod', 'openArms', 'point', 'bow', 'smile', 'surprise', 'wink', 'stroll', 'open', 'close', 'turnPage', 'spin', 'timeTravel', 'grow', 'wilt', 'appear', 'vanish', 'startShow'];
-const DW_OPS = ['up', 'down', 'toDay', 'toDusk', 'toNight', 'toTheatre', 'rain', 'snow', 'clear', 'speak', 'pad', 'fanfare', 'drum', 'chime', ...DW_ACTIONS];
+const DW_ACTIONS = ['raiseHand', 'turnHead', 'nod', 'openArms', 'point', 'bow', 'smile', 'surprise', 'wink', 'stroll', 'open', 'close', 'turnPage', 'spin', 'timeTravel', 'grow', 'wilt', 'appear', 'vanish', 'startShow', 'fireworks'];
+const DW_OPS = ['up', 'down', 'toDay', 'toDusk', 'toNight', 'toTheatre', 'rain', 'snow', 'clear', 'fireworks', 'speak', 'pad', 'fanfare', 'drum', 'chime', ...DW_ACTIONS];
 const num = { type: 'number' };
 const imagineerSchema = {
   type: 'object', additionalProperties: false,
@@ -198,10 +199,10 @@ const IMAGINEER_SYSTEM = [
   'You are the Imagineer of Minest Dream Workshop (梦工坊), a small visual studio where a learner directs a miniature 3D experience that a guest then walks into.',
   'Turn the learner\'s idea into a first plan they will edit. Return only the plan object.',
   'The table: a round sandbox, radius 15 m, ground y = 0, x to the right, z toward the audience. Guests usually come in from z = 10..13 and look toward -z.',
-  'Things (kind, size): lincoln (a tall 19th-century speaker with a top hat), figure (a person, 1.8 m), guide (a presenter, 1.7 m), portrait (a framed talking painting that hangs at eye height; put a wall 0.3 m behind it),',
-  'podium (0.8 m), stage (8 × 5 m, 0.6 m high; things placed on it stand on top by themselves), curtain (9 m wide backdrop), bench (2.2 m), chair, spot (a stage spotlight on a stand that aims where it faces),',
+  'Things (kind, size): princess (a fairytale princess with a crown), wizard (a young mage with wand), astronaut (space explorer), robot (cute friendly robot), dino (friendly dinosaur buddy), unicorn (rainbow unicorn), lincoln (a tall 19th-century speaker with a top hat), figure (a person, 1.8 m), guide (a presenter, 1.7 m), portrait (a framed talking painting that hangs at eye height; put a wall 0.3 m behind it),',
+  'castle (5.6 × 3.6 m fairytale multi-spire castle), rainbow (6.4 m rainbow arch), mushroom (giant fairy mushroom cottage), podium (0.8 m), stage (8 × 5 m, 0.6 m high; things placed on it stand on top by themselves), curtain (9 m wide backdrop), bench (2.2 m), chair, spot (a stage spotlight on a stand that aims where it faces),',
   'lamp (street lamp), lantern (paper lantern on a post), flag, column, tree, sign (text = up to two short lines, split with \\n), wall (6 m), boat, house (2 × 2 m), windmill (turning sails), bridge (arched, 4.4 m long, spans along its local x).',
-  'Things that come to life (alive = true): book (a giant pop-up book on a table: open, turnPage, close; text = its title), clock (a time-machine grandfather clock: timeTravel), musicbox (open, spin, close), door (open, close),',
+  'Things that come to life (alive = true): carousel (spinning fairytale carousel: spin), ferris (turning rainbow ferris wheel: spin), rocket (space rocket: spin, fireworks), crystal (glowing magic crystal: spin, fireworks), treasure (treasure chest: open, close, fireworks), firework (firework launcher: fireworks), book (a giant pop-up book on a table: open, turnPage, close; text = its title), clock (a time-machine grandfather clock: timeTravel), musicbox (open, spin, close), door (open, close),',
   'Characters who can speak and act like figure (alive = true): princess, wizard, astronaut, robot, dino (a friendly dinosaur), unicorn; people from history: confucius, zhenghe (the Ming admiral), cleopatra, davinci, mozart, curie, einstein; animals: panda, elephant, camel, lion, giraffe, penguin.',
   'Landmarks (large set pieces, 4–9 m wide, never alive): castle, pyramid, sphinx, greatwall (a 7 m stretch with a beacon tower), pagoda, eiffel, bigben, colosseum, parthenon, tajmahal, torii, liberty, moai, igloo, stonehenge, maya (a stepped pyramid); also rainbow (an arch), mushroom (a fairy house). Give each room: keep landmarks at least 6 m apart.',
   'Rides and moving things (alive = true, action spin): carousel, ferris, rocket, train (a steam engine on a short track), balloon (a hot-air balloon), biplane, globe; crystal and treasure (open, close) and firework (a launcher) are magic props. junk is a Chinese treasure ship (a set piece).',
@@ -339,6 +340,15 @@ export async function handle(path, input) {
     const data = await openrouter([{ role: 'user', content: 'Say hello' }], { max_tokens: 80 }, requestedModel);
     return { provider: 'openrouter', model: requestedModel, reply: outputText(data) };
   }
+  // Living Knowledge (M3): one piece of a source → a checked proposal (api/_minest/living-knowledge.mjs)
+  if (path.endsWith('/lk-extract')) return lkExtract(input, (messages, options) => callModel(input, messages, options));
+  // Living Knowledge (M4): a question answered from the user's own pages with citations; a page body drafted from its claims
+  if (path.endsWith('/lk-ask')) return lkAsk(input, (messages, options) => callModel(input, messages, options));
+  // Living Knowledge (Semantic Linking): pairs of pages the app found on the device → a typed, explained link or "none"
+  if (path.endsWith('/lk-link')) return lkLink(input, (messages, options) => callModel(input, messages, options));
+  // Living Knowledge (Knowledge Synthesis): the nodes the user picked → an Insight Card whose points cite the claims they rest on
+  if (path.endsWith('/lk-synthesize')) return lkSynthesize(input, (messages, options) => callModel(input, messages, options));
+  if (path.endsWith('/lk-compose')) return lkCompose(input, (messages, options) => callModel(input, messages, options));
   const attachmentContext = (input.attachments || []).filter(a => a && typeof a.text === 'string').map(a => `\n\n[Attached file: ${String(a.name || 'text file').slice(0, 160)}]\n${a.text.slice(0, 50000)}`).join('');
   const imageParts = (input.attachments || []).filter(a => a && typeof a.data === 'string' && /^data:image\/(png|jpeg|webp|gif);base64,/i.test(a.data)).map(a => ({ type: 'image_url', image_url: { url: a.data } }));
   // the conversation so far (the client sends its last turns), so replies and boards keep context

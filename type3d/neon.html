@@ -41,6 +41,7 @@ canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
 <div class="hud" id="line"><span id="txt"></span><span class="caret"></span></div>
 <div class="hud" id="err"></div>
 <input id="kb" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="Type here">
+<script src="ime.js"></script>
 
 <script type="importmap">
 { "imports": {
@@ -57,6 +58,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { strokeGlyph, strokeAdvance } from './strokefont.js';
+import { hanziStrokes } from './hanzi.js';
 
 /* ───────────── constants ───────────── */
 const SIZE = 1.5;             // cap height of a letter, world units
@@ -281,7 +283,7 @@ const STEEL = [0.045, 0.05, 0.056], BRASS = [0.5, 0.31, 0.09], IRON = [0.02, 0.0
 const glyphCache = new Map();
 function glyphDef(ch) {
   if (glyphCache.has(ch)) return glyphCache.get(ch);
-  const g = strokeGlyph(ch); let def = null;
+  const g = strokeGlyph(ch) || hanziStrokes(ch); let def = null;
   if (g && g.strokes.length) {
     const W = g.w * SIZE, strokes = [], tubes = [], hard = [], leads = [], sparks = []; let off = 0;
     const topY = BASE_Y + SIZE + 0.26, botY = BASE_Y - 0.2, rodX = W / 2;
