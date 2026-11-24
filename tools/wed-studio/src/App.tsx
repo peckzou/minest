@@ -17,8 +17,7 @@ import {
 import { buildImagineerWorkshop, WorkshopRefs } from './three/buildImagineerWorkshop';
 import { buildVoxelModelTable, ModelTableRefs } from './three/buildVoxelModelTable';
 import { createBlueprintTexture } from './three/proceduralTextures';
-import { StudioControlDock } from './components/StudioControlDock';
-import { BlueprintInspectorModal } from './components/BlueprintInspectorModal';
+import { StudioBar } from './components/StudioBar';
 import { soundEngine } from './utils/soundEffects';
 import { DreamWorksPanel } from './components/DreamWorksPanel';
 import {
@@ -189,12 +188,7 @@ export default function App() {
   const [trainSpeedMultiplier, setTrainSpeedMultiplier] = useState<number>(1);
   const [voxelBuildEnabled, setVoxelBuildEnabled] = useState<boolean>(false);
   const [activeVoxelBrush, setActiveVoxelBrush] = useState<VoxelBrushType>('castle-pink');
-  const [customVoxels, setCustomVoxels] = useState<CustomVoxelBlock[]>([
-    // Initial sample voxel stack on the model table corner so user sees custom blocks right away
-    { gx: -5, gy: 1, gz: -4, colorHex: 0xf4acb7, type: 'castle-pink' },
-    { gx: -5, gy: 2, gz: -4, colorHex: 0x2563eb, type: 'royal-blue' },
-    { gx: -5, gy: 3, gz: -4, colorHex: 0xf59e0b, type: 'gold-spire' },
-  ]);
+  const [customVoxels, setCustomVoxels] = useState<CustomVoxelBlock[]>([]);
   const [selectedArtifact, setSelectedArtifact] = useState<ArtifactInfo | null>(
     STUDIO_ARTIFACTS['cinderella-castle-model']
   );
@@ -1100,79 +1094,22 @@ export default function App() {
         aria-label="WED Enterprises Orlando Walt Disney World & Anaheim Voxel Imagineering Studio 3D Viewport"
       />
 
-      {/* Subtle Floating Hover Prompt Badge (Top-Center below header, non-occluding) */}
-      {hoveredLabel && (
-        <div
-          className="fixed top-16 left-1/2 -translate-x-1/2 z-20 px-3.5 py-1.5 rounded-lg border border-amber-400/50 text-xs font-medium text-amber-200 pointer-events-none font-mono-tabular shadow-lg"
-          style={{ backgroundColor: 'rgba(13, 19, 31, 0.92)' }}
-        >
-          {hoveredLabel}
-        </div>
-      )}
-
-      {/* Top Bar & Collapsible Bottom Control Dock */}
-      <StudioControlDock
-        parkEdition={parkEdition}
-        onSelectParkEdition={handleSelectParkEdition}
+      {/* Minest: a slim bar instead of the Studio pack's dock, archive modal and artifact cards */}
+      <StudioBar
+        backHref={WORKSHOP + (activeWorkId ? '?open=' + encodeURIComponent(activeWorkId) : '')}
+        worksCount={works.length}
+        worksOpen={worksOpen}
+        onToggleWorks={() => setWorksOpen((v) => !v)}
         activeCamera={activeCamera}
         onSelectCamera={(preset) => {
           soundEngine.playBlueprintSwitch();
           handleSelectCamera(preset);
         }}
-        activeBlueprint={activeBlueprint}
-        onSelectBlueprint={(bpId) => {
-          soundEngine.playBlueprintSwitch();
-          setActiveBlueprint(bpId);
-        }}
         lightingMode={lightingMode}
-        onSelectLighting={(mode) => {
-          soundEngine.playBlueprintSwitch();
+        onToggleNight={() => {
           stateRef.current.autoWaltLampActive = false;
-          setLightingMode(mode);
+          setLightingMode((m) => (m === 'late-night' ? 'studio-day' : 'late-night'));
         }}
-        explodedAmount={explodedAmount}
-        onChangeExploded={setExplodedAmount}
-        draftingTiltDeg={draftingTiltDeg}
-        onChangeDraftingTilt={setDraftingTiltDeg}
-        trainSpeedMultiplier={trainSpeedMultiplier}
-        onToggleTrainPause={() => {
-          setTrainSpeedMultiplier((prev) => (prev > 0 ? 0 : 1));
-        }}
-        onBlowWhistle={() => {
-          soundEngine.playSteamWhistle();
-        }}
-        voxelBuildEnabled={voxelBuildEnabled}
-        onToggleVoxelBuild={() => {
-          setVoxelBuildEnabled((prev) => !prev);
-          if (!voxelBuildEnabled && activeCamera === 'drafting') {
-            handleSelectCamera('model-table');
-          }
-        }}
-        activeVoxelBrush={activeVoxelBrush}
-        onSelectVoxelBrush={setActiveVoxelBrush}
-        customVoxelCount={customVoxels.length}
-        onClearCustomVoxels={() => {
-          soundEngine.playVoxelTap(true);
-          setCustomVoxels([]);
-        }}
-        selectedArtifact={selectedArtifact}
-        onCloseArtifact={() => setSelectedArtifact(null)}
-        onOpenBlueprintModal={() => {
-          soundEngine.playBlueprintSwitch();
-          setIsBlueprintModalOpen(true);
-        }}
-        soundEnabled={soundEnabled}
-        onToggleSound={() => {
-          const next = !soundEnabled;
-          soundEngine.enabled = next;
-          setSoundEnabled(next);
-        }}
-        isDockCollapsed={isDockCollapsed}
-        onToggleDockCollapse={() => setIsDockCollapsed((prev) => !prev)}
-        dreamWorksCount={works.length}
-        dreamWorksOpen={worksOpen}
-        onToggleDreamWorks={() => setWorksOpen((v) => !v)}
-        backHref={WORKSHOP + (activeWorkId ? '?open=' + encodeURIComponent(activeWorkId) : '')}
       />
 
       <DreamWorksPanel
@@ -1190,14 +1127,6 @@ export default function App() {
         onClear={clearWork}
       />
 
-      {/* Full-Screen Interactive Cyanotype Blueprint & Engineering Notes Modal */}
-      <BlueprintInspectorModal
-        isOpen={isBlueprintModalOpen}
-        activeBlueprint={activeBlueprint}
-        onSelectBlueprint={setActiveBlueprint}
-        onJumpToCamera={handleSelectCamera}
-        onClose={() => setIsBlueprintModalOpen(false)}
-      />
     </div>
   );
 }
