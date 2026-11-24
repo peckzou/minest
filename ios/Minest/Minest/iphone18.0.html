@@ -196651,7 +196651,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
 
   /* ---------------------------------------------------------------- the backpack UI */
-  var CATS = [['all', 'All Items', '全部'], ['creations', 'My Creations', '我的作品'], ['fixtures', 'Display Fixtures', '陈列装置'], ['tools', 'Workshop Tools', '工坊工具'], ['magic', 'Magic Items', '魔法道具'], ['collections', 'My Collections', '我的收藏'], ['fav', 'Favorites', '收藏夹']];
+  var CATS = [['all', 'All Items', '全部'], ['index', 'Index 索引', '全部已上线的建筑、物件、室内和世界'], ['creations', 'My Creations', '我的作品'], ['fixtures', 'Display Fixtures', '陈列装置'], ['tools', 'Workshop Tools', '工坊工具'], ['magic', 'Magic Items', '魔法道具'], ['collections', 'My Collections', '我的收藏'], ['fav', 'Favorites', '收藏夹']];
   var ui = null;
   function css() {
     if (document.getElementById('mn-bp-css')) return;
@@ -196677,6 +196677,12 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       '#mn-bp .it img{width:72px;height:72px;object-fit:contain;display:block;margin:0 auto}#mn-bp .it i{font-style:normal;font-size:30px;display:block;height:72px;line-height:72px}',
       '#mn-bp .it span{display:block;font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
       '#mn-bp .it b{position:absolute;top:4px;right:4px;font-size:9.5px;font-weight:800;padding:1px 5px;border-radius:6px;background:#2f6fd6;color:#fff}#mn-bp .it b.bag{background:#8a6a48}#mn-bp .it b.tpl{background:#3f7a3c}',
+      '#mn-bp .ix{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:2px 0 6px}',
+      '#mn-bp .ix b{width:100%;font-size:12.5px;color:#5b3a20}#mn-bp .ix b em{font-style:normal;color:#8a6a48;font-weight:600}',
+      '#mn-bp .ix button{border:1px solid #d9bf96;background:#fbf2e0;color:#3a2412;border-radius:999px;padding:4px 10px;font:inherit;font-size:12px;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+      '#mn-bp .ix button.sel{background:#5b3a20;color:#fbf2e0;border-color:#5b3a20}#mn-bp .ix button.off{opacity:.55}',
+      '#mn-bp .ixnote{font-size:12.5px;color:#8a6a48}',
+      '#mn-bp .pv .ixpic{width:100%;aspect-ratio:1;object-fit:contain;border-radius:12px;background:#f6ead2;display:grid;place-items:center;color:#8a6a48}',
       '#mn-bp .pv{width:240px;flex:none;display:flex;flex-direction:column;gap:6px;overflow:auto}',
       '#mn-bp .pv canvas{width:240px;height:200px;border-radius:14px;background:radial-gradient(#fffdf6,#ead8b6);touch-action:none;cursor:grab}',
       '#mn-bp .pv h4{margin:2px 0 0;font-size:15px}#mn-bp .pv p{margin:0;font-size:12px;color:#5a4128}#mn-bp .pv dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:2px 8px;font-size:12px}#mn-bp .pv dt{color:#8a6a48}',
@@ -196713,9 +196719,71 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   function close(placing) { if (!ui || ui.el.hidden) return; ui.el.hidden = true; cancelAnimationFrame(ui.raf); ui.raf = 0; try { if (ui.host && ui.host.onClose) ui.host.onClose(!!placing); } catch (e) {} }
   function isOpen() { return !!(ui && !ui.el.hidden); }
   function items() { return catalog(ui.host); }
+
+  /* ---------------------------------------------------------------- Index 索引: everything that is online, on one page
+     The backpack's own entries (by kind) and My World's 3D library (MinestAssets3D.catalog: buildings, objects, interiors,
+     worlds, small islands, centre styles) — read from the Minest page; loaded from its #mn-assets3d-src the first time,
+     the same way My World 3.0 does. A library entry shows its picture and details; it is placed in My World's Build. */
+  var LIB = null, libWait = null;
+  function lib3d() {
+    if (LIB) return Promise.resolve(LIB); if (libWait) return libWait;
+    libWait = new Promise(function (res) {
+      try {
+        var ws = [HW(), root], w = null, src = null;
+        for (var i = 0; i < ws.length; i++) { try { if (ws[i] && ws[i].MinestAssets3D) { LIB = ws[i].MinestAssets3D; return res(LIB); } } catch (e) {} }
+        for (var j = 0; j < ws.length && !src; j++) { try { src = ws[j] && ws[j].document && ws[j].document.getElementById('mn-assets3d-src'); if (src) w = ws[j]; } catch (e) {} }
+        if (!src) { libWait = null; return res(null); }
+        setTimeout(function () { try { var sc = w.document.createElement('script'); sc.textContent = src.textContent; w.document.head.appendChild(sc); LIB = w.MinestAssets3D || null; } catch (e) { LIB = null; } res(LIB); }, 30);
+      } catch (e) { res(null); }
+    });
+    return libWait;
+  }
+  var LIB_GROUPS = [['building', '建筑 Buildings'], ['object', '物件 Objects'], ['diorama', '室内 Interiors'], ['world', '世界 Worlds'], ['subisland', '小岛 Islands'], ['center', '中心岛样式 Centre styles']];
+  var BP_GROUPS = [['creations', '我的作品'], ['fixtures', '陈列装置'], ['tools', '工坊工具'], ['magic', '魔法道具'], ['collections', '我的收藏']];
+  function renderIndex(all, grid) {
+    var q = ui.q, hit = function (t) { return !q || String(t).toLowerCase().indexOf(q) >= 0; };
+    var h = '<h5>背包里的物品 · 可以直接放出来</h5>';
+    BP_GROUPS.forEach(function (g) {
+      var list = all.filter(function (it) { return it.cat === g[0] && hit(it.name + ' ' + (it.note || '') + ' ' + (it.en || '')); });
+      if (!list.length) return;
+      h += '<div class="ix"><b>' + g[1] + ' <em>' + list.length + '</em></b>' + list.map(function (it) {
+        return '<button type="button" data-key="' + esc(it.key) + '" class="' + (ui.sel === it.key ? 'sel' : '') + (it.ready === false ? ' off' : '') + '">' + esc(it.name) + (it.ready === false ? ' · 未完成' : '') + '</button>';
+      }).join('') + '</div>';
+    });
+    if (!LIB) {
+      h += '<h5>My World 3D 库</h5><div class="ix"><span class="ixnote">' + (libWait ? '正在读取建筑库…' : '在 Minest 里打开背包时，这里会列出 My World 所有已上线的建筑、物件、室内和世界。') + '</span></div>';
+      grid.innerHTML = h;
+      lib3d().then(function (L) { if (L && ui && ui.cat === 'index' && !ui.el.hidden) render(); else if (!L && ui && ui.cat === 'index') { var n = grid.querySelector('.ixnote'); if (n) n.textContent = '这个页面里没有 My World 的 3D 库（在 Minest 里打开背包才会列出）。'; } });
+      return;
+    }
+    var C = LIB.catalog || {}, total = 0;
+    LIB_GROUPS.forEach(function (g) { total += (C[g[0]] || []).length; });
+    h += '<h5>My World 3D 库 · 共 ' + total + ' 件已上线 · 在 My World 的「建造」里摆放</h5>';
+    LIB_GROUPS.forEach(function (g) {
+      var list = (C[g[0]] || []).filter(function (a) { return hit(a.name + ' ' + (a.subtitle || '') + ' ' + (a.category || '') + ' ' + a.id); });
+      if (!list.length) return;
+      h += '<div class="ix"><b>' + g[1] + ' <em>' + list.length + '</em></b>' + list.map(function (a) {
+        return '<button type="button" data-lib="' + esc(a.id) + '" class="' + (ui.lib === a.id ? 'sel' : '') + '" title="' + esc(a.subtitle || a.category || '') + '">' + esc(a.name) + '</button>';
+      }).join('') + '</div>';
+    });
+    grid.innerHTML = h;
+  }
+  function libPreview(pv) {
+    var a = null, id = ui.lib;
+    try { a = (LIB.info && LIB.info(id)) || null; } catch (e) {}
+    var C = LIB.catalog || {}, kind = (LIB.kindOf ? LIB.kindOf(id) : ''), row = null;
+    LIB_GROUPS.some(function (g) { row = (C[g[0]] || []).filter(function (x) { return x.id === id; })[0]; return !!row; });
+    row = row || a || { id: id, name: id };
+    var names = { building: '建筑', object: '物件', diorama: '室内', world: '世界', subisland: '小岛', center: '中心岛样式' };
+    pv.innerHTML = '<div class="ixpic" aria-hidden="true">…</div><h4>' + esc(row.name) + '</h4><dl><dt>类型</dt><dd>' + esc(names[kind] || kind || '') + '</dd>' +
+      (row.subtitle ? '<dt>说明</dt><dd>' + esc(row.subtitle) + '</dd>' : '') + (row.category ? '<dt>分类</dt><dd>' + esc(row.category) + '</dd>' : '') +
+      '<dt>编号</dt><dd>' + esc(id) + '</dd><dt>状态</dt><dd>已上线 · 在 My World 的「建造」里摆放</dd></dl>';
+    if (LIB.thumb) LIB.thumb(id).then(function (src) { var pic = pv.querySelector('.ixpic'); if (pic && src && ui.lib === id) pic.outerHTML = '<img class="ixpic" alt="' + esc(row.name) + '" src="' + src + '">'; else if (pic) pic.textContent = ''; }, function () {});
+  }
   function render() {
     var all = items(), host = ui.host, p = pref(), queue = [], grid = ui.el.querySelector('.grid'), scroll = grid.scrollTop;
     ui.el.querySelector('.tabs').innerHTML = CATS.map(function (c) { return '<button type="button" data-cat="' + c[0] + '" class="' + (ui.cat === c[0] ? 'on' : '') + '" title="' + c[2] + '">' + c[1] + '</button>'; }).join('');
+    if (ui.cat === 'index') { renderIndex(all, grid); preview(); hotbar(host); return; }
     var list = all.filter(function (it) { return ui.cat === 'all' || (ui.cat === 'fav' ? p.fav.indexOf(it.key) >= 0 : it.cat === ui.cat); })
       .filter(function (it) { return !ui.q || (it.name + ' ' + (it.note || '') + ' ' + (it.en || '')).toLowerCase().indexOf(ui.q) >= 0; });
     var T = host.THREE, h = '';
@@ -196765,6 +196833,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   function preview() {
     var pv = ui.el.querySelector('.pv'), it = selected(), host = ui.host, T = host.THREE;
     cancelAnimationFrame(ui.raf); ui.raf = 0;
+    if (ui.cat === 'index' && ui.lib && LIB) return libPreview(pv);
     if (!it) { pv.innerHTML = '<p style="margin-top:20px">选一件物品：看它的 3D 模型、尺寸和放置要求，然后一键放进世界。</p><p>桌面：R 旋转 · ←→↑↓ 微调 · Enter 放好 · Esc 取消</p>'; return; }
     var st = host.status(it), PLACE = { floor: '地面 / 展台 / 室外', wall: '墙面', surface: '桌面 / 柜面 / 货架 / 展台' };
     var kindName = { template: '模板 · 可以放多个', owned: '实体作品 · 只有一件', function: '功能物件 · 放好后可进入功能' }[it.kind];
@@ -196799,7 +196868,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     var b = e.target.closest('button'); if (!b || !ui) return;
     var host = ui.host;
     if (b.dataset.cat) { ui.cat = b.dataset.cat; render(); return; }
-    if (b.dataset.key) { ui.sel = b.dataset.key; render(); return; }
+    if (b.dataset.key) { ui.sel = b.dataset.key; ui.lib = null; render(); return; }
+    if (b.dataset.lib) { ui.lib = b.dataset.lib; ui.sel = null; render(); return; }
     var a = b.dataset.bp, it = selected();
     if (a === 'close') { close(); return; }
     if (!it) return;
