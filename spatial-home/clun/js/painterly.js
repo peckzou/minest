@@ -15,21 +15,22 @@
   ].join('\n');
 
   /* 远景照片 → 绘画化贴图。src 是原始照片（按原值读），返回渲染目标的贴图（存的是 sRGB 值）。 */
-  /* opts: { patch 补图贴图, mask 补图范围（低分辨率，白 = 用补图）, sky 是否把天空换成画的云天（只对第一张照片）, haze 远山雾的强度 } */
+  /* opts: { patch 补图贴图, mask 补图范围（低分辨率，白 = 用补图）, sky 是否把天空换成画的云天（只对第一张照片）, haze 远山雾的强度,
+           zelda 塞尔达动画式的调色：笔触更大更平、暗部提亮偏蓝青、受光的草偏黄绿、远处蒙一层淡蓝的空气、勾线更淡 } */
   S.paintBackdrop = function (renderer, src, W, H, opts) {
     opts = opts || {};
     var rt = new THREE.WebGLRenderTarget(W, H, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: false, depthBuffer: false, wrapS: THREE.MirroredRepeatWrapping });   /* 左右可镜像延伸 */
     var mat = new THREE.ShaderMaterial({
-      uniforms: { tSrc: { value: src }, tPatch: { value: opts.patch || src }, tMask: { value: opts.mask || src }, uUseMask: { value: opts.mask ? 1 : 0 }, uSky: { value: opts.sky === false ? 0 : 1 }, uHaze: { value: opts.haze == null ? 0.32 : opts.haze },
+      uniforms: { tSrc: { value: src }, tPatch: { value: opts.patch || src }, tMask: { value: opts.mask || src }, uUseMask: { value: opts.mask ? 1 : 0 }, uSky: { value: opts.sky === false ? 0 : 1 }, uHaze: { value: opts.haze == null ? 0.32 : opts.haze }, uZelda: { value: opts.zelda ? 1 : 0 },
         uTexel: { value: new THREE.Vector2(1 / src.image.width, 1 / src.image.height) } },
       vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
       fragmentShader: [
-        'uniform sampler2D tSrc, tPatch, tMask; uniform float uUseMask, uSky, uHaze; uniform vec2 uTexel; varying vec2 vUv;', NOISE,
+        'uniform sampler2D tSrc, tPatch, tMask; uniform float uUseMask, uSky, uHaze, uZelda; uniform vec2 uTexel; varying vec2 vUv;', NOISE,
         'vec3 smp(vec2 uv){ vec3 a = texture2D(tSrc, uv).rgb; if (uUseMask < 0.5) return a; return mix(a, texture2D(tPatch, uv).rgb, texture2D(tMask, uv).r); }',
         'void main(){',
         '  vec3 m0 = vec3(0.0), m1 = vec3(0.0), m2 = vec3(0.0), m3 = vec3(0.0), s0 = vec3(0.0), s1 = vec3(0.0), s2 = vec3(0.0), s3 = vec3(0.0);',
         '  for (int j = -3; j <= 3; j++) for (int i = -3; i <= 3; i++) {',            /* Kuwahara：四个象限里取方差最小的平均色，得到笔触感 */
-        '    vec3 c = smp(vUv + vec2(float(i), float(j)) * uTexel * 0.9);',
+        '    vec3 c = smp(vUv + vec2(float(i), float(j)) * uTexel * mix(0.9, 1.5, uZelda));',
         '    if (i <= 0 && j <= 0) { m0 += c; s0 += c * c; } if (i >= 0 && j <= 0) { m1 += c; s1 += c * c; }',
         '    if (i <= 0 && j >= 0) { m2 += c; s2 += c * c; } if (i >= 0 && j >= 0) { m3 += c; s3 += c * c; }',
         '  }',
@@ -44,6 +45,15 @@
         '  c = mix(c, vec3(0.55, 0.62, 0.6), 0.07);',                                       /* 整体粉一点、反差低一点 */
         '  float g = c.g - max(c.r, c.b);',
         '  c.g += 0.04 * smoothstep(0.02, 0.12, g); c.r += 0.03 * smoothstep(0.02, 0.12, g);',  /* 绿色往黄绿走 */
+        '  if (uZelda > 0.5) {',
+        '    float zl = dot(c, vec3(0.299, 0.587, 0.114)), zs = 1.0 - smoothstep(0.12, 0.45, zl);',
+        '    c = mix(c, c * vec3(0.78, 0.94, 1.22) + vec3(0.015, 0.035, 0.07), zs * 0.55);',                      /* 暗部不压黑：提亮、偏蓝青 */
+        '    float zg = smoothstep(0.02, 0.14, c.g - max(c.r, c.b));',
+        '    c = mix(c, c * vec3(1.10, 1.06, 0.72), zg * smoothstep(0.35, 0.7, zl) * 0.6);',                      /* 受光的草和树：黄绿 */
+        '    zl = dot(c, vec3(0.299, 0.587, 0.114)); c = mix(vec3(zl), c, 1.10);',
+        '    c = mix(c, vec3(0.74, 0.86, 0.97), smoothstep(0.42, 0.80, y) * 0.16 * (1.0 - smoothstep(0.75, 0.95, zl)));',   /* 远处的空气 */
+        '    c = c * 0.96 + 0.035;',
+        '  }',
         '  float haze = smoothstep(0.40, 0.92, y) * uHaze;',                                 /* 远山：越高越远，蒙一层蓝白的空气 */
         '  c = mix(c, vec3(0.70, 0.82, 0.94), haze);',
         '  float skyM = smoothstep(0.22, 0.45, o.b - o.r) * smoothstep(0.12, 0.3, o.b - o.g) * smoothstep(0.5, 0.7, y);',     /* 天空：照片上部很饱和的蓝（山的蓝和雪的阴影都不够饱和） */
@@ -59,7 +69,7 @@
         '  c = mix(c, sky, skyM);',
         '  float e = length(vec2(dot(smp(vUv + vec2(uTexel.x * 2.0, 0.0)) - smp(vUv - vec2(uTexel.x * 2.0, 0.0)), vec3(0.33)),',
         '                       dot(smp(vUv + vec2(0.0, uTexel.y * 2.0)) - smp(vUv - vec2(0.0, uTexel.y * 2.0)), vec3(0.33))));',
-        '  c *= 1.0 - 0.18 * smoothstep(0.12, 0.35, e) * (1.0 - skyM);',                  /* 很淡的勾线感 */
+        '  c *= 1.0 - mix(0.18, 0.10, uZelda) * smoothstep(0.12, 0.35, e) * (1.0 - skyM);',                  /* 很淡的勾线感 */
         '  gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);',
         '}'].join('\n'),
       depthTest: false, depthWrite: false
@@ -86,21 +96,24 @@
     var t = new THREE.DataTexture(d, v.length, 1, THREE.RGBFormat); t.minFilter = t.magFilter = THREE.LinearFilter; t.generateMipmaps = false; t.needsUpdate = true; return t;
   })();
   /* 赛璐珞着色：贴图细节压平成手绘色块、颜色更饱和、暗面偏冷（蓝紫）而不是变黑、受光一侧边缘一道暖白的轮廓光 */
+  S.air = { value: 0 };   /* 外景的空气感（0 = 关，室内和展台；1 = 开）：赛璐珞材质的颜色收一点、蒙一层很淡的天光，房子融进画里 */
   function cel(sh) {
-    sh.fragmentShader = sh.fragmentShader
+    sh.uniforms.uCelAir = S.air;
+    sh.fragmentShader = 'uniform float uCelAir;\n' + sh.fragmentShader
       .replace('#include <map_fragment>', [
         '#ifdef USE_MAP',
         '  vec4 texelColor = texture2D( map, vUv ); vec4 texelAvg = texture2D( map, vUv, 4.0 );',
         '  texelColor.rgb = mix( texelAvg.rgb, texelColor.rgb, 0.4 );',
         '  texelColor = mapTexelToLinear( texelColor ); diffuseColor *= texelColor;',
         '#endif',
-        '  diffuseColor.rgb = max( mix( vec3( dot( diffuseColor.rgb, vec3( 0.299, 0.587, 0.114 ) ) ), diffuseColor.rgb, 1.2 ), 0.0 );'].join('\n'))
+        '  diffuseColor.rgb = max( mix( vec3( dot( diffuseColor.rgb, vec3( 0.299, 0.587, 0.114 ) ) ), diffuseColor.rgb, mix( 1.2, 1.02, uCelAir ) ), 0.0 );'].join('\n'))
       .replace('gl_FragColor = vec4( outgoingLight, diffuseColor.a );', [
         '  float celK = dot( reflectedLight.directDiffuse, vec3( 0.333 ) ) / ( dot( diffuseColor.rgb, vec3( 0.333 ) ) + 1e-3 );',   /* 只看太阳直射：受光 ≈ 1.6，背光 / 投影 ≈ 0.7 */
         '  float celLit = smoothstep( 0.95, 1.25, celK );',
         '  outgoingLight = mix( outgoingLight * vec3( 0.70, 0.76, 1.06 ), outgoingLight * vec3( 1.05, 1.02, 0.95 ), celLit );',
         '  float celFr = pow( 1.0 - clamp( dot( normalize( normal ), normalize( vViewPosition ) ), 0.0, 1.0 ), 3.5 );',
         '  outgoingLight += vec3( 1.0, 0.94, 0.80 ) * celFr * ( 0.08 + 0.22 * celLit );',
+        '  outgoingLight = mix( outgoingLight, vec3( 0.50, 0.64, 0.84 ), 0.08 * uCelAir );',
         'gl_FragColor = vec4( outgoingLight, diffuseColor.a );'].join('\n'));   /* r128 没有 output_fragment 这个片段，直接接在最终输出那一行 */
   }
   S.time = { value: 0 };

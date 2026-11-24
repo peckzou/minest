@@ -1,7 +1,8 @@
-/* Clun · 外景（交付图版）：用户给的交付效果图整张做底图，最大程度保留原场景；只把图里原来那栋房子换成 Clun，缩小到原来的 75%。
+/* Clun · 外景（交付图版）：用户给的交付效果图整张做底图，最大程度保留原场景；只把图里原来那栋房子换成 Clun，缩小到原来的 55%。
    1) 在画布上抹掉原房子：房顶上方的山向下镜像延伸，房身那一带用它右边那条山林和村庄镜像拼接；门前的花丛和台阶不动。
    2) 补好的图做一遍绘画化（和 3D 房子的卡通光照统一），作为固定机位的底图。
-   3) 3D 房子按底图的透视放：门对准原来的门（台阶从那里下去），朝向和原房子一样露出左侧山墙，大小是原房子的 75%。
+   3) 3D 房子按底图的透视放：门对准原来的门（台阶从那里下去），朝向和原房子一样露出左侧山墙，大小是原房子的 55%。
+   4) 塞尔达动画式的空气感和微动态：风吹过草地的亮纹、树叶轻晃、云影、光束、空中的光点、远处的鸟、花丛里的蝴蝶、烟囱的炊烟。
    底图坐标：原图像素（2576 × 1438）。 */
 (function () {
   'use strict';
@@ -13,7 +14,7 @@
     horizon: 0.65,                 /* 地平线在底图里的高度（从上往下的比例），由原房子的屋檐线和墙脚线汇聚估出 */
     door: [868, 1022],             /* 原房子门的底边 */
     top: 452,                      /* 原房子最高点（左烟囱顶） */
-    scale: 0.75,                   /* 新房子相对原房子的大小（按高度：门底到烟囱顶） */
+    scale: 0.55,                   /* 新房子相对原房子的大小（按高度：门底到烟囱顶）；房门的点击范围、取景中心都跟着这个值走 */
     turn: 30,                      /* 正面比正对镜头多转的角度（露出左侧山墙） */
     /* 原房子的轮廓（要抹掉的范围）。底边在门前花丛处抬高，花丛和台阶保留 */
     mask: [[425, 1040], [425, 730], [488, 556], [494, 446], [582, 446], [582, 548], [962, 552], [965, 552], [1040, 552], [1044, 664], [1118, 730], [1162, 730],
@@ -73,6 +74,12 @@
         '}',
         'void main(){',
         '  vec4 m = texture2D(mk, vUv); vec3 c = texture2D(map, vUv).rgb;',
+        '  float grn = c.g - max(c.r, c.b), lum0 = dot(c, vec3(0.333)), land = 1.0 - step(0.003, m.r + m.g);',
+        '  float tree = smoothstep(0.03, 0.12, grn) * smoothstep(0.56, 0.34, lum0) * land;',                        /* 树叶（深绿）：整团轻轻晃 */
+        '  if (tree > 0.01) { vec2 wob = vec2(sin(uTime * 1.15 + vUv.y * 64.0 + vUv.x * 27.0), cos(uTime * 0.85 + vUv.x * 47.0 - vUv.y * 19.0));',
+        '    c = texture2D(map, vUv + wob * tree * 0.0011 * (0.5 + vn(vUv * 9.0 + uTime * 0.06))).rgb; }',
+        '  float gust = smoothstep(0.58, 0.78, fbm(vec2(vUv.x * 5.0 - uTime * 0.2, vUv.y * 24.0 + vUv.x * 5.0)));',   /* 草地（亮绿）：一道道亮纹顺风扫过去 */
+        '  c += smoothstep(0.05, 0.16, grn) * smoothstep(0.3, 0.48, lum0) * smoothstep(0.64, 0.5, vUv.y) * land * gust * vec3(0.085, 0.095, 0.02);',
         '  if (m.g > 0.003) {',                                                     /* 小溪 */
         '    vec2 d = vUv - uBridge; d.x *= uAsp; float r = length(d); vec2 dir = normalize(d); dir.x /= uAsp;',
         '    vec3 w = flowSample(vUv, dir * (0.006 + r * 0.03), 0.45);',
@@ -272,7 +279,7 @@
     back.position.set(0, 0, -RB).applyQuaternion(cam.quat); back.quaternion.copy(cam.quat); back.renderOrder = -10; back.frustumCulled = false; back.visible = false; root.add(back); disp.push(back.geometry, back.material);
     var img = new Image(); img.onload = function () {
       var src = new THREE.Texture(img); src.minFilter = THREE.LinearFilter; src.generateMipmaps = false; src.needsUpdate = true;
-      var pm = makePatch(img), rt = C.Paint.paintBackdrop(renderer, src, 2048, Math.round(2048 / A), { patch: pm.patch, mask: pm.mask, sky: false, haze: 0.08 });
+      var pm = makePatch(img), rt = C.Paint.paintBackdrop(renderer, src, 2048, Math.round(2048 / A), { patch: pm.patch, mask: pm.mask, sky: false, haze: 0.08, zelda: true });
       [src, pm.patch, pm.mask, rt].forEach(function (d) { disp.push(d); });
       back.material.uniforms.map.value = rt.texture; back.visible = true;
       bush.material.uniforms.map.value = rt.texture; bush.visible = true;
@@ -280,7 +287,7 @@
     };
     img.src = PL.img;
 
-    /* —— 房子：门的底边落在原来的门上，大小按原房子的 75% —— */
+    /* —— 房子：门的底边落在原来的门上，大小按原房子的 55%（PL.scale） —— */
     function rayTo(px, py) { return new THREE.Vector3((px / PL.W - 0.5) * Wn, -(py / PL.H - 0.5) * Hn, -1).applyQuaternion(cam.quat).normalize(); }
     var holder = new THREE.Group(); root.add(holder); if (house.parent) house.parent.remove(house); holder.add(house);
     var ray = rayTo(PL.door[0], PL.door[1]);
@@ -383,16 +390,29 @@
       var R = PL.rope, base = onTerrain(R[0], R[2]), inv = cam.quat.clone().invert(), depth = -base.clone().sub(cam.pos).applyQuaternion(inv).z;
       function atDepth(px, py, dz) { return new THREE.Vector3((px / PL.W - 0.5) * Wn, -(py / PL.H - 0.5) * Hn, -1).multiplyScalar(depth + (dz || 0)).applyQuaternion(cam.quat).add(cam.pos); }
       var top = atDepth(R[0], R[1]), full = top.y - (base.y + 0.5);
-      var ropeM = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x8a6a3e).convertSRGBToLinear(), roughness: 1 }), rungM = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x9d7544).convertSRGBToLinear(), roughness: 0.95 });   /* 照参考图：哑光深麻绳色、旧木色横档 */   /* 照参考图：哑光麻绳色、浅木色横档，不要太亮 */
+      /* 颜色从树屋的旧木板里取：深一号的麻绳、风化的树枝横档；越靠近平台越暗（压在平台的影子里），和底图的光影接上 */
+      function wood(hex, shade) { return new THREE.MeshStandardMaterial({ color: new THREE.Color(hex).convertSRGBToLinear().multiplyScalar(shade), roughness: 1 }); }
+      var ropeM = wood(0x6a5236, 0.8), knotM = wood(0x54402a, 0.8), RUNG = [0x7d5a38, 0x74512f, 0x86633f];
       var side = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quat); side.y = 0; side.normalize();
       var toCam = cam.pos.clone().sub(base); toCam.y = 0; toCam.normalize();
       var pivot = new THREE.Group(); pivot.position.copy(top); root.add(pivot);
-      var ropes = [-0.2, 0.2].map(function (o) { var geo = new THREE.CylinderGeometry(0.03, 0.03, 1, 8); geo.translate(0, -0.5, 0); var m = new THREE.Mesh(geo, ropeM); m.position.copy(side).multiplyScalar(o); pivot.add(m); return m; });
-      var NR = Math.max(9, Math.round(full / 0.3) + 1), rungs = []; for (var k = 0; k < NR; k++) { var d = full - (full - 0.12) * k / (NR - 1), rr = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.44, 0.07), rungM); rr.position.set(0, -d, 0); rr.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), side); rr.userData.d = d; pivot.add(rr); rungs.push(rr); }
-      var bar = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.64, 0.11), rungM); bar.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), side); bar.position.set(0, 0.04, 0); pivot.add(bar);   /* 平台下的木挂杆，绳子绕在上面打结 */
-      [-0.2, 0.2].forEach(function (o) { var kn = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), ropeM); kn.position.copy(side).multiplyScalar(o); kn.position.y = 0.02; pivot.add(kn); });
-      var roll = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.4, 14), ropeM); roll.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), side); roll.position.set(0, -0.05, 0); pivot.add(roll);
-      C.Paint.toonTree(pivot);
+      var Y = new THREE.Vector3(0, 1, 0), HW = 0.21;
+      var ropes = [-HW, HW].map(function (o) { var geo = new THREE.CylinderGeometry(0.02, 0.02, 1, 7); geo.translate(0, -0.5, 0); var m = new THREE.Mesh(geo, ropeM); m.position.copy(side).multiplyScalar(o); pivot.add(m); return m; });
+      /* 横档：手削的圆木枝，长短、粗细、歪斜都略有不同，两头各一个绳结 */
+      var NR = Math.max(8, Math.round(full / 0.36) + 1), rungs = [];
+      for (var k = 0; k < NR; k++) {
+        var d = full - (full - 0.16) * k / (NR - 1), h1 = Math.sin(k * 12.9898) * 43758.5453, j = h1 - Math.floor(h1), h2 = Math.sin(k * 78.233) * 12543.21, j2 = h2 - Math.floor(h2);
+        var shade = 0.62 + 0.38 * Math.min(1, d / (full * 0.45)), g = new THREE.Group(); g.position.set(0, -d, 0); g.userData.d = d;
+        var log = new THREE.Mesh(new THREE.CylinderGeometry(0.03 + 0.008 * j, 0.034 - 0.006 * j2, 0.54 + 0.06 * j2, 7), wood(RUNG[k % 3], shade));
+        log.quaternion.setFromUnitVectors(Y, side.clone().addScaledVector(Y, (j - 0.5) * 0.09).normalize()); g.add(log);
+        [-HW, HW].forEach(function (o) { var kn = new THREE.Mesh(new THREE.SphereGeometry(0.042, 8, 6), knotM); kn.position.copy(side).multiplyScalar(o); kn.scale.y = 1.25; g.add(kn); });
+        pivot.add(g); rungs.push(g);
+      }
+      var bar = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.055, 0.72, 8), wood(0x5e452c, 0.7)); bar.quaternion.setFromUnitVectors(Y, side); bar.position.set(0, 0.04, 0); pivot.add(bar);   /* 平台下的木挂杆，绳子绕在上面打结 */
+      [-HW, HW].forEach(function (o) { var kn = new THREE.Mesh(new THREE.SphereGeometry(0.065, 10, 8), knotM); kn.position.copy(side).multiplyScalar(o); kn.position.y = 0.03; pivot.add(kn); });
+      var roll = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.46, 14), ropeM); roll.quaternion.setFromUnitVectors(Y, side); roll.position.set(0, -0.05, 0); pivot.add(roll);
+      C.Paint.toonTree(pivot, function () { return { rim: 0.12 }; });   /* 细杆上的暖色边缘光会把整架梯子染成亮黄，这里只留一点 */
+      var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches, breeze = new THREE.Quaternion();
       var st = { k: 0, want: 0, ang: 0 };
       function apply() {
         var L = Math.max(0.04, full * (1 - st.k)); ropes.forEach(function (m) { m.scale.y = L; });
@@ -408,6 +428,8 @@
         moving: function () { return Math.abs(st.k - st.want) > 0.001; },
         roll: function (up) { st.want = up ? 1 : 0; },
         tick: function (dt) { if (st.k !== st.want) { st.k += Math.sign(st.want - st.k) * Math.min(Math.abs(st.want - st.k), dt / 1.6); apply(); } },
+        /* 没人在梯子上时，随风左右轻晃（绕朝镜头的轴），收起来以后不晃 */
+        idle: function (t, busy) { if (calm || busy || st.ang) return; var a = (0.03 * Math.sin(t * 0.85) + 0.012 * Math.sin(t * 2.2 + 1.3)) * (1 - st.k); pivot.quaternion.copy(breeze.setFromAxisAngle(toCam, a)); },
         swing: function (a) { st.ang = a; pivot.quaternion.setFromAxisAngle(side, a); },
         bottom: function () { pivot.updateMatrixWorld(true); return pivot.localToWorld(new THREE.Vector3(0, -full, 0)); }
       };
@@ -425,13 +447,97 @@
     sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.05;
     var sc = sun.shadow.camera; sc.left = -22; sc.right = 22; sc.top = 22; sc.bottom = -22; sc.near = 10; sc.far = 200;
 
+    /* —— 塞尔达动画式的空气感和微动态（都很轻，不抢房子）：云影、右上方斜下来的光束、空中飘的光点和花瓣、
+          远处飞过的三只鸟、花丛里的蝴蝶、烟囱的炊烟、画面四角压暗。进屋以后只留屋外本来就有的东西（鸟、蝴蝶、炊烟、光点）。 —— */
+    var FX = (function () {
+      var g = new THREE.Group(); g.name = 'fx'; root.add(g);
+      var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var sd = 7; function rnd() { sd = (sd * 16807) % 2147483647; return sd / 2147483647; }
+      var right = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quat), NZ = [
+        'float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
+        'float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h2(i), h2(i + vec2(1.0, 0.0)), f.x), mix(h2(i + vec2(0.0, 1.0)), h2(i + vec2(1.0, 1.0)), f.x), f.y); }',
+        'float fbm(vec2 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { s += a * vn(p); p *= 2.03; a *= 0.5; } return s; }'].join('\n');
+      /* 盖在整张底图前面的两层：一层相乘（云影），一层相加（光束和太阳那一角的暖光） */
+      var OD = 2, og = new THREE.PlaneGeometry(Wn * OD, Hn * OD), VS = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
+      function layer(blend, order, body) {
+        var m = new THREE.ShaderMaterial({ transparent: true, depthTest: false, depthWrite: false, blending: blend, uniforms: { uTime: C.Paint.time, uAsp: { value: A } }, vertexShader: VS,
+          fragmentShader: 'uniform float uTime, uAsp; varying vec2 vUv;\n' + NZ + '\nvoid main(){ vec2 p = vec2(vUv.x, 1.0 - vUv.y);\n' + body + '\n}' });
+        var o = new THREE.Mesh(og, m); o.position.set(0, 0, -OD).applyQuaternion(cam.quat); o.quaternion.copy(cam.quat); o.renderOrder = order; o.frustumCulled = false; g.add(o); disp.push(m); return o;
+      }
+      var shade = layer(THREE.MultiplyBlending, 40, [
+        '  float s = smoothstep(0.50, 0.72, fbm(vec2(p.x * 2.2 - uTime * 0.012, p.y * 5.0 + uTime * 0.003))) * smoothstep(0.40, 0.58, p.y);',   /* 只落在山谷和草地上，不上天 */
+        '  gl_FragColor = vec4(mix(vec3(1.0), vec3(0.80, 0.85, 0.96), s * 0.8), 1.0);'].join('\n'));
+      var beams = layer(THREE.AdditiveBlending, 41, [
+        '  vec2 d = p - vec2(1.04, -0.10); d.x *= uAsp; float r = length(d), a = atan(d.y, d.x);',
+        '  float rays = fbm(vec2(a * 9.0, uTime * 0.05)) * 0.6 + fbm(vec2(a * 23.0 + 4.0, uTime * 0.08)) * 0.4;',
+        '  rays = smoothstep(0.42, 0.75, rays) * smoothstep(1.5, 0.15, r);',
+        '  gl_FragColor = vec4(vec3(1.0, 0.93, 0.74) * (rays * 0.15 + exp(-r * 2.2) * 0.28), 1.0);'].join('\n'));
+      disp.push(og);
+      /* 光点和花瓣：在镜头和房子之间的空气里慢慢往右上飘，一闪一闪 */
+      var N = 110, pp = new Float32Array(N * 3), ps = new Float32Array(N * 4), i;
+      for (i = 0; i < N; i++) { pp[i * 3] = rnd(); pp[i * 3 + 1] = rnd(); pp[i * 3 + 2] = 9 + rnd() * rnd() * 45; ps[i * 4] = rnd(); ps[i * 4 + 1] = rnd(); ps[i * 4 + 2] = rnd(); ps[i * 4 + 3] = rnd(); }
+      var mg = new THREE.BufferGeometry(); mg.setAttribute('position', new THREE.BufferAttribute(pp, 3)); mg.setAttribute('aSeed', new THREE.BufferAttribute(ps, 4));
+      var mm = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, uniforms: { uTime: C.Paint.time, uPx: { value: 1 }, uWH: { value: new THREE.Vector2(Wn, Hn) } },
+        vertexShader: ['attribute vec4 aSeed; uniform float uTime, uPx; uniform vec2 uWH; varying float vA; varying float vK;',
+          'void main(){',
+          '  float t = uTime * (0.006 + 0.012 * aSeed.x), fx = fract(position.x + t), fy = fract(position.y - t * (0.25 + 0.5 * aSeed.y)), dz = position.z;',
+          '  float x = fx + 0.008 * sin(uTime * (0.4 + aSeed.w) + aSeed.z * 6.283), y = 0.36 + 0.64 * fy + 0.012 * sin(uTime * (0.5 + aSeed.z) + aSeed.w * 6.283);',   /* 只在画面下面六成（山谷里） */
+          '  gl_Position = projectionMatrix * modelViewMatrix * vec4((x - 0.5) * uWH.x * dz, (0.5 - y) * uWH.y * dz, -dz, 1.0);',
+          '  vA = smoothstep(0.0, 0.06, fx) * smoothstep(1.0, 0.94, fx) * smoothstep(0.0, 0.08, fy) * smoothstep(1.0, 0.92, fy) * (0.35 + 0.65 * (0.5 + 0.5 * sin(uTime * (1.2 + 2.0 * aSeed.y) + aSeed.x * 40.0)));',
+          '  vK = aSeed.z; gl_PointSize = uPx * (2.5 + 2.5 * aSeed.w) * (1.0 + 6.0 / dz);',
+          '}'].join('\n'),
+        fragmentShader: ['varying float vA; varying float vK;',
+          'void main(){ float a = smoothstep(0.5, 0.0, length(gl_PointCoord - 0.5)); a *= a;',
+          '  gl_FragColor = vec4(mix(vec3(1.0, 0.96, 0.78), vec3(1.0, 0.80, 0.86), step(0.8, vK)), a * vA * 0.7); }'].join('\n') });
+      var motes = new THREE.Points(mg, mm); motes.position.copy(cam.pos); motes.quaternion.copy(cam.quat); motes.frustumCulled = false; motes.renderOrder = 30; g.add(motes); disp.push(mg, mm);
+      /* 会扇翅膀的小东西（鸟、蝴蝶）：两片翅膀，面向镜头，绕身体那条轴一上一下 */
+      function flyer(span, chord, sweep, color) {
+        var geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute([0, chord / 2, 0, 0, -chord / 2, 0, span, chord * sweep, 0], 3));
+        var mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(color).convertSRGBToLinear(), side: THREE.DoubleSide }), o = new THREE.Group(), r = new THREE.Mesh(geo, mat), l = new THREE.Mesh(geo, mat);
+        l.scale.x = -1; o.add(r, l); o.quaternion.copy(cam.quat); o.userData.flap = function (a) { r.rotation.z = a; l.rotation.z = -a; }; g.add(o); disp.push(geo, mat); return o;
+      }
+      var birds = [[0, 0], [-46, 22], [-84, -12]].map(function (off, k) { var b = flyer(0.9, 0.22, 0.1, 0x3d4b68); b.userData.off = off; b.userData.k = k; return b; });
+      var flies = [[400, 1300, 0xfff0a8], [1090, 1185, 0xffffff], [1010, 1085, 0xa9d6ff]].map(function (q, k) { var b = flyer(0.075, 0.1, 0.5, q[2]); b.userData.at = onTerrain(q[0], q[1]); b.userData.k = k; return b; });
+      /* 炊烟：最高那根烟囱顶上冒出来的几团，往上升、被风带向右边、越来越大越来越淡 */
+      var puffs = [], chim = null, grp = house.userData.groups && house.userData.groups.chimneys;
+      if (grp) { house.updateMatrixWorld(true); var tops = [], hi = -1e9, v3 = new THREE.Vector3();                     /* 几根烟囱可能合在一个网格里：按顶点找最高的那一圈，取它的中心 */
+        grp.traverse(function (o) { if (!o.isMesh) return; var pa = o.geometry.attributes.position; for (var n = 0; n < pa.count; n++) { v3.fromBufferAttribute(pa, n).applyMatrix4(o.matrixWorld); hi = Math.max(hi, v3.y); tops.push(v3.clone()); } });
+        tops = tops.filter(function (q) { return q.y > hi - 0.05; }); tops = tops.filter(function (q) { return Math.hypot(q.x - tops[0].x, q.z - tops[0].z) < 1; });
+        if (tops.length) { chim = new THREE.Vector3(); tops.forEach(function (q) { chim.add(q); }); chim.multiplyScalar(1 / tops.length); } }
+      if (chim) { var pgeo = new THREE.PlaneGeometry(2, 2), pcv = document.createElement('canvas'); pcv.width = pcv.height = 64; var pc = pcv.getContext('2d'), pgr = pc.createRadialGradient(32, 32, 0, 32, 32, 32);
+        pgr.addColorStop(0, 'rgba(255,255,255,1)'); pgr.addColorStop(0.45, 'rgba(255,255,255,.85)'); pgr.addColorStop(1, 'rgba(255,255,255,0)'); pc.fillStyle = pgr; pc.fillRect(0, 0, 64, 64);   /* 一团边缘化开的烟 */
+        var ptex = new THREE.CanvasTexture(pcv); disp.push(pgeo, ptex);
+        for (i = 0; i < 7; i++) { var pm = new THREE.MeshBasicMaterial({ color: new THREE.Color(0xf4efe4).convertSRGBToLinear(), map: ptex, transparent: true, opacity: 0, depthWrite: false }), pf = new THREE.Mesh(pgeo, pm); pf.quaternion.copy(cam.quat); pf.renderOrder = 6; g.add(pf); puffs.push(pf); disp.push(pm); } }
+      /* 四角压暗一点、太阳那一角透一点暖光（盖在画布上面，不挡操作） */
+      var vg = document.createElement('div');
+      vg.style.cssText = 'position:absolute;inset:0;pointer-events:none;background:radial-gradient(60% 50% at 94% 0%,rgba(255,238,196,.26),rgba(255,238,196,0) 70%),radial-gradient(125% 95% at 50% 44%,rgba(20,40,76,0) 58%,rgba(20,40,76,.3) 100%);';
+      renderer.domElement.parentNode.appendChild(vg); disp.push({ dispose: function () { vg.remove(); } });
+      return {
+        still: still,
+        outdoor: function (on) { shade.visible = beams.visible = on; vg.style.display = on ? '' : 'none'; C.Paint.air.value = on ? 1 : 0; },
+        px: function (s) { mm.uniforms.uPx.value = s * renderer.getPixelRatio(); },
+        tick: function (t) {
+          var u = (t / 52) % 1;
+          birds.forEach(function (b) { var k = b.userData.k, o = b.userData.off, px = -120 + u * (PL.W + 240) + o[0], py = 215 + o[1] + 34 * Math.sin(u * 9 + k) - 70 * u;
+            b.position.copy(rayTo(px, py)).multiplyScalar(250).add(cam.pos); b.userData.flap(0.2 + 0.55 * Math.sin(t * (5.2 + k * 0.6) + k * 2) * (0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * 0.37 + k * 1.7)))); });   /* 扇几下、滑翔一会儿 */
+          flies.forEach(function (b) { var k = b.userData.k, a = b.userData.at;
+            b.position.set(a.x + Math.sin(t * 0.5 + k * 2.1) * 1.1 + Math.sin(t * 3.1 + k) * 0.07, a.y + 0.75 + 0.35 * Math.sin(t * 0.9 + k * 2) + Math.sin(t * 4.3 + k) * 0.05, a.z + Math.cos(t * 0.37 + k * 3) * 0.8);
+            b.userData.flap(0.15 + 1.05 * Math.abs(Math.sin(t * 9 + k * 1.3))); });
+          puffs.forEach(function (pf, k) { var v = (t / 7 + k / puffs.length) % 1, r = 0.22 + 0.8 * v;
+            pf.position.copy(chim).addScaledVector(right, 1.7 * v * v + 0.22 * Math.sin(k * 3 + v * 5)); pf.position.y += 0.25 + 3.3 * v;
+            pf.scale.setScalar(r); pf.material.opacity = 0.7 * Math.min(1, v / 0.12) * Math.pow(1 - v, 1.3); });
+        }
+      };
+    })();
+    FX.outdoor(true);
+
     /* —— 镜头：固定在底图的机位，画面 = 底图上裁出的一个矩形（底图像素）。
           Duo：外屏（窄长）裁房子主体近景；展开到内屏裁远景全景。两者之间做过渡：
             外屏 → 内屏（展开）：先在内屏上停在房子近景，再缓缓拉远，露出整片山谷，小旅人挥手；
             内屏 → 外屏（合上）：镜头从山谷中间横移、推近到房子。
           判断：根元素有 duo-outer / duo-inner 类就用它（Duo 版页面会加）；否则按尺寸：短边 ≥ 600 且长短边比 < 1.6 当内屏，
           窄长竖屏（宽高比 < 0.62）当外屏，其余（电脑、平板横屏）按内屏的全景处理。?duo=outer|inner 或 C.PLATE.sim 可强制。 —— */
-    var HOUSE = [857, 812], lastT = null, kind = null, trans = null, Q = new URLSearchParams(location.search);
+    var HK = PL.scale / 0.75, HOUSE = [PL.door[0] - 11 * HK, PL.door[1] - 210 * HK], lastT = null, kind = null, trans = null, Q = new URLSearchParams(location.search);
     function screenKind(w, h) {
       var f = PL.sim || Q.get('duo'); if (f === 'outer' || f === 'inner') return f;
       var R = document.documentElement; if (R.classList.contains('duo-inner')) return 'inner'; if (R.classList.contains('duo-outer')) return 'outer';
@@ -449,7 +555,7 @@
       var w = va > A ? PL.W : PL.H * va;                                      /* 远景：房子左缘（约 x 520）留在画面里，能放下就往右多带上村庄、瀑布和石桌 */
       return { cx: va > A ? PL.W / 2 : (k === 'inner' ? 520 + w / 2 : PL.W / 2), cy: PL.H / 2, w: w, h: w / va };
     }
-    function closeUp(va) { var w = Math.min(760, PL.H * va); return { cx: HOUSE[0], cy: HOUSE[1] + 40, w: w, h: w / va }; }   /* 房子近景 */
+    function closeUp(va) { var w = Math.min(760 * HK, PL.H * va); return { cx: HOUSE[0], cy: HOUSE[1] + 40, w: w, h: w / va }; }   /* 房子近景 */
     function ease(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
     function lerpR(a, b, t) { return { cx: a.cx + (b.cx - a.cx) * t, cy: a.cy + (b.cy - a.cy) * t, w: a.w * Math.pow(b.w / a.w, t), h: a.h * Math.pow(b.h / a.h, t) }; }
     function beginTransition(from, to, va, now) {
@@ -464,7 +570,7 @@
     document.body.appendChild(glow); disp.push({ dispose: function () { glow.remove(); } });
     /* —— 进门：点房门 → 镜头推到门口 → 进屋、穿过门厅、上楼梯到二楼 → 进书房（南侧前面那间）。
        Minest 开屏用（?entry=1）：走完给外层发 {clun:'enter'}，外层接着打开房间。随时可跳过。 —— */
-    var DOOR = { x: [800, 940], y: [895, 1040], c: [868, 985] }, lastC = null, walk = null, ENTRY = Q.get('entry') === '1';
+    var DOOR = { x: [PL.door[0] - 68 * HK, PL.door[0] + 72 * HK], y: [PL.door[1] - 127 * HK, PL.door[1] + 18 * HK], c: [PL.door[0], PL.door[1] - 37 * HK] }, lastC = null, walk = null, ENTRY = Q.get('entry') === '1';
     function E(x, y, z) { house.updateMatrixWorld(true); return house.localToWorld(new THREE.Vector3(x, y, z)); }   /* 工程坐标（X 北、Y 进深、Z 上）→ 场景 */
     var F1 = C.P.floor1Z, EYE = 1.55;
     /* 白光一闪进到门厅 → 沿楼梯左侧往里走（不穿扶手）→ 绕到梯脚 → 顺着梯段往前上 → 转角踏步 → 二楼平台；
@@ -811,7 +917,7 @@
       if (walk.explore) { exploreStep(camera, va, now); return true; }
       if (walk.done) { if (t > 50) return true; }
       if (t < WALK.zoom && !walk.done) {                                 /* 1. 推到门口：画框收向房门 */
-        var e = ease(Math.min(1, t / WALK.zoom)), to = { cx: DOOR.c[0], cy: DOOR.c[1], w: 150 * va, h: 150 };
+        var e = ease(Math.min(1, t / WALK.zoom)), to = { cx: DOOR.c[0], cy: DOOR.c[1], w: 150 * HK * va, h: 150 * HK };
         var fr = walk.from || frameFor(kind, va), r = lerpR(fr, to, e), c = clampRect({ cx: r.cx, cy: r.cy, w: r.w, h: r.w / va }), s = sz.x / c.w;
         veil.style.transition = 'none'; veil.style.opacity = Math.max(0, (t - (WALK.zoom - WALK.flash)) / WALK.flash).toFixed(3);
         camera.position.copy(cam.pos); camera.quaternion.copy(cam.quat); camera.fov = vfov; camera.aspect = A;
@@ -871,12 +977,13 @@
       },
       root: root, holder: holder, distance: d, hero: hero,
       kind: function () { return kind; },
-      tick: function (t) { var dt = lastT == null ? 0 : t - lastT; lastT = t; C.Paint.time.value = t; hero.update(t, dt); },
+      tick: function (t) { var dt = lastT == null ? 0 : t - lastT; lastT = t; C.Paint.time.value = t; hero.update(t, dt); FX.tick(t); },
       limits: function (a, zoom) { return { azMax: 0.5 * (1 - (zoom || 1)) + 0.0001 }; },
       place: function (camera, O) {
         var sz = renderer.getSize(new THREE.Vector2()), va = sz.x / Math.max(1, sz.y), now = performance.now() / 1000;
-        if (walkCamera(camera, sz, va, now)) { churchEl.hidden = true; return; }
-        awakeUi(); TH.tick(Math.min(0.05, now - (TH.lastT || now))); TH.lastT = now;
+        if (walkCamera(camera, sz, va, now)) { churchEl.hidden = true; FX.outdoor(!walk.explore && !walk.done && now - walk.t0 < WALK.zoom); return; }   /* 推到门口那一段还算屋外，之后进屋 */
+        FX.outdoor(true);
+        awakeUi(); TH.tick(Math.min(0.05, now - (TH.lastT || now))); TH.lastT = now; TH.idle(now, !!OUT.act);
         if (!walk && !OUT.on && !trans && Math.abs(EX.stick[0]) + Math.abs(EX.stick[1]) + (EX.keys.w || EX.keys.a || EX.keys.s || EX.keys.d ? 1 : 0) > 0.15) startOutdoorHere();   /* 开屏推摇杆：小人直接在屋外走起来 */
         if (OUT.on) outdoorStep(now);
         var k = screenKind(sz.x, sz.y);
@@ -896,10 +1003,11 @@
           var room = clampRect(tgt);
           r = { cx: tgt.cx - O.az * PL.W * (1 - z) * 0.9, cy: tgt.cy + O.el * PL.H * (1 - z) * 0.9, w: room.w * z, h: room.h * z };
           if (z >= 0.999) r = { cx: tgt.cx - O.az * (PL.W - room.w), cy: tgt.cy + O.el * (PL.H - room.h), w: room.w, h: room.h };
+          if (!OUT.on && !FX.still) { var br = 1 - 0.014 * (0.5 - 0.5 * Math.cos(now * 0.17)); r.w *= br; r.h *= br; r.cx += 7 * Math.sin(now * 0.11); }   /* 镜头很慢地一呼一吸 */
         }
         var c = clampRect({ cx: r.cx, cy: r.cy, w: r.w, h: r.w / va }), s = sz.x / c.w;
         camera.position.copy(cam.pos); camera.quaternion.copy(cam.quat);
-        camera.fov = vfov; camera.aspect = A; camera.setViewOffset(PL.W * s, PL.H * s, c.x * s, c.y * s, sz.x, sz.y); camera.updateProjectionMatrix();
+        camera.fov = vfov; camera.aspect = A; camera.setViewOffset(PL.W * s, PL.H * s, c.x * s, c.y * s, sz.x, sz.y); camera.updateProjectionMatrix(); FX.px(s);
         lastC = c; placeDoorHint(c, sz); if (near0 != null) { camera.near = near0; near0 = null; if (far0 != null) { camera.far = far0; far0 = null; } camera.updateProjectionMatrix(); }
       },
       dispose: function () { scene.remove(root); disp.forEach(function (x) { try { x.dispose(); } catch (e) {} }); }
