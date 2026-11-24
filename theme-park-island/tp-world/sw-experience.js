@@ -96,12 +96,13 @@
     else { put('body', 'body', 0.64); put('legC', 'legC', 0.17, 0, 0.26); put('legL', 'legS', 0.42, -0.42); put('legR', 'legS', 0.42, 0.42); put('dome', 'dome', 1.0); g.userData = { parts: parts, head: parts.dome, lamp: parts.dome.userData.lamp, order: ['body', 'legC', 'legL', 'legR', 'dome'] }; }
     return g;
   }
-  root.TPSWParts = { saber: saber, droid: droid, hiltPart: hiltPart, droidPart: droidPart };
+  root.TPSWParts = { saber: saber, droid: droid, hiltPart: hiltPart, droidPart: droidPart, chassis: chassis, THEMES: THEMES, KYBER: KYBER, SLOT_Y: SLOT_Y };
 
   /* ================================================================ sound, tweens, the HUD */
   function tone(f, d, type, vol, f2, delay) { try { var c = W.actx(); if (!c) return; var t = c.currentTime + (delay || 0), o = c.createOscillator(), g = c.createGain(); o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || 0.12, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + d + 0.03); } catch (e) {} }
   function noise(d, f0, f1, vol) { try { var c = W.actx(); if (!c) return; var t = c.currentTime, buf = noise.b; if (!buf) { buf = noise.b = c.createBuffer(1, c.sampleRate, c.sampleRate); var ch = buf.getChannelData(0); for (var i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1; } var s = c.createBufferSource(); s.buffer = buf; var bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.2; bp.frequency.setValueAtTime(f0, t); bp.frequency.exponentialRampToValueAtTime(f1, t + d); var g = c.createGain(); g.gain.setValueAtTime(vol || 0.2, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d); s.connect(bp); bp.connect(g); g.connect(c.destination); s.start(t); s.stop(t + d + 0.02); } catch (e) {} }
   var snd = { latch: function () { noise(0.06, 2600, 700, 0.25); tone(170, 0.08, 'sine', 0.2); }, chime: function () { tone(880, 0.25, 'sine', 0.1); tone(1320, 0.4, 'sine', 0.08, 0, 0.09); }, buzz: function () { tone(110, 0.22, 'square', 0.07); }, tick: function () { noise(0.025, 3200, 1800, 0.12); }, thump: function () { tone(70, 0.5, 'sine', 0.3, 38); noise(0.3, 400, 90, 0.2); }, beeps: function () { for (var i = 0; i < 4; i++) tone(700 + Math.random() * 1300, 0.11, 'square', 0.05, 500 + Math.random() * 1500, i * 0.13); }, fanfare: function () { [392, 523, 659, 784].forEach(function (f, i) { tone(f, 0.9 - i * 0.1, 'triangle', 0.09, 0, i * 0.16); }); } };
+  root.TPSWKit = { tone: tone, noise: noise, snd: snd, label: label };
   var whirr = null;
   function whirrSet(on, k) { try { var c = W.actx(); if (!c) return; if (on && !whirr) { var o = c.createOscillator(), g = c.createGain(), lp = c.createBiquadFilter(); o.type = 'sawtooth'; lp.type = 'lowpass'; lp.frequency.value = 1400; g.gain.value = 0.05; o.connect(lp); lp.connect(g); g.connect(c.destination); o.start(); whirr = { o: o, g: g }; } if (whirr) { if (on) whirr.o.frequency.setTargetAtTime(120 + (k || 0) * 380, c.currentTime, 0.04); else { whirr.g.gain.setTargetAtTime(0, c.currentTime, 0.03); var w = whirr; whirr = null; setTimeout(function () { try { w.o.stop(); } catch (e) {} }, 200); } } } catch (e) {} }
   function say(text) { if (!hud) return; hud.text.textContent = text; try { var ss = root.speechSynthesis; if (ss && root.SpeechSynthesisUtterance) { ss.cancel(); var u = new root.SpeechSynthesisUtterance(text.replace(/（.*?）/g, '')); u.lang = 'zh-CN'; u.rate = 1.0; u.pitch = 0.9; ss.speak(u); } } catch (e) {} }
@@ -154,132 +155,6 @@
   }
   function add(geo, m, x, y, z, parent) { var o = new T.Mesh(geo, m); o.position.set(x, y, z); (parent || X.tmp).add(o); return o; }
   var Lm = function (c, o) { return new T.MeshLambertMaterial(Object.assign({ color: c }, o || {})); }, Bm = function (c, o) { return new T.MeshBasicMaterial(Object.assign({ color: c }, o || {})); };
-
-  /* ================================================================ Savi's Workshop */
-  function startSavi() {
-    var S = B.saviGroup, sp = B.savi, x = begin(S, { p: [sp.x, 0, sp.z + 3.4], t: [sp.x, 41.4, sp.z - 0.6] }), K = 2.2, C = [0, 1.37, 0.92];
-    x.spec = { theme: null, color: null, sleeves: [], emitter: null, pommel: null, sw: null }; x.kind = 'saber';
-    B.trays[0].visible = false; x.undo.push(function () { B.trays[0].visible = true; B.lamp2.intensity = 0.8; B.gath.forEach(function (q) { q.sb.userData.blade.visible = true; q.sb.userData.blade.scale.y = 1; }); W.hum(false); });
-    camTo(0, 2.34, 2.25, 0, 1.25, 0.95);
-    add(new T.BoxGeometry(1.74, 0.02, 0.9), Lm(0x1c2430), 0, 1.215, 0.98); add(new T.BoxGeometry(1.78, 0.012, 0.94), Lm(0x8a6a3c), 0, 1.207, 0.98);
-    /* the activation chamber beside the station */
-    var tube = add(new T.CylinderGeometry(0.1, 0.1, 0.62, 18, 1, true), Lm(0xf1f5f9, { side: T.DoubleSide }), 0.98, 1.53, 0.86); add(new T.CylinderGeometry(0.13, 0.15, 0.06, 18), Lm(0x6b7280), 0.98, 1.24, 0.86); add(new T.TorusGeometry(0.1, 0.012, 6, 20), Lm(0x6b7280), 0.98, 1.84, 0.86).rotation.x = Math.PI / 2;
-    var tubeGlow = add(new T.CylinderGeometry(0.085, 0.085, 0.6, 14, 1, true), Bm(0xffffff, { transparent: true, opacity: 0, side: T.DoubleSide }), 0.98, 1.53, 0.86);
-
-    step('萨维的工坊', '欢迎。我们是采集者——收集被遗忘的废铁，也守护原力的传统。今天，你要亲手造出自己的光剑。先选你的道路：点一枚徽章。');
-    /* 1 — the four themes, each a pin */
-    var pins = THEMES.map(function (t, i) {
-      var g = new T.Group(); g.position.set(-0.6 + i * 0.4, 1.34, 1.02); g.rotation.x = 0.85; x.tmp.add(g);
-      add(new T.CylinderGeometry(0.13, 0.13, 0.02, 28), new T.MeshPhongMaterial({ color: 0xc9a24a, shininess: 70 }), 0, 0, 0, g);
-      var face = add(new T.CircleGeometry(0.115, 28), new T.MeshBasicMaterial({ map: label(t.icon, t.name, t.bg) }), 0, 0.011, 0, g); face.rotation.x = -Math.PI / 2;
-      [hiltPart('emitter', t.id, 0)].forEach(function (p) { p.scale.setScalar(1.6); p.position.set(0, 0.06, -0.2); p.rotation.x = -0.85; g.add(p); });
-      return hot(g, { act: function () { chooseTheme(t, g); } });
-    });
-    mark(pins);
-    function chooseTheme(t, g) {
-      x.spec.theme = t.id; snd.chime(); mark([]); pins.forEach(function (p) { p.userData.swx.on = false; if (p !== g) tween(p, { scale: 0.001 }, 0.4); });
-      tween(g, { pos: [-0.74, 1.27, 0.64], scale: 0.55 }, 0.6); chips([{ label: t.icon + ' ' + t.name, done: true }]);
-      later(0.9, crystalStep);
-    }
-    /* 2 — the kyber crystals */
-    var gem = null;
-    function crystalStep() {
-      step('凯伯水晶', '这是凯伯水晶，光剑的心。蓝、绿、紫、红——不是你选水晶，是水晶选你。哪一颗在呼唤你？');
-      var box = new T.Group(); box.position.set(0, 1.26, 0.98); box.scale.setScalar(0.001); x.tmp.add(box); tween(box, { scale: 1 }, 0.5);
-      add(new T.BoxGeometry(0.86, 0.1, 0.34), Lm(0x3a2616), 0, 0, 0, box); add(new T.BoxGeometry(0.8, 0.02, 0.28), Lm(0x1a1410), 0, 0.05, 0, box);
-      var lid = new T.Group(); lid.position.set(0, 0.06, -0.17); box.add(lid); add(new T.BoxGeometry(0.86, 0.04, 0.34), Lm(0x4a3220), 0, 0, 0.17, lid); tween(lid, { rot: new T.Euler(-1.9, 0, 0) }, 0.9);
-      var gems = KYBER.map(function (k, i) { var m = add(new T.OctahedronGeometry(0.06, 0), Bm(k[0]), -0.3 + i * 0.2, 0.16, 0, box); m.scale.y = 1.5; m.userData.spin = 1; return hot(m, { act: function () { pick(k, m); } }); });
-      later(0.6, function () { mark(gems); });
-      function pick(k, m) {
-        x.spec.color = k[0]; snd.chime(); tone(1760, 1.2, 'sine', 0.05); mark([]); gems.forEach(function (q) { q.userData.swx.on = false; });
-        var wp = m.getWorldPosition(new T.Vector3()).sub(S.position); box.remove(m); x.tmp.add(m); m.position.copy(wp); gem = m;
-        tween(m, { pos: [-0.8, 1.46, 1.04] }, 0.7); tween(lid, { rot: new T.Euler(0, 0, 0) }, 0.5); later(0.6, function () { tween(box, { scale: 0.001 }, 0.4); });
-        later(1.1, buildStep);
-      }
-    }
-    /* 3 — the tray of parts and the chassis */
-    var loose = [], core = null, mounted = { 'switch': null, sleeveA: null, sleeveB: null, emitter: null, pommel: null }, seated = false;
-    function need() { return !seated ? 'crystal' : !mounted['switch'] ? 'switch' : (!mounted.sleeveA || !mounted.sleeveB) ? 'sleeve' : !mounted.emitter ? 'emitter' : !mounted.pommel ? 'pommel' : 'done'; }
-    var ORDER = ['crystal', 'switch', 'sleeve', 'emitter', 'pommel'], NAMES = { crystal: '水晶', 'switch': '激活板与开关', sleeve: '握套 ×2', emitter: '发射口', pommel: '尾盖' };
-    function refresh() {
-      var n = need(); chips(ORDER.map(function (k) { return { label: NAMES[k], done: ORDER.indexOf(k) < (n === 'done' ? 9 : ORDER.indexOf(n)), now: k === n }; }));
-      mark(n === 'crystal' ? [gem] : loose.filter(function (p) { return p.userData.kind === n && !p.userData.slot; }));
-      if (n === 'done') { mark([]); later(0.5, screwStep); }
-      else say({ crystal: '先把水晶放进剑柄中间的水晶舱：点一下水晶。', 'switch': '水晶亮了！现在选一组激活板和开关，扣在水晶舱外面。', sleeve: '再选两段握套——四段里挑两段，套在上下两头。点已装上的可以换下来。', emitter: '选一个发射口，装在剑柄顶端。', pommel: '最后选一个尾盖，装在底部。' }[n]);
-    }
-    function buildStep() {
-      step('组装剑柄', '这一盘零件属于你选的道路。剑柄的骨架在托架上。');
-      core = chassis(null); core.scale.setScalar(K); core.position.set(C[0], C[1], C[2]); core.rotation.z = -Math.PI / 2; x.tmp.add(core);
-      [-0.2, 0.2].forEach(function (dx) { add(new T.BoxGeometry(0.03, 0.14, 0.1), Lm(0x8a6a3c), dx, 1.29, 0.92); });
-      var lay = function (kind, i, hx, hz) { var p = hiltPart(kind, x.spec.theme, i); p.scale.setScalar(0.001); p.position.set(hx, 1.33, hz); p.userData = { kind: kind, i: i, home: [hx, 1.33, hz], slot: null }; x.tmp.add(p); tween(p, { scale: K }, 0.4); loose.push(p); hot(p, { act: function () { clickPart(p); } }); };
-      [0, 1, 2, 3].forEach(function (i) { lay('sleeve', i, -0.62 + i * 0.22, 1.28); }); [0, 1].forEach(function (i) { lay('switch', i, 0.42 + i * 0.22, 1.28); lay('emitter', i, 0.45 + i * 0.21, 0.76); lay('pommel', i, -0.74 + i * 0.2, 0.76); });
-      hot(gem, { act: function () { if (seated) return; seated = true; gem.userData.swx.on = false; snd.chime(); tween(gem, { pos: [C[0] - 0.005 * K, C[1], C[2]], scale: 0.3 }, 0.5, function () { gem.visible = false; core.userData.gem.visible = true; core.userData.gem.material.color.set(x.spec.color); core.userData.glass.material.color.set(x.spec.color); core.userData.glass.material.opacity = 0.6; tone(1320, 0.8, 'sine', 0.08); refresh(); }); } });
-      later(0.5, refresh);
-    }
-    function unmount(p) { mounted[p.userData.slot] = null; p.userData.slot = null; tween(p, { pos: p.userData.home, rot: new T.Euler(0, 0, 0), arc: 0.12 }, 0.4); }
-    function clickPart(p) {
-      var kind = p.userData.kind, n = need(), ki = ORDER.indexOf(kind), ni = n === 'done' ? 9 : ORDER.indexOf(n);
-      if (ki > ni) { snd.buzz(); say('别急——先装「' + NAMES[n] + '」。'); return; }
-      if (p.userData.slot) { unmount(p); snd.tick(); refresh(); return; }
-      var slot = kind;
-      if (kind === 'sleeve') { slot = !mounted.sleeveA ? 'sleeveA' : !mounted.sleeveB ? 'sleeveB' : 'sleeveA'; }
-      if (mounted[slot]) unmount(mounted[slot]);
-      mounted[slot] = p; p.userData.slot = slot;
-      tween(p, { pos: [C[0] + SLOT_Y[slot] * K, C[1], C[2]], rot: new T.Euler(0, 0, -Math.PI / 2), arc: 0.16 }, 0.45, function () { snd.latch(); });
-      refresh();
-    }
-    /* 4 — the emitter and the pommel screw into place */
-    function screwStep() {
-      loose.forEach(function (p) { p.userData.swx.on = false; if (!p.userData.slot) tween(p, { scale: 0.001 }, 0.4); });
-      x.spec.sleeves = [mounted.sleeveA.userData.i, mounted.sleeveB.userData.i]; x.spec.emitter = mounted.emitter.userData.i; x.spec.pommel = mounted.pommel.userData.i; x.spec.sw = mounted['switch'].userData.i;
-      step('拧紧', '发射口和尾盖要拧进去才牢。按住发射口不放，再按住尾盖不放，直到拧紧。'); chips([{ label: '发射口', now: true }, { label: '尾盖' }]);
-      var doneN = 0, mk = function (p, lab) { p.userData.swx = { on: true, hold: { dur: 1.4, k: 0, tick: function (k, dt) { p.rotation.x += dt * 9; if (Math.floor(k * 12) !== Math.floor((k - dt / 1.4) * 12)) snd.tick(); }, done: function () { p.userData.swx.on = false; snd.latch(); tone(520, 0.2, 'triangle', 0.1); doneN++; chips([{ label: '发射口', done: !mounted.emitter.userData.swx.on, now: mounted.emitter.userData.swx.on }, { label: '尾盖', done: !mounted.pommel.userData.swx.on, now: mounted.pommel.userData.swx.on }]); mark([mounted.emitter, mounted.pommel].filter(function (q) { return q.userData.swx.on; })); if (doneN === 2) later(0.4, inspectStep); } } }; };
-      mk(mounted.emitter); mk(mounted.pommel); mark([mounted.emitter, mounted.pommel]);
-    }
-    /* 5 — the Gatherer looks it over; into the activation chamber; the lights go down */
-    var hilt = null;
-    function inspectStep() {
-      loose.forEach(function (p) { x.tmp.remove(p); }); x.tmp.remove(core); x.hot = x.hot.filter(function (o) { return loose.indexOf(o) < 0; });
-      hilt = saber(x.spec); hilt.userData.blade.visible = false; hilt.scale.setScalar(K); hilt.position.set(C[0], C[1], C[2]); hilt.rotation.z = -Math.PI / 2; x.tmp.add(hilt);
-      step('采集者的检查', '让我看看……握套服帖，开关利落，水晶在唱歌。很好。现在是最危险的一步：点一下剑柄，把它放进旁边的激活舱。'); snd.chime(); chips([]);
-      tween(hilt, { pos: [C[0], C[1] + 0.16, C[2]], rot: new T.Euler(0.5, 0, -Math.PI / 2) }, 0.8);
-      hot(hilt, { act: toTube }); later(0.9, function () { mark([hilt]); });
-    }
-    function toTube() {
-      hilt.userData.swx.on = false; mark([]); snd.tick();
-      tween(hilt, { pos: [0.98, 2.3, 0.86], rot: new T.Euler(0, 0, 0), arc: 0.1 }, 0.7, function () { tween(hilt, { pos: [0.98, 1.6, 0.86] }, 0.8, function () { snd.thump(); dimStep(); }); });
-    }
-    function dimStep() {
-      step('激活舱', '灯暗下来了。闭上眼睛，听——水晶和剑柄，正在原力里连成一体。'); hud.dim.style.opacity = 1; x.state = 'dim'; x.t0 = clock;
-      B.gath.forEach(function (q) { q.sb.userData.blade.visible = false; }); tone(55, 5.2, 'sine', 0.16, 110); tone(82.5, 5.2, 'sine', 0.08, 165);
-      later(5.4, function () { x.state = ''; tubeGlow.material.opacity = 0; hud.dim.style.opacity = 0.55; igniteStep(); });
-    }
-    /* 6 — ignite; 7 — raise it */
-    function igniteStep() {
-      camTo(0, 2.34, 2.25, 0, 1.95, -0.6);
-      tween(hilt, { pos: [0.98, 2.4, 0.86] }, 0.6, function () { tween(hilt, { pos: [0.26, 1.84, 1.6], scale: 1.5, rot: new T.Euler(-0.15, 0, 0), arc: 0.1 }, 0.8, function () { x.state = 'ready'; hilt.userData.swx.on = true; hilt.userData.swx.act = ignite; mark([hilt]); }); });
-      step('点亮', '它是你的了。按下开关——点一下光剑，或按空格键。');
-    }
-    function ignite() {
-      if (x.state !== 'ready') return; x.state = 'lit'; x.lit = 0; x.raise = 0; x.hold = 0; mark([]); hilt.userData.swx.on = false; hilt.userData.blade.visible = true; hilt.userData.blade.scale.y = 0.001;
-      W.fx(true); W.hum(true); hud.dim.style.opacity = 0.3;
-      B.gath.forEach(function (q, i) { later(0.5 + i * 0.22, function () { q.sb.userData.blade.visible = true; q.sb.userData.blade.scale.y = 0.001; q.lit = clock; noise(0.3, 300, 3000, 0.1); }); });
-      later(1.6, function () { step('举起光剑', '采集者们都点亮了。现在把光剑高高举起——把鼠标（手指）往上移，或按住 W 键。'); });
-    }
-    x.key = function (code) { if (code === 'Space' || code === 'Enter') ignite(); };
-    x.frame = function (dt) {
-      if (x.state === 'dim') { var k = Math.min(1, (clock - x.t0) / 5); B.lamp2.intensity = 0.8 - k * 0.7; tubeGlow.material.color.set(x.spec.color); tubeGlow.material.opacity = k * (0.5 + 0.3 * Math.sin(clock * 9)); B.great.scale.setScalar(1 + k * 0.5 + Math.sin(clock * 6) * 0.08 * k); }
-      if (gem && gem.visible) { gem.rotation.y += dt * 1.6; }
-      if (x.state === 'lit' || x.state === 'done') {
-        x.lit += dt; hilt.userData.blade.scale.y = Math.max(0.001, Math.min(1, x.lit / 0.45));
-        B.gath.forEach(function (q) { if (q.lit) q.sb.userData.blade.scale.y = Math.max(0.001, Math.min(1, (clock - q.lit) / 0.5)); });
-        var up = keys.KeyW || keys.ArrowUp ? 1 : Math.max(0, Math.min(1, (x.my + 0.1) / 0.6)), px = x.raise; x.raise += (up - x.raise) * Math.min(1, dt * 5);
-        hilt.position.set(0.26 - x.mx * 0.3 - x.raise * 0.2, 1.84 + x.raise * 0.42, 1.6); hilt.rotation.set(-0.15 - x.raise * 0.25, 0, x.mx * 0.55);
-        W.swing(Math.min(6, (Math.abs(x.raise - px) / Math.max(dt, 0.001)) * 2.5 + Math.abs(x.mx - (x.pmx || 0)) / Math.max(dt, 0.001) * 1.5)); x.pmx = x.mx;
-        if (x.state === 'lit' && x.lit > 1.6) { if (x.raise > 0.8) x.hold += dt; else x.hold = Math.max(0, x.hold - dt); if (x.hold > 1.0) { x.state = 'done'; snd.fanfare(); B.gath.forEach(function (q) { q.up = clock; }); B.lamp2.intensity = 1.2; hud.dim.style.opacity = 0; step('光剑铸成', '愿原力与你同在。带上你的光剑，回到黑尖塔前哨站去吧。（按 L 或右下角 ⚔️ 可以收起、点亮）'); later(4.2, function () { var spec = x.spec; stop(); W.set('saber', { theme: spec.theme, color: spec.color, sleeves: spec.sleeves, emitter: spec.emitter, pommel: spec.pommel, sw: spec.sw }); API.toast('⚔️ 你亲手造的光剑在手里了！'); }); } }
-      }
-    };
-  }
 
   /* ================================================================ Droid Depot */
   function startDepot() {
@@ -407,7 +282,7 @@
   }
   function attach(api) {
     if (API || !api) return; API = api; T = api.THREE; ray = new T.Raycaster(); ndc = new T.Vector2();
-    var go = function () { W = root.TPStarWarsWorkshops; B = root.TPStarWarsBuildings; if (!W || !B || !B.saviGroup) return setTimeout(go, 200); W.reapply(); };
+    var go = function () { W = root.TPStarWarsWorkshops; B = root.TPStarWarsBuildings; if (!W || !B || !B.depotGroup) return setTimeout(go, 200); W.reapply(); };
     go();
     var cv = API.canvas;
     cv.addEventListener('pointerdown', function (e) { if (!X) return; e.stopPropagation(); var o = pick(e); if (!o) return; var s = o.userData.swx; if (s.hold) { X.held = o; } else if (s.act) { try { s.act(); } catch (er) { if (root.console) console.warn('[sw experience]', er); } } }, true);
@@ -418,7 +293,7 @@
     root.addEventListener('keyup', function (e) { if (!X) return; e.stopImmediatePropagation(); keys[e.code] = false; }, true);
     requestAnimationFrame(tick);
   }
-  function start(kind) { if (!API || !W || !B || !B.saviGroup) return; try { if (kind === 'saber') startSavi(); else startDepot(); } catch (e) { if (root.console) console.warn('[sw experience]', e); stop(); } }
+  function start(kind) { if (kind === 'saber') { if (root.TPSWSavi) root.TPSWSavi.start(); return; } if (!API || !W || !B || !B.depotGroup) return; try { startDepot(); } catch (e) { if (root.console) console.warn('[sw experience]', e); stop(); } }
   if (root.TPParkAPI) attach(root.TPParkAPI); else root.addEventListener('tp:park-ready', function (e) { attach(e.detail || root.TPParkAPI); });
   root.TPSWExperience = { start: start, stop: stop, active: function () { return X ? X.kind : null; }, _x: function () { return X; } };
 })(window);
