@@ -1,0 +1,92 @@
+/* Minest · FX 71 (tools/fx-71): Light FX aurora / meteor / disco, Card FX holo / float / wave, and the buttons' looks */
+
+/* ---- the switches name every mode in its own colour (ripple and List Wallet had none) */
+.ios-tab-item.dock-fx-tab.active.aurora { color: #34e3a4; }
+.ios-tab-item.dock-fx-tab.active.meteor { color: #7db8ff; }
+.ios-tab-item.dock-fx-tab.active.disco { color: #ff5fc4; }
+.theme-white .ios-tab-item.dock-fx-tab.active.aurora { color: #0b8f63; }
+.theme-white .ios-tab-item.dock-fx-tab.active.meteor { color: #2563eb; }
+.theme-white .ios-tab-item.dock-fx-tab.active.disco { color: #c026a3; }
+.bar-fx-btn.on.aurora { background: rgba(52,227,164,.26) !important; border-color: rgba(52,227,164,.58) !important; }
+.bar-fx-btn.on.meteor { background: rgba(125,184,255,.28) !important; border-color: rgba(125,184,255,.6) !important; }
+.bar-fx-btn.on.disco { background: rgba(255,95,196,.28) !important; border-color: rgba(255,95,196,.6) !important; }
+.fbfx-btn.on.neon { background: rgba(255,58,26,.2); border-color: rgba(255,154,107,.5); box-shadow: 0 0 18px rgba(255,58,26,.34), inset 0 1px 0 rgba(255,255,255,.35); }
+.fbfx-btn.on.aurora { background: rgba(52,227,164,.2); border-color: rgba(134,239,200,.5); box-shadow: 0 0 18px rgba(52,227,164,.34), inset 0 1px 0 rgba(255,255,255,.35); }
+.fbfx-btn.on.meteor { background: rgba(96,165,250,.22); border-color: rgba(165,205,255,.5); box-shadow: 0 0 18px rgba(96,165,250,.36), inset 0 1px 0 rgba(255,255,255,.35); }
+.fbfx-btn.on.disco { background: rgba(236,72,153,.22); border-color: rgba(249,168,212,.5); box-shadow: 0 0 18px rgba(236,72,153,.36), inset 0 1px 0 rgba(255,255,255,.35); }
+
+.card-mode-btn.on.ripple { color: #fff; background: rgba(14,165,233,.24); border-color: rgba(125,211,252,.5); box-shadow: 0 0 18px rgba(14,165,233,.32), inset 0 1px 0 rgba(255,255,255,.35); }
+.card-mode-btn.on.holo { color: #fff; background: linear-gradient(110deg, rgba(34,211,238,.3), rgba(232,121,249,.3) 55%, rgba(250,204,21,.3)); border-color: rgba(255,255,255,.5); box-shadow: 0 0 18px rgba(192,132,252,.34), inset 0 1px 0 rgba(255,255,255,.4); }
+.card-mode-btn.on.float { color: #fff; background: rgba(129,140,248,.26); border-color: rgba(199,210,254,.5); box-shadow: 0 0 18px rgba(129,140,248,.34), inset 0 1px 0 rgba(255,255,255,.35); }
+.card-mode-btn.on.wave { color: #fff; background: rgba(45,212,191,.24); border-color: rgba(153,246,228,.5); box-shadow: 0 0 18px rgba(45,212,191,.32), inset 0 1px 0 rgba(255,255,255,.35); }
+.theme-white .card-mode-btn.on.ripple, .theme-white .card-mode-btn.on.holo, .theme-white .card-mode-btn.on.float, .theme-white .card-mode-btn.on.wave { color: #0f172a; }
+.ios-tab-item.dock-fx-tab.active.holo { color: #c084fc; }
+.ios-tab-item.dock-fx-tab.active.float { color: #818cf8; }
+.ios-tab-item.dock-fx-tab.active.wave { color: #2dd4bf; }
+.bar-fx-btn.on.holo { background: rgba(192,132,252,.3) !important; border-color: rgba(192,132,252,.6) !important; }
+.bar-fx-btn.on.float { background: rgba(129,140,248,.3) !important; border-color: rgba(129,140,248,.6) !important; }
+.bar-fx-btn.on.wave { background: rgba(45,212,191,.28) !important; border-color: rgba(45,212,191,.6) !important; }
+
+/* ---- the foil layer every board card gets while a 71 card mode is on */
+.cfx-foil { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 5; opacity: 0; transition: opacity .35s ease; }
+
+/* holo */
+@keyframes cfxFoilDrift { from { background-position: 0% 30%; } to { background-position: 100% 70%; } }
+html[data-cfx="holo"] .cfx-foil {
+  opacity: .5;
+  background-image: linear-gradient(115deg, transparent 18%, hsla(188,100%,68%,.6) 34%, hsla(292,100%,72%,.6) 47%, hsla(48,100%,68%,.6) 60%, transparent 78%);
+  background-size: 300% 300%;
+  mix-blend-mode: color-dodge;
+  animation: cfxFoilDrift 7s ease-in-out var(--cfx-dl, 0s) infinite alternate;
+}
+html[data-cfx="holo"] .cfx-hot > .cfx-foil {
+  opacity: .78;
+  animation: none;
+  background-image: radial-gradient(circle at var(--cfx-mx, 50%) var(--cfx-my, 50%), rgba(255,255,255,.7), rgba(255,255,255,0) 46%),
+    linear-gradient(115deg, transparent 18%, hsla(188,100%,68%,.6) 34%, hsla(292,100%,72%,.6) 47%, hsla(48,100%,68%,.6) 60%, transparent 78%);
+  background-size: 100% 100%, 300% 300%;
+  background-position: 0 0, var(--cfx-mx, 50%) var(--cfx-my, 50%);
+}
+.theme-white[data-cfx="holo"] .cfx-foil, html[data-cfx="holo"] .theme-white .cfx-foil { mix-blend-mode: hard-light; opacity: .34; }
+.theme-white[data-cfx="holo"] .cfx-hot > .cfx-foil, html[data-cfx="holo"] .theme-white .cfx-hot > .cfx-foil { opacity: .5; }
+html[data-cfx="holo"] .fb-board-stage article.kanban-card[data-card-id],
+html[data-cfx="holo"] .board-swimlane-scroll article.kanban-card[data-card-id] { transition: transform .5s cubic-bezier(.2,.8,.2,1); }
+html[data-cfx="holo"] .fb-board-stage article.kanban-card[data-card-id].cfx-hot,
+html[data-cfx="holo"] .board-swimlane-scroll article.kanban-card[data-card-id].cfx-hot {
+  transform: perspective(720px) rotateX(var(--cfx-rx, 0deg)) rotateY(var(--cfx-ry, 0deg)) scale(1.02) !important;
+  transition: transform .09s linear;
+  z-index: 3;
+}
+
+/* float */
+@keyframes cfxFloat { 0%, 100% { translate: 0 0; rotate: 0deg; } 50% { translate: 0 -5px; rotate: var(--cfx-r, .3deg); } }
+html[data-cfx="float"] .fb-board-stage article.kanban-card[data-card-id],
+html[data-cfx="float"] .board-swimlane-scroll article.kanban-card[data-card-id] {
+  animation: cfxFloat var(--cfx-dur, 4s) ease-in-out var(--cfx-dl, 0s) infinite;
+  transition: scale .18s ease;
+}
+html[data-cfx="float"] .fb-board-stage article.kanban-card[data-card-id]:active,
+html[data-cfx="float"] .board-swimlane-scroll article.kanban-card[data-card-id]:active { scale: .97; }
+html[data-cfx="float"] .cfx-foil { opacity: 1; z-index: 0; box-shadow: 0 16px 20px -14px rgba(0,0,0,.6); }
+html[data-cfx="float"] .theme-white .cfx-foil { box-shadow: 0 16px 20px -14px rgba(15,23,42,.3); }
+
+/* wave */
+@keyframes cfxWave { 0%, 22%, 100% { translate: 0 0; scale: 1; } 9% { translate: 0 -4px; scale: 1.03; } }
+@keyframes cfxWaveSheen { 0% { background-position: 140% 0; opacity: 0; } 3% { opacity: 1; } 19% { background-position: -70% 0; opacity: 1; } 23%, 100% { background-position: -70% 0; opacity: 0; } }
+html[data-cfx="wave"] .fb-board-stage article.kanban-card[data-card-id],
+html[data-cfx="wave"] .board-swimlane-scroll article.kanban-card[data-card-id] { animation: cfxWave 4.4s cubic-bezier(.3,.7,.3,1) var(--cfx-wd, 0s) infinite; }
+html[data-cfx="wave"] .cfx-foil {
+  background-image: linear-gradient(105deg, transparent 34%, rgba(255,255,255,.5) 50%, transparent 66%);
+  background-size: 220% 100%;
+  background-repeat: no-repeat;
+  mix-blend-mode: screen;
+  animation: cfxWaveSheen 4.4s linear var(--cfx-wd, 0s) infinite;
+}
+html[data-cfx="wave"] .theme-white .cfx-foil { mix-blend-mode: normal; background-image: linear-gradient(105deg, transparent 34%, rgba(56,132,255,.2) 50%, transparent 66%); }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-cfx] .cfx-foil,
+  html[data-cfx] .fb-board-stage article.kanban-card[data-card-id],
+  html[data-cfx] .board-swimlane-scroll article.kanban-card[data-card-id] { animation: none !important; }
+  html[data-cfx="wave"] .cfx-foil { opacity: 0; }
+}
