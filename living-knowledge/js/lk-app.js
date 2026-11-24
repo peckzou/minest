@@ -17,8 +17,8 @@
   var $ = function (id) { return document.getElementById(id); };
   var main = $('lk-main');
   var store = null, ns = null, cloudOn = false, user = null, fb = null, unsubStore = null;
-  var ui = { tab: 'pages', sel: { pages: null, decisions: null, sources: null }, edit: false, draft: null, dirty: false, q: '', hist: null, showRev: null, imp: null, ingest: null, run: null, choice: {} };
-  try { var t0 = localStorage.getItem(TAB_KEY); if (t0) ui.tab = t0; } catch (e) {}
+  var ui = { tab: 'home', sel: { pages: null, decisions: null, sources: null }, edit: false, draft: null, dirty: false, q: '', hist: null, showRev: null, imp: null, ingest: null, run: null, choice: {} };
+  // always opens on 总览 (the five cards); TAB_KEY only remembers the last tab for later use
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function when(t) { if (!t) return ''; var d = new Date(t); return d.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' }) + ' ' + d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }); }
@@ -161,8 +161,8 @@
   function render() {
     if (!store) return;
     document.querySelectorAll('.lk-tabs [data-tab]').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === ui.tab)); });
-    paintReviewCount();
-    var f = { pages: renderPages, decisions: renderDecisions, sources: renderSources, review: renderReview, conflicts: renderConflicts, perms: renderPerms }[ui.tab] || renderPages;
+    paintReviewCount(); paintChips();
+    var f = { home: renderHome, pages: renderPages, decisions: renderDecisions, sources: renderSources, review: renderReview, conflicts: renderConflicts, perms: renderPerms }[ui.tab] || renderPages;
     return Promise.resolve(f()).then(function () {
       var t = main.querySelector('input.title[autofocus]');   // autofocus does not fire for HTML put in later
       if (t && document.activeElement !== t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); }
@@ -187,6 +187,74 @@
           (cur && v.rev !== cur.rev ? '<button type="button" class="lk-btn ghost" data-act="restore" data-rev="' + v.rev + '">恢复</button>' : '<span class="lk-badge">当前</span>') +
           (open ? '<pre>' + esc(body || '') + '</pre>' : '') + '</li>';
       }).join('') + '</ol></div>';
+  }
+
+  // ---------------------------------------------------------------- 总览: five cards, in the look of the Toolkit's "Five cards"
+  var IC = {
+    pages: '<path d="M4 19.5V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-1.5z"/><path d="M8 7h6M8 11h4"/>',
+    sources: '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',
+    decisions: '<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/>',
+    review: '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/>',
+    graph: '<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="10" cy="18" r="2.5"/><path d="M8.2 7.1l7.4.6M7 8.3l2.2 7.4M16.6 10l-5 6.3"/>'
+  };
+  function svg(d) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>'; }
+  function five(i, o) {
+    return '<button type="button" class="lk-five" style="--cc:' + o.cc + ';--i:' + i + '" data-act="go" data-to="' + o.to + '"><span class="lk-num">0' + (i + 1) + '</span>' +
+      '<span class="lk-ic">' + svg(o.ic) + '</span><span class="lk-names"><b>' + o.name + '</b><em>' + o.en + '</em></span><span class="lk-line">' + o.line + '</span>' +
+      '<span class="lk-pv">' + o.pv + '</span><span class="lk-open">' + (o.open || '打开') + ' →</span></button>';
+  }
+  function tags(list) { return list.length ? '<span class="lk-tags">' + list.slice(0, 4).map(function (t) { return '<i>' + esc(t) + '</i>'; }).join('') + '</span>' : ''; }
+  function renderHome() {
+    return Promise.all([store.list('page'), store.list('source'), store.list('decision'), store.list('run'), store.list('relation')]).then(function (r) {
+      var pages = r[0].sort(by('updatedAt')), srcs = r[1].sort(by('createdAt')), decs = r[2].sort(by('updatedAt')), runs = r[3], rels = r[4];
+      cache.pages = {}; pages.forEach(function (p) { cache.pages[p.id] = p; });
+      var claims = pages.reduce(function (n, p) { return n + (p.claims || []).length; }, 0);
+      var conflicts = pages.reduce(function (n, p) { return n + (p.claims || []).filter(function (c) { return (c.conflictsWith || []).length; }).length; }, 0);
+      var links = pages.reduce(function (n, p) { return n + (p.links || []).filter(function (id) { return cache.pages[id]; }).length; }, 0) + rels.length;
+      var pend = AG ? AG.pendingCount(runs) : 0, last = runs.sort(by('startedAt'))[0];
+      var conf = decs.filter(function (d) { return d.state === 'Confirmed'; }).length, prop = decs.filter(function (d) { return d.state === 'Proposed'; }).length;
+      var cards = [
+        { to: 'pages', cc: 'var(--c1)', ic: IC.pages, name: '知识页', en: 'Knowledge Pages', line: '用 [[双链]] 把概念连起来，每次修改都留一版。',
+          pv: '<span class="big">' + pages.length + '<small>页</small> ' + claims + '<small>条说法</small></span>' + tags(pages.map(function (p) { return p.title; })) },
+        { to: 'sources', cc: 'var(--c2)', ic: IC.sources, name: '来源', en: 'Raw Sources', line: '网页、笔记、Markdown、Minest 卡片。原文永不修改。',
+          pv: '<span class="big">' + srcs.length + '<small>份</small></span>' + tags(srcs.map(function (s) { return s.title; })), open: srcs.length ? '打开' : '导入' },
+        { to: 'decisions', cc: 'var(--c3)', ic: IC.decisions, name: '决策', en: 'Decision Memory', line: '需求、选项、决定、理由。已确认的只有你能改。',
+          pv: '<span class="big">' + decs.length + '<small>个</small></span><span>' + conf + ' 已确认 · ' + prop + ' 提议中</span>' + tags(decs.map(function (d) { return d.title; })) },
+        { to: 'review', cc: 'var(--c4)', ic: IC.review, name: 'AI 审核', en: 'Knowledge Agent', line: '让 AI 整理来源；它只提建议，你决定留下什么。',
+          pv: '<span class="big">' + pend + '<small>条待审核</small></span><span>' + (last ? '上次整理 ' + esc(when(last.startedAt)) : '还没有整理过') + '</span>' },
+        { to: 'pages', cc: 'var(--c5)', ic: IC.graph, name: '知识关系', en: 'Knowledge Graph', line: '页面之间的链接与关系，矛盾会被标出来。',
+          pv: '<span class="big">' + pages.length + '<small>节点</small> ' + links + '<small>连接</small></span>' + (conflicts ? '<span style="color:var(--bad)">⚠️ ' + conflicts + ' 条说法有矛盾</span>' : '<span>没有矛盾</span>') }
+      ];
+      var recent = [].concat(
+        pages.map(function (p) { return { t: p.updatedAt, kind: '知识页', title: p.title, to: 'pages', id: p.id }; }),
+        decs.map(function (d) { return { t: d.updatedAt, kind: '决策 · ' + (STATE_NAMES[d.state] || d.state), title: d.title, to: 'decisions', id: d.id }; }),
+        srcs.map(function (s) { return { t: s.createdAt, kind: '来源', title: s.title, to: 'sources', id: s.id }; })
+      ).sort(function (a, b) { return b.t - a.t; }).slice(0, 8);
+      main.innerHTML = '<div class="lk-home-h"><h2><small>Living Knowledge</small>我的知识库</h2><span class="lk-note">在一张卡里做的，其他卡里都看得到。</span></div>' +
+        '<div class="lk-grid">' + cards.map(function (c, i) { return five(i, c); }).join('') + '</div>' +
+        '<section class="lk-card lk-block lk-recent"><h3>最近</h3>' + (recent.length ? '<ol>' + recent.map(function (x) {
+          return '<li><button type="button" data-act="go" data-to="' + x.to + '" data-id="' + esc(x.id) + '"><span class="lk-badge">' + esc(x.kind) + '</span><span>' + esc(x.title) + '</span><small>' + esc(when(x.t)) + '</small></button></li>';
+        }).join('') + '</ol>' : '<p class="lk-note">还没有内容。在上面输入一个词新建知识页，或者去“来源”导入一份资料。</p>') + '</section>';
+    });
+  }
+  function paintChips() {
+    if (!store) return;
+    store.list('page').then(function (ps) {
+      var el = $('lk-ask-chips');
+      el.innerHTML = ps.sort(by('updatedAt')).slice(0, 6).map(function (p) { return '<button type="button" class="lk-chip" data-chip="' + esc(p.id) + '">' + esc(p.title) + '</button>'; }).join('');
+    });
+  }
+  function ask(q) {
+    q = String(q || '').trim(); if (!q || !guard()) return;
+    store.list('page').then(function (ps) {
+      var id = M.pageId(q), hit = ps.filter(function (p) { return p.id === id || (p.aliases || []).some(function (a) { return M.slug(a) === M.slug(q); }); })[0];
+      ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null; ui.imp = null;
+      ui.tab = 'pages'; lsSet(TAB_KEY, 'pages');
+      if (hit) { ui.q = ''; ui.sel.pages = hit.id; return render(); }
+      var some = ps.filter(function (p) { return matches(q, [p.title, (p.aliases || []).join(' '), p.markdown]); });
+      if (some.length) { ui.q = q; ui.sel.pages = some.length === 1 ? some[0].id : null; render(); return toast('找到 ' + some.length + ' 页相关的'); }
+      ui.q = ''; ui.sel.pages = null; startPage(null, q);
+    });
   }
 
   // ---------------------------------------------------------------- pages
@@ -614,6 +682,13 @@
       if (cache.pages[id]) { ui.sel.pages = id; render(); } else { ui.sel.pages = null; startPage(null, a.dataset.title); }
       return;
     }
+    if (act === 'go') {
+      if (!guard()) return;
+      var dest = a.dataset.to; ui.tab = dest; lsSet(TAB_KEY, dest); ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null; ui.imp = null; ui.q = '';
+      if (a.dataset.id) ui.sel[dest] = a.dataset.id;
+      if (dest === 'review') ui.run = null;
+      render(); window.scrollTo({ top: 0, behavior: 'smooth' }); return;
+    }
     if (act === 'open' && tab === 'review') { ui.run = a.dataset.id; ui.choice = {}; render(); return; }
     if (act === 'back' && tab === 'review') { ui.run = ''; render(); return; }
     if (act === 'ingest-plan') {
@@ -702,6 +777,12 @@
         return store.savePermissions(p);
       }).then(function (res) { toast(res.ok ? (res.noop ? '没有变化' : '权限已保存') : '保存失败：' + res.error); render(); });
     }
+  });
+  $('lk-ask').addEventListener('submit', function (e) { e.preventDefault(); var i = $('lk-ask-q'); ask(i.value); i.value = ''; i.blur(); });
+  $('lk-ask-chips').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-chip]'); if (!b || !guard()) return;
+    ui.tab = 'pages'; lsSet(TAB_KEY, 'pages'); ui.sel.pages = b.dataset.chip; ui.edit = false; ui.draft = null; ui.dirty = false; ui.hist = null; ui.imp = null; ui.q = '';
+    render();
   });
   $('lk-sync').addEventListener('click', function () { if (!store) return; store.pull().then(function (n) { render(); toast(n ? '从云端取回 ' + n + ' 处更新' : '已和云端核对'); }); });
   $('lk-login').addEventListener('click', signIn);
