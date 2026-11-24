@@ -15,7 +15,19 @@
 (function (root) {
   'use strict';
 
-  const W = 768, D = 768, H = 88, WATER_Y = 36.4, PARK_Y = 40;
+  // The grid extends south (z 736..1152) for the Disneyland Park Paris expansion lobe.
+  const W = 768, D = 1152, H = 64, WATER_Y = 36.4, PARK_Y = 40;
+  // Disneyland Park Paris anchor points. The park is rotated 180° from its real orientation so its gates face
+  // the existing island: entrance north, castle south, Frontierland east (guest's left), Discoveryland west.
+  const PARIS = {
+    x: 384, zGate: 790, zStation: 808, zSquare: 830, zHub: 946, zCastle: 1002,
+    rail: { x: 384, z: 958, rx: 225, rz: 150 },
+    lake: { x: 512, z: 928, rx: 60, rz: 48, ix: 34, iz: 26 },
+    manor: { x: 545, z: 868 },
+    isle: { x: 500, z: 1042 },
+    space: { x: 286, z: 944 },
+    lagoon: { x: 318, z: 1004 }
+  };
   const CX = 272.5; // 1:1 Disneyland Axial Centerline (Main Gate -> Town Square -> Main Street -> Hub -> Castle -> Carrousel)
 
   const T = {
@@ -235,6 +247,51 @@
       quote: '南区度假园是壮丽的自然奇境！正中是 46 米生命之树与草原长颈鹿，西侧是高空悬浮的阿凡达哈利路亚山飞瀑，东侧即可登上珠穆朗玛雪山过山车！',
       highlights: ['【可乘坐设施 #12】珠峰探险过山车（Expedition Everest）盘旋 48 米喜马拉雅雪峰', '阿凡达·潘多拉世界：悬浮哈利路亚群峰、荧光莲花树与盘旋斑溪兽', '46 米有机树冠「生命之树（Tree of Life）」与乞力马扎罗长颈鹿草原'],
       tp: { mode: 'walk', p: [262, PARK_Y, 680], t: [230, PARK_Y + 18, 628] }
+    },
+    {
+      id: 'paris_main', num: 17, park: 'paris', zone: 'paris', badge: '巴黎 · 美国小镇大街', color: '#f9a8d4',
+      name: '巴黎迪士尼乐园酒店 & 美国小镇大街', en: 'Disneyland Hotel, Main Street Station, Liberty & Discovery Arcades',
+      x: 384, z: 838, rideId: 'paris_railroad',
+      host: '巴黎站长皮埃尔 · Chef de Gare', robe: 0x7c2d12, hair: 0x3f2a1a,
+      quote: '欢迎来到巴黎迪士尼乐园！您刚刚穿过粉红色维多利亚式「迪士尼乐园酒店」的拱门——全球唯一横跨在乐园大门之上的酒店。前方小镇广场的音乐凉亭后面，就是 1900 年代的美国小镇大街，两侧还藏着煤气灯长廊「自由拱廊」与「发现拱廊」。',
+      highlights: ['【可乘坐设施 #13】巴黎迪士尼铁路（Disneyland Railroad）蒸汽火车环园四站', '粉墙红瓦的迪士尼乐园酒店、梦幻花园与米奇花坛大钟', '小镇广场音乐凉亭、Main Street 维多利亚商铺与两条煤气灯拱廊'],
+      tp: { mode: 'walk', p: [384, PARK_Y, 762], t: [384, PARK_Y + 14, 792] }
+    },
+    {
+      id: 'paris_castle', num: 18, park: 'paris', zone: 'paris', badge: '巴黎 · 幻想世界', color: '#f472b6',
+      name: '睡美人城堡 & 幻想世界 · Fantasyland', en: 'Le Château de la Belle au Bois Dormant, Carrousel de Lancelot, Alice’s Curious Labyrinth',
+      x: 384, z: 968,
+      host: '奥罗拉公主的侍女 · Dame de Compagnie', robe: 0xdb2777, hair: 0xfbbf24,
+      quote: '这是全世界最梦幻的迪士尼城堡——「睡美人城堡」。它建在岩石山丘之上，粉色高塔配蓝色石板尖顶，山坡上是动画里方方正正的修剪树，右侧有瀑布，地下还沉睡着一条巨龙。穿过城堡就是幻想世界：兰斯洛特旋转木马、小飞象、疯帽子茶杯、爱丽丝迷宫与小小世界。',
+      highlights: ['43 米粉色睡美人城堡：16 座蓝顶塔楼、金色尖顶、螺旋楼梯塔与彩绘玻璃长廊', '城堡山丘的方形修剪树、瀑布与地下巨龙洞穴（La Tanière du Dragon）', '兰斯洛特旋转木马、小飞象、疯帽子茶杯、爱丽丝奇幻迷宫与小小世界钟楼立面'],
+      tp: { mode: 'walk', p: [384, PARK_Y, 950], t: [384, PARK_Y + 24, 1002] }
+    },
+    {
+      id: 'paris_frontier', num: 19, park: 'paris', zone: 'paris', badge: '巴黎 · 边域世界', color: '#ea580c',
+      name: '边域世界 · 巨雷山 & 幽灵庄园', en: 'Frontierland — Big Thunder Mountain island, Phantom Manor, Molly Brown Riverboat',
+      x: 446, z: 938, rideId: 'paris_big_thunder',
+      host: '雷霆台地警长 · Thunder Mesa Sheriff', robe: 0x92400e, hair: 0x44403c,
+      quote: '穿过科姆斯托克木堡就到了淘金小镇「雷霆台地」。巴黎的巨雷山与众不同——整座红岩山矗立在远西河中央的小岛上，矿车要先钻进河底隧道才能上岛！山丘上那栋阴森的维多利亚大宅是幽灵庄园，河面上航行的是莫莉·布朗号明轮船。',
+      highlights: ['【可乘坐设施 #14】巨雷山（Big Thunder Mountain）：河心岛红岩矿山失控矿车', '山丘上的幽灵庄园（Phantom Manor）与靴山墓园', '科姆斯托克堡、幸运金块沙龙与莫莉·布朗号明轮船'],
+      tp: { mode: 'walk', p: [440, PARK_Y, 944], t: [512, PARK_Y + 16, 928] }
+    },
+    {
+      id: 'paris_adventure', num: 20, park: 'paris', zone: 'paris', badge: '巴黎 · 探险世界', color: '#16a34a',
+      name: '探险世界 · 骷髅岩 & 印第安纳琼斯', en: 'Adventureland — Agrabah Bazaar, Skull Rock, Pirate Galleon, Temple du Péril',
+      x: 452, z: 1012, rideId: 'paris_indiana',
+      host: '探险岛向导萨米拉 · Guide de l’Île', robe: 0x166534, hair: 0x1c1917,
+      quote: '探险世界的大门是一座一千零一夜风格的阿格拉巴集市。往里走是探险岛：骷髅岩、虎克船长的海盗船和鲁滨逊树屋；最深处的丛林里藏着「危险神殿」——迪士尼第一座带 360° 回环的过山车！',
+      highlights: ['【可乘坐设施 #15】印第安纳琼斯与危险神殿：带 360° 垂直回环的矿车过山车', '探险岛骷髅岩、虎克船长海盗船与鲁滨逊树屋', '阿格拉巴集市洋葱圆顶与加勒比海盗西班牙要塞'],
+      tp: { mode: 'walk', p: [456, PARK_Y, 1004], t: [508, PARK_Y + 10, 1042] }
+    },
+    {
+      id: 'paris_discovery', num: 21, park: 'paris', zone: 'paris', badge: '巴黎 · 发现世界', color: '#b45309',
+      name: '发现世界 · 太空山 & 鹦鹉螺号', en: 'Discoveryland — Space Mountain, Orbitron, Nautilus, Hyperion Airship',
+      x: 340, z: 938, rideId: 'paris_space_mountain',
+      host: '凡尔纳学会教授 · Professeur Verne', robe: 0x78350f, hair: 0xd6d3d1,
+      quote: '发现世界不是科幻未来，而是儒勒·凡尔纳笔下的黄铜与铆钉之梦。那座青铜色的巨山就是太空山，侧面斜架着「哥伦比亚德」巨炮，会把列车直接射向月球！旁边的泻湖里停泊着尼摩船长的鹦鹉螺号，远处剧院上方悬着亥伯龙号飞艇。',
+      highlights: ['【可乘坐设施 #16】太空山：从哥伦比亚德巨炮弹射升空的室内过山车', '达芬奇风格行星仪「轨道飞行器 Orbitron」与鹦鹉螺号潜艇泻湖', 'Videopolis 剧院亥伯龙号飞艇与星际旅行 X 翼战机'],
+      tp: { mode: 'walk', p: [346, PARK_Y, 944], t: [286, PARK_Y + 18, 944] }
     }
   ];
 
@@ -261,6 +318,9 @@
     addCol('woodWalk', 0x8b5e38); addCol('nolaStone', 0xc6baa6); addCol('toonRoad', 0xf3d4dc);
     addCol('tomSilver', 0xbccad8); addCol('tomCyan', 0x38bdf8); addCol('railGravel', 0x847f74);
     addCol('asphalt', 0x4b5563); addCol('waterDeep', 0x1a6a8a); addCol('stoneL', 0xe4dccb);
+    addCol('redRock', 0xb9583a); addCol('prairie', 0x8fa24e); addCol('pRose', 0xe7b4bd); addCol('pCream', 0xf0e4cf);
+    addCol('pBrick', 0xa5503f); addCol('pOchre', 0xc9935f); addCol('pSand', 0xdcbb82); addCol('pBronze', 0xb39160);
+    addCol('pTeal', 0x4d9a94); addCol('pSlate', 0x8d97a6); addCol('pLilac', 0xd4c4e2);
 
     const inb = (x, y, z) => x >= 0 && x < W && z >= 0 && z < D && y >= 0 && y < H;
     const zi = (x, z) => x + z * W;
@@ -273,7 +333,10 @@
       for (let x = 0; x < W; x++) {
         const dx = Math.max(0, Math.abs(x - 384) - 292) / 68;
         const dz = Math.max(0, Math.abs(z - 380) - 294) / 68;
-        const r = Math.hypot(dx, dz);
+        const pdx = Math.max(0, Math.abs(x - PARIS.x) - 200) / 68;
+        const pdz = Math.max(0, Math.abs(z - 925) - 150) / 68;
+        const r = Math.min(Math.hypot(dx, dz), Math.hypot(pdx, pdz));
+        const inParis = z >= 738;
         const edge = 0.96 + (vnoise(x * 0.022, z * 0.022, 7) - 0.5) * 0.08;
         if (r > edge) {
           const sy = Math.max(32, Math.floor(35 - (r - edge) * 18));
@@ -294,18 +357,31 @@
           gy = Math.max(gy, Math.floor(PARK_Y + (1 - wfDist) * 11));
         }
 
+        // Paris: castle rock hill, Phantom Manor hill and the Big Thunder Mountain island mound.
+        let parisRock = false;
+        if (inParis && gy >= PARK_Y) {
+          const ch = Math.hypot((x - PARIS.x) / 27, (z - PARIS.zCastle) / 23);
+          if (ch < 1) gy = PARK_Y + Math.min(4, Math.round((1 - ch) * 9));
+          const mh = Math.hypot((x - PARIS.manor.x) / 22, (z - PARIS.manor.z) / 19);
+          if (mh < 1) gy = PARK_Y + Math.min(5, Math.round((1 - mh) * 10));
+          const bt = Math.hypot((x - PARIS.lake.x) / PARIS.lake.ix, (z - PARIS.lake.z) / PARIS.lake.iz);
+          if (bt < 1) { gy = PARK_Y + Math.min(3, Math.round((1 - bt) * 8)); parisRock = true; }
+        }
+
         const isToon = z <= 88 && x >= 214 && x <= 298;
-        const isAdv = (x >= 126 && x <= 226 && z >= 274 && z <= 372) || (z > 550 && x < 420);
+        const isAdv = (x >= 126 && x <= 226 && z >= 274 && z <= 372) || (z > 550 && z < 738 && x < 420) || (inParis && x > 440 && z > 985);
         const isBayou = x < 126 && z >= 156 && z <= 250;
         const isFan = x >= 216 && x <= 346 && z >= 90 && z <= 198;
 
-        const topBlock = gy <= WATER_Y + 1 ? B.SAND : (wfDist < 0.88 ? B.ROCK : (isToon ? B.MEADOW : B.GRASS));
-        const topCol = gy <= WATER_Y + 1 ? C.sand : (wfDist < 0.88 ? C.rock : isToon ? C.toonGreen : isAdv ? C.jungle : isBayou ? C.bayou : isFan ? C.grassL : C.grass);
+        const isFrontier = inParis && x > 430 && z <= 985;
+        const topBlock = gy <= WATER_Y + 1 ? B.SAND : parisRock ? B.PATH : (wfDist < 0.88 ? B.ROCK : (isToon ? B.MEADOW : B.GRASS));
+        const topCol = gy <= WATER_Y + 1 ? C.sand : parisRock ? C.redRock : (wfDist < 0.88 ? C.rock : isToon ? C.toonGreen : isAdv ? C.jungle : isBayou ? C.bayou : isFrontier ? C.prairie : (isFan || inParis) ? C.grassL : C.grass);
 
         const yStart = Math.max(32, gy - 5);
-        for (let y = yStart; y < gy - 1; y++) set(x, y, z, B.DIRT, C.dirt);
+        for (let y = yStart; y < gy - 1; y++) set(x, y, z, B.DIRT, parisRock ? C.redRock : C.dirt);
         set(x, gy - 1, z, topBlock, topCol);
         hm[zi(x, z)] = gy;
+        if (inParis && gy >= PARK_Y) occ[zi(x, z)] = 3;
         if (gy > maxSolidY) maxSolidY = gy;
       }
     }
@@ -547,7 +623,105 @@
       if (Math.hypot((x - 270) / 110, (z - 640) / 44) <= 1.0) pave(x, z, B.PATH, C.advDirt);
     }
 
-    // Compute topH & topC for crisp 768x768 Minimap!
+    /* ================= 4. DISNEYLAND PARK PARIS — WATERWAYS & PAVING (south lobe, z >= 738) ================= */
+    {
+      const P = PARIS, L = P.lake;
+      const ell = (cx, cz, rx, rz, fn) => {
+        for (let z = Math.floor(cz - rz); z <= cz + rz; z++) for (let x = Math.floor(cx - rx); x <= cx + rx; x++) {
+          const d = Math.hypot((x - cx) / rx, (z - cz) / rz);
+          if (d <= 1) fn(x, z, d);
+        }
+      };
+      const rect = (x0, x1, z0, z1, fn) => { for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) fn(x, z); };
+      const pv = (x, z, b, c) => {
+        if (!inb(x, PARK_Y, z)) return;
+        const k = zi(x, z);
+        if (occ[k] === 2 || hm[k] < PARK_Y) return;
+        set(x, hm[k] - 1, z, b, c); occ[k] = 1;
+      };
+      const chk = (x, z, a, b, n) => (((Math.floor(x / n) + Math.floor(z / n)) & 1) ? a : b);
+
+      // Rivers of the Far West (Big Thunder Mountain stands on the island in the middle).
+      ell(L.x, L.z, L.rx, L.rz, (x, z) => {
+        if (Math.hypot((x - L.x) / L.ix, (z - L.z) / L.iz) >= 1) carveWater(x, z);
+      });
+      // Castle moat wrapping the front and flanks of the rock hill (causeway left on the axis).
+      ell(P.x, P.zCastle, 36, 31, (x, z) => {
+        const d = Math.hypot((x - P.x) / 27, (z - P.zCastle) / 23);
+        if (d >= 1.04 && z <= P.zCastle + 10 && Math.abs(x - P.x) > 4) carveWater(x, z);
+      });
+      // Adventure Isle lagoon (Skull Rock islet kept), Nautilus lagoon, Fantasia Gardens ponds.
+      ell(P.isle.x, P.isle.z, 32, 19, (x, z) => {
+        if (Math.hypot((x - P.isle.x - 7) / 13, (z - P.isle.z) / 8) >= 1) carveWater(x, z);
+      });
+      ell(P.lagoon.x, P.lagoon.z, 20, 12, carveWater);
+      ell(P.x - 32, 764, 9, 5, carveWater);
+      ell(P.x + 32, 764, 9, 5, carveWater);
+
+      // Disneyland Railroad roadbed.
+      const R = P.rail;
+      rect(R.x - R.rx - 4, R.x + R.rx + 4, R.z - R.rz - 4, R.z + R.rz + 4, (x, z) => {
+        const d = Math.hypot((x - R.x) / R.rx, (z - R.z) / R.rz);
+        if (d >= 0.989 && d <= 1.011) pv(x, z, B.GRAVEL, C.railGravel);
+      });
+
+      // Resort promenade from the Hollywood/Animal Kingdom boulevard, Fantasia Gardens and the hotel forecourt.
+      rect(374, 394, 618, 752, (x, z) => pv(x, z, B.FLAGS, Math.abs(x - 384) <= 1 ? C.pRose : C.pCream));
+      ell(P.x, 766, 64, 20, (x, z, d) => pv(x, z, B.FLAGS, d > 0.9 ? C.pRose : chk(x, z, C.pCream, C.stoneL, 3)));
+      rect(326, 442, 782, 800, (x, z) => pv(x, z, B.FLAGS, chk(x, z, C.pRose, C.pCream, 2)));
+
+      // Main Street Station forecourt and Town Square (lawn ring around the bandstand).
+      rect(346, 422, 800, 850, (x, z) => {
+        const d = Math.hypot(x - P.x, z - P.zSquare);
+        if (d > 5 && d < 11) return;
+        pv(x, z, B.FLAGS, d <= 5 ? C.pRose : (d < 14 ? C.pBrick : C.pCream));
+      });
+      // Main Street, U.S.A.: arcades, building floors, kerbs and the brick roadway with trolley rails.
+      rect(352, 416, 850, 918, (x, z) => {
+        const a = Math.abs(x - P.x);
+        if (a <= 5) pv(x, z, B.BRICK, a === 2 ? C.pSlate : C.pBrick);
+        else if (a <= 8) pv(x, z, B.FLAGS, C.pCream);
+        else if (a <= 26) pv(x, z, B.FLAGS, C.stoneL);
+        else pv(x, z, B.FLAGS, chk(x, z, C.pRose, C.pCream, 2));
+      });
+      // Central Plaza hub with the round flower bed.
+      ell(P.x, P.zHub, 30, 30, (x, z, d) => {
+        if (d < 0.2) return;
+        pv(x, z, B.FLAGS, d > 0.92 ? C.pRose : (d < 0.3 ? C.pBrick : chk(x, z, C.pCream, C.stoneL, 3)));
+      });
+      // Castle causeway, courtyard and the passage through to Fantasyland.
+      rect(380, 388, 968, 1040, (x, z) => pv(x, z, B.PATH, C.pSlate));
+      ell(P.x, P.zCastle, 15, 12, (x, z) => pv(x, z, B.FLAGS, chk(x, z, C.pSlate, C.pLilac, 2)));
+      ell(P.x, 1062, 92, 36, (x, z, d) => pv(x, z, B.PATH, d > 0.94 ? C.pRose : C.pLilac));
+      rect(296, 472, 1052, 1060, (x, z) => pv(x, z, B.PATH, C.pLilac));
+
+      // Frontierland: Fort Comstock spoke, Thunder Mesa lakeside street, Phantom Manor drive.
+      rect(412, 456, 941, 951, (x, z) => pv(x, z, B.PLANKS, C.woodWalk));
+      ell(L.x, L.z, L.rx + 13, L.rz + 13, (x, z) => {
+        if (Math.hypot((x - L.x) / L.ix, (z - L.z) / L.iz) < 1) return;
+        pv(x, z, B.PATH, C.pOchre);
+      });
+      rect(P.manor.x - 4, P.manor.x + 4, P.manor.z + 6, P.manor.z + 24, (x, z) => pv(x, z, B.PATH, C.pSlate));
+      rect(518, 527, 984, 1016, (x, z) => pv(x, z, B.PATH, C.pOchre));
+
+      // Adventureland: bazaar spoke, Adventure Isle shore walk, paths to the Temple and the pirate fortress.
+      for (let t = 0; t <= 1; t += 0.004) {
+        const lx = 404 + (456 - 404) * t, lz = 964 + (1010 - 964) * t;
+        rect(Math.round(lx - 5), Math.round(lx + 5), Math.round(lz - 5), Math.round(lz + 5), (x, z) => pv(x, z, B.PATH, C.pSand));
+      }
+      ell(P.isle.x, P.isle.z, 45, 31, (x, z) => pv(x, z, B.PATH, C.pSand));
+      rect(538, 584, 1004, 1012, (x, z) => pv(x, z, B.PATH, C.pSand));
+      rect(466, 475, 1066, 1082, (x, z) => pv(x, z, B.PATH, C.pSand));
+
+      // Discoveryland: spoke, Space Mountain concourse, Nautilus lagoon quay and Videopolis plaza.
+      rect(314, 356, 941, 951, (x, z) => pv(x, z, B.LIMES, C.pBronze));
+      ell(P.space.x + 6, P.space.z + 4, 66, 50, (x, z, d) => pv(x, z, B.LIMES, d > 0.93 ? C.pTeal : chk(x, z, C.pBronze, C.pCream, 4)));
+      ell(P.lagoon.x, P.lagoon.z, 28, 19, (x, z) => pv(x, z, B.LIMES, C.pBronze));
+      ell(262, 1040, 42, 24, (x, z) => pv(x, z, B.LIMES, chk(x, z, C.pBronze, C.pTeal, 4)));
+      rect(296, 306, 1016, 1056, (x, z) => pv(x, z, B.LIMES, C.pBronze));
+    }
+
+    // Compute topH & topC for the minimap.
     for (let z = 0; z < D; z++) {
       for (let x = 0; x < W; x++) {
         let ty = 0, tc = 0;
@@ -602,7 +776,7 @@
     };
 
     return {
-      W, D, H, WATER_Y, PARK_Y, CX, B, BI, T,
+      W, D, H, WATER_Y, PARK_Y, CX, B, BI, T, PARIS,
       minSolidY, maxSolidY,
       blocks, cols, hm, occ, topH, topC, palette,
       LANDS, lamps, tour, props

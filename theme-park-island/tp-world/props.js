@@ -751,6 +751,7 @@
     const dl1to1 = root.TPDisneyland1to1 ? root.TPDisneyland1to1.build(scene, world, group) : null;
     const starWars = root.TPStarWars ? root.TPStarWars.build(scene, world, group) : null;
     const orlando = root.TPOrlando ? root.TPOrlando.build(scene, world, group) : null;
+    const paris = root.TPParis ? root.TPParis.build(scene, world, group) : null;
 
     /* ---------------- Flush All Static Merged Architectural Meshes ---------------- */
     mBase.mesh(castleBaseMat); mUpper.mesh(castleUpperMat); mBlush.mesh(castleBlushMat, false); mBlueRoof.mesh(blueSlateMat);
@@ -854,6 +855,7 @@
       { id: 'savi_lightsaber', name: '萨维光剑工坊', x: 141.5, y: Y, z: 84, msg: '⚔️ 凯伯水晶共鸣！你已亲手组装并点亮专属绝地光剑——愿原力与你同在！' }
     ];
     if (dl1to1 && dl1to1.extraInteractables) interactables.push(...dl1to1.extraInteractables);
+    if (paris) { Object.assign(rides, paris.rides); interactables.push(...paris.interactables); }
 
     let elapsed = 0;
     function update(dt, time, cam, nightF, onEvent) {
@@ -862,6 +864,7 @@
       if (dl1to1) dl1to1.update(dt, elapsed, onEvent);
       if (starWars) starWars.update(dt, elapsed, onEvent);
       if (orlando) orlando.update(dt, elapsed, nightF, onEvent);
+      if (paris) paris.update(dt, elapsed, onEvent);
 
       // Main Street Streetcar & Double-Decker Omnibus cruising the full 120m Boulevard!
       trolleyGrp.position.z = 352 + Math.sin(elapsed * 0.16) * 52;

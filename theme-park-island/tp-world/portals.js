@@ -156,12 +156,17 @@
     function renderGuide() {
       if (!modalContent) return;
       const filtered = world.LANDS.filter((l) => {
-        if (activeFilter === 'disneyland') return l.park !== 'resort';
+        if (activeFilter === 'disneyland') return l.park !== 'resort' && l.park !== 'paris';
+        if (activeFilter === 'paris') return l.park === 'paris';
         if (activeFilter === 'rides') return !!l.rideId;
         if (activeFilter === 'resort') return l.park === 'resort';
         return true;
       });
       const quickRides = [
+        ['paris_space_mountain', '🚀 巴黎太空山 · 巨炮弹射', 'cyan'],
+        ['paris_big_thunder', '⛏️ 巴黎巨雷山 · 河心岛矿车', 'gold'],
+        ['paris_indiana', '🗿 危险神殿 360° 回环', 'gold'],
+        ['paris_railroad', '🚂 巴黎迪士尼铁路', 'cyan'],
         ['railroad_tour', '🚂 蒸汽火车 4 站环游', 'gold'],
         ['pirates_ride', '🏴‍☠️ 加勒比海盗游船', 'cyan'],
         ['space_mountain', '🌌 太空山深空过山车', 'cyan'],
@@ -185,6 +190,7 @@
           ${[
             ['all', `🗺️ 全部园区 (${world.LANDS.length})`],
             ['disneyland', '🏰 1:1 迪士尼主园 (13 大经典分区)'],
+            ['paris', '🇫🇷 巴黎迪士尼乐园 (5 大主题区)'],
             ['rides', '🎢 可乘坐游乐设施专区'],
             ['resort', '🌐 度假区扩建园 (EPCOT / 影城 / 潘多拉)']
           ].map(([k, lbl]) => `<button class="tp-btn ${activeFilter === k ? 'pink' : ''}" data-gfilter="${k}">${lbl}</button>`).join('')}
