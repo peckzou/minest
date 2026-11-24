@@ -14,6 +14,13 @@
  */
 import * as THREE from 'three';
 import hershey from './data/hershey.json';
+import { HANZI_W, hanziBase, hanziContours, hanziPreload, hanziStrokes, isHan } from '../../../../../type3d/hanzi.js';
+
+// Chinese characters: stroke data shared with the 3D Type pages (type3d/hanzi/), one folder up from this page.
+if (typeof document !== 'undefined') {
+  hanziBase(new URL('../type3d/hanzi/', document.baseURI).href);
+  void hanziPreload();
+}
 
 export type StrokeFont = 'sans' | 'script' | 'serif';
 export type Metric = StrokeFont | 'outline';
@@ -173,6 +180,34 @@ function fallbackRaw(): RawGlyph {
   return { a: 0.7, s: [[0.35, 0, 0.6, 0.35, 0.35, 0.7, 0.1, 0.35, 0.35, 0]] };
 }
 
+/** A Chinese character as solid shapes (the union of its strokes), in glyph-local units. */
+function hanShapes(char: string): THREE.Shape[] | null {
+  if (!isHan(char)) return null;
+  const c = hanziContours(char);
+  if (!c) return null;
+  const area = (l: [number, number][]) => {
+    let a = 0;
+    for (let i = 0, j = l.length - 1; i < l.length; j = i++) a += l[j][0] * l[i][1] - l[i][0] * l[j][1];
+    return Math.abs(a / 2);
+  };
+  const inside = (p: [number, number], l: [number, number][]) => {
+    let hit = false;
+    for (let i = 0, j = l.length - 1; i < l.length; j = i++) {
+      const a = l[i];
+      const b = l[j];
+      if (a[1] > p[1] !== b[1] > p[1] && p[0] < ((b[0] - a[0]) * (p[1] - a[1])) / (b[1] - a[1]) + a[0]) hit = !hit;
+    }
+    return hit;
+  };
+  const solids = c.loops.filter((l) => !l.hole).map((l) => ({ l, a: area(l), shape: new THREE.Shape(l.map((p) => new THREE.Vector2(p[0], p[1]))) }));
+  for (const h of c.loops.filter((l) => l.hole)) {
+    // a hole belongs to the smallest solid loop around it
+    const owner = solids.filter((s) => inside(h[0], s.l)).sort((x, y) => x.a - y.a)[0];
+    if (owner) owner.shape.holes.push(new THREE.Path(h.map((p) => new THREE.Vector2(p[0], p[1]))));
+  }
+  return solids.map((s) => s.shape);
+}
+
 export class GlyphEngine {
   private cache = new Map<string, Glyph>();
   private outlineFont: import('three/examples/jsm/loaders/FontLoader.js').Font | null = null;
@@ -186,7 +221,10 @@ export class GlyphEngine {
     const key = font + char;
     let g = this.cache.get(key);
     if (g) return g;
-    const raw = RAW[font][char] ?? RAW.sans[char] ?? (char.trim() ? fallbackRaw() : RAW.sans[' ']);
+    const han = isHan(char) ? hanziStrokes(char) : null;
+    const raw: RawGlyph = han
+      ? { a: han.w, s: han.strokes.map((st) => st.flat()) }
+      : (RAW[font][char] ?? RAW.sans[char] ?? (char.trim() ? fallbackRaw() : RAW.sans[' ']));
     const strokes = raw.s.map((s) => makeStroke(smoothStroke(s)));
     let minX = Infinity,
       maxX = -Infinity,
@@ -214,7 +252,8 @@ export class GlyphEngine {
       length: strokes.reduce((a, s) => a + s.length, 0),
       bounds: { minX, maxX, minY, maxY },
     };
-    this.cache.set(key, g);
+    // a Chinese character whose strokes have not arrived yet is not remembered as the fallback
+    if (han || !isHan(char)) this.cache.set(key, g);
     return g;
   }
 
@@ -578,6 +617,7 @@ export class GlyphEngine {
   outlineAdvance(char: string): number {
     const hit = this.outlineMetrics.get(char);
     if (hit !== undefined) return hit;
+    if (isHan(char)) return HANZI_W;
     const data = (this.outlineFont as unknown as { data: { glyphs: Record<string, { ha: number }>; resolution: number } }).data;
     const g = data.glyphs[char] ?? data.glyphs['?'];
     const adv = char === ' ' ? 0.5 : ((g?.ha ?? 600) / data.resolution) * this.outlineScale;
@@ -597,7 +637,7 @@ export class GlyphEngine {
     const hit = this.outlineCache.get(key);
     if (hit) return hit;
     if (!this.outlineFont) throw new Error('outline font not loaded');
-    const shapes = this.outlineFont.generateShapes(char.trim() ? char : '?', this.outlineScale);
+    const shapes = hanShapes(char) ?? this.outlineFont.generateShapes(char.trim() ? char : '?', this.outlineScale);
     const geo = new THREE.ExtrudeGeometry(shapes, {
       depth,
       curveSegments: curve,

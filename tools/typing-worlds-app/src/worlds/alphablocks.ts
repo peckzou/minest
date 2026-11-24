@@ -123,18 +123,17 @@ class AlphablocksWorld extends LetterWorld<Block> {
     super(ctx);
     this.theme = PALETTES[ctx.theme] ? ctx.theme : 'toy';
     const scene = ctx.scene;
-    // minimal dark stage (classic 3D Type look): the blocks are the only bright things
-    scene.background = new THREE.Color(0x040406);
+    // a toy theatre at bedtime: a round wooden stage under a warm spot, a painted night backdrop, toys in the wings
+    scene.background = new THREE.Color(0x141d3a);
     scene.environment = ctx.renderer.environment();
-    scene.environmentIntensity = 0.25;
-    scene.fog = new THREE.Fog(0x040406, 18, 40);
+    scene.environmentIntensity = 0.45;
+    scene.fog = new THREE.Fog(0x141d3a, 22, 52);
 
-    // lights: dim fill + one key + faint rim
-    this.root.add(new THREE.HemisphereLight(0xdfe6ff, 0x0a0806, 0.55));
-    const sun = new THREE.DirectionalLight(0xfff4e0, 1.8);
+    this.root.add(new THREE.HemisphereLight(0xdfe6ff, 0x3a2a1c, 0.6));
+    const sun = new THREE.DirectionalLight(0xfff0d6, 1.7);
     sun.position.set(-5, 10, 8);
     this.root.add(sun);
-    const rim = new THREE.DirectionalLight(0xc8e6ff, 0.5);
+    const rim = new THREE.DirectionalLight(0xc8d8ff, 0.9);
     rim.position.set(6, 4, -6);
     this.root.add(rim);
 
@@ -195,27 +194,157 @@ class AlphablocksWorld extends LetterWorld<Block> {
   /* -------------------------------------------------------------- stage */
 
   private buildStage() {
-    // dark matte plinth with a single faint ring
-    const top = canvasTexture(512, 512, (g, w, h) => {
-      g.fillStyle = '#121216';
+    const T = THREE;
+    // stage top: honey planks, a painted ring and a warm pool of light in the middle
+    const top = canvasTexture(1024, 1024, (g, w, h) => {
+      g.fillStyle = '#a8703c';
       g.fillRect(0, 0, w, h);
-      g.strokeStyle = 'rgba(255,255,255,0.07)';
-      g.lineWidth = 3;
+      const planks = 14;
+      for (let k = 0; k < planks; k++) {
+        const y = (k / planks) * h;
+        g.fillStyle = `rgba(${k % 2 ? '120,70,30' : '255,225,170'},${0.08 + ((k * 37) % 5) * 0.015})`;
+        g.fillRect(0, y, w, h / planks);
+        g.fillStyle = 'rgba(90,50,20,0.35)';
+        g.fillRect(0, y, w, 2);
+        for (let n = 0; n < 5; n++) {
+          g.strokeStyle = 'rgba(110,65,25,0.12)';
+          g.lineWidth = 1.5;
+          g.beginPath();
+          const yy = y + 8 + ((n * 53 + k * 17) % 60);
+          g.moveTo(0, yy);
+          for (let x = 0; x <= w; x += 32) g.lineTo(x, yy + Math.sin(x * 0.012 + n + k) * 3);
+          g.stroke();
+        }
+      }
+      const glow = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w * 0.5);
+      glow.addColorStop(0, 'rgba(255,236,200,0.22)');
+      glow.addColorStop(0.55, 'rgba(255,244,214,0.05)');
+      glow.addColorStop(1, 'rgba(30,14,8,0.62)');
+      g.fillStyle = glow;
+      g.fillRect(0, 0, w, h);
+      g.strokeStyle = 'rgba(255,255,255,0.55)';
+      g.lineWidth = 10;
       g.beginPath();
-      g.arc(w / 2, h / 2, w * 0.47, 0, Math.PI * 2);
+      g.arc(w / 2, h / 2, w * 0.45, 0, Math.PI * 2);
       g.stroke();
     });
-    this.shared.tex.push(top);
-    const stage = new THREE.Mesh(new THREE.CylinderGeometry(STAGE_R, STAGE_R + 0.15, 0.7, 72), [
-      new THREE.MeshStandardMaterial({ color: 0x0c0c0f, roughness: 0.8 }),
-      new THREE.MeshStandardMaterial({ map: top, roughness: 0.75 }),
-      new THREE.MeshStandardMaterial({ color: 0x0c0c0f }),
+    // stage side: candy stripes
+    const sideTex = canvasTexture(256, 32, (g, w, h) => {
+      for (let k = 0; k < 8; k++) {
+        g.fillStyle = k % 2 ? '#fff4e2' : '#e8504f';
+        g.fillRect((k / 8) * w, 0, w / 8, h);
+      }
+      g.fillStyle = 'rgba(0,0,0,0.18)';
+      g.fillRect(0, h - 6, w, 6);
+    });
+    sideTex.wrapS = T.RepeatWrapping;
+    sideTex.repeat.set(6, 1);
+    this.shared.tex.push(top, sideTex);
+    const stage = new T.Mesh(new T.CylinderGeometry(STAGE_R, STAGE_R + 0.15, 0.7, 96), [
+      new T.MeshStandardMaterial({ map: sideTex, roughness: 0.55 }),
+      new T.MeshStandardMaterial({ map: top, roughness: 0.6, color: 0xc8c8c8 }),
+      new T.MeshStandardMaterial({ color: 0x2a1c14 }),
     ]);
     stage.position.y = STAGE_TOP - 0.35;
     this.root.add(stage);
+    const floor = new T.Mesh(new T.CircleGeometry(60, 48), new T.MeshStandardMaterial({ color: 0x1b2748, roughness: 0.9 }));
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = STAGE_TOP - 0.7;
+    this.root.add(floor);
+
+    // painted backdrop: night sky, a spot of light, stars and a moon, paper hills
+    const drop = new T.Mesh(
+      new T.PlaneGeometry(70, 30),
+      new T.ShaderMaterial({
+        depthWrite: false,
+        fog: false,
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+        fragmentShader: `precision highp float; varying vec2 vUv;
+          float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+          float hill(float x, float f, float ph, float base, float amp){ return base + amp * (0.6 * sin(x * f + ph) + 0.4 * sin(x * f * 2.3 + ph * 1.7)); }
+          void main(){
+            vec2 q = vec2((vUv.x - 0.5) * 70.0, vUv.y * 30.0);
+            vec3 col = mix(vec3(0.16, 0.2, 0.42), vec3(0.05, 0.07, 0.19), smoothstep(6.0, 24.0, q.y));
+            col += vec3(0.5, 0.36, 0.5) * exp(-dot(q - vec2(0.0, 9.0), q - vec2(0.0, 9.0)) / 150.0) * 0.35;
+            vec2 c = floor(q / 2.2); vec2 f = fract(q / 2.2) - 0.5;
+            float r = hash(c);
+            vec2 o = (vec2(hash(c + 3.1), hash(c + 7.7)) - 0.5) * 0.6;
+            float star = smoothstep(0.05 + 0.05 * r, 0.0, length(f - o)) * step(0.55, r) * smoothstep(8.0, 12.0, q.y);
+            col += vec3(1.0, 0.95, 0.75) * star * 0.8;
+            vec2 m = q - vec2(13.0, 17.5);
+            float moon = smoothstep(2.3, 2.2, length(m)) * smoothstep(1.9, 2.0, length(m - vec2(0.9, 0.5)));
+            col = mix(col, vec3(1.0, 0.93, 0.7), moon);
+            col = mix(col, vec3(0.2, 0.3, 0.52), step(q.y, hill(q.x, 0.16, 0.5, 8.6, 1.5)));
+            col = mix(col, vec3(0.16, 0.38, 0.47), step(q.y, hill(q.x, 0.23, 2.1, 7.0, 1.2)));
+            col = mix(col, vec3(0.12, 0.3, 0.33), step(q.y, hill(q.x, 0.31, 4.0, 5.4, 0.9)));
+            gl_FragColor = vec4(col, 1.0);
+            #include <colorspace_fragment>
+          }`,
+      })
+    );
+    drop.position.set(0, STAGE_TOP + 8.6, -15);
+    drop.renderOrder = -5;
+    this.root.add(drop);
+
+    // toys in the wings: stacked blocks, balls, stacking rings
+    const toy = (hex: number) => new T.MeshStandardMaterial({ color: hex, roughness: 0.38 });
+    const colors = [0xff4d5e, 0xffb300, 0x22b8cf, 0x7bd657, 0xa46cf0, 0xff8a3d];
+    const mats = colors.map(toy);
+    const box = new T.BoxGeometry(1, 1, 1);
+    const ball = new T.SphereGeometry(1, 28, 20);
+    this.shared.geo.push(box, ball);
+    const y0 = STAGE_TOP;
+    const put = (geo: THREE.BufferGeometry, m: number, x: number, y: number, z: number, sc: number, ry = 0) => {
+      const o = new T.Mesh(geo, mats[m % mats.length]);
+      o.position.set(x, y, z);
+      o.scale.setScalar(sc);
+      o.rotation.y = ry;
+      this.root.add(o);
+    };
+    for (const sx of [-1, 1]) {
+      const k = sx < 0 ? 0 : 3;
+      put(box, k, sx * 5.6, y0 + 0.6, -4.6, 1.2, 0.3 * sx);
+      put(box, k + 1, sx * 6.9, y0 + 0.6, -3.9, 1.2, -0.2);
+      put(box, k + 2, sx * 6.2, y0 + 1.75, -4.3, 1.1, 0.55 * sx);
+      put(box, k + 4, sx * 6.2, y0 + 2.75, -4.3, 0.9, -0.3 * sx);
+      put(ball, k + 5, sx * 4.3, y0 + 0.5, -5.6, 0.5);
+      put(ball, k + 2, sx * 7.3, y0 + 0.45, -1.9, 0.45);
+      // stacking rings on a peg
+      const px = sx * 2.6;
+      const pz = -6.4;
+      for (let r = 0; r < 4; r++) {
+        const ring = new T.Mesh(new T.TorusGeometry(0.62 - r * 0.11, 0.17, 14, 36), mats[(r + k + 1) % mats.length]);
+        ring.rotation.x = Math.PI / 2;
+        ring.position.set(px, y0 + 0.17 + r * 0.33, pz);
+        this.root.add(ring);
+      }
+      put(ball, k + 3, px, y0 + 1.5, pz, 0.2);
+    }
+
+    // bunting across the top of the set
+    const flags = 17;
+    const fg = new T.BufferGeometry();
+    fg.setAttribute('position', new T.Float32BufferAttribute([-0.5, 0, 0, 0.5, 0, 0, 0, -1.1, 0], 3));
+    fg.computeVertexNormals();
+    this.shared.geo.push(fg);
+    const pts: THREE.Vector3[] = [];
+    for (let k = 0; k <= flags; k++) {
+      const u = k / flags;
+      const x = (u - 0.5) * 30;
+      const y = STAGE_TOP + 6.9 - Math.sin(u * Math.PI) * 1.3;
+      pts.push(new T.Vector3(x, y, -8));
+      if (k < flags) {
+        const u2 = (k + 0.5) / flags;
+        const f = new T.Mesh(fg, new T.MeshBasicMaterial({ color: colors[k % colors.length], side: T.DoubleSide }));
+        f.position.set((u2 - 0.5) * 30, STAGE_TOP + 6.85 - Math.sin(u2 * Math.PI) * 1.3, -8);
+        f.scale.setScalar(1.25);
+        this.root.add(f);
+      }
+    }
+    this.root.add(new T.Line(new T.BufferGeometry().setFromPoints(pts), new T.LineBasicMaterial({ color: 0xfff4e2 })));
 
     // risers for 2nd/3rd line (back rows)
-    const riserMat = new THREE.MeshStandardMaterial({ color: 0x15151a, roughness: 0.8 });
+    const riserMat = new THREE.MeshStandardMaterial({ color: 0xc48d4e, roughness: 0.55 });
     for (let k = 1; k <= 2; k++) {
       const r = new THREE.Mesh(new THREE.BoxGeometry(13, 1, DEPTH), riserMat);
       r.position.set(0, STAGE_TOP, -k * DEPTH);
@@ -759,11 +888,11 @@ class AlphablocksWorld extends LetterWorld<Block> {
     // camera fit
     const aspect = this.ctx.renderer.size.aspect;
     const bw = this.ctx.layout.bounds.isEmpty() ? 6 : this.ctx.layout.bounds.max.x - this.ctx.layout.bounds.min.x;
-    const want = fitCameraToWidth(this.ctx.camera, Math.max(7, bw * 1.05 + 1.8), 9, aspect);
+    const want = fitCameraToWidth(this.ctx.camera, Math.max(5.2, bw * 1.05 + 1.6), 6.6, aspect);
     const back = this.lines - 1;
     this.camDist = damp(this.camDist, want + back * 1.2, 3, dt);
     const cam = this.ctx.camera;
-    const cy = STAGE_TOP + 1.7 + this.camDist * 0.12 + back * 0.4;
+    const cy = STAGE_TOP + 1.25 + this.camDist * 0.11 + back * 0.4;
     cam.position.set(Math.sin(time * 0.15) * 0.25, cy, this.camDist);
     cam.lookAt(0, STAGE_TOP + 0.8 + back * 0.35, -back * 0.6);
     if (Math.abs(this.camDist - want - back * 1.2) > 0.01) moving = true;

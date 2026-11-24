@@ -1,7 +1,7 @@
 /**
  * WORLD 18 · Block Builder (方块建造)
  *
- * A construction site: every letter is a real 3D build, two blocks deep.
+ * A voxel valley in daylight: every letter is a real 3D build, three blocks deep, made of the land's own blocks.
  * - A translucent blueprint of the letter appears first.
  * - Blocks fly in from all around (sides, behind, above) along curved paths, tumbling,
  *   hover over their cell, then drop and lock in with a flash and a click.
@@ -12,13 +12,13 @@
  */
 import * as THREE from 'three';
 import { LetterWorld, type LetterVisual, canvasTexture } from '../engine/letter-world';
-import { clamp, lerp, rand, easeInOutCubic, easeOutCubic } from '../engine/anim';
+import { clamp, damp, lerp, rand, easeInOutCubic, easeOutCubic } from '../engine/anim';
 import { Particles } from '../engine/particles';
-import type { Slot } from '../engine/layout';
+import { DEFAULT_LAYOUT, type Slot } from '../engine/layout';
 import type { DeleteEvent, InsertEvent, SaveOutcome, WorldContext, WorldModule } from '../engine/types';
 
 const THEMES: Record<string, { color: number; rough: number; metal: number; ghost: number }> = {
-  diamond: { color: 0x5ff0f2, rough: 0.12, metal: 0.25, ghost: 0x58c8ff },
+  diamond: { color: 0x2fd6e0, rough: 0.2, metal: 0.25, ghost: 0x58c8ff },
   gold: { color: 0xffcf3a, rough: 0.22, metal: 0.75, ghost: 0xffd27a },
   emerald: { color: 0x2fd468, rough: 0.15, metal: 0.2, ghost: 0x7dffb0 },
   stone: { color: 0x9a968e, rough: 0.85, metal: 0.0, ghost: 0xb8c8d8 },
@@ -26,8 +26,10 @@ const THEMES: Record<string, { color: number; rough: number; metal: number; ghos
 
 const CELL = 0.13; // glyph units
 const THICK = 0.085;
-const LAYERS = 2;
-const GROUND = -1.35;
+const LAYERS = 3;
+const GROUND = -1.05; // top of the grass: just under the descenders
+/** edge of a land block: the letters' block size at full scale */
+const LAND = 1.4 * CELL;
 
 type CellState = 'wait' | 'fly' | 'drop' | 'locked' | 'loose' | 'gone';
 
@@ -63,12 +65,60 @@ interface BuildVisual extends LetterVisual {
   lastKey: string;
 }
 
+const grey = (k: number) => {
+  const v = Math.round(Math.min(1, k) * 255);
+  return `rgb(${v},${v},${v})`;
+};
+const tint = (rgb: readonly [number, number, number], k: number) => `rgb(${rgb.map((c) => Math.round(Math.min(255, c * k))).join(',')})`;
+
+/** a 16 × 16 pixel-art texture, shown unfiltered */
+function pixelTexture(seed: number, paint: (x: number, y: number, R: () => number) => string) {
+  let s = seed >>> 0;
+  const R = () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296;
+  const tex = canvasTexture(16, 16, (g) => {
+    for (let y = 0; y < 16; y++)
+      for (let x = 0; x < 16; x++) {
+        g.fillStyle = paint(x, y, R);
+        g.fillRect(x, y, 1, 1);
+      }
+  });
+  tex.magFilter = THREE.NearestFilter;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
+
+function hash2(x: number, y: number) {
+  const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+  return s - Math.floor(s);
+}
+function vnoise(x: number, y: number) {
+  const ix = Math.floor(x);
+  const iy = Math.floor(y);
+  const fx = x - ix;
+  const fy = y - iy;
+  const ux = fx * fx * (3 - 2 * fx);
+  const uy = fy * fy * (3 - 2 * fy);
+  return lerp(lerp(hash2(ix, iy), hash2(ix + 1, iy), ux), lerp(hash2(ix, iy + 1), hash2(ix + 1, iy + 1), ux), uy);
+}
+/** land height in blocks at world (x, z): flat where the letters are built, hills behind and at the sides */
+function landHeight(x: number, z: number) {
+  const n = vnoise(x * 0.24 + 7.1, z * 0.24 + 3.3) * 0.65 + vnoise(x * 0.63, z * 0.63) * 0.35;
+  const back = -z - 2.4;
+  const ax = Math.abs(x);
+  let h = 0;
+  if (back > 0) h += Math.min(back * 2.3, 15) * (0.18 + n) * (0.42 + 0.58 * clamp((ax - 2.5) / 7));
+  if (ax > 9.5 && z < 2) h += (ax - 9.5) * 1.7 * (0.5 + n);
+  return Math.floor(h);
+}
+
 class BlockBuilderWorld extends LetterWorld<BuildVisual> {
   private boxGeo: THREE.BoxGeometry;
   private blockMat: THREE.MeshStandardMaterial;
   private ghostMat: THREE.MeshBasicMaterial;
   private faceTex: THREE.Texture;
-  private plateTex: THREE.Texture;
+  private landTex: THREE.Texture[] = [];
+  private camDist = 8.4;
   private sparks: Particles;
   private dust: Particles;
   private dummy = new THREE.Object3D();
@@ -83,106 +133,222 @@ class BlockBuilderWorld extends LetterWorld<BuildVisual> {
     super(ctx);
     this.theme = THEMES[ctx.theme] ? ctx.theme : 'diamond';
     const scene = ctx.scene;
-    // classic 3D Type stage: near-black, one dark build plate, the blocks are the only bright things
-    scene.background = new THREE.Color(0x020203);
-    scene.fog = new THREE.Fog(0x020203, 13, 30);
+    ctx.layout.setOptions({ ...DEFAULT_LAYOUT, metric: 'sans', size: 1.4, tracking: 0.12, maxWidth: 11.5, maxLines: 1, origin: [0, 0.2, 0], plane: 'xy', minScale: 0.25 });
+    // A voxel valley in daylight: grass blocks underfoot, stepped hills and blocky trees behind, square clouds.
+    // The letters are built of the same blocks as the land they stand over.
+    scene.background = new THREE.Color(0x3f86d8);
+    scene.fog = new THREE.Fog(0x8fbfe8, 22, 70);
+    this.placeCamera(true);
 
-    ctx.camera.position.set(0, 1.6, 11);
-    ctx.camera.lookAt(0, -0.1, 0);
-
-    this.root.add(new THREE.HemisphereLight(0xdfe6ff, 0x0a0806, 0.35));
-    const sun = new THREE.DirectionalLight(0xfff3dd, 1.7);
+    this.root.add(new THREE.HemisphereLight(0xdcecff, 0x4a6a3a, 0.7));
+    const sun = new THREE.DirectionalLight(0xfff1d0, 1.7);
     sun.position.set(-6, 12, 9);
     if (ctx.quality > 1) {
       sun.castShadow = true;
-      sun.shadow.mapSize.set(1024, 1024);
+      sun.shadow.mapSize.set(2048, 2048);
       const c = sun.shadow.camera as THREE.OrthographicCamera;
-      c.left = -9;
-      c.right = 9;
-      c.top = 6;
-      c.bottom = -4;
+      c.left = -10;
+      c.right = 10;
+      c.top = 7;
+      c.bottom = -5;
       c.near = 1;
       c.far = 40;
       sun.shadow.bias = -0.0008;
     }
     this.root.add(sun);
     scene.environment = ctx.renderer.environment();
-    scene.environmentIntensity = 0.5;
+    scene.environmentIntensity = 0.35;
 
-    // block face: bevelled frame + inner facets (original pattern)
-    this.faceTex = canvasTexture(128, 128, (g, w, h) => {
-      g.fillStyle = '#d9d9d9';
-      g.fillRect(0, 0, w, h);
-      const b = 14;
-      g.fillStyle = '#ffffff';
-      g.beginPath();
-      g.moveTo(0, 0);
-      g.lineTo(w, 0);
-      g.lineTo(w - b, b);
-      g.lineTo(b, b);
-      g.lineTo(b, h - b);
-      g.lineTo(0, h);
-      g.closePath();
-      g.fill();
-      g.fillStyle = '#9a9a9a';
-      g.beginPath();
-      g.moveTo(w, h);
-      g.lineTo(0, h);
-      g.lineTo(b, h - b);
-      g.lineTo(w - b, h - b);
-      g.lineTo(w - b, b);
-      g.lineTo(w, 0);
-      g.closePath();
-      g.fill();
-      g.strokeStyle = 'rgba(255,255,255,0.55)';
-      g.lineWidth = 3;
-      g.beginPath();
-      g.moveTo(b + 10, h * 0.62);
-      g.lineTo(w * 0.38, b + 10);
-      g.moveTo(w * 0.55, h - b - 12);
-      g.lineTo(w - b - 10, h * 0.45);
-      g.stroke();
+    // block face, 16 × 16 pixels (tinted by the theme): dark outline, bevel lit from the top left, a few facets
+    this.faceTex = pixelTexture(18, (x, y, R) => {
+      const edge = Math.min(x, y, 15 - x, 15 - y);
+      if (edge === 0) return grey(0.6);
+      if (edge === 1) return grey(x === 1 || y === 1 ? 1 : 0.76);
+      const streak = (x + y) % 7 === 0 || (x - y + 16) % 9 === 0;
+      return grey(streak ? 1 : 0.84 + R() * 0.1);
     });
     this.boxGeo = new THREE.BoxGeometry(1, 1, 1);
     this.boxGeo.userData.shared = true;
     this.blockMat = new THREE.MeshStandardMaterial({ map: this.faceTex });
     this.blockMat.userData.shared = true;
-    this.ghostMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.16, depthWrite: false, blending: THREE.AdditiveBlending });
+    this.ghostMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.3, depthWrite: false });
     this.ghostMat.userData.shared = true;
     this.applyTheme();
 
-    // build plate with a construction grid
-    this.plateTex = canvasTexture(
-      512,
-      512,
-      (g, w, h) => {
-        g.fillStyle = '#0b0c0f';
-        g.fillRect(0, 0, w, h);
-        g.strokeStyle = '#1c2028';
-        g.lineWidth = 2;
-        for (let i = 0; i <= 16; i++) {
-          const p = (i / 16) * w;
-          g.beginPath();
-          g.moveTo(p, 0);
-          g.lineTo(p, h);
-          g.moveTo(0, p);
-          g.lineTo(w, p);
-          g.stroke();
-        }
-        g.strokeStyle = '#262b35';
-        g.lineWidth = 4;
-        g.strokeRect(2, 2, w - 4, h - 4);
-      },
-      { repeat: 6 }
-    );
-    const plate = new THREE.Mesh(new THREE.BoxGeometry(20, 0.3, 9), new THREE.MeshLambertMaterial({ map: this.plateTex, color: 0x9a9a9a })); // Lambert: no studio-env sheen on the dark plate
-    plate.position.set(0, GROUND - 0.15, -1);
-    plate.receiveShadow = ctx.quality > 1;
-    this.root.add(plate);
+    this.buildLand();
 
     this.sparks = new Particles({ capacity: 500, gravity: [0, -2, 0], drag: 2.2, size: 0.05, shape: 'spark' });
     this.dust = new Particles({ capacity: 400, gravity: [0, 0.2, 0], drag: 1.8, size: 0.16, shape: 'dot', blending: THREE.NormalBlending, opacity: 0.5, floor: GROUND });
     this.root.add(this.sparks.points, this.dust.points);
+  }
+
+  private placeCamera(snap: boolean, dt = 0) {
+    const cam = this.ctx.camera;
+    const aspect = this.ctx.renderer.size.aspect || 1.6;
+    const v = Math.tan((cam.fov * Math.PI) / 360);
+    const b = this.ctx.layout.bounds;
+    const halfW = Math.max(2.5, b.isEmpty() ? 0 : Math.max(Math.abs(b.min.x), Math.abs(b.max.x))) + 0.9;
+    const want = Math.min(30, Math.max(8.4, halfW / (v * aspect)));
+    this.camDist = snap ? want : damp(this.camDist, want, 3, dt);
+    cam.position.set(0, 0.35 + this.camDist * 0.13, this.camDist);
+    cam.lookAt(0, 0.3, 0);
+    return Math.abs(this.camDist - want) > 0.01;
+  }
+
+  /** grass, hills, trees and clouds — all of it blocks */
+  private buildLand() {
+    const T = THREE;
+    const q = this.ctx.quality;
+    const P = LAND;
+    const GRASS = [74, 138, 44] as const;
+    const DIRT = [112, 78, 52] as const;
+    const top = pixelTexture(3, (_x, _y, R) => tint(GRASS, 0.84 + R() * 0.28));
+    const dirt = pixelTexture(5, (_x, _y, R) => (R() < 0.07 ? tint([112, 112, 112], 0.9 + R() * 0.2) : tint(DIRT, 0.8 + R() * 0.3)));
+    const fringe = Array.from({ length: 16 }, (_, x) => 2 + ((hash2(x, 9) * 3) | 0));
+    const side = pixelTexture(7, (x, y, R) => (y < fringe[x] ? tint(GRASS, 0.8 + R() * 0.26) : tint(DIRT, 0.8 + R() * 0.3)));
+    const plain = pixelTexture(11, (_x, _y, R) => grey(0.8 + R() * 0.2));
+    this.landTex.push(top, dirt, side, plain);
+
+    const X = q === 0 ? 13 : 17;
+    const ZF = 3.4;
+    const ZB = q === 0 ? -12 : -17;
+    const nx = Math.round((2 * X) / P);
+    const nz = Math.round((ZF - ZB) / P);
+    const H = new Int16Array(nx * nz);
+    for (let iz = 0; iz < nz; iz++) for (let ix = 0; ix < nx; ix++) H[iz * nx + ix] = landHeight(-X + (ix + 0.5) * P, ZF - (iz + 0.5) * P);
+    const pos: number[] = [];
+    const nor: number[] = [];
+    const uv: number[] = [];
+    const idx: number[][] = [[], [], []];
+    const quad = (m: number, v: number[], n: [number, number, number], us: number, vs: number) => {
+      const i = pos.length / 3;
+      pos.push(...v);
+      for (let k = 0; k < 4; k++) nor.push(...n);
+      uv.push(0, 0, us, 0, us, vs, 0, vs);
+      idx[m].push(i, i + 1, i + 2, i, i + 2, i + 3);
+    };
+    const yOf = (h: number) => GROUND + h * P;
+    for (let iz = 0; iz < nz; iz++) {
+      const z0 = ZF - iz * P;
+      const z1 = z0 - P;
+      // tops: one quad for every run of equal height along x
+      for (let ix = 0; ix < nx; ) {
+        const h = H[iz * nx + ix];
+        let e = ix + 1;
+        while (e < nx && H[iz * nx + e] === h) e++;
+        const x0 = -X + ix * P;
+        const x1 = -X + e * P;
+        const y = yOf(h);
+        quad(0, [x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1], [0, 1, 0], e - ix, 1);
+        ix = e;
+      }
+      // walls where the neighbour is lower: a grass-edged block on top, dirt under it
+      for (let ix = 0; ix < nx; ix++) {
+        const h = H[iz * nx + ix];
+        const x0 = -X + ix * P;
+        const x1 = x0 + P;
+        const wall = (hn: number, a: [number, number], b: [number, number], n: [number, number, number]) => {
+          if (hn >= h) return;
+          const yt = yOf(h);
+          const ym = yt - P;
+          quad(1, [a[0], ym, a[1], b[0], ym, b[1], b[0], yt, b[1], a[0], yt, a[1]], n, 1, 1);
+          const d = h - 1 - hn;
+          if (d > 0) quad(2, [a[0], yOf(hn), a[1], b[0], yOf(hn), b[1], b[0], ym, b[1], a[0], ym, a[1]], n, 1, d);
+        };
+        wall(iz > 0 ? H[(iz - 1) * nx + ix] : h - 3, [x0, z0], [x1, z0], [0, 0, 1]);
+        if (ix > 0) wall(H[iz * nx + ix - 1], [x0, z1], [x0, z0], [-1, 0, 0]);
+        if (ix < nx - 1) wall(H[iz * nx + ix + 1], [x1, z0], [x1, z1], [1, 0, 0]);
+      }
+    }
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('normal', new T.Float32BufferAttribute(nor, 3));
+    geo.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+    geo.setIndex([...idx[0], ...idx[1], ...idx[2]]);
+    geo.addGroup(0, idx[0].length, 0);
+    geo.addGroup(idx[0].length, idx[1].length, 1);
+    geo.addGroup(idx[0].length + idx[1].length, idx[2].length, 2);
+    const land = new T.Mesh(geo, [top, side, dirt].map((map) => new T.MeshLambertMaterial({ map })));
+    land.receiveShadow = q > 1;
+    this.root.add(land);
+
+    // trees and clouds: plain blocks, coloured per instance
+    const boxes: { x: number; y: number; z: number; sx: number; sy: number; sz: number; c: number }[] = [];
+    const tree = (x: number, z: number, tall: number) => {
+      const bx = Math.round(x / P) * P + P / 2;
+      const bz = Math.round(z / P) * P + P / 2;
+      const y0 = yOf(landHeight(bx, bz));
+      for (let k = 0; k < tall; k++) boxes.push({ x: bx, y: y0 + (k + 0.5) * P, z: bz, sx: P, sy: P, sz: P, c: 0x7a5230 });
+      for (let ly = 0; ly < 4; ly++) {
+        const r = ly < 2 ? 2 : 1;
+        for (let dx = -r; dx <= r; dx++)
+          for (let dz = -r; dz <= r; dz++) {
+            if (Math.abs(dx) === r && Math.abs(dz) === r && (r === 1 || hash2(dx + ly * 3 + x, dz + z) < 0.6)) continue;
+            if (dx === 0 && dz === 0 && ly < 2) continue;
+            boxes.push({ x: bx + dx * P, y: y0 + (tall - 1 + ly + 0.5) * P, z: bz + dz * P, sx: P, sy: P, sz: P, c: hash2(dx + ly, dz + x) < 0.5 ? 0x3f8f2e : 0x4aa236 });
+          }
+      }
+    };
+    tree(-7.4, -4.6, 5);
+    tree(8.1, -5.4, 6);
+    tree(-11.2, -7.5, 6);
+    tree(11.6, -3.2, 5);
+    if (q > 0) {
+      tree(-4.6, -9.5, 5);
+      tree(5.2, -10.4, 6);
+      tree(-13.6, -1.4, 5);
+      tree(14.2, -8.6, 6);
+    }
+    const blocks = new T.InstancedMesh(this.boxGeo, new T.MeshLambertMaterial({ map: plain }), boxes.length);
+    boxes.forEach((b, i) => {
+      this.dummy.position.set(b.x, b.y, b.z);
+      this.dummy.quaternion.identity();
+      this.dummy.scale.set(b.sx, b.sy, b.sz);
+      this.dummy.updateMatrix();
+      blocks.setMatrixAt(i, this.dummy.matrix);
+      blocks.setColorAt(i, this.col.setHex(b.c));
+    });
+    blocks.castShadow = q > 1;
+    blocks.frustumCulled = false;
+    this.root.add(blocks);
+
+    const puffs: [number, number, number, number, number][] = [];
+    const cloud = (x: number, y: number, z: number, w: number) => {
+      puffs.push([x, y, z, w, 2.6], [x - w * 0.18, y + 0.75, z, w * 0.55, 2.2], [x + w * 0.3, y - 0.75, z, w * 0.5, 2]);
+    };
+    cloud(-17, 9.5, -34, 12);
+    cloud(4, 12.5, -40, 15);
+    cloud(21, 8.5, -32, 10);
+    cloud(-33, 13.5, -42, 13);
+    cloud(36, 14, -44, 14);
+    const clouds = new T.InstancedMesh(this.boxGeo, new T.MeshBasicMaterial({ color: 0xffffff, fog: false }), puffs.length);
+    puffs.forEach((c, i) => {
+      this.dummy.position.set(c[0], c[1], c[2]);
+      this.dummy.quaternion.identity();
+      this.dummy.scale.set(c[3], 0.75, c[4]);
+      this.dummy.updateMatrix();
+      clouds.setMatrixAt(i, this.dummy.matrix);
+    });
+    clouds.frustumCulled = false;
+    this.root.add(clouds);
+
+    // the sky: deeper overhead, pale at the horizon
+    const sky = new T.Mesh(
+      new T.PlaneGeometry(260, 90),
+      new T.ShaderMaterial({
+        depthWrite: false,
+        fog: false,
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+        fragmentShader: `varying vec2 vUv; void main(){
+          vec3 col = mix(vec3(0.5, 0.72, 0.93), vec3(0.1, 0.33, 0.74), smoothstep(0.22, 0.44, vUv.y));
+          gl_FragColor = vec4(col, 1.0);
+          #include <colorspace_fragment>
+        }`,
+      })
+    );
+    sky.position.set(0, 22, -60);
+    sky.renderOrder = -10;
+    this.root.add(sky);
   }
 
   private applyTheme() {
@@ -564,6 +730,7 @@ class BlockBuilderWorld extends LetterWorld<BuildVisual> {
     this.lockSounds = Math.max(0, this.lockSounds - dt * 30);
     let moving = this.sparks.update(dt, time);
     if (this.dust.update(dt, time)) moving = true;
+    if (this.placeCamera(false, dt)) moving = true;
     return moving;
   }
 
@@ -590,7 +757,7 @@ class BlockBuilderWorld extends LetterWorld<BuildVisual> {
     this.blockMat.dispose();
     this.ghostMat.dispose();
     this.faceTex.dispose();
-    this.plateTex.dispose();
+    for (const t of this.landTex) t.dispose();
     this.ctx.scene.environment = null;
   }
 }

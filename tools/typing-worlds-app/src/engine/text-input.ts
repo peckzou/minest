@@ -8,6 +8,7 @@
  * value is updated by the browser before we even look at it.
  */
 import type { LetterRef } from './types';
+import { hanziHas, hanziNeed, isHan } from '../../../../type3d/hanzi.js';
 
 export interface TextChange {
   deletes: LetterRef[];
@@ -23,6 +24,7 @@ let nextId = 1;
 export class TextInputEngine {
   private letters: LetterRef[] = [];
   private composing = false;
+  private loadingHan = false;
   private changeListeners: Listener<TextChange>[] = [];
   private submitListeners: Listener<string>[] = [];
   readonly maxLength: number;
@@ -103,8 +105,20 @@ export class TextInputEngine {
   }
 
   /** Diff DOM value against the model. */
-  sync() {
+  sync(waited = false) {
     const next = [...this.el.value];
+    // Chinese characters are drawn from stroke data that loads on demand: the model takes them once it is here
+    // (or once the load has given up), so no world ever has to draw a character it cannot see yet.
+    if (!waited && next.some((c) => isHan(c) && !hanziHas(c))) {
+      if (!this.loadingHan) {
+        this.loadingHan = true;
+        void hanziNeed(this.el.value).then(() => {
+          this.loadingHan = false;
+          this.sync(true);
+        });
+      }
+      return;
+    }
     const prev = this.letters;
     let start = 0;
     while (start < prev.length && start < next.length && prev[start].char === next[start]) start++;

@@ -1,0 +1,10 @@
+export const HANZI_W: number;
+export function hanziBase(url: string): void;
+export function isHan(ch: string): boolean;
+export function hanziHas(ch: string): boolean;
+export function hanziNeed(text: string): Promise<void>;
+export function hanziPreload(): Promise<unknown>;
+export function hanziAddPack(name: 'a' | 'b', buf: ArrayBuffer): void;
+export function hanziStrokes(ch: string): { w: number; strokes: [number, number][][]; length: number; han: true } | null;
+export function hanziContours(ch: string): { w: number; loops: ([number, number][] & { hole?: boolean })[]; han: true } | null;
+export function hanziTypeface(font: unknown, ch: string): { ha: number; o: string } | undefined;
