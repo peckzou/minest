@@ -96228,6 +96228,11 @@ var Ve = (function(_Component) {
     '.mn-set-cloud:active{transform:scale(.96)}',
     'html.mnh-tw .mn-set-cloud{background:rgba(15,23,42,.06);box-shadow:none}'
   ].join('\n');
+  /* 2026-11-25: the sync picture takes the gear's place at the top left; the gear badge goes (the picture no longer crowds ✕) */
+  css.textContent += '\nhtml body .board-settings-modal > .mn-set-head{grid-template-columns:auto minmax(0,1fr) 32px!important}' +
+    '\nhtml body .board-settings-modal > .mn-set-head > :first-child{grid-column:2;grid-row:1}' +
+    '\nhtml body .board-settings-modal > .mn-set-head > :first-child > :first-child:not(:last-child){display:none!important}' +
+    '\nhtml body .board-settings-modal > .mn-set-head > .mn-set-cloud{grid-column:1!important;grid-row:1}';
   (document.head || document.documentElement).appendChild(css);
 
   var CLOUD_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>';
@@ -96255,6 +96260,9 @@ var Ve = (function(_Component) {
     });
     // React owns the header's own children: the button is only added, never moves them
     head.classList.add('mn-set-head'); head.appendChild(b);
+    /* the page's version (window.MINEST_BUILD) under the title */
+    var V = window.MINEST_BUILD, tg = head.firstElementChild && head.firstElementChild.lastElementChild;
+    if (V && tg && !tg.querySelector('.mn-set-ver')) { var sv = document.createElement('small'); sv.className = 'mn-set-ver'; sv.textContent = 'Minest ' + V.name; sv.title = V.device + ' · ' + V.snapshot; sv.style.cssText = 'display:block;font-size:10px;opacity:.55;margin-top:2px;letter-spacing:.02em'; tg.appendChild(sv); }
   }
   new MutationObserver(function () {
     var m = document.querySelector('.board-settings-modal'); if (m) decorate(m);

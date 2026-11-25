@@ -24423,12 +24423,12 @@ var De = function(props) {
               disabled: lm === 'off',
               onClick: function() {
                 if (!window.FBFX || !window.FBFX.active) return;
-                var M = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco'];
+                var M = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco', 'gallery'];
                 window.FBFX.setMode(M[(M.indexOf(window.FBFX.mode) + 1) % M.length]);
                 setFxTab(window.FBFX.mode + '|' + fxTab.split('|')[1]);
               },
               className: "bar-fx-btn " + (on ? "on " + lm + " " : "") + "p-2 rounded-xl border transition-all duration-200 " + (isDark ? "bg-white/8 border-white/15 text-white/80 hover:text-white hover:bg-white/15" : "bg-slate-100 border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-200"),
-              title: "Light FX: " + (on ? lm : "off") + " — tap to cycle (off → lasers → firework → spotlight → neon → aurora → meteor → disco)",
+              title: "Light FX: " + (on ? lm : "off") + " — tap to cycle (off → lasers → firework → spotlight → neon → aurora → meteor → disco → gallery)",
               'aria-label': "Light FX",
               children: [(0, P.jsxs)('svg', { viewBox: "0 0 24 24", className: "w-4 h-4 block", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round", 'aria-hidden': "true",
                 children: [(0, P.jsx)('path', { d: "M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z" }), (0, P.jsx)('path', { d: "M18.5 16v4M16.5 18h4" })] }),
@@ -24811,7 +24811,7 @@ var De = function(props) {
               disabled: false,
               onClick: function() {
                 if (!window.FBFX) return;
-                var M = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco'];
+                var M = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco', 'gallery'];
                 var cur = window.FBFX.mode || 'none';
                 var next = M[(M.indexOf(cur) + 1) % M.length];
                 window.FBFX.setMode(next);
@@ -24819,7 +24819,7 @@ var De = function(props) {
                 try { if (SoundEngine && SoundEngine.play) SoundEngine.play('click'); } catch(e){}
               },
               className: "ios-tab-item dock-fx-tab " + (on ? "active " + lm : ""),
-              title: "Light FX — tap to cycle (off → lasers → firework → spotlight → neon → aurora → meteor → disco)",
+              title: "Light FX — tap to cycle (off → lasers → firework → spotlight → neon → aurora → meteor → disco → gallery)",
               children: [
                 (0, P.jsx)('span', { className: "ios-tab-icon", children: (0, P.jsxs)('svg', { viewBox: "0 0 24 24", className: "w-5 h-5", fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", 'aria-hidden': "true",
                   children: [(0, P.jsx)('path', { d: "M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z" }), (0, P.jsx)('path', { d: "M18.5 16v4M16.5 18h4" })] }) }),
@@ -31802,7 +31802,7 @@ var Oe = function(props) {
             type: "button",
             onClick: function() {
               if (window.FBFX) {
-                var M = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco'];
+                var M = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco', 'gallery'];
                 var cur = (window.FBFX.mode) || 'none';
                 var next = M[(M.indexOf(cur) + 1) % M.length];
                 window.FBFX.setMode(next);
@@ -87787,10 +87787,10 @@ var Ve = (function(_Component) {
   'use strict';
   if (window.FBFX) return;
 
-  var MODES = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco'];
+  var MODES = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco', 'gallery'];
   var INTROS = ['balloons', 'confetti', 'celebration', 'love'];
-  var LABEL = { none: 'Light FX', lasers: 'lasers', firework: 'firework', spotlight: 'spotlight', neon: 'neon', aurora: 'aurora', meteor: 'meteor', disco: 'disco' };
-  var GLYPH = { none: '✦', lasers: '⟡', firework: '✺', spotlight: '◎', neon: '◈', aurora: '≈', meteor: '☄', disco: '❖' };
+  var LABEL = { none: 'Light FX', lasers: 'lasers', firework: 'firework', spotlight: 'spotlight', neon: 'neon', aurora: 'aurora', meteor: 'meteor', disco: 'disco', gallery: 'gallery' };
+  var GLYPH = { none: '✦', lasers: '⟡', firework: '✺', spotlight: '◎', neon: '◈', aurora: '≈', meteor: '☄', disco: '❖', gallery: '◒' };
 
   // 40.9 NEON — every card becomes a 3D light box glowing from inside. The colour is a
   // real noble-gas discharge, picked from the right-hand column of the periodic table.
@@ -88120,7 +88120,7 @@ var Ve = (function(_Component) {
     // in a dark room the button is always the dark one, whatever the theme
     btn.className = 'fbfx-btn' + (HOST_SHELL ? ' in-shell' : '') + (mode !== 'none' ? ' on ' + mode : '') + (mode === 'none' && document.querySelector('.theme-white') ? ' light' : '');
     btn.innerHTML = '<span class="fbfx-glyph">' + GLYPH[mode] + '</span><span>' + LABEL[mode] + '</span>';
-    btn.title = 'Light FX: ' + (mode === 'none' ? 'off' : LABEL[mode]) + ' — click to cycle (off ➔ lasers ➔ firework ➔ spotlight ➔ neon ➔ aurora ➔ meteor ➔ disco) · Shift+click: replay an opening effect';
+    btn.title = 'Light FX: ' + (mode === 'none' ? 'off' : LABEL[mode]) + ' — click to cycle (off ➔ lasers ➔ firework ➔ spotlight ➔ neon ➔ aurora ➔ meteor ➔ disco ➔ gallery) · Shift+click: replay an opening effect';
     btn.setAttribute('aria-label', 'Screen effect: ' + mode);
   }
 
@@ -90270,15 +90270,16 @@ var Ve = (function(_Component) {
   window.addEventListener('touchmove', function (e) { if (inkRub) { e.preventDefault(); e.stopImmediatePropagation(); } }, { capture: true, passive: false });
 
   // ---------------------------------------------------------------- loop
-  // ---------------------------------------------------------------- 71: aurora · meteor · disco
+  // ---------------------------------------------------------------- 71: aurora · meteor · disco · gallery
   // Three quieter rooms than lasers / firework / spotlight, made for reading the board under them:
-  //   aurora — curtains of northern light drift across the top of a starry room;
-  //   meteor — a night sky with shooting stars; tap empty space to send one there;
-  //   disco  — a mirror ball turns overhead and throws coloured dots round the room, on the beat.
-  // All three light the glass cards through sceneLights (xfxLights), like the older modes.
+  //   aurora  — curtains of northern light drift across the top of a starry room;
+  //   meteor  — a night sky with shooting stars; tap empty space to send one there;
+  //   disco   — a mirror ball turns overhead and throws coloured dots round the room, on the beat;
+  //   gallery — midnight art gallery with pull-cord switch, pixel-accurate local flashlight
+  //             illumination, real SVG RGB-dispersion liquid-glass lens, girl & glowing-eyed Pepper.
   var xfx = { stars: null, sw: 0, sh: 0, meteors: [], glows: [], next: 0.4, strips: {}, dots: null, sprites: {} };
   var XFX_CALM = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  function xfxReset() { xfx.meteors.length = 0; xfx.glows.length = 0; xfx.next = 0.4; }
+  function xfxReset() { xfx.meteors.length = 0; xfx.glows.length = 0; xfx.next = 0.4; galSyncActive(); }
   function xfxStars() {
     if (xfx.stars && xfx.sw === W && xfx.sh === H) return xfx.stars;
     var n = Math.round(clamp(W * H / 5200, 40, 170)), a = [];
@@ -90313,7 +90314,6 @@ var Ve = (function(_Component) {
 
   // ---- aurora
   var AUR = [{ h: 150, y: 0.09, a: 1, sp: 0.11, k: 1 }, { h: 174, y: 0.15, a: 0.8, sp: -0.08, k: 1.6 }, { h: 286, y: 0.05, a: 0.62, sp: 0.06, k: 2.3 }];
-  // one curtain's fall-off from its bright lower edge up into the dark (stretched over every strip)
   function auroraStrip(h) {
     var s = xfx.strips[h];
     if (s) return s;
@@ -90335,7 +90335,6 @@ var Ve = (function(_Component) {
     c.save();
     c.globalCompositeOperation = 'lighter';
     xfxDrawStars(c, ga * 0.85, H * 0.8);
-    // (the board is read under it: the curtains are thinner there, so card text stays clear)
     var step = W > 700 ? 8 : 6, kb = stageKind === 'board' ? 0.5 : 0.9;
     for (var k = 0; k < AUR.length; k++) {
       var L = AUR[k], img = auroraStrip(L.h);
@@ -90378,7 +90377,6 @@ var Ve = (function(_Component) {
       var m = xfx.meteors[i];
       m.life += dt; m.x += m.vx * dt; m.y += m.vy * dt;
       if (m.life >= m.max) {
-        // where it burns out: a short flash (an aimed one, on the spot that was tapped)
         xfx.glows.push({ x: m.x, y: m.y, life: 0, max: m.aimed ? 0.7 : 0.4, rgb: hsl2rgb(m.h, 90, 72), big: m.aimed });
         xfx.meteors.splice(i, 1);
         continue;
@@ -90431,17 +90429,14 @@ var Ve = (function(_Component) {
       c.globalAlpha = ga * beat * (0.22 + 0.62 * depth);
       c.drawImage(xfxSprite(d.h), x - rx, y - ry, rx * 2, ry * 2);
       if (i % 6 === 0) {
-        // a few of the rays that carry the dots, seen in the haze
         c.globalAlpha = ga * beat * 0.07 * depth;
         c.strokeStyle = 'hsl(' + d.h + ',100%,72%)'; c.lineWidth = 1.2;
         c.beginPath(); c.moveTo(B.x, B.y); c.lineTo(x, y); c.stroke();
       }
     }
-    // the ball's own halo
     c.globalAlpha = ga * (0.35 + 0.4 * beat);
     c.drawImage(xfxSprite(DISCO_HUES[Math.floor(clock * 0.5) % DISCO_HUES.length]), B.x - B.r * 3.4, B.y - B.r * 3.4, B.r * 6.8, B.r * 6.8);
     c.restore();
-    // the mirror ball on its cord
     c.save();
     c.globalAlpha = ga;
     c.strokeStyle = 'rgba(200,205,220,.55)'; c.lineWidth = 1;
@@ -90470,7 +90465,7 @@ var Ve = (function(_Component) {
     c.globalAlpha = ga;
   }
 
-  // what the three rooms shine on the glass cards
+  // what the rooms shine on the glass cards
   function xfxLights(Ls) {
     if (mode === 'aurora') {
       var at = XFX_CALM ? 12 : clock;
@@ -90487,9 +90482,925 @@ var Ve = (function(_Component) {
     } else if (mode === 'disco') {
       var B = discoBall();
       Ls.push({ x: B.x, y: B.y, z: 300, rgb: hsl2rgb(DISCO_HUES[Math.floor(clock * 0.5) % DISCO_HUES.length], 95, 66), p: 0.95 * discoBeat(), kind: 'burst' });
+    } else if (mode === 'gallery') {
+      galPushLights(Ls);
     }
   }
 
+  // ---------------------------------------------------------------- 72: gallery (In-App Art Gallery)
+  // Pure flashlight-driven local illumination + SVG Liquid-Glass RGB Dispersion Lens:
+  //   · NO lamps on cards — everything outside the flashlight beam stays in deep midnight-navy
+  //     night-blueprint shadow via a GPU-masked backdrop-filter veil (.fbfx-gal-darkveil);
+  //   · ONLY the exact pixel footprint illuminated by the girl's handheld flashlight shines in
+  //     100% vivid full color (even across partial card regions!), with real-time directional
+  //     cast shadows on nearby cards and a genuine SVG feDisplacementMap RGB-dispersion glass
+  //     meniscus rim around the spotlight edge;
+  //   · Top-right golden pull-cord switch with spring physics toggles Night Gallery ("Lights off")
+  //     and Day Gallery ("Lights on"), accompanied by the flashlight girl & glowing-eyed Pepper.
+  var GAL_LOUPE_SZ = 220;
+  var gal = {
+    dom: null, darkVeil: null, pill: null, cordHit: null, loupe: null, bubble: null, dogBtn: null, svgFilter: null,
+    inited: false, active: false,
+    night: false, darkMix: 0,
+    autoPulled: false, enterT: 0,
+    pullY: 0, pullVy: 0, pendAng: 0, pendVel: 0,
+    draggingCord: false, cordDragId: null, cordStartY: 0, cordStartX: 0, cordPulled: false,
+    fx: 0, fy: 0, fvx: 0, fvy: 0,
+    hasPtr: false, ptrX: -1, ptrY: -1, ptrAt: -10,
+    sayText: 'Pepper wanted tuna.', sayTimer: 0, lineIdx: 0,
+    dogHop: 0, motes: [], styledCards: []
+  };
+  var GAL_NIGHT_LINES = [
+    'Pepper wanted tuna.',
+    'Shine the light anywhere to inspect!',
+    'Pull the yellow cord to turn lights on.'
+  ];
+  var GAL_DAY_LINES = [
+    "Oh. It's just us.",
+    'Pull the cord for night gallery!'
+  ];
+
+  function galEnsurePrismSvg() {
+    if (gal.svgFilter && gal.svgFilter.isConnected) return;
+    var existing = document.getElementById('fbfx-gal-prism-svg');
+    if (existing) { gal.svgFilter = existing; return; }
+
+    // Generate spherical meniscus ring displacement map (undistorted sharp reading core,
+    // smooth optical glass bevel at 0.56..0.96 radius that bends & splits R/G/B!)
+    var S = GAL_LOUPE_SZ, half = S / 2;
+    var mapCv = document.createElement('canvas');
+    mapCv.width = S; mapCv.height = S;
+    var mctx = mapCv.getContext('2d');
+    var img = mctx.createImageData(S, S), d = img.data;
+    for (var y = 0; y < S; y++) {
+      for (var x = 0; x < S; x++) {
+        var ux = (x + 0.5 - half) / half;
+        var uy = (y + 0.5 - half) / half;
+        var r = Math.hypot(ux, uy);
+        var mag = 0;
+        if (r > 0.001 && r < 0.96) {
+          if (r < 0.56) {
+            // Subtle magnifying dome in the reading center
+            mag = -r * 0.12;
+          } else {
+            // Smooth C1-continuous cosine bell bevel around the edge of the flashlight pool
+            var u = (r - 0.56) / 0.40;
+            var bell = 0.5 - 0.5 * Math.cos(u * Math.PI * 2);
+            mag = -0.067 * (1 - u) + bell * 0.88;
+          }
+        }
+        var nx = r > 0.001 ? ux / r : 0;
+        var ny = r > 0.001 ? uy / r : 0;
+        var idx = (y * S + x) * 4;
+        d[idx]     = Math.round(clamp(128 + 127 * mag * nx, 0, 255));
+        d[idx + 1] = Math.round(clamp(128 + 127 * mag * ny, 0, 255));
+        d[idx + 2] = 128;
+        d[idx + 3] = 255;
+      }
+    }
+    mctx.putImageData(img, 0, 0);
+    var mapUrl = mapCv.toDataURL('image/png');
+
+    var NS = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(NS, 'svg');
+    svg.id = 'fbfx-gal-prism-svg';
+    svg.setAttribute('width', '0');
+    svg.setAttribute('height', '0');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;pointer-events:none';
+
+    var defs = document.createElementNS(NS, 'defs');
+    var flt = document.createElementNS(NS, 'filter');
+    flt.setAttribute('id', 'fbfx-gal-prism');
+    flt.setAttribute('x', '0'); flt.setAttribute('y', '0');
+    flt.setAttribute('width', String(S)); flt.setAttribute('height', String(S));
+    flt.setAttribute('filterUnits', 'userSpaceOnUse');
+    flt.setAttribute('primitiveUnits', 'userSpaceOnUse');
+    flt.setAttribute('color-interpolation-filters', 'sRGB');
+
+    function addNode(tag, attrs) {
+      var n = document.createElementNS(NS, tag);
+      for (var k in attrs) n.setAttribute(k, attrs[k]);
+      flt.appendChild(n);
+      return n;
+    }
+
+    var feImg = addNode('feImage', { x: '0', y: '0', width: String(S), height: String(S), preserveAspectRatio: 'none', result: 'map' });
+    feImg.setAttribute('href', mapUrl);
+
+    // 3-channel RGB chromatic dispersion across the curved glass bevel
+    var scales = [24, 14, 4];
+    var matrices = [
+      '1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0',
+      '0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0',
+      '0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0'
+    ];
+    for (var c = 0; c < 3; c++) {
+      addNode('feDisplacementMap', {
+        in: 'SourceGraphic', in2: 'map',
+        scale: String(scales[c]),
+        xChannelSelector: 'R', yChannelSelector: 'G',
+        result: 'disp' + c
+      });
+      addNode('feColorMatrix', {
+        in: 'disp' + c, type: 'matrix',
+        values: matrices[c],
+        result: 'ch' + c
+      });
+    }
+    addNode('feBlend', { in: 'ch0', in2: 'ch1', mode: 'screen', result: 'rg' });
+    addNode('feBlend', { in: 'rg', in2: 'ch2', mode: 'screen' });
+
+    defs.appendChild(flt);
+    svg.appendChild(defs);
+    document.body.appendChild(svg);
+    gal.svgFilter = svg;
+  }
+
+  function galSfxCord(toNight) {
+    var c = actx(); if (!c) return;
+    var t = c.currentTime + 0.005, out = outAt(c, 0.35);
+    tone(c, out, 'triangle', t, toNight ? 620 : 520, toNight ? 280 : 780, 0.045, 0.22, 0.002);
+    hiss(c, out, t + 0.018, 'bandpass', 2200, 1400, 2.2, 0.035, 0.16, 0.001);
+    tone(c, out, 'sine', t + 0.042, toNight ? 190 : 340, toNight ? 120 : 480, 0.07, 0.20, 0.002);
+  }
+  function galSfxDog() {
+    var c = actx(); if (!c) return;
+    var t = c.currentTime + 0.005, out = outAt(c, 0.45);
+    tone(c, out, 'triangle', t, 380, 560, 0.075, 0.18, 0.004);
+    tone(c, out, 'triangle', t + 0.09, 440, 660, 0.085, 0.16, 0.004);
+  }
+  function galHaptic(kind) {
+    try {
+      if (window.MinestNative && window.MinestNative.haptic) window.MinestNative.haptic(kind || 'light');
+      else if (navigator.vibrate) navigator.vibrate(10);
+    } catch (e) {}
+  }
+
+  function galSay(txt, holdSec) {
+    gal.sayText = txt;
+    gal.sayTimer = holdSec || 0;
+    if (gal.bubble) {
+      gal.bubble.textContent = txt;
+      gal.bubble.classList.remove('pop');
+      void gal.bubble.offsetWidth;
+      gal.bubble.classList.add('pop');
+      clearTimeout(galSay._t);
+      galSay._t = setTimeout(function () { if (gal.bubble) gal.bubble.classList.remove('pop'); }, 240);
+    }
+  }
+
+  function galToggleRoom(forceNight) {
+    var nextNight = forceNight != null ? !!forceNight : !gal.night;
+    gal.night = nextNight;
+    gal.pullVy = -360;
+    gal.pendVel += (Math.random() < 0.5 ? 1 : -1) * 1.6;
+    galSfxCord(nextNight);
+    galHaptic('medium');
+    galSay(nextNight ? 'Pepper wanted tuna.' : "Oh. It's just us.", 0);
+    galSyncClasses();
+    kick();
+  }
+
+  function galSyncClasses() {
+    var rootEl = document.documentElement;
+    var on = stageOn && mode === 'gallery';
+    rootEl.classList.toggle('fbfx-gallery-on', on);
+    rootEl.classList.toggle('fbfx-gallery-night', on && gal.night);
+    rootEl.classList.toggle('fbfx-gallery-day', on && !gal.night);
+  }
+
+  function galClearCardShadows() {
+    for (var i = 0; i < gal.styledCards.length; i++) {
+      var el = gal.styledCards[i];
+      if (el && el.style) {
+        el.style.removeProperty('--gal-shx');
+        el.style.removeProperty('--gal-shy');
+        el.style.removeProperty('--gal-sha');
+      }
+    }
+    gal.styledCards.length = 0;
+  }
+
+  function galCleanup() {
+    if (!gal.active && !document.documentElement.classList.contains('fbfx-gallery-on')) return;
+    gal.active = false;
+    gal.autoPulled = false;
+    gal.enterT = 0;
+    gal.hasPtr = false;
+    var rootEl = document.documentElement;
+    rootEl.classList.remove('fbfx-gallery-on', 'fbfx-gallery-night', 'fbfx-gallery-day');
+    if (gal.dom) gal.dom.style.display = 'none';
+    if (gal.darkVeil) gal.darkVeil.style.opacity = '0';
+    if (gal.loupe) gal.loupe.style.opacity = '0';
+    galClearCardShadows();
+  }
+
+  function galSyncActive() {
+    if (!(stageOn && mode === 'gallery')) galCleanup();
+    else galSyncClasses();
+  }
+
+  function galEnsureDOM() {
+    if (!layer) return;
+    galEnsurePrismSvg();
+    if (gal.dom && gal.dom.parentNode === layer) return;
+
+    var wrap = document.createElement('div');
+    wrap.className = 'fbfx-gal-root fbfx-gal-ui';
+    wrap.style.display = 'none';
+
+    var darkVeil = document.createElement('div');
+    darkVeil.className = 'fbfx-gal-darkveil';
+
+    var pbTop = document.createElement('div'); pbTop.className = 'fbfx-gal-pblur-top';
+    var pbBot = document.createElement('div'); pbBot.className = 'fbfx-gal-pblur-bot';
+    var loupe = document.createElement('div'); loupe.className = 'fbfx-gal-loupe';
+
+    var pill = document.createElement('button');
+    pill.type = 'button';
+    pill.className = 'fbfx-gal-pill fbfx-gal-ui day';
+    pill.setAttribute('aria-label', 'Toggle Gallery Lights');
+    pill.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      galToggleRoom();
+    });
+
+    var cord = document.createElement('div');
+    cord.className = 'fbfx-gal-cord fbfx-gal-ui';
+    cord.title = 'Pull or tap cord to switch gallery lights';
+    cord.addEventListener('pointerdown', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      gal.draggingCord = true;
+      gal.cordDragId = e.pointerId;
+      gal.cordStartY = e.clientY - gal.pullY * SC;
+      gal.cordStartX = e.clientX;
+      gal.cordPulled = false;
+      gal.pullVy = 0;
+      try { cord.setPointerCapture(e.pointerId); } catch (err) {}
+      kick();
+    });
+    cord.addEventListener('pointermove', function (e) {
+      if (!gal.draggingCord || e.pointerId !== gal.cordDragId) return;
+      e.preventDefault(); e.stopPropagation();
+      var dy = (e.clientY - gal.cordStartY) / (SC || 1);
+      var dx = (e.clientX - gal.cordStartX) / (SC || 1);
+      gal.pullY = clamp(dy, -10, 62);
+      gal.pendAng = clamp(-dx * 0.008, -0.38, 0.38);
+      if (gal.pullY > 24 && !gal.cordPulled) {
+        gal.cordPulled = true;
+        galToggleRoom();
+      }
+      kick();
+    });
+    var endCord = function (e) {
+      if (!gal.draggingCord || e.pointerId !== gal.cordDragId) return;
+      e.preventDefault(); e.stopPropagation();
+      var wasTap = !gal.cordPulled && Math.abs(gal.pullY) < 12;
+      gal.draggingCord = false;
+      gal.cordDragId = null;
+      if (wasTap && e.type === 'pointerup') galToggleRoom();
+      else { gal.pullVy = -260; kick(); }
+    };
+    cord.addEventListener('pointerup', endCord);
+    cord.addEventListener('pointercancel', endCord);
+    cord.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); });
+
+    var bubble = document.createElement('button');
+    bubble.type = 'button';
+    bubble.className = 'fbfx-gal-bubble fbfx-gal-ui';
+    bubble.textContent = gal.sayText;
+    bubble.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      var pool = gal.night ? GAL_NIGHT_LINES : GAL_DAY_LINES;
+      gal.lineIdx = (gal.lineIdx + 1) % pool.length;
+      galSay(pool[gal.lineIdx], 4.5);
+      galHaptic('selection');
+      kick();
+    });
+
+    var dogBtn = document.createElement('button');
+    dogBtn.type = 'button';
+    dogBtn.className = 'fbfx-gal-dog fbfx-gal-ui';
+    dogBtn.title = 'Pepper';
+    dogBtn.setAttribute('aria-label', 'Pet Pepper the gallery dog');
+    dogBtn.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      gal.dogHop = 1;
+      galSfxDog();
+      galHaptic('light');
+      galSay(gal.night ? 'Pepper wanted tuna. 🐟' : 'Pepper likes the gallery!', 3.6);
+      kick();
+    });
+
+    // Place darkVeil & loupe UNDER canvas `cv` so `cv` draws the girl, beam haze, cord & Pepper crisp on top!
+    wrap.appendChild(darkVeil);
+    wrap.appendChild(loupe);
+    wrap.appendChild(pbTop);
+    wrap.appendChild(pbBot);
+    wrap.appendChild(pill);
+    wrap.appendChild(cord);
+    wrap.appendChild(bubble);
+    wrap.appendChild(dogBtn);
+    layer.insertBefore(wrap, cv);
+    // Keep interactive hit controls clickable above cv while visual backdrops sit below cv
+    cv.style.zIndex = '5';
+    pill.style.zIndex = '6';
+    cord.style.zIndex = '6';
+    bubble.style.zIndex = '6';
+    dogBtn.style.zIndex = '6';
+
+    gal.dom = wrap; gal.darkVeil = darkVeil; gal.pill = pill; gal.cordHit = cord;
+    gal.loupe = loupe; gal.bubble = bubble; gal.dogBtn = dogBtn;
+
+    if (!gal.inited) {
+      gal.inited = true;
+      var trackPtr = function (e) {
+        if (!stageOn || mode !== 'gallery') return;
+        if (gal.draggingCord) return;
+        syncOrigin();
+        var px = lx(e.clientX), py = ly(e.clientY);
+        if (!inLayer(px, py)) return;
+        gal.hasPtr = true;
+        gal.ptrX = px; gal.ptrY = py; gal.ptrAt = clock;
+      };
+      window.addEventListener('pointermove', trackPtr, { passive: true, capture: true });
+      window.addEventListener('pointerdown', trackPtr, { passive: true, capture: true });
+    }
+  }
+
+  function galTopInset() {
+    var bar = document.querySelector('.iphone-topbar, header.iphone-topbar, header');
+    var br = bar && bar.getBoundingClientRect().height ? lrect(bar.getBoundingClientRect()) : null;
+    return br ? Math.max(10, Math.min(H * 0.2, br.bottom + 8)) : 16;
+  }
+
+  function galBottomInset() {
+    var dock = document.querySelector('.ios-bottom-tab-bar, .mn-bdock');
+    var dr = dock && dock.getBoundingClientRect().height ? lrect(dock.getBoundingClientRect()) : null;
+    if (dr && dr.top > H * 0.65 && dr.top < H) return Math.max(12, H - dr.top + 6);
+    return 14;
+  }
+
+  function galUpdateDarkVeilMask(nozX, nozY, fx, fy, R) {
+    if (!gal.darkVeil) return;
+    // Build a smooth multi-zone optical mask:
+    //  1) Primary focal hotspot around (fx, fy): 100% transparent core -> inverse-square penumbra -> dark room
+    //  2) Conical beam path stops between the flashlight nozzle and (fx, fy) combined via mask-composite: intersect
+    //     so the beam cone itself softly illuminates whatever it crosses, peaking at (fx, fy)!
+    var x1 = fx.toFixed(1) + 'px', y1 = fy.toFixed(1) + 'px';
+    var rCore = (R * 1.62).toFixed(1) + 'px';
+    var mSpot = 'radial-gradient(circle ' + rCore + ' at ' + x1 + ' ' + y1 + ', ' +
+      'rgba(0,0,0,0) 0%, ' +
+      'rgba(0,0,0,0) 52%, ' +
+      'rgba(0,0,0,0.22) 66%, ' +
+      'rgba(0,0,0,0.62) 81%, ' +
+      'rgba(0,0,0,0.88) 92%, ' +
+      'rgba(0,0,0,1) 100%)';
+
+    // Two soft elliptical beam-cone stations between flashlight nozzle and spot so the cone lifts darkness too
+    var bx1 = (nozX + (fx - nozX) * 0.68).toFixed(1) + 'px';
+    var by1 = (nozY + (fy - nozY) * 0.68).toFixed(1) + 'px';
+    var br1 = (R * 0.88).toFixed(1) + 'px';
+    var mBeam1 = 'radial-gradient(circle ' + br1 + ' at ' + bx1 + ' ' + by1 + ', ' +
+      'rgba(0,0,0,0.32) 0%, rgba(0,0,0,0.68) 62%, rgba(0,0,0,1) 100%)';
+
+    var bx2 = (nozX + (fx - nozX) * 0.38).toFixed(1) + 'px';
+    var by2 = (nozY + (fy - nozY) * 0.38).toFixed(1) + 'px';
+    var br2 = (R * 0.56).toFixed(1) + 'px';
+    var mBeam2 = 'radial-gradient(circle ' + br2 + ' at ' + bx2 + ' ' + by2 + ', ' +
+      'rgba(0,0,0,0.52) 0%, rgba(0,0,0,0.82) 65%, rgba(0,0,0,1) 100%)';
+
+    var masks = mSpot + ', ' + mBeam1 + ', ' + mBeam2;
+    gal.darkVeil.style.webkitMaskImage = masks;
+    gal.darkVeil.style.maskImage = masks;
+    gal.darkVeil.style.webkitMaskComposite = 'source-in';
+    gal.darkVeil.style.maskComposite = 'intersect';
+  }
+
+  function galUpdateCardShadows(fx, fy, R, nightAmt) {
+    if (nightAmt < 0.05) { galClearCardShadows(); return; }
+    var st = stageEl();
+    if (!st) return;
+    var its = st.querySelectorAll(cardSel());
+    var nextStyled = [];
+    for (var i = 0; i < its.length && i < 20; i++) {
+      var el = its[i], r = lrect(el.getBoundingClientRect());
+      if (r.width < 24 || r.bottom < 0 || r.top > H) continue;
+      var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      var dx = cx - fx, dy = cy - fy, dist = Math.hypot(dx, dy);
+      var prox = clamp(1 - dist / (R * 3.8), 0, 1);
+      var shx = clamp(dx * 0.12 * (0.4 + prox), -24, 24);
+      var shy = clamp(dy * 0.12 * (0.4 + prox) + 8, -16, 28);
+      var sha = (0.52 + 0.32 * prox) * nightAmt;
+      el.style.setProperty('--gal-shx', shx.toFixed(1) + 'px');
+      el.style.setProperty('--gal-shy', shy.toFixed(1) + 'px');
+      el.style.setProperty('--gal-sha', sha.toFixed(3));
+      nextStyled.push(el);
+    }
+    gal.styledCards = nextStyled;
+  }
+
+  function galDrawPlaidPants(c, gx, gy, sc) {
+    c.save();
+    c.beginPath();
+    c.moveTo(gx - 13 * sc, gy - 44 * sc);
+    c.lineTo(gx + 14 * sc, gy - 44 * sc);
+    c.quadraticCurveTo(gx + 22 * sc, gy - 22 * sc, gx + 18 * sc, gy - 8 * sc);
+    c.lineTo(gx + 2 * sc, gy - 8 * sc);
+    c.lineTo(gx + 0 * sc, gy - 28 * sc);
+    c.lineTo(gx - 2 * sc, gy - 8 * sc);
+    c.lineTo(gx - 18 * sc, gy - 8 * sc);
+    c.quadraticCurveTo(gx - 22 * sc, gy - 22 * sc, gx - 13 * sc, gy - 44 * sc);
+    c.closePath();
+    c.fillStyle = '#2d3340';
+    c.fill();
+    c.save();
+    c.clip();
+    c.strokeStyle = 'rgba(226, 232, 240, 0.42)';
+    c.lineWidth = 1.1 * sc;
+    for (var px = -24; px <= 24; px += 5) {
+      c.beginPath(); c.moveTo(gx + px * sc, gy - 46 * sc); c.lineTo(gx + px * sc, gy - 6 * sc); c.stroke();
+    }
+    for (var py = -44; py <= -8; py += 5) {
+      c.beginPath(); c.moveTo(gx - 24 * sc, gy + py * sc); c.lineTo(gx + 24 * sc, gy + py * sc); c.stroke();
+    }
+    c.restore();
+    c.strokeStyle = '#18202c';
+    c.lineWidth = 2.1 * sc;
+    c.stroke();
+    c.restore();
+  }
+
+  function galDrawGirl(c, gx, gy, sc, aimX, aimY, nightAmt) {
+    c.save();
+    c.lineJoin = 'round';
+    c.lineCap = 'round';
+    var ink = '#18202c';
+
+    // Sneakers
+    c.fillStyle = '#cbd5e1';
+    c.strokeStyle = ink; c.lineWidth = 2 * sc;
+    rrect(c, gx - 17 * sc, gy - 9 * sc, 13 * sc, 7 * sc, 3.5 * sc); c.fill(); c.stroke();
+    rrect(c, gx + 4 * sc, gy - 9 * sc, 13 * sc, 7 * sc, 3.5 * sc); c.fill(); c.stroke();
+
+    // Plaid wide-leg pants
+    galDrawPlaidPants(c, gx, gy, sc);
+
+    // Left arm
+    c.save();
+    c.translate(gx - 13 * sc, gy - 68 * sc);
+    c.rotate(0.38 + Math.sin(clock * 1.8) * 0.04);
+    c.fillStyle = '#9f7db5'; c.strokeStyle = ink; c.lineWidth = 2 * sc;
+    rrect(c, -5 * sc, 0, 9 * sc, 24 * sc, 4.5 * sc); c.fill(); c.stroke();
+    c.fillStyle = '#f6d5be';
+    c.beginPath(); c.arc(0, 26 * sc, 4 * sc, 0, TAU); c.fill(); c.stroke();
+    c.restore();
+
+    // Lilac sweater torso
+    c.fillStyle = '#9f7db5'; c.strokeStyle = ink; c.lineWidth = 2.1 * sc;
+    c.beginPath();
+    c.moveTo(gx - 13 * sc, gy - 72 * sc);
+    c.lineTo(gx + 13 * sc, gy - 72 * sc);
+    c.lineTo(gx + 15 * sc, gy - 43 * sc);
+    c.lineTo(gx - 15 * sc, gy - 43 * sc);
+    c.closePath();
+    c.fill(); c.stroke();
+
+    // Crossbody pink shoulder bag
+    c.strokeStyle = ink; c.lineWidth = 2.2 * sc;
+    c.beginPath(); c.moveTo(gx + 9 * sc, gy - 72 * sc); c.lineTo(gx - 12 * sc, gy - 46 * sc); c.stroke();
+    c.fillStyle = '#dd8ea4';
+    rrect(c, gx - 17 * sc, gy - 54 * sc, 12 * sc, 14 * sc, 4 * sc); c.fill(); c.stroke();
+
+    // Articulated right arm + yellow flashlight aimed seamlessly toward (aimX, aimY)
+    var shX = gx + 12 * sc, shY = gy - 66 * sc;
+    var rawAng = Math.atan2(aimY - shY, aimX - shX);
+    var armAng = clamp(rawAng, -1.48, 0.25);
+    var handX = shX + Math.cos(armAng) * 22 * sc;
+    var handY = shY + Math.sin(armAng) * 22 * sc;
+
+    c.save();
+    c.translate(shX, shY);
+    c.rotate(armAng);
+    c.fillStyle = '#ad8bc2'; c.strokeStyle = ink; c.lineWidth = 2 * sc;
+    rrect(c, -2 * sc, -4.5 * sc, 23 * sc, 9 * sc, 4.5 * sc); c.fill(); c.stroke();
+    c.fillStyle = '#f6d5be';
+    c.beginPath(); c.arc(22 * sc, 0, 4.2 * sc, 0, TAU); c.fill(); c.stroke();
+    // Yellow flashlight
+    c.fillStyle = '#facc15';
+    rrect(c, 16 * sc, -3.5 * sc, 13 * sc, 7 * sc, 2.5 * sc); c.fill(); c.stroke();
+    c.fillStyle = '#fde047';
+    c.beginPath();
+    c.moveTo(28 * sc, -4 * sc); c.lineTo(34 * sc, -6.5 * sc);
+    c.lineTo(34 * sc, 6.5 * sc); c.lineTo(28 * sc, 4 * sc);
+    c.closePath(); c.fill(); c.stroke();
+    if (nightAmt > 0.25) {
+      c.strokeStyle = 'rgba(253, 224, 71, ' + (0.8 * nightAmt).toFixed(3) + ')';
+      c.lineWidth = 1.8 * sc;
+      [-0.36, 0, 0.36].forEach(function (da) {
+        c.beginPath();
+        c.moveTo(37 * sc, Math.sin(da) * 5 * sc);
+        c.lineTo(44 * sc, Math.sin(da) * 10.5 * sc);
+        c.stroke();
+      });
+    }
+    c.restore();
+
+    // Head + dark bobbed hair + hairclip
+    var hx = gx, hy = gy - 87 * sc;
+    c.fillStyle = '#1e2430'; c.strokeStyle = ink; c.lineWidth = 2 * sc;
+    c.beginPath(); c.arc(hx - 2 * sc, hy, 15.5 * sc, 0, TAU); c.fill();
+    c.fillStyle = '#f6d5be';
+    c.beginPath(); c.arc(hx + 1.5 * sc, hy + 1.5 * sc, 12.2 * sc, 0, TAU); c.fill(); c.stroke();
+    c.fillStyle = '#1e2430';
+    c.beginPath();
+    c.arc(hx, hy - 2 * sc, 14 * sc, Math.PI * 0.92, Math.PI * 1.96);
+    c.closePath(); c.fill();
+    rrect(c, hx - 14.5 * sc, hy - 4 * sc, 8.5 * sc, 17 * sc, 4 * sc); c.fill();
+    c.strokeStyle = '#fde047'; c.lineWidth = 2 * sc;
+    c.beginPath(); c.moveTo(hx - 6 * sc, hy - 5 * sc); c.lineTo(hx - 2 * sc, hy - 3 * sc); c.stroke();
+
+    // Eyes & expression
+    c.fillStyle = ink;
+    c.beginPath();
+    c.arc(hx + 2 * sc, hy + 0.5 * sc, 1.5 * sc, 0, TAU);
+    c.arc(hx + 8.5 * sc, hy + 0.5 * sc, 1.5 * sc, 0, TAU);
+    c.fill();
+    if (nightAmt > 0.5) {
+      c.beginPath(); c.ellipse(hx + 6 * sc, hy + 6 * sc, 2.1 * sc, 2.7 * sc, 0, 0, TAU); c.fill();
+    } else {
+      c.strokeStyle = ink; c.lineWidth = 1.6 * sc;
+      c.beginPath(); c.arc(hx + 5.5 * sc, hy + 4.2 * sc, 3.2 * sc, 0.15, Math.PI - 0.15); c.stroke();
+    }
+
+    c.restore();
+    return { nozX: handX + Math.cos(armAng) * 13 * sc, nozY: handY + Math.sin(armAng) * 13 * sc };
+  }
+
+  function galDrawPepper(c, dx, dy, sc, nightAmt, hopAmt) {
+    c.save();
+    var hopY = Math.sin(hopAmt * Math.PI) * 11 * sc;
+    c.translate(dx, dy - hopY);
+    c.lineJoin = 'round'; c.lineCap = 'round';
+    var ink = '#18202c';
+
+    var wag = Math.sin(clock * (hopAmt > 0 ? 18 : 4.2)) * 0.28;
+    c.save();
+    c.translate(12 * sc, -13 * sc);
+    c.rotate(wag);
+    c.fillStyle = '#94a3b8'; c.strokeStyle = ink; c.lineWidth = 2 * sc;
+    c.beginPath(); c.ellipse(5 * sc, -4 * sc, 5.5 * sc, 3 * sc, -0.5, 0, TAU); c.fill(); c.stroke();
+    c.restore();
+
+    c.fillStyle = '#e2e8f0'; c.strokeStyle = ink; c.lineWidth = 2 * sc;
+    c.beginPath(); c.ellipse(0, -15 * sc, 13 * sc, 15 * sc, 0, 0, TAU); c.fill(); c.stroke();
+    c.fillStyle = '#64748b';
+    c.beginPath(); c.arc(6 * sc, -17 * sc, 5.5 * sc, 0, TAU); c.fill();
+    c.fillStyle = '#f1f5f9';
+    rrect(c, -10 * sc, -7 * sc, 7.5 * sc, 7 * sc, 3.2 * sc); c.fill(); c.stroke();
+    rrect(c, 2.5 * sc, -7 * sc, 7.5 * sc, 7 * sc, 3.2 * sc); c.fill(); c.stroke();
+
+    c.fillStyle = '#dc2626';
+    rrect(c, -9.5 * sc, -28.5 * sc, 19 * sc, 4.5 * sc, 2.2 * sc); c.fill(); c.stroke();
+    c.fillStyle = '#facc15';
+    c.beginPath(); c.arc(0, -24.5 * sc, 3 * sc, 0, TAU); c.fill(); c.stroke();
+
+    c.fillStyle = '#334155';
+    c.beginPath(); c.ellipse(-11.5 * sc, -37 * sc, 4.5 * sc, 8.5 * sc, 0.28, 0, TAU); c.fill(); c.stroke();
+    c.beginPath(); c.ellipse(11.5 * sc, -37 * sc, 4.5 * sc, 8.5 * sc, -0.28, 0, TAU); c.fill(); c.stroke();
+
+    c.fillStyle = '#e2e8f0';
+    c.beginPath(); c.arc(0, -38 * sc, 12.2 * sc, 0, TAU); c.fill(); c.stroke();
+    c.fillStyle = '#475569';
+    c.beginPath(); c.arc(5 * sc, -45 * sc, 5.5 * sc, 0, TAU); c.fill();
+
+    c.fillStyle = ink;
+    c.beginPath(); c.ellipse(0, -35 * sc, 2.5 * sc, 1.8 * sc, 0, 0, TAU); c.fill();
+    c.strokeStyle = ink; c.lineWidth = 1.5 * sc;
+    c.beginPath();
+    c.moveTo(-3 * sc, -32.2 * sc); c.quadraticCurveTo(0, -30.5 * sc, 3 * sc, -32.2 * sc);
+    c.stroke();
+
+    var ex1 = -4.6 * sc, ex2 = 4.6 * sc, ey = -39.2 * sc;
+    if (nightAmt > 0.08) {
+      var pulse = 0.88 + 0.12 * Math.sin(clock * 4.2);
+      c.save();
+      c.globalCompositeOperation = 'lighter';
+      [ex1, ex2].forEach(function (ex) {
+        var eg = c.createRadialGradient(ex, ey, 0, ex, ey, 11 * sc);
+        eg.addColorStop(0, 'rgba(255, 255, 240, ' + (0.98 * nightAmt * pulse).toFixed(3) + ')');
+        eg.addColorStop(0.32, 'rgba(253, 224, 71, ' + (0.85 * nightAmt * pulse).toFixed(3) + ')');
+        eg.addColorStop(1, 'rgba(250, 204, 21, 0)');
+        c.fillStyle = eg;
+        c.beginPath(); c.arc(ex, ey, 11 * sc, 0, TAU); c.fill();
+      });
+      c.restore();
+      c.fillStyle = '#fef9c3';
+      c.beginPath();
+      c.arc(ex1, ey, 2.6 * sc, 0, TAU);
+      c.arc(ex2, ey, 2.6 * sc, 0, TAU);
+      c.fill();
+    } else {
+      c.fillStyle = ink;
+      c.beginPath();
+      c.arc(ex1, ey, 1.8 * sc, 0, TAU);
+      c.arc(ex2, ey, 1.8 * sc, 0, TAU);
+      c.fill();
+      c.fillStyle = '#fff';
+      c.beginPath();
+      c.arc(ex1 - 0.5 * sc, ey - 0.5 * sc, 0.65 * sc, 0, TAU);
+      c.arc(ex2 - 0.5 * sc, ey - 0.5 * sc, 0.65 * sc, 0, TAU);
+      c.fill();
+    }
+    c.restore();
+  }
+
+  function galDrawPullCord(c, cordX, ceilY, nightAmt) {
+    c.save();
+    var baseLen = clamp(H * 0.105, 62, 92);
+    var len = Math.max(28, baseLen + gal.pullY);
+    var kx = cordX + Math.sin(gal.pendAng) * len;
+    var ky = ceilY + Math.cos(gal.pendAng) * len;
+
+    c.fillStyle = nightAmt > 0.5 ? '#475569' : '#e2e8f0';
+    c.strokeStyle = '#18202c'; c.lineWidth = 1.8;
+    c.beginPath(); c.arc(cordX, ceilY + 2, 4, 0, TAU); c.fill(); c.stroke();
+
+    c.strokeStyle = nightAmt > 0.5 ? 'rgba(226, 232, 240, 0.78)' : '#18202c';
+    c.lineWidth = 1.9;
+    c.beginPath(); c.moveTo(cordX, ceilY + 6); c.lineTo(kx, ky - 11); c.stroke();
+
+    if (nightAmt > 0.05) {
+      c.save();
+      c.globalCompositeOperation = 'lighter';
+      var hg = c.createRadialGradient(kx, ky + 3, 2, kx, ky + 3, 28);
+      hg.addColorStop(0, 'rgba(253, 224, 71, ' + (0.45 * nightAmt).toFixed(3) + ')');
+      hg.addColorStop(1, 'rgba(253, 224, 71, 0)');
+      c.fillStyle = hg; c.beginPath(); c.arc(kx, ky + 3, 28, 0, TAU); c.fill();
+      c.restore();
+    }
+
+    c.save();
+    c.translate(kx, ky);
+    c.rotate(-gal.pendAng * 0.85);
+    var tg = c.createRadialGradient(-3, 2, 1, 0, 4, 15);
+    tg.addColorStop(0, '#fef08a');
+    tg.addColorStop(0.45, '#facc15');
+    tg.addColorStop(1, '#d97706');
+    c.fillStyle = tg;
+    c.strokeStyle = '#18202c';
+    c.lineWidth = 2.1;
+    c.beginPath();
+    c.moveTo(0, -11);
+    c.bezierCurveTo(6, -4, 10.5, 2, 10.5, 7.5);
+    c.arc(0, 7.5, 10.5, 0, Math.PI);
+    c.bezierCurveTo(-10.5, 2, -6, -4, 0, -11);
+    c.closePath();
+    c.fill(); c.stroke();
+
+    c.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+    c.lineWidth = 2;
+    c.lineCap = 'round';
+    c.beginPath();
+    c.arc(-1, 7.5, 6.2, Math.PI * 0.72, Math.PI * 1.18);
+    c.stroke();
+    c.restore();
+
+    c.restore();
+    return { x: kx, y: ky, top: ceilY };
+  }
+
+  function galDrawVolumetricBeam(c, nozX, nozY, fx, fy, R, nightAmt, dt) {
+    if (nightAmt <= 0.02) return;
+    var dx = fx - nozX, dy = fy - nozY, d = Math.hypot(dx, dy);
+
+    // 1. Soft Gaussian volumetric beam rendered via offscreen bloom buffer (NO hard polygon edges!)
+    if (d > R * 0.65) {
+      var th = Math.atan2(dy, dx), nx = -Math.sin(th), ny = Math.cos(th);
+      var half = Math.asin(Math.min(0.96, (R * 1.08) / Math.max(d, R * 1.12)));
+      var far = d + R * 1.15;
+
+      ensureBloom();
+      bctx.globalCompositeOperation = 'source-over';
+      if (bctx.createConicGradient) {
+        var cg = bctx.createConicGradient(th - Math.PI, nozX, nozY), hw = half / TAU;
+        cg.addColorStop(0, 'rgba(255,244,195,0)');
+        for (var gi = -8; gi <= 8; gi++) {
+          var u = gi / 8;
+          var a = 0.24 * Math.exp(-u * u * 3.8) * nightAmt;
+          cg.addColorStop(clamp(0.5 + hw * u, 0.001, 0.999), 'rgba(255,244,195,' + a.toFixed(4) + ')');
+        }
+        cg.addColorStop(1, 'rgba(255,244,195,0)');
+        bctx.fillStyle = cg;
+        bctx.beginPath();
+        bctx.moveTo(nozX, nozY);
+        bctx.lineTo(nozX + Math.cos(th - half * 1.1) * far, nozY + Math.sin(th - half * 1.1) * far);
+        bctx.lineTo(nozX + Math.cos(th + half * 1.1) * far, nozY + Math.sin(th + half * 1.1) * far);
+        bctx.closePath();
+        bctx.fill();
+      }
+      // Smoothly fade the atmospheric haze across the focal pool so the reading center stays crystal clear!
+      var ux = Math.cos(th), uy = Math.sin(th);
+      var fadeEnd = bctx.createLinearGradient(fx - ux * R * 0.55, fy - uy * R * 0.55, fx + ux * R * 0.85, fy + uy * R * 0.85);
+      fadeEnd.addColorStop(0, 'rgba(0,0,0,0)');
+      fadeEnd.addColorStop(1, 'rgba(0,0,0,1)');
+      bctx.globalCompositeOperation = 'destination-out';
+      bctx.fillStyle = fadeEnd;
+      bctx.fillRect(-W, -H, W * 3, H * 3);
+      blitBloom(c);
+
+      // Warm flashlight nozzle flare + drifting dust motes catching the shaft
+      c.save();
+      c.globalCompositeOperation = 'lighter';
+      var nf = c.createRadialGradient(nozX, nozY, 0, nozX, nozY, 26);
+      nf.addColorStop(0, 'rgba(255, 252, 220, ' + (0.72 * nightAmt).toFixed(3) + ')');
+      nf.addColorStop(0.4, 'rgba(253, 224, 71, ' + (0.32 * nightAmt).toFixed(3) + ')');
+      nf.addColorStop(1, 'rgba(253, 224, 71, 0)');
+      c.fillStyle = nf;
+      c.beginPath(); c.arc(nozX, nozY, 26, 0, TAU); c.fill();
+
+      while (gal.motes.length < 24) {
+        gal.motes.push({ u: Math.random(), v: rnd(-0.82, 0.82), sp: rnd(0.03, 0.09), ph: rnd(0, TAU), r: rnd(0.6, 1.45) });
+      }
+      for (var mi = 0; mi < gal.motes.length; mi++) {
+        var mt = gal.motes[mi];
+        mt.u = (mt.u + mt.sp * dt) % 1;
+        var halfW = 8 + (R * 0.85 - 8) * mt.u;
+        var mx = nozX + dx * mt.u + nx * mt.v * halfW;
+        var my = nozY + dy * mt.u + ny * mt.v * halfW;
+        var edge = 1 - mt.v * mt.v;
+        var tw = (0.4 + 0.6 * Math.abs(Math.sin(clock * 2.4 + mt.ph))) * edge * (1 - mt.u * 0.35) * nightAmt;
+        if (tw > 0.05) {
+          c.fillStyle = 'rgba(255, 249, 218, ' + (0.58 * tw).toFixed(3) + ')';
+          c.beginPath(); c.arc(mx, my, mt.r, 0, TAU); c.fill();
+        }
+      }
+      c.restore();
+    }
+
+    // 2. Subtle warm incandescent pool bloom (pure light, zero artificial stroke rings!)
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    var pool = c.createRadialGradient(fx, fy, 0, fx, fy, R * 1.24);
+    pool.addColorStop(0, 'rgba(255, 250, 224, ' + (0.13 * nightAmt).toFixed(3) + ')');
+    pool.addColorStop(0.58, 'rgba(255, 244, 196, ' + (0.08 * nightAmt).toFixed(3) + ')');
+    pool.addColorStop(0.84, 'rgba(253, 224, 110, ' + (0.06 * nightAmt).toFixed(3) + ')');
+    pool.addColorStop(1, 'rgba(253, 224, 110, 0)');
+    c.fillStyle = pool;
+    c.beginPath(); c.arc(fx, fy, R * 1.24, 0, TAU); c.fill();
+    c.restore();
+  }
+
+  function galPushLights(Ls) {
+    if (gal.darkMix < 0.05) return;
+    Ls.push({ x: gal.fx, y: gal.fy, z: 240, rgb: [255, 236, 160], p: 1.05 * gal.darkMix, kind: 'burst' });
+  }
+
+  function drawGallery(c, dt) {
+    galEnsureDOM();
+    if (!gal.active) {
+      gal.active = true;
+      gal.dom.style.display = 'block';
+      gal.enterT = 0;
+      gal.night = false;
+      gal.darkMix = 0;
+      gal.autoPulled = false;
+      gal.pullY = -14;
+      gal.pullVy = 110;
+      gal.fx = W * 0.38;
+      gal.fy = H * 0.42;
+      galSay("Oh. It's just us.", 0);
+      galSyncClasses();
+    }
+
+    gal.enterT += dt;
+    if (!gal.autoPulled && gal.enterT >= 0.24) {
+      gal.autoPulled = true;
+      gal.pullY = 26;
+      galToggleRoom(true);
+    }
+
+    // Spring physics for pull-cord bounce & pendulum sway
+    if (!gal.draggingCord) {
+      var ay = -460 * gal.pullY - 12.5 * gal.pullVy;
+      gal.pullVy += ay * dt;
+      gal.pullY += gal.pullVy * dt;
+      if (Math.abs(gal.pullY) < 0.1 && Math.abs(gal.pullVy) < 0.5) { gal.pullY = 0; gal.pullVy = 0; }
+
+      var aa = -26 * gal.pendAng - 3.2 * gal.pendVel;
+      gal.pendVel += aa * dt;
+      gal.pendAng += gal.pendVel * dt;
+    }
+
+    if (gal.dogHop > 0) gal.dogHop = Math.max(0, gal.dogHop - dt * 2.4);
+    if (gal.sayTimer > 0) {
+      gal.sayTimer -= dt;
+      if (gal.sayTimer <= 0) galSay(gal.night ? 'Pepper wanted tuna.' : "Oh. It's just us.", 0);
+    }
+
+    var targetDark = gal.night ? 1 : 0;
+    gal.darkMix += (targetDark - gal.darkMix) * Math.min(1, dt * 8.5);
+    var nightAmt = gal.darkMix;
+
+    var topIn = galTopInset();
+    var botIn = galBottomInset();
+
+    // Flashlight target: faithfully follow user's cursor/touch with natural hand micro-breathing
+    // (never wanders off while reading!); gently sweeps only before first pointer input.
+    var tx, ty;
+    if (gal.hasPtr && gal.ptrX >= 0) {
+      tx = clamp(gal.ptrX + Math.sin(clock * 1.9) * 1.6, 28, W - 28);
+      ty = clamp(gal.ptrY + Math.cos(clock * 1.5) * 1.6, topIn + 24, H - botIn - 36);
+    } else {
+      tx = W * (0.46 + 0.26 * Math.sin(clock * 0.65));
+      ty = H * (0.42 + 0.16 * Math.cos(clock * 0.85));
+    }
+    var fk = 1 - Math.exp(-dt * 15);
+    gal.fx += (tx - gal.fx) * fk;
+    gal.fy += (ty - gal.fy) * fk;
+
+    var spotRadius = clamp(Math.min(W, H) * 0.145, 76, 118);
+
+    var ga = c.globalAlpha;
+    // Day mode warm museum cream glaze
+    if (nightAmt < 0.99) {
+      c.fillStyle = 'rgba(253, 248, 236, ' + (0.13 * (1 - nightAmt)).toFixed(3) + ')';
+      c.fillRect(0, 0, W, H);
+    }
+    // Subtle gallery floor baseboard behind characters in night mode
+    if (nightAmt > 0.01) {
+      var floorH = botIn + 50;
+      c.fillStyle = 'rgba(6, 12, 24, ' + (0.42 * nightAmt).toFixed(3) + ')';
+      c.fillRect(0, H - floorH, W, floorH);
+      c.strokeStyle = 'rgba(30, 48, 82, ' + (0.45 * nightAmt).toFixed(3) + ')';
+      c.lineWidth = 1;
+      c.beginPath(); c.moveTo(0, H - floorH); c.lineTo(W, H - floorH); c.stroke();
+    }
+
+    // Draw Lead Characters + Soft Gaussian Volumetric Beam + Update GPU Pixel-Accurate Mask & Shadows
+    var charSc = clamp(Math.min(W, H) / 430, 0.78, 1.08);
+    var floorY = H - botIn - 6;
+    var girlX = clamp(W * 0.13, 42, 78);
+    var dogX = W - clamp(W * 0.11, 38, 68);
+
+    var girlHand = galDrawGirl(c, girlX, floorY, charSc, gal.fx, gal.fy, nightAmt);
+    galDrawVolumetricBeam(c, girlHand.nozX, girlHand.nozY, gal.fx, gal.fy, spotRadius, nightAmt, dt);
+    galDrawPepper(c, dogX, floorY, charSc, nightAmt, gal.dogHop);
+
+    if (gal.darkVeil) {
+      if (nightAmt > 0.008) {
+        gal.darkVeil.style.opacity = nightAmt.toFixed(3);
+        galUpdateDarkVeilMask(girlHand.nozX, girlHand.nozY, gal.fx, gal.fy, spotRadius);
+      } else {
+        gal.darkVeil.style.opacity = '0';
+      }
+    }
+    galUpdateCardShadows(gal.fx, gal.fy, spotRadius, nightAmt);
+
+    // Draw Top-Right Golden Pull-Cord & Sync Interactive Overlays
+    var cordX = W - clamp(W * 0.08, 28, 46);
+    var ceilY = topIn + 2;
+    var knob = galDrawPullCord(c, cordX, ceilY, nightAmt);
+
+    if (gal.pill) {
+      gal.pill.style.top = Math.round(topIn + 4) + 'px';
+      gal.pill.className = 'fbfx-gal-pill fbfx-gal-ui ' + (gal.night ? 'night' : 'day');
+      var labelTxt = gal.night ? 'Lights off' : 'Lights on';
+      if (gal.pill.__txt !== labelTxt) {
+        gal.pill.__txt = labelTxt;
+        gal.pill.innerHTML = '<span class="gal-dot"></span><span>' + labelTxt + '</span>';
+      }
+    }
+    if (gal.cordHit) {
+      gal.cordHit.style.left = Math.round(knob.x - 26) + 'px';
+      gal.cordHit.style.top = Math.round(ceilY) + 'px';
+      gal.cordHit.style.height = Math.round(Math.max(90, knob.y - ceilY + 28)) + 'px';
+    }
+    if (gal.loupe) {
+      if (nightAmt > 0.04) {
+        var scaleLoupe = (spotRadius * 1.92) / GAL_LOUPE_SZ;
+        var lx0 = gal.fx - GAL_LOUPE_SZ / 2;
+        var ly0 = gal.fy - GAL_LOUPE_SZ / 2;
+        gal.loupe.style.transform = 'translate3d(' + lx0.toFixed(1) + 'px,' + ly0.toFixed(1) + 'px,0) scale(' + scaleLoupe.toFixed(4) + ')';
+        gal.loupe.style.opacity = nightAmt.toFixed(3);
+      } else {
+        gal.loupe.style.opacity = '0';
+      }
+    }
+    if (gal.bubble) {
+      var bx = Math.round(girlX + 32 * charSc);
+      var by = Math.round(floorY - 38 * charSc);
+      gal.bubble.style.left = bx + 'px';
+      gal.bubble.style.top = by + 'px';
+      gal.bubble.style.maxWidth = Math.max(120, Math.round(dogX - bx - 36 * charSc)) + 'px';
+    }
+    if (gal.dogBtn) {
+      gal.dogBtn.style.left = Math.round(dogX - 34) + 'px';
+      gal.dogBtn.style.top = Math.round(floorY - 64 * charSc) + 'px';
+    }
+    c.globalAlpha = ga;
+  }
   function drawHint(c) {
     // (no on-screen instructions for any light mode: the lasers and the spotlight speak for themselves)
     return;
@@ -90521,7 +91432,7 @@ var Ve = (function(_Component) {
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
       if (inkCtx) { inkCtx.setTransform(1, 0, 0, 1, 0, 0); inkCtx.clearRect(0, 0, inkCv.width, inkCv.height); }
       if (poolEl) poolEl.style.opacity = '0';
-      lastT = 0; placeHandle(); clearAllLit(); return;
+      lastT = 0; placeHandle(); clearAllLit(); xfxReset(); return;
     }
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx.clearRect(0, 0, W, H);
@@ -90538,6 +91449,7 @@ var Ve = (function(_Component) {
       else if (mode === 'aurora') drawAurora(ctx, dt);
       else if (mode === 'meteor') drawMeteor(ctx, dt);
       else if (mode === 'disco') drawDisco(ctx, dt);
+      else if (mode === 'gallery') drawGallery(ctx, dt);
       ctx.globalAlpha = 1;
       audioTick(dt);
       drawHint(ctx);
@@ -90590,7 +91502,7 @@ var Ve = (function(_Component) {
     if (!stageOn || mode === 'none') { dtap.t = 0; return; }
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     var tg = e.target;
-    if (tg && tg.closest && tg.closest('button, a, input, textarea, select, [contenteditable="true"], .fbfx-btn, .fbfx-neon-ctl')) { dtap.t = 0; return; }
+    if (tg && tg.closest && tg.closest('button, a, input, textarea, select, [contenteditable="true"], .fbfx-btn, .fbfx-neon-ctl, .fbfx-gal-ui')) { dtap.t = 0; return; }
     var now = performance.now();
     if (dtap.t && now - dtap.t < 340 && Math.hypot(e.clientX - dtap.x, e.clientY - dtap.y) < 56) {
       var firstAt = dtap.at;
@@ -90642,7 +91554,7 @@ var Ve = (function(_Component) {
     if (!t || !t.closest) return;
     var b = t.closest('button, [role="button"], a[href], .ios-tab-item');
     if (!b) return;
-    if (b.closest('.dock-fx-tab, .bar-fx-btn, .fbfx-btn, .fbfx-neon-ctl, .card-mode-btn, [data-card-id], .perspective-stage, .apple-wallet-overlay, .hu-island-header, .fb-composer, .card-gap-active-composer')) return;
+    if (b.closest('.dock-fx-tab, .bar-fx-btn, .fbfx-btn, .fbfx-neon-ctl, .fbfx-gal-ui, .card-mode-btn, [data-card-id], .perspective-stage, .apple-wallet-overlay, .hu-island-header, .fb-composer, .card-gap-active-composer')) return;
     var root = document.documentElement;
     var cardFxOn = root.classList.contains('fb-cardfx-on') || !!document.querySelector('.board-swimlane-scroll.ripple-active') ||
       !!(window.__HeadsUpController && window.__HeadsUpController.isActive && window.__HeadsUpController.isActive());
@@ -93032,6 +93944,7 @@ var Ve = (function(_Component) {
     else if (fxMode === 'aurora') { p.play('look'); p.lookAt(innerWidth / 2, innerHeight * .15, 2400); p.say('Northern lights…'); }
     else if (fxMode === 'meteor') { p.play('look'); p.lookAt(innerWidth / 2, innerHeight * .2, 2200); p.say('Make a wish!'); }
     else if (fxMode === 'disco') { p.play('bounce'); p.say('Disco time!'); }
+    else if (fxMode === 'gallery') { p.play('look'); p.lookAt(innerWidth * .16, innerHeight * .82, 2400); p.say('Pepper wanted tuna! 🔦'); }
   });
   window.addEventListener('fbfx:intro', function (e) {
     var k = e.detail && e.detail.kind, p = P(); if (!p) return;
@@ -96818,6 +97731,11 @@ var Ve = (function(_Component) {
     '.mn-set-cloud:active{transform:scale(.96)}',
     'html.mnh-tw .mn-set-cloud{background:rgba(15,23,42,.06);box-shadow:none}'
   ].join('\n');
+  /* 2026-11-25: the sync picture takes the gear's place at the top left; the gear badge goes (the picture no longer crowds ✕) */
+  css.textContent += '\nhtml body .board-settings-modal > .mn-set-head{grid-template-columns:auto minmax(0,1fr) 32px!important}' +
+    '\nhtml body .board-settings-modal > .mn-set-head > :first-child{grid-column:2;grid-row:1}' +
+    '\nhtml body .board-settings-modal > .mn-set-head > :first-child > :first-child:not(:last-child){display:none!important}' +
+    '\nhtml body .board-settings-modal > .mn-set-head > .mn-set-cloud{grid-column:1!important;grid-row:1}';
   (document.head || document.documentElement).appendChild(css);
 
   var CLOUD_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>';
@@ -96845,6 +97763,9 @@ var Ve = (function(_Component) {
     });
     // React owns the header's own children: the button is only added, never moves them
     head.classList.add('mn-set-head'); head.appendChild(b);
+    /* the page's version (window.MINEST_BUILD) under the title */
+    var V = window.MINEST_BUILD, tg = head.firstElementChild && head.firstElementChild.lastElementChild;
+    if (V && tg && !tg.querySelector('.mn-set-ver')) { var sv = document.createElement('small'); sv.className = 'mn-set-ver'; sv.textContent = 'Minest ' + V.name; sv.title = V.device + ' · ' + V.snapshot; sv.style.cssText = 'display:block;font-size:10px;opacity:.55;margin-top:2px;letter-spacing:.02em'; tg.appendChild(sv); }
   }
   new MutationObserver(function () {
     var m = document.querySelector('.board-settings-modal'); if (m) decorate(m);
@@ -199232,230 +200153,6 @@ html.student-mode .mn-sk-world { display: none !important; }
   window.MinestSystemBar = { page: setPage, reading: setReading, tools: setTools, state: function () { return { reading: reading, tools: !R.classList.contains('mn-sys-tools-off'), ctx: ctx }; } };
 })();
 </script>
-<style id="mn-fx71-css">
-/* Minest · FX 71 (tools/fx-71): Light FX aurora / meteor / disco, Card FX holo / float / wave, and the buttons' looks */
-
-/* ---- the switches name every mode in its own colour (ripple and List Wallet had none) */
-.ios-tab-item.dock-fx-tab.active.aurora { color: #34e3a4; }
-.ios-tab-item.dock-fx-tab.active.meteor { color: #7db8ff; }
-.ios-tab-item.dock-fx-tab.active.disco { color: #ff5fc4; }
-.theme-white .ios-tab-item.dock-fx-tab.active.aurora { color: #0b8f63; }
-.theme-white .ios-tab-item.dock-fx-tab.active.meteor { color: #2563eb; }
-.theme-white .ios-tab-item.dock-fx-tab.active.disco { color: #c026a3; }
-.bar-fx-btn.on.aurora { background: rgba(52,227,164,.26) !important; border-color: rgba(52,227,164,.58) !important; }
-.bar-fx-btn.on.meteor { background: rgba(125,184,255,.28) !important; border-color: rgba(125,184,255,.6) !important; }
-.bar-fx-btn.on.disco { background: rgba(255,95,196,.28) !important; border-color: rgba(255,95,196,.6) !important; }
-.fbfx-btn.on.neon { background: rgba(255,58,26,.2); border-color: rgba(255,154,107,.5); box-shadow: 0 0 18px rgba(255,58,26,.34), inset 0 1px 0 rgba(255,255,255,.35); }
-.fbfx-btn.on.aurora { background: rgba(52,227,164,.2); border-color: rgba(134,239,200,.5); box-shadow: 0 0 18px rgba(52,227,164,.34), inset 0 1px 0 rgba(255,255,255,.35); }
-.fbfx-btn.on.meteor { background: rgba(96,165,250,.22); border-color: rgba(165,205,255,.5); box-shadow: 0 0 18px rgba(96,165,250,.36), inset 0 1px 0 rgba(255,255,255,.35); }
-.fbfx-btn.on.disco { background: rgba(236,72,153,.22); border-color: rgba(249,168,212,.5); box-shadow: 0 0 18px rgba(236,72,153,.36), inset 0 1px 0 rgba(255,255,255,.35); }
-
-.card-mode-btn.on.ripple { color: #fff; background: rgba(14,165,233,.24); border-color: rgba(125,211,252,.5); box-shadow: 0 0 18px rgba(14,165,233,.32), inset 0 1px 0 rgba(255,255,255,.35); }
-.card-mode-btn.on.holo { color: #fff; background: linear-gradient(110deg, rgba(34,211,238,.3), rgba(232,121,249,.3) 55%, rgba(250,204,21,.3)); border-color: rgba(255,255,255,.5); box-shadow: 0 0 18px rgba(192,132,252,.34), inset 0 1px 0 rgba(255,255,255,.4); }
-.card-mode-btn.on.float { color: #fff; background: rgba(129,140,248,.26); border-color: rgba(199,210,254,.5); box-shadow: 0 0 18px rgba(129,140,248,.34), inset 0 1px 0 rgba(255,255,255,.35); }
-.card-mode-btn.on.wave { color: #fff; background: rgba(45,212,191,.24); border-color: rgba(153,246,228,.5); box-shadow: 0 0 18px rgba(45,212,191,.32), inset 0 1px 0 rgba(255,255,255,.35); }
-.theme-white .card-mode-btn.on.ripple, .theme-white .card-mode-btn.on.holo, .theme-white .card-mode-btn.on.float, .theme-white .card-mode-btn.on.wave { color: #0f172a; }
-.ios-tab-item.dock-fx-tab.active.holo { color: #c084fc; }
-.ios-tab-item.dock-fx-tab.active.float { color: #818cf8; }
-.ios-tab-item.dock-fx-tab.active.wave { color: #2dd4bf; }
-.bar-fx-btn.on.holo { background: rgba(192,132,252,.3) !important; border-color: rgba(192,132,252,.6) !important; }
-.bar-fx-btn.on.float { background: rgba(129,140,248,.3) !important; border-color: rgba(129,140,248,.6) !important; }
-.bar-fx-btn.on.wave { background: rgba(45,212,191,.28) !important; border-color: rgba(45,212,191,.6) !important; }
-
-/* ---- the foil layer every board card gets while a 71 card mode is on */
-.cfx-foil { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 5; opacity: 0; transition: opacity .35s ease; }
-
-/* holo */
-@keyframes cfxFoilDrift { from { background-position: 0% 30%; } to { background-position: 100% 70%; } }
-html[data-cfx="holo"] .cfx-foil {
-  opacity: .5;
-  background-image: linear-gradient(115deg, transparent 18%, hsla(188,100%,68%,.6) 34%, hsla(292,100%,72%,.6) 47%, hsla(48,100%,68%,.6) 60%, transparent 78%);
-  background-size: 300% 300%;
-  mix-blend-mode: color-dodge;
-  animation: cfxFoilDrift 7s ease-in-out var(--cfx-dl, 0s) infinite alternate;
-}
-html[data-cfx="holo"] .cfx-hot > .cfx-foil {
-  opacity: .78;
-  animation: none;
-  background-image: radial-gradient(circle at var(--cfx-mx, 50%) var(--cfx-my, 50%), rgba(255,255,255,.7), rgba(255,255,255,0) 46%),
-    linear-gradient(115deg, transparent 18%, hsla(188,100%,68%,.6) 34%, hsla(292,100%,72%,.6) 47%, hsla(48,100%,68%,.6) 60%, transparent 78%);
-  background-size: 100% 100%, 300% 300%;
-  background-position: 0 0, var(--cfx-mx, 50%) var(--cfx-my, 50%);
-}
-.theme-white[data-cfx="holo"] .cfx-foil, html[data-cfx="holo"] .theme-white .cfx-foil { mix-blend-mode: hard-light; opacity: .34; }
-.theme-white[data-cfx="holo"] .cfx-hot > .cfx-foil, html[data-cfx="holo"] .theme-white .cfx-hot > .cfx-foil { opacity: .5; }
-html[data-cfx="holo"] .fb-board-stage article.kanban-card[data-card-id],
-html[data-cfx="holo"] .board-swimlane-scroll article.kanban-card[data-card-id] { transition: transform .5s cubic-bezier(.2,.8,.2,1); }
-html[data-cfx="holo"] .fb-board-stage article.kanban-card[data-card-id].cfx-hot,
-html[data-cfx="holo"] .board-swimlane-scroll article.kanban-card[data-card-id].cfx-hot {
-  transform: perspective(720px) rotateX(var(--cfx-rx, 0deg)) rotateY(var(--cfx-ry, 0deg)) scale(1.02) !important;
-  transition: transform .09s linear;
-  z-index: 3;
-}
-
-/* float */
-@keyframes cfxFloat { 0%, 100% { translate: 0 0; rotate: 0deg; } 50% { translate: 0 -5px; rotate: var(--cfx-r, .3deg); } }
-html[data-cfx="float"] .fb-board-stage article.kanban-card[data-card-id],
-html[data-cfx="float"] .board-swimlane-scroll article.kanban-card[data-card-id] {
-  animation: cfxFloat var(--cfx-dur, 4s) ease-in-out var(--cfx-dl, 0s) infinite;
-  transition: scale .18s ease;
-}
-html[data-cfx="float"] .fb-board-stage article.kanban-card[data-card-id]:active,
-html[data-cfx="float"] .board-swimlane-scroll article.kanban-card[data-card-id]:active { scale: .97; }
-html[data-cfx="float"] .cfx-foil { opacity: 1; z-index: 0; box-shadow: 0 16px 20px -14px rgba(0,0,0,.6); }
-html[data-cfx="float"] .theme-white .cfx-foil { box-shadow: 0 16px 20px -14px rgba(15,23,42,.3); }
-
-/* wave */
-@keyframes cfxWave { 0%, 22%, 100% { translate: 0 0; scale: 1; } 9% { translate: 0 -4px; scale: 1.03; } }
-@keyframes cfxWaveSheen { 0% { background-position: 140% 0; opacity: 0; } 3% { opacity: 1; } 19% { background-position: -70% 0; opacity: 1; } 23%, 100% { background-position: -70% 0; opacity: 0; } }
-html[data-cfx="wave"] .fb-board-stage article.kanban-card[data-card-id],
-html[data-cfx="wave"] .board-swimlane-scroll article.kanban-card[data-card-id] { animation: cfxWave 4.4s cubic-bezier(.3,.7,.3,1) var(--cfx-wd, 0s) infinite; }
-html[data-cfx="wave"] .cfx-foil {
-  background-image: linear-gradient(105deg, transparent 34%, rgba(255,255,255,.5) 50%, transparent 66%);
-  background-size: 220% 100%;
-  background-repeat: no-repeat;
-  mix-blend-mode: screen;
-  animation: cfxWaveSheen 4.4s linear var(--cfx-wd, 0s) infinite;
-}
-html[data-cfx="wave"] .theme-white .cfx-foil { mix-blend-mode: normal; background-image: linear-gradient(105deg, transparent 34%, rgba(56,132,255,.2) 50%, transparent 66%); }
-
-@media (prefers-reduced-motion: reduce) {
-  html[data-cfx] .cfx-foil,
-  html[data-cfx] .fb-board-stage article.kanban-card[data-card-id],
-  html[data-cfx] .board-swimlane-scroll article.kanban-card[data-card-id] { animation: none !important; }
-  html[data-cfx="wave"] .cfx-foil { opacity: 0; }
-}
-</style>
-<script id="mn-fx71-cardfx-js">
-/* Minest · board Card FX 71 — holo · float · wave (tools/fx-71).
-   The board's card-mode switch writes the mode to <html data-cfx="…"> and fires `minest:cardfx`;
-   this block gives every board card a foil layer and drives the three looks:
-     holo  — a holographic foil on every card; the card under the pointer tilts toward it
-     float — the cards hover, each on its own slow beat
-     wave  — a wave of lift and light runs across the lists; tap a card to send one out from it
-   The look itself is in the stylesheet beside this file. */
-(function () {
-  'use strict';
-  if (window.MinestCardFX) return;
-  var root = document.documentElement, MODES = ['holo', 'float', 'wave'];
-  var SEL = '.fb-board-stage article.kanban-card[data-card-id], .board-swimlane-scroll article.kanban-card[data-card-id]';
-  var mode = 'none', timer = 0, hot = null, raf = 0, pend = null;
-  var calm = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-
-  function hash(s) { var x = 2166136261; for (var i = 0; i < s.length; i++) { x ^= s.charCodeAt(i); x = Math.imul(x, 16777619); } return x >>> 0; }
-  function cardOf(t) { return t && t.closest ? t.closest('article.kanban-card[data-card-id]') : null; }
-  function inBoard(el) { return !!(el && el.closest('.fb-board-stage, .board-swimlane-scroll')); }
-
-  function sync() {
-    var els = document.querySelectorAll(SEL), cols = [], count = [];
-    for (var i = 0; i < els.length; i++) {
-      var el = els[i], f = el.__cfxFoil;
-      if (!f || f.parentNode !== el) {
-        f = document.createElement('i');
-        f.className = 'cfx-foil';
-        f.setAttribute('aria-hidden', 'true');
-        el.appendChild(f);
-        el.__cfxFoil = f;
-      }
-      if (el.__cfxMode === mode) {
-        if (mode === 'wave') { var c0 = el.closest('.kanban-cards-scroll') || el.parentNode, k0 = cols.indexOf(c0); if (k0 < 0) { k0 = cols.push(c0) - 1; count[k0] = 0; } count[k0]++; }
-        continue;
-      }
-      el.__cfxMode = mode;
-      var h = hash(el.getAttribute('data-card-id') || String(i));
-      if (mode === 'float') {
-        el.style.setProperty('--cfx-dur', (3.4 + (h % 7) * 0.28).toFixed(2) + 's');
-        el.style.setProperty('--cfx-dl', (-((h >>> 4) % 4000) / 1000).toFixed(2) + 's');
-        el.style.setProperty('--cfx-r', (((h >>> 9) % 2 ? 1 : -1) * (0.2 + ((h >>> 11) % 5) * 0.07)).toFixed(2) + 'deg');
-      } else if (mode === 'wave') {
-        // the wave runs list by list, top to bottom: the delay comes from the card's place on the board
-        var col = el.closest('.kanban-cards-scroll') || el.parentNode, k = cols.indexOf(col);
-        if (k < 0) { k = cols.push(col) - 1; count[k] = 0; }
-        el.style.setProperty('--cfx-wd', ((k * 0.24 + count[k] * 0.085) % 4.4).toFixed(2) + 's');
-        count[k]++;
-      } else if (mode === 'holo') {
-        el.style.setProperty('--cfx-dl', (-((h >>> 4) % 7000) / 1000).toFixed(2) + 's');
-      }
-    }
-  }
-  function clear() {
-    var fs = document.querySelectorAll('.cfx-foil');
-    for (var i = 0; i < fs.length; i++) {
-      var el = fs[i].parentNode;
-      if (el) { el.__cfxFoil = null; el.__cfxMode = null; el.classList.remove('cfx-hot'); ['--cfx-dur', '--cfx-dl', '--cfx-r', '--cfx-wd', '--cfx-rx', '--cfx-ry', '--cfx-mx', '--cfx-my'].forEach(function (p) { el.style.removeProperty(p); }); el.removeChild(fs[i]); }
-    }
-    hot = null;
-  }
-  function cool() { if (hot) { hot.classList.remove('cfx-hot'); hot = null; } }
-
-  function set(m) {
-    m = MODES.indexOf(m) >= 0 ? m : 'none';
-    if (m === mode) return;
-    mode = m;
-    cool();
-    clearInterval(timer); timer = 0;
-    if (m === 'none') { clear(); return; }
-    sync();
-    timer = setInterval(sync, 700);
-  }
-  function read() { set(root.getAttribute('data-cfx') || 'none'); }
-
-  // holo: the card under the pointer tilts toward it and its glare follows
-  function tilt() {
-    raf = 0;
-    var e = pend; pend = null;
-    if (!e || mode !== 'holo') return;
-    var el = cardOf(e.t);
-    if (!el || !inBoard(el)) { cool(); return; }
-    if (el !== hot) { cool(); hot = el; el.classList.add('cfx-hot'); }
-    var r = el.getBoundingClientRect();
-    if (!r.width || !r.height) return;
-    var u = Math.min(1, Math.max(0, (e.x - r.left) / r.width)), v = Math.min(1, Math.max(0, (e.y - r.top) / r.height));
-    // (a wide, short card needs less turn about its long axis to read the same)
-    var kx = calm ? 0 : Math.min(9, 520 / r.width * 4), ky = calm ? 0 : 7;
-    el.style.setProperty('--cfx-ry', ((u - 0.5) * 2 * kx).toFixed(2) + 'deg');
-    el.style.setProperty('--cfx-rx', ((0.5 - v) * 2 * ky).toFixed(2) + 'deg');
-    el.style.setProperty('--cfx-mx', (u * 100).toFixed(1) + '%');
-    el.style.setProperty('--cfx-my', (v * 100).toFixed(1) + '%');
-  }
-  var onMove = function (e) {
-    if (mode !== 'holo') return;
-    pend = { t: e.target, x: e.clientX, y: e.clientY };
-    if (!raf) raf = requestAnimationFrame(tilt);
-  };
-  document.addEventListener('pointermove', onMove, { passive: true, capture: true });
-  document.addEventListener('pointerdown', onMove, { passive: true, capture: true });
-  ['pointerup', 'pointercancel'].forEach(function (n) {
-    document.addEventListener(n, function (e) { if (mode === 'holo' && e.pointerType !== 'mouse') cool(); }, { passive: true, capture: true });
-  });
-  document.addEventListener('pointerleave', cool, true);
-
-  // wave: a tap on a card sends a ring of lift out from it
-  document.addEventListener('click', function (e) {
-    if (mode !== 'wave' || calm) return;
-    var from = cardOf(e.target);
-    if (!from || !inBoard(from) || !from.animate) return;
-    var fr = from.getBoundingClientRect(), fx = fr.left + fr.width / 2, fy = fr.top + fr.height / 2;
-    var els = document.querySelectorAll(SEL), vh = window.innerHeight, vw = window.innerWidth;
-    for (var i = 0; i < els.length; i++) {
-      var r = els[i].getBoundingClientRect();
-      if (!r.width || r.bottom < 0 || r.top > vh || r.right < 0 || r.left > vw) continue;
-      var d = Math.hypot(r.left + r.width / 2 - fx, r.top + r.height / 2 - fy), k = Math.max(0.25, 1 - d / 900);
-      try {
-        els[i].animate([
-          { translate: '0 0', scale: '1' },
-          { translate: '0 ' + (-8 * k).toFixed(1) + 'px', scale: (1 + 0.05 * k).toFixed(3), offset: 0.35 },
-          { translate: '0 0', scale: '1' }
-        ], { duration: 560, delay: d * 0.9, easing: 'cubic-bezier(.2,.8,.2,1)' });
-      } catch (err) {}
-    }
-  }, true);
-
-  window.addEventListener('minest:cardfx', read);
-  window.MinestCardFX = { set: set, sync: sync, get mode() { return mode; }, modes: MODES.slice() };
-  read();
-})();
-</script>
 <script id="mn-rolodex-js">
 /* =========================================================================
    Minest 3D Cover · Vintage Rolodex Rotary Card File Mode (rolodex.js)
@@ -200980,6 +201677,1728 @@ html[data-cfx="wave"] .theme-white .cfx-foil { mix-blend-mode: normal; backgroun
   window.MinestRolodexMode = { mount: mountMode };
 })();
 </script>
+<script id="mn-glass-widgets-js">
+/* Minest · 3D Cover Mode: Glass Widgets (玻璃组件)
+ * 1:1 optical recreation of the 3D Liquid Crystal Glass Widget:
+ * - Sculpted isometric 3D extruded smoked-crystal squircle block with multi-slice depth parallax
+ * - Raised convex cabochon glass dome with real SVG feDisplacementMap edge meniscus refraction
+ * - Progressive focus-pull bokeh blur dissolve ( artwork + staggered frosted SF typography )
+ * - Live artwork-derived atmospheric color-bleed backdrop + pointer-reactive 3D specular caustics
+ * - Seamless Minest Kanban deck binding + canonical Museum Masterpieces showcase toggle
+ */
+(function () {
+  'use strict';
+  if (window.MinestGlassWidgetsMode) return;
+
+  var STYLE_ID = 'mn-glass-widgets-css';
+  var SVG_FILTER_ID = 'gw-cabochon-disp';
+
+  function artAssetUrl(file) {
+    var p = '';
+    try { p = location.pathname || ''; } catch (e) {}
+    return (/\/cards-2(\/|$)/.test(p) ? 'art/' : 'cards-2/art/') + file;
+  }
+
+  /* Canonical Museum Masterpieces (CC0 Public Domain from The Metropolitan Museum of Art Open Access + procedural fallback) */
+  var MUSEUM_DECK = [
+    {
+      id: 'gw-museum-cezanne',
+      eyebrow: 'Artwork of the Day',
+      title: 'Mont Sainte-Victoire',
+      subtitle: 'Paul Cézanne',
+      artFile: 'cezanne.jpg',
+      desc: 'Post-Impressionist limestone peak rising above faceted Provençal ochre and pine valleys.',
+      painter: 0,
+      atmo: ['#1d3949', '#3d5b68', '#524b2a', '#242d26']
+    },
+    {
+      id: 'gw-museum-vangogh',
+      eyebrow: 'Artwork of the Day',
+      title: 'Wheat Field with Cypresses',
+      subtitle: 'Vincent van Gogh',
+      artFile: 'vangogh.jpg',
+      desc: 'Swirling celadon-cobalt Saint-Rémy sky above golden wheat and towering dark cypresses.',
+      painter: 1,
+      atmo: ['#435558', '#5d6e6f', '#4e451d', '#1c241e']
+    },
+    {
+      id: 'gw-museum-hokusai',
+      eyebrow: 'Artwork of the Day',
+      title: 'The Great Wave',
+      subtitle: 'Katsushika Hokusai',
+      artFile: 'hokusai.jpg',
+      desc: 'Prussian-blue clawing ocean crest framing snow-capped Mount Fuji against warm Edo parchment.',
+      painter: 2,
+      atmo: ['#948977', '#7b7f82', '#5c594f', '#223542']
+    },
+    {
+      id: 'gw-museum-irises',
+      eyebrow: 'Artwork of the Day',
+      title: 'Irises',
+      subtitle: 'Vincent van Gogh',
+      artFile: 'irises.jpg',
+      desc: 'Vibrant violet-cobalt irises and emerald leaves painted at Saint-Paul-de-Mausole.',
+      painter: 3,
+      atmo: ['#284458', '#3c6158', '#4f3d56', '#182830']
+    },
+    {
+      id: 'gw-museum-turner',
+      eyebrow: 'Artwork of the Day',
+      title: 'Venice, Madonna della Salute',
+      subtitle: 'J. M. W. Turner',
+      artFile: 'turner.jpg',
+      desc: 'Golden atmospheric mist dissolving sunlit domes into a luminous Venetian lagoon.',
+      painter: 5,
+      atmo: ['#7d6a52', '#8f7958', '#3a5c66', '#283842']
+    }
+  ];
+
+  var PALETTES = [
+    ['#1d3949', '#3d5b68', '#524b2a', '#242d26'],
+    ['#435558', '#5d6e6f', '#4e451d', '#1c241e'],
+    ['#948977', '#7b7f82', '#5c594f', '#223542'],
+    ['#284458', '#3c6158', '#4f3d56', '#182830'],
+    ['#182d52', '#2c4a73', '#4c4724', '#101a2e'],
+    ['#7d6a52', '#8f7958', '#3a5c66', '#283842']
+  ];
+
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function mod(n, m) { return ((n % m) + m) % m; }
+  function pad2(n) { return String(n).padStart(2, '0'); }
+
+  function hexToRgb(hex) {
+    var s = String(hex || '#2c3e50').replace('#', '').trim();
+    if (s.length === 3) s = s[0] + s[0] + s[1] + s[1] + s[2] + s[2];
+    var n = parseInt(s, 16);
+    if (isNaN(n)) return [44, 62, 80];
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+
+  function seededRng(seed) {
+    var s = (seed >>> 0) || 123456789;
+    return function () {
+      s = (s * 1664525 + 1013904223) >>> 0;
+      return s / 4294967296;
+    };
+  }
+
+  function hashStr(str) {
+    var h = 2166136261 >>> 0;
+    var s = String(str || '');
+    for (var i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619) >>> 0;
+    }
+    return h >>> 0;
+  }
+
+  function cleanPlain(s) {
+    return String(s || '')
+      .replace(/https?:\/\/\S+/g, '')
+      .replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, '$2$1')
+      .replace(/[#*_>`~\[\]]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function extractShortSubtitle(it, boardTitle) {
+    if (it.subtitle) return it.subtitle;
+    var raw = it.raw || {};
+    if (raw.author || raw.artist) return cleanPlain(raw.author || raw.artist);
+    var d = cleanPlain(it.desc || raw.meaning || raw.description || '');
+    if (d) {
+      d = d.replace(/^(你要理解|范围|官方备考入口说明|考纲)[：:\s]*/i, '');
+      d = d.replace(/^\d+\.\s*/, '');
+      var firstSent = d.split(/[。！？；\n|]/)[0].trim();
+      if (firstSent && firstSent !== it.title) {
+        return firstSent.length > 30 ? firstSent.slice(0, 29) + '…' : firstSent;
+      }
+    }
+    return cleanPlain(it.sub || raw.columnTitle || boardTitle || 'Minest Collection');
+  }
+
+  /* Detect plain white study flowchart SVGs so we give study cards gorgeous museum glass paintings by default */
+  function isDiagramPlaceholderSvg(src) {
+    if (!src || src.indexOf('data:image/svg+xml') !== 0) return false;
+    try {
+      if (src.indexOf('base64,') >= 0) {
+        var b64 = src.split('base64,')[1].slice(0, 320);
+        var dec = atob(b64);
+        if (dec.indexOf('#f8fafc') >= 0 || dec.indexOf('STUDY SUMMARY') >= 0) return true;
+      } else if (src.indexOf('%23f8fafc') >= 0 || src.indexOf('STUDY%20SUMMARY') >= 0) {
+        return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+
+  /* Generate procedural convex cabochon displacement map data URL for SVG feDisplacementMap */
+  var cachedDispUrl = '';
+  function getCabochonMapUrl() {
+    if (cachedDispUrl) return cachedDispUrl;
+    try {
+      var W = 256, H = 168;
+      var cv = document.createElement('canvas');
+      cv.width = W; cv.height = H;
+      var ctx = cv.getContext('2d');
+      var img = ctx.createImageData(W, H);
+      var d = img.data;
+      for (var y = 0; y < H; y++) {
+        var ny = (y / (H - 1)) * 2 - 1;
+        for (var x = 0; x < W; x++) {
+          var nx = (x / (W - 1)) * 2 - 1;
+          /* Squircle superellipse distance (n=4.2) matching the convex dome shape */
+          var ax = Math.abs(nx), ay = Math.abs(ny);
+          var r = Math.pow(Math.pow(ax, 4.2) + Math.pow(ay, 4.2), 1 / 4.2);
+          /* Meniscus curvature concentrated in the outer 24% glass bevel */
+          var edge = clamp((r - 0.72) / 0.28, 0, 1);
+          var curve = edge * edge * (3 - 2 * edge);
+          /* Pull inward near the convex bevel so background/painting bends around the curved glass lip */
+          var dx = -nx * curve * 0.88;
+          var dy = -ny * curve * 0.88;
+          var idx = (y * W + x) * 4;
+          d[idx] = clamp(Math.round(128 + dx * 127), 0, 255);
+          d[idx + 1] = clamp(Math.round(128 + dy * 127), 0, 255);
+          d[idx + 2] = 128;
+          d[idx + 3] = 255;
+        }
+      }
+      ctx.putImageData(img, 0, 0);
+      cachedDispUrl = cv.toDataURL('image/png');
+    } catch (e) {
+      cachedDispUrl = '';
+    }
+    return cachedDispUrl;
+  }
+
+  function ensureStylesAndFilters() {
+    if (!document.getElementById(STYLE_ID)) {
+      var st = document.createElement('style');
+      st.id = STYLE_ID;
+      st.textContent = [
+        '#cm-ov.glass{background:#0b0f14!important;overflow:hidden}',
+        '#cm-ov.glass #v2-stage{opacity:0.12;z-index:2}',
+        '.gw-stage{position:absolute;inset:0;z-index:6;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none;font-family:-apple-system,"SF Pro Display","SF Pro Text","PingFang SC","Hiragino Sans GB",system-ui,sans-serif}',
+        /* Apple Music + reference video dual-buffer fluid blurred artwork backdrop (pre-baked Gaussian bokeh -> 120fps zero-cost GPU compositing) */
+        '.gw-atmo-wrap{position:absolute;inset:0;z-index:1;overflow:hidden;pointer-events:none;background:#0b0f14}',
+        '.gw-stage.is-holo .gw-atmo-wrap{opacity:0.26}',
+        '.gw-bg-slot{position:absolute;inset:-12%;pointer-events:none;will-change:opacity,transform}',
+        '.gw-bg-base,.gw-bg-flow{position:absolute;inset:0;width:100%;height:100%;display:block}',
+        '.gw-bg-flow{opacity:0.52;will-change:transform}',
+        '.gw-vignette{position:absolute;inset:0;z-index:2;pointer-events:none;background:radial-gradient(86% 82% at 50% 47%,transparent 46%,rgba(4,6,11,0.26) 82%,rgba(2,4,8,0.54) 100%)}',
+        '.gw-rig{position:absolute;left:50%;top:47.5%;width:440px;height:430px;margin:-215px 0 0 -220px;z-index:8;perspective:1380px;transform-origin:50% 50%;cursor:grab}',
+        '.gw-rig:active{cursor:grabbing}',
+        '.gw-pose{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform}',
+        /* Deep ambient drop shadow floating beneath the crystal slab */
+        '.gw-shadow{position:absolute;inset:12px 14px -4px -4px;border-radius:102px;background:radial-gradient(66% 66% at 48% 54%,rgba(0,0,0,0.54),rgba(0,0,0,0.22) 68%,transparent 100%);filter:blur(26px);transform:translate3d(-14px,24px,-40px);pointer-events:none}',
+        /* Multi-slice 3D extruded crystal sidewall ( sleek thin ~8px left crystal wall & ~12px bottom lip ) */
+        '.gw-slice{position:absolute;inset:0;border-radius:98px;pointer-events:none;box-sizing:border-box}',
+        '.gw-slice-body{background:linear-gradient(138deg,rgba(255,255,255,0.04) 0%,rgba(28,34,40,0.075) 30%,rgba(10,14,18,0.12) 72%,rgba(255,255,255,0.05) 100%);border:0}',
+        '.gw-slice-back{background:linear-gradient(145deg,rgba(14,18,22,0.48),rgba(6,9,13,0.62));border:1.3px solid rgba(255,255,255,0.4);box-shadow:inset 1.5px -1.5px 8px rgba(255,255,255,0.2),0 14px 30px rgba(0,0,0,0.42)}',
+        '.gw-slice-mid{border:0}',
+        /* Sidewall vector specular highlights (left extruded wall white slash + bottom curve glint) */
+        '.gw-wall-spec{position:absolute;inset:-8px;width:calc(100% + 16px);height:calc(100% + 16px);pointer-events:none;overflow:visible}',
+        /* Main top crystal glass face — genuine clear smoked optical crystal transmitting the backdrop */
+        '.gw-face{position:absolute;inset:0;border-radius:98px;overflow:hidden;box-sizing:border-box;transform:translateZ(0px);background:linear-gradient(172deg,rgba(255,255,255,0.14) 0%,rgba(160,168,174,0.08) 46%,rgba(30,35,40,0.18) 78%,rgba(16,20,24,0.28) 100%);-webkit-backdrop-filter:blur(34px) saturate(132%);backdrop-filter:blur(34px) saturate(132%);box-shadow:inset 0 1.6px 1px rgba(255,255,255,0.72),inset 0 -1.5px 2px rgba(255,255,255,0.36),inset 2px 0 3px rgba(255,255,255,0.26),inset -1.5px 0 2px rgba(255,255,255,0.34),inset 0 -18px 34px rgba(0,0,0,0.16)}',
+        '.gw-stage.is-light-atmo .gw-face{background:linear-gradient(172deg,rgba(255,255,255,0.22) 0%,rgba(190,190,186,0.12) 48%,rgba(72,76,80,0.16) 80%,rgba(44,48,52,0.24) 100%)}',
+        '.gw-stage.is-holo .gw-face{border:1px solid rgba(130,235,255,0.55);box-shadow:inset 0 0 28px rgba(90,215,255,0.24),0 0 32px rgba(80,205,255,0.26)}',
+        /* Internal horizontal shelf refraction caustics right under the raised dome step */
+        '.gw-shelf-caustics{position:absolute;left:24px;right:24px;top:253px;height:34px;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,0.22) 0%,rgba(255,255,255,0.10) 24%,rgba(0,0,0,0.11) 50%,rgba(255,255,255,0.06) 76%,transparent 100%);border-radius:12px;opacity:0.86}',
+        /* Raised upper convex cabochon dome window (slimmer side glass bezel) */
+        '.gw-dome{position:absolute;left:12px;right:12px;top:12px;height:242px;border-radius:86px 86px 26px 26px;overflow:hidden;transform:translateZ(3px);box-sizing:border-box;background:rgba(18,24,30,0.22);box-shadow:0 8px 16px -5px rgba(0,0,0,0.38),0 1.5px 0 rgba(255,255,255,0.44),inset 0 1.5px 2px rgba(255,255,255,0.78),inset 0 -1.5px 2px rgba(255,255,255,0.42)}',
+        '.gw-dome-lens{position:absolute;inset:0;transform:translateZ(0)}',
+        '.gw-art-layer{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover;will-change:filter,opacity,transform;transform-origin:50% 50%}',
+        /* Subtle optical glass bevel rim & curved meniscus vignette (keeps central 80% 100% tack-sharp!) */
+        '.gw-dome-meniscus{display:none}',
+        '.gw-dome-inner-rim{position:absolute;inset:0;border-radius:inherit;pointer-events:none;box-shadow:inset 0 12px 20px rgba(255,255,255,0.22),inset 0 -14px 22px rgba(12,16,20,0.26),inset 14px 0 22px rgba(255,255,255,0.12),inset -14px 0 22px rgba(12,16,20,0.22),inset 0 0 0 1.3px rgba(255,255,255,0.52)}',
+        /* Curved sky window reflection across the upper convex dome */
+        '.gw-dome-sky{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;mix-blend-mode:screen;opacity:0.86;will-change:transform}',
+        /* Outer face bevel vector specular overlay */
+        '.gw-face-spec{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:9}',
+        /* Lower frosted glass caption shelf */
+        '.gw-shelf{position:absolute;left:28px;right:28px;top:264px;bottom:20px;z-index:6;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none}',
+        '.gw-eyebrow{font-size:13px;line-height:1.25;font-weight:600;letter-spacing:-0.01em;color:rgba(255,255,255,0.76);text-shadow:0 1px 6px rgba(0,0,0,0.26);margin-bottom:7px;max-width:90%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .35s ease}',
+        '.gw-cap-wrap{position:relative;width:100%;min-height:66px;display:grid;place-items:center}',
+        '.gw-cap-slot{grid-area:1/1;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;will-change:filter,opacity,transform}',
+        '.gw-title{margin:0;font-size:23.5px;line-height:1.16;font-weight:700;letter-spacing:-0.026em;color:#ffffff;text-shadow:0 1.5px 10px rgba(0,0,0,0.3);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:94%}',
+        '.gw-sub{margin:5px 0 0;font-size:15px;line-height:1.28;font-weight:600;letter-spacing:-0.015em;color:rgba(255,255,255,0.86);text-shadow:0 1px 8px rgba(0,0,0,0.26);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90%}',
+        /* Discreet floating glass controls above the bottom mode deck */
+        '.gw-hud{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 82px);transform:translateX(-50%);z-index:20;display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:999px;background:rgba(14,18,26,0.52);border:1px solid rgba(255,255,255,0.15);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12),0 12px 30px -8px rgba(0,0,0,0.5);-webkit-backdrop-filter:blur(18px) saturate(150%);backdrop-filter:blur(18px) saturate(150%);color:rgba(240,245,255,0.9)}',
+        'html.mn-dock-v .gw-hud{bottom:calc(env(safe-area-inset-bottom,0px) + 20px)}',
+        'body:not(.v2) .gw-hud{bottom:calc(env(safe-area-inset-bottom,0px) + 96px)}',
+        'html.mn-sys-reading .gw-hud{display:none!important}',
+        '.gw-hud button{border:0;background:none;color:inherit;height:28px;min-width:28px;padding:0 9px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;gap:5px;font:600 11.5px/1 -apple-system,"PingFang SC",system-ui,sans-serif;cursor:pointer;transition:background .18s ease,color .18s ease}',
+        '.gw-hud button:hover{background:rgba(255,255,255,0.12);color:#fff}',
+        '.gw-hud button.on{background:rgba(255,255,255,0.2);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,0.28)}',
+        '.gw-hud .gw-ic{padding:0;width:28px}',
+        '.gw-hud .gw-sep{width:1px;height:14px;background:rgba(255,255,255,0.15);flex:none}',
+        '.gw-hud .gw-cnt{font:600 11px/1 ui-monospace,"SF Mono",Menlo,monospace;color:rgba(226,236,250,0.72);padding:0 4px;letter-spacing:0.05em}',
+        '.gw-hud button svg{width:13.5px;height:13.5px;flex:none;display:block}',
+        '.gw-hud button.gw-gyro-wait::after{content:"";width:5px;height:5px;border-radius:50%;background:#7ee8fa;box-shadow:0 0 6px #7ee8fa}',
+        /* Whisper-thin liquid glass gyroscope tilt gauge above HUD */
+        '.gw-tilt-gauge{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 126px);transform:translateX(-50%);z-index:20;width:104px;height:5px;border-radius:999px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.16);pointer-events:none;opacity:0;transition:opacity .25s ease;overflow:visible;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}',
+        'html.mn-dock-v .gw-tilt-gauge{bottom:calc(env(safe-area-inset-bottom,0px) + 62px)}',
+        'body:not(.v2) .gw-tilt-gauge{bottom:calc(env(safe-area-inset-bottom,0px) + 138px)}',
+        '.gw-tilt-gauge.vis{opacity:1}',
+        '.gw-tilt-gauge::before,.gw-tilt-gauge::after{content:"";position:absolute;top:-2px;bottom:-2px;width:1.5px;border-radius:2px;background:rgba(255,255,255,0.38)}',
+        '.gw-tilt-gauge::before{left:14px}.gw-tilt-gauge::after{right:14px}',
+        '.gw-tilt-dot{position:absolute;left:50%;top:50%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:#ffffff;box-shadow:0 0 10px rgba(126,232,250,0.9);will-change:transform;transition:background .15s ease,box-shadow .15s ease}',
+        '.gw-tilt-gauge.trig .gw-tilt-dot{background:#7ee8fa;box-shadow:0 0 16px #7ee8fa,0 0 28px #ffffff}',
+        /* Subtle status toast when toggling / granting iPhone gyroscope */
+        '.gw-toast{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 64px);transform:translateX(-50%) translateY(-6px);z-index:25;padding:6px 14px;border-radius:999px;background:rgba(14,18,26,0.76);border:1px solid rgba(255,255,255,0.18);color:#f1f5f9;font:600 12px/1.3 -apple-system,"PingFang SC",system-ui,sans-serif;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .24s ease,transform .24s ease;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}',
+        '.gw-toast.on{opacity:1;transform:translateX(-50%) translateY(0)}',
+        '@media (max-width:540px){.gw-rig{top:45.5%}.gw-hud{bottom:calc(env(safe-area-inset-bottom,0px) + 74px);padding:4px 6px;gap:2px;max-width:calc(100vw - 16px)}.gw-hud button{height:26px;padding:0 6px;font-size:10.5px}.gw-tilt-gauge{bottom:calc(env(safe-area-inset-bottom,0px) + 112px)}}'
+      ].join('\n');
+      document.head.appendChild(st);
+    }
+
+    if (!document.getElementById(SVG_FILTER_ID + '-svg')) {
+      var mapUrl = getCabochonMapUrl();
+      var ns = 'http://www.w3.org/2000/svg';
+      var svg = document.createElementNS(ns, 'svg');
+      svg.id = SVG_FILTER_ID + '-svg';
+      svg.setAttribute('width', '0');
+      svg.setAttribute('height', '0');
+      svg.style.cssText = 'position:fixed;left:-9999px;top:-9999px;pointer-events:none';
+      if (mapUrl) {
+        svg.innerHTML =
+          '<defs><filter id="' + SVG_FILTER_ID + '" x="-6%" y="-6%" width="112%" height="112%" color-interpolation-filters="sRGB">' +
+          '<feImage href="' + mapUrl + '" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="cabMap"/>' +
+          '<feDisplacementMap in="SourceGraphic" in2="cabMap" scale="22" xChannelSelector="R" yChannelSelector="G"/>' +
+          '</filter></defs>';
+      }
+      document.body.appendChild(svg);
+    }
+  }
+
+  /* ───────────── Procedural Fine-Art Museum Painters (760×450 crisp impasto canvas) ───────────── */
+  function paintStroke(ctx, x, y, w, h, ang, fill, alpha) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(ang);
+    ctx.globalAlpha = alpha == null ? 1 : alpha;
+    ctx.fillStyle = fill;
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(-w / 2, -h / 2, w, h, Math.min(w, h) * 0.38) : ctx.rect(-w / 2, -h / 2, w, h);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function paintMasterpiece(cv, kind, seedSalt) {
+    var W = 760, H = 450;
+    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+    var g = cv.getContext('2d');
+    var rng = seededRng(1009 + kind * 7919 + (seedSalt || 0) * 131);
+    g.save();
+    g.clearRect(0, 0, W, H);
+
+    if (kind === 0) {
+      /* 0: Paul Cézanne — Mont Sainte-Victoire */
+      var sky = g.createLinearGradient(0, 0, W, H * 0.52);
+      sky.addColorStop(0, '#5a8ab0');
+      sky.addColorStop(0.55, '#86b2d0');
+      sky.addColorStop(1, '#6c98bc');
+      g.fillStyle = sky;
+      g.fillRect(0, 0, W, H);
+      for (var i = 0; i < 140; i++) {
+        var sx = rng() * W, sy = rng() * H * 0.44;
+        var sc = ['#79a8c9', '#9bc2dc', '#5f8fb5', '#b8d3e3', '#4e7ea6'][(rng() * 5) | 0];
+        paintStroke(g, sx, sy, 34 + rng() * 36, 12 + rng() * 10, -0.25 + rng() * 0.35, sc, 0.55);
+      }
+      /* Distant ridge & limestone Mont Sainte-Victoire peak */
+      g.beginPath();
+      g.moveTo(-20, H * 0.48);
+      g.lineTo(W * 0.12, H * 0.36);
+      g.lineTo(W * 0.27, H * 0.19);
+      g.lineTo(W * 0.34, H * 0.11);
+      g.lineTo(W * 0.43, H * 0.21);
+      g.lineTo(W * 0.58, H * 0.28);
+      g.lineTo(W * 0.82, H * 0.25);
+      g.lineTo(W + 20, H * 0.34);
+      g.lineTo(W + 20, H * 0.56);
+      g.lineTo(-20, H * 0.56);
+      g.closePath();
+      var mtn = g.createLinearGradient(W * 0.2, H * 0.1, W * 0.65, H * 0.5);
+      mtn.addColorStop(0, '#e5ecf2');
+      mtn.addColorStop(0.45, '#aec4d9');
+      mtn.addColorStop(1, '#4f7399');
+      g.fillStyle = mtn;
+      g.fill();
+      /* Faceted Cézanne mountain planes */
+      var mPlanes = [
+        [0.33, 0.16, 46, 22, -0.55, '#f0f3f6'], [0.30, 0.23, 54, 20, -0.45, '#d7e2ec'],
+        [0.38, 0.22, 56, 22, 0.38, '#7798ba'], [0.45, 0.28, 64, 22, 0.25, '#5b7fa4'],
+        [0.23, 0.31, 62, 24, -0.35, '#9ab4cc'], [0.64, 0.30, 88, 24, -0.1, '#496d92'],
+        [0.76, 0.29, 78, 22, 0.12, '#3d6186'], [0.35, 0.32, 70, 22, 0.08, '#c8d4df']
+      ];
+      for (var mp = 0; mp < mPlanes.length; mp++) {
+        var p = mPlanes[mp];
+        paintStroke(g, W * p[0], H * p[1], p[2], p[3], p[4], p[5], 0.82);
+      }
+      /* Provençal valley: ochre fields, pine greens, cobalt shadows */
+      var val = g.createLinearGradient(0, H * 0.44, 0, H);
+      val.addColorStop(0, '#8ba27c');
+      val.addColorStop(0.45, '#c7a463');
+      val.addColorStop(1, '#b88c4b');
+      g.fillStyle = val;
+      g.fillRect(0, H * 0.45, W, H * 0.56);
+      var vCols = ['#d8b572', '#c89b52', '#dfc388', '#3c6b54', '#2d5544', '#588262', '#7a9458', '#486d88', '#cfa45e', '#e5cca0'];
+      for (var v = 0; v < 340; v++) {
+        var vy = H * (0.43 + Math.pow(rng(), 0.92) * 0.57);
+        var vx = rng() * W;
+        var scaleK = 0.65 + ((vy - H * 0.43) / (H * 0.57)) * 0.85;
+        var col = vCols[(rng() * vCols.length) | 0];
+        paintStroke(g, vx, vy, (26 + rng() * 34) * scaleK, (10 + rng() * 11) * scaleK, -0.22 + rng() * 0.44, col, 0.82);
+      }
+      /* Foreground golden clearing & dark emerald pine clusters */
+      for (var fg = 0; fg < 45; fg++) {
+        paintStroke(g, W * (0.18 + rng() * 0.55), H * (0.76 + rng() * 0.2), 44 + rng() * 36, 14 + rng() * 8, -0.1 + rng() * 0.2, rng() > 0.35 ? '#dfc080' : '#315c45', 0.85);
+      }
+    } else if (kind === 1) {
+      /* 1: Vincent van Gogh — Wheat Field with Cypresses */
+      var vgSky = g.createLinearGradient(0, 0, 0, H * 0.6);
+      vgSky.addColorStop(0, '#9ab9cb');
+      vgSky.addColorStop(0.5, '#bfd9cf');
+      vgSky.addColorStop(1, '#dfeadc');
+      g.fillStyle = vgSky;
+      g.fillRect(0, 0, W, H);
+      /* Swirling Saint-Rémy impasto clouds */
+      for (var c = 0; c < 260; c++) {
+        var cx = rng() * W * 0.92, cy = rng() * H * 0.52;
+        var waveAng = Math.sin(cx * 0.012 + cy * 0.018) * 0.52;
+        var cCol = ['#eef2ea', '#d6e5dc', '#a9cad4', '#7ba4c7', '#c5dfd2', '#8db3cf'][(rng() * 6) | 0];
+        paintStroke(g, cx, cy, 28 + rng() * 32, 7 + rng() * 6, waveAng, cCol, 0.78);
+      }
+      /* Swirling cloud spirals */
+      g.lineCap = 'round';
+      for (var sp = 0; sp < 48; sp++) {
+        var ox = W * (0.08 + rng() * 0.65), oy = H * (0.08 + rng() * 0.34), rad = 18 + rng() * 34;
+        g.strokeStyle = sp % 2 ? 'rgba(244,247,240,0.72)' : 'rgba(128,168,201,0.58)';
+        g.lineWidth = 4 + rng() * 4;
+        g.beginPath();
+        g.arc(ox, oy, rad, rng() * 3, rng() * 3 + 2.4);
+        g.stroke();
+      }
+      /* Blue Alpilles mountains along the horizon */
+      g.beginPath();
+      g.moveTo(0, H * 0.58);
+      g.bezierCurveTo(W * 0.18, H * 0.48, W * 0.32, H * 0.54, W * 0.48, H * 0.43);
+      g.bezierCurveTo(W * 0.58, H * 0.36, W * 0.68, H * 0.44, W, H * 0.48);
+      g.lineTo(W, H * 0.66);
+      g.lineTo(0, H * 0.66);
+      g.closePath();
+      g.fillStyle = '#5c85b8';
+      g.fill();
+      for (var bm = 0; bm < 70; bm++) {
+        paintStroke(g, rng() * W * 0.78, H * (0.45 + rng() * 0.14), 24 + rng() * 20, 6 + rng() * 4, -0.2 + rng() * 0.4, bm % 2 ? '#446ea3' : '#7ea5cf', 0.75);
+      }
+      /* Golden wheat field foreground */
+      var wheat = g.createLinearGradient(0, H * 0.58, 0, H);
+      wheat.addColorStop(0, '#8ca460');
+      wheat.addColorStop(0.32, '#d8af56');
+      wheat.addColorStop(1, '#c99338');
+      g.fillStyle = wheat;
+      g.fillRect(0, H * 0.58, W, H * 0.42);
+      for (var wf = 0; wf < 320; wf++) {
+        var wx = rng() * W, wy = H * (0.62 + rng() * 0.38);
+        var wCol = ['#e8c46e', '#d6a446', '#f0d68a', '#be882f', '#cfa048'][(rng() * 5) | 0];
+        paintStroke(g, wx, wy, 20 + rng() * 22, 5 + rng() * 4, -0.32 + Math.sin(wx * 0.02) * 0.22, wCol, 0.86);
+      }
+      /* Lush olive-green bushes on left & midground */
+      for (var bu = 0; bu < 160; bu++) {
+        var bx = W * (0.04 + rng() * 0.64), by = H * (0.54 + rng() * 0.28);
+        if (bx > W * 0.42 && by > H * 0.7) continue;
+        var bCol = ['#466e40', '#628c54', '#86ad6e', '#2f5230', '#b8cfb0'][(rng() * 5) | 0];
+        paintStroke(g, bx, by, 16 + rng() * 18, 7 + rng() * 6, -0.6 + rng() * 1.2, bCol, 0.85);
+      }
+      /* Iconic flame-like dark Cypresses on the right */
+      for (var cyi = 0; cyi < 220; cyi++) {
+        var tProg = rng();
+        var halfW = (1 - tProg * 0.82) * 58;
+        var cxp = W * 0.73 + (rng() - 0.5) * 2 * halfW + Math.sin(tProg * 5) * 8;
+        var cyp = H * (0.68 - tProg * 0.64);
+        var cDark = ['#0f2922', '#193f31', '#255640', '#0a1c17', '#336b4c'][(rng() * 5) | 0];
+        paintStroke(g, cxp, cyp, 22 + rng() * 16, 6 + rng() * 4, -1.35 + (rng() - 0.5) * 0.45, cDark, 0.92);
+      }
+    } else if (kind === 2) {
+      /* 2: Katsushika Hokusai — The Great Wave off Kanagawa */
+      var washi = g.createRadialGradient(W * 0.56, H * 0.34, 20, W * 0.52, H * 0.45, W * 0.72);
+      washi.addColorStop(0, '#f4efe6');
+      washi.addColorStop(0.58, '#dfd6c7');
+      washi.addColorStop(1, '#c2b8a7');
+      g.fillStyle = washi;
+      g.fillRect(0, 0, W, H);
+      /* Edo vertical cartouche stamp top-left */
+      g.fillStyle = 'rgba(210,198,178,0.85)';
+      g.strokeStyle = 'rgba(42,60,78,0.55)';
+      g.lineWidth = 1.5;
+      g.fillRect(36, 38, 22, 86);
+      g.strokeRect(36, 38, 22, 86);
+      /* Distant snow-capped Mount Fuji */
+      g.beginPath();
+      g.moveTo(W * 0.46, H * 0.72);
+      g.quadraticCurveTo(W * 0.55, H * 0.66, W * 0.585, H * 0.55);
+      g.lineTo(W * 0.615, H * 0.55);
+      g.quadraticCurveTo(W * 0.65, H * 0.66, W * 0.75, H * 0.72);
+      g.closePath();
+      g.fillStyle = '#254261';
+      g.fill();
+      g.beginPath();
+      g.moveTo(W * 0.56, H * 0.615);
+      g.lineTo(W * 0.585, H * 0.55);
+      g.lineTo(W * 0.615, H * 0.55);
+      g.lineTo(W * 0.64, H * 0.615);
+      g.lineTo(W * 0.62, H * 0.60);
+      g.lineTo(W * 0.60, H * 0.625);
+      g.lineTo(W * 0.58, H * 0.60);
+      g.closePath();
+      g.fillStyle = '#f8f6f0';
+      g.fill();
+      /* Deep Prussian-blue Great Wave body & trough */
+      g.beginPath();
+      g.moveTo(-20, H);
+      g.lineTo(-20, H * 0.54);
+      g.bezierCurveTo(W * 0.08, H * 0.34, W * 0.16, H * 0.12, W * 0.34, H * 0.13);
+      g.bezierCurveTo(W * 0.49, H * 0.14, W * 0.52, H * 0.30, W * 0.42, H * 0.34);
+      g.bezierCurveTo(W * 0.33, H * 0.38, W * 0.34, H * 0.54, W * 0.52, H * 0.66);
+      g.bezierCurveTo(W * 0.68, H * 0.75, W * 0.84, H * 0.64, W + 20, H * 0.52);
+      g.lineTo(W + 20, H);
+      g.closePath();
+      var prus = g.createLinearGradient(0, H * 0.15, W * 0.75, H);
+      prus.addColorStop(0, '#174070');
+      prus.addColorStop(0.48, '#24588c');
+      prus.addColorStop(1, '#133257');
+      g.fillStyle = prus;
+      g.fill();
+      /* Lighter cobalt wave striations */
+      g.strokeStyle = '#5a8eb9';
+      g.lineWidth = 3;
+      for (var st = 0; st < 18; st++) {
+        var sy0 = H * (0.64 + st * 0.022);
+        g.beginPath();
+        g.moveTo(W * 0.05, sy0);
+        g.bezierCurveTo(W * 0.28, sy0 - 42, W * 0.56, sy0 + 34, W * 0.96, sy0 - 24);
+        g.stroke();
+      }
+      /* Wooden Edo boat tucked in the wave trough */
+      g.save();
+      g.translate(W * 0.66, H * 0.64);
+      g.rotate(-0.28);
+      g.fillStyle = '#c8af86';
+      g.beginPath();
+      g.moveTo(-68, 0);
+      g.quadraticCurveTo(0, 18, 74, -8);
+      g.quadraticCurveTo(10, 6, -68, 0);
+      g.fill();
+      g.restore();
+      /* White cresting foam claws & sea spray */
+      var claws = [
+        [0.18, 0.26, 46], [0.24, 0.18, 52], [0.32, 0.14, 56], [0.40, 0.18, 48],
+        [0.45, 0.25, 40], [0.38, 0.31, 36], [0.24, 0.64, 48], [0.32, 0.58, 44], [0.82, 0.60, 46]
+      ];
+      for (var cl = 0; cl < claws.length; cl++) {
+        var cw = claws[cl];
+        for (var sub = 0; sub < 9; sub++) {
+          var fx = W * cw[0] + (rng() - 0.5) * cw[2] * 1.3;
+          var fy = H * cw[1] + (rng() - 0.5) * cw[2] * 0.7;
+          var fr = 10 + rng() * 18;
+          g.fillStyle = '#f8f6f0';
+          g.strokeStyle = '#204975';
+          g.lineWidth = 1.6;
+          g.beginPath();
+          g.arc(fx, fy, fr, 0, Math.PI * 1.65);
+          g.fill();
+          g.stroke();
+        }
+      }
+      /* Spray droplets in the air */
+      g.fillStyle = '#faf8f2';
+      for (var dr = 0; dr < 85; dr++) {
+        var dx = W * (0.34 + rng() * 0.26), dy = H * (0.12 + rng() * 0.34);
+        g.beginPath();
+        g.arc(dx, dy, 1.8 + rng() * 3.2, 0, Math.PI * 2);
+        g.fill();
+      }
+    } else if (kind === 3) {
+      /* 3: Claude Monet — Water Lilies at Giverny */
+      var pond = g.createLinearGradient(0, 0, W, H);
+      pond.addColorStop(0, '#274d68');
+      pond.addColorStop(0.5, '#3b6f6a');
+      pond.addColorStop(1, '#4c3e68');
+      g.fillStyle = pond;
+      g.fillRect(0, 0, W, H);
+      for (var m = 0; m < 260; m++) {
+        var mCol = ['#3c6c82', '#528b7c', '#6a5b8e', '#2f5855', '#7ea89a', '#8e7bb0'][(rng() * 6) | 0];
+        paintStroke(g, rng() * W, rng() * H, 38 + rng() * 42, 10 + rng() * 8, (rng() - 0.5) * 0.24, mCol, 0.65);
+      }
+      /* Lily pads & blossoms */
+      for (var lp = 0; lp < 26; lp++) {
+        var lx = W * (0.08 + rng() * 0.84), ly = H * (0.22 + rng() * 0.68), lr = 22 + rng() * 32;
+        g.fillStyle = lp % 2 ? '#34684c' : '#4a7f58';
+        g.beginPath();
+        g.ellipse(lx, ly, lr, lr * 0.42, (rng() - 0.5) * 0.3, 0.2, Math.PI * 1.92);
+        g.fill();
+        if (lp % 3 === 0) {
+          g.fillStyle = lp % 6 === 0 ? '#f6d5df' : '#faf6ee';
+          for (var pt = 0; pt < 5; pt++) {
+            paintStroke(g, lx + (pt - 2) * 5, ly - 5, 10, 16, (pt - 2) * 0.32, g.fillStyle, 0.92);
+          }
+        }
+      }
+    } else if (kind === 4) {
+      /* 4: Vincent van Gogh — The Starry Night */
+      var nSky = g.createLinearGradient(0, 0, 0, H);
+      nSky.addColorStop(0, '#10244a');
+      nSky.addColorStop(0.65, '#254a7c');
+      nSky.addColorStop(1, '#16283c');
+      g.fillStyle = nSky;
+      g.fillRect(0, 0, W, H);
+      for (var ns = 0; ns < 280; ns++) {
+        var nx = rng() * W, ny = rng() * H * 0.76;
+        var nang = Math.sin(nx * 0.011) * 0.55;
+        var nCol = ['#1d3b6e', '#2f5c94', '#4d7cb0', '#162d57', '#7aa4cf'][(rng() * 5) | 0];
+        paintStroke(g, nx, ny, 26 + rng() * 24, 6 + rng() * 5, nang, nCol, 0.8);
+      }
+      /* Radiant stars & crescent moon */
+      var stars = [[0.82, 0.22, 42, '#f8d254'], [0.26, 0.20, 24, '#fae37c'], [0.52, 0.30, 28, '#fce98e'], [0.66, 0.16, 20, '#f7dc6f'], [0.40, 0.44, 22, '#fae588']];
+      for (var si = 0; si < stars.length; si++) {
+        var st0 = stars[si], rg = g.createRadialGradient(W * st0[0], H * st0[1], 2, W * st0[0], H * st0[1], st0[2] * 1.7);
+        rg.addColorStop(0, '#fffbe0');
+        rg.addColorStop(0.4, st0[3]);
+        rg.addColorStop(1, 'rgba(248,210,84,0)');
+        g.fillStyle = rg;
+        g.beginPath();
+        g.arc(W * st0[0], H * st0[1], st0[2] * 1.7, 0, Math.PI * 2);
+        g.fill();
+      }
+      /* Dark cypress silhouette on left */
+      for (var scy = 0; scy < 140; scy++) {
+        var sp0 = rng();
+        paintStroke(g, W * 0.18 + (rng() - 0.5) * (1 - sp0 * 0.8) * 76, H * (0.95 - sp0 * 0.86), 24, 7, -1.4, scy % 3 ? '#10211d' : '#1e382e', 0.94);
+      }
+    } else {
+      /* 5: J. M. W. Turner — Golden Venetian Lagoon */
+      var tSky = g.createRadialGradient(W * 0.52, H * 0.42, 18, W * 0.5, H * 0.46, W * 0.68);
+      tSky.addColorStop(0, '#fff6dc');
+      tSky.addColorStop(0.38, '#f0c47d');
+      tSky.addColorStop(0.72, '#c88c64');
+      tSky.addColorStop(1, '#4b6c7c');
+      g.fillStyle = tSky;
+      g.fillRect(0, 0, W, H);
+      var lag = g.createLinearGradient(0, H * 0.58, 0, H);
+      lag.addColorStop(0, 'rgba(244,205,138,0.65)');
+      lag.addColorStop(0.5, 'rgba(72,126,138,0.78)');
+      lag.addColorStop(1, 'rgba(38,74,92,0.92)');
+      g.fillStyle = lag;
+      g.fillRect(0, H * 0.58, W, H * 0.42);
+      for (var tr = 0; tr < 180; tr++) {
+        var tx = rng() * W, ty = rng() * H;
+        var tCol = ty < H * 0.58 ? (tr % 2 ? '#fae2b4' : '#df9f6c') : (tr % 2 ? '#5d98a4' : '#f2ca85');
+        paintStroke(g, tx, ty, 44 + rng() * 48, 8 + rng() * 8, (rng() - 0.5) * 0.12, tCol, 0.42);
+      }
+    }
+
+    g.restore();
+    applyCabochonEdgeMeniscus(cv);
+  }
+
+  /* Optical convex-dome perimeter meniscus: keeps central 80% 100% tack-sharp while refracting & softening the outer curved glass bevel! */
+  function applyCabochonEdgeMeniscus(cv) {
+    try {
+      var W = cv.width, H = cv.height;
+      var rim = document.createElement('canvas');
+      rim.width = W; rim.height = H;
+      var rg = rim.getContext('2d');
+      /* Draw magnified + softly blurred outer lens refraction into rim buffer */
+      rg.filter = 'blur(9px) saturate(112%)';
+      var padX = W * 0.045, padY = H * 0.055;
+      rg.drawImage(cv, -padX, -padY, W + padX * 2, H + padY * 2);
+      rg.filter = 'none';
+      /* Erase the inner 78% smoothly so the center of the artwork remains 100% razor-sharp! */
+      rg.globalCompositeOperation = 'destination-out';
+      var mask = rg.createRadialGradient(W * 0.5, H * 0.5, Math.min(W, H) * 0.34, W * 0.5, H * 0.5, Math.max(W, H) * 0.54);
+      mask.addColorStop(0, 'rgba(0,0,0,1)');
+      mask.addColorStop(0.68, 'rgba(0,0,0,0.96)');
+      mask.addColorStop(0.88, 'rgba(0,0,0,0.32)');
+      mask.addColorStop(1, 'rgba(0,0,0,0)');
+      rg.fillStyle = mask;
+      rg.fillRect(0, 0, W, H);
+      rg.globalCompositeOperation = 'source-over';
+      var mainCtx = cv.getContext('2d');
+      mainCtx.drawImage(rim, 0, 0);
+    } catch (e) {}
+  }
+
+  /* Draw an external image onto the 760×450 canvas and sample its 4-quadrant atmospheric palette */
+  function drawCoverImageToCanvas(cv, imgEl) {
+    var W = 760, H = 450;
+    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+    var g = cv.getContext('2d');
+    var iw = imgEl.naturalWidth || imgEl.width || W;
+    var ih = imgEl.naturalHeight || imgEl.height || H;
+    var sc = Math.max(W / iw, H / ih);
+    var dw = iw * sc, dh = ih * sc;
+    g.clearRect(0, 0, W, H);
+    g.drawImage(imgEl, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    applyCabochonEdgeMeniscus(cv);
+  }
+
+  function sampleCanvasPalette(cv, fallbackIdx) {
+    try {
+      var sm = document.createElement('canvas');
+      sm.width = 8; sm.height = 8;
+      var sg = sm.getContext('2d');
+      sg.drawImage(cv, 0, 0, 8, 8);
+      var d = sg.getImageData(0, 0, 8, 8).data;
+      function avg(x0, y0, x1, y1) {
+        var r = 0, g = 0, b = 0, n = 0;
+        for (var y = y0; y < y1; y++) {
+          for (var x = x0; x < x1; x++) {
+            var k = (y * 8 + x) * 4;
+            /* Slightly mute saturation & clamp luminance so glass stays legible like the video */
+            r += d[k]; g += d[k + 1]; b += d[k + 2]; n++;
+          }
+        }
+        r /= n; g /= n; b /= n;
+        var gray = r * 0.299 + g * 0.587 + b * 0.114;
+        r = lerp(r, gray, 0.24) * 0.72;
+        g = lerp(g, gray, 0.24) * 0.72;
+        b = lerp(b, gray, 0.24) * 0.72;
+        return [clamp(Math.round(r), 14, 175), clamp(Math.round(g), 14, 175), clamp(Math.round(b), 16, 175)];
+      }
+      return [avg(0, 0, 4, 4), avg(4, 0, 8, 4), avg(0, 4, 4, 8), avg(4, 4, 8, 8)];
+    } catch (e) {
+      return PALETTES[fallbackIdx % PALETTES.length].map(hexToRgb);
+    }
+  }
+
+  /* ───────────── Main Mode Mount ───────────── */
+  function mountMode(box, list, onPick, hooks) {
+    ensureStylesAndFilters();
+    hooks = hooks || {};
+
+    var boardTitle = 'Minest';
+    try {
+      var b = window.MinestAI && MinestAI.board && MinestAI.board();
+      if (b && b.title) boardTitle = b.title;
+    } catch (e) {}
+
+    var showcasePref = false;
+    try { showcasePref = localStorage.getItem('minest.glassShowcase') === '1'; } catch (e) {}
+    var autoPref = true;
+    try {
+      var ap = localStorage.getItem('minest.glassAuto');
+      if (ap === '0') autoPref = false;
+    } catch (e) {}
+    var gyroPref = true;
+    try {
+      var gp = localStorage.getItem('minest.glassGyro');
+      if (gp === '0') gyroPref = false;
+    } catch (e) {}
+
+    function buildDeck() {
+      if (showcasePref || !list || !list.length) {
+        return MUSEUM_DECK.map(function (m, idx) {
+          return {
+            id: m.id,
+            rawItem: list && list.length ? list[idx % list.length] : null,
+            eyebrow: m.eyebrow,
+            title: m.title,
+            subtitle: m.subtitle,
+            src: m.artFile ? artAssetUrl(m.artFile) : '',
+            painter: m.painter,
+            seed: idx,
+            atmoRgb: m.atmo.map(hexToRgb)
+          };
+        });
+      }
+      return list.map(function (it, idx) {
+        var usePhoto = !!(it.src && !isDiagramPlaceholderSvg(it.src));
+        var mRef = MUSEUM_DECK[idx % MUSEUM_DECK.length];
+        return {
+          id: it.id || ('gw-' + idx),
+          rawItem: it,
+          eyebrow: cleanPlain(it.sub || (it.raw && it.raw.columnTitle) || boardTitle || 'Artwork of the Day'),
+          title: cleanPlain(it.title || 'Untitled'),
+          subtitle: extractShortSubtitle(it, boardTitle),
+          src: usePhoto ? it.src : (mRef.artFile ? artAssetUrl(mRef.artFile) : ''),
+          painter: mRef.painter,
+          seed: hashStr(it.id || it.title || idx),
+          atmoRgb: mRef.atmo.map(hexToRgb)
+        };
+      });
+    }
+
+    var deck = buildDeck();
+    var activeIdx = 0;
+
+    /* Build stage DOM */
+    var stage = document.createElement('div');
+    stage.className = 'gw-stage';
+
+    var atmoWrap = document.createElement('div');
+    atmoWrap.className = 'gw-atmo-wrap';
+    var bgSlots = [], bgBaseCvs = [], bgFlowCvs = [];
+    for (var bi = 0; bi < 2; bi++) {
+      var bSlot = document.createElement('div');
+      bSlot.className = 'gw-bg-slot';
+      if (bi === 1) bSlot.style.opacity = '0';
+      var bBase = document.createElement('canvas');
+      bBase.className = 'gw-bg-base';
+      bBase.width = 192; bBase.height = 192;
+      var bFlow = document.createElement('canvas');
+      bFlow.className = 'gw-bg-flow';
+      bFlow.width = 160; bFlow.height = 160;
+      bSlot.appendChild(bBase);
+      bSlot.appendChild(bFlow);
+      atmoWrap.appendChild(bSlot);
+      bgSlots.push(bSlot);
+      bgBaseCvs.push(bBase);
+      bgFlowCvs.push(bFlow);
+    }
+    stage.appendChild(atmoWrap);
+
+    var vig = document.createElement('div');
+    vig.className = 'gw-vignette';
+    stage.appendChild(vig);
+
+    var rig = document.createElement('div');
+    rig.className = 'gw-rig';
+    stage.appendChild(rig);
+
+    var pose = document.createElement('div');
+    pose.className = 'gw-pose';
+    rig.appendChild(pose);
+
+    var shadowEl = document.createElement('div');
+    shadowEl.className = 'gw-shadow';
+    pose.appendChild(shadowEl);
+
+    /* 8 sleek extruded crystal slices (~8px slim left wall & ~12px bottom crystal lip) */
+    var SLICE_COUNT = 8;
+    for (var s = 0; s < SLICE_COUNT; s++) {
+      var u = 1 - s / SLICE_COUNT; /* 1 at back, -> 0 near front */
+      var z = -u * 22;
+      var ox = -u * 2.2;
+      var oy = u * 4.5;
+      var sl = document.createElement('div');
+      sl.className = 'gw-slice ' + (s === 0 ? 'gw-slice-back' : 'gw-slice-body');
+      sl.style.transform = 'translate3d(' + ox.toFixed(1) + 'px,' + oy.toFixed(1) + 'px,' + z.toFixed(1) + 'px)';
+      pose.appendChild(sl);
+    }
+
+    /* Precision sidewall specular arc along the sleek 3D crystal wall */
+    var wallSpec = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    wallSpec.setAttribute('viewBox', '-8 -8 456 446');
+    wallSpec.setAttribute('class', 'gw-wall-spec');
+    wallSpec.style.transform = 'translate3d(-1.2px,2.4px,-11px)';
+    wallSpec.innerHTML =
+      '<defs>' +
+        '<linearGradient id="gw-left-slash" x1="0" y1="0.18" x2="0.12" y2="0.88">' +
+          '<stop offset="0%" stop-color="#ffffff" stop-opacity="0"/>' +
+          '<stop offset="18%" stop-color="#ffffff" stop-opacity="0.95"/>' +
+          '<stop offset="72%" stop-color="#ffffff" stop-opacity="0.9"/>' +
+          '<stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>' +
+        '</linearGradient>' +
+        '<linearGradient id="gw-bot-slash" x1="0.12" y1="1" x2="0.88" y2="0.96">' +
+          '<stop offset="0%" stop-color="#ffffff" stop-opacity="0"/>' +
+          '<stop offset="22%" stop-color="#ffffff" stop-opacity="0.92"/>' +
+          '<stop offset="64%" stop-color="#ffffff" stop-opacity="0.65"/>' +
+          '<stop offset="92%" stop-color="#ffffff" stop-opacity="0.88"/>' +
+          '<stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>' +
+        '</linearGradient>' +
+      '</defs>' +
+      /* Left extruded glass wall bright specular ribbon */
+      '<path d="M 1.2 114 L 1.2 306" fill="none" stroke="url(#gw-left-slash)" stroke-width="2.5" stroke-linecap="round"/>' +
+      /* Bottom-left curved meniscus crescent */
+      '<path d="M 23 387 Q 41 415 78 426" fill="none" stroke="#ffffff" stroke-opacity="0.9" stroke-width="2.8" stroke-linecap="round"/>' +
+      /* Bottom extruded rim specular streak */
+      '<path d="M 94 428.8 L 350 428.8 Q 398 428.8 425 392" fill="none" stroke="url(#gw-bot-slash)" stroke-width="2.2" stroke-linecap="round"/>';
+    pose.appendChild(wallSpec);
+
+    /* Main front crystal face at Z = 0px */
+    var face = document.createElement('div');
+    face.className = 'gw-face';
+    pose.appendChild(face);
+
+    var caustics = document.createElement('div');
+    caustics.className = 'gw-shelf-caustics';
+    face.appendChild(caustics);
+
+    var shelf = document.createElement('div');
+    shelf.className = 'gw-shelf';
+    shelf.innerHTML =
+      '<div class="gw-eyebrow"></div>' +
+      '<div class="gw-cap-wrap">' +
+        '<div class="gw-cap-slot gw-cap-a"><h3 class="gw-title"></h3><p class="gw-sub"></p></div>' +
+        '<div class="gw-cap-slot gw-cap-b" style="opacity:0"><h3 class="gw-title"></h3><p class="gw-sub"></p></div>' +
+      '</div>';
+    face.appendChild(shelf);
+
+    var faceSpec = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    faceSpec.setAttribute('viewBox', '0 0 440 430');
+    faceSpec.setAttribute('class', 'gw-face-spec');
+    faceSpec.innerHTML =
+      '<defs>' +
+        '<linearGradient id="gw-rim-top" x1="0.1" y1="0" x2="0.92" y2="0.6">' +
+          '<stop offset="0%" stop-color="#ffffff" stop-opacity="0.55"/>' +
+          '<stop offset="38%" stop-color="#ffffff" stop-opacity="0.92"/>' +
+          '<stop offset="72%" stop-color="#ffffff" stop-opacity="0.28"/>' +
+          '<stop offset="100%" stop-color="#ffffff" stop-opacity="0.65"/>' +
+        '</linearGradient>' +
+      '</defs>' +
+      '<rect x="1.2" y="1.2" width="437.6" height="427.6" rx="96.8" fill="none" stroke="url(#gw-rim-top)" stroke-width="1.8"/>' +
+      '<rect x="5" y="5" width="430" height="420" rx="93" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="1"/>' +
+      /* Right-edge crisp specular glint */
+      '<path d="M 438.4 268 L 438.4 334" fill="none" stroke="#ffffff" stroke-opacity="0.76" stroke-width="2.4" stroke-linecap="round"/>';
+    face.appendChild(faceSpec);
+
+    /* Raised convex cabochon glass dome at Z = +3.5px */
+    var dome = document.createElement('div');
+    dome.className = 'gw-dome';
+    pose.appendChild(dome);
+
+    var domeLens = document.createElement('div');
+    domeLens.className = 'gw-dome-lens';
+    dome.appendChild(domeLens);
+
+    var artCvA = document.createElement('canvas');
+    artCvA.className = 'gw-art-layer';
+    var artCvB = document.createElement('canvas');
+    artCvB.className = 'gw-art-layer';
+    artCvB.style.opacity = '0';
+    domeLens.appendChild(artCvA);
+    domeLens.appendChild(artCvB);
+
+    var meniscus = document.createElement('div');
+    meniscus.className = 'gw-dome-meniscus';
+    dome.appendChild(meniscus);
+
+    var domeRim = document.createElement('div');
+    domeRim.className = 'gw-dome-inner-rim';
+    dome.appendChild(domeRim);
+
+    /* Curved overhead sky reflection wedge across upper dome */
+    var skySvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    skySvg.setAttribute('viewBox', '0 0 400 236');
+    skySvg.setAttribute('class', 'gw-dome-sky');
+    skySvg.innerHTML =
+      '<defs>' +
+        '<linearGradient id="gw-sky-wedge" x1="0.22" y1="0" x2="0.62" y2="0.82">' +
+          '<stop offset="0%" stop-color="#ffffff" stop-opacity="0.34"/>' +
+          '<stop offset="45%" stop-color="#ffffff" stop-opacity="0.12"/>' +
+          '<stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>' +
+        '</linearGradient>' +
+      '</defs>' +
+      '<path d="M 52 6 Q 200 -2 332 10 Q 238 48 118 118 Q 74 72 52 6 Z" fill="url(#gw-sky-wedge)"/>' +
+      /* Bottom cabochon lip glint */
+      '<path d="M 28 234.5 L 372 234.5" stroke="rgba(255,255,255,0.42)" stroke-width="1.2" fill="none"/>';
+    dome.appendChild(skySvg);
+
+    /* Whisper-thin gyroscope tilt gauge + toast */
+    var tiltGauge = document.createElement('div');
+    tiltGauge.className = 'gw-tilt-gauge';
+    tiltGauge.innerHTML = '<i class="gw-tilt-dot"></i>';
+    stage.appendChild(tiltGauge);
+    var tiltDot = tiltGauge.firstChild;
+
+    var toastEl = document.createElement('div');
+    toastEl.className = 'gw-toast';
+    stage.appendChild(toastEl);
+
+    /* Discreet floating HUD controls */
+    var hud = document.createElement('div');
+    hud.className = 'gw-hud';
+    hud.innerHTML =
+      '<button type="button" class="gw-ic" data-gw="prev" title="上一张 (←)" aria-label="上一张">‹</button>' +
+      '<span class="gw-cnt">01 / 01</span>' +
+      '<button type="button" class="gw-ic" data-gw="next" title="下一张 (→)" aria-label="下一张">›</button>' +
+      '<i class="gw-sep"></i>' +
+      '<button type="button" data-gw="gyro" title="iPhone 陀螺仪倾斜/轻甩切卡"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><ellipse cx="12" cy="12" rx="8.5" ry="3.4" transform="rotate(-24 12 12)"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg><span>陀螺仪</span></button>' +
+      '<button type="button" data-gw="auto" title="自动凝焦轮播"><span>凝焦轮播</span></button>' +
+      '<button type="button" data-gw="showcase" title="在当前看板卡片与典藏名画之间切换"><span>典藏名画</span></button>' +
+      '<button type="button" data-gw="open" title="展开当前卡片详情"><span>详情</span></button>';
+    stage.appendChild(hud);
+
+    box.appendChild(stage);
+
+    /* Refs & state */
+    var eyebrowEl = shelf.querySelector('.gw-eyebrow');
+    var capSlots = [shelf.querySelector('.gw-cap-a'), shelf.querySelector('.gw-cap-b')];
+    var artCvs = [artCvA, artCvB];
+    var cntEl = hud.querySelector('.gw-cnt');
+    var gyroBtn = hud.querySelector('[data-gw="gyro"]');
+    var autoBtn = hud.querySelector('[data-gw="auto"]');
+    var showBtn = hud.querySelector('[data-gw="showcase"]');
+    var openBtn = hud.querySelector('[data-gw="open"]');
+
+    var frontBuf = 0; /* 0 or 1 */
+    var imgCache = {};
+    var curAtmo = deck[0].atmoRgb.map(function (c) { return c.slice(); });
+    var tgtAtmo = deck[0].atmoRgb.map(function (c) { return c.slice(); });
+
+    /* Transition state (progressive focus-pull bokeh dissolve) */
+    var trans = { active: false, t: 0, dur: 1.22 };
+    var holdTimer = 0;
+
+    /* 3D physics & canonical isometric pose matching reference video */
+    var BASE_RX = 20.5, BASE_RY = 13.5, BASE_RZ = -13.5;
+    var tilt = { rx: 0, ry: 0, trx: 0, try_: 0, vx: 0, vy: 0, impulse: 0, rollKick: 0 };
+    var fitScale = 1;
+    var dragging = false, ptrId = null, downX = 0, downY = 0, lastX = 0, lastY = 0, movedDist = 0, downAt = 0, lastTapAt = 0;
+    var dead = false, rafId = 0, lastFrame = performance.now(), timeSec = 0;
+    var toastTimer = 0;
+
+    /* ───────────── iPhone Gyroscope (DeviceOrientation + DeviceMotion gimbal-safe fusion) ───────────── */
+    var needsIosPerm = !!(
+      (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') ||
+      (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function')
+    );
+    var isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent || '');
+    var GYRO_SWITCH_DEG = 19.5;
+    var GYRO_REARM_DEG = 8.5;
+    var GYRO_FLICK_RATE = 125; /* deg/s wrist flick */
+    var gyro = {
+      permState: needsIosPerm ? 'prompt' : 'granted',
+      asking: false,
+      hasSignal: false,
+      rawLr: 0,
+      rawFb: 0,
+      baseLr: null,
+      baseFb: null,
+      deltaLr: 0,
+      deltaFb: 0,
+      smoothLr: 0,
+      smoothFb: 0,
+      omegaLr: 0,
+      armed: true,
+      cooldownUntil: 0,
+      extremeSince: 0,
+      lastOrientAt: 0
+    };
+
+    function showToast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('on');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { toastEl.classList.remove('on'); }, 1850);
+    }
+
+    function hapticTick(style) {
+      try { if (window.MinestNative && MinestNative.haptic) MinestNative.haptic(style || 'medium'); } catch (e) {}
+      try { if (navigator.vibrate) navigator.vibrate(12); } catch (e) {}
+    }
+
+    function screenAngle() {
+      try {
+        if (screen.orientation && typeof screen.orientation.angle === 'number') return screen.orientation.angle;
+        if (typeof window.orientation === 'number') return window.orientation;
+      } catch (e) {}
+      return 0;
+    }
+
+    function feedGyroAttitude(lr, fb, now) {
+      if (!isFinite(lr) || !isFinite(fb)) return;
+      gyro.hasSignal = true;
+      gyro.permState = 'granted';
+      gyro.rawLr = lr;
+      gyro.rawFb = fb;
+      if (gyro.baseLr === null) {
+        gyro.baseLr = lr;
+        gyro.baseFb = fb;
+        syncHud();
+      }
+      if (!gyroPref || dragging || document.getElementById('xl')) return;
+
+      var dLr = lr - gyro.baseLr;
+      var dFb = fb - gyro.baseFb;
+      /* Normalize wrap-around across +-180 */
+      if (dLr > 180) dLr -= 360;
+      if (dLr < -180) dLr += 360;
+      gyro.deltaLr = dLr;
+      gyro.deltaFb = clamp(dFb, -45, 45);
+
+      /* Re-arm once the iPhone returns near comfortable neutral zone */
+      if (!gyro.armed && Math.abs(dLr) <= GYRO_REARM_DEG) {
+        gyro.armed = true;
+      }
+
+      /* Trigger card switch on deliberate tilt (>= 19.5 deg) OR brisk wrist flick (>= 125 deg/s + >= 10.5 deg) */
+      var flickRight = gyro.omegaLr >= GYRO_FLICK_RATE && dLr >= 10.5;
+      var flickLeft = gyro.omegaLr <= -GYRO_FLICK_RATE && dLr <= -10.5;
+      if (gyro.armed && now >= gyro.cooldownUntil && deck.length > 1) {
+        if (dLr >= GYRO_SWITCH_DEG || flickRight) {
+          gyro.armed = false;
+          gyro.cooldownUntil = now + 720;
+          tilt.rollKick = 6.5;
+          holdTimer = 0;
+          hapticTick('medium');
+          tiltGauge.classList.add('trig');
+          setTimeout(function () { tiltGauge.classList.remove('trig'); }, 320);
+          goTo(activeIdx + 1);
+        } else if (dLr <= -GYRO_SWITCH_DEG || flickLeft) {
+          gyro.armed = false;
+          gyro.cooldownUntil = now + 720;
+          tilt.rollKick = -6.5;
+          holdTimer = 0;
+          hapticTick('medium');
+          tiltGauge.classList.add('trig');
+          setTimeout(function () { tiltGauge.classList.remove('trig'); }, 320);
+          goTo(activeIdx - 1);
+        }
+      }
+    }
+
+    function onDeviceOrientation(e) {
+      if (e.beta == null || e.gamma == null) return;
+      var now = performance.now();
+      var ang = screenAngle(), b = e.beta, g = e.gamma, lr, fb;
+      /* Avoid Euler gamma gimbal flip when iPhone is held nearly vertical (|beta| > 80 deg) if devicemotion gravity is active */
+      if (Math.abs(b) > 80 && now - gyro.lastMotionAt < 250) return;
+      if (ang === 90) { lr = b; fb = -g; }
+      else if (ang === -90 || ang === 270) { lr = -b; fb = g; }
+      else if (ang === 180) { lr = -g; fb = -b; }
+      else { lr = g; fb = b; }
+      gyro.lastOrientAt = now;
+      feedGyroAttitude(lr, fb, now);
+    }
+
+    function onDeviceMotion(e) {
+      var now = performance.now();
+      var rr = e.rotationRate;
+      if (rr) {
+        var ang0 = screenAngle();
+        var rate = (ang0 === 90) ? (rr.beta || 0) : (ang0 === -90 || ang0 === 270) ? -(rr.beta || 0) : (rr.gamma || 0);
+        gyro.omegaLr = rate;
+      }
+      var ag = e.accelerationIncludingGravity;
+      if (!ag || ag.x == null || ag.y == null) return;
+      var sgn = isAndroid ? -1 : 1;
+      var gx = ag.x * sgn, gy = ag.y * sgn, gz = (ag.z || 0) * sgn;
+      var ang = screenAngle(), rxG, ryG;
+      if (ang === 90) { rxG = -gy; ryG = gx; }
+      else if (ang === -90 || ang === 270) { rxG = gy; ryG = -gx; }
+      else if (ang === 180) { rxG = -gx; ryG = -gy; }
+      else { rxG = gx; ryG = gy; }
+      /* Gimbal-lock-free roll & pitch in degrees across any upright iPhone holding angle */
+      var rollDeg = Math.atan2(rxG, Math.max(1.5, Math.hypot(ryG, gz))) * 57.29578;
+      var pitchDeg = Math.atan2(-ryG, Math.max(1.5, Math.hypot(rxG, gz))) * 57.29578;
+      gyro.lastMotionAt = now;
+      /* Use gravity attitude when deviceorientation hasn't fired recently or phone is near upright gimbal zone */
+      if (now - gyro.lastOrientAt > 120 || Math.abs(gyro.rawFb) > 78) {
+        feedGyroAttitude(rollDeg, pitchDeg, now);
+      }
+    }
+
+    function requestIosGyroPermission(explicitFromBtn) {
+      if (!needsIosPerm || gyro.permState === 'granted' || gyro.asking) {
+        return Promise.resolve(gyro.permState === 'granted');
+      }
+      gyro.asking = true;
+      var tasks = [];
+      try {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+          tasks.push(DeviceOrientationEvent.requestPermission().catch(function () { return 'denied'; }));
+        }
+        if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+          tasks.push(DeviceMotionEvent.requestPermission().catch(function () { return 'denied'; }));
+        }
+      } catch (e) {}
+      return Promise.all(tasks).then(function (res) {
+        gyro.asking = false;
+        var ok = res.some(function (r) { return r === 'granted'; });
+        gyro.permState = ok ? 'granted' : 'denied';
+        if (ok) {
+          gyro.baseLr = null;
+          gyro.baseFb = null;
+          if (explicitFromBtn) showToast('已开启陀螺仪：左右倾斜 iPhone 即可切卡');
+        } else if (explicitFromBtn) {
+          showToast('未获动作与方向权限，请在 Safari 设置中允许');
+        }
+        syncHud();
+        return ok;
+      });
+    }
+
+    function recalibrateGyro() {
+      if (gyro.hasSignal) {
+        gyro.baseLr = gyro.rawLr;
+        gyro.baseFb = gyro.rawFb;
+        gyro.deltaLr = 0;
+        gyro.deltaFb = 0;
+        gyro.armed = true;
+      }
+    }
+
+    function syncHud() {
+      var total = Math.max(1, deck.length);
+      cntEl.textContent = pad2(activeIdx + 1) + ' / ' + pad2(total);
+      var hostPlay = !!(hooks.isPlaying && hooks.isPlaying());
+      autoBtn.classList.toggle('on', autoPref || hostPlay);
+      var gyroActive = gyroPref && (gyro.permState === 'granted' || gyro.hasSignal);
+      gyroBtn.classList.toggle('on', gyroActive && (!needsIosPerm || gyro.hasSignal || gyro.permState === 'granted'));
+      gyroBtn.classList.toggle('gw-gyro-wait', gyroPref && needsIosPerm && gyro.permState === 'prompt' && !gyro.hasSignal);
+      var usingMuseum = showcasePref || !list || !list.length;
+      showBtn.classList.toggle('on', usingMuseum);
+      showBtn.querySelector('span').textContent = (!list || !list.length) ? '典藏名画' : (usingMuseum ? '名画典藏' : '看板卡片');
+      openBtn.style.display = (deck[activeIdx] && deck[activeIdx].rawItem) ? '' : 'none';
+      stage.classList.toggle('is-holo', !!(hooks.isHolo && hooks.isHolo()));
+    }
+
+    var blurWorkCv = document.createElement('canvas');
+    blurWorkCv.width = 48; blurWorkCv.height = 48;
+
+    /* Pre-bake silky Apple Music Gaussian bokeh + vibrance boost ONCE per card (<0.4ms on 48x48, works on all iOS Safari versions, 0 per-frame GPU filter cost!) */
+    function syncBackdropFromArt(bufIdx) {
+      try {
+        var srcCv = artCvs[bufIdx];
+        var W = 48, H = 48;
+        var wg = blurWorkCv.getContext('2d');
+        wg.clearRect(0, 0, W, H);
+        wg.drawImage(srcCv, 0, 0, W, H);
+
+        try {
+          var imgD = wg.getImageData(0, 0, W, H);
+          var px = imgD.data;
+          var tmp = new Float32Array(W * H * 3);
+          var out = new Float32Array(W * H * 3);
+          /* Step 1: Apple Music vibrance & exposure shaping */
+          for (var i = 0; i < W * H; i++) {
+            var r = px[i * 4], g = px[i * 4 + 1], b = px[i * 4 + 2];
+            var luma = r * 0.299 + g * 0.587 + b * 0.114;
+            var sat = luma > 185 ? 1.38 : 1.72;
+            var gain = luma > 185 ? 0.78 : 0.84;
+            tmp[i * 3] = clamp((luma + (r - luma) * sat) * gain, 8, 232);
+            tmp[i * 3 + 1] = clamp((luma + (g - luma) * sat) * gain, 8, 232);
+            tmp[i * 3 + 2] = clamp((luma + (b - luma) * sat) * gain, 10, 232);
+          }
+          /* Step 2: 3-pass separable wide-radius box/Gaussian blur with edge clamping (zero dark border bleed!) */
+          var rad = 6;
+          for (var pass = 0; pass < 3; pass++) {
+            /* Horizontal pass: tmp -> out */
+            for (var y = 0; y < H; y++) {
+              for (var x = 0; x < W; x++) {
+                var sr = 0, sg = 0, sb = 0, cnt = 0;
+                for (var k = -rad; k <= rad; k++) {
+                  var xx = clamp(x + k, 0, W - 1);
+                  var idx = (y * W + xx) * 3;
+                  sr += tmp[idx]; sg += tmp[idx + 1]; sb += tmp[idx + 2]; cnt++;
+                }
+                var oIdx = (y * W + x) * 3;
+                out[oIdx] = sr / cnt; out[oIdx + 1] = sg / cnt; out[oIdx + 2] = sb / cnt;
+              }
+            }
+            /* Vertical pass: out -> tmp */
+            for (var y2 = 0; y2 < H; y2++) {
+              for (var x2 = 0; x2 < W; x2++) {
+                var sr2 = 0, sg2 = 0, sb2 = 0, cnt2 = 0;
+                for (var k2 = -rad; k2 <= rad; k2++) {
+                  var yy = clamp(y2 + k2, 0, H - 1);
+                  var idx2 = (yy * W + x2) * 3;
+                  sr2 += out[idx2]; sg2 += out[idx2 + 1]; sb2 += out[idx2 + 2]; cnt2++;
+                }
+                var tIdx = (y2 * W + x2) * 3;
+                tmp[tIdx] = sr2 / cnt2; tmp[tIdx + 1] = sg2 / cnt2; tmp[tIdx + 2] = sb2 / cnt2;
+              }
+            }
+          }
+          for (var p = 0; p < W * H; p++) {
+            px[p * 4] = tmp[p * 3];
+            px[p * 4 + 1] = tmp[p * 3 + 1];
+            px[p * 4 + 2] = tmp[p * 3 + 2];
+            px[p * 4 + 3] = 255;
+          }
+          wg.putImageData(imgD, 0, 0);
+        } catch (taintErr) {}
+
+        var baseCv = bgBaseCvs[bufIdx];
+        var bg = baseCv.getContext('2d');
+        bg.imageSmoothingEnabled = true;
+        try { bg.imageSmoothingQuality = 'high'; } catch (e) {}
+        bg.clearRect(0, 0, baseCv.width, baseCv.height);
+        bg.drawImage(blurWorkCv, -baseCv.width * 0.04, -baseCv.height * 0.04, baseCv.width * 1.08, baseCv.height * 1.08);
+
+        var flowCv = bgFlowCvs[bufIdx];
+        var fg = flowCv.getContext('2d');
+        fg.imageSmoothingEnabled = true;
+        try { fg.imageSmoothingQuality = 'high'; } catch (e) {}
+        fg.clearRect(0, 0, flowCv.width, flowCv.height);
+        fg.drawImage(blurWorkCv, -flowCv.width * 0.14, -flowCv.height * 0.14, flowCv.width * 1.28, flowCv.height * 1.28);
+      } catch (e) {}
+    }
+
+    function renderItemToBuffer(item, bufIdx, updateTargetPalette) {
+      var cv = artCvs[bufIdx];
+      if (item.src) {
+        var cached = imgCache[item.src];
+        if (cached && cached.complete && cached.naturalWidth > 0) {
+          drawCoverImageToCanvas(cv, cached);
+          syncBackdropFromArt(bufIdx);
+          item.atmoRgb = sampleCanvasPalette(cv, item.painter);
+          if (updateTargetPalette) tgtAtmo = item.atmoRgb.map(function (c) { return c.slice(); });
+          updateLightClass();
+          return;
+        }
+        /* Paint rich museum fallback immediately while image loads */
+        paintMasterpiece(cv, item.painter, item.seed);
+        syncBackdropFromArt(bufIdx);
+        if (!cached) {
+          var im = new Image();
+          im.crossOrigin = 'anonymous';
+          imgCache[item.src] = im;
+          im.onload = function () {
+            if (dead) return;
+            if (deck[activeIdx] === item) {
+              drawCoverImageToCanvas(artCvs[frontBuf], im);
+              syncBackdropFromArt(frontBuf);
+              item.atmoRgb = sampleCanvasPalette(artCvs[frontBuf], item.painter);
+              tgtAtmo = item.atmoRgb.map(function (c) { return c.slice(); });
+              updateLightClass();
+            }
+          };
+          im.src = item.src;
+        }
+      } else {
+        paintMasterpiece(cv, item.painter, item.seed);
+        syncBackdropFromArt(bufIdx);
+        if (updateTargetPalette) tgtAtmo = item.atmoRgb.map(function (c) { return c.slice(); });
+        updateLightClass();
+      }
+    }
+
+    function updateLightClass() {
+      var c0 = tgtAtmo[0], c1 = tgtAtmo[1];
+      var lum = ((c0[0] + c1[0]) * 0.15 + (c0[1] + c1[1]) * 0.29 + (c0[2] + c1[2]) * 0.06);
+      stage.classList.toggle('is-light-atmo', lum > 68);
+    }
+
+    function setSlotText(slotEl, item) {
+      slotEl.querySelector('.gw-title').textContent = item.title || 'Untitled';
+      slotEl.querySelector('.gw-sub').textContent = item.subtitle || '';
+    }
+
+    function showImmediate(idx) {
+      activeIdx = mod(idx, deck.length);
+      var item = deck[activeIdx];
+      frontBuf = 0;
+      renderItemToBuffer(item, 0, true);
+      curAtmo = tgtAtmo.map(function (c) { return c.slice(); });
+      eyebrowEl.textContent = item.eyebrow || 'Artwork of the Day';
+      setSlotText(capSlots[0], item);
+      artCvs[0].style.opacity = '1';
+      artCvs[0].style.filter = 'blur(0px)';
+      artCvs[0].style.transform = 'scale(1.015)';
+      artCvs[1].style.opacity = '0';
+      bgSlots[0].style.opacity = '1';
+      bgSlots[0].style.transform = 'scale(1.04)';
+      bgSlots[1].style.opacity = '0';
+      capSlots[0].style.opacity = '1';
+      capSlots[0].style.filter = 'blur(0px)';
+      capSlots[0].style.transform = 'none';
+      capSlots[1].style.opacity = '0';
+      trans.active = false;
+      holdTimer = 0;
+      syncHud();
+    }
+
+    function goTo(nextIdx) {
+      if (deck.length <= 1) return;
+      var targetIdx = mod(nextIdx, deck.length);
+      if (targetIdx === activeIdx && !trans.active) return;
+
+      /* If mid-transition, snap current incoming buffer to become outgoing cleanly */
+      if (trans.active) {
+        artCvs[1 - frontBuf].style.opacity = '0';
+        bgSlots[1 - frontBuf].style.opacity = '0';
+        capSlots[1 - frontBuf].style.opacity = '0';
+      }
+
+      var prevBuf = frontBuf;
+      var nextBuf = 1 - frontBuf;
+      frontBuf = nextBuf;
+      activeIdx = targetIdx;
+      var item = deck[activeIdx];
+
+      renderItemToBuffer(item, nextBuf, true);
+      eyebrowEl.textContent = item.eyebrow || 'Artwork of the Day';
+      setSlotText(capSlots[nextBuf], item);
+
+      artCvs[nextBuf].style.opacity = '0';
+      artCvs[nextBuf].style.filter = 'blur(24px)';
+      artCvs[nextBuf].style.transform = 'scale(1.065)';
+      bgSlots[nextBuf].style.opacity = '0';
+      bgSlots[nextBuf].style.transform = 'scale(1.14)';
+      capSlots[nextBuf].style.opacity = '0';
+      capSlots[nextBuf].style.filter = 'blur(11px)';
+
+      /* Subtle buoyant crystal rock as the focus pulls */
+      tilt.impulse = 1;
+      trans.active = true;
+      trans.t = 0;
+      var spd = (hooks.getSpeed && hooks.getSpeed()) || 1;
+      trans.dur = clamp(1.24 / Math.sqrt(spd), 0.72, 1.65);
+      holdTimer = 0;
+      syncHud();
+    }
+
+    function animateFluidBackdrop() {
+      /* Apple Music style slow organic living drift & counter-parallax on the blurred artwork layers */
+      var dx = Math.sin(timeSec * 0.28) * 5.5;
+      var dy = Math.cos(timeSec * 0.22) * 4.5;
+      var rot = Math.sin(timeSec * 0.16) * 14;
+      var parX = -(tilt.ry + gyro.smoothLr) * 0.65;
+      var parY = -(tilt.rx + gyro.smoothFb) * 0.55;
+      for (var i = 0; i < 2; i++) {
+        bgFlowCvs[i].style.transform = 'translate3d(' + (dx + parX).toFixed(1) + '%,' + (dy + parY).toFixed(1) + '%,0) rotate(' + rot.toFixed(2) + 'deg) scale(1.28)';
+        bgBaseCvs[i].style.transform = 'translate3d(' + (parX * 0.45).toFixed(1) + '%,' + (parY * 0.45).toFixed(1) + '%,0)';
+      }
+    }
+
+    function fit() {
+      var W = box.clientWidth || window.innerWidth || 800;
+      var H = box.clientHeight || window.innerHeight || 600;
+      /* Reserve room for top bar (#v2-top / #cm-bar) and bottom deck (#v2-deck + .gw-hud) */
+      var availW = W * 0.80;
+      var availH = Math.max(220, H - 210);
+      /* Account for rotated bounding box (~510px effective diagonal span) */
+      fitScale = clamp(Math.min(availW / 515, availH / 495), 0.48, 1.18);
+      rig.style.transform = 'scale(' + fitScale.toFixed(3) + ')';
+    }
+
+    function stepTransition(dt) {
+      if (!trans.active) return;
+      trans.t = Math.min(1, trans.t + dt / trans.dur);
+      var p = trans.t;
+      var outBuf = 1 - frontBuf;
+      var inBuf = frontBuf;
+
+      /* Outgoing painting blurs into creamy bokeh & dissolves (0.0 -> 0.56) */
+      var outK = clamp(p / 0.56, 0, 1);
+      var outEase = outK * outK * (3 - 2 * outK);
+      artCvs[outBuf].style.opacity = (1 - outEase).toFixed(3);
+      artCvs[outBuf].style.filter = 'blur(' + (outEase * 22).toFixed(1) + 'px)';
+      artCvs[outBuf].style.transform = 'scale(' + (1.015 + outEase * 0.045).toFixed(3) + ')';
+
+      /* Incoming painting emerges blurred (0.18 -> 0.65) and pulls sharply into optical focus (0.28 -> 1.0) */
+      var inAlphaK = clamp((p - 0.16) / 0.52, 0, 1);
+      var inAlpha = inAlphaK * inAlphaK * (3 - 2 * inAlphaK);
+      var inFocusK = clamp((p - 0.24) / 0.76, 0, 1);
+      var inFocus = 1 - Math.pow(1 - inFocusK, 2.7);
+      artCvs[inBuf].style.opacity = inAlpha.toFixed(3);
+      artCvs[inBuf].style.filter = 'blur(' + ((1 - inFocus) * 24).toFixed(2) + 'px)';
+      artCvs[inBuf].style.transform = 'scale(' + (1.065 - inFocus * 0.05).toFixed(3) + ')';
+
+      /* Cross-dissolve full-bleed Apple Music blurred artwork backdrop smoothly across entire transition */
+      var bgEase = p * p * (3 - 2 * p);
+      bgSlots[outBuf].style.opacity = (1 - bgEase).toFixed(3);
+      bgSlots[outBuf].style.transform = 'scale(' + (1.04 + bgEase * 0.08).toFixed(3) + ')';
+      bgSlots[inBuf].style.opacity = bgEase.toFixed(3);
+      bgSlots[inBuf].style.transform = 'scale(' + (1.14 - bgEase * 0.10).toFixed(3) + ')';
+
+      /* Outgoing caption blurs away quickly (0.0 -> 0.42) */
+      var cOutK = clamp(p / 0.42, 0, 1);
+      capSlots[outBuf].style.opacity = (1 - cOutK).toFixed(3);
+      capSlots[outBuf].style.filter = 'blur(' + (cOutK * 10).toFixed(1) + 'px)';
+      capSlots[outBuf].style.transform = 'translateY(' + (cOutK * 4).toFixed(1) + 'px) scale(' + (1 - cOutK * 0.02).toFixed(3) + ')';
+
+      /* Incoming caption condenses from frosted blur with subtle title -> subtitle stagger (matching frame_06_5.10s!) */
+      var cInK = clamp((p - 0.34) / 0.64, 0, 1);
+      var cInEase = 1 - Math.pow(1 - cInK, 2.6);
+      var subDelayK = clamp((p - 0.43) / 0.57, 0, 1);
+      var subEase = 1 - Math.pow(1 - subDelayK, 2.5);
+      capSlots[inBuf].style.opacity = cInEase.toFixed(3);
+      capSlots[inBuf].style.filter = 'blur(' + ((1 - cInEase) * 10.5).toFixed(2) + 'px)';
+      capSlots[inBuf].style.transform = 'translateY(' + ((1 - cInEase) * -3.5).toFixed(1) + 'px)';
+      var subNode = capSlots[inBuf].querySelector('.gw-sub');
+      if (subNode) subNode.style.opacity = (0.2 + 0.8 * subEase).toFixed(3);
+
+      if (p >= 1) {
+        trans.active = false;
+        artCvs[outBuf].style.opacity = '0';
+        artCvs[inBuf].style.opacity = '1';
+        artCvs[inBuf].style.filter = 'blur(0px)';
+        artCvs[inBuf].style.transform = 'scale(1.015)';
+        bgSlots[outBuf].style.opacity = '0';
+        bgSlots[inBuf].style.opacity = '1';
+        bgSlots[inBuf].style.transform = 'scale(1.04)';
+        capSlots[outBuf].style.opacity = '0';
+        capSlots[inBuf].style.opacity = '1';
+        capSlots[inBuf].style.filter = 'blur(0px)';
+        capSlots[inBuf].style.transform = 'none';
+        if (subNode) subNode.style.opacity = '1';
+      }
+    }
+
+    function tick(now) {
+      if (dead) return;
+      rafId = requestAnimationFrame(tick);
+      var dt = Math.min(0.05, Math.max(0.001, (now - lastFrame) / 1000));
+      lastFrame = now;
+      if (document.hidden) return;
+      timeSec += dt;
+
+      /* Auto focus-pull loop (matches the 13s 3-card loop ~4.25s per artwork in the reference video) */
+      var hostPlay = !!(hooks.isPlaying && hooks.isPlaying());
+      var spd = (hooks.getSpeed && hooks.getSpeed()) || 1;
+      if ((autoPref || hostPlay) && !dragging && !trans.active && deck.length > 1) {
+        holdTimer += dt * spd;
+        if (holdTimer >= 3.35) {
+          holdTimer = 0;
+          goTo(activeIdx + 1);
+        }
+      }
+
+      stepTransition(dt);
+      animateFluidBackdrop();
+
+      /* Adaptive resting baseline & smooth 3D gyroscope parallax */
+      if (gyroPref && gyro.hasSignal && gyro.baseLr !== null && !dragging) {
+        var absLr = Math.abs(gyro.deltaLr);
+        if (absLr < 8.5) {
+          /* Gently follow natural hand posture drift while inside neutral zone */
+          var driftK = Math.min(1, dt * 0.48);
+          gyro.baseLr += (gyro.rawLr - gyro.baseLr) * driftK;
+          gyro.baseFb += (gyro.rawFb - gyro.baseFb) * driftK;
+          gyro.extremeSince = 0;
+        } else if (absLr > 34) {
+          /* If user shifts posture (e.g. lies sideways) for >2.2s, smoothly re-center */
+          gyro.extremeSince = (gyro.extremeSince || now) ;
+          if (now - gyro.extremeSince > 2200) {
+            gyro.baseLr += (gyro.rawLr - gyro.baseLr) * Math.min(1, dt * 1.8);
+            gyro.baseFb += (gyro.rawFb - gyro.baseFb) * Math.min(1, dt * 1.8);
+          }
+        } else {
+          gyro.extremeSince = 0;
+        }
+        var gEase = Math.min(1, dt * 11);
+        gyro.smoothLr += (clamp(gyro.deltaLr * 0.68, -17, 17) - gyro.smoothLr) * gEase;
+        gyro.smoothFb += (clamp(-gyro.deltaFb * 0.52, -14, 14) - gyro.smoothFb) * gEase;
+
+        /* Update subtle tilt gauge when phone is tilted */
+        var showGauge = absLr > 3.2;
+        tiltGauge.classList.toggle('vis', showGauge);
+        if (showGauge) {
+          var normTilt = clamp(gyro.deltaLr / GYRO_SWITCH_DEG, -1.18, 1.18);
+          tiltDot.style.transform = 'translateX(' + (normTilt * 37).toFixed(1) + 'px)';
+        }
+      } else {
+        gyro.smoothLr *= Math.exp(-6 * dt);
+        gyro.smoothFb *= Math.exp(-6 * dt);
+        tiltGauge.classList.remove('vis');
+      }
+
+      /* Spring 3D pose + subtle floating buoyancy + gyroscope attitude */
+      tilt.impulse *= Math.exp(-3.4 * dt);
+      tilt.rollKick *= Math.exp(-5.5 * dt);
+      var breathX = Math.sin(timeSec * 1.05) * 1.15 + Math.sin(tilt.impulse * Math.PI) * 1.6;
+      var breathY = Math.cos(timeSec * 0.82) * 1.35 - Math.sin(tilt.impulse * Math.PI) * 1.2;
+      var breathZ = Math.sin(timeSec * 0.68) * 0.45;
+
+      var kSpring = Math.min(1, dt * 9.5);
+      tilt.rx += (tilt.trx - tilt.rx) * kSpring;
+      tilt.ry += (tilt.try_ - tilt.ry) * kSpring;
+      if (!dragging) {
+        tilt.trx *= Math.exp(-4.2 * dt);
+        tilt.try_ *= Math.exp(-4.2 * dt);
+      }
+
+      var rx = BASE_RX + breathX + tilt.rx + gyro.smoothFb;
+      var ry = BASE_RY + breathY + tilt.ry + gyro.smoothLr + tilt.rollKick;
+      var rz = BASE_RZ + breathZ + gyro.smoothLr * 0.12;
+      pose.style.transform =
+        'rotateZ(' + rz.toFixed(2) + 'deg) rotateX(' + rx.toFixed(2) + 'deg) rotateY(' + ry.toFixed(2) + 'deg)';
+
+      /* Glide overhead dome sky reflection & shadow subtly with 3D tilt + gyro */
+      var totalRy = tilt.ry + gyro.smoothLr + breathY;
+      var totalRx = tilt.rx + gyro.smoothFb + breathX;
+      var skyShiftX = totalRy * 1.8;
+      var skyShiftY = -totalRx * 1.2;
+      skySvg.style.transform = 'translate3d(' + skyShiftX.toFixed(1) + 'px,' + skyShiftY.toFixed(1) + 'px,0)';
+      shadowEl.style.transform = 'translate3d(' + (-18 - totalRy * 0.7).toFixed(1) + 'px,' + (26 + totalRx * 0.7).toFixed(1) + 'px,-46px)';
+    }
+
+    /* Pointer & keyboard interactions */
+    function onPointerDown(e) {
+      if (e.target.closest('.gw-hud') || e.target.closest('#cm-bar') || e.target.closest('#xl')) return;
+      dragging = true;
+      ptrId = e.pointerId;
+      downX = lastX = e.clientX;
+      downY = lastY = e.clientY;
+      movedDist = 0;
+      downAt = performance.now();
+      try { stage.setPointerCapture(e.pointerId); } catch (er) {}
+    }
+
+    function onPointerMove(e) {
+      var rect = stage.getBoundingClientRect();
+      if (!dragging) {
+        var nx = ((e.clientX - rect.left) / Math.max(1, rect.width) - 0.5) * 2;
+        var ny = ((e.clientY - rect.top) / Math.max(1, rect.height) - 0.5) * 2;
+        tilt.trx = clamp(-ny * 6.5, -14, 14);
+        tilt.try_ = clamp(nx * 8.5, -16, 16);
+        return;
+      }
+      if (e.pointerId !== ptrId) return;
+      var dx = e.clientX - lastX, dy = e.clientY - lastY;
+      lastX = e.clientX; lastY = e.clientY;
+      movedDist += Math.abs(dx) + Math.abs(dy);
+      tilt.try_ = clamp(tilt.try_ + dx * 0.14, -24, 24);
+      tilt.trx = clamp(tilt.trx - dy * 0.12, -20, 20);
+    }
+
+    function onPointerUp(e) {
+      if (!dragging || e.pointerId !== ptrId) return;
+      dragging = false;
+      ptrId = null;
+      var totalDx = e.clientX - downX;
+      var totalDy = e.clientY - downY;
+      var elapsed = performance.now() - downAt;
+
+      if (movedDist >= 38 && Math.hypot(totalDx, totalDy) >= 32) {
+        /* Swipe left/up -> next card; swipe right/down -> previous card */
+        var dir = (Math.abs(totalDx) > Math.abs(totalDy) ? -totalDx : -totalDy) > 0 ? 1 : -1;
+        goTo(activeIdx + dir);
+        return;
+      }
+
+      if (movedDist < 10 && elapsed < 340) {
+        var now = performance.now();
+        if (now - lastTapAt < 320) {
+          lastTapAt = 0;
+          var cur = deck[activeIdx];
+          if (cur && cur.rawItem && typeof onPick === 'function') onPick(cur.rawItem);
+        } else {
+          lastTapAt = now;
+          /* Single tap on the glass widget triggers a smooth focus-pull to the next card */
+          if (e.target.closest('.gw-rig')) goTo(activeIdx + 1);
+        }
+      }
+    }
+
+    var wheelLockUntil = 0;
+    function onWheel(e) {
+      if (e.target.closest('#xl')) return;
+      e.preventDefault();
+      var now = performance.now();
+      if (now < wheelLockUntil) return;
+      var delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      if (Math.abs(delta) < 8) return;
+      wheelLockUntil = now + 420;
+      goTo(activeIdx + (delta > 0 ? 1 : -1));
+    }
+
+    function onKeyDown(e) {
+      if (/input|textarea|select/i.test((e.target && e.target.tagName) || '') || document.getElementById('xl')) return;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        goTo(activeIdx + 1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        goTo(activeIdx - 1);
+      }
+    }
+
+    /* Auto-unlock iOS Safari motion permission on first user click/touchend gesture */
+    function onUserGestureUnlock() {
+      if (gyroPref && needsIosPerm && gyro.permState === 'prompt') {
+        requestIosGyroPermission(false);
+      }
+    }
+
+    hud.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-gw]');
+      if (!btn) return;
+      e.stopPropagation();
+      var act = btn.getAttribute('data-gw');
+      if (act === 'prev') goTo(activeIdx - 1);
+      else if (act === 'next') goTo(activeIdx + 1);
+      else if (act === 'gyro') {
+        if (needsIosPerm && gyro.permState !== 'granted') {
+          gyroPref = true;
+          try { localStorage.setItem('minest.glassGyro', '1'); } catch (er) {}
+          requestIosGyroPermission(true);
+          return;
+        }
+        gyroPref = !gyroPref;
+        try { localStorage.setItem('minest.glassGyro', gyroPref ? '1' : '0'); } catch (er) {}
+        if (gyroPref) {
+          recalibrateGyro();
+          showToast('已开启陀螺仪切卡 · 左右倾斜即可翻阅');
+        } else {
+          showToast('已关闭陀螺仪切卡');
+        }
+        syncHud();
+      } else if (act === 'auto') {
+        autoPref = !autoPref;
+        try { localStorage.setItem('minest.glassAuto', autoPref ? '1' : '0'); } catch (er) {}
+        holdTimer = 0;
+        syncHud();
+      } else if (act === 'showcase') {
+        if (!list || !list.length) return;
+        showcasePref = !showcasePref;
+        try { localStorage.setItem('minest.glassShowcase', showcasePref ? '1' : '0'); } catch (er) {}
+        deck = buildDeck();
+        showImmediate(0);
+      } else if (act === 'open') {
+        var cur = deck[activeIdx];
+        if (cur && cur.rawItem && typeof onPick === 'function') onPick(cur.rawItem);
+      }
+    });
+
+    ['pointerdown', 'touchstart'].forEach(function (ev) {
+      hud.addEventListener(ev, function (e) { e.stopPropagation(); }, { passive: true });
+    });
+
+    stage.addEventListener('pointerdown', onPointerDown);
+    stage.addEventListener('pointermove', onPointerMove);
+    stage.addEventListener('pointerup', onPointerUp);
+    stage.addEventListener('pointercancel', onPointerUp);
+    stage.addEventListener('click', onUserGestureUnlock, true);
+    stage.addEventListener('touchend', onUserGestureUnlock, { capture: true, passive: true });
+    stage.addEventListener('wheel', onWheel, { passive: false });
+    document.addEventListener('keydown', onKeyDown);
+    window.addEventListener('deviceorientation', onDeviceOrientation, { passive: true });
+    window.addEventListener('devicemotion', onDeviceMotion, { passive: true });
+
+    var ro = null;
+    if (window.ResizeObserver) {
+      ro = new ResizeObserver(fit);
+      ro.observe(box);
+    }
+
+    var syncTimer = setInterval(syncHud, 500);
+
+    fit();
+    showImmediate(0);
+    rafId = requestAnimationFrame(tick);
+
+    return {
+      fit: fit,
+      destroy: function () {
+        dead = true;
+        cancelAnimationFrame(rafId);
+        clearInterval(syncTimer);
+        clearTimeout(toastTimer);
+        if (ro) ro.disconnect();
+        stage.removeEventListener('pointerdown', onPointerDown);
+        stage.removeEventListener('pointermove', onPointerMove);
+        stage.removeEventListener('pointerup', onPointerUp);
+        stage.removeEventListener('pointercancel', onPointerUp);
+        stage.removeEventListener('click', onUserGestureUnlock, true);
+        stage.removeEventListener('touchend', onUserGestureUnlock, true);
+        stage.removeEventListener('wheel', onWheel);
+        document.removeEventListener('keydown', onKeyDown);
+        window.removeEventListener('deviceorientation', onDeviceOrientation);
+        window.removeEventListener('devicemotion', onDeviceMotion);
+        if (stage.parentNode) stage.parentNode.removeChild(stage);
+      }
+    };
+  }
+
+  window.MinestGlassWidgetsMode = { mount: mountMode };
+})();
+</script>
 <script id="mn-cover-modes-js">
 /* Minest 3D Cover display modes: 3D / Wall / Fan / Helix / Stack / Spiral / Orbit / Sphere / Wave — High-End 3D Physics & Motion */
 (function () {
@@ -200997,7 +203416,8 @@ html[data-cfx="wave"] .theme-white .cfx-foil { mix-blend-mode: normal; backgroun
     ['wave', 'Wave'],
     ['ring', 'Ring'],
     ['stream', 'Stream'],
-    ['rolodex', 'Rolodex']
+    ['rolodex', 'Rolodex'],
+    ['glass', 'Glass Widgets']
   ];
   /* the fluid gradients' palettes: base, then three light blobs */
   var FLUID = [
@@ -201036,6 +203456,7 @@ html[data-cfx="wave"] .theme-white .cfx-foil { mix-blend-mode: normal; backgroun
     ring: '<path d="M3.5 7l3.2 1.3v8.4L3.5 18z"/><rect x="9" y="7.5" width="6" height="9.5" rx="1.2"/><path d="M20.5 7l-3.2 1.3v8.4l3.2 1.3z"/><path d="M4 21c4.6-1.6 11.4-1.6 16 0" opacity=".6"/>',
     wave: '<path d="M2.5 12c2.4-5 4.8-5 7.1 0s4.8 5 7.2 0 3.4-3.3 4.7-2"/><circle cx="9.6" cy="12" r="1" fill="currentColor" stroke="none"/>',
     rolodex: '<rect x="6" y="4.5" width="12" height="9.5" rx="1.3"/><path d="M9 4.5V3.2h3.5v1.3M4 13.5h16M6.5 14v4.5a1.5 1.5 0 0 0 1.5 1.5h8a1.5 1.5 0 0 0 1.5-1.5V14"/><path d="M2.5 11.8v3.4M21.5 11.8v3.4" stroke-width="2.1"/>',
+    glass: '<rect x="3.5" y="3.5" width="17" height="17" rx="4.8"/><rect x="6" y="5.8" width="12" height="7.4" rx="2.4"/><path d="M8.5 16.2h7M10 18.4h4"/>',
     play: '<path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="none"/>', pause: '<rect x="7" y="5.5" width="3.4" height="13" rx="1" fill="currentColor" stroke="none"/><rect x="13.6" y="5.5" width="3.4" height="13" rx="1" fill="currentColor" stroke="none"/>',
     port: '<rect x="7.5" y="3.5" width="9" height="17" rx="2"/>', land: '<rect x="3.5" y="7.5" width="17" height="9" rx="2"/>',
     style: '<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.6-.9 1.2-1.8-.5-1-.1-2.2 1.2-2.2H17a3.5 3.5 0 0 0 3.5-3.5c0-5.3-3.8-9.5-8.5-9.5z"/><circle cx="7.8" cy="11" r="1.1" fill="currentColor" stroke="none"/><circle cx="10.5" cy="7.4" r="1.1" fill="currentColor" stroke="none"/><circle cx="14.8" cy="7.6" r="1.1" fill="currentColor" stroke="none"/>',
@@ -201043,7 +203464,7 @@ html[data-cfx="wave"] .theme-white .cfx-foil { mix-blend-mode: normal; backgroun
     holo: '<path d="M12 3l7 4v6c0 3.6-3 6.4-7 8-4-1.6-7-4.4-7-8V7z" opacity=".55"/><path d="M8.5 12.5l2.4 2.4 4.6-5.2"/><path d="M4 21h16"/>', lfx: '<path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 16v4M16.5 18h4"/>', cfx: '<rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M8.5 9h7M8.5 12.5h5" stroke-dasharray="1.4 1.6"/><circle cx="16.5" cy="16.5" r="1" fill="currentColor"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>', lab: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>'
   };
-  var MZH = { flow: '3D 封面', wall: '卡片墙', fan: '扇形', helix: '螺旋', stack: '叠放', spiral: '旋涡', orbit: '轨道', sphere: '球体', wave: '波浪', ring: '环形', stream: '流光', rolodex: '旋转名片夹' };
+  var MZH = { flow: '3D 封面', wall: '卡片墙', fan: '扇形', helix: '螺旋', stack: '叠放', spiral: '旋涡', orbit: '轨道', sphere: '球体', wave: '波浪', ring: '环形', stream: '流光', rolodex: '旋转名片夹', glass: '玻璃组件' };
   function ico(k) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICO[k] || '') + '</svg>'; }
   function flashName(host, txt) { var n = host.querySelector('.cm-mname'); if (!n) { n = document.createElement('div'); n.className = 'cm-mname'; host.appendChild(n); } n.textContent = txt; n.classList.remove('show'); void n.offsetWidth; n.classList.add('show'); clearTimeout(n._t); n._t = setTimeout(function () { n.classList.remove('show'); }, 1300); }
   var calm = false; try { calm = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
@@ -201248,6 +203669,13 @@ html[data-cfx="wave"] .theme-white .cfx-foil { mix-blend-mode: normal; backgroun
   function Engine(box, list, m, onPick) {
     if (m === 'rolodex' && window.MinestRolodexMode) {
       return window.MinestRolodexMode.mount(box, list, onPick, {
+        isPlaying: function () { return playing; },
+        getSpeed: function () { return speed; },
+        isHolo: function () { return HOLO || !!box.closest('#cm-holo') || box.classList.contains('hl'); }
+      });
+    }
+    if (m === 'glass' && window.MinestGlassWidgetsMode) {
+      return window.MinestGlassWidgetsMode.mount(box, list, onPick, {
         isPlaying: function () { return playing; },
         getSpeed: function () { return speed; },
         isHolo: function () { return HOLO || !!box.closest('#cm-holo') || box.classList.contains('hl'); }
@@ -202053,7 +204481,7 @@ html[data-cfx="wave"] .theme-white .cfx-foil { mix-blend-mode: normal; backgroun
       var hb = document.createElement('button'); hb.className = 'hl-k'; hb.innerHTML = ico('holo'); hb.title = '全息 · 叠加全息投影';
       hb.onclick = function (e) { e.stopPropagation(); setHolo(!HOLO); flashName(bar, '全息 ' + (HOLO ? '开' : '关')); }; bar.appendChild(hb);
       if (window.FBFX) { var lb = document.createElement('button'); lb.className = 'lfx-k'; lb.innerHTML = ico('lfx'); lb.title = 'Light FX';
-        lb.onclick = function (e) { e.stopPropagation(); var M = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco'], nx = M[(M.indexOf(window.FBFX.mode) + 1) % M.length]; window.FBFX.setMode(nx); flashName(bar, 'Light FX · ' + ({ none: '关', lasers: '激光', firework: '烟花', spotlight: '聚光灯', neon: '霓虹', aurora: '极光', meteor: '流星', disco: '迪斯科' })[nx]); paintBarKeys(); }; bar.appendChild(lb); }
+        lb.onclick = function (e) { e.stopPropagation(); var M = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco', 'gallery'], nx = M[(M.indexOf(window.FBFX.mode) + 1) % M.length]; window.FBFX.setMode(nx); flashName(bar, 'Light FX · ' + ({ none: '关', lasers: '激光', firework: '烟花', spotlight: '聚光灯', neon: '霓虹', aurora: '极光', meteor: '流星', disco: '迪斯科', gallery: '画廊' })[nx]); paintBarKeys(); }; bar.appendChild(lb); }
       if (window.__cmCardFx) { var cb = document.createElement('button'); cb.className = 'cfx-k'; cb.innerHTML = ico('cfx'); cb.title = 'Card FX';
         cb.onclick = function (e) { e.stopPropagation(); flashName(bar, 'Card FX · ' + window.__cmCardFx.next()); paintBarKeys(); }; bar.appendChild(cb); }
       paintBarKeys();
@@ -202068,7 +204496,7 @@ html[data-cfx="wave"] .theme-white .cfx-foil { mix-blend-mode: normal; backgroun
     if (ov) ov.remove();
     ov = document.createElement('div'); ov.id = 'cm-ov'; ov.className = mode + ' ' + shape; slot.insertBefore(ov, bar.parentNode === slot ? bar : slot.querySelector('#xl')); sig = s;
     lastList = list;
-    eng = (list.length || mode === 'rolodex') ? Engine(ov, list, mode, pick) : null;
+    eng = (list.length || mode === 'rolodex' || mode === 'glass') ? Engine(ov, list, mode, pick) : null;
     stageBg(); holoOv(ov);
   }
   /* 全息 (2026-11-20, the user): the holo projection's look laid over the mode in view — cyan light cards, scan lines,
@@ -202108,7 +204536,7 @@ html[data-cfx="wave"] .theme-white .cfx-foil { mix-blend-mode: normal; backgroun
   window.addEventListener('minest:cover-bg', function (e) { setBg(e.detail); });
   /* a big board: only a window of cards round the one in view is built (every card animated each frame, each with
      its picture and the card style's layers, was too much for a phone) */
-  var CAP = { sphere: 30, spiral: 40, wall: 50, rolodex: 120 }, lastPickId = null;
+  var CAP = { sphere: 30, spiral: 40, wall: 50, rolodex: 120, glass: 80 }, lastPickId = null;
   function windowed(list) {
     var cap = CAP[mode] || 64; if (list.length <= cap) return list;
     var at = 0; if (lastPickId) { for (var i = 0; i < list.length; i++) if (list[i].id === lastPickId) { at = i; break; } }
@@ -203406,6 +205834,763 @@ html[data-cfx="wave"] .theme-white .cfx-foil { mix-blend-mode: normal; backgroun
     return out;
   }
   window.MinestExplode = { open: open, close: close, isOpen: function () { return !!cur; }, facts: facts, parts: parts, breakdown: breakdown };
+})();
+</script>
+<style id="mn-fx71-css">
+/* Minest · FX 71 (tools/fx-71): Light FX aurora / meteor / disco, Card FX holo / float / wave, and the buttons' looks */
+
+/* ---- the switches name every mode in its own colour (ripple and List Wallet had none) */
+.ios-tab-item.dock-fx-tab.active.aurora { color: #34e3a4; }
+.ios-tab-item.dock-fx-tab.active.meteor { color: #7db8ff; }
+.ios-tab-item.dock-fx-tab.active.disco { color: #ff5fc4; }
+.ios-tab-item.dock-fx-tab.active.gallery { color: #facc15; }
+.theme-white .ios-tab-item.dock-fx-tab.active.aurora { color: #0b8f63; }
+.theme-white .ios-tab-item.dock-fx-tab.active.meteor { color: #2563eb; }
+.theme-white .ios-tab-item.dock-fx-tab.active.disco { color: #c026a3; }
+.theme-white .ios-tab-item.dock-fx-tab.active.gallery { color: #b45309; }
+.bar-fx-btn.on.aurora { background: rgba(52,227,164,.26) !important; border-color: rgba(52,227,164,.58) !important; }
+.bar-fx-btn.on.meteor { background: rgba(125,184,255,.28) !important; border-color: rgba(125,184,255,.6) !important; }
+.bar-fx-btn.on.disco { background: rgba(255,95,196,.28) !important; border-color: rgba(255,95,196,.6) !important; }
+.bar-fx-btn.on.gallery { background: rgba(250,204,21,.28) !important; border-color: rgba(250,204,21,.64) !important; }
+.fbfx-btn.on.neon { background: rgba(255,58,26,.2); border-color: rgba(255,154,107,.5); box-shadow: 0 0 18px rgba(255,58,26,.34), inset 0 1px 0 rgba(255,255,255,.35); }
+.fbfx-btn.on.aurora { background: rgba(52,227,164,.2); border-color: rgba(134,239,200,.5); box-shadow: 0 0 18px rgba(52,227,164,.34), inset 0 1px 0 rgba(255,255,255,.35); }
+.fbfx-btn.on.meteor { background: rgba(96,165,250,.22); border-color: rgba(165,205,255,.5); box-shadow: 0 0 18px rgba(96,165,250,.36), inset 0 1px 0 rgba(255,255,255,.35); }
+.fbfx-btn.on.disco { background: rgba(236,72,153,.22); border-color: rgba(249,168,212,.5); box-shadow: 0 0 18px rgba(236,72,153,.36), inset 0 1px 0 rgba(255,255,255,.35); }
+.fbfx-btn.on.gallery { background: rgba(234,179,8,.26); border-color: rgba(253,224,71,.62); box-shadow: 0 0 20px rgba(250,204,21,.38), inset 0 1px 0 rgba(255,255,255,.4); }
+
+.card-mode-btn.on.ripple { color: #fff; background: rgba(14,165,233,.24); border-color: rgba(125,211,252,.5); box-shadow: 0 0 18px rgba(14,165,233,.32), inset 0 1px 0 rgba(255,255,255,.35); }
+.card-mode-btn.on.holo { color: #fff; background: linear-gradient(110deg, rgba(34,211,238,.3), rgba(232,121,249,.3) 55%, rgba(250,204,21,.3)); border-color: rgba(255,255,255,.5); box-shadow: 0 0 18px rgba(192,132,252,.34), inset 0 1px 0 rgba(255,255,255,.4); }
+.card-mode-btn.on.float { color: #fff; background: rgba(129,140,248,.26); border-color: rgba(199,210,254,.5); box-shadow: 0 0 18px rgba(129,140,248,.34), inset 0 1px 0 rgba(255,255,255,.35); }
+.card-mode-btn.on.wave { color: #fff; background: rgba(45,212,191,.24); border-color: rgba(153,246,228,.5); box-shadow: 0 0 18px rgba(45,212,191,.32), inset 0 1px 0 rgba(255,255,255,.35); }
+.theme-white .card-mode-btn.on.ripple, .theme-white .card-mode-btn.on.holo, .theme-white .card-mode-btn.on.float, .theme-white .card-mode-btn.on.wave { color: #0f172a; }
+.ios-tab-item.dock-fx-tab.active.holo { color: #c084fc; }
+.ios-tab-item.dock-fx-tab.active.float { color: #818cf8; }
+.ios-tab-item.dock-fx-tab.active.wave { color: #2dd4bf; }
+.bar-fx-btn.on.holo { background: rgba(192,132,252,.3) !important; border-color: rgba(192,132,252,.6) !important; }
+.bar-fx-btn.on.float { background: rgba(129,140,248,.3) !important; border-color: rgba(129,140,248,.6) !important; }
+.bar-fx-btn.on.wave { background: rgba(45,212,191,.28) !important; border-color: rgba(45,212,191,.6) !important; }
+
+/* ---- the foil layer every board card gets while a 71 card mode is on */
+.cfx-foil { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 5; opacity: 0; transition: opacity .35s ease; }
+
+/* holo */
+@keyframes cfxFoilDrift { from { background-position: 0% 30%; } to { background-position: 100% 70%; } }
+html[data-cfx="holo"] .cfx-foil {
+  opacity: .5;
+  background-image: linear-gradient(115deg, transparent 18%, hsla(188,100%,68%,.6) 34%, hsla(292,100%,72%,.6) 47%, hsla(48,100%,68%,.6) 60%, transparent 78%);
+  background-size: 300% 300%;
+  mix-blend-mode: color-dodge;
+  animation: cfxFoilDrift 7s ease-in-out var(--cfx-dl, 0s) infinite alternate;
+}
+html[data-cfx="holo"] .cfx-hot > .cfx-foil {
+  opacity: .78;
+  animation: none;
+  background-image: radial-gradient(circle at var(--cfx-mx, 50%) var(--cfx-my, 50%), rgba(255,255,255,.7), rgba(255,255,255,0) 46%),
+    linear-gradient(115deg, transparent 18%, hsla(188,100%,68%,.6) 34%, hsla(292,100%,72%,.6) 47%, hsla(48,100%,68%,.6) 60%, transparent 78%);
+  background-size: 100% 100%, 300% 300%;
+  background-position: 0 0, var(--cfx-mx, 50%) var(--cfx-my, 50%);
+}
+.theme-white[data-cfx="holo"] .cfx-foil, html[data-cfx="holo"] .theme-white .cfx-foil { mix-blend-mode: hard-light; opacity: .34; }
+.theme-white[data-cfx="holo"] .cfx-hot > .cfx-foil, html[data-cfx="holo"] .theme-white .cfx-hot > .cfx-foil { opacity: .5; }
+html[data-cfx="holo"] .fb-board-stage article.kanban-card[data-card-id],
+html[data-cfx="holo"] .board-swimlane-scroll article.kanban-card[data-card-id] { transition: transform .5s cubic-bezier(.2,.8,.2,1); }
+html[data-cfx="holo"] .fb-board-stage article.kanban-card[data-card-id].cfx-hot,
+html[data-cfx="holo"] .board-swimlane-scroll article.kanban-card[data-card-id].cfx-hot {
+  transform: perspective(720px) rotateX(var(--cfx-rx, 0deg)) rotateY(var(--cfx-ry, 0deg)) scale(1.02) !important;
+  transition: transform .09s linear;
+  z-index: 3;
+}
+
+/* float */
+@keyframes cfxFloat { 0%, 100% { translate: 0 0; rotate: 0deg; } 50% { translate: 0 -5px; rotate: var(--cfx-r, .3deg); } }
+html[data-cfx="float"] .fb-board-stage article.kanban-card[data-card-id],
+html[data-cfx="float"] .board-swimlane-scroll article.kanban-card[data-card-id] {
+  animation: cfxFloat var(--cfx-dur, 4s) ease-in-out var(--cfx-dl, 0s) infinite;
+  transition: scale .18s ease;
+}
+html[data-cfx="float"] .fb-board-stage article.kanban-card[data-card-id]:active,
+html[data-cfx="float"] .board-swimlane-scroll article.kanban-card[data-card-id]:active { scale: .97; }
+html[data-cfx="float"] .cfx-foil { opacity: 1; z-index: 0; box-shadow: 0 16px 20px -14px rgba(0,0,0,.6); }
+html[data-cfx="float"] .theme-white .cfx-foil { box-shadow: 0 16px 20px -14px rgba(15,23,42,.3); }
+
+/* wave */
+@keyframes cfxWave { 0%, 22%, 100% { translate: 0 0; scale: 1; } 9% { translate: 0 -4px; scale: 1.03; } }
+@keyframes cfxWaveSheen { 0% { background-position: 140% 0; opacity: 0; } 3% { opacity: 1; } 19% { background-position: -70% 0; opacity: 1; } 23%, 100% { background-position: -70% 0; opacity: 0; } }
+html[data-cfx="wave"] .fb-board-stage article.kanban-card[data-card-id],
+html[data-cfx="wave"] .board-swimlane-scroll article.kanban-card[data-card-id] { animation: cfxWave 4.4s cubic-bezier(.3,.7,.3,1) var(--cfx-wd, 0s) infinite; }
+html[data-cfx="wave"] .cfx-foil {
+  background-image: linear-gradient(105deg, transparent 34%, rgba(255,255,255,.5) 50%, transparent 66%);
+  background-size: 220% 100%;
+  background-repeat: no-repeat;
+  mix-blend-mode: screen;
+  animation: cfxWaveSheen 4.4s linear var(--cfx-wd, 0s) infinite;
+}
+html[data-cfx="wave"] .theme-white .cfx-foil { mix-blend-mode: normal; background-image: linear-gradient(105deg, transparent 34%, rgba(56,132,255,.2) 50%, transparent 66%); }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-cfx] .cfx-foil,
+  html[data-cfx] .fb-board-stage article.kanban-card[data-card-id],
+  html[data-cfx] .board-swimlane-scroll article.kanban-card[data-card-id] { animation: none !important; }
+  html[data-cfx="wave"] .cfx-foil { opacity: 0; }
+}
+
+/* =========================================================================
+   Light FX · GALLERY (In-App Art Gallery — Pull-Cord, Pixel-Accurate
+   Flashlight Local Illumination, SVG Liquid-Glass Prism Rim, Girl & Pepper)
+   ========================================================================= */
+html.fbfx-gallery-on .fbfx-layer {
+  contain: none !important;
+}
+.fbfx-gal-root {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "SF Pro Text", "PingFang SC", sans-serif;
+}
+
+/* Full-stage Midnight Gallery Night Veil — dynamically masked by the flashlight
+   hotspot & cone so ONLY the exact pixels under the flashlight light up! */
+.fbfx-gal-darkveil {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  background: rgba(7, 14, 28, 0.80);
+  -webkit-backdrop-filter: grayscale(0.94) brightness(0.32) contrast(1.18) sepia(0.30) hue-rotate(186deg);
+  backdrop-filter: grayscale(0.94) brightness(0.32) contrast(1.18) sepia(0.30) hue-rotate(186deg);
+  will-change: opacity, -webkit-mask-image, mask-image;
+}
+
+.fbfx-gal-pblur-top {
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  z-index: 4;
+  height: 82px;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,.9) 0%, rgba(0,0,0,.48) 48%, rgba(0,0,0,0) 100%);
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,.9) 0%, rgba(0,0,0,.48) 48%, rgba(0,0,0,0) 100%);
+}
+.fbfx-gal-pblur-bot {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 4;
+  height: 88px;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(8px) saturate(135%);
+  backdrop-filter: blur(8px) saturate(135%);
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,.82) 0%, rgba(0,0,0,.38) 46%, rgba(0,0,0,0) 100%);
+  mask-image: linear-gradient(to top, rgba(0,0,0,.82) 0%, rgba(0,0,0,.38) 46%, rgba(0,0,0,0) 100%);
+}
+
+/* Real SVG feDisplacementMap Chromatic-Aberration Liquid-Glass Flashlight Lens */
+.fbfx-gal-loupe {
+  position: absolute;
+  left: 0; top: 0;
+  z-index: 3;
+  width: 220px; height: 220px;
+  border-radius: 50%;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform, opacity;
+  -webkit-backdrop-filter: brightness(1.09) saturate(1.22) contrast(1.04);
+  backdrop-filter: url(#fbfx-gal-prism) brightness(1.09) saturate(1.22) contrast(1.04);
+  -webkit-mask-image: radial-gradient(circle, #000 0%, #000 88%, rgba(0,0,0,0.45) 95%, transparent 100%);
+  mask-image: radial-gradient(circle, #000 0%, #000 88%, rgba(0,0,0,0.45) 95%, transparent 100%);
+}
+
+/* Top-center Apple capsule status / switch pill ("Lights on" / "Lights off") */
+.fbfx-gal-pill {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 32px;
+  padding: 0 16px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background .28s ease, color .28s ease, border-color .28s ease, transform .18s cubic-bezier(.2,.9,.3,1.2), box-shadow .28s ease;
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
+}
+.fbfx-gal-pill.day {
+  background: rgba(255, 253, 248, 0.94);
+  color: #1b2230;
+  border: 1.5px solid rgba(27, 34, 48, 0.14);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.09), inset 0 1px 0 #ffffff;
+}
+.fbfx-gal-pill.night {
+  background: rgba(16, 27, 49, 0.82);
+  color: #f8fafc;
+  border: 1px solid rgba(253, 224, 71, 0.34);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+.fbfx-gal-pill:active {
+  transform: translateX(-50%) scale(0.95);
+}
+.fbfx-gal-pill .gal-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #facc15;
+  box-shadow: 0 0 8px #facc15;
+}
+.fbfx-gal-pill.day .gal-dot {
+  background: #f59e0b;
+  box-shadow: none;
+}
+
+/* Top-right hanging golden pull-cord hit zone */
+.fbfx-gal-cord {
+  position: absolute;
+  width: 52px;
+  height: 124px;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.fbfx-gal-cord:active { cursor: grabbing; }
+
+/* Storybook comic speech bubble next to the flashlight girl */
+.fbfx-gal-bubble {
+  position: absolute;
+  padding: 7px 14px;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #18202c;
+  border: 2px solid #1b2230;
+  font-size: 12.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  white-space: nowrap;
+  pointer-events: auto;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+  transform-origin: left center;
+  transition: transform .22s cubic-bezier(.2,1.3,.3,1), opacity .22s ease;
+}
+.fbfx-gal-bubble::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  margin-top: -5px;
+  border-style: solid;
+  border-width: 5px 8px 5px 0;
+  border-color: transparent #1b2230 transparent transparent;
+}
+.fbfx-gal-bubble::after {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: 50%;
+  margin-top: -4px;
+  border-style: solid;
+  border-width: 4px 6px 4px 0;
+  border-color: transparent #ffffff transparent transparent;
+}
+.fbfx-gal-bubble.pop {
+  transform: scale(1.05);
+}
+
+/* Puppy Pepper hit button bottom-right */
+.fbfx-gal-dog {
+  position: absolute;
+  width: 68px;
+  height: 74px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: auto;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Dynamic directional cast shadow on cards responding to flashlight position */
+html.fbfx-gallery-night .fb-board-stage article.kanban-card[data-card-id],
+html.fbfx-gallery-night .board-swimlane-scroll article.kanban-card[data-card-id] {
+  box-shadow: var(--gal-shx, 0px) var(--gal-shy, 12px) 28px -6px rgba(2, 6, 18, var(--gal-sha, 0.65)) !important;
+  transition: box-shadow .08s linear;
+}
+html.fbfx-gallery-day .fb-board-stage article.kanban-card[data-card-id],
+html.fbfx-gallery-day .board-swimlane-scroll article.kanban-card[data-card-id] {
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.1) !important;
+}
+
+/* =========================================================================
+   Light FX · 1-Click Popover Menu Picker (.fbfx-picker)
+   ========================================================================= */
+.fbfx-picker {
+  position: fixed;
+  z-index: 2147483640;
+  width: 284px;
+  padding: 10px;
+  border-radius: 20px;
+  background: rgba(15, 23, 42, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.52), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  backdrop-filter: blur(24px) saturate(190%);
+  color: #f8fafc;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  opacity: 0;
+  transform: scale(0.94) translateY(4px);
+  transition: opacity .16s ease, transform .2s cubic-bezier(.2,.9,.3,1.15);
+  pointer-events: none;
+}
+.fbfx-picker.open {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
+}
+body.theme-white .fbfx-picker {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(15, 23, 42, 0.12);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.2), inset 0 1px 0 #ffffff;
+  color: #0f172a;
+}
+.fbfx-pk-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 6px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}
+.fbfx-pk-off {
+  border: 0;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font: 600 11px/1.2 inherit;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.12);
+  color: inherit;
+  transition: background .15s;
+}
+body.theme-white .fbfx-pk-off { background: rgba(15, 23, 42, 0.08); }
+.fbfx-pk-off:hover { background: rgba(239, 68, 68, 0.25); }
+.fbfx-pk-off.is-off { opacity: 0.45; }
+
+.fbfx-pk-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.fbfx-pk-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, transform .12s;
+}
+body.theme-white .fbfx-pk-item {
+  border-color: rgba(15, 23, 42, 0.08);
+  background: rgba(15, 23, 42, 0.035);
+}
+.fbfx-pk-item:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+body.theme-white .fbfx-pk-item:hover {
+  background: rgba(15, 23, 42, 0.08);
+}
+.fbfx-pk-item:active { transform: scale(0.97); }
+.fbfx-pk-item.wide {
+  grid-column: 1 / -1;
+}
+.fbfx-pk-item.active {
+  background: rgba(250, 204, 21, 0.2);
+  border-color: var(--pk-col, #facc15);
+  box-shadow: 0 0 14px rgba(250, 204, 21, 0.18);
+}
+body.theme-white .fbfx-pk-item.active {
+  background: rgba(250, 204, 21, 0.18);
+}
+.fbfx-pk-ico {
+  width: 28px; height: 28px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--pk-col, #e2e8f0);
+}
+body.theme-white .fbfx-pk-ico {
+  background: rgba(15, 23, 42, 0.07);
+}
+.fbfx-pk-txt {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.fbfx-pk-txt b {
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fbfx-pk-txt small {
+  font-size: 10px;
+  opacity: 0.62;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.fbfx-pk-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(250, 204, 21, 0.24);
+  color: #fde047;
+  letter-spacing: 0.04em;
+}
+body.theme-white .fbfx-pk-badge {
+  background: rgba(234, 179, 8, 0.2);
+  color: #a16207;
+}
+</style>
+<script id="mn-fx71-cardfx-js">
+/* Minest · board Card FX 71 — holo · float · wave (tools/fx-71).
+   The board's card-mode switch writes the mode to <html data-cfx="…"> and fires `minest:cardfx`;
+   this block gives every board card a foil layer and drives the three looks:
+     holo  — a holographic foil on every card; the card under the pointer tilts toward it
+     float — the cards hover, each on its own slow beat
+     wave  — a wave of lift and light runs across the lists; tap a card to send one out from it
+   The look itself is in the stylesheet beside this file. */
+(function () {
+  'use strict';
+  if (window.MinestCardFX) return;
+  var root = document.documentElement, MODES = ['holo', 'float', 'wave'];
+  var SEL = '.fb-board-stage article.kanban-card[data-card-id], .board-swimlane-scroll article.kanban-card[data-card-id]';
+  var mode = 'none', timer = 0, hot = null, raf = 0, pend = null;
+  var calm = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  function hash(s) { var x = 2166136261; for (var i = 0; i < s.length; i++) { x ^= s.charCodeAt(i); x = Math.imul(x, 16777619); } return x >>> 0; }
+  function cardOf(t) { return t && t.closest ? t.closest('article.kanban-card[data-card-id]') : null; }
+  function inBoard(el) { return !!(el && el.closest('.fb-board-stage, .board-swimlane-scroll')); }
+
+  function sync() {
+    var els = document.querySelectorAll(SEL), cols = [], count = [];
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i], f = el.__cfxFoil;
+      if (!f || f.parentNode !== el) {
+        f = document.createElement('i');
+        f.className = 'cfx-foil';
+        f.setAttribute('aria-hidden', 'true');
+        el.appendChild(f);
+        el.__cfxFoil = f;
+      }
+      if (el.__cfxMode === mode) {
+        if (mode === 'wave') { var c0 = el.closest('.kanban-cards-scroll') || el.parentNode, k0 = cols.indexOf(c0); if (k0 < 0) { k0 = cols.push(c0) - 1; count[k0] = 0; } count[k0]++; }
+        continue;
+      }
+      el.__cfxMode = mode;
+      var h = hash(el.getAttribute('data-card-id') || String(i));
+      if (mode === 'float') {
+        el.style.setProperty('--cfx-dur', (3.4 + (h % 7) * 0.28).toFixed(2) + 's');
+        el.style.setProperty('--cfx-dl', (-((h >>> 4) % 4000) / 1000).toFixed(2) + 's');
+        el.style.setProperty('--cfx-r', (((h >>> 9) % 2 ? 1 : -1) * (0.2 + ((h >>> 11) % 5) * 0.07)).toFixed(2) + 'deg');
+      } else if (mode === 'wave') {
+        // the wave runs list by list, top to bottom: the delay comes from the card's place on the board
+        var col = el.closest('.kanban-cards-scroll') || el.parentNode, k = cols.indexOf(col);
+        if (k < 0) { k = cols.push(col) - 1; count[k] = 0; }
+        el.style.setProperty('--cfx-wd', ((k * 0.24 + count[k] * 0.085) % 4.4).toFixed(2) + 's');
+        count[k]++;
+      } else if (mode === 'holo') {
+        el.style.setProperty('--cfx-dl', (-((h >>> 4) % 7000) / 1000).toFixed(2) + 's');
+      }
+    }
+  }
+  function clear() {
+    var fs = document.querySelectorAll('.cfx-foil');
+    for (var i = 0; i < fs.length; i++) {
+      var el = fs[i].parentNode;
+      if (el) { el.__cfxFoil = null; el.__cfxMode = null; el.classList.remove('cfx-hot'); ['--cfx-dur', '--cfx-dl', '--cfx-r', '--cfx-wd', '--cfx-rx', '--cfx-ry', '--cfx-mx', '--cfx-my'].forEach(function (p) { el.style.removeProperty(p); }); el.removeChild(fs[i]); }
+    }
+    hot = null;
+  }
+  function cool() { if (hot) { hot.classList.remove('cfx-hot'); hot = null; } }
+
+  function set(m) {
+    m = MODES.indexOf(m) >= 0 ? m : 'none';
+    if (m === mode) return;
+    mode = m;
+    cool();
+    clearInterval(timer); timer = 0;
+    if (m === 'none') { clear(); return; }
+    sync();
+    timer = setInterval(sync, 700);
+  }
+  function read() { set(root.getAttribute('data-cfx') || 'none'); }
+
+  // holo: the card under the pointer tilts toward it and its glare follows
+  function tilt() {
+    raf = 0;
+    var e = pend; pend = null;
+    if (!e || mode !== 'holo') return;
+    var el = cardOf(e.t);
+    if (!el || !inBoard(el)) { cool(); return; }
+    if (el !== hot) { cool(); hot = el; el.classList.add('cfx-hot'); }
+    var r = el.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    var u = Math.min(1, Math.max(0, (e.x - r.left) / r.width)), v = Math.min(1, Math.max(0, (e.y - r.top) / r.height));
+    // (a wide, short card needs less turn about its long axis to read the same)
+    var kx = calm ? 0 : Math.min(9, 520 / r.width * 4), ky = calm ? 0 : 7;
+    el.style.setProperty('--cfx-ry', ((u - 0.5) * 2 * kx).toFixed(2) + 'deg');
+    el.style.setProperty('--cfx-rx', ((0.5 - v) * 2 * ky).toFixed(2) + 'deg');
+    el.style.setProperty('--cfx-mx', (u * 100).toFixed(1) + '%');
+    el.style.setProperty('--cfx-my', (v * 100).toFixed(1) + '%');
+  }
+  var onMove = function (e) {
+    if (mode !== 'holo') return;
+    pend = { t: e.target, x: e.clientX, y: e.clientY };
+    if (!raf) raf = requestAnimationFrame(tilt);
+  };
+  document.addEventListener('pointermove', onMove, { passive: true, capture: true });
+  document.addEventListener('pointerdown', onMove, { passive: true, capture: true });
+  ['pointerup', 'pointercancel'].forEach(function (n) {
+    document.addEventListener(n, function (e) { if (mode === 'holo' && e.pointerType !== 'mouse') cool(); }, { passive: true, capture: true });
+  });
+  document.addEventListener('pointerleave', cool, true);
+
+  // wave: a tap on a card sends a ring of lift out from it
+  document.addEventListener('click', function (e) {
+    if (mode !== 'wave' || calm) return;
+    var from = cardOf(e.target);
+    if (!from || !inBoard(from) || !from.animate) return;
+    var fr = from.getBoundingClientRect(), fx = fr.left + fr.width / 2, fy = fr.top + fr.height / 2;
+    var els = document.querySelectorAll(SEL), vh = window.innerHeight, vw = window.innerWidth;
+    for (var i = 0; i < els.length; i++) {
+      var r = els[i].getBoundingClientRect();
+      if (!r.width || r.bottom < 0 || r.top > vh || r.right < 0 || r.left > vw) continue;
+      var d = Math.hypot(r.left + r.width / 2 - fx, r.top + r.height / 2 - fy), k = Math.max(0.25, 1 - d / 900);
+      try {
+        els[i].animate([
+          { translate: '0 0', scale: '1' },
+          { translate: '0 ' + (-8 * k).toFixed(1) + 'px', scale: (1 + 0.05 * k).toFixed(3), offset: 0.35 },
+          { translate: '0 0', scale: '1' }
+        ], { duration: 560, delay: d * 0.9, easing: 'cubic-bezier(.2,.8,.2,1)' });
+      } catch (err) {}
+    }
+  }, true);
+
+  window.addEventListener('minest:cardfx', read);
+  window.MinestCardFX = { set: set, sync: sync, get mode() { return mode; }, modes: MODES.slice() };
+  read();
+})();
+
+/* Minest · Light FX 1-Click Popover Picker (tools/fx-71).
+   Tapping any Light FX button opens a sleek popover menu to pick any FX directly. */
+(function () {
+  'use strict';
+  if (window.MinestLightFXPicker) return;
+
+  var ITEMS = [
+    { id: 'gallery', zh: '美术馆夜灯', en: 'Art Gallery · 拉绳与手电筒', ico: '◒', col: '#facc15', wide: true, badge: 'NEW' },
+    { id: 'lasers',  zh: '激光秀',     en: 'Lasers',    ico: '⟡', col: '#c084fc' },
+    { id: 'firework',zh: '烟花',       en: 'Firework',  ico: '✺', col: '#fbbf24' },
+    { id: 'spotlight',zh: '聚光灯',    en: 'Spotlight', ico: '◎', col: '#f1f5f9' },
+    { id: 'neon',    zh: '霓虹灯箱',   en: 'Neon',      ico: '◈', col: '#fb7185' },
+    { id: 'aurora',  zh: '极光',       en: 'Aurora',    ico: '≈', col: '#34e3a4' },
+    { id: 'meteor',  zh: '流星雨',     en: 'Meteor',    ico: '☄', col: '#7db8ff' },
+    { id: 'disco',   zh: '迪斯科',     en: 'Disco',     ico: '❖', col: '#ff5fc4' }
+  ];
+
+  var menuEl = null, anchorNow = null, closeTimer = 0;
+
+  function curMode() {
+    return (window.FBFX && window.FBFX.mode) || 'none';
+  }
+
+  function syncButtons() {
+    try { if (typeof window.__syncFxTab === 'function') window.__syncFxTab(); } catch (e) {}
+    try {
+      var cmLfx = document.querySelector('#cm-bar .lfx-k');
+      if (cmLfx) cmLfx.classList.toggle('on', curMode() !== 'none');
+    } catch (e) {}
+  }
+
+  function applyPick(id) {
+    if (!window.FBFX) return;
+    var target = (id === curMode() && id !== 'none') ? 'none' : id;
+    window.FBFX.setMode(target);
+    try { if (window.SoundEngine && SoundEngine.play) SoundEngine.play('click'); } catch (e) {}
+    try { if (window.MinestNative && MinestNative.haptic) MinestNative.haptic('selection'); } catch (e) {}
+    syncButtons();
+    renderState();
+    closeMenu();
+  }
+
+  function ensureMenu() {
+    if (menuEl && menuEl.parentNode) return menuEl;
+    menuEl = document.createElement('div');
+    menuEl.id = 'fbfx-picker-menu';
+    menuEl.className = 'fbfx-picker fbfx-gal-ui';
+    menuEl.setAttribute('role', 'menu');
+    menuEl.setAttribute('aria-label', '选择 Light FX 光效');
+
+    var head = document.createElement('div');
+    head.className = 'fbfx-pk-head';
+    head.innerHTML = '<span>✦ Light FX · 选择光效</span>';
+    var offBtn = document.createElement('button');
+    offBtn.type = 'button';
+    offBtn.className = 'fbfx-pk-off fbfx-gal-ui';
+    offBtn.textContent = '关闭 Off';
+    offBtn.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      applyPick('none');
+    });
+    head.appendChild(offBtn);
+    menuEl.appendChild(head);
+
+    var grid = document.createElement('div');
+    grid.className = 'fbfx-pk-grid';
+    ITEMS.forEach(function (it) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'fbfx-pk-item fbfx-gal-ui' + (it.wide ? ' wide' : '');
+      b.setAttribute('data-fx-pick', it.id);
+      b.setAttribute('role', 'menuitemradio');
+      b.style.setProperty('--pk-col', it.col);
+      b.innerHTML =
+        '<span class="fbfx-pk-ico">' + it.ico + '</span>' +
+        '<span class="fbfx-pk-txt"><b>' + it.zh + '</b><small>' + it.en + '</small></span>' +
+        (it.badge ? '<span class="fbfx-pk-badge">' + it.badge + '</span>' : '');
+      b.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        applyPick(it.id);
+      });
+      grid.appendChild(b);
+    });
+    menuEl.appendChild(grid);
+
+    ['pointerdown', 'click', 'touchstart'].forEach(function (evName) {
+      menuEl.addEventListener(evName, function (e) { e.stopPropagation(); });
+    });
+
+    document.body.appendChild(menuEl);
+    return menuEl;
+  }
+
+  function renderState() {
+    if (!menuEl) return;
+    var m = curMode();
+    var offBtn = menuEl.querySelector('.fbfx-pk-off');
+    if (offBtn) {
+      offBtn.classList.toggle('is-off', m === 'none');
+      offBtn.textContent = m === 'none' ? '已关闭' : '关闭 Off';
+    }
+    var btns = menuEl.querySelectorAll('.fbfx-pk-item');
+    for (var i = 0; i < btns.length; i++) {
+      var on = btns[i].getAttribute('data-fx-pick') === m;
+      btns[i].classList.toggle('active', on);
+      btns[i].setAttribute('aria-checked', on ? 'true' : 'false');
+    }
+  }
+
+  function positionMenu(anchor) {
+    var el = ensureMenu();
+    renderState();
+    var r = anchor && anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : null;
+    if (!r || (!r.width && !r.height)) {
+      var fallback = document.querySelector('.mn-looks-btn, .bar-fx-btn[aria-label="Light FX"], .dock-fx-tab, .fbfx-btn');
+      r = fallback ? fallback.getBoundingClientRect() : { left: innerWidth / 2 - 20, right: innerWidth / 2 + 20, top: innerHeight - 70, bottom: innerHeight - 30, width: 40, height: 40 };
+    }
+    var mw = 284, mh = el.offsetHeight || 276;
+    var cx = r.left + r.width / 2;
+    var left = Math.max(10, Math.min(innerWidth - mw - 10, Math.round(cx - mw / 2)));
+    var openAbove = r.top > innerHeight * 0.52 || (innerHeight - r.bottom < mh + 18 && r.top > mh + 12);
+    var top = openAbove ? Math.max(10, Math.round(r.top - mh - 10)) : Math.min(innerHeight - mh - 10, Math.round(r.bottom + 10));
+    el.style.left = left + 'px';
+    el.style.top = top + 'px';
+  }
+
+  function openMenu(anchor) {
+    clearTimeout(closeTimer);
+    var el = ensureMenu();
+    if (el.classList.contains('open') && anchorNow === anchor) {
+      closeMenu();
+      return;
+    }
+    anchorNow = anchor || null;
+    positionMenu(anchor);
+    void el.offsetWidth;
+    el.classList.add('open');
+  }
+
+  function closeMenu() {
+    anchorNow = null;
+    if (!menuEl || !menuEl.classList.contains('open')) return;
+    menuEl.classList.remove('open');
+  }
+
+  function findLightFxTrigger(target) {
+    if (!target || !target.closest) return null;
+    if (target.closest('#fbfx-picker-menu')) return null;
+    return target.closest(
+      '.bar-fx-btn[aria-label="Light FX"], ' +
+      '.ios-tab-item.dock-fx-tab, ' +
+      '.fbfx-btn, ' +
+      '.mn-bapp[aria-label^="Light FX"], ' +
+      '.student-game-float-btn[title^="Light FX"], ' +
+      '#cm-bar .lfx-k'
+    );
+  }
+
+  // Intercept clicks on any Light FX button in capture phase to open the popover menu instead of cycling!
+  window.addEventListener('click', function (e) {
+    var btn = findLightFxTrigger(e.target);
+    if (!btn) return;
+    if (btn.classList.contains('fbfx-btn') && (e.shiftKey || e.altKey)) return; // Preserve Shift+click intro replay
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    openMenu(btn);
+  }, true);
+
+  document.addEventListener('pointerdown', function (e) {
+    if (!menuEl || !menuEl.classList.contains('open')) return;
+    if (menuEl.contains(e.target) || findLightFxTrigger(e.target)) return;
+    closeMenu();
+  }, true);
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeMenu();
+  });
+
+  window.addEventListener('resize', function () {
+    if (menuEl && menuEl.classList.contains('open')) positionMenu(anchorNow);
+  });
+  window.addEventListener('fbfx:mode', renderState);
+
+  window.MinestLightFXPicker = { open: openMenu, close: closeMenu, pick: applyPick };
 })();
 </script>
 <script id="mn-v2-routes">
