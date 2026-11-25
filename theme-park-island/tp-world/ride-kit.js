@@ -64,7 +64,7 @@
         var last = performance.now(); (function tick(now) { requestAnimationFrame(tick); var dt = Math.min(0.05, (now - last) / 1000); last = now; if (!st.on || !st.run || st.i < 0) return; st.shake = Math.max(0, st.shake - dt * 1.4); st.t += dt; var p = PH[st.i]; if (!p) return; pose.roll = 0;
           try { p.f(st.t, dt); } catch (e) { if (root.console) console.warn('[ride ' + o.id + ']', e); }
           if (st.t >= p.d) { if (st.i + 1 >= PH.length) { st.i = PH.length; if (API.exitRide) API.exitRide(); API.toast(done); } else setPhase(st.i + 1); } })(last);
-        var q = function (n) { var G = root.TPGame; if (!G || !G.quests) { if (n < 80) setTimeout(function () { q(n + 1); }, 400); return; } G.quests.push({ id: 'q_' + o.id, icon: o.icon, name: o.quest, tip: o.tip, need: 'gate', ride: o.id }); if (G.render) G.render(); }; q(0);
+        var q = function (n) { if (o.noQuest) return; var G = root.TPGame; if (!G || !G.quests) { if (n < 80) setTimeout(function () { q(n + 1); }, 400); return; } G.quests.push({ id: 'q_' + o.id, icon: o.icon, name: o.quest, tip: o.tip, need: 'gate', ride: o.id }); if (G.render) G.render(); }; q(0);
         (root.TPRides = root.TPRides || {})[o.id] = { state: st, phases: PH.length, goto: A.goto, pose: pose, w: A.w }; } };
     return A;
   };
