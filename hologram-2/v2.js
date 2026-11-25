@@ -733,13 +733,13 @@
 
     // Smooth rounded crown & back bob
     var hairCrown = new T.Mesh(new T.SphereGeometry(0.174, 20, 18), mHair);
-    hairCrown.position.set(0, 0.205, -0.018);
-    hairCrown.scale.set(1.04, 1.05, 1.06);
+    hairCrown.position.set(0, 0.235, -0.045);
+    hairCrown.scale.set(1.02, 0.92, 0.98);
     headPivot.add(hairCrown);
 
     // Lower bob bell hugging the nape & sides (open-ended so zero flat cap artifacts)
     var hairBob = new T.Mesh(
-      new T.CylinderGeometry(0.162, 0.192, 0.17, 20, 1, true, Math.PI * 0.58, Math.PI * 1.84),
+      new T.CylinderGeometry(0.162, 0.192, 0.17, 20, 1, true, Math.PI * 0.30, Math.PI * 1.40),
       mHair
     );
     hairBob.position.set(0, 0.115, -0.012);
@@ -754,10 +754,29 @@
       headPivot.add(lock);
     });
     var fringe = new T.Mesh(new T.SphereGeometry(0.145, 16, 12), mHair);
-    fringe.position.set(0, 0.268, 0.055);
+    fringe.position.set(0, 0.288, 0.05);
     fringe.scale.set(1.04, 0.56, 0.82);
     fringe.rotation.x = 0.22;
     headPivot.add(fringe);
+
+    // Face (the head looks along +z): eyes with catchlights, brows, nose, blush, smile
+    var mEye = makeCharPartMat(0x2a1a14, 0.0, isRefl);
+    var mShine = makeCharPartMat(0xffffff, 0.9, isRefl);
+    var mBlush = makeCharPartMat(0xff9aa8, 0.3, isRefl);
+    var mLip = makeCharPartMat(0xd9576b, 0.2, isRefl);
+    function facePart(geo, mat, x, y, z, sx, sy, sz) {
+      var m = new T.Mesh(geo, mat); m.position.set(x, y, z); m.scale.set(sx, sy, sz); headPivot.add(m); return m;
+    }
+    [-1, 1].forEach(function (sd) {
+      facePart(new T.SphereGeometry(0.021, 12, 10), mEye, sd * 0.05, 0.168, 0.147, 0.85, 1.2, 0.45);
+      facePart(new T.SphereGeometry(0.0065, 8, 6), mShine, sd * 0.05 + 0.007, 0.177, 0.156, 1, 1, 0.6);
+      var brow = facePart(new T.BoxGeometry(0.036, 0.006, 0.006), mHair, sd * 0.05, 0.2, 0.154, 1, 1, 1);
+      brow.rotation.z = -sd * 0.12;
+      facePart(new T.SphereGeometry(0.022, 10, 8), mBlush, sd * 0.084, 0.13, 0.124, 1.1, 0.6, 0.35);
+    });
+    facePart(new T.SphereGeometry(0.011, 8, 6), mSkin, 0, 0.138, 0.157, 0.9, 0.8, 0.9);
+    var smile = facePart(new T.TorusGeometry(0.019, 0.0042, 6, 14, Math.PI), mLip, 0, 0.112, 0.148, 1, 0.75, 1);
+    smile.rotation.z = Math.PI;
 
     bodyG.add(headPivot);
 
