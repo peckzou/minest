@@ -153,80 +153,98 @@
       return false;
     }
 
+    /* The guide: three quiet tabs — 乘坐 (every ride the park has registered, read live from props.rides so a new ride
+       shows up on its own, newest first), 建筑 (the walk-in buildings and workshops, opened through their own HUD keys)
+       and 园区 (the lands, one short line each). Drawn in the park's Zelda-style cream-on-dark look. */
+    const RIDE_GROUPS = [
+      ['new', '新开放', ['center_earth', 'pirates_treasure', 'leagues', 'rise_resistance', 'flight_of_passage', 'cosmic_rewind', 'falcon_flight']],
+      ['dl', '迪士尼乐园', ['railroad_tour', 'monorail', 'pirates_ride', 'space_mountain', 'big_thunder', 'matterhorn_bobsleds', 'small_world_boat', 'river_boat', 'carousel', 'starjet']],
+      ['paris', '巴黎迪士尼', ['paris_space_mountain', 'paris_big_thunder', 'paris_indiana', 'paris_railroad']],
+      ['resort', '度假区', ['test_track', 'friendship_boat', 'skyliner_ride', 'tower_of_terror', 'slinky_dog', 'everest_ride', 'safari_ride']]
+    ];
+    const RIDE_ICON = { center_earth: '🌋', pirates_treasure: '🏴‍☠️', leagues: '🐙', rise_resistance: '⭐', flight_of_passage: '🪽', cosmic_rewind: '🌌', falcon_flight: '🛸',
+      railroad_tour: '🚂', monorail: '🚝', pirates_ride: '🏴‍☠️', space_mountain: '🚀', big_thunder: '⛏️', matterhorn_bobsleds: '🏔️', small_world_boat: '⛵', river_boat: '🌴', carousel: '🎠', starjet: '🪐',
+      paris_space_mountain: '🚀', paris_big_thunder: '⛏️', paris_indiana: '🗿', paris_railroad: '🚂',
+      test_track: '🏎️', friendship_boat: '🚤', skyliner_ride: '🚡', tower_of_terror: '🏨', slinky_dog: '🐕', everest_ride: '🏔️', safari_ride: '🦒' };
+    const NEW_RIDES = { center_earth: 1, pirates_treasure: 1, leagues: 1, rise_resistance: 1, flight_of_passage: 1 };
+    /* [HUD key id, icon, name, line] — shown only when that key exists in this build of the park */
+    const BUILDINGS = [
+      ['mn-bld-btn', '🏢', '造梦大楼', '幻想工程师的学徒课，五堂课，自己的作品'],
+      ['ror-btn', '⭐', '抵抗组织崛起 · 候场大楼', '走进排队区，从第一幕开始'],
+      ['fop-btn', '🪽', '飞越潘多拉 · 候场', '连接阿凡达，88 秒的飞行'],
+      ['sw-go-btn', '⚔️', '萨维光剑工坊', '四条道路，亲手组一把光剑'],
+      ['sw-go-btn2', '🤖', '机器人工坊', 'Droid Depot，拼一台自己的机器人'],
+      ['mn-pav-btn', '🏛️', '幻想工程展馆', '乐园设计的展厅'],
+      ['mn-pb-btn', '🛠', '造乐园', '自己搭一座乐园'],
+      ['mn-build-btn', '✨', '放模型', '在乐园里摆模型、建 IP 世界']
+    ];
+    let activeTab = 'ride';
+    const esc = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const shortName = (n) => String(n || '').split(/[（(]/)[0].split(' · ')[0].trim();
+    const sub = (n) => { const m = String(n || '').match(/[（(]([^）)]+)[）)]/); return m ? m[1] : (String(n).split(' · ')[1] || ''); };
+
+    function guideCss() {
+      if (document.getElementById('tpg-css')) return;
+      const C = '#f3ecd6', st = document.createElement('style'); st.id = 'tpg-css';
+      st.textContent =
+        '#tp-modal-overlay.tpg{z-index:98;background:rgba(4,6,8,.62);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}' +
+        '#tp-modal-content.tpg{width:min(860px,94vw);max-height:84dvh;padding:18px 20px 20px;background:rgba(8,10,12,.9);border:1px solid rgba(243,236,214,.32);border-radius:16px;box-shadow:0 18px 60px rgba(0,0,0,.6);overflow-x:hidden;color:' + C + ';font-family:"Avenir Next","Helvetica Neue","PingFang SC",sans-serif}' +
+        '.tpg-head{display:flex;align-items:flex-start;gap:12px}.tpg-head h2{margin:0;font-size:19px;font-weight:600;letter-spacing:.1em;color:' + C + '}.tpg-head p{margin:3px 0 0;font-size:12px;opacity:.6;letter-spacing:.04em}.tpg-head .sp{flex:1}' +
+        '.tpg-x,.tpg-key{border:1px solid rgba(243,236,214,.5);background:rgba(243,236,214,.04);color:' + C + ';border-radius:999px;font:500 12.5px "Avenir Next","PingFang SC",sans-serif;cursor:pointer;padding:6px 13px;white-space:nowrap}.tpg-x{width:32px;height:32px;padding:0;font-size:14px}' +
+        '.tpg-x:hover,.tpg-key:hover{border-color:' + C + ';background:rgba(243,236,214,.12)}' +
+        '.tpg-tabs{display:flex;gap:30px;margin:14px 0 4px;border-bottom:1px solid rgba(243,236,214,.18)}.tpg-tabs span{cursor:pointer;opacity:.5;padding:6px 2px 9px;font-size:14.5px;letter-spacing:.12em}.tpg-tabs span.on{opacity:1;border-bottom:2px solid ' + C + '}.tpg-tabs span:hover{opacity:.85}' +
+        '.tpg-sec{margin:16px 0 7px;font-size:11.5px;letter-spacing:.2em;opacity:.55}' +
+        '.tpg-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:4px 10px}' +
+        '.tpg-row{position:relative;display:flex;align-items:center;gap:11px;padding:9px 12px;border:1px solid transparent;border-radius:8px;cursor:pointer;text-align:left;background:none;color:' + C + ';font:inherit;width:100%;min-width:0;overflow:hidden}' +
+        '.tpg-row:hover{border-color:rgba(243,236,214,.7);background:rgba(243,236,214,.08)}.tpg-row:hover:before{content:"▶";position:absolute;left:-12px;color:#e23a2e;font-size:10px}' +
+        '.tpg-row .ic{font-size:19px;width:24px;text-align:center;flex:none}.tpg-row .tx{min-width:0;flex:1}.tpg-row b{display:block;font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tpg-row small{display:block;font-size:11.5px;opacity:.55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+        '.tpg-new{flex:none;font-size:10.5px;letter-spacing:.1em;border:1px solid #e9c46a;color:#e9c46a;border-radius:4px;padding:0 5px}' +
+        '.tpg-chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.tpg-chips .tpg-key.on{background:rgba(243,236,214,.16);border-color:' + C + '}' +
+        '.tpg-lands{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin-top:12px}' +
+        '.tpg-land{border:1px solid rgba(243,236,214,.18);border-radius:10px;padding:11px 13px;display:flex;flex-direction:column;gap:5px}.tpg-land b{font-weight:500;font-size:14px}.tpg-land small{font-size:11px;opacity:.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+        '.tpg-land p{margin:0;font-size:12px;line-height:1.55;opacity:.72;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.tpg-land .r{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}.tpg-land .tpg-key{padding:4px 11px;font-size:12px}' +
+        '@media (max-width:560px){#tp-modal-content.tpg{padding:14px}.tpg-tabs{gap:20px}.tpg-list{grid-template-columns:repeat(2,minmax(0,1fr))}.tpg-row{padding:8px 6px;gap:7px}.tpg-row small{display:none}}';
+      document.head.appendChild(st);
+    }
+
     function renderGuide() {
       if (!modalContent) return;
-      const filtered = world.LANDS.filter((l) => {
-        if (activeFilter === 'disneyland') return l.park !== 'resort' && l.park !== 'paris';
-        if (activeFilter === 'paris') return l.park === 'paris';
-        if (activeFilter === 'rides') return !!l.rideId;
-        if (activeFilter === 'resort') return l.park === 'resort';
-        return true;
-      });
-      const quickRides = [
-        ['paris_space_mountain', '🚀 巴黎太空山 · 巨炮弹射', 'cyan'],
-        ['paris_big_thunder', '⛏️ 巴黎巨雷山 · 河心岛矿车', 'gold'],
-        ['cosmic_rewind', '🌌 银河护卫队：宇宙倒带', 'gold'],
-        ['paris_indiana', '🗿 危险神殿 360° 回环', 'gold'],
-        ['paris_railroad', '🚂 巴黎迪士尼铁路', 'cyan'],
-        ['railroad_tour', '🚂 蒸汽火车 4 站环游', 'gold'],
-        ['pirates_ride', '🏴‍☠️ 加勒比海盗游船', 'cyan'],
-        ['space_mountain', '🌌 太空山深空过山车', 'cyan'],
-        ['big_thunder', '🏜️ 巨雷山失控矿车', 'gold'],
-        ['matterhorn_bobsleds', '🏔️ 马特宏峰雪橇', 'cyan'],
-        ['small_world_boat', '⛵ 小小世界游船', 'gold'],
-        ['falcon_flight', '🛸 驾驶千年隼号', 'gold'],
-        ['river_boat', '🌴 丛林探险船', 'cyan'],
-        ['carousel', '🎠 皇家旋转木马', 'gold'],
-        ['starjet', '🚀 星际轨道飞行器', 'cyan']
-      ];
+      guideCss();
+      modalContent.classList.add('tpg'); if (overlay) overlay.classList.add('tpg');
+      const R = (props && props.rides) || {};
+      const seen = {}, groups = RIDE_GROUPS.map(([k, label, ids]) => [label, ids.filter((id) => R[id] && !seen[id] && (seen[id] = 1))]);
+      const rest = Object.keys(R).filter((id) => !seen[id] && R[id].name && id !== 'sw_workshop');
+      if (rest.length) groups[0][1] = rest.concat(groups[0][1]);   /* a ride added later lands under 新开放 */
+      const nRides = groups.reduce((n, g) => n + g[1].length, 0);
+      const builds = BUILDINGS.filter((b) => document.getElementById(b[0]));
+      const castle = world.LANDS.find((l) => l.tpInside);
+      const row = (attr, ic, name, line, isNew) => `<button class="tpg-row" ${attr}><span class="ic">${ic}</span><span class="tx"><b>${esc(name)}</b>${line ? `<small>${esc(line)}</small>` : ''}</span>${isNew ? '<span class="tpg-new">新</span>' : ''}</button>`;
+      let body = '';
+      if (activeTab === 'ride') {
+        body = groups.filter((g) => g[1].length).map(([label, ids]) => `<div class="tpg-sec">${label}</div><div class="tpg-list">${
+          ids.map((id) => row(`data-ride="${id}"`, RIDE_ICON[id] || '🎢', shortName(R[id].name), sub(R[id].name), NEW_RIDES[id] || rest.indexOf(id) >= 0)).join('')}</div>`).join('');
+      } else if (activeTab === 'build') {
+        body = `<div class="tpg-sec">可以走进去的地方</div><div class="tpg-list">${
+          builds.map((b) => row(`data-hud="${b[0]}"`, b[1], b[2], b[3], b[0] === 'ror-btn' || b[0] === 'fop-btn')).join('') +
+          (castle ? row(`data-in="${castle.id}"`, '🏰', '城堡马赛克长廊', '步入童话城堡') : '')}</div>`;
+      } else {
+        const filtered = world.LANDS.filter((l) => activeFilter === 'all' || (activeFilter === 'disneyland' ? (l.park !== 'resort' && l.park !== 'paris') : l.park === activeFilter));
+        body = `<div class="tpg-chips">${[['all', '全部'], ['disneyland', '迪士尼乐园'], ['paris', '巴黎'], ['resort', '度假区']].map(([k, lbl]) =>
+          `<button class="tpg-key ${activeFilter === k ? 'on' : ''}" data-gfilter="${k}">${lbl}</button>`).join('')}</div>
+          <div class="tpg-lands">${filtered.map((l) => `<div class="tpg-land"><b>${esc(shortName(l.name))}</b><small>${esc(l.en)}</small><p>${esc(String(l.highlights[0] || '').replace(/^【[^】]*】/, ''))}</p>
+            <div class="r"><button class="tpg-key" data-tp="${l.id}">传送</button>${l.rideId ? `<button class="tpg-key" data-ride="${l.rideId}">乘坐</button>` : ''}<button class="tpg-key" data-talk="${l.id}">向导</button></div></div>`).join('')}</div>`;
+      }
       modalContent.innerHTML = `
-        <div class="tp-m-head">
-          <div>
-            <h2>🏰 奇想迪士尼乐园 · 1:1 真实全境导览图 (Disneyland 1:1 Master Edition)</h2>
-            <p class="tp-m-sub">224m 完整美国小镇大街 · 小镇广场（市政厅 & 华特公寓永恒台灯）· 新奥尔良广场 & 加勒比海盗 · 米奇卡通城 · 汤姆索亚岛 · 16 大分区 · 12 大可乘坐设施</p>
-          </div>
-          <button class="tp-m-close" id="tp-close-guide">✕</button>
-        </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
-          ${[
-            ['all', `🗺️ 全部园区 (${world.LANDS.length})`],
-            ['disneyland', '🏰 1:1 迪士尼主园 (13 大经典分区)'],
-            ['paris', '🇫🇷 巴黎迪士尼乐园 (5 大主题区)'],
-            ['rides', '🎢 可乘坐游乐设施专区'],
-            ['resort', '🌐 度假区扩建园 (EPCOT / 影城 / 潘多拉)']
-          ].map(([k, lbl]) => `<button class="tp-btn ${activeFilter === k ? 'pink' : ''}" data-gfilter="${k}">${lbl}</button>`).join('')}
-          <button class="tp-btn pink" id="tp-go-fireworks" style="margin-left:auto">🎆 开启城堡夜空烟花秀</button>
-        </div>
-        <div class="tp-quick-bar">
-          ${quickRides.map(([id, lbl, cls]) => `<button class="tp-btn ${cls}" data-qride="${id}">${lbl}</button>`).join('')}
-        </div>
-        <div class="tp-grid">
-          ${filtered.map((l) => `
-            <div class="tp-card">
-              <div class="tp-card-top">
-                <span class="tp-badge" style="border-color:${l.color};color:${l.color}">${l.badge}</span>
-                <span class="tp-en">${l.en}</span>
-              </div>
-              <div class="tp-card-name">${l.name}</div>
-              <ul class="tp-hl">${l.highlights.map((h) => `<li>${h}</li>`).join('')}</ul>
-              <div class="tp-card-btns">
-                <button class="tp-btn gold" data-tp="${l.id}">🚶 传送抵达</button>
-                ${l.rideId ? `<button class="tp-btn cyan" data-ride="${l.rideId}">🎢 直接乘坐</button>` : ''}
-                ${l.id === 'tomorrowland' ? `<button class="tp-btn" data-ride="starjet">🚀 轨道飞行器</button>` : ''}
-                ${l.tpInside ? `<button class="tp-btn cyan" data-in="${l.id}">🏰 步入长廊</button>` : ''}
-                <button class="tp-btn" data-talk="${l.id}">💬 向导</button>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      `;
+        <div class="tpg-head"><div><h2>乐园导览</h2><p>${nRides} 个可乘坐设施 · ${builds.length + (castle ? 1 : 0)} 处可进入的建筑 · ${world.LANDS.length} 个园区</p></div><span class="sp"></span>
+          <button class="tpg-key" id="tp-go-fireworks">🎆 烟花</button><button class="tpg-x" id="tp-close-guide" aria-label="关闭">✕</button></div>
+        <div class="tpg-tabs">${[['ride', '乘坐'], ['build', '建筑'], ['land', '园区']].map(([k, l]) => `<span data-gtab="${k}" class="${activeTab === k ? 'on' : ''}">${l}</span>`).join('')}</div>
+        ${body}`;
       modalContent.querySelector('#tp-close-guide').onclick = closeModal;
       modalContent.querySelector('#tp-go-fireworks').onclick = () => { closeModal(); launchFireworks(); };
-      modalContent.querySelectorAll('[data-gfilter]').forEach((b) => {
-        b.onclick = () => { activeFilter = b.dataset.gfilter; renderGuide(); };
-      });
-      modalContent.querySelectorAll('[data-qride]').forEach((b) => {
-        b.onclick = () => { closeModal(); playRideAudio(b.dataset.qride); boardRide(b.dataset.qride); };
+      modalContent.querySelectorAll('[data-gtab]').forEach((b) => { b.onclick = () => { activeTab = b.dataset.gtab; renderGuide(); modalContent.scrollTop = 0; }; });
+      modalContent.querySelectorAll('[data-gfilter]').forEach((b) => { b.onclick = () => { activeFilter = b.dataset.gfilter; renderGuide(); }; });
+      modalContent.querySelectorAll('[data-hud]').forEach((b) => {
+        b.onclick = () => { const k = document.getElementById(b.dataset.hud); closeModal(); if (k) k.click(); };
       });
       modalContent.querySelectorAll('[data-tp]').forEach((b) => {
         b.onclick = () => {
