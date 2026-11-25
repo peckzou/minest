@@ -96489,7 +96489,7 @@ var Ve = (function(_Component) {
     if (!dock.isConnected) document.body.appendChild(dock);
     if (!edge.isConnected) document.body.appendChild(edge);
     refresh(); base();
-    if (!ctl && window.MinestDock) ctl = MinestDock.attach(dock, opts);
+    /* 2026-11-24 (the user: "dock取消放大效果，不然很难拖动操作"): the keys no longer swell under the pointer — they kept moving away from it, and the Dock was hard to grab and drag */
   }
   setInterval(mount, 700);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
@@ -144071,7 +144071,7 @@ function apply(){
     coverOn(false);   /* folded: the quick Glance page comes up (what you were doing stays under it — 完整 App › goes back), unless you are in
                            the middle of something: placing a piece, the build library or the study desk */
     var busy = !!(desk || document.querySelector('.mn-bq, .duo-lib') || (window.MinestDuoWorld && MinestDuoWorld.holding && MinestDuoWorld.holding()));
-    if (!busy) { dismissed = false; glance(); } else dismissed = true;
+    dismissed = true; closeGlance();   /* 2026-11-24: no Glance page any more — the opening and Home are the Clun house */
   }
   else { closeGlance(); if (!unfolded && fit && prefs().split) openWorld(); }
   document.documentElement.classList.toggle('duo-halfopen', posture() === 'folded');
@@ -144185,7 +144185,7 @@ function onAdd(e){
 /* the way back to Glance on the outer screen once it was put away */
 function pill(){
   var p = document.querySelector('.duo-back');
-  if (kind !== 'outer' || !dismissed) { if (p) p.remove(); return; }
+  if (p) p.remove(); return;   /* 2026-11-24: no Glance, no way back to it */
   if (!p) { p = document.createElement('button'); p.type = 'button'; p.className = 'duo-back'; p.textContent = '⌂ 速览'; p.setAttribute('aria-label', '回到速览'); document.body.appendChild(p);
     p.addEventListener('click', function(){ dismissed = false; p.remove(); glance(); }); }
 }
@@ -144364,12 +144364,12 @@ function rail(){
       if (w === 'split') return toggleSplit();
       if (w === 'desk') { if (desk) { desk.remove(); desk = null; document.documentElement.classList.remove('duo-desk-on'); } else deskOpen(); return rail(); }
       if (w === 'world') { if (desk) { desk.remove(); desk = null; document.documentElement.classList.remove('duo-desk-on'); } if (worldOpen()) { try { MinestUniverse.close(); } catch(x){} } else openWorld(); return setTimeout(rail, 400); }
-      if (w === 'glance') { if (gl && !gl.hidden) closeGlance(); else { dismissed = false; glance(); } return rail(); }
+      if (w === 'glance') { closeGlance(); try { window.MinestSpatialHome.home(); } catch(x){} return rail(); }
     }); }
   var sp = !!prefs().split || R0.classList.contains('duo-cover'), html = (splitFits() ? '<button type="button" data-rail="split" class="' + (sp ? 'on' : '') + '" aria-label="' + (sp ? '取消分栏' : '分栏') + '"><i>' + (sp ? '▣' : '▥') + '</i><small>' + (sp ? '全屏' : '分栏') + '</small></button>' : '') +
     '<button type="button" data-rail="desk" class="' + (desk ? 'on' : '') + '" aria-label="学习书桌"><i>📚</i><small>书桌</small></button>' +
     '<button type="button" data-rail="world" class="' + (worldOpen() ? 'on' : '') + '" aria-label="My World"><i>🏝</i><small>岛屿</small></button>' +
-    '<button type="button" data-rail="glance" class="' + (gl && !gl.hidden ? 'on' : '') + '" aria-label="速览"><i>⌂</i><small>速览</small></button>';
+    '<button type="button" data-rail="glance" class="' + (gl && !gl.hidden ? 'on' : '') + '" aria-label="Home"><i>⌂</i><small>Home</small></button>';
   if (r.innerHTML !== html) r.innerHTML = html;
 }
 
