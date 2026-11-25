@@ -57,7 +57,7 @@
           onExit: function () { st.on = false; st.run = false; st.i = -1; R.visible = false; quiet(); if (o.fov && API.camera) { API.camera.fov = fov0; API.camera.updateProjectionMatrix(); } },
           getHudInfo: function () { if (!PH.length) return o.name; var p = PH[Math.min(Math.max(st.i, 0), PH.length - 1)], base = p.n + ' · ' + (Math.max(st.i, 0) + 1) + '/' + PH.length; return o.hud ? o.hud(base) : base; },
           getCameraPose: function () { var ox = st.scene ? st.scene.userData.ox : 0, sx = (Math.random() - 0.5) * st.shake * 0.3, sy = (Math.random() - 0.5) * st.shake * 0.3, c = A.car, eye = o.eye == null ? 1.3 : o.eye;
-            if (c) { c.visible = !!PH[st.i] && !!PH[st.i].car; c.position.set(ox + pose.p[0], pose.p[1], pose.p[2]); var ct = pose.h || pose.t; c.lookAt(R.position.x + ox + ct[0], R.position.y + ct[1], R.position.z + ct[2]); c.rotateY(Math.PI); c.rotateZ(-(pose.roll || 0)); c.translateY(-eye); }
+            if (c) { c.visible = !!PH[st.i] && !!PH[st.i].car; c.position.set(ox + pose.p[0], pose.p[1], pose.p[2]); var ct = pose.h || pose.t; c.lookAt(R.position.x + ox + ct[0], R.position.y + ct[1], R.position.z + ct[2]); c.rotateY(Math.PI); c.rotateZ(-(pose.roll || 0)); c.translateY(-eye); if (o.back) c.translateZ(o.back); }
             var cam = API.camera, fv = (PH[st.i] && PH[st.i].fov) || o.fov; if (cam && fv && Math.abs(cam.fov - fv) > 0.05) { cam.fov += (fv - cam.fov) * 0.08; cam.updateProjectionMatrix(); }
             return { px: o.x + ox + pose.p[0] + sx, py: o.oy + pose.p[1] + sy, pz: o.z + pose.p[2], tx: o.x + ox + pose.t[0], ty: o.oy + pose.t[1], tz: o.z + pose.t[2], roll: pose.roll || 0 }; } };
         if (o.steer) ride.steer = o.steer; if (o.fire) ride.fire = o.fire; K.register(ride);
