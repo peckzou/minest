@@ -126,7 +126,7 @@
     ui.chip(box, C.play > 0 ? '⏸ 暂停' : '⏪ 时空倒流', C.play > 0, function () { C.sel = -1; card(null); if (C.d >= 0.99) C.d = 0; C.play = C.play > 0 ? 0 : 1; HL.refreshTools(); }, '从此刻一路退回 330 万年前');
     ui.chip(box, C.play < 0 ? '⏸ 暂停' : '⏩ 回到此刻', C.play < 0, function () { C.sel = -1; card(null); if (C.d <= 0.01) C.d = 1; C.play = C.play < 0 ? 0 : -1; HL.refreshTools(); }, '从最早的石器一路演到今天');
     ui.sep(box); ui.lab(box, '跳到');
-    [['石器', -2600000], ['用火', -400000], ['农业', -9500], ['文字', -3300], ['印刷', 1450], ['蒸汽', 1769], ['电', 1882], ['计算机', 1946], ['此刻', 2026]].forEach(function (q) { ui.chip(box, q[0], false, function () { C.play = 0; C.sel = -1; card(null); C.d = depth(q[1]); HL.refreshTools(); }); });
+    (C.jumps || [['石器', -2600000], ['用火', -400000], ['农业', -9500], ['文字', -3300], ['印刷', 1450], ['蒸汽', 1769], ['电', 1882], ['计算机', 1946], ['此刻', 2026]]).forEach(function (q) { ui.chip(box, q[0], false, function () { C.play = 0; C.sel = -1; card(null); C.d = depth(q[1]); HL.refreshTools(); }); });
     ui.sep(box); ui.lab(box, '只看');
     ui.chip(box, '全部', C.dom < 0, function () { C.dom = -1; HL.refreshTools(); });
     HL.TECH_DOMAINS.forEach(function (dm, k) { ui.chip(box, dm[0], C.dom === k, function () { C.dom = C.dom === k ? -1 : k; if (C.sel >= 0 && !C.vis(C.ev[C.sel])) C.select(-1); HL.refreshTools(); }); });
@@ -138,6 +138,14 @@
     var m = e.data; if (!HL.EMBED || e.source !== window.parent || !m || m.holo !== 1 || m.op !== 'cone') return;
     C.people = (m.people || []).filter(function (p) { return p && typeof p.year === 'number' && p.name; }); C.focus = m.focus || null;
     if (HL.active === C) { C.build(); if (C.focus) { var i = C.ev.findIndex(function (q) { return q.pid === C.focus; }); if (i >= 0) C.select(i); } HL.refreshTools(); }
+  });
+  // another history on the cone (the EC-6 hall sends its subjects' timeline): { holo: 1, op: 'conedata', domains: [[name, colour]…], events: [[year, title, domain, note]…] }
+  window.addEventListener('message', function (e) {
+    var m = e.data; if (!HL.EMBED || e.source !== window.parent || !m || m.holo !== 1 || m.op !== 'conedata' || !Array.isArray(m.domains) || !Array.isArray(m.events)) return;
+    HL.TECH_DOMAINS = m.domains.slice(0, 8).map(function (d) { return [String(d[0]), String(d[1])]; });
+    HL.TECH = m.events.filter(function (q) { return q && typeof q[0] === 'number' && q[2] >= 0 && q[2] < HL.TECH_DOMAINS.length; }).map(function (q) { return [q[0], String(q[1]), q[2], String(q[3] || '')]; });
+    C.people = []; C.dom = -1; C.sel = -1; if (m.title) C.zh = String(m.title); if (Array.isArray(m.jumps)) C.jumps = m.jumps.filter(function (q) { return q && typeof q[1] === 'number'; }).map(function (q) { return [String(q[0]), q[1]]; });
+    if (HL.active === C) { C.build(); HL.refreshTools(); }
   });
   HL.cone = C;
   HL.register(C);

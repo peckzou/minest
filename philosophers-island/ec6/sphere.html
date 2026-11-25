@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EC-6 · Sphere 巨幕</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: radial-gradient(ellipse at 50% 110%, #12361f 0%, #06140c 55%, #020604 100%); color: #e8f6ea; font: 14px/1.5 "PingFang SC", system-ui, sans-serif; user-select: none; }
+  #stage { position: absolute; inset: 0; perspective: 1500px; cursor: grab; } #stage.in { perspective: 460px; }
+  #ball { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-style: preserve-3d; will-change: transform; }
+  .t { position: absolute; left: 0; top: 0; background: #0f2418; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden; cursor: pointer; transition: opacity .3s; }
+  .t img { width: 100%; height: 100%; display: block; pointer-events: none; } .t.dim { opacity: .14; } .t:hover { box-shadow: 0 0 0 2px #ffe27a, 0 0 24px #ffe27a; }
+  #glow { position: absolute; left: 50%; top: 50%; width: 1100px; height: 1100px; margin: -550px 0 0 -550px; border-radius: 50%; background: radial-gradient(circle, rgba(126,224,138,.28), rgba(126,224,138,0) 62%); pointer-events: none; }
+  .top { position: absolute; left: 16px; right: 16px; top: 12px; display: flex; gap: 8px; align-items: center; z-index: 5; flex-wrap: wrap; } .top h1 { margin: 0 10px 0 0; font-size: 18px; letter-spacing: .08em; } .top span { flex: 1; }
+  button { font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 999px; border: 1px solid rgba(160,240,170,.45); background: rgba(8,24,14,.72); color: #e8f6ea; cursor: pointer; } button:hover, button.on { background: #7ee08a; color: #0c1d12; }
+  #subs { position: absolute; left: 16px; right: 16px; bottom: 14px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; z-index: 5; } #subs button { font-size: 12px; }
+  #big { position: absolute; inset: 0; z-index: 8; display: none; align-items: center; justify-content: center; background: rgba(2,6,4,.8); } #big.on { display: flex; }
+  #big div { max-width: min(620px, 88vw); text-align: center; } #big img { width: min(620px, 88vw); border-radius: 12px; box-shadow: 0 0 70px rgba(126,224,138,.55); display: block; }
+  #big p { margin: 14px 0 0; font-size: 15px; line-height: 1.7; color: #d6ecd9; text-align: left; } #big small { display: block; margin-top: 10px; color: #9cc8a4; }
+  #tip { position: absolute; left: 50%; bottom: 56px; transform: translateX(-50%); z-index: 9; background: rgba(0,0,0,.75); padding: 6px 16px; border-radius: 999px; font-size: 13px; display: none; }
+</style>
+</head>
+<body>
+<div id="glow"></div>
+<div id="stage"><div id="ball"></div></div>
+<div class="top"><h1>🌐 EC-6 · Sphere 巨幕</h1><button id="mode">🚶 走进球内</button><button id="spin" class="on">⟳ 自转</button><span></span><button id="close">✕ 回到学习馆</button></div>
+<div id="subs"></div>
+<div id="tip"></div><div id="big"><div><img alt=""><p></p><small>点任意处合上 · 已为你朗读英文术语</small></div></div>
+<script src="ec6-data.js"></script>
+<script>
+/* EC-6 on the Sphere: every tile is one card of the framework — a competency, or one of its key terms — drawn on a
+   canvas in its subject's colour (science, 904, first: Earth and space on a globe). Tiles are <img> elements placed on a
+   sphere with CSS 3D transforms, like rootmap/sphere.html; a card's picture is drawn only when its tile first faces you. */
+(function () {
+  var E = window.PIEC6, EMBED = parent !== window, Q = new URLSearchParams(location.search), FOCUS = Q.has('sub') ? +Q.get('sub') : 3;
+  var cards = [];
+  [3, 0, 1, 2, 4].forEach(function (xi) { E.exams[xi].comps.forEach(function (c) {
+    cards.push({ ex: xi, big: c.n, en: c.en, zh: c.zh, note: c.gist, say: c.en, head: true });
+    c.keys.forEach(function (k) { cards.push({ ex: xi, big: c.n, en: k.en, zh: k.zh, note: c.zh + ' · ' + c.en + '\n' + c.gist, say: k.en }); });
+  }); });
+  var cv = document.createElement('canvas'); cv.width = 384; cv.height = 216; var x = cv.getContext('2d');
+  function wrap(t, maxW, font) { x.font = font; var w = t.split(' '), lines = [], cur = ''; w.forEach(function (s) { var tt = cur ? cur + ' ' + s : s; if (x.measureText(tt).width > maxW && cur) { lines.push(cur); cur = s; } else cur = tt; }); if (cur) lines.push(cur); return lines.slice(0, 3); }
+  function draw(c) {
+    if (c.url) return c.url; var ex = E.exams[c.ex], col = ex.color, W = 384, H = 216;
+    var g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#0b1a12'); g.addColorStop(1, '#12261a'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+    x.fillStyle = col; x.globalAlpha = c.head ? 0.32 : 0.16; x.fillRect(0, 0, W, H); x.globalAlpha = 1; x.fillRect(0, 0, 8, H);
+    x.fillStyle = col; x.font = '700 18px system-ui, sans-serif'; x.textBaseline = 'top'; x.fillText(ex.code + ' · ' + c.big + (c.head ? ' · 能力项' : ''), 22, 16);
+    var fs = c.head ? 30 : 34, lines = wrap(c.en, W - 44, '700 ' + fs + 'px Georgia, serif'); x.fillStyle = '#ffffff'; x.font = '700 ' + fs + 'px Georgia, serif';
+    lines.forEach(function (l, i) { x.fillText(l, 22, 52 + i * (fs + 6)); });
+    x.fillStyle = '#d9f3dd'; x.font = '600 26px "PingFang SC", sans-serif'; x.fillText(c.zh, 22, H - 46);
+    c.url = cv.toDataURL('image/jpeg', 0.82); return c.url;
+  }
+  var ball = document.getElementById('ball'), stage = document.getElementById('stage'), R = 500, NEQ = 18, TW = 2 * Math.PI * R / NEQ, TH = TW * 9 / 16, step = TH / R, tiles = [], k = 0;
+  for (var row = -8; row <= 8; row++) { var lat = row * step, n = Math.max(6, Math.round(NEQ * Math.cos(lat))); for (var cc = 0; cc < n; cc++) { var lon = (cc + (row % 2 ? 0.5 : 0)) / n * Math.PI * 2, card = cards[k % cards.length], d = document.createElement('div'), im = document.createElement('img'); k++;
+    d.className = 't'; d.style.width = (TW + 1.5) + 'px'; d.style.height = (TH + 1.5) + 'px'; d.style.marginLeft = (-TW / 2) + 'px'; d.style.marginTop = (-TH / 2) + 'px'; d.appendChild(im); ball.appendChild(d); tiles.push({ d: d, im: im, lon: lon, lat: lat, c: card });
+    (function (card) { d.onclick = function () { if (!moved) show(card); }; })(card); } }
+  var ry = 0, rx = -0.12, vy = 0.0022, zoom = 1, inside = false, spin = true, drag = null, moved = false, focus = FOCUS;
+  function place() { tiles.forEach(function (t) { t.d.style.transform = 'rotateY(' + t.lon + 'rad) rotateX(' + (-t.lat) + 'rad) translateZ(' + R + 'px)' + (inside ? ' rotateY(180deg)' : ''); }); }
+  function load() { tiles.forEach(function (t) { var z = Math.cos(t.lon + ry) * Math.cos(t.lat), want = inside ? z < -0.2 : z > 0.2; if (want && !t.on) { t.im.src = draw(t.c); t.on = true; } t.d.classList.toggle('dim', focus >= 0 && t.c.ex !== focus); }); }
+  var last = 0;
+  function frame(now) { requestAnimationFrame(frame); if (spin && !drag) ry += vy; var s = Math.min(innerWidth, innerHeight) / 1250 * zoom; ball.style.transform = (inside ? 'translateZ(460px) ' : 'scale(' + s + ') ') + 'rotateX(' + rx + 'rad) rotateY(' + ry + 'rad)'; if (now - last > 300) { last = now; load(); } }
+  stage.onpointerdown = function (e) { drag = [e.clientX, e.clientY]; moved = false; };
+  addEventListener('pointermove', function (e) { if (!drag) return; var dx = e.clientX - drag[0], dy = e.clientY - drag[1]; if (Math.abs(dx) + Math.abs(dy) > 4) moved = true; ry += dx * 0.005 * (inside ? -1 : 1); rx = Math.max(-0.9, Math.min(0.9, rx + dy * 0.004)); drag = [e.clientX, e.clientY]; });
+  addEventListener('pointerup', function () { drag = null; });
+  stage.onwheel = function (e) { e.preventDefault(); zoom = Math.max(0.6, Math.min(2.4, zoom * (1 - e.deltaY * 0.001))); };
+  var big = document.getElementById('big');
+  function show(c) { big.querySelector('img').src = draw(c); big.querySelector('p').textContent = c.note; big.classList.add('on');
+    try { speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(c.say); u.lang = 'en-US'; u.rate = 0.9; speechSynthesis.speak(u); } catch (e) {}
+    if (EMBED) parent.postMessage({ ec6: 1, op: 'seen', mode: 'sphere', text: E.exams[c.ex].code + '-' + c.big + ' · ' + c.en + '（' + c.zh + '）' }, location.origin); }
+  big.onclick = function () { big.classList.remove('on'); };
+  document.getElementById('mode').onclick = function () { inside = !inside; stage.classList.toggle('in', inside); rx = inside ? -0.3 : -0.12; this.textContent = inside ? '🌐 回到球外' : '🚶 走进球内'; tiles.forEach(function (t) { t.on = false; }); place(); };
+  document.getElementById('spin').onclick = function () { spin = !spin; this.classList.toggle('on', spin); };
+  document.getElementById('close').onclick = function () { if (EMBED) parent.postMessage({ ec6: 1, op: 'close' }, location.origin); else history.back(); };
+  addEventListener('keydown', function (e) { if (e.key === 'Escape') { if (big.classList.contains('on')) big.classList.remove('on'); else document.getElementById('close').click(); } });
+  var sb = document.getElementById('subs'); [['全部学科', -1]].concat(E.exams.map(function (e, i) { return [e.code + ' ' + e.zh, i]; })).forEach(function (q) { var b = document.createElement('button'); b.textContent = q[0]; if (q[1] === focus) b.className = 'on';
+    b.onclick = function () { focus = q[1]; [].forEach.call(sb.children, function (y) { y.classList.toggle('on', y === b); }); load(); }; sb.appendChild(b); });
+  var tip = document.getElementById('tip'); tip.textContent = '拖动旋转 · 滚轮缩放 · 点一块屏放大并朗读 · ' + cards.length + ' 张卡片'; tip.style.display = 'block'; setTimeout(function () { tip.style.display = 'none'; }, 4200);
+  place(); requestAnimationFrame(frame);
+  window.__ec6sphere = { n: tiles.length, cards: cards.length };
+})();
+</script>
+</body>
+</html>

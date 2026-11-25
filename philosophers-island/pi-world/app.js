@@ -485,6 +485,7 @@
     u.near = near;
     const nl = nearLibrary(); if (nl && !u.nearLib && !S.ui) toast('🏛 时光图书馆：按 E 进去'); u.nearLib = nl;
     const nr = nearRootHall(); if (nr && !u.nearRoot && !S.ui) toast('🎞 词根馆：按 E 进去看 191 个词汇动图'); u.nearRoot = nr;
+    const ne = nearEc6(); if (ne && !u.nearEc6 && !S.ui) toast('🍎 EC-6 学习馆：按 E 进去，五门学科、五种看法'); u.nearEc6 = ne;
   }
   /* ───────── 词根馆: a little hall on the Island of Time, west of the light cone (press E at the door) ───────── */
   const ROOT_HALL = { x: 455.5, z: 58.5 };
@@ -505,6 +506,53 @@
     const lab = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(s), transparent: true, depthWrite: false })); lab.scale.set(6.4, 1.2, 1); lab.position.set(0, 7.4, 0); g.add(lab);
     g.position.set(ROOT_HALL.x, gy, ROOT_HALL.z); scene.add(g); rootHall = g;
   }
+  /* ───────── EC-6 学习馆: a red-brick schoolhouse in the south-west of the Island of Time (press E at the door) ─────────
+     TExES Core Subjects EC-6 (391) by its official framework, in every way the island can show a body of knowledge: the
+     holo console (star map, Obsidian, a light cone of the subjects' history), ten ways of reading, the papercraft island,
+     the pop-up book and the Sphere. The hall's own page is ec6/index.html. */
+  const EC6_HALL = { x: 458.5, z: 72.5 };
+  let ec6Hall = null;
+  function buildEc6Hall() {
+    const gy = groundY(EC6_HALL.x, EC6_HALL.z, 60), g = new THREE.Group(), L = (c) => new THREE.MeshLambertMaterial({ color: c });
+    const box = (w, h, d, x, y, z, c) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), L(c)); m.position.set(x, y, z); m.castShadow = true; g.add(m); return m; };
+    box(11.6, 0.4, 9.2, 0, 0.2, 0, 0xd9d2bf); box(10.4, 0.35, 8.0, 0, 0.55, 0, 0xc9c1ab);
+    const brick = 0xa9483a, trim = 0xf3efe4;
+    box(0.4, 3.6, 7.2, -4.8, 2.5, 0, brick); box(9.6, 3.6, 0.4, 0, 2.5, -3.6, brick); box(9.6, 3.6, 0.4, 0, 2.5, 3.6, brick);     // back and side walls
+    box(0.4, 3.6, 2.6, 4.8, 2.5, -2.3, brick); box(0.4, 3.6, 2.6, 4.8, 2.5, 2.3, brick); box(0.4, 1.0, 2.0, 4.8, 3.8, 0, brick);   // the front, a door facing the path
+    box(10.2, 0.25, 7.8, 0, 4.4, 0, trim); [-3.6, 3.6].forEach((z) => box(0.12, 3.6, 0.12, 4.98, 2.5, z * 0.92, trim));             // cornice and corner pilasters
+    for (let i = 0; i < 3; i++) { [-3.82, 3.82].forEach((z) => { const w = box(1.3, 1.5, 0.08, -3 + i * 2.8, 2.7, z, 0xbfe3f2); const f = box(1.5, 0.14, 0.1, -3 + i * 2.8, 1.9, z, trim); }); }
+    const roofS = new THREE.Shape(); roofS.moveTo(-5.4, 0); roofS.lineTo(5.4, 0); roofS.lineTo(0, 2.7); roofS.closePath();
+    const roof = new THREE.Mesh(new THREE.ExtrudeGeometry(roofS, { depth: 10.6, bevelEnabled: false }), L(0x3c4a5a)); roof.rotation.y = Math.PI / 2; roof.position.set(-5.3, 4.5, 0); roof.castShadow = true; g.add(roof);
+    box(1.6, 1.8, 1.6, 1.6, 7.6, 0, trim); const bell = new THREE.Mesh(new THREE.SphereGeometry(0.42, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshLambertMaterial({ color: 0xd4a640 })); bell.rotation.x = Math.PI; bell.position.set(1.6, 8.1, 0); g.add(bell);
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(1.35, 1.6, 4), L(0x3c4a5a)); cap.position.set(1.6, 9.3, 0); cap.rotation.y = Math.PI / 4; g.add(cap);
+    box(0.16, 1.1, 1.8, 4.98, 1.25, 0, 0x6b4a2e);                                                                                 // the door
+    const pole = box(0.1, 6.2, 0.1, 7.2, 3.3, -3.4, 0xd9d9d9);
+    const fc = document.createElement('canvas'); fc.width = 192; fc.height = 128; const fx = fc.getContext('2d'); fx.fillStyle = '#ffffff'; fx.fillRect(0, 0, 192, 64); fx.fillStyle = '#bf0a30'; fx.fillRect(0, 64, 192, 64); fx.fillStyle = '#002868'; fx.fillRect(0, 0, 64, 128);
+    fx.fillStyle = '#fff'; fx.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 9 : 22; fx.lineTo(32 + Math.cos(a) * r, 64 + Math.sin(a) * r); } fx.closePath(); fx.fill();
+    const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.2), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(fc), side: THREE.DoubleSide })); flag.position.set(7.2, 5.7, -2.5); flag.rotation.y = Math.PI / 2; g.add(flag);
+    const c = document.createElement('canvas'); c.width = 640; c.height = 360; const x = c.getContext('2d'); x.fillStyle = '#1c2420'; x.fillRect(0, 0, 640, 360); x.strokeStyle = '#d9c9a0'; x.lineWidth = 10; x.strokeRect(5, 5, 630, 350);
+    x.fillStyle = '#f3ecd6'; x.textAlign = 'center'; x.font = '700 70px Georgia, serif'; x.fillText('EC-6', 320, 110); x.font = '700 40px sans-serif'; x.fillText('Core Subjects (391)', 320, 175);
+    const cols = ['#6fb7ff', '#ffb454', '#ff7a6b', '#7ee08a', '#d08cff'], names = ['901 ELAR', '902 Math', '903 SS', '904 Sci', '905 Arts'];
+    names.forEach((n, i) => { x.fillStyle = cols[i]; x.fillRect(48 + i * 112, 220, 96, 10); x.font = '600 22px sans-serif'; x.fillText(n, 96 + i * 112, 268); }); x.fillStyle = '#d9c9a0'; x.font = '24px sans-serif'; x.fillText('5 subject exams · 44 competencies', 320, 322);
+    const board = new THREE.Mesh(new THREE.PlaneGeometry(5.4, 3.0), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c) })); board.rotation.y = Math.PI / 2; board.position.set(-4.56, 2.6, 0); g.add(board);
+    const lamp = new THREE.PointLight(0xffe2b0, 0.9, 12, 2); lamp.position.set(0, 3.4, 0); g.add(lamp);
+    const s = document.createElement('canvas'); s.width = 560; s.height = 96; const y = s.getContext('2d'); y.fillStyle = 'rgba(20,16,12,.88)'; y.fillRect(0, 0, 560, 96); y.strokeStyle = '#e9c46a'; y.lineWidth = 3; y.strokeRect(2, 2, 556, 92);
+    y.fillStyle = '#fff'; y.textAlign = 'center'; y.font = '700 36px sans-serif'; y.fillText('🍎 EC-6 学习馆', 280, 44); y.fillStyle = '#e9d9a6'; y.font = '22px sans-serif'; y.fillText('TExES Core Subjects EC-6 · 靠近按 E', 280, 78);
+    const lab = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(s), transparent: true, depthWrite: false })); lab.scale.set(7, 1.2, 1); lab.position.set(0, 11.2, 0); g.add(lab);
+    g.position.set(EC6_HALL.x, gy, EC6_HALL.z); scene.add(g); ec6Hall = g;
+    const pathM = L(0xd9cfb8); for (let px = 465; px <= 470; px += 1.5) { const q = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.12, 2.4), pathM); q.position.set(px, groundY(px, EC6_HALL.z, 60) + 0.07, EC6_HALL.z); q.receiveShadow = true; scene.add(q); }
+  }
+  const nearEc6 = () => ec6Hall && !S.inLib && Math.hypot(player.pos.x - EC6_HALL.x, player.pos.z - EC6_HALL.z) < 8;
+  let ec6El = null;
+  function openEc6() {
+    if (!ec6El) { ec6El = document.createElement('div'); ec6El.id = 'pi-ec6'; ec6El.style.cssText = 'position:fixed;inset:0;z-index:72;display:none;background:#0b0e10';
+      ec6El.innerHTML = '<iframe title="EC-6 学习馆" style="position:absolute;inset:0;width:100%;height:100%;border:0" allow="fullscreen"></iframe>'; document.body.appendChild(ec6El);
+      ['mousedown', 'touchstart', 'pointerdown', 'wheel'].forEach((ev) => ec6El.addEventListener(ev, (e) => e.stopPropagation(), { passive: true }));
+      window.addEventListener('message', (e) => { const m = e.data; if (!m || m.ec6 !== 1 || !ec6El || e.source !== ec6El.firstChild.contentWindow) return; if (m.op === 'close') closeEc6(); }); }
+    ec6El.firstChild.src = 'ec6/index.html'; ec6El.style.display = 'block'; S.ui = true; if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
+  }
+  function closeEc6() { if (!ec6El) return; ec6El.style.display = 'none'; ec6El.firstChild.src = 'about:blank'; S.ui = false; toast('🍎 回到时光岛'); }
+  window.__openEc6 = openEc6;
   /* the Sphere, after the one in Las Vegas: a dome three-quarters of a ball on a dark podium, its whole skin an LED
      "exosphere" that cycles through pictures (mosaic, the yellow face, the Earth, an eye). About one tenth of the real
      157 m width — the island could not hold more. Press E beside it for the wall of GIFs. */
@@ -1368,6 +1416,7 @@
     if (S.inLib) { if (LIB.hit && portals) { const u = LIB.hit.userData; if (u.creative && portals.openCreative) portals.openCreative(u.book, 1); else if (u.book.file && portals.openCreative) portals.openCreative(u.book, u.book.world ? 1 : 0); else if (portals.openCatalogBook) portals.openCatalogBook(u.book); return true; } if (player.pos.z > 78.6 && Math.abs(player.pos.x - 453.5) < 4) { leaveLibrary(); return true; } return true; }
     if (nearLibrary()) { enterLibrary(); return true; }
     if (nearSphere() && portals && portals.openRootmap) { transition('环球巨幕', '两百块屏幕', () => portals.openRootmap('sphere')); return true; }
+    if (nearEc6()) { transition('EC-6 学习馆', 'TExES Core Subjects EC-6 (391)', () => openEc6()); return true; }
     if (nearRootHall() && portals && portals.openRootmap) { transition('词根馆', '191 个词汇动图', () => portals.openRootmap()); return true; }
     if (nearCone() && portals && portals.openLightCone) { transition('光锥', '330 万年人类科技史', () => portals.openLightCone()); return true; }
     // Priority 1: Activate nearest Spatial InteractionPortal!
@@ -1724,6 +1773,7 @@
       buildCouncilSet();
       buildConeMonument();
       buildRootHall();
+      buildEc6Hall();
       buildSphere();
       buildTimeIsleGrounds();
       buildKonigsberg();

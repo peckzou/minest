@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EC-6 学习馆</title>
+<style>
+  :root { --c: #f3ecd6; --sub: rgba(243,236,214,.72); --line: rgba(243,236,214,.34); --glass: radial-gradient(circle at 50% 0%, rgba(40,44,46,.72), rgba(8,10,12,.82)); }
+  html, body { margin: 0; height: 100%; background: #0b0e10; color: var(--c); font: 15px/1.6 "Avenir Next", "Helvetica Neue", "PingFang SC", sans-serif; }
+  body { background: radial-gradient(ellipse at 50% -10%, #3a2a1c 0%, #15110d 45%, #0b0e10 100%) fixed; overflow-y: auto; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: calc(18px + env(safe-area-inset-top)) 18px calc(40px + env(safe-area-inset-bottom)); }
+  header { display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
+  header .t { flex: 1; min-width: 260px; } h1 { margin: 0; font-size: 28px; letter-spacing: .06em; font-weight: 700; } h1 small { display: block; font-size: 13px; font-weight: 500; letter-spacing: .12em; color: #e9c46a; margin-top: 4px; }
+  .lede { color: var(--sub); font-size: 13.5px; margin: 8px 0 0; max-width: 760px; }
+  .key { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 999px; border: 1.5px solid rgba(243,236,214,.8); background: var(--glass); color: var(--c); font: inherit; font-size: 13.5px; cursor: pointer; box-shadow: inset 0 0 0 2px rgba(6,8,10,.5), inset 0 0 0 3px rgba(243,236,214,.16); }
+  .key:hover { border-color: #ffe7a3; color: #fff3cc; } .key.gold { border-color: rgba(233,196,106,.95); color: #f6e7b8; }
+  .modes { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 6px; } .modes .lab { align-self: center; color: var(--sub); font-size: 12.5px; letter-spacing: .1em; margin-right: 4px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; margin-top: 14px; }
+  .card { position: relative; border-radius: 14px; background: var(--glass); border: 1px solid var(--line); box-shadow: inset 0 0 0 2px rgba(6,8,10,.5), inset 0 0 0 3px rgba(243,236,214,.1), 0 10px 30px rgba(0,0,0,.4); padding: 16px 16px 14px; overflow: hidden; }
+  .card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--k); }
+  .card .no { font-size: 12px; letter-spacing: .16em; color: var(--k); font-weight: 700; } .card h2 { margin: 2px 0 0; font-size: 19px; } .card .en { color: var(--sub); font-size: 12.5px; }
+  .card .meta { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0 10px; font-size: 12px; color: var(--sub); } .card .meta b { color: var(--c); font-weight: 600; }
+  .bar { height: 4px; border-radius: 2px; background: rgba(243,236,214,.12); margin-bottom: 10px; } .bar i { display: block; height: 100%; border-radius: 2px; background: var(--k); }
+  .feat { width: 100%; flex-direction: column; align-items: flex-start; gap: 2px; border-radius: 12px; margin-bottom: 10px; border-color: var(--k); font-weight: 600; text-align: left; }
+  .feat em { font-style: normal; font-size: 11.5px; line-height: 1.45; color: var(--sub); font-weight: 400; }
+  .comps { display: grid; gap: 4px; } .comp { display: flex; gap: 10px; align-items: baseline; padding: 6px 8px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; }
+  .comp:hover { border-color: var(--line); background: rgba(243,236,214,.05); } .comp i { font-style: normal; color: var(--k); font-size: 12px; font-weight: 700; width: 26px; flex: none; } .comp span { font-size: 13.5px; } .comp small { color: var(--sub); font-size: 11.5px; margin-left: auto; text-align: right; }
+  .more { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; } .more button { font-size: 12px; padding: 5px 10px; }
+  .foot { margin-top: 22px; color: var(--sub); font-size: 12px; line-height: 1.7; } .foot a { color: #e9c46a; }
+  /* a competency sheet */
+  #sheet { position: fixed; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center; background: rgba(4,5,6,.7); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); padding: 16px; }
+  #sheet.on { display: flex; } #sheet .box { width: min(660px, 100%); max-height: 88vh; overflow: auto; border-radius: 14px; background: var(--glass); border: 1px solid rgba(243,236,214,.55); padding: 20px 22px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+  #sheet .no { color: var(--k); font-size: 12.5px; letter-spacing: .14em; font-weight: 700; } #sheet h3 { margin: 4px 0 2px; font-size: 22px; } #sheet .en { color: var(--sub); }
+  #sheet .gist { margin: 12px 0; padding: 10px 12px; border-left: 3px solid var(--k); background: rgba(243,236,214,.05); border-radius: 0 8px 8px 0; }
+  #sheet p.body { font-family: Georgia, "Songti SC", serif; font-size: 15.5px; line-height: 1.75; color: #efe7cf; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 14px; } .chips span { font-size: 12.5px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); cursor: pointer; } .chips span:hover { border-color: #ffe7a3; } .chips b { font-weight: 600; } .chips small { color: var(--sub); margin-left: 4px; }
+  /* a mode, full screen */
+  #mode { position: fixed; inset: 0; z-index: 30; display: none; background: #000; } #mode.on { display: block; }
+  #mode iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #0b0e10; }
+  #mode .x { position: absolute; z-index: 2; left: calc(10px + env(safe-area-inset-left)); bottom: calc(12px + env(safe-area-inset-bottom)); }
+  #toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 40; padding: 7px 16px; border-radius: 10px; background: rgba(8,10,12,.88); border: 1px solid var(--line); font-size: 13px; opacity: 0; transition: opacity .3s; pointer-events: none; } #toast.on { opacity: 1; }
+  @media (max-width: 560px) { h1 { font-size: 23px; } .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="t"><h1>EC-6 学习馆<small>TEXES CORE SUBJECTS EC–6 (391) · 时光岛</small></h1>
+      <p class="lede">按官方考纲搭的学习馆：五门分考、44 条能力项。每门学科配了一个最合适的看法，其余几种也都能打开；内容全部相同，只是换一种方式走进去。</p></div>
+    <button class="key" id="close">✕ 回到时光岛</button>
+  </header>
+  <div class="modes"><span class="lab">全部模式</span>
+    <button class="key gold" data-open="holo:stars">🔷 全息操作台 · 知识星图</button>
+    <button class="key" data-open="holo:obsidian">🕸 Obsidian 图谱</button>
+    <button class="key" data-open="holo:cone">⏳ 光锥 · EC-6 学科史</button>
+    <button class="key" data-open="read:1">📖 十种读法</button>
+    <button class="key" data-open="paper">🗺 纸艺小岛</button>
+    <button class="key" data-open="fold">📕 折叠书</button>
+    <button class="key" data-open="sphere">🌐 Sphere 巨幕</button>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="foot">考纲结构（分考、能力项编号与标题、题量、时长、权重）依据 TExES Core Subjects EC–6 (391) 官方考纲 Section 3（tx.nesinc.com）；每条的中文要点、英文讲解、关键词、测验和学科史都是本馆自己写的学习材料，不是官方原文。现行 391 考试可考到 2027 年 8 月 31 日；2027 年 9 月 1 日起改为新的 491 / 492。</div>
+</div>
+<div id="sheet"><div class="box"></div></div>
+<div id="mode"><iframe title=""></iframe><button class="key x" id="modeX">‹ 回到学习馆</button></div>
+<div id="toast"></div>
+<script src="ec6-data.js"></script>
+<script>
+/* EC-6 学习馆 — the hall's own page. It is the embedding page for every mode, so each mode gets its EC-6 data the way
+   it gets the island's: the holo console (content, vault, a timeline for the light cone), the papercraft island (a map),
+   the pop-up book (?book=ec6), the reader (?file=ec6/framework.txt) and the Sphere (ec6/sphere.html). */
+(function () {
+  'use strict';
+  var E = window.PIEC6, EMBED = parent !== window, $ = function (id) { return document.getElementById(id); };
+  var MODE_OF = { read: 'read:1', paper: 'paper', cone: 'holo:cone', sphere: 'sphere', fold: 'fold' };
+  var ICON = { read: '📖', paper: '🗺', cone: '⏳', sphere: '🌐', fold: '📕' };
+  var WHY = { read: '阅读本身就是这一科：十种读法把考纲变成可以读、可以问、可以考的书', paper: '几何、测量与坐标：整门数学是一座按坐标轴铺开的纸岛', cone: '历史、政府与经济都在时间里：五门学科的大事排在一个光锥上', sphere: '地球与太空、力与能量：科学的考点贴满一整个球幕', fold: '视觉艺术、音乐、健康、体育、戏剧，正好是一本立体书的五个纸房间' };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(function () { e.classList.remove('on'); }, 2600); }
+  function post(o) { if (EMBED) parent.postMessage(Object.assign({ ec6: 1 }, o), location.origin); }
+
+  // ── the five subject cards
+  $('grid').innerHTML = E.exams.map(function (e, i) {
+    return '<div class="card" style="--k:' + e.color + '"><div class="no">SUBJECT EXAM ' + e.roman + ' · ' + e.code + '</div><h2>' + esc(e.zh) + '</h2><div class="en">' + esc(e.en) + '</div>' +
+      '<div class="meta"><span><b>' + e.items + '</b> 题</span><span><b>' + e.time + '</b></span><span>约占 <b>' + e.weight + '%</b></span><span><b>' + e.comps.length + '</b> 条能力项</span></div><div class="bar"><i style="width:' + (e.weight / 21.5 * 100) + '%"></i></div>' +
+      '<button class="key feat" data-open="' + MODE_OF[e.mode] + '" data-sub="' + i + '">' + ICON[e.mode] + ' 主打模式 · ' + e.modeZh + '<em>' + WHY[e.mode] + '</em></button>' +
+      '<div class="comps">' + e.comps.map(function (c) { return '<div class="comp" data-c="' + c.id + '"><i>' + c.n + '</i><span>' + esc(c.zh) + '</span><small>' + esc(c.en) + '</small></div>'; }).join('') + '</div>' +
+      '<div class="more"><button class="key" data-open="holo:obsidian" data-sub="' + i + '">🕸 图谱</button><button class="key" data-open="holo:stars" data-sub="' + i + '">🔷 星图</button><button class="key" data-open="read:1" data-sub="' + i + '">📖 读</button></div></div>';
+  }).join('');
+
+  // ── one competency
+  function sheet(id) {
+    var c = E.get(id); if (!c) return; var e = E.exams[c.exam], s = $('sheet');
+    s.style.setProperty('--k', e.color);
+    s.querySelector('.box').innerHTML = '<div class="no">' + e.code + ' · COMPETENCY ' + c.n + ' · ' + esc(e.zh) + '</div><h3>' + esc(c.zh) + '</h3><div class="en">' + esc(c.en) + '</div>' +
+      '<div class="gist">' + esc(c.gist) + '</div><p class="body">' + esc(c.body) + '</p><div class="chips">' + c.keys.map(function (k) { return '<span data-say="' + esc(k.en) + '"><b>' + esc(k.en) + '</b><small>' + esc(k.zh) + '</small></span>'; }).join('') + '</div>' +
+      '<div class="more"><button class="key gold" data-open="' + MODE_OF[e.mode] + '" data-sub="' + c.exam + '">' + ICON[e.mode] + ' 用' + e.modeZh + '看</button><button class="key" data-open="holo:obsidian">🕸 在图谱里看</button><button class="key" id="speak">🔊 朗读讲解</button><button class="key" id="shX">合上</button></div>';
+    s.classList.add('on'); post({ op: 'seen', mode: 'sheet', text: e.code + '-' + c.n + ' ' + c.en });
+  }
+  function say(t) { try { speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(t); u.lang = 'en-US'; u.rate = 0.92; speechSynthesis.speak(u); } catch (x) {} }
+  document.addEventListener('click', function (ev) {
+    var t = ev.target;
+    var o = t.closest('[data-open]'); if (o) { ev.stopPropagation(); $('sheet').classList.remove('on'); return open(o.getAttribute('data-open'), o.hasAttribute('data-sub') ? +o.getAttribute('data-sub') : -1); }
+    var c = t.closest('[data-c]'); if (c) return sheet(c.getAttribute('data-c'));
+    var sy = t.closest('[data-say]'); if (sy) return say(sy.getAttribute('data-say'));
+    if (t.id === 'speak') { var b = $('sheet').querySelector('p.body'); return say(b ? b.textContent : ''); }
+    if (t.id === 'shX' || t.id === 'sheet') return $('sheet').classList.remove('on');
+  });
+
+  // ── the modes
+  var cur = null, frame = $('mode').querySelector('iframe');
+  function open(spec, sub) {
+    var p = spec.split(':'), kind = p[0], url;
+    cur = { kind: kind, arg: p[1] || '', sub: sub };
+    if (kind === 'holo') url = '../holo-lab-2/index.html';
+    else if (kind === 'read') url = '../library/read.html?file=ec6/framework.txt&title=' + encodeURIComponent('TExES Core Subjects EC-6 (391)') + '&zh=' + encodeURIComponent('EC-6 考纲学习文本') + '&author=' + encodeURIComponent('EC-6 学习馆') + '&mode=' + (p[1] || 1);
+    else if (kind === 'paper') url = '../papercraft/index.html';
+    else if (kind === 'fold') url = '../popup/index.html?book=ec6';
+    else if (kind === 'sphere') url = 'sphere.html' + (sub >= 0 ? '?sub=' + sub : '');
+    frame.src = url; $('mode').classList.add('on');
+    $('modeX').style.display = kind === 'read' || kind === 'sphere' ? 'none' : '';
+  }
+  function closeMode() { $('mode').classList.remove('on'); frame.src = 'about:blank'; cur = null; }
+  $('modeX').onclick = closeMode;
+  $('close').onclick = function () { if (EMBED) post({ op: 'close' }); else history.back(); };
+  addEventListener('keydown', function (e) { if (e.key !== 'Escape') return; if ($('sheet').classList.contains('on')) $('sheet').classList.remove('on'); else if (cur) closeMode(); else $('close').click(); });
+
+  // holo console data: knowledge for the star map, a vault for Obsidian, the subjects' timeline for the light cone
+  function holoContent() {
+    var K = [];
+    E.comps.forEach(function (c) { var e = E.exams[c.exam]; K.push({ id: c.id, board: e.code + ' ' + e.zh, title: c.n + ' ' + c.zh + ' · ' + c.en, text: c.gist + '\n\n' + c.body + '\n\n关键词：' + c.keys.map(function (k) { return k.en + '（' + k.zh + '）'; }).join('、'), tags: [e.zh, '能力项 ' + c.n] }); });
+    return { lists: [{ key: 'ec6-terms', title: 'EC-6 术语', source: 'kanban', items: E.comps.reduce(function (a, c) { return a.concat(c.keys.map(function (k, j) { return { id: c.id + '-k' + j, title: k.en, text: k.zh + ' · ' + c.code + '-' + c.n + ' ' + c.zh }; })); }, []) }],
+      charts: [], knowledge: K, works: [], readonly: true };
+  }
+  var vaultCache = null;
+  function vault() {
+    if (vaultCache) return vaultCache;
+    var pages = [], seen = {}, now = Date.now(), slug = function (t) { return String(t).normalize('NFKC').toLowerCase().replace(/[^a-z0-9぀-ヿ㐀-鿿가-힯]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60); };
+    function page(title, type, md, tags) { var id = 'pg_' + (slug(title) || 'x'); if (seen[id]) { seen[id].markdown += '\n\n' + md; return seen[id]; } var p = { id: id, title: title, type: type, markdown: md, tags: tags || [], claims: [], createdAt: now, updatedAt: now }; seen[id] = p; pages.push(p); return p; }
+    var L = function (t) { return '[[' + t + ']]'; }, ttl = function (c) { return c.code + '-' + c.n + ' ' + c.zh; }, termOwners = {};
+    E.comps.forEach(function (c) { c.keys.forEach(function (k) { (termOwners[k.en] = termOwners[k.en] || []).push(c); }); });
+    E.exams.forEach(function (e) { page(e.code + ' ' + e.zh, 'person', e.en + '\n\n' + e.items + ' 题 · ' + e.time + ' · 约占 ' + e.weight + '%\n\n## 能力项\n' + e.comps.map(function (c) { return '- ' + L(ttl(c)); }).join('\n'), [e.code]); });
+    page('EC-6 考纲', 'topic', 'TExES Core Subjects EC–6 (391)\n\n' + E.exams.map(function (e) { return '- ' + L(e.code + ' ' + e.zh); }).join('\n'), ['391']);
+    E.comps.forEach(function (c) {
+      var e = E.exams[c.exam], kin = [];
+      c.keys.forEach(function (k) { (termOwners[k.en] || []).forEach(function (o) { if (o !== c && kin.indexOf(o) < 0) kin.push(o); }); });
+      page(ttl(c), 'concept', '*' + c.en + '*\n\n' + c.gist + '\n\n' + c.body + '\n\n所属：' + L(e.code + ' ' + e.zh) + '\n\n## 关键词\n' + c.keys.map(function (k) { return '- ' + L(k.en) + ' ' + k.zh; }).join('\n') + (kin.length ? '\n\n## 相通的能力项\n' + kin.map(function (o) { return '- ' + L(ttl(o)); }).join('\n') : ''), [e.zh]);
+      c.keys.forEach(function (k) { page(k.en, 'note', k.zh + '\n\n出自：' + L(ttl(c)), [e.zh, '术语']); });
+    });
+    vaultCache = { pages: pages, decisions: [], sources: [], relations: [] }; return vaultCache;
+  }
+  // papercraft: one island laid out like a coordinate plane — mathematics on the central plateau along the two axes,
+  // the other four subjects on the four lobes around it
+  function paperMap() {
+    var gw = 152, gh = 96, W = 608, D = 384, h = [], path = [], cx = 76, cz = 48;
+    var lobes = [[0, 0, 30, 24, 53], [-46, -24, 22, 17, 46], [46, -24, 22, 17, 46], [-46, 24, 22, 17, 46], [46, 24, 22, 17, 46]];
+    for (var z = 0; z < gh; z++) for (var x = 0; x < gw; x++) {
+      var best = 9, top = 33; lobes.forEach(function (l) { var v = Math.hypot((x - cx - l[0]) / l[2], (z - cz - l[1]) / l[3]); if (v < best) { best = v; top = l[4]; } });
+      var hh = best < 0.5 ? top : best < 0.8 ? Math.min(top, 44) : best < 1.05 ? 40 : best < 1.25 ? 37 : 33;
+      h.push(hh); path.push(hh >= 40 && (Math.abs(z - cz) < 1 || Math.abs(x - cx) < 1) ? 1 : 0);
+    }
+    var halls = [], at = function (gx, gz) { return [gx / gw * W, gz / gh * D]; };
+    var math = E.exams[1].comps, mpos = [[-14, -9], [14, -9], [-22, 6], [22, 6], [-8, 15], [8, 15]];
+    math.forEach(function (c, i) { var p = at(cx + mpos[i][0], cz + mpos[i][1]); halls.push({ id: c.id, name: c.n + ' ' + c.zh, x: p[0], z: p[1], district: '902 数学 · ' + c.en, note: c.gist + '\n关键词：' + c.keys.map(function (k) { return k.en + ' ' + k.zh; }).join('、') }); });
+    [[0, -46, -24], [2, 46, -24], [3, -46, 24], [4, 46, 24]].forEach(function (q) { var e = E.exams[q[0]], n = e.comps.length, cols = Math.ceil(Math.sqrt(n * 1.4)), rows = Math.ceil(n / cols);
+      e.comps.forEach(function (c, i) { var r = Math.floor(i / cols), k = i % cols, p = at(cx + q[1] + (k - (cols - 1) / 2) * (24 / Math.max(1, cols - 1 || 1)) * (cols > 1 ? 1 : 0), cz + q[2] + (r - (rows - 1) / 2) * Math.min(7, 18 / Math.max(1, rows - 1 || 1)) * (rows > 1 ? 1 : 0));
+        halls.push({ id: c.id, name: c.n + ' ' + c.zh, x: p[0], z: p[1], district: e.code + ' ' + e.zh + ' · ' + c.en, note: c.gist }); }); });
+    return { paper: 1, op: 'map', gw: gw, gh: gh, h: h, path: path, W: W, D: D, halls: halls, title: 'EC-6 纸艺小岛<small>数学在中央的坐标高台上，另外四科在四个角</small>', goLabel: '📄 看这条能力项', hint: '向下滚动往前走，纸片会一件件立起来 · 左右拖动看两侧 · 点一座纸房子看它是哪条能力项' };
+  }
+  addEventListener('message', function (e) {
+    if (!cur || e.source !== frame.contentWindow) return; var m = e.data; if (!m || typeof m !== 'object') return;
+    var to = function (o) { frame.contentWindow.postMessage(o, location.origin); };
+    if (m.holo === 1) {
+      if (m.op === 'ready') { to({ holo: 1, op: 'vault', data: vault() }); to({ holo: 1, op: 'conedata', title: 'EC-6 学科史', jumps: [['文字', -3200], ['元年', 0], ['印刷', 1440], ['宪法', 1787], ['得州独立', 1836], ['内战后', 1865], ['民权', 1954], ['此刻', 2026]], domains: E.exams.map(function (x) { return [x.code + ' ' + x.zh, x.color]; }), events: E.timeline }); to({ holo: 1, op: 'content', data: holoContent() }); to({ holo: 1, op: 'mode', id: cur.arg || 'stars' }); }
+      else if (m.op === 'close') closeMode();
+      else if (m.op === 'coneSeen' && m.title) post({ op: 'seen', mode: 'cone', text: m.year + ' · ' + m.title });
+    } else if (m.paper === 1) {
+      if (m.op === 'ready') to(paperMap());
+      else if (m.op === 'close') closeMode();
+      else if (m.op === 'goto') { closeMode(); sheet(m.id); }
+    } else if (m.fold === 1) { if (m.op === 'close') closeMode(); }
+    else if (m.read2 === 1) { if (m.op === 'close') closeMode(); else if (m.op === 'note') post({ op: 'note', title: m.title, text: m.text }); }
+    else if (m.ec6 === 1) { if (m.op === 'close') closeMode(); else if (m.op === 'seen') post(m); }
+  });
+  var q = new URLSearchParams(location.search); if (q.get('open')) open(q.get('open'), q.has('sub') ? +q.get('sub') : -1);
+  if (EMBED) post({ op: 'ready' });
+})();
+</script>
+</body>
+</html>

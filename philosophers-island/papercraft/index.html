@@ -112,7 +112,7 @@
   document.getElementById('cx').onclick = function () { show(null); }; document.getElementById('again').onclick = function () { view.tz = Z0; };
   document.getElementById('go').onclick = function () { if (sel) parent.postMessage({ paper: 1, op: 'goto', id: sel.id }, location.origin); };
   document.getElementById('close').onclick = function () { if (EMBED) parent.postMessage({ paper: 1, op: 'close' }, location.origin); else history.back(); };
-  addEventListener('message', function (e) { var m = e.data; if (m && m.paper === 1 && e.source === parent && m.op === 'map') { map = m; build(); } });
+  addEventListener('message', function (e) { var m = e.data; if (m && m.paper === 1 && e.source === parent && m.op === 'map') { map = m; if (m.title) document.querySelector('.top h1').innerHTML = m.title; if (m.goLabel) document.getElementById('go').textContent = m.goLabel; if (m.hint) document.getElementById('hint').textContent = m.hint; build(); } });
   map = fake(); build(); requestAnimationFrame(frame);
   if (EMBED) parent.postMessage({ paper: 1, op: 'ready' }, location.origin);
   window.__paper = { show: show, view: view, get halls() { return map.halls; }, get n() { return [houses.length, trees.length]; } };
