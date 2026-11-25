@@ -1070,7 +1070,7 @@
       var hb = document.createElement('button'); hb.className = 'hl-k'; hb.innerHTML = ico('holo'); hb.title = '全息 · 叠加全息投影';
       hb.onclick = function (e) { e.stopPropagation(); setHolo(!HOLO); flashName(bar, '全息 ' + (HOLO ? '开' : '关')); }; bar.appendChild(hb);
       if (window.FBFX) { var lb = document.createElement('button'); lb.className = 'lfx-k'; lb.innerHTML = ico('lfx'); lb.title = 'Light FX';
-        lb.onclick = function (e) { e.stopPropagation(); var M = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco'], nx = M[(M.indexOf(window.FBFX.mode) + 1) % M.length]; window.FBFX.setMode(nx); flashName(bar, 'Light FX · ' + ({ none: '关', lasers: '激光', firework: '烟花', spotlight: '聚光灯', neon: '霓虹', aurora: '极光', meteor: '流星', disco: '迪斯科' })[nx]); paintBarKeys(); }; bar.appendChild(lb); }
+        lb.onclick = function (e) { e.stopPropagation(); var M = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco', 'gallery'], nx = M[(M.indexOf(window.FBFX.mode) + 1) % M.length]; window.FBFX.setMode(nx); flashName(bar, 'Light FX · ' + ({ none: '关', lasers: '激光', firework: '烟花', spotlight: '聚光灯', neon: '霓虹', aurora: '极光', meteor: '流星', disco: '迪斯科', gallery: '画廊' })[nx]); paintBarKeys(); }; bar.appendChild(lb); }
       if (window.__cmCardFx) { var cb = document.createElement('button'); cb.className = 'cfx-k'; cb.innerHTML = ico('cfx'); cb.title = 'Card FX';
         cb.onclick = function (e) { e.stopPropagation(); flashName(bar, 'Card FX · ' + window.__cmCardFx.next()); paintBarKeys(); }; bar.appendChild(cb); }
       paintBarKeys();

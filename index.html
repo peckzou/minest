@@ -24422,12 +24422,12 @@ var De = function(props) {
               disabled: lm === 'off',
               onClick: function() {
                 if (!window.FBFX || !window.FBFX.active) return;
-                var M = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco'];
+                var M = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco', 'gallery'];
                 window.FBFX.setMode(M[(M.indexOf(window.FBFX.mode) + 1) % M.length]);
                 setFxTab(window.FBFX.mode + '|' + fxTab.split('|')[1]);
               },
               className: "bar-fx-btn " + (on ? "on " + lm + " " : "") + "p-2 rounded-xl border transition-all duration-200 " + (isDark ? "bg-white/8 border-white/15 text-white/80 hover:text-white hover:bg-white/15" : "bg-slate-100 border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-200"),
-              title: "Light FX: " + (on ? lm : "off") + " — tap to cycle (off → lasers → firework → spotlight → neon → aurora → meteor → disco)",
+              title: "Light FX: " + (on ? lm : "off") + " — tap to cycle (off → lasers → firework → spotlight → neon → aurora → meteor → disco → gallery)",
               'aria-label': "Light FX",
               children: [(0, P.jsxs)('svg', { viewBox: "0 0 24 24", className: "w-4 h-4 block", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round", 'aria-hidden': "true",
                 children: [(0, P.jsx)('path', { d: "M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z" }), (0, P.jsx)('path', { d: "M18.5 16v4M16.5 18h4" })] }),
@@ -24810,7 +24810,7 @@ var De = function(props) {
               disabled: false,
               onClick: function() {
                 if (!window.FBFX) return;
-                var M = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco'];
+                var M = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco', 'gallery'];
                 var cur = window.FBFX.mode || 'none';
                 var next = M[(M.indexOf(cur) + 1) % M.length];
                 window.FBFX.setMode(next);
@@ -24818,7 +24818,7 @@ var De = function(props) {
                 try { if (SoundEngine && SoundEngine.play) SoundEngine.play('click'); } catch(e){}
               },
               className: "ios-tab-item dock-fx-tab " + (on ? "active " + lm : ""),
-              title: "Light FX — tap to cycle (off → lasers → firework → spotlight → neon → aurora → meteor → disco)",
+              title: "Light FX — tap to cycle (off → lasers → firework → spotlight → neon → aurora → meteor → disco → gallery)",
               children: [
                 (0, P.jsx)('span', { className: "ios-tab-icon", children: (0, P.jsxs)('svg', { viewBox: "0 0 24 24", className: "w-5 h-5", fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", 'aria-hidden': "true",
                   children: [(0, P.jsx)('path', { d: "M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z" }), (0, P.jsx)('path', { d: "M18.5 16v4M16.5 18h4" })] }) }),
@@ -31801,7 +31801,7 @@ var Oe = function(props) {
             type: "button",
             onClick: function() {
               if (window.FBFX) {
-                var M = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco'];
+                var M = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco', 'gallery'];
                 var cur = (window.FBFX.mode) || 'none';
                 var next = M[(M.indexOf(cur) + 1) % M.length];
                 window.FBFX.setMode(next);
@@ -87786,10 +87786,10 @@ var Ve = (function(_Component) {
   'use strict';
   if (window.FBFX) return;
 
-  var MODES = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco'];
+  var MODES = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco', 'gallery'];
   var INTROS = ['balloons', 'confetti', 'celebration', 'love'];
-  var LABEL = { none: 'Light FX', lasers: 'lasers', firework: 'firework', spotlight: 'spotlight', neon: 'neon', aurora: 'aurora', meteor: 'meteor', disco: 'disco' };
-  var GLYPH = { none: '✦', lasers: '⟡', firework: '✺', spotlight: '◎', neon: '◈', aurora: '≈', meteor: '☄', disco: '❖' };
+  var LABEL = { none: 'Light FX', lasers: 'lasers', firework: 'firework', spotlight: 'spotlight', neon: 'neon', aurora: 'aurora', meteor: 'meteor', disco: 'disco', gallery: 'gallery' };
+  var GLYPH = { none: '✦', lasers: '⟡', firework: '✺', spotlight: '◎', neon: '◈', aurora: '≈', meteor: '☄', disco: '❖', gallery: '◒' };
 
   // 40.9 NEON — every card becomes a 3D light box glowing from inside. The colour is a
   // real noble-gas discharge, picked from the right-hand column of the periodic table.
@@ -88119,7 +88119,7 @@ var Ve = (function(_Component) {
     // in a dark room the button is always the dark one, whatever the theme
     btn.className = 'fbfx-btn' + (HOST_SHELL ? ' in-shell' : '') + (mode !== 'none' ? ' on ' + mode : '') + (mode === 'none' && document.querySelector('.theme-white') ? ' light' : '');
     btn.innerHTML = '<span class="fbfx-glyph">' + GLYPH[mode] + '</span><span>' + LABEL[mode] + '</span>';
-    btn.title = 'Light FX: ' + (mode === 'none' ? 'off' : LABEL[mode]) + ' — click to cycle (off ➔ lasers ➔ firework ➔ spotlight ➔ neon ➔ aurora ➔ meteor ➔ disco) · Shift+click: replay an opening effect';
+    btn.title = 'Light FX: ' + (mode === 'none' ? 'off' : LABEL[mode]) + ' — click to cycle (off ➔ lasers ➔ firework ➔ spotlight ➔ neon ➔ aurora ➔ meteor ➔ disco ➔ gallery) · Shift+click: replay an opening effect';
     btn.setAttribute('aria-label', 'Screen effect: ' + mode);
   }
 
@@ -90269,15 +90269,16 @@ var Ve = (function(_Component) {
   window.addEventListener('touchmove', function (e) { if (inkRub) { e.preventDefault(); e.stopImmediatePropagation(); } }, { capture: true, passive: false });
 
   // ---------------------------------------------------------------- loop
-  // ---------------------------------------------------------------- 71: aurora · meteor · disco
+  // ---------------------------------------------------------------- 71: aurora · meteor · disco · gallery
   // Three quieter rooms than lasers / firework / spotlight, made for reading the board under them:
-  //   aurora — curtains of northern light drift across the top of a starry room;
-  //   meteor — a night sky with shooting stars; tap empty space to send one there;
-  //   disco  — a mirror ball turns overhead and throws coloured dots round the room, on the beat.
-  // All three light the glass cards through sceneLights (xfxLights), like the older modes.
+  //   aurora  — curtains of northern light drift across the top of a starry room;
+  //   meteor  — a night sky with shooting stars; tap empty space to send one there;
+  //   disco   — a mirror ball turns overhead and throws coloured dots round the room, on the beat;
+  //   gallery — midnight art gallery with pull-cord switch, pixel-accurate local flashlight
+  //             illumination, real SVG RGB-dispersion liquid-glass lens, girl & glowing-eyed Pepper.
   var xfx = { stars: null, sw: 0, sh: 0, meteors: [], glows: [], next: 0.4, strips: {}, dots: null, sprites: {} };
   var XFX_CALM = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  function xfxReset() { xfx.meteors.length = 0; xfx.glows.length = 0; xfx.next = 0.4; }
+  function xfxReset() { xfx.meteors.length = 0; xfx.glows.length = 0; xfx.next = 0.4; galSyncActive(); }
   function xfxStars() {
     if (xfx.stars && xfx.sw === W && xfx.sh === H) return xfx.stars;
     var n = Math.round(clamp(W * H / 5200, 40, 170)), a = [];
@@ -90312,7 +90313,6 @@ var Ve = (function(_Component) {
 
   // ---- aurora
   var AUR = [{ h: 150, y: 0.09, a: 1, sp: 0.11, k: 1 }, { h: 174, y: 0.15, a: 0.8, sp: -0.08, k: 1.6 }, { h: 286, y: 0.05, a: 0.62, sp: 0.06, k: 2.3 }];
-  // one curtain's fall-off from its bright lower edge up into the dark (stretched over every strip)
   function auroraStrip(h) {
     var s = xfx.strips[h];
     if (s) return s;
@@ -90334,7 +90334,6 @@ var Ve = (function(_Component) {
     c.save();
     c.globalCompositeOperation = 'lighter';
     xfxDrawStars(c, ga * 0.85, H * 0.8);
-    // (the board is read under it: the curtains are thinner there, so card text stays clear)
     var step = W > 700 ? 8 : 6, kb = stageKind === 'board' ? 0.5 : 0.9;
     for (var k = 0; k < AUR.length; k++) {
       var L = AUR[k], img = auroraStrip(L.h);
@@ -90377,7 +90376,6 @@ var Ve = (function(_Component) {
       var m = xfx.meteors[i];
       m.life += dt; m.x += m.vx * dt; m.y += m.vy * dt;
       if (m.life >= m.max) {
-        // where it burns out: a short flash (an aimed one, on the spot that was tapped)
         xfx.glows.push({ x: m.x, y: m.y, life: 0, max: m.aimed ? 0.7 : 0.4, rgb: hsl2rgb(m.h, 90, 72), big: m.aimed });
         xfx.meteors.splice(i, 1);
         continue;
@@ -90430,17 +90428,14 @@ var Ve = (function(_Component) {
       c.globalAlpha = ga * beat * (0.22 + 0.62 * depth);
       c.drawImage(xfxSprite(d.h), x - rx, y - ry, rx * 2, ry * 2);
       if (i % 6 === 0) {
-        // a few of the rays that carry the dots, seen in the haze
         c.globalAlpha = ga * beat * 0.07 * depth;
         c.strokeStyle = 'hsl(' + d.h + ',100%,72%)'; c.lineWidth = 1.2;
         c.beginPath(); c.moveTo(B.x, B.y); c.lineTo(x, y); c.stroke();
       }
     }
-    // the ball's own halo
     c.globalAlpha = ga * (0.35 + 0.4 * beat);
     c.drawImage(xfxSprite(DISCO_HUES[Math.floor(clock * 0.5) % DISCO_HUES.length]), B.x - B.r * 3.4, B.y - B.r * 3.4, B.r * 6.8, B.r * 6.8);
     c.restore();
-    // the mirror ball on its cord
     c.save();
     c.globalAlpha = ga;
     c.strokeStyle = 'rgba(200,205,220,.55)'; c.lineWidth = 1;
@@ -90469,7 +90464,7 @@ var Ve = (function(_Component) {
     c.globalAlpha = ga;
   }
 
-  // what the three rooms shine on the glass cards
+  // what the rooms shine on the glass cards
   function xfxLights(Ls) {
     if (mode === 'aurora') {
       var at = XFX_CALM ? 12 : clock;
@@ -90486,9 +90481,925 @@ var Ve = (function(_Component) {
     } else if (mode === 'disco') {
       var B = discoBall();
       Ls.push({ x: B.x, y: B.y, z: 300, rgb: hsl2rgb(DISCO_HUES[Math.floor(clock * 0.5) % DISCO_HUES.length], 95, 66), p: 0.95 * discoBeat(), kind: 'burst' });
+    } else if (mode === 'gallery') {
+      galPushLights(Ls);
     }
   }
 
+  // ---------------------------------------------------------------- 72: gallery (In-App Art Gallery)
+  // Pure flashlight-driven local illumination + SVG Liquid-Glass RGB Dispersion Lens:
+  //   · NO lamps on cards — everything outside the flashlight beam stays in deep midnight-navy
+  //     night-blueprint shadow via a GPU-masked backdrop-filter veil (.fbfx-gal-darkveil);
+  //   · ONLY the exact pixel footprint illuminated by the girl's handheld flashlight shines in
+  //     100% vivid full color (even across partial card regions!), with real-time directional
+  //     cast shadows on nearby cards and a genuine SVG feDisplacementMap RGB-dispersion glass
+  //     meniscus rim around the spotlight edge;
+  //   · Top-right golden pull-cord switch with spring physics toggles Night Gallery ("Lights off")
+  //     and Day Gallery ("Lights on"), accompanied by the flashlight girl & glowing-eyed Pepper.
+  var GAL_LOUPE_SZ = 220;
+  var gal = {
+    dom: null, darkVeil: null, pill: null, cordHit: null, loupe: null, bubble: null, dogBtn: null, svgFilter: null,
+    inited: false, active: false,
+    night: false, darkMix: 0,
+    autoPulled: false, enterT: 0,
+    pullY: 0, pullVy: 0, pendAng: 0, pendVel: 0,
+    draggingCord: false, cordDragId: null, cordStartY: 0, cordStartX: 0, cordPulled: false,
+    fx: 0, fy: 0, fvx: 0, fvy: 0,
+    hasPtr: false, ptrX: -1, ptrY: -1, ptrAt: -10,
+    sayText: 'Pepper wanted tuna.', sayTimer: 0, lineIdx: 0,
+    dogHop: 0, motes: [], styledCards: []
+  };
+  var GAL_NIGHT_LINES = [
+    'Pepper wanted tuna.',
+    'Shine the light anywhere to inspect!',
+    'Pull the yellow cord to turn lights on.'
+  ];
+  var GAL_DAY_LINES = [
+    "Oh. It's just us.",
+    'Pull the cord for night gallery!'
+  ];
+
+  function galEnsurePrismSvg() {
+    if (gal.svgFilter && gal.svgFilter.isConnected) return;
+    var existing = document.getElementById('fbfx-gal-prism-svg');
+    if (existing) { gal.svgFilter = existing; return; }
+
+    // Generate spherical meniscus ring displacement map (undistorted sharp reading core,
+    // smooth optical glass bevel at 0.56..0.96 radius that bends & splits R/G/B!)
+    var S = GAL_LOUPE_SZ, half = S / 2;
+    var mapCv = document.createElement('canvas');
+    mapCv.width = S; mapCv.height = S;
+    var mctx = mapCv.getContext('2d');
+    var img = mctx.createImageData(S, S), d = img.data;
+    for (var y = 0; y < S; y++) {
+      for (var x = 0; x < S; x++) {
+        var ux = (x + 0.5 - half) / half;
+        var uy = (y + 0.5 - half) / half;
+        var r = Math.hypot(ux, uy);
+        var mag = 0;
+        if (r > 0.001 && r < 0.96) {
+          if (r < 0.56) {
+            // Subtle magnifying dome in the reading center
+            mag = -r * 0.12;
+          } else {
+            // Smooth C1-continuous cosine bell bevel around the edge of the flashlight pool
+            var u = (r - 0.56) / 0.40;
+            var bell = 0.5 - 0.5 * Math.cos(u * Math.PI * 2);
+            mag = -0.067 * (1 - u) + bell * 0.88;
+          }
+        }
+        var nx = r > 0.001 ? ux / r : 0;
+        var ny = r > 0.001 ? uy / r : 0;
+        var idx = (y * S + x) * 4;
+        d[idx]     = Math.round(clamp(128 + 127 * mag * nx, 0, 255));
+        d[idx + 1] = Math.round(clamp(128 + 127 * mag * ny, 0, 255));
+        d[idx + 2] = 128;
+        d[idx + 3] = 255;
+      }
+    }
+    mctx.putImageData(img, 0, 0);
+    var mapUrl = mapCv.toDataURL('image/png');
+
+    var NS = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(NS, 'svg');
+    svg.id = 'fbfx-gal-prism-svg';
+    svg.setAttribute('width', '0');
+    svg.setAttribute('height', '0');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;pointer-events:none';
+
+    var defs = document.createElementNS(NS, 'defs');
+    var flt = document.createElementNS(NS, 'filter');
+    flt.setAttribute('id', 'fbfx-gal-prism');
+    flt.setAttribute('x', '0'); flt.setAttribute('y', '0');
+    flt.setAttribute('width', String(S)); flt.setAttribute('height', String(S));
+    flt.setAttribute('filterUnits', 'userSpaceOnUse');
+    flt.setAttribute('primitiveUnits', 'userSpaceOnUse');
+    flt.setAttribute('color-interpolation-filters', 'sRGB');
+
+    function addNode(tag, attrs) {
+      var n = document.createElementNS(NS, tag);
+      for (var k in attrs) n.setAttribute(k, attrs[k]);
+      flt.appendChild(n);
+      return n;
+    }
+
+    var feImg = addNode('feImage', { x: '0', y: '0', width: String(S), height: String(S), preserveAspectRatio: 'none', result: 'map' });
+    feImg.setAttribute('href', mapUrl);
+
+    // 3-channel RGB chromatic dispersion across the curved glass bevel
+    var scales = [24, 14, 4];
+    var matrices = [
+      '1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0',
+      '0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0',
+      '0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0'
+    ];
+    for (var c = 0; c < 3; c++) {
+      addNode('feDisplacementMap', {
+        in: 'SourceGraphic', in2: 'map',
+        scale: String(scales[c]),
+        xChannelSelector: 'R', yChannelSelector: 'G',
+        result: 'disp' + c
+      });
+      addNode('feColorMatrix', {
+        in: 'disp' + c, type: 'matrix',
+        values: matrices[c],
+        result: 'ch' + c
+      });
+    }
+    addNode('feBlend', { in: 'ch0', in2: 'ch1', mode: 'screen', result: 'rg' });
+    addNode('feBlend', { in: 'rg', in2: 'ch2', mode: 'screen' });
+
+    defs.appendChild(flt);
+    svg.appendChild(defs);
+    document.body.appendChild(svg);
+    gal.svgFilter = svg;
+  }
+
+  function galSfxCord(toNight) {
+    var c = actx(); if (!c) return;
+    var t = c.currentTime + 0.005, out = outAt(c, 0.35);
+    tone(c, out, 'triangle', t, toNight ? 620 : 520, toNight ? 280 : 780, 0.045, 0.22, 0.002);
+    hiss(c, out, t + 0.018, 'bandpass', 2200, 1400, 2.2, 0.035, 0.16, 0.001);
+    tone(c, out, 'sine', t + 0.042, toNight ? 190 : 340, toNight ? 120 : 480, 0.07, 0.20, 0.002);
+  }
+  function galSfxDog() {
+    var c = actx(); if (!c) return;
+    var t = c.currentTime + 0.005, out = outAt(c, 0.45);
+    tone(c, out, 'triangle', t, 380, 560, 0.075, 0.18, 0.004);
+    tone(c, out, 'triangle', t + 0.09, 440, 660, 0.085, 0.16, 0.004);
+  }
+  function galHaptic(kind) {
+    try {
+      if (window.MinestNative && window.MinestNative.haptic) window.MinestNative.haptic(kind || 'light');
+      else if (navigator.vibrate) navigator.vibrate(10);
+    } catch (e) {}
+  }
+
+  function galSay(txt, holdSec) {
+    gal.sayText = txt;
+    gal.sayTimer = holdSec || 0;
+    if (gal.bubble) {
+      gal.bubble.textContent = txt;
+      gal.bubble.classList.remove('pop');
+      void gal.bubble.offsetWidth;
+      gal.bubble.classList.add('pop');
+      clearTimeout(galSay._t);
+      galSay._t = setTimeout(function () { if (gal.bubble) gal.bubble.classList.remove('pop'); }, 240);
+    }
+  }
+
+  function galToggleRoom(forceNight) {
+    var nextNight = forceNight != null ? !!forceNight : !gal.night;
+    gal.night = nextNight;
+    gal.pullVy = -360;
+    gal.pendVel += (Math.random() < 0.5 ? 1 : -1) * 1.6;
+    galSfxCord(nextNight);
+    galHaptic('medium');
+    galSay(nextNight ? 'Pepper wanted tuna.' : "Oh. It's just us.", 0);
+    galSyncClasses();
+    kick();
+  }
+
+  function galSyncClasses() {
+    var rootEl = document.documentElement;
+    var on = stageOn && mode === 'gallery';
+    rootEl.classList.toggle('fbfx-gallery-on', on);
+    rootEl.classList.toggle('fbfx-gallery-night', on && gal.night);
+    rootEl.classList.toggle('fbfx-gallery-day', on && !gal.night);
+  }
+
+  function galClearCardShadows() {
+    for (var i = 0; i < gal.styledCards.length; i++) {
+      var el = gal.styledCards[i];
+      if (el && el.style) {
+        el.style.removeProperty('--gal-shx');
+        el.style.removeProperty('--gal-shy');
+        el.style.removeProperty('--gal-sha');
+      }
+    }
+    gal.styledCards.length = 0;
+  }
+
+  function galCleanup() {
+    if (!gal.active && !document.documentElement.classList.contains('fbfx-gallery-on')) return;
+    gal.active = false;
+    gal.autoPulled = false;
+    gal.enterT = 0;
+    gal.hasPtr = false;
+    var rootEl = document.documentElement;
+    rootEl.classList.remove('fbfx-gallery-on', 'fbfx-gallery-night', 'fbfx-gallery-day');
+    if (gal.dom) gal.dom.style.display = 'none';
+    if (gal.darkVeil) gal.darkVeil.style.opacity = '0';
+    if (gal.loupe) gal.loupe.style.opacity = '0';
+    galClearCardShadows();
+  }
+
+  function galSyncActive() {
+    if (!(stageOn && mode === 'gallery')) galCleanup();
+    else galSyncClasses();
+  }
+
+  function galEnsureDOM() {
+    if (!layer) return;
+    galEnsurePrismSvg();
+    if (gal.dom && gal.dom.parentNode === layer) return;
+
+    var wrap = document.createElement('div');
+    wrap.className = 'fbfx-gal-root fbfx-gal-ui';
+    wrap.style.display = 'none';
+
+    var darkVeil = document.createElement('div');
+    darkVeil.className = 'fbfx-gal-darkveil';
+
+    var pbTop = document.createElement('div'); pbTop.className = 'fbfx-gal-pblur-top';
+    var pbBot = document.createElement('div'); pbBot.className = 'fbfx-gal-pblur-bot';
+    var loupe = document.createElement('div'); loupe.className = 'fbfx-gal-loupe';
+
+    var pill = document.createElement('button');
+    pill.type = 'button';
+    pill.className = 'fbfx-gal-pill fbfx-gal-ui day';
+    pill.setAttribute('aria-label', 'Toggle Gallery Lights');
+    pill.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      galToggleRoom();
+    });
+
+    var cord = document.createElement('div');
+    cord.className = 'fbfx-gal-cord fbfx-gal-ui';
+    cord.title = 'Pull or tap cord to switch gallery lights';
+    cord.addEventListener('pointerdown', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      gal.draggingCord = true;
+      gal.cordDragId = e.pointerId;
+      gal.cordStartY = e.clientY - gal.pullY * SC;
+      gal.cordStartX = e.clientX;
+      gal.cordPulled = false;
+      gal.pullVy = 0;
+      try { cord.setPointerCapture(e.pointerId); } catch (err) {}
+      kick();
+    });
+    cord.addEventListener('pointermove', function (e) {
+      if (!gal.draggingCord || e.pointerId !== gal.cordDragId) return;
+      e.preventDefault(); e.stopPropagation();
+      var dy = (e.clientY - gal.cordStartY) / (SC || 1);
+      var dx = (e.clientX - gal.cordStartX) / (SC || 1);
+      gal.pullY = clamp(dy, -10, 62);
+      gal.pendAng = clamp(-dx * 0.008, -0.38, 0.38);
+      if (gal.pullY > 24 && !gal.cordPulled) {
+        gal.cordPulled = true;
+        galToggleRoom();
+      }
+      kick();
+    });
+    var endCord = function (e) {
+      if (!gal.draggingCord || e.pointerId !== gal.cordDragId) return;
+      e.preventDefault(); e.stopPropagation();
+      var wasTap = !gal.cordPulled && Math.abs(gal.pullY) < 12;
+      gal.draggingCord = false;
+      gal.cordDragId = null;
+      if (wasTap && e.type === 'pointerup') galToggleRoom();
+      else { gal.pullVy = -260; kick(); }
+    };
+    cord.addEventListener('pointerup', endCord);
+    cord.addEventListener('pointercancel', endCord);
+    cord.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); });
+
+    var bubble = document.createElement('button');
+    bubble.type = 'button';
+    bubble.className = 'fbfx-gal-bubble fbfx-gal-ui';
+    bubble.textContent = gal.sayText;
+    bubble.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      var pool = gal.night ? GAL_NIGHT_LINES : GAL_DAY_LINES;
+      gal.lineIdx = (gal.lineIdx + 1) % pool.length;
+      galSay(pool[gal.lineIdx], 4.5);
+      galHaptic('selection');
+      kick();
+    });
+
+    var dogBtn = document.createElement('button');
+    dogBtn.type = 'button';
+    dogBtn.className = 'fbfx-gal-dog fbfx-gal-ui';
+    dogBtn.title = 'Pepper';
+    dogBtn.setAttribute('aria-label', 'Pet Pepper the gallery dog');
+    dogBtn.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      gal.dogHop = 1;
+      galSfxDog();
+      galHaptic('light');
+      galSay(gal.night ? 'Pepper wanted tuna. 🐟' : 'Pepper likes the gallery!', 3.6);
+      kick();
+    });
+
+    // Place darkVeil & loupe UNDER canvas `cv` so `cv` draws the girl, beam haze, cord & Pepper crisp on top!
+    wrap.appendChild(darkVeil);
+    wrap.appendChild(loupe);
+    wrap.appendChild(pbTop);
+    wrap.appendChild(pbBot);
+    wrap.appendChild(pill);
+    wrap.appendChild(cord);
+    wrap.appendChild(bubble);
+    wrap.appendChild(dogBtn);
+    layer.insertBefore(wrap, cv);
+    // Keep interactive hit controls clickable above cv while visual backdrops sit below cv
+    cv.style.zIndex = '5';
+    pill.style.zIndex = '6';
+    cord.style.zIndex = '6';
+    bubble.style.zIndex = '6';
+    dogBtn.style.zIndex = '6';
+
+    gal.dom = wrap; gal.darkVeil = darkVeil; gal.pill = pill; gal.cordHit = cord;
+    gal.loupe = loupe; gal.bubble = bubble; gal.dogBtn = dogBtn;
+
+    if (!gal.inited) {
+      gal.inited = true;
+      var trackPtr = function (e) {
+        if (!stageOn || mode !== 'gallery') return;
+        if (gal.draggingCord) return;
+        syncOrigin();
+        var px = lx(e.clientX), py = ly(e.clientY);
+        if (!inLayer(px, py)) return;
+        gal.hasPtr = true;
+        gal.ptrX = px; gal.ptrY = py; gal.ptrAt = clock;
+      };
+      window.addEventListener('pointermove', trackPtr, { passive: true, capture: true });
+      window.addEventListener('pointerdown', trackPtr, { passive: true, capture: true });
+    }
+  }
+
+  function galTopInset() {
+    var bar = document.querySelector('.iphone-topbar, header.iphone-topbar, header');
+    var br = bar && bar.getBoundingClientRect().height ? lrect(bar.getBoundingClientRect()) : null;
+    return br ? Math.max(10, Math.min(H * 0.2, br.bottom + 8)) : 16;
+  }
+
+  function galBottomInset() {
+    var dock = document.querySelector('.ios-bottom-tab-bar, .mn-bdock');
+    var dr = dock && dock.getBoundingClientRect().height ? lrect(dock.getBoundingClientRect()) : null;
+    if (dr && dr.top > H * 0.65 && dr.top < H) return Math.max(12, H - dr.top + 6);
+    return 14;
+  }
+
+  function galUpdateDarkVeilMask(nozX, nozY, fx, fy, R) {
+    if (!gal.darkVeil) return;
+    // Build a smooth multi-zone optical mask:
+    //  1) Primary focal hotspot around (fx, fy): 100% transparent core -> inverse-square penumbra -> dark room
+    //  2) Conical beam path stops between the flashlight nozzle and (fx, fy) combined via mask-composite: intersect
+    //     so the beam cone itself softly illuminates whatever it crosses, peaking at (fx, fy)!
+    var x1 = fx.toFixed(1) + 'px', y1 = fy.toFixed(1) + 'px';
+    var rCore = (R * 1.62).toFixed(1) + 'px';
+    var mSpot = 'radial-gradient(circle ' + rCore + ' at ' + x1 + ' ' + y1 + ', ' +
+      'rgba(0,0,0,0) 0%, ' +
+      'rgba(0,0,0,0) 52%, ' +
+      'rgba(0,0,0,0.22) 66%, ' +
+      'rgba(0,0,0,0.62) 81%, ' +
+      'rgba(0,0,0,0.88) 92%, ' +
+      'rgba(0,0,0,1) 100%)';
+
+    // Two soft elliptical beam-cone stations between flashlight nozzle and spot so the cone lifts darkness too
+    var bx1 = (nozX + (fx - nozX) * 0.68).toFixed(1) + 'px';
+    var by1 = (nozY + (fy - nozY) * 0.68).toFixed(1) + 'px';
+    var br1 = (R * 0.88).toFixed(1) + 'px';
+    var mBeam1 = 'radial-gradient(circle ' + br1 + ' at ' + bx1 + ' ' + by1 + ', ' +
+      'rgba(0,0,0,0.32) 0%, rgba(0,0,0,0.68) 62%, rgba(0,0,0,1) 100%)';
+
+    var bx2 = (nozX + (fx - nozX) * 0.38).toFixed(1) + 'px';
+    var by2 = (nozY + (fy - nozY) * 0.38).toFixed(1) + 'px';
+    var br2 = (R * 0.56).toFixed(1) + 'px';
+    var mBeam2 = 'radial-gradient(circle ' + br2 + ' at ' + bx2 + ' ' + by2 + ', ' +
+      'rgba(0,0,0,0.52) 0%, rgba(0,0,0,0.82) 65%, rgba(0,0,0,1) 100%)';
+
+    var masks = mSpot + ', ' + mBeam1 + ', ' + mBeam2;
+    gal.darkVeil.style.webkitMaskImage = masks;
+    gal.darkVeil.style.maskImage = masks;
+    gal.darkVeil.style.webkitMaskComposite = 'source-in';
+    gal.darkVeil.style.maskComposite = 'intersect';
+  }
+
+  function galUpdateCardShadows(fx, fy, R, nightAmt) {
+    if (nightAmt < 0.05) { galClearCardShadows(); return; }
+    var st = stageEl();
+    if (!st) return;
+    var its = st.querySelectorAll(cardSel());
+    var nextStyled = [];
+    for (var i = 0; i < its.length && i < 20; i++) {
+      var el = its[i], r = lrect(el.getBoundingClientRect());
+      if (r.width < 24 || r.bottom < 0 || r.top > H) continue;
+      var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      var dx = cx - fx, dy = cy - fy, dist = Math.hypot(dx, dy);
+      var prox = clamp(1 - dist / (R * 3.8), 0, 1);
+      var shx = clamp(dx * 0.12 * (0.4 + prox), -24, 24);
+      var shy = clamp(dy * 0.12 * (0.4 + prox) + 8, -16, 28);
+      var sha = (0.52 + 0.32 * prox) * nightAmt;
+      el.style.setProperty('--gal-shx', shx.toFixed(1) + 'px');
+      el.style.setProperty('--gal-shy', shy.toFixed(1) + 'px');
+      el.style.setProperty('--gal-sha', sha.toFixed(3));
+      nextStyled.push(el);
+    }
+    gal.styledCards = nextStyled;
+  }
+
+  function galDrawPlaidPants(c, gx, gy, sc) {
+    c.save();
+    c.beginPath();
+    c.moveTo(gx - 13 * sc, gy - 44 * sc);
+    c.lineTo(gx + 14 * sc, gy - 44 * sc);
+    c.quadraticCurveTo(gx + 22 * sc, gy - 22 * sc, gx + 18 * sc, gy - 8 * sc);
+    c.lineTo(gx + 2 * sc, gy - 8 * sc);
+    c.lineTo(gx + 0 * sc, gy - 28 * sc);
+    c.lineTo(gx - 2 * sc, gy - 8 * sc);
+    c.lineTo(gx - 18 * sc, gy - 8 * sc);
+    c.quadraticCurveTo(gx - 22 * sc, gy - 22 * sc, gx - 13 * sc, gy - 44 * sc);
+    c.closePath();
+    c.fillStyle = '#2d3340';
+    c.fill();
+    c.save();
+    c.clip();
+    c.strokeStyle = 'rgba(226, 232, 240, 0.42)';
+    c.lineWidth = 1.1 * sc;
+    for (var px = -24; px <= 24; px += 5) {
+      c.beginPath(); c.moveTo(gx + px * sc, gy - 46 * sc); c.lineTo(gx + px * sc, gy - 6 * sc); c.stroke();
+    }
+    for (var py = -44; py <= -8; py += 5) {
+      c.beginPath(); c.moveTo(gx - 24 * sc, gy + py * sc); c.lineTo(gx + 24 * sc, gy + py * sc); c.stroke();
+    }
+    c.restore();
+    c.strokeStyle = '#18202c';
+    c.lineWidth = 2.1 * sc;
+    c.stroke();
+    c.restore();
+  }
+
+  function galDrawGirl(c, gx, gy, sc, aimX, aimY, nightAmt) {
+    c.save();
+    c.lineJoin = 'round';
+    c.lineCap = 'round';
+    var ink = '#18202c';
+
+    // Sneakers
+    c.fillStyle = '#cbd5e1';
+    c.strokeStyle = ink; c.lineWidth = 2 * sc;
+    rrect(c, gx - 17 * sc, gy - 9 * sc, 13 * sc, 7 * sc, 3.5 * sc); c.fill(); c.stroke();
+    rrect(c, gx + 4 * sc, gy - 9 * sc, 13 * sc, 7 * sc, 3.5 * sc); c.fill(); c.stroke();
+
+    // Plaid wide-leg pants
+    galDrawPlaidPants(c, gx, gy, sc);
+
+    // Left arm
+    c.save();
+    c.translate(gx - 13 * sc, gy - 68 * sc);
+    c.rotate(0.38 + Math.sin(clock * 1.8) * 0.04);
+    c.fillStyle = '#9f7db5'; c.strokeStyle = ink; c.lineWidth = 2 * sc;
+    rrect(c, -5 * sc, 0, 9 * sc, 24 * sc, 4.5 * sc); c.fill(); c.stroke();
+    c.fillStyle = '#f6d5be';
+    c.beginPath(); c.arc(0, 26 * sc, 4 * sc, 0, TAU); c.fill(); c.stroke();
+    c.restore();
+
+    // Lilac sweater torso
+    c.fillStyle = '#9f7db5'; c.strokeStyle = ink; c.lineWidth = 2.1 * sc;
+    c.beginPath();
+    c.moveTo(gx - 13 * sc, gy - 72 * sc);
+    c.lineTo(gx + 13 * sc, gy - 72 * sc);
+    c.lineTo(gx + 15 * sc, gy - 43 * sc);
+    c.lineTo(gx - 15 * sc, gy - 43 * sc);
+    c.closePath();
+    c.fill(); c.stroke();
+
+    // Crossbody pink shoulder bag
+    c.strokeStyle = ink; c.lineWidth = 2.2 * sc;
+    c.beginPath(); c.moveTo(gx + 9 * sc, gy - 72 * sc); c.lineTo(gx - 12 * sc, gy - 46 * sc); c.stroke();
+    c.fillStyle = '#dd8ea4';
+    rrect(c, gx - 17 * sc, gy - 54 * sc, 12 * sc, 14 * sc, 4 * sc); c.fill(); c.stroke();
+
+    // Articulated right arm + yellow flashlight aimed seamlessly toward (aimX, aimY)
+    var shX = gx + 12 * sc, shY = gy - 66 * sc;
+    var rawAng = Math.atan2(aimY - shY, aimX - shX);
+    var armAng = clamp(rawAng, -1.48, 0.25);
+    var handX = shX + Math.cos(armAng) * 22 * sc;
+    var handY = shY + Math.sin(armAng) * 22 * sc;
+
+    c.save();
+    c.translate(shX, shY);
+    c.rotate(armAng);
+    c.fillStyle = '#ad8bc2'; c.strokeStyle = ink; c.lineWidth = 2 * sc;
+    rrect(c, -2 * sc, -4.5 * sc, 23 * sc, 9 * sc, 4.5 * sc); c.fill(); c.stroke();
+    c.fillStyle = '#f6d5be';
+    c.beginPath(); c.arc(22 * sc, 0, 4.2 * sc, 0, TAU); c.fill(); c.stroke();
+    // Yellow flashlight
+    c.fillStyle = '#facc15';
+    rrect(c, 16 * sc, -3.5 * sc, 13 * sc, 7 * sc, 2.5 * sc); c.fill(); c.stroke();
+    c.fillStyle = '#fde047';
+    c.beginPath();
+    c.moveTo(28 * sc, -4 * sc); c.lineTo(34 * sc, -6.5 * sc);
+    c.lineTo(34 * sc, 6.5 * sc); c.lineTo(28 * sc, 4 * sc);
+    c.closePath(); c.fill(); c.stroke();
+    if (nightAmt > 0.25) {
+      c.strokeStyle = 'rgba(253, 224, 71, ' + (0.8 * nightAmt).toFixed(3) + ')';
+      c.lineWidth = 1.8 * sc;
+      [-0.36, 0, 0.36].forEach(function (da) {
+        c.beginPath();
+        c.moveTo(37 * sc, Math.sin(da) * 5 * sc);
+        c.lineTo(44 * sc, Math.sin(da) * 10.5 * sc);
+        c.stroke();
+      });
+    }
+    c.restore();
+
+    // Head + dark bobbed hair + hairclip
+    var hx = gx, hy = gy - 87 * sc;
+    c.fillStyle = '#1e2430'; c.strokeStyle = ink; c.lineWidth = 2 * sc;
+    c.beginPath(); c.arc(hx - 2 * sc, hy, 15.5 * sc, 0, TAU); c.fill();
+    c.fillStyle = '#f6d5be';
+    c.beginPath(); c.arc(hx + 1.5 * sc, hy + 1.5 * sc, 12.2 * sc, 0, TAU); c.fill(); c.stroke();
+    c.fillStyle = '#1e2430';
+    c.beginPath();
+    c.arc(hx, hy - 2 * sc, 14 * sc, Math.PI * 0.92, Math.PI * 1.96);
+    c.closePath(); c.fill();
+    rrect(c, hx - 14.5 * sc, hy - 4 * sc, 8.5 * sc, 17 * sc, 4 * sc); c.fill();
+    c.strokeStyle = '#fde047'; c.lineWidth = 2 * sc;
+    c.beginPath(); c.moveTo(hx - 6 * sc, hy - 5 * sc); c.lineTo(hx - 2 * sc, hy - 3 * sc); c.stroke();
+
+    // Eyes & expression
+    c.fillStyle = ink;
+    c.beginPath();
+    c.arc(hx + 2 * sc, hy + 0.5 * sc, 1.5 * sc, 0, TAU);
+    c.arc(hx + 8.5 * sc, hy + 0.5 * sc, 1.5 * sc, 0, TAU);
+    c.fill();
+    if (nightAmt > 0.5) {
+      c.beginPath(); c.ellipse(hx + 6 * sc, hy + 6 * sc, 2.1 * sc, 2.7 * sc, 0, 0, TAU); c.fill();
+    } else {
+      c.strokeStyle = ink; c.lineWidth = 1.6 * sc;
+      c.beginPath(); c.arc(hx + 5.5 * sc, hy + 4.2 * sc, 3.2 * sc, 0.15, Math.PI - 0.15); c.stroke();
+    }
+
+    c.restore();
+    return { nozX: handX + Math.cos(armAng) * 13 * sc, nozY: handY + Math.sin(armAng) * 13 * sc };
+  }
+
+  function galDrawPepper(c, dx, dy, sc, nightAmt, hopAmt) {
+    c.save();
+    var hopY = Math.sin(hopAmt * Math.PI) * 11 * sc;
+    c.translate(dx, dy - hopY);
+    c.lineJoin = 'round'; c.lineCap = 'round';
+    var ink = '#18202c';
+
+    var wag = Math.sin(clock * (hopAmt > 0 ? 18 : 4.2)) * 0.28;
+    c.save();
+    c.translate(12 * sc, -13 * sc);
+    c.rotate(wag);
+    c.fillStyle = '#94a3b8'; c.strokeStyle = ink; c.lineWidth = 2 * sc;
+    c.beginPath(); c.ellipse(5 * sc, -4 * sc, 5.5 * sc, 3 * sc, -0.5, 0, TAU); c.fill(); c.stroke();
+    c.restore();
+
+    c.fillStyle = '#e2e8f0'; c.strokeStyle = ink; c.lineWidth = 2 * sc;
+    c.beginPath(); c.ellipse(0, -15 * sc, 13 * sc, 15 * sc, 0, 0, TAU); c.fill(); c.stroke();
+    c.fillStyle = '#64748b';
+    c.beginPath(); c.arc(6 * sc, -17 * sc, 5.5 * sc, 0, TAU); c.fill();
+    c.fillStyle = '#f1f5f9';
+    rrect(c, -10 * sc, -7 * sc, 7.5 * sc, 7 * sc, 3.2 * sc); c.fill(); c.stroke();
+    rrect(c, 2.5 * sc, -7 * sc, 7.5 * sc, 7 * sc, 3.2 * sc); c.fill(); c.stroke();
+
+    c.fillStyle = '#dc2626';
+    rrect(c, -9.5 * sc, -28.5 * sc, 19 * sc, 4.5 * sc, 2.2 * sc); c.fill(); c.stroke();
+    c.fillStyle = '#facc15';
+    c.beginPath(); c.arc(0, -24.5 * sc, 3 * sc, 0, TAU); c.fill(); c.stroke();
+
+    c.fillStyle = '#334155';
+    c.beginPath(); c.ellipse(-11.5 * sc, -37 * sc, 4.5 * sc, 8.5 * sc, 0.28, 0, TAU); c.fill(); c.stroke();
+    c.beginPath(); c.ellipse(11.5 * sc, -37 * sc, 4.5 * sc, 8.5 * sc, -0.28, 0, TAU); c.fill(); c.stroke();
+
+    c.fillStyle = '#e2e8f0';
+    c.beginPath(); c.arc(0, -38 * sc, 12.2 * sc, 0, TAU); c.fill(); c.stroke();
+    c.fillStyle = '#475569';
+    c.beginPath(); c.arc(5 * sc, -45 * sc, 5.5 * sc, 0, TAU); c.fill();
+
+    c.fillStyle = ink;
+    c.beginPath(); c.ellipse(0, -35 * sc, 2.5 * sc, 1.8 * sc, 0, 0, TAU); c.fill();
+    c.strokeStyle = ink; c.lineWidth = 1.5 * sc;
+    c.beginPath();
+    c.moveTo(-3 * sc, -32.2 * sc); c.quadraticCurveTo(0, -30.5 * sc, 3 * sc, -32.2 * sc);
+    c.stroke();
+
+    var ex1 = -4.6 * sc, ex2 = 4.6 * sc, ey = -39.2 * sc;
+    if (nightAmt > 0.08) {
+      var pulse = 0.88 + 0.12 * Math.sin(clock * 4.2);
+      c.save();
+      c.globalCompositeOperation = 'lighter';
+      [ex1, ex2].forEach(function (ex) {
+        var eg = c.createRadialGradient(ex, ey, 0, ex, ey, 11 * sc);
+        eg.addColorStop(0, 'rgba(255, 255, 240, ' + (0.98 * nightAmt * pulse).toFixed(3) + ')');
+        eg.addColorStop(0.32, 'rgba(253, 224, 71, ' + (0.85 * nightAmt * pulse).toFixed(3) + ')');
+        eg.addColorStop(1, 'rgba(250, 204, 21, 0)');
+        c.fillStyle = eg;
+        c.beginPath(); c.arc(ex, ey, 11 * sc, 0, TAU); c.fill();
+      });
+      c.restore();
+      c.fillStyle = '#fef9c3';
+      c.beginPath();
+      c.arc(ex1, ey, 2.6 * sc, 0, TAU);
+      c.arc(ex2, ey, 2.6 * sc, 0, TAU);
+      c.fill();
+    } else {
+      c.fillStyle = ink;
+      c.beginPath();
+      c.arc(ex1, ey, 1.8 * sc, 0, TAU);
+      c.arc(ex2, ey, 1.8 * sc, 0, TAU);
+      c.fill();
+      c.fillStyle = '#fff';
+      c.beginPath();
+      c.arc(ex1 - 0.5 * sc, ey - 0.5 * sc, 0.65 * sc, 0, TAU);
+      c.arc(ex2 - 0.5 * sc, ey - 0.5 * sc, 0.65 * sc, 0, TAU);
+      c.fill();
+    }
+    c.restore();
+  }
+
+  function galDrawPullCord(c, cordX, ceilY, nightAmt) {
+    c.save();
+    var baseLen = clamp(H * 0.105, 62, 92);
+    var len = Math.max(28, baseLen + gal.pullY);
+    var kx = cordX + Math.sin(gal.pendAng) * len;
+    var ky = ceilY + Math.cos(gal.pendAng) * len;
+
+    c.fillStyle = nightAmt > 0.5 ? '#475569' : '#e2e8f0';
+    c.strokeStyle = '#18202c'; c.lineWidth = 1.8;
+    c.beginPath(); c.arc(cordX, ceilY + 2, 4, 0, TAU); c.fill(); c.stroke();
+
+    c.strokeStyle = nightAmt > 0.5 ? 'rgba(226, 232, 240, 0.78)' : '#18202c';
+    c.lineWidth = 1.9;
+    c.beginPath(); c.moveTo(cordX, ceilY + 6); c.lineTo(kx, ky - 11); c.stroke();
+
+    if (nightAmt > 0.05) {
+      c.save();
+      c.globalCompositeOperation = 'lighter';
+      var hg = c.createRadialGradient(kx, ky + 3, 2, kx, ky + 3, 28);
+      hg.addColorStop(0, 'rgba(253, 224, 71, ' + (0.45 * nightAmt).toFixed(3) + ')');
+      hg.addColorStop(1, 'rgba(253, 224, 71, 0)');
+      c.fillStyle = hg; c.beginPath(); c.arc(kx, ky + 3, 28, 0, TAU); c.fill();
+      c.restore();
+    }
+
+    c.save();
+    c.translate(kx, ky);
+    c.rotate(-gal.pendAng * 0.85);
+    var tg = c.createRadialGradient(-3, 2, 1, 0, 4, 15);
+    tg.addColorStop(0, '#fef08a');
+    tg.addColorStop(0.45, '#facc15');
+    tg.addColorStop(1, '#d97706');
+    c.fillStyle = tg;
+    c.strokeStyle = '#18202c';
+    c.lineWidth = 2.1;
+    c.beginPath();
+    c.moveTo(0, -11);
+    c.bezierCurveTo(6, -4, 10.5, 2, 10.5, 7.5);
+    c.arc(0, 7.5, 10.5, 0, Math.PI);
+    c.bezierCurveTo(-10.5, 2, -6, -4, 0, -11);
+    c.closePath();
+    c.fill(); c.stroke();
+
+    c.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+    c.lineWidth = 2;
+    c.lineCap = 'round';
+    c.beginPath();
+    c.arc(-1, 7.5, 6.2, Math.PI * 0.72, Math.PI * 1.18);
+    c.stroke();
+    c.restore();
+
+    c.restore();
+    return { x: kx, y: ky, top: ceilY };
+  }
+
+  function galDrawVolumetricBeam(c, nozX, nozY, fx, fy, R, nightAmt, dt) {
+    if (nightAmt <= 0.02) return;
+    var dx = fx - nozX, dy = fy - nozY, d = Math.hypot(dx, dy);
+
+    // 1. Soft Gaussian volumetric beam rendered via offscreen bloom buffer (NO hard polygon edges!)
+    if (d > R * 0.65) {
+      var th = Math.atan2(dy, dx), nx = -Math.sin(th), ny = Math.cos(th);
+      var half = Math.asin(Math.min(0.96, (R * 1.08) / Math.max(d, R * 1.12)));
+      var far = d + R * 1.15;
+
+      ensureBloom();
+      bctx.globalCompositeOperation = 'source-over';
+      if (bctx.createConicGradient) {
+        var cg = bctx.createConicGradient(th - Math.PI, nozX, nozY), hw = half / TAU;
+        cg.addColorStop(0, 'rgba(255,244,195,0)');
+        for (var gi = -8; gi <= 8; gi++) {
+          var u = gi / 8;
+          var a = 0.24 * Math.exp(-u * u * 3.8) * nightAmt;
+          cg.addColorStop(clamp(0.5 + hw * u, 0.001, 0.999), 'rgba(255,244,195,' + a.toFixed(4) + ')');
+        }
+        cg.addColorStop(1, 'rgba(255,244,195,0)');
+        bctx.fillStyle = cg;
+        bctx.beginPath();
+        bctx.moveTo(nozX, nozY);
+        bctx.lineTo(nozX + Math.cos(th - half * 1.1) * far, nozY + Math.sin(th - half * 1.1) * far);
+        bctx.lineTo(nozX + Math.cos(th + half * 1.1) * far, nozY + Math.sin(th + half * 1.1) * far);
+        bctx.closePath();
+        bctx.fill();
+      }
+      // Smoothly fade the atmospheric haze across the focal pool so the reading center stays crystal clear!
+      var ux = Math.cos(th), uy = Math.sin(th);
+      var fadeEnd = bctx.createLinearGradient(fx - ux * R * 0.55, fy - uy * R * 0.55, fx + ux * R * 0.85, fy + uy * R * 0.85);
+      fadeEnd.addColorStop(0, 'rgba(0,0,0,0)');
+      fadeEnd.addColorStop(1, 'rgba(0,0,0,1)');
+      bctx.globalCompositeOperation = 'destination-out';
+      bctx.fillStyle = fadeEnd;
+      bctx.fillRect(-W, -H, W * 3, H * 3);
+      blitBloom(c);
+
+      // Warm flashlight nozzle flare + drifting dust motes catching the shaft
+      c.save();
+      c.globalCompositeOperation = 'lighter';
+      var nf = c.createRadialGradient(nozX, nozY, 0, nozX, nozY, 26);
+      nf.addColorStop(0, 'rgba(255, 252, 220, ' + (0.72 * nightAmt).toFixed(3) + ')');
+      nf.addColorStop(0.4, 'rgba(253, 224, 71, ' + (0.32 * nightAmt).toFixed(3) + ')');
+      nf.addColorStop(1, 'rgba(253, 224, 71, 0)');
+      c.fillStyle = nf;
+      c.beginPath(); c.arc(nozX, nozY, 26, 0, TAU); c.fill();
+
+      while (gal.motes.length < 24) {
+        gal.motes.push({ u: Math.random(), v: rnd(-0.82, 0.82), sp: rnd(0.03, 0.09), ph: rnd(0, TAU), r: rnd(0.6, 1.45) });
+      }
+      for (var mi = 0; mi < gal.motes.length; mi++) {
+        var mt = gal.motes[mi];
+        mt.u = (mt.u + mt.sp * dt) % 1;
+        var halfW = 8 + (R * 0.85 - 8) * mt.u;
+        var mx = nozX + dx * mt.u + nx * mt.v * halfW;
+        var my = nozY + dy * mt.u + ny * mt.v * halfW;
+        var edge = 1 - mt.v * mt.v;
+        var tw = (0.4 + 0.6 * Math.abs(Math.sin(clock * 2.4 + mt.ph))) * edge * (1 - mt.u * 0.35) * nightAmt;
+        if (tw > 0.05) {
+          c.fillStyle = 'rgba(255, 249, 218, ' + (0.58 * tw).toFixed(3) + ')';
+          c.beginPath(); c.arc(mx, my, mt.r, 0, TAU); c.fill();
+        }
+      }
+      c.restore();
+    }
+
+    // 2. Subtle warm incandescent pool bloom (pure light, zero artificial stroke rings!)
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    var pool = c.createRadialGradient(fx, fy, 0, fx, fy, R * 1.24);
+    pool.addColorStop(0, 'rgba(255, 250, 224, ' + (0.13 * nightAmt).toFixed(3) + ')');
+    pool.addColorStop(0.58, 'rgba(255, 244, 196, ' + (0.08 * nightAmt).toFixed(3) + ')');
+    pool.addColorStop(0.84, 'rgba(253, 224, 110, ' + (0.06 * nightAmt).toFixed(3) + ')');
+    pool.addColorStop(1, 'rgba(253, 224, 110, 0)');
+    c.fillStyle = pool;
+    c.beginPath(); c.arc(fx, fy, R * 1.24, 0, TAU); c.fill();
+    c.restore();
+  }
+
+  function galPushLights(Ls) {
+    if (gal.darkMix < 0.05) return;
+    Ls.push({ x: gal.fx, y: gal.fy, z: 240, rgb: [255, 236, 160], p: 1.05 * gal.darkMix, kind: 'burst' });
+  }
+
+  function drawGallery(c, dt) {
+    galEnsureDOM();
+    if (!gal.active) {
+      gal.active = true;
+      gal.dom.style.display = 'block';
+      gal.enterT = 0;
+      gal.night = false;
+      gal.darkMix = 0;
+      gal.autoPulled = false;
+      gal.pullY = -14;
+      gal.pullVy = 110;
+      gal.fx = W * 0.38;
+      gal.fy = H * 0.42;
+      galSay("Oh. It's just us.", 0);
+      galSyncClasses();
+    }
+
+    gal.enterT += dt;
+    if (!gal.autoPulled && gal.enterT >= 0.24) {
+      gal.autoPulled = true;
+      gal.pullY = 26;
+      galToggleRoom(true);
+    }
+
+    // Spring physics for pull-cord bounce & pendulum sway
+    if (!gal.draggingCord) {
+      var ay = -460 * gal.pullY - 12.5 * gal.pullVy;
+      gal.pullVy += ay * dt;
+      gal.pullY += gal.pullVy * dt;
+      if (Math.abs(gal.pullY) < 0.1 && Math.abs(gal.pullVy) < 0.5) { gal.pullY = 0; gal.pullVy = 0; }
+
+      var aa = -26 * gal.pendAng - 3.2 * gal.pendVel;
+      gal.pendVel += aa * dt;
+      gal.pendAng += gal.pendVel * dt;
+    }
+
+    if (gal.dogHop > 0) gal.dogHop = Math.max(0, gal.dogHop - dt * 2.4);
+    if (gal.sayTimer > 0) {
+      gal.sayTimer -= dt;
+      if (gal.sayTimer <= 0) galSay(gal.night ? 'Pepper wanted tuna.' : "Oh. It's just us.", 0);
+    }
+
+    var targetDark = gal.night ? 1 : 0;
+    gal.darkMix += (targetDark - gal.darkMix) * Math.min(1, dt * 8.5);
+    var nightAmt = gal.darkMix;
+
+    var topIn = galTopInset();
+    var botIn = galBottomInset();
+
+    // Flashlight target: faithfully follow user's cursor/touch with natural hand micro-breathing
+    // (never wanders off while reading!); gently sweeps only before first pointer input.
+    var tx, ty;
+    if (gal.hasPtr && gal.ptrX >= 0) {
+      tx = clamp(gal.ptrX + Math.sin(clock * 1.9) * 1.6, 28, W - 28);
+      ty = clamp(gal.ptrY + Math.cos(clock * 1.5) * 1.6, topIn + 24, H - botIn - 36);
+    } else {
+      tx = W * (0.46 + 0.26 * Math.sin(clock * 0.65));
+      ty = H * (0.42 + 0.16 * Math.cos(clock * 0.85));
+    }
+    var fk = 1 - Math.exp(-dt * 15);
+    gal.fx += (tx - gal.fx) * fk;
+    gal.fy += (ty - gal.fy) * fk;
+
+    var spotRadius = clamp(Math.min(W, H) * 0.145, 76, 118);
+
+    var ga = c.globalAlpha;
+    // Day mode warm museum cream glaze
+    if (nightAmt < 0.99) {
+      c.fillStyle = 'rgba(253, 248, 236, ' + (0.13 * (1 - nightAmt)).toFixed(3) + ')';
+      c.fillRect(0, 0, W, H);
+    }
+    // Subtle gallery floor baseboard behind characters in night mode
+    if (nightAmt > 0.01) {
+      var floorH = botIn + 50;
+      c.fillStyle = 'rgba(6, 12, 24, ' + (0.42 * nightAmt).toFixed(3) + ')';
+      c.fillRect(0, H - floorH, W, floorH);
+      c.strokeStyle = 'rgba(30, 48, 82, ' + (0.45 * nightAmt).toFixed(3) + ')';
+      c.lineWidth = 1;
+      c.beginPath(); c.moveTo(0, H - floorH); c.lineTo(W, H - floorH); c.stroke();
+    }
+
+    // Draw Lead Characters + Soft Gaussian Volumetric Beam + Update GPU Pixel-Accurate Mask & Shadows
+    var charSc = clamp(Math.min(W, H) / 430, 0.78, 1.08);
+    var floorY = H - botIn - 6;
+    var girlX = clamp(W * 0.13, 42, 78);
+    var dogX = W - clamp(W * 0.11, 38, 68);
+
+    var girlHand = galDrawGirl(c, girlX, floorY, charSc, gal.fx, gal.fy, nightAmt);
+    galDrawVolumetricBeam(c, girlHand.nozX, girlHand.nozY, gal.fx, gal.fy, spotRadius, nightAmt, dt);
+    galDrawPepper(c, dogX, floorY, charSc, nightAmt, gal.dogHop);
+
+    if (gal.darkVeil) {
+      if (nightAmt > 0.008) {
+        gal.darkVeil.style.opacity = nightAmt.toFixed(3);
+        galUpdateDarkVeilMask(girlHand.nozX, girlHand.nozY, gal.fx, gal.fy, spotRadius);
+      } else {
+        gal.darkVeil.style.opacity = '0';
+      }
+    }
+    galUpdateCardShadows(gal.fx, gal.fy, spotRadius, nightAmt);
+
+    // Draw Top-Right Golden Pull-Cord & Sync Interactive Overlays
+    var cordX = W - clamp(W * 0.08, 28, 46);
+    var ceilY = topIn + 2;
+    var knob = galDrawPullCord(c, cordX, ceilY, nightAmt);
+
+    if (gal.pill) {
+      gal.pill.style.top = Math.round(topIn + 4) + 'px';
+      gal.pill.className = 'fbfx-gal-pill fbfx-gal-ui ' + (gal.night ? 'night' : 'day');
+      var labelTxt = gal.night ? 'Lights off' : 'Lights on';
+      if (gal.pill.__txt !== labelTxt) {
+        gal.pill.__txt = labelTxt;
+        gal.pill.innerHTML = '<span class="gal-dot"></span><span>' + labelTxt + '</span>';
+      }
+    }
+    if (gal.cordHit) {
+      gal.cordHit.style.left = Math.round(knob.x - 26) + 'px';
+      gal.cordHit.style.top = Math.round(ceilY) + 'px';
+      gal.cordHit.style.height = Math.round(Math.max(90, knob.y - ceilY + 28)) + 'px';
+    }
+    if (gal.loupe) {
+      if (nightAmt > 0.04) {
+        var scaleLoupe = (spotRadius * 1.92) / GAL_LOUPE_SZ;
+        var lx0 = gal.fx - GAL_LOUPE_SZ / 2;
+        var ly0 = gal.fy - GAL_LOUPE_SZ / 2;
+        gal.loupe.style.transform = 'translate3d(' + lx0.toFixed(1) + 'px,' + ly0.toFixed(1) + 'px,0) scale(' + scaleLoupe.toFixed(4) + ')';
+        gal.loupe.style.opacity = nightAmt.toFixed(3);
+      } else {
+        gal.loupe.style.opacity = '0';
+      }
+    }
+    if (gal.bubble) {
+      var bx = Math.round(girlX + 32 * charSc);
+      var by = Math.round(floorY - 38 * charSc);
+      gal.bubble.style.left = bx + 'px';
+      gal.bubble.style.top = by + 'px';
+      gal.bubble.style.maxWidth = Math.max(120, Math.round(dogX - bx - 36 * charSc)) + 'px';
+    }
+    if (gal.dogBtn) {
+      gal.dogBtn.style.left = Math.round(dogX - 34) + 'px';
+      gal.dogBtn.style.top = Math.round(floorY - 64 * charSc) + 'px';
+    }
+    c.globalAlpha = ga;
+  }
   function drawHint(c) {
     // (no on-screen instructions for any light mode: the lasers and the spotlight speak for themselves)
     return;
@@ -90520,7 +91431,7 @@ var Ve = (function(_Component) {
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
       if (inkCtx) { inkCtx.setTransform(1, 0, 0, 1, 0, 0); inkCtx.clearRect(0, 0, inkCv.width, inkCv.height); }
       if (poolEl) poolEl.style.opacity = '0';
-      lastT = 0; placeHandle(); clearAllLit(); return;
+      lastT = 0; placeHandle(); clearAllLit(); xfxReset(); return;
     }
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx.clearRect(0, 0, W, H);
@@ -90537,6 +91448,7 @@ var Ve = (function(_Component) {
       else if (mode === 'aurora') drawAurora(ctx, dt);
       else if (mode === 'meteor') drawMeteor(ctx, dt);
       else if (mode === 'disco') drawDisco(ctx, dt);
+      else if (mode === 'gallery') drawGallery(ctx, dt);
       ctx.globalAlpha = 1;
       audioTick(dt);
       drawHint(ctx);
@@ -90589,7 +91501,7 @@ var Ve = (function(_Component) {
     if (!stageOn || mode === 'none') { dtap.t = 0; return; }
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     var tg = e.target;
-    if (tg && tg.closest && tg.closest('button, a, input, textarea, select, [contenteditable="true"], .fbfx-btn, .fbfx-neon-ctl')) { dtap.t = 0; return; }
+    if (tg && tg.closest && tg.closest('button, a, input, textarea, select, [contenteditable="true"], .fbfx-btn, .fbfx-neon-ctl, .fbfx-gal-ui')) { dtap.t = 0; return; }
     var now = performance.now();
     if (dtap.t && now - dtap.t < 340 && Math.hypot(e.clientX - dtap.x, e.clientY - dtap.y) < 56) {
       var firstAt = dtap.at;
@@ -90641,7 +91553,7 @@ var Ve = (function(_Component) {
     if (!t || !t.closest) return;
     var b = t.closest('button, [role="button"], a[href], .ios-tab-item');
     if (!b) return;
-    if (b.closest('.dock-fx-tab, .bar-fx-btn, .fbfx-btn, .fbfx-neon-ctl, .card-mode-btn, [data-card-id], .perspective-stage, .apple-wallet-overlay, .hu-island-header, .fb-composer, .card-gap-active-composer')) return;
+    if (b.closest('.dock-fx-tab, .bar-fx-btn, .fbfx-btn, .fbfx-neon-ctl, .fbfx-gal-ui, .card-mode-btn, [data-card-id], .perspective-stage, .apple-wallet-overlay, .hu-island-header, .fb-composer, .card-gap-active-composer')) return;
     var root = document.documentElement;
     var cardFxOn = root.classList.contains('fb-cardfx-on') || !!document.querySelector('.board-swimlane-scroll.ripple-active') ||
       !!(window.__HeadsUpController && window.__HeadsUpController.isActive && window.__HeadsUpController.isActive());
@@ -93031,6 +93943,7 @@ var Ve = (function(_Component) {
     else if (fxMode === 'aurora') { p.play('look'); p.lookAt(innerWidth / 2, innerHeight * .15, 2400); p.say('Northern lights…'); }
     else if (fxMode === 'meteor') { p.play('look'); p.lookAt(innerWidth / 2, innerHeight * .2, 2200); p.say('Make a wish!'); }
     else if (fxMode === 'disco') { p.play('bounce'); p.say('Disco time!'); }
+    else if (fxMode === 'gallery') { p.play('look'); p.lookAt(innerWidth * .16, innerHeight * .82, 2400); p.say('Pepper wanted tuna! 🔦'); }
   });
   window.addEventListener('fbfx:intro', function (e) {
     var k = e.detail && e.detail.kind, p = P(); if (!p) return;
@@ -199229,230 +200142,6 @@ html.student-mode .mn-sk-world { display: none !important; }
   window.MinestSystemBar = { page: setPage, reading: setReading, tools: setTools, state: function () { return { reading: reading, tools: !R.classList.contains('mn-sys-tools-off'), ctx: ctx }; } };
 })();
 </script>
-<style id="mn-fx71-css">
-/* Minest · FX 71 (tools/fx-71): Light FX aurora / meteor / disco, Card FX holo / float / wave, and the buttons' looks */
-
-/* ---- the switches name every mode in its own colour (ripple and List Wallet had none) */
-.ios-tab-item.dock-fx-tab.active.aurora { color: #34e3a4; }
-.ios-tab-item.dock-fx-tab.active.meteor { color: #7db8ff; }
-.ios-tab-item.dock-fx-tab.active.disco { color: #ff5fc4; }
-.theme-white .ios-tab-item.dock-fx-tab.active.aurora { color: #0b8f63; }
-.theme-white .ios-tab-item.dock-fx-tab.active.meteor { color: #2563eb; }
-.theme-white .ios-tab-item.dock-fx-tab.active.disco { color: #c026a3; }
-.bar-fx-btn.on.aurora { background: rgba(52,227,164,.26) !important; border-color: rgba(52,227,164,.58) !important; }
-.bar-fx-btn.on.meteor { background: rgba(125,184,255,.28) !important; border-color: rgba(125,184,255,.6) !important; }
-.bar-fx-btn.on.disco { background: rgba(255,95,196,.28) !important; border-color: rgba(255,95,196,.6) !important; }
-.fbfx-btn.on.neon { background: rgba(255,58,26,.2); border-color: rgba(255,154,107,.5); box-shadow: 0 0 18px rgba(255,58,26,.34), inset 0 1px 0 rgba(255,255,255,.35); }
-.fbfx-btn.on.aurora { background: rgba(52,227,164,.2); border-color: rgba(134,239,200,.5); box-shadow: 0 0 18px rgba(52,227,164,.34), inset 0 1px 0 rgba(255,255,255,.35); }
-.fbfx-btn.on.meteor { background: rgba(96,165,250,.22); border-color: rgba(165,205,255,.5); box-shadow: 0 0 18px rgba(96,165,250,.36), inset 0 1px 0 rgba(255,255,255,.35); }
-.fbfx-btn.on.disco { background: rgba(236,72,153,.22); border-color: rgba(249,168,212,.5); box-shadow: 0 0 18px rgba(236,72,153,.36), inset 0 1px 0 rgba(255,255,255,.35); }
-
-.card-mode-btn.on.ripple { color: #fff; background: rgba(14,165,233,.24); border-color: rgba(125,211,252,.5); box-shadow: 0 0 18px rgba(14,165,233,.32), inset 0 1px 0 rgba(255,255,255,.35); }
-.card-mode-btn.on.holo { color: #fff; background: linear-gradient(110deg, rgba(34,211,238,.3), rgba(232,121,249,.3) 55%, rgba(250,204,21,.3)); border-color: rgba(255,255,255,.5); box-shadow: 0 0 18px rgba(192,132,252,.34), inset 0 1px 0 rgba(255,255,255,.4); }
-.card-mode-btn.on.float { color: #fff; background: rgba(129,140,248,.26); border-color: rgba(199,210,254,.5); box-shadow: 0 0 18px rgba(129,140,248,.34), inset 0 1px 0 rgba(255,255,255,.35); }
-.card-mode-btn.on.wave { color: #fff; background: rgba(45,212,191,.24); border-color: rgba(153,246,228,.5); box-shadow: 0 0 18px rgba(45,212,191,.32), inset 0 1px 0 rgba(255,255,255,.35); }
-.theme-white .card-mode-btn.on.ripple, .theme-white .card-mode-btn.on.holo, .theme-white .card-mode-btn.on.float, .theme-white .card-mode-btn.on.wave { color: #0f172a; }
-.ios-tab-item.dock-fx-tab.active.holo { color: #c084fc; }
-.ios-tab-item.dock-fx-tab.active.float { color: #818cf8; }
-.ios-tab-item.dock-fx-tab.active.wave { color: #2dd4bf; }
-.bar-fx-btn.on.holo { background: rgba(192,132,252,.3) !important; border-color: rgba(192,132,252,.6) !important; }
-.bar-fx-btn.on.float { background: rgba(129,140,248,.3) !important; border-color: rgba(129,140,248,.6) !important; }
-.bar-fx-btn.on.wave { background: rgba(45,212,191,.28) !important; border-color: rgba(45,212,191,.6) !important; }
-
-/* ---- the foil layer every board card gets while a 71 card mode is on */
-.cfx-foil { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 5; opacity: 0; transition: opacity .35s ease; }
-
-/* holo */
-@keyframes cfxFoilDrift { from { background-position: 0% 30%; } to { background-position: 100% 70%; } }
-html[data-cfx="holo"] .cfx-foil {
-  opacity: .5;
-  background-image: linear-gradient(115deg, transparent 18%, hsla(188,100%,68%,.6) 34%, hsla(292,100%,72%,.6) 47%, hsla(48,100%,68%,.6) 60%, transparent 78%);
-  background-size: 300% 300%;
-  mix-blend-mode: color-dodge;
-  animation: cfxFoilDrift 7s ease-in-out var(--cfx-dl, 0s) infinite alternate;
-}
-html[data-cfx="holo"] .cfx-hot > .cfx-foil {
-  opacity: .78;
-  animation: none;
-  background-image: radial-gradient(circle at var(--cfx-mx, 50%) var(--cfx-my, 50%), rgba(255,255,255,.7), rgba(255,255,255,0) 46%),
-    linear-gradient(115deg, transparent 18%, hsla(188,100%,68%,.6) 34%, hsla(292,100%,72%,.6) 47%, hsla(48,100%,68%,.6) 60%, transparent 78%);
-  background-size: 100% 100%, 300% 300%;
-  background-position: 0 0, var(--cfx-mx, 50%) var(--cfx-my, 50%);
-}
-.theme-white[data-cfx="holo"] .cfx-foil, html[data-cfx="holo"] .theme-white .cfx-foil { mix-blend-mode: hard-light; opacity: .34; }
-.theme-white[data-cfx="holo"] .cfx-hot > .cfx-foil, html[data-cfx="holo"] .theme-white .cfx-hot > .cfx-foil { opacity: .5; }
-html[data-cfx="holo"] .fb-board-stage article.kanban-card[data-card-id],
-html[data-cfx="holo"] .board-swimlane-scroll article.kanban-card[data-card-id] { transition: transform .5s cubic-bezier(.2,.8,.2,1); }
-html[data-cfx="holo"] .fb-board-stage article.kanban-card[data-card-id].cfx-hot,
-html[data-cfx="holo"] .board-swimlane-scroll article.kanban-card[data-card-id].cfx-hot {
-  transform: perspective(720px) rotateX(var(--cfx-rx, 0deg)) rotateY(var(--cfx-ry, 0deg)) scale(1.02) !important;
-  transition: transform .09s linear;
-  z-index: 3;
-}
-
-/* float */
-@keyframes cfxFloat { 0%, 100% { translate: 0 0; rotate: 0deg; } 50% { translate: 0 -5px; rotate: var(--cfx-r, .3deg); } }
-html[data-cfx="float"] .fb-board-stage article.kanban-card[data-card-id],
-html[data-cfx="float"] .board-swimlane-scroll article.kanban-card[data-card-id] {
-  animation: cfxFloat var(--cfx-dur, 4s) ease-in-out var(--cfx-dl, 0s) infinite;
-  transition: scale .18s ease;
-}
-html[data-cfx="float"] .fb-board-stage article.kanban-card[data-card-id]:active,
-html[data-cfx="float"] .board-swimlane-scroll article.kanban-card[data-card-id]:active { scale: .97; }
-html[data-cfx="float"] .cfx-foil { opacity: 1; z-index: 0; box-shadow: 0 16px 20px -14px rgba(0,0,0,.6); }
-html[data-cfx="float"] .theme-white .cfx-foil { box-shadow: 0 16px 20px -14px rgba(15,23,42,.3); }
-
-/* wave */
-@keyframes cfxWave { 0%, 22%, 100% { translate: 0 0; scale: 1; } 9% { translate: 0 -4px; scale: 1.03; } }
-@keyframes cfxWaveSheen { 0% { background-position: 140% 0; opacity: 0; } 3% { opacity: 1; } 19% { background-position: -70% 0; opacity: 1; } 23%, 100% { background-position: -70% 0; opacity: 0; } }
-html[data-cfx="wave"] .fb-board-stage article.kanban-card[data-card-id],
-html[data-cfx="wave"] .board-swimlane-scroll article.kanban-card[data-card-id] { animation: cfxWave 4.4s cubic-bezier(.3,.7,.3,1) var(--cfx-wd, 0s) infinite; }
-html[data-cfx="wave"] .cfx-foil {
-  background-image: linear-gradient(105deg, transparent 34%, rgba(255,255,255,.5) 50%, transparent 66%);
-  background-size: 220% 100%;
-  background-repeat: no-repeat;
-  mix-blend-mode: screen;
-  animation: cfxWaveSheen 4.4s linear var(--cfx-wd, 0s) infinite;
-}
-html[data-cfx="wave"] .theme-white .cfx-foil { mix-blend-mode: normal; background-image: linear-gradient(105deg, transparent 34%, rgba(56,132,255,.2) 50%, transparent 66%); }
-
-@media (prefers-reduced-motion: reduce) {
-  html[data-cfx] .cfx-foil,
-  html[data-cfx] .fb-board-stage article.kanban-card[data-card-id],
-  html[data-cfx] .board-swimlane-scroll article.kanban-card[data-card-id] { animation: none !important; }
-  html[data-cfx="wave"] .cfx-foil { opacity: 0; }
-}
-</style>
-<script id="mn-fx71-cardfx-js">
-/* Minest · board Card FX 71 — holo · float · wave (tools/fx-71).
-   The board's card-mode switch writes the mode to <html data-cfx="…"> and fires `minest:cardfx`;
-   this block gives every board card a foil layer and drives the three looks:
-     holo  — a holographic foil on every card; the card under the pointer tilts toward it
-     float — the cards hover, each on its own slow beat
-     wave  — a wave of lift and light runs across the lists; tap a card to send one out from it
-   The look itself is in the stylesheet beside this file. */
-(function () {
-  'use strict';
-  if (window.MinestCardFX) return;
-  var root = document.documentElement, MODES = ['holo', 'float', 'wave'];
-  var SEL = '.fb-board-stage article.kanban-card[data-card-id], .board-swimlane-scroll article.kanban-card[data-card-id]';
-  var mode = 'none', timer = 0, hot = null, raf = 0, pend = null;
-  var calm = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-
-  function hash(s) { var x = 2166136261; for (var i = 0; i < s.length; i++) { x ^= s.charCodeAt(i); x = Math.imul(x, 16777619); } return x >>> 0; }
-  function cardOf(t) { return t && t.closest ? t.closest('article.kanban-card[data-card-id]') : null; }
-  function inBoard(el) { return !!(el && el.closest('.fb-board-stage, .board-swimlane-scroll')); }
-
-  function sync() {
-    var els = document.querySelectorAll(SEL), cols = [], count = [];
-    for (var i = 0; i < els.length; i++) {
-      var el = els[i], f = el.__cfxFoil;
-      if (!f || f.parentNode !== el) {
-        f = document.createElement('i');
-        f.className = 'cfx-foil';
-        f.setAttribute('aria-hidden', 'true');
-        el.appendChild(f);
-        el.__cfxFoil = f;
-      }
-      if (el.__cfxMode === mode) {
-        if (mode === 'wave') { var c0 = el.closest('.kanban-cards-scroll') || el.parentNode, k0 = cols.indexOf(c0); if (k0 < 0) { k0 = cols.push(c0) - 1; count[k0] = 0; } count[k0]++; }
-        continue;
-      }
-      el.__cfxMode = mode;
-      var h = hash(el.getAttribute('data-card-id') || String(i));
-      if (mode === 'float') {
-        el.style.setProperty('--cfx-dur', (3.4 + (h % 7) * 0.28).toFixed(2) + 's');
-        el.style.setProperty('--cfx-dl', (-((h >>> 4) % 4000) / 1000).toFixed(2) + 's');
-        el.style.setProperty('--cfx-r', (((h >>> 9) % 2 ? 1 : -1) * (0.2 + ((h >>> 11) % 5) * 0.07)).toFixed(2) + 'deg');
-      } else if (mode === 'wave') {
-        // the wave runs list by list, top to bottom: the delay comes from the card's place on the board
-        var col = el.closest('.kanban-cards-scroll') || el.parentNode, k = cols.indexOf(col);
-        if (k < 0) { k = cols.push(col) - 1; count[k] = 0; }
-        el.style.setProperty('--cfx-wd', ((k * 0.24 + count[k] * 0.085) % 4.4).toFixed(2) + 's');
-        count[k]++;
-      } else if (mode === 'holo') {
-        el.style.setProperty('--cfx-dl', (-((h >>> 4) % 7000) / 1000).toFixed(2) + 's');
-      }
-    }
-  }
-  function clear() {
-    var fs = document.querySelectorAll('.cfx-foil');
-    for (var i = 0; i < fs.length; i++) {
-      var el = fs[i].parentNode;
-      if (el) { el.__cfxFoil = null; el.__cfxMode = null; el.classList.remove('cfx-hot'); ['--cfx-dur', '--cfx-dl', '--cfx-r', '--cfx-wd', '--cfx-rx', '--cfx-ry', '--cfx-mx', '--cfx-my'].forEach(function (p) { el.style.removeProperty(p); }); el.removeChild(fs[i]); }
-    }
-    hot = null;
-  }
-  function cool() { if (hot) { hot.classList.remove('cfx-hot'); hot = null; } }
-
-  function set(m) {
-    m = MODES.indexOf(m) >= 0 ? m : 'none';
-    if (m === mode) return;
-    mode = m;
-    cool();
-    clearInterval(timer); timer = 0;
-    if (m === 'none') { clear(); return; }
-    sync();
-    timer = setInterval(sync, 700);
-  }
-  function read() { set(root.getAttribute('data-cfx') || 'none'); }
-
-  // holo: the card under the pointer tilts toward it and its glare follows
-  function tilt() {
-    raf = 0;
-    var e = pend; pend = null;
-    if (!e || mode !== 'holo') return;
-    var el = cardOf(e.t);
-    if (!el || !inBoard(el)) { cool(); return; }
-    if (el !== hot) { cool(); hot = el; el.classList.add('cfx-hot'); }
-    var r = el.getBoundingClientRect();
-    if (!r.width || !r.height) return;
-    var u = Math.min(1, Math.max(0, (e.x - r.left) / r.width)), v = Math.min(1, Math.max(0, (e.y - r.top) / r.height));
-    // (a wide, short card needs less turn about its long axis to read the same)
-    var kx = calm ? 0 : Math.min(9, 520 / r.width * 4), ky = calm ? 0 : 7;
-    el.style.setProperty('--cfx-ry', ((u - 0.5) * 2 * kx).toFixed(2) + 'deg');
-    el.style.setProperty('--cfx-rx', ((0.5 - v) * 2 * ky).toFixed(2) + 'deg');
-    el.style.setProperty('--cfx-mx', (u * 100).toFixed(1) + '%');
-    el.style.setProperty('--cfx-my', (v * 100).toFixed(1) + '%');
-  }
-  var onMove = function (e) {
-    if (mode !== 'holo') return;
-    pend = { t: e.target, x: e.clientX, y: e.clientY };
-    if (!raf) raf = requestAnimationFrame(tilt);
-  };
-  document.addEventListener('pointermove', onMove, { passive: true, capture: true });
-  document.addEventListener('pointerdown', onMove, { passive: true, capture: true });
-  ['pointerup', 'pointercancel'].forEach(function (n) {
-    document.addEventListener(n, function (e) { if (mode === 'holo' && e.pointerType !== 'mouse') cool(); }, { passive: true, capture: true });
-  });
-  document.addEventListener('pointerleave', cool, true);
-
-  // wave: a tap on a card sends a ring of lift out from it
-  document.addEventListener('click', function (e) {
-    if (mode !== 'wave' || calm) return;
-    var from = cardOf(e.target);
-    if (!from || !inBoard(from) || !from.animate) return;
-    var fr = from.getBoundingClientRect(), fx = fr.left + fr.width / 2, fy = fr.top + fr.height / 2;
-    var els = document.querySelectorAll(SEL), vh = window.innerHeight, vw = window.innerWidth;
-    for (var i = 0; i < els.length; i++) {
-      var r = els[i].getBoundingClientRect();
-      if (!r.width || r.bottom < 0 || r.top > vh || r.right < 0 || r.left > vw) continue;
-      var d = Math.hypot(r.left + r.width / 2 - fx, r.top + r.height / 2 - fy), k = Math.max(0.25, 1 - d / 900);
-      try {
-        els[i].animate([
-          { translate: '0 0', scale: '1' },
-          { translate: '0 ' + (-8 * k).toFixed(1) + 'px', scale: (1 + 0.05 * k).toFixed(3), offset: 0.35 },
-          { translate: '0 0', scale: '1' }
-        ], { duration: 560, delay: d * 0.9, easing: 'cubic-bezier(.2,.8,.2,1)' });
-      } catch (err) {}
-    }
-  }, true);
-
-  window.addEventListener('minest:cardfx', read);
-  window.MinestCardFX = { set: set, sync: sync, get mode() { return mode; }, modes: MODES.slice() };
-  read();
-})();
-</script>
 <script id="mn-rolodex-js">
 /* =========================================================================
    Minest 3D Cover · Vintage Rolodex Rotary Card File Mode (rolodex.js)
@@ -202050,7 +202739,7 @@ html[data-cfx="wave"] .theme-white .cfx-foil { mix-blend-mode: normal; backgroun
       var hb = document.createElement('button'); hb.className = 'hl-k'; hb.innerHTML = ico('holo'); hb.title = '全息 · 叠加全息投影';
       hb.onclick = function (e) { e.stopPropagation(); setHolo(!HOLO); flashName(bar, '全息 ' + (HOLO ? '开' : '关')); }; bar.appendChild(hb);
       if (window.FBFX) { var lb = document.createElement('button'); lb.className = 'lfx-k'; lb.innerHTML = ico('lfx'); lb.title = 'Light FX';
-        lb.onclick = function (e) { e.stopPropagation(); var M = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco'], nx = M[(M.indexOf(window.FBFX.mode) + 1) % M.length]; window.FBFX.setMode(nx); flashName(bar, 'Light FX · ' + ({ none: '关', lasers: '激光', firework: '烟花', spotlight: '聚光灯', neon: '霓虹', aurora: '极光', meteor: '流星', disco: '迪斯科' })[nx]); paintBarKeys(); }; bar.appendChild(lb); }
+        lb.onclick = function (e) { e.stopPropagation(); var M = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco', 'gallery'], nx = M[(M.indexOf(window.FBFX.mode) + 1) % M.length]; window.FBFX.setMode(nx); flashName(bar, 'Light FX · ' + ({ none: '关', lasers: '激光', firework: '烟花', spotlight: '聚光灯', neon: '霓虹', aurora: '极光', meteor: '流星', disco: '迪斯科', gallery: '画廊' })[nx]); paintBarKeys(); }; bar.appendChild(lb); }
       if (window.__cmCardFx) { var cb = document.createElement('button'); cb.className = 'cfx-k'; cb.innerHTML = ico('cfx'); cb.title = 'Card FX';
         cb.onclick = function (e) { e.stopPropagation(); flashName(bar, 'Card FX · ' + window.__cmCardFx.next()); paintBarKeys(); }; bar.appendChild(cb); }
       paintBarKeys();
@@ -203403,6 +204092,763 @@ html[data-cfx="wave"] .theme-white .cfx-foil { mix-blend-mode: normal; backgroun
     return out;
   }
   window.MinestExplode = { open: open, close: close, isOpen: function () { return !!cur; }, facts: facts, parts: parts, breakdown: breakdown };
+})();
+</script>
+<style id="mn-fx71-css">
+/* Minest · FX 71 (tools/fx-71): Light FX aurora / meteor / disco, Card FX holo / float / wave, and the buttons' looks */
+
+/* ---- the switches name every mode in its own colour (ripple and List Wallet had none) */
+.ios-tab-item.dock-fx-tab.active.aurora { color: #34e3a4; }
+.ios-tab-item.dock-fx-tab.active.meteor { color: #7db8ff; }
+.ios-tab-item.dock-fx-tab.active.disco { color: #ff5fc4; }
+.ios-tab-item.dock-fx-tab.active.gallery { color: #facc15; }
+.theme-white .ios-tab-item.dock-fx-tab.active.aurora { color: #0b8f63; }
+.theme-white .ios-tab-item.dock-fx-tab.active.meteor { color: #2563eb; }
+.theme-white .ios-tab-item.dock-fx-tab.active.disco { color: #c026a3; }
+.theme-white .ios-tab-item.dock-fx-tab.active.gallery { color: #b45309; }
+.bar-fx-btn.on.aurora { background: rgba(52,227,164,.26) !important; border-color: rgba(52,227,164,.58) !important; }
+.bar-fx-btn.on.meteor { background: rgba(125,184,255,.28) !important; border-color: rgba(125,184,255,.6) !important; }
+.bar-fx-btn.on.disco { background: rgba(255,95,196,.28) !important; border-color: rgba(255,95,196,.6) !important; }
+.bar-fx-btn.on.gallery { background: rgba(250,204,21,.28) !important; border-color: rgba(250,204,21,.64) !important; }
+.fbfx-btn.on.neon { background: rgba(255,58,26,.2); border-color: rgba(255,154,107,.5); box-shadow: 0 0 18px rgba(255,58,26,.34), inset 0 1px 0 rgba(255,255,255,.35); }
+.fbfx-btn.on.aurora { background: rgba(52,227,164,.2); border-color: rgba(134,239,200,.5); box-shadow: 0 0 18px rgba(52,227,164,.34), inset 0 1px 0 rgba(255,255,255,.35); }
+.fbfx-btn.on.meteor { background: rgba(96,165,250,.22); border-color: rgba(165,205,255,.5); box-shadow: 0 0 18px rgba(96,165,250,.36), inset 0 1px 0 rgba(255,255,255,.35); }
+.fbfx-btn.on.disco { background: rgba(236,72,153,.22); border-color: rgba(249,168,212,.5); box-shadow: 0 0 18px rgba(236,72,153,.36), inset 0 1px 0 rgba(255,255,255,.35); }
+.fbfx-btn.on.gallery { background: rgba(234,179,8,.26); border-color: rgba(253,224,71,.62); box-shadow: 0 0 20px rgba(250,204,21,.38), inset 0 1px 0 rgba(255,255,255,.4); }
+
+.card-mode-btn.on.ripple { color: #fff; background: rgba(14,165,233,.24); border-color: rgba(125,211,252,.5); box-shadow: 0 0 18px rgba(14,165,233,.32), inset 0 1px 0 rgba(255,255,255,.35); }
+.card-mode-btn.on.holo { color: #fff; background: linear-gradient(110deg, rgba(34,211,238,.3), rgba(232,121,249,.3) 55%, rgba(250,204,21,.3)); border-color: rgba(255,255,255,.5); box-shadow: 0 0 18px rgba(192,132,252,.34), inset 0 1px 0 rgba(255,255,255,.4); }
+.card-mode-btn.on.float { color: #fff; background: rgba(129,140,248,.26); border-color: rgba(199,210,254,.5); box-shadow: 0 0 18px rgba(129,140,248,.34), inset 0 1px 0 rgba(255,255,255,.35); }
+.card-mode-btn.on.wave { color: #fff; background: rgba(45,212,191,.24); border-color: rgba(153,246,228,.5); box-shadow: 0 0 18px rgba(45,212,191,.32), inset 0 1px 0 rgba(255,255,255,.35); }
+.theme-white .card-mode-btn.on.ripple, .theme-white .card-mode-btn.on.holo, .theme-white .card-mode-btn.on.float, .theme-white .card-mode-btn.on.wave { color: #0f172a; }
+.ios-tab-item.dock-fx-tab.active.holo { color: #c084fc; }
+.ios-tab-item.dock-fx-tab.active.float { color: #818cf8; }
+.ios-tab-item.dock-fx-tab.active.wave { color: #2dd4bf; }
+.bar-fx-btn.on.holo { background: rgba(192,132,252,.3) !important; border-color: rgba(192,132,252,.6) !important; }
+.bar-fx-btn.on.float { background: rgba(129,140,248,.3) !important; border-color: rgba(129,140,248,.6) !important; }
+.bar-fx-btn.on.wave { background: rgba(45,212,191,.28) !important; border-color: rgba(45,212,191,.6) !important; }
+
+/* ---- the foil layer every board card gets while a 71 card mode is on */
+.cfx-foil { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 5; opacity: 0; transition: opacity .35s ease; }
+
+/* holo */
+@keyframes cfxFoilDrift { from { background-position: 0% 30%; } to { background-position: 100% 70%; } }
+html[data-cfx="holo"] .cfx-foil {
+  opacity: .5;
+  background-image: linear-gradient(115deg, transparent 18%, hsla(188,100%,68%,.6) 34%, hsla(292,100%,72%,.6) 47%, hsla(48,100%,68%,.6) 60%, transparent 78%);
+  background-size: 300% 300%;
+  mix-blend-mode: color-dodge;
+  animation: cfxFoilDrift 7s ease-in-out var(--cfx-dl, 0s) infinite alternate;
+}
+html[data-cfx="holo"] .cfx-hot > .cfx-foil {
+  opacity: .78;
+  animation: none;
+  background-image: radial-gradient(circle at var(--cfx-mx, 50%) var(--cfx-my, 50%), rgba(255,255,255,.7), rgba(255,255,255,0) 46%),
+    linear-gradient(115deg, transparent 18%, hsla(188,100%,68%,.6) 34%, hsla(292,100%,72%,.6) 47%, hsla(48,100%,68%,.6) 60%, transparent 78%);
+  background-size: 100% 100%, 300% 300%;
+  background-position: 0 0, var(--cfx-mx, 50%) var(--cfx-my, 50%);
+}
+.theme-white[data-cfx="holo"] .cfx-foil, html[data-cfx="holo"] .theme-white .cfx-foil { mix-blend-mode: hard-light; opacity: .34; }
+.theme-white[data-cfx="holo"] .cfx-hot > .cfx-foil, html[data-cfx="holo"] .theme-white .cfx-hot > .cfx-foil { opacity: .5; }
+html[data-cfx="holo"] .fb-board-stage article.kanban-card[data-card-id],
+html[data-cfx="holo"] .board-swimlane-scroll article.kanban-card[data-card-id] { transition: transform .5s cubic-bezier(.2,.8,.2,1); }
+html[data-cfx="holo"] .fb-board-stage article.kanban-card[data-card-id].cfx-hot,
+html[data-cfx="holo"] .board-swimlane-scroll article.kanban-card[data-card-id].cfx-hot {
+  transform: perspective(720px) rotateX(var(--cfx-rx, 0deg)) rotateY(var(--cfx-ry, 0deg)) scale(1.02) !important;
+  transition: transform .09s linear;
+  z-index: 3;
+}
+
+/* float */
+@keyframes cfxFloat { 0%, 100% { translate: 0 0; rotate: 0deg; } 50% { translate: 0 -5px; rotate: var(--cfx-r, .3deg); } }
+html[data-cfx="float"] .fb-board-stage article.kanban-card[data-card-id],
+html[data-cfx="float"] .board-swimlane-scroll article.kanban-card[data-card-id] {
+  animation: cfxFloat var(--cfx-dur, 4s) ease-in-out var(--cfx-dl, 0s) infinite;
+  transition: scale .18s ease;
+}
+html[data-cfx="float"] .fb-board-stage article.kanban-card[data-card-id]:active,
+html[data-cfx="float"] .board-swimlane-scroll article.kanban-card[data-card-id]:active { scale: .97; }
+html[data-cfx="float"] .cfx-foil { opacity: 1; z-index: 0; box-shadow: 0 16px 20px -14px rgba(0,0,0,.6); }
+html[data-cfx="float"] .theme-white .cfx-foil { box-shadow: 0 16px 20px -14px rgba(15,23,42,.3); }
+
+/* wave */
+@keyframes cfxWave { 0%, 22%, 100% { translate: 0 0; scale: 1; } 9% { translate: 0 -4px; scale: 1.03; } }
+@keyframes cfxWaveSheen { 0% { background-position: 140% 0; opacity: 0; } 3% { opacity: 1; } 19% { background-position: -70% 0; opacity: 1; } 23%, 100% { background-position: -70% 0; opacity: 0; } }
+html[data-cfx="wave"] .fb-board-stage article.kanban-card[data-card-id],
+html[data-cfx="wave"] .board-swimlane-scroll article.kanban-card[data-card-id] { animation: cfxWave 4.4s cubic-bezier(.3,.7,.3,1) var(--cfx-wd, 0s) infinite; }
+html[data-cfx="wave"] .cfx-foil {
+  background-image: linear-gradient(105deg, transparent 34%, rgba(255,255,255,.5) 50%, transparent 66%);
+  background-size: 220% 100%;
+  background-repeat: no-repeat;
+  mix-blend-mode: screen;
+  animation: cfxWaveSheen 4.4s linear var(--cfx-wd, 0s) infinite;
+}
+html[data-cfx="wave"] .theme-white .cfx-foil { mix-blend-mode: normal; background-image: linear-gradient(105deg, transparent 34%, rgba(56,132,255,.2) 50%, transparent 66%); }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-cfx] .cfx-foil,
+  html[data-cfx] .fb-board-stage article.kanban-card[data-card-id],
+  html[data-cfx] .board-swimlane-scroll article.kanban-card[data-card-id] { animation: none !important; }
+  html[data-cfx="wave"] .cfx-foil { opacity: 0; }
+}
+
+/* =========================================================================
+   Light FX · GALLERY (In-App Art Gallery — Pull-Cord, Pixel-Accurate
+   Flashlight Local Illumination, SVG Liquid-Glass Prism Rim, Girl & Pepper)
+   ========================================================================= */
+html.fbfx-gallery-on .fbfx-layer {
+  contain: none !important;
+}
+.fbfx-gal-root {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "SF Pro Text", "PingFang SC", sans-serif;
+}
+
+/* Full-stage Midnight Gallery Night Veil — dynamically masked by the flashlight
+   hotspot & cone so ONLY the exact pixels under the flashlight light up! */
+.fbfx-gal-darkveil {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  background: rgba(7, 14, 28, 0.80);
+  -webkit-backdrop-filter: grayscale(0.94) brightness(0.32) contrast(1.18) sepia(0.30) hue-rotate(186deg);
+  backdrop-filter: grayscale(0.94) brightness(0.32) contrast(1.18) sepia(0.30) hue-rotate(186deg);
+  will-change: opacity, -webkit-mask-image, mask-image;
+}
+
+.fbfx-gal-pblur-top {
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  z-index: 4;
+  height: 82px;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,.9) 0%, rgba(0,0,0,.48) 48%, rgba(0,0,0,0) 100%);
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,.9) 0%, rgba(0,0,0,.48) 48%, rgba(0,0,0,0) 100%);
+}
+.fbfx-gal-pblur-bot {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 4;
+  height: 88px;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(8px) saturate(135%);
+  backdrop-filter: blur(8px) saturate(135%);
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,.82) 0%, rgba(0,0,0,.38) 46%, rgba(0,0,0,0) 100%);
+  mask-image: linear-gradient(to top, rgba(0,0,0,.82) 0%, rgba(0,0,0,.38) 46%, rgba(0,0,0,0) 100%);
+}
+
+/* Real SVG feDisplacementMap Chromatic-Aberration Liquid-Glass Flashlight Lens */
+.fbfx-gal-loupe {
+  position: absolute;
+  left: 0; top: 0;
+  z-index: 3;
+  width: 220px; height: 220px;
+  border-radius: 50%;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform, opacity;
+  -webkit-backdrop-filter: brightness(1.09) saturate(1.22) contrast(1.04);
+  backdrop-filter: url(#fbfx-gal-prism) brightness(1.09) saturate(1.22) contrast(1.04);
+  -webkit-mask-image: radial-gradient(circle, #000 0%, #000 88%, rgba(0,0,0,0.45) 95%, transparent 100%);
+  mask-image: radial-gradient(circle, #000 0%, #000 88%, rgba(0,0,0,0.45) 95%, transparent 100%);
+}
+
+/* Top-center Apple capsule status / switch pill ("Lights on" / "Lights off") */
+.fbfx-gal-pill {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 32px;
+  padding: 0 16px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background .28s ease, color .28s ease, border-color .28s ease, transform .18s cubic-bezier(.2,.9,.3,1.2), box-shadow .28s ease;
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
+}
+.fbfx-gal-pill.day {
+  background: rgba(255, 253, 248, 0.94);
+  color: #1b2230;
+  border: 1.5px solid rgba(27, 34, 48, 0.14);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.09), inset 0 1px 0 #ffffff;
+}
+.fbfx-gal-pill.night {
+  background: rgba(16, 27, 49, 0.82);
+  color: #f8fafc;
+  border: 1px solid rgba(253, 224, 71, 0.34);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+.fbfx-gal-pill:active {
+  transform: translateX(-50%) scale(0.95);
+}
+.fbfx-gal-pill .gal-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #facc15;
+  box-shadow: 0 0 8px #facc15;
+}
+.fbfx-gal-pill.day .gal-dot {
+  background: #f59e0b;
+  box-shadow: none;
+}
+
+/* Top-right hanging golden pull-cord hit zone */
+.fbfx-gal-cord {
+  position: absolute;
+  width: 52px;
+  height: 124px;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.fbfx-gal-cord:active { cursor: grabbing; }
+
+/* Storybook comic speech bubble next to the flashlight girl */
+.fbfx-gal-bubble {
+  position: absolute;
+  padding: 7px 14px;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #18202c;
+  border: 2px solid #1b2230;
+  font-size: 12.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  white-space: nowrap;
+  pointer-events: auto;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+  transform-origin: left center;
+  transition: transform .22s cubic-bezier(.2,1.3,.3,1), opacity .22s ease;
+}
+.fbfx-gal-bubble::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  margin-top: -5px;
+  border-style: solid;
+  border-width: 5px 8px 5px 0;
+  border-color: transparent #1b2230 transparent transparent;
+}
+.fbfx-gal-bubble::after {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: 50%;
+  margin-top: -4px;
+  border-style: solid;
+  border-width: 4px 6px 4px 0;
+  border-color: transparent #ffffff transparent transparent;
+}
+.fbfx-gal-bubble.pop {
+  transform: scale(1.05);
+}
+
+/* Puppy Pepper hit button bottom-right */
+.fbfx-gal-dog {
+  position: absolute;
+  width: 68px;
+  height: 74px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: auto;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Dynamic directional cast shadow on cards responding to flashlight position */
+html.fbfx-gallery-night .fb-board-stage article.kanban-card[data-card-id],
+html.fbfx-gallery-night .board-swimlane-scroll article.kanban-card[data-card-id] {
+  box-shadow: var(--gal-shx, 0px) var(--gal-shy, 12px) 28px -6px rgba(2, 6, 18, var(--gal-sha, 0.65)) !important;
+  transition: box-shadow .08s linear;
+}
+html.fbfx-gallery-day .fb-board-stage article.kanban-card[data-card-id],
+html.fbfx-gallery-day .board-swimlane-scroll article.kanban-card[data-card-id] {
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.1) !important;
+}
+
+/* =========================================================================
+   Light FX · 1-Click Popover Menu Picker (.fbfx-picker)
+   ========================================================================= */
+.fbfx-picker {
+  position: fixed;
+  z-index: 2147483640;
+  width: 284px;
+  padding: 10px;
+  border-radius: 20px;
+  background: rgba(15, 23, 42, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.52), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  backdrop-filter: blur(24px) saturate(190%);
+  color: #f8fafc;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  opacity: 0;
+  transform: scale(0.94) translateY(4px);
+  transition: opacity .16s ease, transform .2s cubic-bezier(.2,.9,.3,1.15);
+  pointer-events: none;
+}
+.fbfx-picker.open {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
+}
+body.theme-white .fbfx-picker {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(15, 23, 42, 0.12);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.2), inset 0 1px 0 #ffffff;
+  color: #0f172a;
+}
+.fbfx-pk-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 6px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}
+.fbfx-pk-off {
+  border: 0;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font: 600 11px/1.2 inherit;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.12);
+  color: inherit;
+  transition: background .15s;
+}
+body.theme-white .fbfx-pk-off { background: rgba(15, 23, 42, 0.08); }
+.fbfx-pk-off:hover { background: rgba(239, 68, 68, 0.25); }
+.fbfx-pk-off.is-off { opacity: 0.45; }
+
+.fbfx-pk-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.fbfx-pk-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, transform .12s;
+}
+body.theme-white .fbfx-pk-item {
+  border-color: rgba(15, 23, 42, 0.08);
+  background: rgba(15, 23, 42, 0.035);
+}
+.fbfx-pk-item:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+body.theme-white .fbfx-pk-item:hover {
+  background: rgba(15, 23, 42, 0.08);
+}
+.fbfx-pk-item:active { transform: scale(0.97); }
+.fbfx-pk-item.wide {
+  grid-column: 1 / -1;
+}
+.fbfx-pk-item.active {
+  background: rgba(250, 204, 21, 0.2);
+  border-color: var(--pk-col, #facc15);
+  box-shadow: 0 0 14px rgba(250, 204, 21, 0.18);
+}
+body.theme-white .fbfx-pk-item.active {
+  background: rgba(250, 204, 21, 0.18);
+}
+.fbfx-pk-ico {
+  width: 28px; height: 28px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--pk-col, #e2e8f0);
+}
+body.theme-white .fbfx-pk-ico {
+  background: rgba(15, 23, 42, 0.07);
+}
+.fbfx-pk-txt {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.fbfx-pk-txt b {
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fbfx-pk-txt small {
+  font-size: 10px;
+  opacity: 0.62;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.fbfx-pk-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(250, 204, 21, 0.24);
+  color: #fde047;
+  letter-spacing: 0.04em;
+}
+body.theme-white .fbfx-pk-badge {
+  background: rgba(234, 179, 8, 0.2);
+  color: #a16207;
+}
+</style>
+<script id="mn-fx71-cardfx-js">
+/* Minest · board Card FX 71 — holo · float · wave (tools/fx-71).
+   The board's card-mode switch writes the mode to <html data-cfx="…"> and fires `minest:cardfx`;
+   this block gives every board card a foil layer and drives the three looks:
+     holo  — a holographic foil on every card; the card under the pointer tilts toward it
+     float — the cards hover, each on its own slow beat
+     wave  — a wave of lift and light runs across the lists; tap a card to send one out from it
+   The look itself is in the stylesheet beside this file. */
+(function () {
+  'use strict';
+  if (window.MinestCardFX) return;
+  var root = document.documentElement, MODES = ['holo', 'float', 'wave'];
+  var SEL = '.fb-board-stage article.kanban-card[data-card-id], .board-swimlane-scroll article.kanban-card[data-card-id]';
+  var mode = 'none', timer = 0, hot = null, raf = 0, pend = null;
+  var calm = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  function hash(s) { var x = 2166136261; for (var i = 0; i < s.length; i++) { x ^= s.charCodeAt(i); x = Math.imul(x, 16777619); } return x >>> 0; }
+  function cardOf(t) { return t && t.closest ? t.closest('article.kanban-card[data-card-id]') : null; }
+  function inBoard(el) { return !!(el && el.closest('.fb-board-stage, .board-swimlane-scroll')); }
+
+  function sync() {
+    var els = document.querySelectorAll(SEL), cols = [], count = [];
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i], f = el.__cfxFoil;
+      if (!f || f.parentNode !== el) {
+        f = document.createElement('i');
+        f.className = 'cfx-foil';
+        f.setAttribute('aria-hidden', 'true');
+        el.appendChild(f);
+        el.__cfxFoil = f;
+      }
+      if (el.__cfxMode === mode) {
+        if (mode === 'wave') { var c0 = el.closest('.kanban-cards-scroll') || el.parentNode, k0 = cols.indexOf(c0); if (k0 < 0) { k0 = cols.push(c0) - 1; count[k0] = 0; } count[k0]++; }
+        continue;
+      }
+      el.__cfxMode = mode;
+      var h = hash(el.getAttribute('data-card-id') || String(i));
+      if (mode === 'float') {
+        el.style.setProperty('--cfx-dur', (3.4 + (h % 7) * 0.28).toFixed(2) + 's');
+        el.style.setProperty('--cfx-dl', (-((h >>> 4) % 4000) / 1000).toFixed(2) + 's');
+        el.style.setProperty('--cfx-r', (((h >>> 9) % 2 ? 1 : -1) * (0.2 + ((h >>> 11) % 5) * 0.07)).toFixed(2) + 'deg');
+      } else if (mode === 'wave') {
+        // the wave runs list by list, top to bottom: the delay comes from the card's place on the board
+        var col = el.closest('.kanban-cards-scroll') || el.parentNode, k = cols.indexOf(col);
+        if (k < 0) { k = cols.push(col) - 1; count[k] = 0; }
+        el.style.setProperty('--cfx-wd', ((k * 0.24 + count[k] * 0.085) % 4.4).toFixed(2) + 's');
+        count[k]++;
+      } else if (mode === 'holo') {
+        el.style.setProperty('--cfx-dl', (-((h >>> 4) % 7000) / 1000).toFixed(2) + 's');
+      }
+    }
+  }
+  function clear() {
+    var fs = document.querySelectorAll('.cfx-foil');
+    for (var i = 0; i < fs.length; i++) {
+      var el = fs[i].parentNode;
+      if (el) { el.__cfxFoil = null; el.__cfxMode = null; el.classList.remove('cfx-hot'); ['--cfx-dur', '--cfx-dl', '--cfx-r', '--cfx-wd', '--cfx-rx', '--cfx-ry', '--cfx-mx', '--cfx-my'].forEach(function (p) { el.style.removeProperty(p); }); el.removeChild(fs[i]); }
+    }
+    hot = null;
+  }
+  function cool() { if (hot) { hot.classList.remove('cfx-hot'); hot = null; } }
+
+  function set(m) {
+    m = MODES.indexOf(m) >= 0 ? m : 'none';
+    if (m === mode) return;
+    mode = m;
+    cool();
+    clearInterval(timer); timer = 0;
+    if (m === 'none') { clear(); return; }
+    sync();
+    timer = setInterval(sync, 700);
+  }
+  function read() { set(root.getAttribute('data-cfx') || 'none'); }
+
+  // holo: the card under the pointer tilts toward it and its glare follows
+  function tilt() {
+    raf = 0;
+    var e = pend; pend = null;
+    if (!e || mode !== 'holo') return;
+    var el = cardOf(e.t);
+    if (!el || !inBoard(el)) { cool(); return; }
+    if (el !== hot) { cool(); hot = el; el.classList.add('cfx-hot'); }
+    var r = el.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    var u = Math.min(1, Math.max(0, (e.x - r.left) / r.width)), v = Math.min(1, Math.max(0, (e.y - r.top) / r.height));
+    // (a wide, short card needs less turn about its long axis to read the same)
+    var kx = calm ? 0 : Math.min(9, 520 / r.width * 4), ky = calm ? 0 : 7;
+    el.style.setProperty('--cfx-ry', ((u - 0.5) * 2 * kx).toFixed(2) + 'deg');
+    el.style.setProperty('--cfx-rx', ((0.5 - v) * 2 * ky).toFixed(2) + 'deg');
+    el.style.setProperty('--cfx-mx', (u * 100).toFixed(1) + '%');
+    el.style.setProperty('--cfx-my', (v * 100).toFixed(1) + '%');
+  }
+  var onMove = function (e) {
+    if (mode !== 'holo') return;
+    pend = { t: e.target, x: e.clientX, y: e.clientY };
+    if (!raf) raf = requestAnimationFrame(tilt);
+  };
+  document.addEventListener('pointermove', onMove, { passive: true, capture: true });
+  document.addEventListener('pointerdown', onMove, { passive: true, capture: true });
+  ['pointerup', 'pointercancel'].forEach(function (n) {
+    document.addEventListener(n, function (e) { if (mode === 'holo' && e.pointerType !== 'mouse') cool(); }, { passive: true, capture: true });
+  });
+  document.addEventListener('pointerleave', cool, true);
+
+  // wave: a tap on a card sends a ring of lift out from it
+  document.addEventListener('click', function (e) {
+    if (mode !== 'wave' || calm) return;
+    var from = cardOf(e.target);
+    if (!from || !inBoard(from) || !from.animate) return;
+    var fr = from.getBoundingClientRect(), fx = fr.left + fr.width / 2, fy = fr.top + fr.height / 2;
+    var els = document.querySelectorAll(SEL), vh = window.innerHeight, vw = window.innerWidth;
+    for (var i = 0; i < els.length; i++) {
+      var r = els[i].getBoundingClientRect();
+      if (!r.width || r.bottom < 0 || r.top > vh || r.right < 0 || r.left > vw) continue;
+      var d = Math.hypot(r.left + r.width / 2 - fx, r.top + r.height / 2 - fy), k = Math.max(0.25, 1 - d / 900);
+      try {
+        els[i].animate([
+          { translate: '0 0', scale: '1' },
+          { translate: '0 ' + (-8 * k).toFixed(1) + 'px', scale: (1 + 0.05 * k).toFixed(3), offset: 0.35 },
+          { translate: '0 0', scale: '1' }
+        ], { duration: 560, delay: d * 0.9, easing: 'cubic-bezier(.2,.8,.2,1)' });
+      } catch (err) {}
+    }
+  }, true);
+
+  window.addEventListener('minest:cardfx', read);
+  window.MinestCardFX = { set: set, sync: sync, get mode() { return mode; }, modes: MODES.slice() };
+  read();
+})();
+
+/* Minest · Light FX 1-Click Popover Picker (tools/fx-71).
+   Tapping any Light FX button opens a sleek popover menu to pick any FX directly. */
+(function () {
+  'use strict';
+  if (window.MinestLightFXPicker) return;
+
+  var ITEMS = [
+    { id: 'gallery', zh: '美术馆夜灯', en: 'Art Gallery · 拉绳与手电筒', ico: '◒', col: '#facc15', wide: true, badge: 'NEW' },
+    { id: 'lasers',  zh: '激光秀',     en: 'Lasers',    ico: '⟡', col: '#c084fc' },
+    { id: 'firework',zh: '烟花',       en: 'Firework',  ico: '✺', col: '#fbbf24' },
+    { id: 'spotlight',zh: '聚光灯',    en: 'Spotlight', ico: '◎', col: '#f1f5f9' },
+    { id: 'neon',    zh: '霓虹灯箱',   en: 'Neon',      ico: '◈', col: '#fb7185' },
+    { id: 'aurora',  zh: '极光',       en: 'Aurora',    ico: '≈', col: '#34e3a4' },
+    { id: 'meteor',  zh: '流星雨',     en: 'Meteor',    ico: '☄', col: '#7db8ff' },
+    { id: 'disco',   zh: '迪斯科',     en: 'Disco',     ico: '❖', col: '#ff5fc4' }
+  ];
+
+  var menuEl = null, anchorNow = null, closeTimer = 0;
+
+  function curMode() {
+    return (window.FBFX && window.FBFX.mode) || 'none';
+  }
+
+  function syncButtons() {
+    try { if (typeof window.__syncFxTab === 'function') window.__syncFxTab(); } catch (e) {}
+    try {
+      var cmLfx = document.querySelector('#cm-bar .lfx-k');
+      if (cmLfx) cmLfx.classList.toggle('on', curMode() !== 'none');
+    } catch (e) {}
+  }
+
+  function applyPick(id) {
+    if (!window.FBFX) return;
+    var target = (id === curMode() && id !== 'none') ? 'none' : id;
+    window.FBFX.setMode(target);
+    try { if (window.SoundEngine && SoundEngine.play) SoundEngine.play('click'); } catch (e) {}
+    try { if (window.MinestNative && MinestNative.haptic) MinestNative.haptic('selection'); } catch (e) {}
+    syncButtons();
+    renderState();
+    closeMenu();
+  }
+
+  function ensureMenu() {
+    if (menuEl && menuEl.parentNode) return menuEl;
+    menuEl = document.createElement('div');
+    menuEl.id = 'fbfx-picker-menu';
+    menuEl.className = 'fbfx-picker fbfx-gal-ui';
+    menuEl.setAttribute('role', 'menu');
+    menuEl.setAttribute('aria-label', '选择 Light FX 光效');
+
+    var head = document.createElement('div');
+    head.className = 'fbfx-pk-head';
+    head.innerHTML = '<span>✦ Light FX · 选择光效</span>';
+    var offBtn = document.createElement('button');
+    offBtn.type = 'button';
+    offBtn.className = 'fbfx-pk-off fbfx-gal-ui';
+    offBtn.textContent = '关闭 Off';
+    offBtn.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      applyPick('none');
+    });
+    head.appendChild(offBtn);
+    menuEl.appendChild(head);
+
+    var grid = document.createElement('div');
+    grid.className = 'fbfx-pk-grid';
+    ITEMS.forEach(function (it) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'fbfx-pk-item fbfx-gal-ui' + (it.wide ? ' wide' : '');
+      b.setAttribute('data-fx-pick', it.id);
+      b.setAttribute('role', 'menuitemradio');
+      b.style.setProperty('--pk-col', it.col);
+      b.innerHTML =
+        '<span class="fbfx-pk-ico">' + it.ico + '</span>' +
+        '<span class="fbfx-pk-txt"><b>' + it.zh + '</b><small>' + it.en + '</small></span>' +
+        (it.badge ? '<span class="fbfx-pk-badge">' + it.badge + '</span>' : '');
+      b.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        applyPick(it.id);
+      });
+      grid.appendChild(b);
+    });
+    menuEl.appendChild(grid);
+
+    ['pointerdown', 'click', 'touchstart'].forEach(function (evName) {
+      menuEl.addEventListener(evName, function (e) { e.stopPropagation(); });
+    });
+
+    document.body.appendChild(menuEl);
+    return menuEl;
+  }
+
+  function renderState() {
+    if (!menuEl) return;
+    var m = curMode();
+    var offBtn = menuEl.querySelector('.fbfx-pk-off');
+    if (offBtn) {
+      offBtn.classList.toggle('is-off', m === 'none');
+      offBtn.textContent = m === 'none' ? '已关闭' : '关闭 Off';
+    }
+    var btns = menuEl.querySelectorAll('.fbfx-pk-item');
+    for (var i = 0; i < btns.length; i++) {
+      var on = btns[i].getAttribute('data-fx-pick') === m;
+      btns[i].classList.toggle('active', on);
+      btns[i].setAttribute('aria-checked', on ? 'true' : 'false');
+    }
+  }
+
+  function positionMenu(anchor) {
+    var el = ensureMenu();
+    renderState();
+    var r = anchor && anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : null;
+    if (!r || (!r.width && !r.height)) {
+      var fallback = document.querySelector('.mn-looks-btn, .bar-fx-btn[aria-label="Light FX"], .dock-fx-tab, .fbfx-btn');
+      r = fallback ? fallback.getBoundingClientRect() : { left: innerWidth / 2 - 20, right: innerWidth / 2 + 20, top: innerHeight - 70, bottom: innerHeight - 30, width: 40, height: 40 };
+    }
+    var mw = 284, mh = el.offsetHeight || 276;
+    var cx = r.left + r.width / 2;
+    var left = Math.max(10, Math.min(innerWidth - mw - 10, Math.round(cx - mw / 2)));
+    var openAbove = r.top > innerHeight * 0.52 || (innerHeight - r.bottom < mh + 18 && r.top > mh + 12);
+    var top = openAbove ? Math.max(10, Math.round(r.top - mh - 10)) : Math.min(innerHeight - mh - 10, Math.round(r.bottom + 10));
+    el.style.left = left + 'px';
+    el.style.top = top + 'px';
+  }
+
+  function openMenu(anchor) {
+    clearTimeout(closeTimer);
+    var el = ensureMenu();
+    if (el.classList.contains('open') && anchorNow === anchor) {
+      closeMenu();
+      return;
+    }
+    anchorNow = anchor || null;
+    positionMenu(anchor);
+    void el.offsetWidth;
+    el.classList.add('open');
+  }
+
+  function closeMenu() {
+    anchorNow = null;
+    if (!menuEl || !menuEl.classList.contains('open')) return;
+    menuEl.classList.remove('open');
+  }
+
+  function findLightFxTrigger(target) {
+    if (!target || !target.closest) return null;
+    if (target.closest('#fbfx-picker-menu')) return null;
+    return target.closest(
+      '.bar-fx-btn[aria-label="Light FX"], ' +
+      '.ios-tab-item.dock-fx-tab, ' +
+      '.fbfx-btn, ' +
+      '.mn-bapp[aria-label^="Light FX"], ' +
+      '.student-game-float-btn[title^="Light FX"], ' +
+      '#cm-bar .lfx-k'
+    );
+  }
+
+  // Intercept clicks on any Light FX button in capture phase to open the popover menu instead of cycling!
+  window.addEventListener('click', function (e) {
+    var btn = findLightFxTrigger(e.target);
+    if (!btn) return;
+    if (btn.classList.contains('fbfx-btn') && (e.shiftKey || e.altKey)) return; // Preserve Shift+click intro replay
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    openMenu(btn);
+  }, true);
+
+  document.addEventListener('pointerdown', function (e) {
+    if (!menuEl || !menuEl.classList.contains('open')) return;
+    if (menuEl.contains(e.target) || findLightFxTrigger(e.target)) return;
+    closeMenu();
+  }, true);
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeMenu();
+  });
+
+  window.addEventListener('resize', function () {
+    if (menuEl && menuEl.classList.contains('open')) positionMenu(anchorNow);
+  });
+  window.addEventListener('fbfx:mode', renderState);
+
+  window.MinestLightFXPicker = { open: openMenu, close: closeMenu, pick: applyPick };
 })();
 </script>
 <script id="mn-v2-routes">

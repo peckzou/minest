@@ -4,16 +4,20 @@
 .ios-tab-item.dock-fx-tab.active.aurora { color: #34e3a4; }
 .ios-tab-item.dock-fx-tab.active.meteor { color: #7db8ff; }
 .ios-tab-item.dock-fx-tab.active.disco { color: #ff5fc4; }
+.ios-tab-item.dock-fx-tab.active.gallery { color: #facc15; }
 .theme-white .ios-tab-item.dock-fx-tab.active.aurora { color: #0b8f63; }
 .theme-white .ios-tab-item.dock-fx-tab.active.meteor { color: #2563eb; }
 .theme-white .ios-tab-item.dock-fx-tab.active.disco { color: #c026a3; }
+.theme-white .ios-tab-item.dock-fx-tab.active.gallery { color: #b45309; }
 .bar-fx-btn.on.aurora { background: rgba(52,227,164,.26) !important; border-color: rgba(52,227,164,.58) !important; }
 .bar-fx-btn.on.meteor { background: rgba(125,184,255,.28) !important; border-color: rgba(125,184,255,.6) !important; }
 .bar-fx-btn.on.disco { background: rgba(255,95,196,.28) !important; border-color: rgba(255,95,196,.6) !important; }
+.bar-fx-btn.on.gallery { background: rgba(250,204,21,.28) !important; border-color: rgba(250,204,21,.64) !important; }
 .fbfx-btn.on.neon { background: rgba(255,58,26,.2); border-color: rgba(255,154,107,.5); box-shadow: 0 0 18px rgba(255,58,26,.34), inset 0 1px 0 rgba(255,255,255,.35); }
 .fbfx-btn.on.aurora { background: rgba(52,227,164,.2); border-color: rgba(134,239,200,.5); box-shadow: 0 0 18px rgba(52,227,164,.34), inset 0 1px 0 rgba(255,255,255,.35); }
 .fbfx-btn.on.meteor { background: rgba(96,165,250,.22); border-color: rgba(165,205,255,.5); box-shadow: 0 0 18px rgba(96,165,250,.36), inset 0 1px 0 rgba(255,255,255,.35); }
 .fbfx-btn.on.disco { background: rgba(236,72,153,.22); border-color: rgba(249,168,212,.5); box-shadow: 0 0 18px rgba(236,72,153,.36), inset 0 1px 0 rgba(255,255,255,.35); }
+.fbfx-btn.on.gallery { background: rgba(234,179,8,.26); border-color: rgba(253,224,71,.62); box-shadow: 0 0 20px rgba(250,204,21,.38), inset 0 1px 0 rgba(255,255,255,.4); }
 
 .card-mode-btn.on.ripple { color: #fff; background: rgba(14,165,233,.24); border-color: rgba(125,211,252,.5); box-shadow: 0 0 18px rgba(14,165,233,.32), inset 0 1px 0 rgba(255,255,255,.35); }
 .card-mode-btn.on.holo { color: #fff; background: linear-gradient(110deg, rgba(34,211,238,.3), rgba(232,121,249,.3) 55%, rgba(250,204,21,.3)); border-color: rgba(255,255,255,.5); box-shadow: 0 0 18px rgba(192,132,252,.34), inset 0 1px 0 rgba(255,255,255,.4); }
@@ -89,4 +93,347 @@ html[data-cfx="wave"] .theme-white .cfx-foil { mix-blend-mode: normal; backgroun
   html[data-cfx] .fb-board-stage article.kanban-card[data-card-id],
   html[data-cfx] .board-swimlane-scroll article.kanban-card[data-card-id] { animation: none !important; }
   html[data-cfx="wave"] .cfx-foil { opacity: 0; }
+}
+
+/* =========================================================================
+   Light FX · GALLERY (In-App Art Gallery — Pull-Cord, Pixel-Accurate
+   Flashlight Local Illumination, SVG Liquid-Glass Prism Rim, Girl & Pepper)
+   ========================================================================= */
+html.fbfx-gallery-on .fbfx-layer {
+  contain: none !important;
+}
+.fbfx-gal-root {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "SF Pro Text", "PingFang SC", sans-serif;
+}
+
+/* Full-stage Midnight Gallery Night Veil — dynamically masked by the flashlight
+   hotspot & cone so ONLY the exact pixels under the flashlight light up! */
+.fbfx-gal-darkveil {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  background: rgba(7, 14, 28, 0.80);
+  -webkit-backdrop-filter: grayscale(0.94) brightness(0.32) contrast(1.18) sepia(0.30) hue-rotate(186deg);
+  backdrop-filter: grayscale(0.94) brightness(0.32) contrast(1.18) sepia(0.30) hue-rotate(186deg);
+  will-change: opacity, -webkit-mask-image, mask-image;
+}
+
+.fbfx-gal-pblur-top {
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  z-index: 4;
+  height: 82px;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,.9) 0%, rgba(0,0,0,.48) 48%, rgba(0,0,0,0) 100%);
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,.9) 0%, rgba(0,0,0,.48) 48%, rgba(0,0,0,0) 100%);
+}
+.fbfx-gal-pblur-bot {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 4;
+  height: 88px;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(8px) saturate(135%);
+  backdrop-filter: blur(8px) saturate(135%);
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,.82) 0%, rgba(0,0,0,.38) 46%, rgba(0,0,0,0) 100%);
+  mask-image: linear-gradient(to top, rgba(0,0,0,.82) 0%, rgba(0,0,0,.38) 46%, rgba(0,0,0,0) 100%);
+}
+
+/* Real SVG feDisplacementMap Chromatic-Aberration Liquid-Glass Flashlight Lens */
+.fbfx-gal-loupe {
+  position: absolute;
+  left: 0; top: 0;
+  z-index: 3;
+  width: 220px; height: 220px;
+  border-radius: 50%;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform, opacity;
+  -webkit-backdrop-filter: brightness(1.09) saturate(1.22) contrast(1.04);
+  backdrop-filter: url(#fbfx-gal-prism) brightness(1.09) saturate(1.22) contrast(1.04);
+  -webkit-mask-image: radial-gradient(circle, #000 0%, #000 88%, rgba(0,0,0,0.45) 95%, transparent 100%);
+  mask-image: radial-gradient(circle, #000 0%, #000 88%, rgba(0,0,0,0.45) 95%, transparent 100%);
+}
+
+/* Top-center Apple capsule status / switch pill ("Lights on" / "Lights off") */
+.fbfx-gal-pill {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 32px;
+  padding: 0 16px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background .28s ease, color .28s ease, border-color .28s ease, transform .18s cubic-bezier(.2,.9,.3,1.2), box-shadow .28s ease;
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
+}
+.fbfx-gal-pill.day {
+  background: rgba(255, 253, 248, 0.94);
+  color: #1b2230;
+  border: 1.5px solid rgba(27, 34, 48, 0.14);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.09), inset 0 1px 0 #ffffff;
+}
+.fbfx-gal-pill.night {
+  background: rgba(16, 27, 49, 0.82);
+  color: #f8fafc;
+  border: 1px solid rgba(253, 224, 71, 0.34);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+.fbfx-gal-pill:active {
+  transform: translateX(-50%) scale(0.95);
+}
+.fbfx-gal-pill .gal-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #facc15;
+  box-shadow: 0 0 8px #facc15;
+}
+.fbfx-gal-pill.day .gal-dot {
+  background: #f59e0b;
+  box-shadow: none;
+}
+
+/* Top-right hanging golden pull-cord hit zone */
+.fbfx-gal-cord {
+  position: absolute;
+  width: 52px;
+  height: 124px;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.fbfx-gal-cord:active { cursor: grabbing; }
+
+/* Storybook comic speech bubble next to the flashlight girl */
+.fbfx-gal-bubble {
+  position: absolute;
+  padding: 7px 14px;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #18202c;
+  border: 2px solid #1b2230;
+  font-size: 12.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  white-space: nowrap;
+  pointer-events: auto;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+  transform-origin: left center;
+  transition: transform .22s cubic-bezier(.2,1.3,.3,1), opacity .22s ease;
+}
+.fbfx-gal-bubble::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  margin-top: -5px;
+  border-style: solid;
+  border-width: 5px 8px 5px 0;
+  border-color: transparent #1b2230 transparent transparent;
+}
+.fbfx-gal-bubble::after {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: 50%;
+  margin-top: -4px;
+  border-style: solid;
+  border-width: 4px 6px 4px 0;
+  border-color: transparent #ffffff transparent transparent;
+}
+.fbfx-gal-bubble.pop {
+  transform: scale(1.05);
+}
+
+/* Puppy Pepper hit button bottom-right */
+.fbfx-gal-dog {
+  position: absolute;
+  width: 68px;
+  height: 74px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: auto;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Dynamic directional cast shadow on cards responding to flashlight position */
+html.fbfx-gallery-night .fb-board-stage article.kanban-card[data-card-id],
+html.fbfx-gallery-night .board-swimlane-scroll article.kanban-card[data-card-id] {
+  box-shadow: var(--gal-shx, 0px) var(--gal-shy, 12px) 28px -6px rgba(2, 6, 18, var(--gal-sha, 0.65)) !important;
+  transition: box-shadow .08s linear;
+}
+html.fbfx-gallery-day .fb-board-stage article.kanban-card[data-card-id],
+html.fbfx-gallery-day .board-swimlane-scroll article.kanban-card[data-card-id] {
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.1) !important;
+}
+
+/* =========================================================================
+   Light FX · 1-Click Popover Menu Picker (.fbfx-picker)
+   ========================================================================= */
+.fbfx-picker {
+  position: fixed;
+  z-index: 2147483640;
+  width: 284px;
+  padding: 10px;
+  border-radius: 20px;
+  background: rgba(15, 23, 42, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.52), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  backdrop-filter: blur(24px) saturate(190%);
+  color: #f8fafc;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  opacity: 0;
+  transform: scale(0.94) translateY(4px);
+  transition: opacity .16s ease, transform .2s cubic-bezier(.2,.9,.3,1.15);
+  pointer-events: none;
+}
+.fbfx-picker.open {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
+}
+body.theme-white .fbfx-picker {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(15, 23, 42, 0.12);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.2), inset 0 1px 0 #ffffff;
+  color: #0f172a;
+}
+.fbfx-pk-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 6px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}
+.fbfx-pk-off {
+  border: 0;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font: 600 11px/1.2 inherit;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.12);
+  color: inherit;
+  transition: background .15s;
+}
+body.theme-white .fbfx-pk-off { background: rgba(15, 23, 42, 0.08); }
+.fbfx-pk-off:hover { background: rgba(239, 68, 68, 0.25); }
+.fbfx-pk-off.is-off { opacity: 0.45; }
+
+.fbfx-pk-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.fbfx-pk-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, transform .12s;
+}
+body.theme-white .fbfx-pk-item {
+  border-color: rgba(15, 23, 42, 0.08);
+  background: rgba(15, 23, 42, 0.035);
+}
+.fbfx-pk-item:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+body.theme-white .fbfx-pk-item:hover {
+  background: rgba(15, 23, 42, 0.08);
+}
+.fbfx-pk-item:active { transform: scale(0.97); }
+.fbfx-pk-item.wide {
+  grid-column: 1 / -1;
+}
+.fbfx-pk-item.active {
+  background: rgba(250, 204, 21, 0.2);
+  border-color: var(--pk-col, #facc15);
+  box-shadow: 0 0 14px rgba(250, 204, 21, 0.18);
+}
+body.theme-white .fbfx-pk-item.active {
+  background: rgba(250, 204, 21, 0.18);
+}
+.fbfx-pk-ico {
+  width: 28px; height: 28px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--pk-col, #e2e8f0);
+}
+body.theme-white .fbfx-pk-ico {
+  background: rgba(15, 23, 42, 0.07);
+}
+.fbfx-pk-txt {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.fbfx-pk-txt b {
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fbfx-pk-txt small {
+  font-size: 10px;
+  opacity: 0.62;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.fbfx-pk-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(250, 204, 21, 0.24);
+  color: #fde047;
+  letter-spacing: 0.04em;
+}
+body.theme-white .fbfx-pk-badge {
+  background: rgba(234, 179, 8, 0.2);
+  color: #a16207;
 }

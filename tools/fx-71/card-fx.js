@@ -126,3 +126,189 @@
   window.MinestCardFX = { set: set, sync: sync, get mode() { return mode; }, modes: MODES.slice() };
   read();
 })();
+
+/* Minest · Light FX 1-Click Popover Picker (tools/fx-71).
+   Tapping any Light FX button opens a sleek popover menu to pick any FX directly. */
+(function () {
+  'use strict';
+  if (window.MinestLightFXPicker) return;
+
+  var ITEMS = [
+    { id: 'gallery', zh: '美术馆夜灯', en: 'Art Gallery · 拉绳与手电筒', ico: '◒', col: '#facc15', wide: true, badge: 'NEW' },
+    { id: 'lasers',  zh: '激光秀',     en: 'Lasers',    ico: '⟡', col: '#c084fc' },
+    { id: 'firework',zh: '烟花',       en: 'Firework',  ico: '✺', col: '#fbbf24' },
+    { id: 'spotlight',zh: '聚光灯',    en: 'Spotlight', ico: '◎', col: '#f1f5f9' },
+    { id: 'neon',    zh: '霓虹灯箱',   en: 'Neon',      ico: '◈', col: '#fb7185' },
+    { id: 'aurora',  zh: '极光',       en: 'Aurora',    ico: '≈', col: '#34e3a4' },
+    { id: 'meteor',  zh: '流星雨',     en: 'Meteor',    ico: '☄', col: '#7db8ff' },
+    { id: 'disco',   zh: '迪斯科',     en: 'Disco',     ico: '❖', col: '#ff5fc4' }
+  ];
+
+  var menuEl = null, anchorNow = null, closeTimer = 0;
+
+  function curMode() {
+    return (window.FBFX && window.FBFX.mode) || 'none';
+  }
+
+  function syncButtons() {
+    try { if (typeof window.__syncFxTab === 'function') window.__syncFxTab(); } catch (e) {}
+    try {
+      var cmLfx = document.querySelector('#cm-bar .lfx-k');
+      if (cmLfx) cmLfx.classList.toggle('on', curMode() !== 'none');
+    } catch (e) {}
+  }
+
+  function applyPick(id) {
+    if (!window.FBFX) return;
+    var target = (id === curMode() && id !== 'none') ? 'none' : id;
+    window.FBFX.setMode(target);
+    try { if (window.SoundEngine && SoundEngine.play) SoundEngine.play('click'); } catch (e) {}
+    try { if (window.MinestNative && MinestNative.haptic) MinestNative.haptic('selection'); } catch (e) {}
+    syncButtons();
+    renderState();
+    closeMenu();
+  }
+
+  function ensureMenu() {
+    if (menuEl && menuEl.parentNode) return menuEl;
+    menuEl = document.createElement('div');
+    menuEl.id = 'fbfx-picker-menu';
+    menuEl.className = 'fbfx-picker fbfx-gal-ui';
+    menuEl.setAttribute('role', 'menu');
+    menuEl.setAttribute('aria-label', '选择 Light FX 光效');
+
+    var head = document.createElement('div');
+    head.className = 'fbfx-pk-head';
+    head.innerHTML = '<span>✦ Light FX · 选择光效</span>';
+    var offBtn = document.createElement('button');
+    offBtn.type = 'button';
+    offBtn.className = 'fbfx-pk-off fbfx-gal-ui';
+    offBtn.textContent = '关闭 Off';
+    offBtn.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      applyPick('none');
+    });
+    head.appendChild(offBtn);
+    menuEl.appendChild(head);
+
+    var grid = document.createElement('div');
+    grid.className = 'fbfx-pk-grid';
+    ITEMS.forEach(function (it) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'fbfx-pk-item fbfx-gal-ui' + (it.wide ? ' wide' : '');
+      b.setAttribute('data-fx-pick', it.id);
+      b.setAttribute('role', 'menuitemradio');
+      b.style.setProperty('--pk-col', it.col);
+      b.innerHTML =
+        '<span class="fbfx-pk-ico">' + it.ico + '</span>' +
+        '<span class="fbfx-pk-txt"><b>' + it.zh + '</b><small>' + it.en + '</small></span>' +
+        (it.badge ? '<span class="fbfx-pk-badge">' + it.badge + '</span>' : '');
+      b.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        applyPick(it.id);
+      });
+      grid.appendChild(b);
+    });
+    menuEl.appendChild(grid);
+
+    ['pointerdown', 'click', 'touchstart'].forEach(function (evName) {
+      menuEl.addEventListener(evName, function (e) { e.stopPropagation(); });
+    });
+
+    document.body.appendChild(menuEl);
+    return menuEl;
+  }
+
+  function renderState() {
+    if (!menuEl) return;
+    var m = curMode();
+    var offBtn = menuEl.querySelector('.fbfx-pk-off');
+    if (offBtn) {
+      offBtn.classList.toggle('is-off', m === 'none');
+      offBtn.textContent = m === 'none' ? '已关闭' : '关闭 Off';
+    }
+    var btns = menuEl.querySelectorAll('.fbfx-pk-item');
+    for (var i = 0; i < btns.length; i++) {
+      var on = btns[i].getAttribute('data-fx-pick') === m;
+      btns[i].classList.toggle('active', on);
+      btns[i].setAttribute('aria-checked', on ? 'true' : 'false');
+    }
+  }
+
+  function positionMenu(anchor) {
+    var el = ensureMenu();
+    renderState();
+    var r = anchor && anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : null;
+    if (!r || (!r.width && !r.height)) {
+      var fallback = document.querySelector('.mn-looks-btn, .bar-fx-btn[aria-label="Light FX"], .dock-fx-tab, .fbfx-btn');
+      r = fallback ? fallback.getBoundingClientRect() : { left: innerWidth / 2 - 20, right: innerWidth / 2 + 20, top: innerHeight - 70, bottom: innerHeight - 30, width: 40, height: 40 };
+    }
+    var mw = 284, mh = el.offsetHeight || 276;
+    var cx = r.left + r.width / 2;
+    var left = Math.max(10, Math.min(innerWidth - mw - 10, Math.round(cx - mw / 2)));
+    var openAbove = r.top > innerHeight * 0.52 || (innerHeight - r.bottom < mh + 18 && r.top > mh + 12);
+    var top = openAbove ? Math.max(10, Math.round(r.top - mh - 10)) : Math.min(innerHeight - mh - 10, Math.round(r.bottom + 10));
+    el.style.left = left + 'px';
+    el.style.top = top + 'px';
+  }
+
+  function openMenu(anchor) {
+    clearTimeout(closeTimer);
+    var el = ensureMenu();
+    if (el.classList.contains('open') && anchorNow === anchor) {
+      closeMenu();
+      return;
+    }
+    anchorNow = anchor || null;
+    positionMenu(anchor);
+    void el.offsetWidth;
+    el.classList.add('open');
+  }
+
+  function closeMenu() {
+    anchorNow = null;
+    if (!menuEl || !menuEl.classList.contains('open')) return;
+    menuEl.classList.remove('open');
+  }
+
+  function findLightFxTrigger(target) {
+    if (!target || !target.closest) return null;
+    if (target.closest('#fbfx-picker-menu')) return null;
+    return target.closest(
+      '.bar-fx-btn[aria-label="Light FX"], ' +
+      '.ios-tab-item.dock-fx-tab, ' +
+      '.fbfx-btn, ' +
+      '.mn-bapp[aria-label^="Light FX"], ' +
+      '.student-game-float-btn[title^="Light FX"], ' +
+      '#cm-bar .lfx-k'
+    );
+  }
+
+  // Intercept clicks on any Light FX button in capture phase to open the popover menu instead of cycling!
+  window.addEventListener('click', function (e) {
+    var btn = findLightFxTrigger(e.target);
+    if (!btn) return;
+    if (btn.classList.contains('fbfx-btn') && (e.shiftKey || e.altKey)) return; // Preserve Shift+click intro replay
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    openMenu(btn);
+  }, true);
+
+  document.addEventListener('pointerdown', function (e) {
+    if (!menuEl || !menuEl.classList.contains('open')) return;
+    if (menuEl.contains(e.target) || findLightFxTrigger(e.target)) return;
+    closeMenu();
+  }, true);
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeMenu();
+  });
+
+  window.addEventListener('resize', function () {
+    if (menuEl && menuEl.classList.contains('open')) positionMenu(anchorNow);
+  });
+  window.addEventListener('fbfx:mode', renderState);
+
+  window.MinestLightFXPicker = { open: openMenu, close: closeMenu, pick: applyPick };
+})();
