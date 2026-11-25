@@ -9,16 +9,84 @@ import ENGLISH from './english.json';
   const esc = v => text(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const comparable = v => text(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g,'').toLowerCase();
   let root = null, selected = '', oldFocus = null, overflow = '', pinyin = true, utterance = null;
+  let fromManager = false, homeNeedsRefresh = false, returnWatcher = null, returnEpoch = 0;
   function stop() {
     if (utterance && window.speechSynthesis) window.speechSynthesis.cancel();
     utterance = null;
     if (root) root.querySelectorAll('[aria-pressed="true"]').forEach(b => b.setAttribute('aria-pressed', 'false'));
   }
-  function close() {
+  function close(handoff = false) {
     if (!root) return;
     stop(); const modal = root; root = null;
     modal.close(); modal.remove(); document.body.style.overflow = overflow;
     if (oldFocus && oldFocus.isConnected) oldFocus.focus({preventScroll:true});
+    if (!handoff) {
+      if (fromManager && !document.getElementById('minest-wordlists') && window.MinestWordlists) MinestWordlists.open();
+      else if (homeNeedsRefresh && !fromManager && window.MinestLive && MinestLive.openTeacher) MinestLive.openTeacher();
+      homeNeedsRefresh = false;
+    }
+  }
+  function cancelReturn() {
+    returnEpoch++;
+    if (returnWatcher) returnWatcher.disconnect();
+    returnWatcher = null;
+  }
+  function resumeAfter(selector, getId) {
+    cancelReturn(); const epoch = returnEpoch;
+    function check() {
+      if (document.querySelector(selector)) return;
+      if (returnWatcher) returnWatcher.disconnect();
+      returnWatcher = null;
+      setTimeout(() => {
+        if (epoch !== returnEpoch || root || document.querySelector('#mn-set-editor,#mn-templates,#v3t')) return;
+        open(getId(), {resume:true});
+      }, 0);
+    }
+    returnWatcher = new MutationObserver(check);
+    returnWatcher.observe(document.body, {childList:true,subtree:true});
+    check();
+  }
+  function actionError(error, id) {
+    if (!root) open(id, {resume:true});
+    const message = root.querySelector('[data-wp-action-error]');
+    if (message) message.textContent = error.message || String(error);
+  }
+  function launch(action) {
+    const id = selected;
+    try {
+      const S = window.MinestTeachingSets, state = snapshot(id), board = S.read(), listId=state.list.id;
+      if (action === 'export') {
+        if (!window.MinestTeachingExport || !MinestTeachingExport.download) throw new Error('导出功能仍在加载，请稍后再试。');
+        Promise.resolve(MinestTeachingExport.download(listId)).catch(e => actionError(e, id));
+        return;
+      }
+      if (action === 'teaching' && !S.open || action === 'solo' && !S.arcade || action === 'edit' && !S.edit) throw new Error('教学功能仍在加载，请稍后再试。');
+      if (['teaching','solo','assign'].includes(action) && !state.cards.some(c => c.zh)) throw new Error('先给这组词表添加词卡，再开始教学或闯关。');
+      if (action === 'assign' && (!window.MinestVocab3D || !MinestVocab3D.assign)) throw new Error('布置功能仍在加载，请稍后再试。');
+      if (action === 'manage' && !window.MinestWordlists) throw new Error('词表管理仍在加载，请稍后再试。');
+      cancelReturn(); close(true);
+      if (action !== 'manage' && document.getElementById('minest-wordlists') && window.MinestWordlists) MinestWordlists.close();
+      if (action === 'teaching') {
+        if (window.MinestLive) MinestLive.close();
+        S.open({board, listId});
+      } else if (action === 'solo') S.arcade(listId);
+      else if (action === 'edit') {
+        let editedId = id;
+        homeNeedsRefresh=true;
+        S.edit(listId, {onSave(result) { editedId=result && result.listId || id; }});
+        resumeAfter('#mn-set-editor', () => editedId);
+      } else if (action === 'assign') {
+        MinestVocab3D.assign(board, {listIds:[listId]});
+        resumeAfter('#v3t', () => id);
+      } else if (action === 'manage') Promise.resolve(MinestWordlists.open()).catch(e => actionError(e, id));
+    } catch (error) { actionError(error, id); }
+  }
+  function openHome() {
+    try {
+      const board=window.MinestTeachingSets.read(), lists=board.columns || [];
+      const list=lists.find(c=>String(c.id)===selected) || lists.find(c=>String(c.id)===String(board.selected)) || lists.find(c=>!c.teachingListArchived) || lists[0];
+      if (list) open(list.id);
+    } catch (error) { actionError(error, selected); }
   }
   function safeImage(value) {
     if (typeof value !== 'string' || !value.trim()) return '';
@@ -81,10 +149,13 @@ import ENGLISH from './english.json';
     let state; try { state = snapshot(selected); } catch (e) { main.innerHTML='<section class="cn-card"><p role="alert">'+esc(e.message)+'</p></section>'; return; }
     const {list, lists, cards} = state;
     root.querySelector('[data-wp-subtitle]').textContent = list.title || '教学词表';
-    main.innerHTML='<div class="wp-picker"><label>切换词表<select data-wp-group aria-label="切换词表">'+lists.map(c => '<option value="'+esc(c.id)+'"'+(String(c.id)===String(selected)?' selected':'')+'>'+esc(c.title)+(c.teachingListArchived?' · 已归档':'')+'</option>').join('')+'</select></label></div>'
+    const playable=cards.some(c=>c.zh), S=window.MinestTeachingSets;
+    main.innerHTML='<div class="wp-picker"><label>切换词表<select data-wp-group aria-label="切换词表">'+lists.map(c => '<option value="'+esc(c.id)+'"'+(String(c.id)===String(selected)?' selected':'')+'>'+esc(c.title)+(c.teachingListArchived?' · 已归档':'')+'</option>').join('')+'</select></label><button type="button" class="wp-secondary" data-wp-action="manage">管理词表</button></div>'
+      +'<nav class="wp-actions" aria-label="当前词表的教学操作"><button type="button" class="wp-teaching" data-wp-action="teaching"'+(playable && S.open?'':' disabled')+'><b>▦ Teaching</b><small>开始上课</small></button><button type="button" class="wp-solo" data-wp-action="solo"'+(playable && S.arcade?'':' disabled')+'><b>🎮 Solo</b><small>学生闯关</small></button><button type="button" class="wp-secondary" data-wp-action="edit"'+(S.edit?'':' disabled')+'>✎ 编辑词表</button><button type="button" class="wp-secondary" data-wp-action="assign"'+(playable && !list.teachingListArchived && window.MinestVocab3D?'':' disabled')+'>🎓 布置给学生</button><button type="button" class="wp-secondary" data-wp-action="export">↑ 导出词表</button></nav><p class="wp-action-error" data-wp-action-error role="alert"></p>'
       +'<section class="cn-card"><div class="cn-row wp-title"><h2>📚 '+esc(list.title)+' · '+cards.length+' 个词</h2><label class="cn-switch"><input type="checkbox" data-wp-pinyin '+(pinyin?'checked':'')+'>拼音辅助</label></div><p>每个汉字上方显示已有或本地生成的声调拼音。点词卡，听发音。</p>'
       +'<div class="cn-grid">'+cards.map((w,i) => '<button type="button" class="cn-word'+(Array.from(w.zh).length>10?' wp-long':'')+'" data-wp-word="'+i+'" aria-pressed="false"'+(w.zh?'':' disabled')+' aria-label="'+esc(w.zh?'朗读 '+w.zh:'空白词卡')+'">'+(w.image?'<img class="wp-image" src="'+esc(w.image)+'" alt="'+esc(w.zh)+'" loading="lazy" decoding="async">':'')+'<span class="cn-icon"'+(w.image?' hidden':'')+' aria-hidden="true">'+esc(w.icon)+'</span>'+ruby(w)+'<span class="cn-english'+(w.en?'':' wp-missing')+'">'+esc(w.en || '暂无英文释义')+'</span></button>').join('')+'</div>'
-      +(cards.length?'':'<div class="wp-empty">📚<p>这组还没有可预览的词卡。</p></div>')+'<p class="cn-note" data-wp-voice role="status" aria-live="polite">点击词卡，听发音。预览不会改动词表。</p></section>';
+      +(cards.length?'':'<div class="wp-empty">📚<p>这组还没有词卡，点击“编辑词表”开始添加。</p></div>')+'<p class="cn-note" data-wp-voice role="status" aria-live="polite">点击词卡，听发音。</p></section>';
+    main.querySelectorAll('[data-wp-action]').forEach(button => { button.onclick=()=>launch(button.dataset.wpAction); });
     main.querySelector('[data-wp-group]').onchange = e => { selected=e.target.value; draw(); root.querySelector('[data-wp-group]').focus({preventScroll:true}); main.scrollTop=0; };
     main.querySelector('[data-wp-pinyin]').onchange = e => {
       pinyin=e.target.checked;
@@ -93,14 +164,16 @@ import ENGLISH from './english.json';
     main.querySelectorAll('[data-wp-word]').forEach(button => { button.onclick=() => say(cards[+button.dataset.wpWord],button); });
     main.querySelectorAll('.wp-image').forEach(image => { image.onerror=() => { image.hidden=true; image.parentElement.querySelector('.cn-icon').hidden=false; }; });
   }
-  function open(id) {
+  function open(id, options = {}) {
+    cancelReturn();
     selected=String(id);
     if (root) { draw(); return; }
-    oldFocus=document.activeElement; overflow=document.body.style.overflow; pinyin=true;
-    root=document.createElement('dialog'); root.id=ID; root.lang='zh-CN'; root.setAttribute('aria-label','词卡预览');
-    root.innerHTML='<header><strong>📚 词卡预览<small data-wp-subtitle></small></strong><button type="button" data-wp-close aria-label="关闭词卡预览">✕ 关闭</button></header><main></main>';
+    if (!options.resume) { oldFocus=document.activeElement; fromManager=!!document.getElementById('minest-wordlists'); homeNeedsRefresh=false; }
+    overflow=document.body.style.overflow; pinyin=true;
+    root=document.createElement('dialog'); root.id=ID; root.lang='zh-CN'; root.setAttribute('aria-label','词卡预览页');
+    root.innerHTML='<header><strong>📚 词卡预览页<small data-wp-subtitle></small></strong><button type="button" data-wp-close aria-label="返回词表">← 返回词表</button></header><main></main>';
     document.body.appendChild(root); document.body.style.overflow='hidden';
-    root.querySelector('[data-wp-close]').onclick=close;
+    root.querySelector('[data-wp-close]').onclick=()=>close();
     root.addEventListener('cancel',e=>{e.preventDefault();close();});
     ['click','keydown','pointerdown','wheel'].forEach(type => root.addEventListener(type,e=>e.stopPropagation(),{passive:true}));
     draw(); root.showModal(); root.querySelector('[data-wp-close]').focus({preventScroll:true});
@@ -116,11 +189,22 @@ import ENGLISH from './english.json';
       const button=document.createElement('button'); button.type='button'; button.className=edit.className; button.textContent='预览词卡'; button.setAttribute('data-wordlist-preview',id);
       button.onclick=e=>{e.preventDefault();e.stopPropagation();open(id);}; edit.after(button);
     });
+    const homes=[];
+    if (scope.matches && scope.matches('[data-teaching-sets]')) homes.push(scope);
+    if (scope.closest) { const home=scope.closest('[data-teaching-sets]'); if(home) homes.push(home); }
+    if (scope.querySelectorAll) homes.push(...scope.querySelectorAll('[data-teaching-sets]'));
+    homes.forEach(home => {
+      const toolbar=home.querySelector('.tl-toolbar');
+      if (!toolbar || home.querySelector('[data-wordlist-preview-home]')) return;
+      const button=document.createElement('button');button.type='button';button.className='mlv-btn alt';button.textContent='▦ 词卡预览页';button.setAttribute('data-wordlist-preview-home','');
+      try { button.disabled=!(MinestTeachingSets.read().columns || []).length; } catch (_) { button.disabled=true; }
+      button.onclick=openHome;toolbar.prepend(button);
+    });
   }
   function start() {
     enhance(document);
-    new MutationObserver(records=>records.forEach(record=>record.addedNodes.forEach(node=>{ if (node.nodeType===1 && !node.hasAttribute('data-wordlist-preview')) enhance(node); }))).observe(document.body,{childList:true,subtree:true});
+    new MutationObserver(records=>records.forEach(record=>record.addedNodes.forEach(node=>{ if (node.nodeType===1 && !node.hasAttribute('data-wordlist-preview') && !node.hasAttribute('data-wordlist-preview-home')) enhance(node); }))).observe(document.body,{childList:true,subtree:true});
   }
-  window.MinestWordlistPreview={open,close};
+  window.MinestWordlistPreview={open,close:()=>{cancelReturn();close();},openHome};
   if (document.body) start(); else document.addEventListener('DOMContentLoaded',start,{once:true});
 })();

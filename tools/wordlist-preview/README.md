@@ -1,8 +1,9 @@
 # Per-list word card preview
 
-Adds one “预览词卡” button beside each existing word-list Edit button in the
-Teaching Sets panel and word-list manager. All original teacher, student,
-Learn Chinese, editor and cloud-sync code remains unchanged.
+Adds a “词卡预览页” entry in the teacher home vocabulary toolbar and a per-list
+“预览词卡” button beside the existing Edit buttons. Both open the same list page
+and share the current Teaching Sets store. Original teacher/student launchers,
+Learn Chinese, editor and cloud-sync code remain unchanged.
 
 The native preview dialog mirrors the existing Learn Chinese cards: picture or
 emoji, tone-mark pinyin, Chinese front, English subtitle and click-to-speak.
@@ -11,8 +12,9 @@ and supports the pinyin visibility switch. Empty and archived groups are support
 
 Metadata priority: saved card fields, saved teaching assets, existing template
 read metadata, then local pinyin/English fallbacks. `english.json` is the existing
-347-entry editor glossary copied for read-only use. No AI calls, store writes,
-progress changes or changes to the saved Learn Chinese course are made.
+347-entry editor glossary copied for read-only use. Browsing and speaking make no AI calls, store writes or progress changes, and
+never replace the saved Learn Chinese course. Explicit toolbar actions delegate
+to the existing teacher APIs: Teaching, Solo, editing, assignment and export.
 
 Image URLs are restricted to image data, blob and HTTP(S) resources; broken
 images fall back to an emoji. Text and group names are escaped before rendering.
@@ -34,3 +36,21 @@ English fallback, speech callbacks, empty groups, archived words, image failure,
 long text, markup escaping, nested modal lifecycle and focus return, with no
 store writes. Scope checks compare all seven pages with the production baseline
 and parse the built JavaScript and CSS. A local preview uses isolated sample data.
+
+## Integrated teaching actions
+
+Teaching calls `MinestTeachingSets.open` with the current board and selected list;
+Solo calls `MinestTeachingSets.arcade` with that same ID. Assignment calls
+`MinestVocab3D.assign` with the selected list preselected, and export uses
+`MinestTeachingExport.download`. Management uses the existing word-list manager.
+
+Before switching into an activity the native preview and any parent library
+dialog are closed, keeping the destination visible. Editor cancellation/save and
+assignment closure return to the selected preview unless the editor itself
+launched a teaching activity. Saved edits are read afresh and the teacher home
+refreshes through its existing entry point on return. No duplicate vocabulary
+store or game launcher is introduced.
+
+Integration checks cover selected-list Teaching/Solo/export/assignment routing,
+editor save/cancel return, refreshed title/count data, the home shortcut, empty
+list guards, archived assignment guards and nested dialog handoffs.
