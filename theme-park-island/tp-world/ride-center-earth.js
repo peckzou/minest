@@ -11,10 +11,12 @@
   var K = root.TPRideKit; if (!K || !K.look) return;
   K.ready(function (API) {
     var T = API.THREE, PI = Math.PI, sm = K.sm, tr = K.tr;
-    var NEMO = ['尼摩船长', 'Captain Nemo'];
+    var NEMO = ['尼摩船长', 'Captain Nemo', { pitch: 0.8, rate: 0.9 }];
     var A = K.stage(API, { id: 'center_earth', x: 240, z: 585, oy: 2200, gap: 1400, name: tr('地心探险（Journey to the Center of the Earth）', 'Journey to the Center of the Earth'), icon: '🌋',
       quest: tr('到地心去探险', 'Journey to the center of the Earth'), tip: tr('神秘岛的火山口', 'The volcano on Mysterious Island'), eye: 2.0 });
     var L = A.L, once = A.once, st = A.st, pose = A.pose;
+    /* everything below is built the first time someone boards, not when the park loads */
+    A.run(function () {
     function sky(g, col, r) { var m = new T.Mesh(new T.SphereGeometry(r || 900, 16, 12), new T.MeshBasicMaterial({ color: col, side: T.BackSide, fog: false, depthWrite: false })); m.renderOrder = -10; g.add(m); return m; }
 
     /* ================================================================ 1 · Nemo's laboratory */
@@ -300,17 +302,26 @@
 
     /* ================================================================ the score */
     var score = null, hum = null;
-    function music() { return K.score({ bpm: 96, vol: 0.5, lead: { wave: 'triangle', vol: 0.11, pluck: 0.5, lp: 3600 }, lead2: { wave: 'sawtooth', vol: 0.06, lp: 1500, vib: 0.006, a: 0.06, r: 0.2 }, bass: { wave: 'triangle', vol: 0.17, lp: 420 }, pad: { vol: 0.035, lp: 820 }, percVol: 0.12,
+    function music() { return K.score({ bpm: 84, step: 2, vol: 0.5, inst: { lead: 'celesta', lead2: 'flute', bass: 'bass', pad: 'strings' },
       sections: {
-        lab: { lead: 'a4 - c5 e5 d5 - c5 b4 | a4 - e4 a4 g#4 - - .', pad: 'Am - - - - - - - Dm - - - E - - -', bass: 'a2 - - - e2 - - - d2 - - - e2 - - -' },
-        down: { lead2: 'e3 - - - - - - - | f3 - - - - - - -', pad: 'Em - - - - - - - F - - - - - - -', bass: 'e2 . . e2 . . e2 . | f2 . . f2 . . f2 .', perc: 't . . . . . . .' },
-        wonder: { lead: 'c5 e5 g5 c6 g5 e5 c5 e5 | a4 c5 e5 a5 e5 c5 a4 c5 | f4 a4 c5 f5 c5 a4 f4 a4 | g4 b4 d5 g5 d5 b4 g4 b4', lead2: 'e5 - - - - - g5 - | e5 - - - - - c5 - | a4 - - - - - c5 - | d5 - - - - - - -', pad: 'C - - - - - - - Am - - - - - - - F - - - - - - - G - - - - - - -', bass: 'c2 - - - - - - - a1 - - - - - - - f2 - - - - - - - g2 - - - - - - -' },
-        forest: { lead: 'e5 . g5 . a5 g5 e5 . | d5 . f5 . g5 f5 d5 . | c5 . e5 . g5 e5 c5 . | d5 e5 f5 g5 a5 - - .', pad: 'C - - - - - - - Dm - - - - - - - Am - - - - - - - G - - - - - - -', bass: 'c2 . g2 . c2 . g2 . | d2 . a2 . d2 . a2 . | a1 . e2 . a1 . e2 . | g2 . d2 . g2 . b2 .', perc: 'h . . h . . h .' },
-        sea: { lead2: 'e4 - - - g4 - - - | a4 - - - - - g4 - | e4 - - - d4 - - - | e4 - - - - - - -', pad: 'Em - - - - - - - C - - - - - - - Em - - - - - - - D - - - - - - -', bass: 'e2 - - - - - - - c2 - - - - - - - e2 - - - - - - - d2 - - - - - - -' },
-        danger: { lead2: 'e4 e4 f4 e4 e4 f4 g4 f4 | e4 e4 f4 e4 a4 g#4 f4 e4', bass: 'e2 . e2 . e2 . e2 . | e2 . e2 . f2 . f2 .', pad: 'Em - - - - - - - F - - - - - - -', perc: 'k . h . k . h h' },
-        monster: { lead2: 'd4 - - - d#4 - - - | f4 - - - g#4 - - -', bass: 'd2 - d2 d2 . d2 d#2 - | d2 - d2 d2 . f2 d#2 -', pad: 'Ddim - - - - - - - Ddim - - - - - - -', perc: 'k . t t k . t s' },
-        escape: { lead: 'a5 e5 a5 c6 b5 e5 b5 d6 | c6 a5 c6 e6 d6 b5 g#5 e5', bass: 'a2 a2 a2 a2 e2 e2 e2 e2 | f2 f2 f2 f2 e2 e2 e2 e2', pad: 'Am - - - E - - - F - - - E - - -', perc: 'k h s h k h s h' },
-        finale: { lead: 'c5 e5 g5 c6 - - g5 - | a5 - g5 - e5 - c5 - | f5 a5 c6 f6 - - e6 - | d6 - g5 - c6 - - -', lead2: 'e4 - - - g4 - - - | e4 - - - c4 - - - | a4 - - - c5 - - - | b4 - - - c5 - - -', pad: 'C - - - - - - - Am - - - - - - - F - - - - - - - G - - - C - - -', bass: 'c2 - - - c2 - - - a1 - - - a1 - - - f2 - - - f2 - - - g2 - - - c2 - - -', perc: 'k . h . s . h .' } } }); }
+        /* the laboratory: a curious little tune on the celesta over strings */
+        lab: { lead: 'd5 - f5 a5 g5 - e5 - | f5 - a5 d6 c#6 - - - | d5 - f5 a5 bb5 - g5 - | a5 g5 f5 e5 d5 - - -', pad: 'Dm - - - - - - - | Dm - - - A - - - | Bb - - - Gm - - - | A - - - Dm - - -', bass: 'd2 - - - a2 - - - | d2 - - - a1 - - - | bb1 - - - g1 - - - | a1 - - - d2 - - -' },
+        /* going down: cellos, and a far-off drum */
+        down: { inst: { lead2: 'cello' }, lead2: 'd3 - - - - - - - | e3 - - - - - - - | f3 - - - - - - - | e3 - - - c#3 - - -', pad: 'Dm - - - - - - - | Dm - - - - - - - | Dm - - - - - - - | A - - - - - - -', perc: 't . . . . . g . | . . . . . . . .', mix: { lead2: 0.26, perc: 0.22 } },
+        /* the crystal cavern: harp arpeggios, a flute above them */
+        wonder: { inst: { lead: 'harp' }, lead: 'f3 a3 c4 f4 a4 f4 c4 a3 | d3 f3 a3 d4 f4 d4 a3 f3 | bb2 d3 f3 bb3 d4 bb3 f3 d3 | c3 e3 g3 c4 e4 c4 g3 e3', lead2: 'a5 - - - c6 - a5 - | f5 - - - a5 - - - | d6 - - - c6 - bb5 - | g5 - - - - - - .', pad: 'F - - - - - - - | Dm - - - - - - - | Bb - - - - - - - | C - - - - - - -', bass: 'f2 - - - - - - - | d2 - - - - - - - | bb1 - - - - - - - | c2 - - - - - - -', mix: { lead: 0.26 } },
+        /* the mushroom forest: a marimba skipping along, a woodblock */
+        forest: { inst: { lead: 'marimba' }, lead: 'f5 . a5 . c6 a5 f5 . | g5 . bb5 . d6 bb5 g5 . | a5 . c6 . f6 c6 a5 . | g5 a5 bb5 c6 d6 . c6 .', lead2: 'c5 - - - - - - - | d5 - - - - - - - | f5 - - - - - - - | e5 - - - - - - -', bass: 'f2 . c3 . f2 . c3 . | g2 . d3 . g2 . d3 . | f2 . c3 . a2 . c3 . | c2 . g2 . c3 . e3 .', pad: 'F - - - - - - - | Gm - - - - - - - | F - - - - - - - | C - - - - - - -', perc: 'w . h . w h h .', mix: { lead: 0.34, lead2: 0.12, perc: 0.2 } },
+        /* the underground sea: a horn calling over slow harp ripples */
+        sea: { inst: { lead: 'harp', lead2: 'horn' }, lead2: 'd4 - - - a4 - - - | g4 - - - f4 - e4 - | f4 - - - c5 - - - | a4 - - - - - - -', lead: 'd3 a3 d4 f4 a4 f4 d4 a3 | g2 d3 g3 bb3 d4 bb3 g3 d3 | f2 c3 f3 a3 c4 a3 f3 c3 | a2 e3 a3 c#4 e4 c#4 a3 e3', pad: 'Dm - - - - - - - | Gm - - - - - - - | F - - - - - - - | A - - - - - - -', mix: { lead: 0.2, lead2: 0.24, pad: 0.09 } },
+        /* the earthquake and the nest: hurried strings, timpani */
+        danger: { inst: { lead2: 'fiddle' }, lead2: 'd4 d4 f4 d4 e4 e4 g4 e4 | f4 f4 a4 f4 e4 e4 c#4 e4', bass: 'd2 . d2 . d2 . d2 . | d2 . d2 . a1 . a1 .', pad: 'Dm - - - - - - - | Dm - - - A - - -', perc: 't . h . t . h h', mix: { lead2: 0.16 } },
+        /* the monster: low horns, drums */
+        monster: { inst: { lead2: 'horn', bass: 'cello' }, lead2: 'd3 - - eb3 d3 - - - | f3 - - e3 d3 - c#3 -', bass: 'd2 - - - d2 - eb2 - | d2 - - - f2 - e2 -', pad: 'Ddim - - - - - - - | Ddim - - - A - - -', perc: 'g . t t k . t s', mix: { lead2: 0.3, bass: 0.22, perc: 0.34 } },
+        /* the escape: fiddles racing, horns under them */
+        escape: { inst: { lead: 'fiddle', lead2: 'horn' }, lead: 'd5 a4 d5 f5 e5 a4 e5 g5 | f5 d5 f5 a5 g5 e5 c#5 a4', lead2: 'd4 - - - e4 - - - | f4 - - - a4 - - -', bass: 'd2 d2 d2 d2 a1 a1 a1 a1 | bb1 bb1 bb1 bb1 a1 a1 a1 a1', pad: 'Dm - - - A - - - | Bb - - - A - - -', perc: 'k h s h k h s h', mix: { lead: 0.18, lead2: 0.24 } },
+        /* daylight: the horn takes the tune home in the major */
+        finale: { inst: { lead: 'harp', lead2: 'horn' }, lead2: 'f4 - a4 c5 f5 - - c5 | d5 - c5 - a4 - f4 - | bb4 - d5 f5 bb5 - a5 - | g5 - c5 - f5 - - -', lead: 'f3 a3 c4 f4 a4 f4 c4 a3 | d3 f3 a3 d4 f4 d4 a3 f3 | bb2 d3 f3 bb3 d4 bb3 f3 d3 | c3 e3 g3 c4 f3 a3 c4 f4', pad: 'F - - - - - - - | Dm - - - - - - - | Bb - - - - - - - | C - - - F - - -', bass: 'f2 - - - c2 - - - | d2 - - - a1 - - - | bb1 - - - f2 - - - | c2 - - - f2 - - -', perc: 'k . h . s . h .', mix: { lead: 0.2, lead2: 0.28, perc: 0.2 } } } }); }
     function sec(name) { if (!score) { score = A.keep(music()); } score.set(name); }
 
     /* ================================================================ the ride */
@@ -366,17 +377,17 @@
       if (ventK > 0) st.shake = Math.max(st.shake, 0.55);
 
       /* the telling of it */
-      if (t > 0.3) once('c0', function () { sec('down'); hum = A.keep(K.bed([41, 41.3, 82.5], 0.03, 'sawtooth', true)); K.line('🚃', NEMO, '勘探车出发。前灯照到哪里，你们就看到哪里——坐稳。', 'The mine car is away. You will see what the headlamps find — sit tight.'); });
+      if (t > 0.3) once('c0', function () { sec('down'); hum = A.keep(K.air({ freq: 320, vol: 0.04, drone: 55, droneVol: 0.035 })); K.line('🚃', NEMO, '勘探车出发。前灯照到哪里，你们就看到哪里——坐稳。', 'The mine car is away. You will see what the headlamps find — sit tight.'); });
       if (z < -48) once('c1', function () { sec('wonder'); K.line('💎', null, '水晶洞——比房子还高的水晶，每一根都自己发着光。', 'The crystal cavern — crystals taller than houses, each one alight from within.'); });
       if (z < -168) once('c2', function () { sec('forest'); K.line('🍄', null, '巨型蘑菇森林。看那些圆眼睛的小家伙——它们从没见过人，一点也不怕。', 'The forest of giant mushrooms. See the round-eyed little ones — they have never met people, and are not afraid at all.'); });
-      if (z < -250) once('c2b', function () { [880, 988, 1175].forEach(function (f0, i) { K.fx(f0, 0.18, 'sine', 0.05, f0 * 1.3, i * 0.14); }); });
+      if (z < -250) once('c2b', function () { ['a5', 'c6', 'f6'].forEach(function (n, i) { K.play('glock', n, 0.4, 0.08, i * 0.14); }); });
       if (z < -306) once('c3', function () { sec('sea'); K.rush(6, 500, 900, 0.07, 0.5); K.line('🌊', null, '地下海！一片看不到边的水，头顶上打着地底的雷电。', 'The underground sea! Water without end, and lightning under the roof of the world.'); });
       if (t > 60.5) once('c4', function () { sec('danger'); K.thud(1.3); K.rush(7, 200, 80, 0.3, 0.4); K.line('⚠️', NEMO, '地震！前面的巷道塌了——勘探车转进了没人到过的岔道！', 'Earthquake! The drift ahead has fallen in — the car is turning into a tunnel no one has explored!'); });
-      if (z < -448) once('c5', function () { K.fx(70, 2.5, 'sawtooth', 0.12, 50, 0, { lp: 300 }); K.line('🥚', null, '好大的蛋……有的已经裂开了。黑暗里，有眼睛在看着我们。', 'Enormous eggs… and some have hatched. In the dark, eyes are watching us.'); });
-      if (z < -536) once('c6', function () { sec('monster'); if (hum) hum.set(0.05, 0.12, 1.3); K.line('🔥', null, '岩浆湖。好烫——有东西在岩浆里动！', 'A lake of lava. The heat — and something is moving in it!'); });
-      if (mt > 2.6) once('c7', function () { K.fx(68, 3.2, 'sawtooth', 0.45, 34, 0, { lp: 700 }); K.fx(102, 3.0, 'square', 0.14, 48, 0.05, { lp: 500 }); K.rush(3.2, 260, 1100, 0.3, 0.5); K.line('👹', null, '熔岩怪物！！', 'The Lava Monster!!'); });
-      if (mt > 11.2) once('c8', function () { K.fx(60, 2.6, 'sawtooth', 0.5, 30, 0, { lp: 800 }); K.rush(2.6, 400, 2600, 0.35, 0.6); });
-      if (t > 98.6) once('c9', function () { sec('escape'); if (score) score.cut('escape'); K.rush(9, 300, 3200, 0.35, 0.5); if (hum) hum.set(0.07, 0.4, 2.2); K.line('🚀', NEMO, '火山要喷发了——全速，从喷口冲上去！', 'The volcano is about to blow — full power, up the vent!'); });
+      if (z < -448) once('c5', function () { K.roar(2.4, 0.14, 0.6); K.line('🥚', null, '好大的蛋……有的已经裂开了。黑暗里，有眼睛在看着我们。', 'Enormous eggs… and some have hatched. In the dark, eyes are watching us.'); });
+      if (z < -536) once('c6', function () { sec('monster'); if (hum) hum.set(0.07, 520); K.line('🔥', null, '岩浆湖。好烫——有东西在岩浆里动！', 'A lake of lava. The heat — and something is moving in it!'); });
+      if (mt > 2.6) once('c7', function () { K.roar(3.4, 0.55, 1); K.line('👹', null, '熔岩怪物！！', 'The Lava Monster!!'); });
+      if (mt > 11.2) once('c8', function () { K.roar(3.0, 0.6, 0.85); K.rush(2.6, 400, 2600, 0.2, 0.6); });
+      if (t > 98.6) once('c9', function () { sec('escape'); if (score) score.cut('escape'); K.rush(9, 300, 3200, 0.35, 0.5); if (hum) hum.set(0.13, 1500); K.line('🚀', NEMO, '火山要喷发了——全速，从喷口冲上去！', 'The volcano is about to blow — full power, up the vent!'); });
       if (t > 106) A.fadeTo(1, '#fff');
     }
     var PH = [
@@ -386,18 +397,18 @@
           if (t > 7.5) once('b', function () { K.line('🗺️', NEMO, '地心电梯会送你们下去。水晶、巨菌、地下的海——都在图上；图上没有的，你们自己去看。', 'The Terravator will take you down. Crystals, giant fungi, a sea under the ground — all on the chart; what is not on the chart, you must see for yourselves.'); }); } },
       { n: tr('地心电梯', 'The Terravator'), sc: 'lift', d: 11, f: function (t, dt) { pose.h = null; pose.p = [0, 1.68, 1.5]; pose.t = [L(0, 1.4, (t - 4) / 3), L(2.0, 2.2, t / 4), -3]; lamp(liftL, false); var v = sm(t / 2) * (1 - sm((t - 9) / 1.6));
           strataTex.offset.y += dt * 0.42 * v; needle.rotation.z = 2.2 - sm(t / 10) * 4.4; st.shake = Math.max(st.shake, 0.14 * v); sparks.visible = v > 0.3; sparks.userData.step(dt, 0, 2, 0, t);
-          if (t > 0.3) once('d', function () { sec('down'); K.fx(60, 9.5, 'sawtooth', 0.12, 38, 0, { lp: 260 }); K.rush(9.5, 300, 180, 0.1, 0.5); K.line('⬇️', null, '地心电梯下降：四百米……八百米……一千六百米……', 'The Terravator descends: four hundred metres… eight hundred… sixteen hundred…'); });
-          if (t > 9.4) once('e', function () { K.thud(0.6); K.fx(1320, 0.5, 'sine', 0.08, 1320); }); } },
+          if (t > 0.3) once('d', function () { sec('down'); K.rush(9.5, 260, 150, 0.12, 0.5); K.line('⬇️', null, '地心电梯下降：四百米……八百米……一千六百米……', 'The Terravator descends: four hundred metres… eight hundred… sixteen hundred…'); });
+          if (t > 9.4) once('e', function () { K.thud(0.6); K.play('glock', 'e6', 0.8, 0.12); }); } },
       { n: tr('地心探险', 'Journey to the center of the Earth'), sc: 'cave', d: 107.4, car: 1, f: caveStep },
       { n: tr('冲出火山', 'Out of the volcano'), sc: 'out', d: 17, cut: 1, car: 1, f: function (t, dt) { var u = t < 2.2 ? L(0.02, 0.2, t / 2.2) : t < 9 ? 0.2 + (t - 2.2) / 6.8 * 0.62 : 0.82 + sm((t - 9) / 6) * 0.16, p = path2.getPointAt(Math.min(0.995, u)), f = path2.getPointAt(Math.min(1, u + 0.04)), tg = path2.getTangentAt(Math.min(0.995, u)), f2 = path2.getTangentAt(Math.min(0.995, u + 0.05));
           pose.p = [p.x, p.y + 1.55, p.z]; pose.h = [f.x, f.y + 1.45, f.z]; var k = sm((t - 1.6) / 2) * (1 - sm((t - 8) / 3)); pose.t = [f.x + 30 * k, f.y + 1.45 - 6 * k, f.z + 4 * k]; pose.roll = Math.max(-0.3, Math.min(0.3, (f2.x * tg.z - f2.z * tg.x) * 1.6)); st.shake = Math.max(st.shake, t < 9 ? 0.4 : 0.05);
           lamp(outL, false); carL.u.uAmb.value = 0.55; carL.u.uUnder.value.set(0, 0, 0); steam.userData.step(dt, 0, 66, 4, t);
-          if (t > 0.1) once('f', function () { A.fadeTo(0); sec('finale'); if (score) score.cut('finale'); if (hum) hum.set(0.0, 0.5, 1); K.rush(7, 2600, 500, 0.3, 0.4); K.thud(1.2); });
+          if (t > 0.1) once('f', function () { A.fadeTo(0); sec('finale'); if (score) score.cut('finale'); if (hum) hum.set(0.09, 900, 0); K.rush(7, 2600, 500, 0.3, 0.4); K.thud(1.2); });
           if (t > 2.4) once('g', function () { K.line('🌋', NEMO, '你们从火山的侧面冲出来了！下面就是神秘岛的港湾——鹦鹉螺号在等着。', 'You have burst from the side of the volcano! Below lies the harbour of Mysterious Island — the Nautilus is waiting.'); });
-          if (t > 11) once('h', function () { if (hum) hum.set(0, 0, 1); K.line('🧭', NEMO, '地心的秘密，现在你们也知道了。替我好好保守它。', 'Now you too know the secrets of the centre of the Earth. Keep them well for me.'); }); } }
+          if (t > 11) once('h', function () { if (hum) hum.set(0.03, 600, 0); K.line('🧭', NEMO, '地心的秘密，现在你们也知道了。替我好好保守它。', 'Now you too know the secrets of the centre of the Earth. Keep them well for me.'); }); } }
     ];
-    A.run(PH, tr('🌋 你去过地心，又活着回来了', '🌋 You have been to the centre of the Earth, and come back'));
     A.resetHook = function () { score = null; hum = null; lastZ = 13; strataTex.offset.y = 0; cvL.u.uFog.value.set(7 / 255, 5 / 255, 5 / 255); };
+    return PH; }, tr('🌋 你去过地心，又活着回来了', '🌋 You have been to the centre of the Earth, and come back'));
 
     /* ================================================================ the way in, in the park */
     (function () { var x = 240, z = 585, gy = API.groundY(x, z, 62), E = new T.Group(); E.position.set(x, gy, z); API.scene.add(E); var Lm = function (c, e) { var m = new T.MeshLambertMaterial({ color: c }); if (e) m.emissive = new T.Color(e); return m; };
