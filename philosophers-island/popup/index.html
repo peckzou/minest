@@ -20,9 +20,10 @@
 <body>
 <div class="top"><h1>折叠书<small id="bk"></small></h1><button id="swap"></button><button id="close">✕ 回到小岛</button></div>
 <button class="nav" id="pl">◀</button><button class="nav" id="pr">▶</button><div id="cap"></div><div id="name"></div><div id="chips"></div>
-<div id="card"><div class="y"></div><h2></h2><p class="a"></p><p class="b"></p><p class="c"></p><div class="r"><button id="go">🚶 去找他聊这个</button><button id="cx">合上</button></div></div>
+<div id="card"><div class="y"></div><h2></h2><img class="pic" alt="" style="width:100%;border-radius:8px;display:none;margin:4px 0 8px;background:#fdfaf0"><p class="a"></p><p class="b"></p><p class="c"></p><p class="d" style="font-size:12.5px;opacity:.85;margin:6px 0 0"></p><div class="r"><button id="go">🚶 去找他聊这个</button><button id="cx">合上</button></div></div>
 <script src="../vendor/three.min.js"></script>
 <script src="../pi-world/handbook.js"></script>
+<script src="../pi-world/handbook-detail.js"></script>
 <script src="ideas.js"></script>
 <script>
 /* A pop-up book built on the fold mechanism described in github.com/Dksie09/unfold (MIT): pages fan out from one spine, the
@@ -130,7 +131,7 @@
   function frame(now) { requestAnimationFrame(frame); var dt = Math.min(0.05, (now - last) / 1000); last = now; cur += (front - cur) * (1 - Math.exp(-5 * dt)); open += (wantOpen - open) * (1 - Math.exp(-3 * dt)); layout(); renderer.render(scene, cam); }
   function turn(k) { front = Math.max(0, Math.min(N - 1, front + k)); caption(); show(null); }
   var card = document.getElementById('card'), sel = null;
-  function show(m) { sel = m; if (!m) { card.classList.remove('on'); return; } card.querySelector('.y').textContent = String(m.no).padStart(2, '0') + ' · ' + m.groupName + ' · ' + m.en; card.querySelector('h2').textContent = m.name; card.querySelector('.a').textContent = m.what; card.querySelector('.b').innerHTML = '<u>' + (BOOK === 'ideas' ? '画面里' : '例子') + '</u>　'; card.querySelector('.b').appendChild(document.createTextNode(m.eg)); card.querySelector('.c').innerHTML = '<u>' + (BOOK === 'ideas' ? '想一想' : '现在就做') + '</u>　'; card.querySelector('.c').appendChild(document.createTextNode(m.how));
+  function show(m) { sel = m; if (!m) { card.classList.remove('on'); return; } card.querySelector('.y').textContent = String(m.no).padStart(2, '0') + ' · ' + m.groupName + ' · ' + m.en; card.querySelector('h2').textContent = m.name; var pic = card.querySelector('.pic'); if (m.img) { pic.onerror = function () { pic.onerror = null; pic.src = m.imgRemote; }; pic.src = '../' + m.img; pic.style.display = 'block'; } else pic.style.display = 'none'; card.querySelector('.a').textContent = m.what; card.querySelector('.b').innerHTML = '<u>' + (BOOK === 'ideas' ? '画面里' : '例子') + '</u>　'; card.querySelector('.b').appendChild(document.createTextNode(m.eg)); card.querySelector('.c').innerHTML = '<u>' + (BOOK === 'ideas' ? '想一想' : '现在就做') + '</u>　'; card.querySelector('.c').appendChild(document.createTextNode(m.steps ? m.steps.map(function (x, i) { return (i + 1) + '. ' + x; }).join('　') : m.how)); if (m.more) card.querySelector('.a').textContent = m.what + ' ' + m.more; card.querySelector('.d').textContent = m.src ? '出处：' + m.src + (m.trap ? '　常见误用：' + m.trap : '') : '';
     var go = document.getElementById('go'); go.style.display = EMBED && m.hall ? '' : 'none'; go.textContent = '🚶 去找' + (NAMES[m.hall] || '他') + '聊这个'; card.classList.add('on'); }
   var ray = new T.Raycaster(), drag = null, cv = renderer.domElement;
   cv.addEventListener('pointerdown', function (e) { drag = { x: e.clientX, f: front, moved: false }; });

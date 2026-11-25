@@ -2715,14 +2715,6 @@
       return sz;
     }
     function spaced(x, px) { try { x.letterSpacing = px + 'px'; } catch (e) {} }
-    // Phones and tablets draw the halls' big wall panels at half resolution: 43 halls × (1520×840 + 1040×256 + 2 × 1280×154)
-    // at full size were close to 1 GB of canvas + texture memory, and iOS closed the page while the island was being built.
-    const PANEL_S = (('ontouchstart' in root) || (root.matchMedia && root.matchMedia('(pointer:coarse)').matches)) ? 0.5 : 1;
-    function panelCanvas(W, H) {
-      const c = document.createElement('canvas'); c.width = Math.round(W * PANEL_S); c.height = Math.round(H * PANEL_S);
-      const x = c.getContext('2d'); if (PANEL_S !== 1) x.scale(PANEL_S, PANEL_S);
-      return [c, x];
-    }
     function finishTex(c) {
       const tex = new T.CanvasTexture(c);
       if (T.sRGBEncoding !== undefined) tex.encoding = T.sRGBEncoding;
@@ -2747,7 +2739,8 @@
 
     function makeArtPlacardTex(phil, style) {
       const W = 1040, H = 256;
-      const [c, x] = panelCanvas(W, H);
+      const c = document.createElement('canvas'); c.width = W; c.height = H;
+      const x = c.getContext('2d');
       const pal = style === 'modern' ? WALL_PAL.modern : style === 'marble' ? WALL_PAL.marble : style === 'eastern' ? WALL_PAL.lacquer : WALL_PAL.velvet;
       paintPanel(x, W, H, pal, style === 'modern' ? 'modern' : '', 14);
       x.fillStyle = pal.accent; x.fillRect(40, 44, 6, H - 88);
@@ -2767,7 +2760,8 @@
     // 3. West Wall Wikipedia-Grade Encyclopedia Biography, Timeline & Quote Panel
     function makeWallQuoteTex(phil, style) {
       const W = 1520, H = 840;
-      const [c, x] = panelCanvas(W, H);
+      const c = document.createElement('canvas'); c.width = W; c.height = H;
+      const x = c.getContext('2d');
       const wiki = root.PIWiki ? root.PIWiki.get(phil.id) : null;
       const pal = WALL_PAL[style] || WALL_PAL.velvet;
       paintPanel(x, W, H, pal, style, 30);
@@ -2870,7 +2864,8 @@
     // 4. East Wall Floating Bookshelf Rail Labels (clean strip identifying the physical 3D books on the shelf!)
     function makeShelfRailTex(phil, booksSlice, isLight) {
       const W = 1280, H = 154;
-      const [c, x] = panelCanvas(W, H);
+      const c = document.createElement('canvas'); c.width = W; c.height = H;
+      const x = c.getContext('2d');
       const pal = isLight ? WALL_PAL.marble : WALL_PAL.velvet;
       paintPanel(x, W, H, pal, '', 12);
       const titles = booksSlice.map((b) => (b.match(/^[^《]*《[^》]*》/) || [b.split('(')[0].trim()])[0]);
