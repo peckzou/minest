@@ -120,7 +120,8 @@
     frame.src = url; $('mode').classList.add('on');
     $('modeX').style.display = kind === 'read' || kind === 'sphere' || kind === 'cone' ? 'none' : '';
   }
-  function closeMode() { $('mode').classList.remove('on'); frame.src = 'about:blank'; cur = null; }
+  var BACK = /[?&]back=1\b/.test(location.search);   // opened from a study station: closing the mode goes straight back to the room
+  function closeMode() { $('mode').classList.remove('on'); frame.src = 'about:blank'; cur = null; if (BACK) { BACK = false; $('close').click(); } }
   $('modeX').onclick = closeMode;
   $('close').onclick = function () { if (EMBED) post({ op: 'close' }); else history.back(); };
   addEventListener('keydown', function (e) { if (e.key !== 'Escape') return; if ($('sheet').classList.contains('on')) $('sheet').classList.remove('on'); else if (cur) closeMode(); else $('close').click(); });

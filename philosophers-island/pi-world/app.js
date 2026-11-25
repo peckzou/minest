@@ -274,6 +274,7 @@
   const solidAt = (x, y, z) => {
     if (S.inLib) return libSolid(x, y, z);
     if (y < 0) return true;
+    if (ec6Solid(x, y, z)) return true;
     if (x < 0 || x >= world.W || z < 0 || z >= world.D || y >= world.H) return false;
     return world.blocks[x + world.W * (z + world.D * y)] !== 0;
   };
@@ -485,7 +486,6 @@
     u.near = near;
     const nl = nearLibrary(); if (nl && !u.nearLib && !S.ui) toast('🏛 时光图书馆：按 E 进去'); u.nearLib = nl;
     const nr = nearRootHall(); if (nr && !u.nearRoot && !S.ui) toast('🎞 词根馆：按 E 进去看 191 个词汇动图'); u.nearRoot = nr;
-    const ne = nearEc6(); if (ne && !u.nearEc6 && !S.ui) toast('🍎 EC-6 学习馆：按 E 进去，五门学科、五种看法'); u.nearEc6 = ne;
   }
   /* ───────── 词根馆: a little hall on the Island of Time, west of the light cone (press E at the door) ───────── */
   const ROOT_HALL = { x: 455.5, z: 58.5 };
@@ -510,48 +510,92 @@
      TExES Core Subjects EC-6 (391) by its official framework, in every way the island can show a body of knowledge: the
      holo console (star map, Obsidian, a light cone of the subjects' history), ten ways of reading, the papercraft island,
      the pop-up book and the Sphere. The hall's own page is ec6/index.html. */
-  const EC6_HALL = { x: 458.5, z: 72.5 };
+  /* The hall is a hollow box on the voxel grid, so you walk in through the door like into a philosopher's house: its
+     walls are cells x 453–464, z 67–76 (the door two cells wide in the east wall, facing the path), and solidAt() asks
+     ec6Solid() about them. Inside: a wooden floor, the EC-6 board on the back wall with a desk, and five study stations,
+     one per subject exam; E at a station opens that subject's mode, E at the desk or the door opens the hall's page. */
+  const EC6_HALL = { x: 459, z: 72, X0: 453, X1: 464, Z0: 67, Z1: 76, door: [71, 72] };
   let ec6Hall = null;
+  var ec6Box = null;   // set once the hall is built; read by solidAt(), which may run before this point is reached
+  function ec6Solid(x, y, z) {
+    const H = ec6Box; if (!H || x < H.X0 || x > H.X1 || z < H.Z0 || z > H.Z1 || y < H.y || y > H.y + 4) return false;
+    if (!(x === H.X0 || x === H.X1 || z === H.Z0 || z === H.Z1)) return false;
+    return !(x === H.X1 && H.door.indexOf(z) >= 0 && y < H.y + 3);
+  }
+  const EC6_ST = [];
   function buildEc6Hall() {
-    const gy = groundY(EC6_HALL.x, EC6_HALL.z, 60), g = new THREE.Group(), L = (c) => new THREE.MeshLambertMaterial({ color: c });
-    const box = (w, h, d, x, y, z, c) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), L(c)); m.position.set(x, y, z); m.castShadow = true; g.add(m); return m; };
-    box(11.6, 0.4, 9.2, 0, 0.2, 0, 0xd9d2bf); box(10.4, 0.35, 8.0, 0, 0.55, 0, 0xc9c1ab);
-    const brick = 0xa9483a, trim = 0xf3efe4;
-    box(0.4, 3.6, 7.2, -4.8, 2.5, 0, brick); box(9.6, 3.6, 0.4, 0, 2.5, -3.6, brick); box(9.6, 3.6, 0.4, 0, 2.5, 3.6, brick);     // back and side walls
-    box(0.4, 3.6, 2.6, 4.8, 2.5, -2.3, brick); box(0.4, 3.6, 2.6, 4.8, 2.5, 2.3, brick); box(0.4, 1.0, 2.0, 4.8, 3.8, 0, brick);   // the front, a door facing the path
-    box(10.2, 0.25, 7.8, 0, 4.4, 0, trim); [-3.6, 3.6].forEach((z) => box(0.12, 3.6, 0.12, 4.98, 2.5, z * 0.92, trim));             // cornice and corner pilasters
-    for (let i = 0; i < 3; i++) { [-3.82, 3.82].forEach((z) => { const w = box(1.3, 1.5, 0.08, -3 + i * 2.8, 2.7, z, 0xbfe3f2); const f = box(1.5, 0.14, 0.1, -3 + i * 2.8, 1.9, z, trim); }); }
-    const roofS = new THREE.Shape(); roofS.moveTo(-5.4, 0); roofS.lineTo(5.4, 0); roofS.lineTo(0, 2.7); roofS.closePath();
-    const roof = new THREE.Mesh(new THREE.ExtrudeGeometry(roofS, { depth: 10.6, bevelEnabled: false }), L(0x3c4a5a)); roof.rotation.y = Math.PI / 2; roof.position.set(-5.3, 4.5, 0); roof.castShadow = true; g.add(roof);
-    box(1.6, 1.8, 1.6, 1.6, 7.6, 0, trim); const bell = new THREE.Mesh(new THREE.SphereGeometry(0.42, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshLambertMaterial({ color: 0xd4a640 })); bell.rotation.x = Math.PI; bell.position.set(1.6, 8.1, 0); g.add(bell);
-    const cap = new THREE.Mesh(new THREE.ConeGeometry(1.35, 1.6, 4), L(0x3c4a5a)); cap.position.set(1.6, 9.3, 0); cap.rotation.y = Math.PI / 4; g.add(cap);
-    box(0.16, 1.1, 1.8, 4.98, 1.25, 0, 0x6b4a2e);                                                                                 // the door
-    const pole = box(0.1, 6.2, 0.1, 7.2, 3.3, -3.4, 0xd9d9d9);
+    const H = EC6_HALL, gy = groundY(H.x, H.z, 60), g = new THREE.Group(), L = (c) => new THREE.MeshLambertMaterial({ color: c });
+    const box = (w, h, d, x, y, z, c) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), typeof c === 'number' ? L(c) : c); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; g.add(m); return m; };
+    const brick = 0xa9483a, trim = 0xf3efe4, lining = 0xf1e8d4, WH = 4.3;
+    // walls: one cell thick, local x −6…6, z −5…5 (cell centres ±5.5 / ±4.5)
+    box(1, WH, 10, -5.5, WH / 2, 0, brick); box(12, WH, 1, 0, WH / 2, -4.5, brick); box(12, WH, 1, 0, WH / 2, 4.5, brick);
+    box(1, WH, 4, 5.5, WH / 2, -3, brick); box(1, WH, 3, 5.5, WH / 2, 3.5, brick); box(1, WH - 3, 2, 5.5, 3 + (WH - 3) / 2, 0, brick);   // the door: z −1…1, 3 high
+    box(0.08, 3.1, 2.2, 6.04, 1.55, 0, trim).visible = false;
+    [[-1.06, 0], [1.06, 0]].forEach((q) => box(0.18, 3.1, 0.14, 6.05, 1.55, q[0], trim)); box(0.2, 0.2, 2.3, 6.05, 3.1, 0, trim);       // door frame
+    box(12.4, 0.3, 10.4, 0, WH + 0.15, 0, trim);                                                                                    // cornice
+    // inside: floor, lining, ceiling
+    box(10, 0.06, 8, 0, 0.03, 0, 0xb98b5a); for (let i = -4; i <= 4; i += 1) box(0.02, 0.07, 8, i + 0.5, 0.035, 0, 0x9c7346);
+    box(0.06, 3.2, 8, -4.97, 1.6, 0, lining); box(10, 3.2, 0.06, 0, 1.6, -3.97, lining); box(10, 3.2, 0.06, 0, 1.6, 3.97, lining);
+    box(10, 0.5, 0.08, 0, 0.25, -3.93, 0x7a5a3c); box(10, 0.5, 0.08, 0, 0.25, 3.93, 0x7a5a3c); box(0.08, 0.5, 8, -4.93, 0.25, 0, 0x7a5a3c);
+    box(10, 0.1, 8, 0, WH - 0.05, 0, 0xf6f0e2);
+    for (let i = 0; i < 3; i++) [-4.5, 4.5].forEach((z) => { box(1.4, 1.6, 1.04, -3 + i * 2.8, 2.4, z, 0xbfe3f2); box(1.6, 0.14, 1.1, -3 + i * 2.8, 1.55, z, trim); });
+    // roof, bell tower, flag
+    const roofS = new THREE.Shape(); roofS.moveTo(-6.6, 0); roofS.lineTo(6.6, 0); roofS.lineTo(0, 3.0); roofS.closePath();
+    const roof = new THREE.Mesh(new THREE.ExtrudeGeometry(roofS, { depth: 12.8, bevelEnabled: false }), L(0x3c4a5a)); roof.rotation.y = Math.PI / 2; roof.position.set(-6.4, WH + 0.3, 0); roof.castShadow = true; g.add(roof);
+    box(1.8, 2.0, 1.8, 2.0, WH + 3.6, 0, trim); const bell = new THREE.Mesh(new THREE.SphereGeometry(0.46, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), L(0xd4a640)); bell.rotation.x = Math.PI; bell.position.set(2.0, WH + 4.1, 0); g.add(bell);
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(1.5, 1.8, 4), L(0x3c4a5a)); cap.position.set(2.0, WH + 5.5, 0); cap.rotation.y = Math.PI / 4; g.add(cap);
+    box(0.1, 6.4, 0.1, 8.2, 3.2, -4.2, 0xd9d9d9);
     const fc = document.createElement('canvas'); fc.width = 192; fc.height = 128; const fx = fc.getContext('2d'); fx.fillStyle = '#ffffff'; fx.fillRect(0, 0, 192, 64); fx.fillStyle = '#bf0a30'; fx.fillRect(0, 64, 192, 64); fx.fillStyle = '#002868'; fx.fillRect(0, 0, 64, 128);
     fx.fillStyle = '#fff'; fx.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 9 : 22; fx.lineTo(32 + Math.cos(a) * r, 64 + Math.sin(a) * r); } fx.closePath(); fx.fill();
-    const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.2), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(fc), side: THREE.DoubleSide })); flag.position.set(7.2, 5.7, -2.5); flag.rotation.y = Math.PI / 2; g.add(flag);
-    const c = document.createElement('canvas'); c.width = 640; c.height = 360; const x = c.getContext('2d'); x.fillStyle = '#1c2420'; x.fillRect(0, 0, 640, 360); x.strokeStyle = '#d9c9a0'; x.lineWidth = 10; x.strokeRect(5, 5, 630, 350);
-    x.fillStyle = '#f3ecd6'; x.textAlign = 'center'; x.font = '700 70px Georgia, serif'; x.fillText('EC-6', 320, 110); x.font = '700 40px sans-serif'; x.fillText('Core Subjects (391)', 320, 175);
-    const cols = ['#6fb7ff', '#ffb454', '#ff7a6b', '#7ee08a', '#d08cff'], names = ['901 ELAR', '902 Math', '903 SS', '904 Sci', '905 Arts'];
-    names.forEach((n, i) => { x.fillStyle = cols[i]; x.fillRect(48 + i * 112, 220, 96, 10); x.font = '600 22px sans-serif'; x.fillText(n, 96 + i * 112, 268); }); x.fillStyle = '#d9c9a0'; x.font = '24px sans-serif'; x.fillText('5 subject exams · 44 competencies', 320, 322);
-    const board = new THREE.Mesh(new THREE.PlaneGeometry(5.4, 3.0), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c) })); board.rotation.y = Math.PI / 2; board.position.set(-4.56, 2.6, 0); g.add(board);
-    const lamp = new THREE.PointLight(0xffe2b0, 0.9, 12, 2); lamp.position.set(0, 3.4, 0); g.add(lamp);
-    const s = document.createElement('canvas'); s.width = 560; s.height = 96; const y = s.getContext('2d'); y.fillStyle = 'rgba(20,16,12,.88)'; y.fillRect(0, 0, 560, 96); y.strokeStyle = '#e9c46a'; y.lineWidth = 3; y.strokeRect(2, 2, 556, 92);
-    y.fillStyle = '#fff'; y.textAlign = 'center'; y.font = '700 36px sans-serif'; y.fillText('🍎 EC-6 学习馆', 280, 44); y.fillStyle = '#e9d9a6'; y.font = '22px sans-serif'; y.fillText('TExES Core Subjects EC-6 · 靠近按 E', 280, 78);
-    const lab = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(s), transparent: true, depthWrite: false })); lab.scale.set(7, 1.2, 1); lab.position.set(0, 11.2, 0); g.add(lab);
-    g.position.set(EC6_HALL.x, gy, EC6_HALL.z); scene.add(g); ec6Hall = g;
-    const pathM = L(0xd9cfb8); for (let px = 465; px <= 470; px += 1.5) { const q = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.12, 2.4), pathM); q.position.set(px, groundY(px, EC6_HALL.z, 60) + 0.07, EC6_HALL.z); q.receiveShadow = true; scene.add(q); }
+    const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.2), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(fc), side: THREE.DoubleSide })); flag.position.set(8.2, 5.8, -3.3); flag.rotation.y = Math.PI / 2; g.add(flag);
+    // the board on the back wall, and the desk under it
+    const c = document.createElement('canvas'); c.width = 768; c.height = 384; const x = c.getContext('2d'); x.fillStyle = '#1f3a2c'; x.fillRect(0, 0, 768, 384); x.strokeStyle = '#a3825a'; x.lineWidth = 18; x.strokeRect(9, 9, 750, 366);
+    x.fillStyle = '#f3ecd6'; x.textAlign = 'center'; x.font = '700 76px Georgia, serif'; x.fillText('EC-6 · TExES 391', 384, 108); x.font = '600 30px sans-serif'; x.fillStyle = '#e9e2c8'; x.fillText('5 subject exams · 44 competencies', 384, 160);
+    const cols = ['#6fb7ff', '#ffb454', '#ff7a6b', '#7ee08a', '#d08cff'], nm = ['901 ELAR', '902 Math', '903 Social St.', '904 Science', '905 Arts·Health·PE'];
+    nm.forEach((n, i) => { x.fillStyle = cols[i]; x.fillRect(40 + i * 140, 214, 128, 12); x.font = '600 21px sans-serif'; x.fillText(n, 104 + i * 140, 262); }); x.fillStyle = '#d9c9a0'; x.font = '26px sans-serif'; x.fillText('在讲台按 E 打开学习馆 · 在学习台按 E 进入那一科', 384, 336);
+    const board = new THREE.Mesh(new THREE.PlaneGeometry(6, 3), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c) })); board.rotation.y = Math.PI / 2; board.position.set(-4.92, 2.25, 0); g.add(board);
+    box(1.0, 0.9, 2.2, -3.9, 0.45, 0, 0x7a5a3c); box(1.2, 0.08, 2.4, -3.9, 0.94, 0, 0x5b4128); box(0.4, 0.05, 0.3, -3.8, 1.0, 0.6, 0xc0392b);   // desk with an apple
+    const apple = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 10), L(0xd2382b)); apple.position.set(-3.8, 1.11, -0.55); g.add(apple);
+    // five study stations, one per subject exam, along the two sides of the aisle
+    const E6 = window.PIEC6, SP = [[-2.6, -2.4], [0.2, -2.4], [3.0, -2.4], [-1.2, 2.4], [1.8, 2.4]], MODE = { read: 'read:1', paper: 'paper', cone: 'cone', sphere: 'sphere', fold: 'fold' }, ICON = { read: '📖', paper: '🗺', cone: '⏳', sphere: '🌐', fold: '📕' };
+    SP.forEach((q, i) => {
+      const ex = E6 ? E6.exams[i] : { code: '90' + (i + 1), zh: '', en: '', mode: 'read', modeZh: '', color: cols[i] }, col = new THREE.Color(ex.color), face = q[1] < 0 ? 1 : -1;
+      const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.52, 0.95, 18), L(0xe9e2d0)); ped.position.set(q[0], 0.48, q[1]); g.add(ped);
+      const top = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.06, 24), new THREE.MeshBasicMaterial({ color: col })); top.position.set(q[0], 0.98, q[1]); g.add(top);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.03, 8, 40), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.8 })); ring.rotation.x = Math.PI / 2; ring.position.set(q[0], 1.05, q[1]); g.add(ring);
+      const sc = document.createElement('canvas'); sc.width = 420; sc.height = 240; const y = sc.getContext('2d'); y.fillStyle = 'rgba(10,14,16,.92)'; y.fillRect(0, 0, 420, 240); y.fillStyle = ex.color; y.fillRect(0, 0, 420, 10); y.fillRect(0, 230, 420, 10);
+      y.textAlign = 'center'; y.fillStyle = ex.color; y.font = '700 30px sans-serif'; y.fillText('SUBJECT EXAM ' + (ex.roman || '') + ' · ' + ex.code, 210, 56); y.fillStyle = '#fff'; y.font = '700 44px sans-serif'; y.fillText(ex.zh, 210, 118);
+      y.fillStyle = '#e9e2c8'; y.font = '600 30px sans-serif'; y.fillText(ICON[ex.mode] + ' ' + ex.modeZh, 210, 172); y.fillStyle = '#b9b2a0'; y.font = '22px sans-serif'; y.fillText('按 E 进入', 210, 212);
+      const scr = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.92), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sc), transparent: true, side: THREE.DoubleSide })); scr.position.set(q[0], 1.95, q[1]); if (face < 0) scr.rotation.y = Math.PI; g.add(scr);
+      const glow = new THREE.PointLight(col, 0.6, 4, 2); glow.position.set(q[0], 1.4, q[1]); g.add(glow);
+      EC6_ST.push({ i, x: H.x + q[0], z: H.z + q[1], spec: MODE[ex.mode] || 'read:1', label: ex.code + ' ' + ex.zh + ' · ' + ICON[ex.mode] + ' ' + ex.modeZh, ring, scr, by: 1.95 });
+    });
+    const lamp = new THREE.PointLight(0xffe2b0, 1.0, 14, 2); lamp.position.set(0, 3.6, 0); g.add(lamp);
+    const s = document.createElement('canvas'); s.width = 560; s.height = 96; const yy = s.getContext('2d'); yy.fillStyle = 'rgba(20,16,12,.88)'; yy.fillRect(0, 0, 560, 96); yy.strokeStyle = '#e9c46a'; yy.lineWidth = 3; yy.strokeRect(2, 2, 556, 92);
+    yy.fillStyle = '#fff'; yy.textAlign = 'center'; yy.font = '700 36px sans-serif'; yy.fillText('🍎 EC-6 学习馆', 280, 44); yy.fillStyle = '#e9d9a6'; yy.font = '22px sans-serif'; yy.fillText('TExES Core Subjects EC-6 · 走进去', 280, 78);
+    const lab = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(s), transparent: true, depthWrite: false })); lab.scale.set(7, 1.2, 1); lab.position.set(0, WH + 7.6, 0); g.add(lab);
+    g.position.set(H.x, gy, H.z); scene.add(g); ec6Hall = g; ec6Box = Object.assign({ y: Math.round(gy) }, H);
+    const pathM = L(0xd9cfb8); for (let px = 466; px <= 470.5; px += 1.5) { const q = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.12, 2.4), pathM); q.position.set(px, groundY(px, H.z, 60) + 0.07, H.z); q.receiveShadow = true; scene.add(q); }
   }
-  const nearEc6 = () => ec6Hall && !S.inLib && Math.hypot(player.pos.x - EC6_HALL.x, player.pos.z - EC6_HALL.z) < 8;
+  const insideEc6 = () => ec6Hall && !S.inLib && player.pos.x > EC6_HALL.X0 + 1 && player.pos.x < EC6_HALL.X1 && player.pos.z > EC6_HALL.Z0 + 1 && player.pos.z < EC6_HALL.Z1;
+  const nearEc6 = () => ec6Hall && !S.inLib && Math.hypot(player.pos.x - (EC6_HALL.X1 + 1.5), player.pos.z - EC6_HALL.z) < 3.2;   // at the door, outside
+  const nearEc6Desk = () => insideEc6() && player.pos.x < EC6_HALL.X0 + 4.2;
+  function ec6Station() { if (!insideEc6()) return null; let best = null, bd = 1.9; EC6_ST.forEach((st) => { const d = Math.hypot(player.pos.x - st.x, player.pos.z - st.z); if (d < bd) { bd = d; best = st; } }); return best; }
+  function updateEc6(t) {
+    if (!ec6Hall || S.inLib) return; EC6_ST.forEach((st, k) => { st.ring.rotation.z = t * 0.8 + k; st.scr.position.y = st.by + Math.sin(t * 1.6 + k) * 0.05; });
+    const u = ec6Hall.userData, st = ec6Station(), key = st ? 'st' + st.i : nearEc6Desk() ? 'desk' : nearEc6() ? 'door' : insideEc6() ? 'in' : '';
+    if (key !== u.key && !S.ui) { if (st) toast('按 E · ' + st.label); else if (key === 'desk') toast('🍎 讲台：按 E 打开学习馆，五门学科、全部模式'); else if (key === 'door') toast('🍎 EC-6 学习馆：走进去，或按 E 直接打开'); else if (key === 'in' && u.key !== 'desk' && !/^st/.test(u.key || '')) toast('🍎 欢迎来到 EC-6 学习馆 · 五个学习台各是一门学科'); }
+    u.key = key;
+  }
   let ec6El = null;
-  function openEc6() {
+  function openEc6(spec, sub) {
     if (!ec6El) { ec6El = document.createElement('div'); ec6El.id = 'pi-ec6'; ec6El.style.cssText = 'position:fixed;inset:0;z-index:72;display:none;background:#0b0e10';
       ec6El.innerHTML = '<iframe title="EC-6 学习馆" style="position:absolute;inset:0;width:100%;height:100%;border:0" allow="fullscreen"></iframe>'; document.body.appendChild(ec6El);
       ['mousedown', 'touchstart', 'pointerdown', 'wheel'].forEach((ev) => ec6El.addEventListener(ev, (e) => e.stopPropagation(), { passive: true }));
       window.addEventListener('message', (e) => { const m = e.data; if (!m || m.ec6 !== 1 || !ec6El || e.source !== ec6El.firstChild.contentWindow) return; if (m.op === 'close') closeEc6(); }); }
-    ec6El.firstChild.src = 'ec6/index.html'; ec6El.style.display = 'block'; S.ui = true; if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
+    ec6El.firstChild.src = 'ec6/index.html' + (spec ? '?open=' + encodeURIComponent(spec) + '&sub=' + (sub >= 0 ? sub : -1) + '&back=1' : ''); ec6El.style.display = 'block'; S.ui = true; if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
   }
-  function closeEc6() { if (!ec6El) return; ec6El.style.display = 'none'; ec6El.firstChild.src = 'about:blank'; S.ui = false; toast('🍎 回到时光岛'); }
+  function closeEc6() { if (!ec6El) return; ec6El.style.display = 'none'; ec6El.firstChild.src = 'about:blank'; S.ui = false; }
   window.__openEc6 = openEc6;
   /* the Sphere, after the one in Las Vegas: a dome three-quarters of a ball on a dark podium, its whole skin an LED
      "exosphere" that cycles through pictures (mosaic, the yellow face, the Earth, an eye). About one tenth of the real
@@ -1416,7 +1460,7 @@
     if (S.inLib) { if (LIB.hit && portals) { const u = LIB.hit.userData; if (u.creative && portals.openCreative) portals.openCreative(u.book, 1); else if (u.book.file && portals.openCreative) portals.openCreative(u.book, u.book.world ? 1 : 0); else if (portals.openCatalogBook) portals.openCatalogBook(u.book); return true; } if (player.pos.z > 78.6 && Math.abs(player.pos.x - 453.5) < 4) { leaveLibrary(); return true; } return true; }
     if (nearLibrary()) { enterLibrary(); return true; }
     if (nearSphere() && portals && portals.openRootmap) { transition('环球巨幕', '两百块屏幕', () => portals.openRootmap('sphere')); return true; }
-    if (nearEc6()) { transition('EC-6 学习馆', 'TExES Core Subjects EC-6 (391)', () => openEc6()); return true; }
+    { const st = ec6Station(); if (st) { openEc6(st.spec, st.i); return true; } if (nearEc6Desk() || nearEc6()) { openEc6(); return true; } }
     if (nearRootHall() && portals && portals.openRootmap) { transition('词根馆', '191 个词汇动图', () => portals.openRootmap()); return true; }
     if (nearCone() && portals && portals.openLightCone) { transition('光锥', '330 万年人类科技史', () => portals.openLightCone()); return true; }
     // Priority 1: Activate nearest Spatial InteractionPortal!
@@ -1711,7 +1755,7 @@
     waterMat.uniforms.uTime.value = S.elapsed;
     updateTalk(dt);
     updateJourney(dt);
-    updateConeMonument(S.elapsed); updateKonigsberg(S.elapsed, dt); updateSphere(S.elapsed); updateBookcases(S.elapsed); updateLibraryInterior();
+    updateConeMonument(S.elapsed); updateEc6(S.elapsed); updateKonigsberg(S.elapsed, dt); updateSphere(S.elapsed); updateBookcases(S.elapsed); updateLibraryInterior();
     if (councilSet) councilSet.userData.orb.position.y = 1.02 + Math.sin(S.elapsed * 1.6) * 0.05;
     updateNPCs(dt, S.elapsed);
     updateSmoke(S.elapsed);
