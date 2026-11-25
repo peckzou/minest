@@ -6,15 +6,15 @@
      · EC–6 布告栏 the Spatial Home board's panel                         → ec6-board-2/
    The 2.0 pages ask this page for their data and send their changes back (v2-bridge/bridge.js on their side, answer() here):
    in the app this page runs from the app's files and the 2.0 page from the web site, so they share no storage.
-   The 2.0 pages load the 1.0 scripts as they are, so nothing of 1.0 is removed. World Search and 卡片风格 stay 1.0
-   (their 2.0 pages keep data of their own). */
+   The 2.0 pages load the 1.0 scripts as they are, so nothing of 1.0 is removed. World Search stays 1.0 (its
+   2.0 page keeps data of its own). 卡片风格 opens 3.0 (card-styles-3/, below), which shares Minest's choice. */
 (function () {
   'use strict';
   if (window.MinestV2Routes) return;
   var SITE = 'https://minest-app.vercel.app/', ov = null, frame = null, onClose = null;
   /* where each page's ✕ sits, clear of the page's own controls */
   var XPOS = { 'cards-2/': 'top', 'dynamic-2/': 'top', 'ec6-board-2/': 'top-left' };
-  var LS_SYNC = { 'minest.ec6board.v1': 1, 'minest.gptstudy.v1': 1 };
+  var LS_SYNC = { 'minest.ec6board.v1': 1, 'minest.gptstudy.v1': 1, 'minest.cardStyle': 1, 'minest.cardStyle.mindful': 1 };
 
   function url(path) { return /^https?:$/.test(location.protocol) ? new URL(path, location.href).href : SITE + path; }
   function css() {
@@ -81,6 +81,7 @@
     try {
       if (m.op === 'hello') {
         var ls = {}; Object.keys(LS_SYNC).forEach(function (k) { try { ls[k] = localStorage.getItem(k); } catch (x) { ls[k] = null; } });
+        try { var CSn = window.MinestCardStyles; if (CSn) ls['minest.cardStyle'] = localStorage.getItem(CS_KEEP) || CSn.get(); } catch (x) {}
         var boards = []; try { boards = A && A.boards ? A.boards() || [] : []; } catch (x) {}
         reply({ boards: boards, active: activeId(), ls: ls });
       }
@@ -90,6 +91,9 @@
       else if (m.op === 'ls' && LS_SYNC[d.key] && typeof d.value === 'string') {
         localStorage.setItem(d.key, d.value);
         if (d.key === 'minest.ec6board.v1') ec6Reload(d.value);
+        var CSm = window.MinestCardStyles;   /* 卡片风格 3.0: the board behind takes the pick at once */
+        if (CSm && d.key === 'minest.cardStyle') CSm.set(d.value);
+        if (CSm && d.key === 'minest.cardStyle.mindful') CSm.set(CSm.get());
       }
       else if (m.op === 'close') close(d);
     } catch (x) {}
@@ -168,13 +172,30 @@
     [].forEach.call(document.querySelectorAll('.sf-mode-toggle-btn'), function (b) { if (b.title !== '动态卡片') { b.title = '动态卡片'; b.setAttribute('aria-label', '动态卡片'); } });
   }
 
+  /* ---- 卡片风格 3.0 (2026-11-25): Minest's 卡片风格 keys open card-styles-3/ — 1.0's materials and gallery, 2.0's eight
+     new materials and studio — on your board's own style; each pick comes back through the bridge (LS_SYNC) and the
+     board changes at once. The eight materials are carried in this block too (card-styles-3/materials.js, put in
+     ahead of this script by patch_v2_routes.py). 1.0 falls back to its default for a material it did not know at its
+     start, so the pick is also kept under minest.cardStyle.v3 and put back here. Student mode keeps 1.0's own panel. */
+  var CS_KEEP = 'minest.cardStyle.v3';
+  function hookCS() {
+    var C = window.MinestCardStyles; if (!C || !C.set) return !document.getElementById('cs-btn') && tries > 20; if (C.__v3) return true; C.__v3 = true;
+    var set1 = C.set;
+    C.set = function (id) { var r = set1.apply(C, arguments); try { localStorage.setItem(CS_KEEP, C.get()); } catch (e) {} return r; };
+    try { var k = localStorage.getItem(CS_KEEP); if (k && k !== C.get() && C.styles.some(function (s) { return s.id === k; })) set1.call(C, k); } catch (e) {}
+    C.open1 = C.open;
+    C.open = function () { if (student() || ov) return C.open1.apply(C, arguments); open('card-styles-3/index.html', '卡片风格 3.0'); };
+    var b = document.getElementById('cs-btn'); if (b) b.onclick = function (e) { if (e) e.stopPropagation(); C.open(); };
+    return true;
+  }
+
   function boot() {
-    hookDyn(); hookEC6(); hookCards(); label();
+    hookDyn(); hookEC6(); hookCards(); hookCS(); label();
     var lq = 0; if (document.body) new MutationObserver(function () { if (!lq) lq = setTimeout(function () { lq = 0; label(); }, 400); }).observe(document.body, { childList: true, subtree: true });
   }
   /* the modules come later in the page than some entries, and Spatial Home builds its room later still: retry a while */
-  var tries = 0, t = setInterval(function () { var d = hookDyn(), e = hookEC6(), c = hookCards(); if ((d && e && c) || ++tries > 120) clearInterval(t); }, 500);
+  var tries = 0, t = setInterval(function () { var d = hookDyn(), e = hookEC6(), c = hookCards(), y = hookCS(); if ((d && e && c && y) || ++tries > 120) clearInterval(t); }, 500);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
-  window.MinestV2Routes = { open: open, close: function () { close(); }, isOpen: function () { return !!ov; }, dyn: dyn, cards: cards, version: '1.2' };
+  window.MinestV2Routes = { open: open, close: function () { close(); }, isOpen: function () { return !!ov; }, dyn: dyn, cards: cards, version: '1.3' };
 })();

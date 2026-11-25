@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-cs2>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#08090d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Minest · 卡片风格 3.0</title>
+<link rel="icon" href="data:,">
+<script>/* the page's files are addressed from its folder */
+if (!/\/$|\.html$/.test(location.pathname)) location.replace(location.pathname + '/' + location.search + location.hash);</script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body class="theme-dark">
+<!--
+  卡片风格 3.0 — 1.0 and 2.0 in one: 1.0's 25 materials and gallery (tools/cover-modes/card-styles.js, unchanged), 2.0's
+  eight new materials (materials.js) and its studio (studio.css, studio.js), and one choice shared with Minest:
+  · opened from Minest (its 卡片风格 key, tools/v2-routes): the page starts on your board's style, and every pick is
+    sent back through the bridge — the board behind changes at once (the eight new materials are in Minest's pages too);
+  · opened on the web: it is Minest's own key on this site, so the web Minest shows the same style.
+  minest.cardStyle.v3 keeps the choice as picked: 1.0 falls back to its default for a material it did not know at its start.
+-->
+<script src="../v2-bridge/bridge.js"></script>
+<script>
+(function () {
+  var SYNC = { 'minest.cardStyle': 1, 'minest.cardStyle.mindful': 1 }, KEEP = 'minest.cardStyle.v3';
+  var P = Storage.prototype, set = P.setItem, live = false, ready = false;
+  window.CS3 = { inMinest: function () { return live; } };
+  /* after the studio is up, a change to the style is Minest's change too (1.0's own start-up write is not) */
+  P.setItem = function (k, v) {
+    set.call(this, k, v);
+    if (!ready || this !== window.localStorage || !SYNC[k]) return;
+    if (k === 'minest.cardStyle') set.call(this, KEEP, v);
+    if (live && window.MinestV2Bridge) MinestV2Bridge.send('ls', { key: k, value: String(v) });
+  };
+  window.CS3.start = function () {   /* after the studio has started: take Minest's style, then pass picks on */
+    var B = window.MinestV2Bridge;
+    (B && B.embedded ? B.hello() : Promise.resolve(null)).then(function (r) {
+      live = !!r;
+      var want = null;
+      try {
+        if (r && r.ls) Object.keys(SYNC).forEach(function (k) { if (typeof r.ls[k] === 'string') set.call(localStorage, k, r.ls[k]); });
+        want = (r && r.ls && r.ls['minest.cardStyle']) || localStorage.getItem(KEEP);
+      } catch (e) {}
+      var CS = window.MinestCardStyles;
+      ready = true;
+      if (want && CS && want !== CS.get() && CS.styles.some(function (s) { return s.id === want; })) location.replace('#s=' + want);   /* the studio follows its hash */
+      else if (CS) { try { var u = document.getElementById('v2-use'); if (u) u.innerHTML = '<span>' + (live ? '已用在看板 ✓' : '用到 Minest') + '</span>'; } catch (e) {} }
+    });
+  };
+})();
+</script>
+<script src="../tools/cover-modes/card-styles.js"></script>
+<script src="materials.js"></script>
+<script src="studio.js"></script>
+<script>CS3.start();</script>
+<noscript>卡片风格 3.0 需要开启 JavaScript。</noscript>
+</body>
+</html>

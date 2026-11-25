@@ -38,7 +38,7 @@ def patch(s, remove):
         s = s.replace(b, a) if remove else s.replace(a, b)
     s = BLOCK.sub('', s)
     if not remove:
-        js = (ROOT / 'tools/v2-routes/v2-routes.js').read_text(encoding='utf-8')
+        js = blockjs()
         i = s.rfind('</body>')
         if i < 0:
             raise SystemExit('no </body>')
@@ -46,9 +46,15 @@ def patch(s, remove):
     return s
 
 
+def blockjs():
+    """the block's script: 卡片风格 3.0's eight materials (they join the page's own card styles), then the routes"""
+    mat = (ROOT / 'card-styles-3/materials.js').read_text(encoding='utf-8')
+    return mat + '\n' + (ROOT / 'tools/v2-routes/v2-routes.js').read_text(encoding='utf-8')
+
+
 def missing():
     """pages that should carry the 2.0 routes and do not (addresses of the frames they have, or the script)"""
-    js = (ROOT / 'tools/v2-routes/v2-routes.js').read_text(encoding='utf-8')
+    js = blockjs()
     out = []
     for p in PAGES:
         f = ROOT / p
