@@ -2204,6 +2204,33 @@
       return true;
     }
 
+    function compassCss() {
+      if (document.getElementById('pic-css')) return;
+      const C = '#f3ecd6', st = document.createElement('style'); st.id = 'pic-css';
+      st.textContent =
+        '#pi-modal-content:has(> .pic-root){width:min(860px,94vw)!important;max-height:84dvh!important;padding:18px 20px 20px!important;background:rgba(8,10,12,.92)!important;border:1px solid rgba(243,236,214,.32)!important;border-radius:16px!important;box-shadow:0 18px 60px rgba(0,0,0,.6)!important;overflow-x:hidden}' +
+        '.pic-root{color:' + C + ';font-family:"Avenir Next","Helvetica Neue","PingFang SC",sans-serif}' +
+        '.pic-head{display:flex;align-items:flex-start;gap:12px}.pic-head h2{margin:0;font-size:19px;font-weight:600;letter-spacing:.12em;color:' + C + '}.pic-head p{margin:3px 0 0;font-size:12px;opacity:.6}.pic-head .sp{flex:1}' +
+        '.pic-x,.pic-key{border:1px solid rgba(243,236,214,.5);background:rgba(243,236,214,.04);color:' + C + ';border-radius:999px;font:500 12.5px "Avenir Next","PingFang SC",sans-serif;cursor:pointer;padding:5px 13px}.pic-x{width:32px;height:32px;padding:0;font-size:14px}' +
+        '.pic-x:hover,.pic-key:hover,.pic-key.on{border-color:' + C + ';background:rgba(243,236,214,.14)}' +
+        '.pic-tabs{display:flex;gap:30px;margin:14px 0 6px;border-bottom:1px solid rgba(243,236,214,.18)}.pic-tabs span{cursor:pointer;opacity:.5;padding:6px 2px 9px;font-size:14.5px;letter-spacing:.14em}.pic-tabs span.on{opacity:1;border-bottom:2px solid ' + C + '}' +
+        '.pic-chips{display:flex;gap:7px;margin:10px 0 8px}' +
+        '.pic-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(380px,100%),1fr));gap:2px 14px}' +
+        '.pic-hall{position:relative;display:flex;align-items:center;gap:6px;border:1px solid transparent;border-radius:8px;padding:2px 4px}.pic-hall[hidden]{display:none}' +
+        '.pic-hall:hover{border-color:rgba(243,236,214,.6);background:rgba(243,236,214,.07)}.pic-hall:hover:before{content:"▶";position:absolute;left:-12px;top:50%;transform:translateY(-50%);color:#e23a2e;font-size:10px}' +
+        '.pic-main,.pic-row{display:flex;align-items:center;gap:11px;flex:1;min-width:0;background:none;border:0;color:' + C + ';font:inherit;text-align:left;cursor:pointer;padding:6px 4px}' +
+        '.pic-main img{width:34px;height:34px;border-radius:50%;object-fit:cover;object-position:50% 20%;border:1px solid rgba(243,236,214,.45);flex:none}' +
+        '.pic-main .tx,.pic-row .tx{min-width:0;flex:1}.pic-main b,.pic-row b{display:block;font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pic-main b i{font-style:normal;color:#e9c46a;font-size:12px}' +
+        '.pic-main small,.pic-row small{display:block;font-size:11.5px;opacity:.55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+        '.pic-acts{display:flex;gap:4px;flex:none}.pic-acts button{border:1px solid rgba(243,236,214,.3);background:none;color:' + C + ';border-radius:6px;font:500 11.5px "PingFang SC",sans-serif;padding:3px 7px;cursor:pointer;opacity:.75}.pic-acts button:hover{opacity:1;border-color:' + C + '}' +
+        '.pic-sec{margin:14px 0 4px;font-size:11.5px;letter-spacing:.2em;opacity:.55}' +
+        '.pic-go{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(250px,100%),1fr));gap:2px 10px}' +
+        '.pic-row{position:relative;border:1px solid transparent;border-radius:8px;padding:8px 10px;width:100%}.pic-row:hover{border-color:rgba(243,236,214,.6);background:rgba(243,236,214,.07)}.pic-row:hover:before{content:"▶";position:absolute;left:-12px;color:#e23a2e;font-size:10px}' +
+        '.pic-row .ic{font-size:18px;width:24px;text-align:center;flex:none}' +
+        '@media (max-width:560px){#pi-modal-content:has(> .pic-root){padding:14px!important}.pic-acts button{padding:3px 5px}.pic-main small{display:none}}';
+      document.head.appendChild(st);
+    }
+
     // Open Top 20 Philosophers & 6 Districts Compass Directory Modal
     function openCompassModal() {
       S.ui = true;
@@ -2212,67 +2239,38 @@
       const box = document.getElementById('pi-modal-content');
       if (!overlay || !box) return;
 
-      box.innerHTML = `
-        <div class="pi-m-header">
-          <div>
-            <span class="pi-m-badge">MAIN ISLAND + ANNEX ISLAND · ${world.PHILOSOPHERS.length} HALLS</span>
-            <h2>🧭 哲学家体素小岛 · 主岛与社会科学岛 ${world.PHILOSOPHERS.length} 座展馆全景罗盘</h2>
-            <div class="pi-m-sub">点击任意哲学家可瞬间传送至其宅邸门前，或直接预览其屋内的 InteractionPortal 思想实验 (${getVisitedCount()}/${world.PHILOSOPHERS.length} 已探索)</div>
-          </div>
-          <button type="button" class="pi-m-close" id="pi-m-close-btn">✕</button>
-        </div>
-
-        <div class="pi-btn-row" style="margin-bottom:10px;">
-          <button type="button" class="pi-act-btn gold" id="pi-quick-cave">🔥 直达：柏拉图地下洞穴剧场</button>
-          <button type="button" class="pi-act-btn gold" id="pi-quick-story">📖 思想之河：绘本里沿河走一遍（P）</button>
-          <button type="button" class="pi-act-btn gold" id="pi-quick-lib">🏛 时光图书馆：书墙 + 六种读法（G）</button>
-          <button type="button" class="pi-act-btn gold" id="pi-quick-sphere">🌐 Sphere 环球巨幕：两百块屏幕一起播（时光岛）</button>
-          <button type="button" class="pi-act-btn gold" id="pi-quick-root">🎞 词根馆：191 个词汇动图 + 思维模型动图（时光岛）</button>
-          <button type="button" class="pi-act-btn gold" id="pi-quick-paper">✂️ 纸艺小岛：厚纸叠出来的全岛地图（U）</button>
-          <button type="button" class="pi-act-btn gold" id="pi-quick-fold2">📗 折叠书：十大哲学思想（I）</button>
-          <button type="button" class="pi-act-btn gold" id="pi-quick-fold">📐 折叠书：把思维手册翻成八个纸房间（O）</button>
-          <button type="button" class="pi-act-btn gold" id="pi-quick-hb">🧰 思维手册：100 个常用思维模型（J）</button>
-          <button type="button" class="pi-act-btn gold" id="pi-quick-stick">🎬 火柴人小剧场：43 个思想的小动画（K）</button>
-          <button type="button" class="pi-act-btn gold" id="pi-quick-cone">⏳ 时光岛 · 光锥：330 万年科技史（L）</button>
-          <button type="button" class="pi-act-btn gold" id="pi-quick-council">🏛 召开圆桌会议（C）</button>
-          <button type="button" class="pi-act-btn gold" id="pi-quick-kantwalk">🚶 陪康德下午散步（柯尼斯堡 · 约 1790 年）</button>
-          <button type="button" class="pi-act-btn gold" id="pi-quick-kant2f">🌌 直达：康德二楼星空浑天仪阁楼</button>
-          <button type="button" class="pi-act-btn" id="pi-quick-bridge">🌉 直达：综合之桥 (唯理论×经验论交汇)</button>
-          <button type="button" class="pi-act-btn" id="pi-quick-holo">🔷 思维工坊 · 全息操作台（全部交互模型）</button>
-          <button type="button" class="pi-act-btn" id="pi-quick-compare">⚖️ 观点对比：同一问题问诸家</button>
-          <button type="button" class="pi-act-btn" id="pi-quick-saved">📑 我的收藏</button>
-        </div>
-
-        <div class="pi-phil-grid">
-          ${REGISTRY.map((r) => {
+      /* the compass, drawn quietly in the island's cream-on-dark look: two tabs — 展馆 (every hall, one row each; the
+         name walks you to its door) and 去处 (the special places and ways of reading). Every key keeps its id, so the
+         handlers below are unchanged. Styles: compassCss(); the box is styled only while it holds .pic-root. */
+      compassCss();
+      const Q = [
+        ['时光岛', [['pi-quick-lib', '🏛', '时光图书馆', '书墙与六种读法 · G'], ['pi-quick-sphere', '🌐', 'Sphere 环球巨幕', '两百块屏幕一起播'], ['pi-quick-root', '🎞', '词根馆', '191 个词汇动图 + 思维模型动图'], ['pi-quick-cone', '⏳', '光锥', '330 万年科技史 · L']]],
+        ['读与看', [['pi-quick-story', '📖', '思想之河', '绘本里沿河走一遍 · P'], ['pi-quick-paper', '✂️', '纸艺小岛', '厚纸叠出来的全岛地图 · U'], ['pi-quick-fold2', '📗', '折叠书 · 十大哲学思想', 'I'], ['pi-quick-fold', '📐', '折叠书 · 思维手册八个纸房间', 'O'], ['pi-quick-hb', '🧰', '思维手册', '100 个常用思维模型 · J'], ['pi-quick-stick', '🎬', '火柴人小剧场', '43 个思想的小动画 · K']]],
+        ['体验', [['pi-quick-cave', '🔥', '柏拉图洞穴剧场', '火堆与洞壁的影子'], ['pi-quick-kant2f', '🌌', '康德星空阁楼', '二楼的浑天仪'], ['pi-quick-kantwalk', '🚶', '陪康德下午散步', '柯尼斯堡 · 约 1790 年'], ['pi-quick-council', '🪑', '圆桌会议', '请几位哲学家同桌 · C'], ['pi-quick-bridge', '🌉', '综合之桥', '唯理论与经验论交汇'], ['pi-quick-holo', '🔷', '思维工坊 · 全息操作台', '全部交互模型'], ['pi-quick-compare', '⚖️', '观点对比', '同一问题问诸家'], ['pi-quick-saved', '📑', '我的收藏', '']]]
+      ];
+      const esc = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      box.innerHTML = `<div class="pic-root">
+        <div class="pic-head"><div><h2>哲学家罗盘</h2><p>${world.PHILOSOPHERS.length} 座展馆 · 已探索 ${getVisitedCount()}/${world.PHILOSOPHERS.length}</p></div><span class="sp"></span><button type="button" class="pic-x" id="pi-m-close-btn" aria-label="关闭">✕</button></div>
+        <div class="pic-tabs"><span data-pic-tab="halls" class="on">展馆</span><span data-pic-tab="go">去处</span></div>
+        <div class="pic-pane" data-pic-pane="halls">
+          <div class="pic-chips"><button type="button" class="pic-key on" data-pic-f="all">全部</button><button type="button" class="pic-key" data-pic-f="new">未探索</button></div>
+          <div class="pic-list">${REGISTRY.map((r) => {
             const done = !!journal[r.portal_id];
-            const philObj = world.PHILOSOPHERS.find((p) => p.id === r.philosopher_id) || {};
-            const firstWork = (philObj.works && philObj.works[0]) || '';
-            return `
-              <div class="pi-phil-card ${done ? 'visited' : ''}">
-                <div style="display:flex;gap:10px;align-items:center;margin-bottom:6px;">
-                  <img src="assets/portraits/${r.philosopher_id}.jpg" alt="${r.philosopher_name}" style="width:46px;height:56px;object-fit:cover;border-radius:6px;border:1.5px solid #d97706;flex-shrink:0;">
-                  <div style="flex:1;min-width:0;">
-                    <div class="pi-pc-top">
-                      <span class="pi-pc-num">#${r.philosopher_num} ${r.philosopher_name}</span>
-                      <span class="pi-pc-status">${done ? '★ 已探索' : '未探索'}</span>
-                    </div>
-                    <div class="pi-pc-dist">${r.district}</div>
-                  </div>
-                </div>
-                <div class="pi-pc-portal">🖼️ ${philObj.artTitle || r.visual_object.label_zh}</div>
-                <div style="font-size:11.5px;color:#fde68a;margin-bottom:6px;">📖 代表作：${firstWork}</div>
-                <div class="pi-pc-actions">
-                  <button type="button" data-tp-phil="${r.philosopher_id}">🚶 外观</button>
-                  <button type="button" data-tp-gallery="${r.philosopher_id}">🏛️ 展馆</button>
-                  <button type="button" class="pri" data-talk-phil="${r.philosopher_id}">💬 对话</button>
-                  <button type="button" data-open-portal="${r.portal_id}">📚 百科</button>
-                </div>
-              </div>
-            `;
-          }).join('')}
+            return `<div class="pic-hall ${done ? 'done' : ''}">
+              <button type="button" class="pic-main" data-tp-phil="${r.philosopher_id}" title="走到门口"><img src="assets/portraits/${r.philosopher_id}.jpg" alt="" loading="lazy"><span class="tx"><b>${esc(r.philosopher_name)}${done ? ' <i>★</i>' : ''}</b><small>${esc(r.district)}</small></span></button>
+              <span class="pic-acts"><button type="button" data-tp-gallery="${r.philosopher_id}" title="进展馆">展馆</button><button type="button" data-talk-phil="${r.philosopher_id}" title="对话">对话</button><button type="button" data-open-portal="${r.portal_id}" title="百科">百科</button></span>
+            </div>`;
+          }).join('')}</div>
         </div>
-      `;
+        <div class="pic-pane" data-pic-pane="go" hidden>${Q.map(([g, rows]) => `<div class="pic-sec">${g}</div><div class="pic-go">${rows.map(([id, ic, n, l]) =>
+          `<button type="button" class="pic-row" id="${id}"><span class="ic">${ic}</span><span class="tx"><b>${n}</b>${l ? `<small>${l}</small>` : ''}</span></button>`).join('')}</div>`).join('')}</div>
+      </div>`;
+      box.querySelectorAll('[data-pic-tab]').forEach((t) => { t.onclick = () => {
+        box.querySelectorAll('[data-pic-tab]').forEach((x) => x.classList.toggle('on', x === t));
+        box.querySelectorAll('[data-pic-pane]').forEach((pn) => { pn.hidden = pn.getAttribute('data-pic-pane') !== t.getAttribute('data-pic-tab'); }); box.scrollTop = 0; }; });
+      box.querySelectorAll('[data-pic-f]').forEach((c) => { c.onclick = () => {
+        const only = c.getAttribute('data-pic-f') === 'new'; box.querySelectorAll('[data-pic-f]').forEach((x) => x.classList.toggle('on', x === c));
+        box.querySelectorAll('.pic-hall').forEach((h) => { h.hidden = only && h.classList.contains('done'); }); }; });
 
       overlay.style.display = 'flex';
       document.getElementById('pi-m-close-btn').onclick = closeModal;
