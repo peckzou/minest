@@ -14,7 +14,8 @@
     ['wave', 'Wave'],
     ['ring', 'Ring'],
     ['stream', 'Stream'],
-    ['rolodex', 'Rolodex']
+    ['rolodex', 'Rolodex'],
+    ['glass', 'Glass Widgets']
   ];
   /* the fluid gradients' palettes: base, then three light blobs */
   var FLUID = [
@@ -53,6 +54,7 @@
     ring: '<path d="M3.5 7l3.2 1.3v8.4L3.5 18z"/><rect x="9" y="7.5" width="6" height="9.5" rx="1.2"/><path d="M20.5 7l-3.2 1.3v8.4l3.2 1.3z"/><path d="M4 21c4.6-1.6 11.4-1.6 16 0" opacity=".6"/>',
     wave: '<path d="M2.5 12c2.4-5 4.8-5 7.1 0s4.8 5 7.2 0 3.4-3.3 4.7-2"/><circle cx="9.6" cy="12" r="1" fill="currentColor" stroke="none"/>',
     rolodex: '<rect x="6" y="4.5" width="12" height="9.5" rx="1.3"/><path d="M9 4.5V3.2h3.5v1.3M4 13.5h16M6.5 14v4.5a1.5 1.5 0 0 0 1.5 1.5h8a1.5 1.5 0 0 0 1.5-1.5V14"/><path d="M2.5 11.8v3.4M21.5 11.8v3.4" stroke-width="2.1"/>',
+    glass: '<rect x="3.5" y="3.5" width="17" height="17" rx="4.8"/><rect x="6" y="5.8" width="12" height="7.4" rx="2.4"/><path d="M8.5 16.2h7M10 18.4h4"/>',
     play: '<path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="none"/>', pause: '<rect x="7" y="5.5" width="3.4" height="13" rx="1" fill="currentColor" stroke="none"/><rect x="13.6" y="5.5" width="3.4" height="13" rx="1" fill="currentColor" stroke="none"/>',
     port: '<rect x="7.5" y="3.5" width="9" height="17" rx="2"/>', land: '<rect x="3.5" y="7.5" width="17" height="9" rx="2"/>',
     style: '<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.6-.9 1.2-1.8-.5-1-.1-2.2 1.2-2.2H17a3.5 3.5 0 0 0 3.5-3.5c0-5.3-3.8-9.5-8.5-9.5z"/><circle cx="7.8" cy="11" r="1.1" fill="currentColor" stroke="none"/><circle cx="10.5" cy="7.4" r="1.1" fill="currentColor" stroke="none"/><circle cx="14.8" cy="7.6" r="1.1" fill="currentColor" stroke="none"/>',
@@ -60,7 +62,7 @@
     holo: '<path d="M12 3l7 4v6c0 3.6-3 6.4-7 8-4-1.6-7-4.4-7-8V7z" opacity=".55"/><path d="M8.5 12.5l2.4 2.4 4.6-5.2"/><path d="M4 21h16"/>', lfx: '<path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 16v4M16.5 18h4"/>', cfx: '<rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M8.5 9h7M8.5 12.5h5" stroke-dasharray="1.4 1.6"/><circle cx="16.5" cy="16.5" r="1" fill="currentColor"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>', lab: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>'
   };
-  var MZH = { flow: '3D 封面', wall: '卡片墙', fan: '扇形', helix: '螺旋', stack: '叠放', spiral: '旋涡', orbit: '轨道', sphere: '球体', wave: '波浪', ring: '环形', stream: '流光', rolodex: '旋转名片夹' };
+  var MZH = { flow: '3D 封面', wall: '卡片墙', fan: '扇形', helix: '螺旋', stack: '叠放', spiral: '旋涡', orbit: '轨道', sphere: '球体', wave: '波浪', ring: '环形', stream: '流光', rolodex: '旋转名片夹', glass: '玻璃组件' };
   function ico(k) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICO[k] || '') + '</svg>'; }
   function flashName(host, txt) { var n = host.querySelector('.cm-mname'); if (!n) { n = document.createElement('div'); n.className = 'cm-mname'; host.appendChild(n); } n.textContent = txt; n.classList.remove('show'); void n.offsetWidth; n.classList.add('show'); clearTimeout(n._t); n._t = setTimeout(function () { n.classList.remove('show'); }, 1300); }
   var calm = false; try { calm = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
@@ -265,6 +267,13 @@
   function Engine(box, list, m, onPick) {
     if (m === 'rolodex' && window.MinestRolodexMode) {
       return window.MinestRolodexMode.mount(box, list, onPick, {
+        isPlaying: function () { return playing; },
+        getSpeed: function () { return speed; },
+        isHolo: function () { return HOLO || !!box.closest('#cm-holo') || box.classList.contains('hl'); }
+      });
+    }
+    if (m === 'glass' && window.MinestGlassWidgetsMode) {
+      return window.MinestGlassWidgetsMode.mount(box, list, onPick, {
         isPlaying: function () { return playing; },
         getSpeed: function () { return speed; },
         isHolo: function () { return HOLO || !!box.closest('#cm-holo') || box.classList.contains('hl'); }
@@ -1085,7 +1094,7 @@
     if (ov) ov.remove();
     ov = document.createElement('div'); ov.id = 'cm-ov'; ov.className = mode + ' ' + shape; slot.insertBefore(ov, bar.parentNode === slot ? bar : slot.querySelector('#xl')); sig = s;
     lastList = list;
-    eng = (list.length || mode === 'rolodex') ? Engine(ov, list, mode, pick) : null;
+    eng = (list.length || mode === 'rolodex' || mode === 'glass') ? Engine(ov, list, mode, pick) : null;
     stageBg(); holoOv(ov);
   }
   /* 全息 (2026-11-20, the user): the holo projection's look laid over the mode in view — cyan light cards, scan lines,
@@ -1125,7 +1134,7 @@
   window.addEventListener('minest:cover-bg', function (e) { setBg(e.detail); });
   /* a big board: only a window of cards round the one in view is built (every card animated each frame, each with
      its picture and the card style's layers, was too much for a phone) */
-  var CAP = { sphere: 30, spiral: 40, wall: 50, rolodex: 120 }, lastPickId = null;
+  var CAP = { sphere: 30, spiral: 40, wall: 50, rolodex: 120, glass: 80 }, lastPickId = null;
   function windowed(list) {
     var cap = CAP[mode] || 64; if (list.length <= cap) return list;
     var at = 0; if (lastPickId) { for (var i = 0; i < list.length; i++) if (list[i].id === lastPickId) { at = i; break; } }

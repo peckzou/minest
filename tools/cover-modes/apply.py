@@ -12,7 +12,7 @@ import sys
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 PAGES = ['iphone.html', 'index.html', 'ios/Minest/Minest/iphone.html', 'ios/Minest/Minest/iphone18.0.html']
-BLOCKS = [('script', 'mn-rolodex-js', 'rolodex.js'), ('script', 'mn-cover-modes-js', 'cover-modes.js'), ('script', 'mn-card-styles-js', 'card-styles.js'), ('script', 'mn-explode-js', 'explode.js')]
+BLOCKS = [('script', 'mn-rolodex-js', 'rolodex.js'), ('script', 'mn-glass-widgets-js', 'glass-widgets.js'), ('script', 'mn-cover-modes-js', 'cover-modes.js'), ('script', 'mn-card-styles-js', 'card-styles.js'), ('script', 'mn-explode-js', 'explode.js')]
 
 
 def block():

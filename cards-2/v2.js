@@ -10,8 +10,8 @@
   var slot = document.querySelector('.sf-slot[data-sf-view="coverflow"]');
   if (!CM || !D || !slot) return;
   var MODES = [['flow', '3D 封面', 'Cover Flow', '#5cc8ff'], ['wall', '卡片墙', 'Wall', '#8b9dff'], ['fan', '扇形', 'Fan', '#ffb86b'], ['helix', '螺旋', 'Helix', '#6ff0c2'], ['stack', '叠放', 'Stack', '#ff8fb1'], ['spiral', '旋涡', 'Spiral', '#c08bff'],
-    ['orbit', '轨道', 'Orbit', '#5ee0ff'], ['sphere', '球体', 'Sphere', '#7fb0ff'], ['wave', '波浪', 'Wave', '#62e6d0'], ['ring', '环形', 'Ring', '#ff7ad9'], ['stream', '流光', 'Stream', '#f5a524'], ['rolodex', '旋转名片夹', 'Rolodex', '#e6b450']];
-  var KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '='];
+    ['orbit', '轨道', 'Orbit', '#5ee0ff'], ['sphere', '球体', 'Sphere', '#7fb0ff'], ['wave', '波浪', 'Wave', '#62e6d0'], ['ring', '环形', 'Ring', '#ff7ad9'], ['stream', '流光', 'Stream', '#f5a524'], ['rolodex', '旋转名片夹', 'Rolodex', '#e6b450'], ['glass', '玻璃组件', 'Glass Widgets', '#7ee8fa']];
+  var KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', 'G'];
   var $ = function (id) { return document.getElementById(id); };
   var calm = false; try { calm = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
   function info(m) { for (var i = 0; i < MODES.length; i++) if (MODES[i][0] === m) return MODES[i]; return MODES[0]; }
@@ -31,7 +31,7 @@
     var ov = $('cm-ov');
     if (ov && cv.parentNode !== ov) { ov.insertBefore(cv, ov.firstChild); fit(); }
     if (ov) { light = ov.classList.contains('stream') || ov.classList.contains('bg-light'); document.body.classList.toggle('v2-light', light); }
-    $('v2-empty').hidden = !!(ov && (ov.querySelector('.cm-c') || ov.querySelector('.rdx-stage')));
+    $('v2-empty').hidden = !!(ov && (ov.querySelector('.cm-c') || ov.querySelector('.rdx-stage') || ov.querySelector('.gw-stage')));
   }
   new MutationObserver(mount).observe(slot, { childList: true });
   addEventListener('resize', fit);
@@ -66,11 +66,11 @@
 
   /* ───────────── formation change ───────────── */
   var ghosts = $('v2-ghosts'), morphing = 0, capT = 0;
-  function titleOf(el) { var t = el.querySelector('.tt,.rt,.fn,.wt'); return t ? t.textContent : ''; }
+  function titleOf(el) { var t = el.querySelector('.tt,.rt,.fn,.wt,.gw-title'); return t ? t.textContent : ''; }
   function snap() {   // the cards on screen now, one per card (a mode may draw a card more than once): { key: { el, r } }
     var ov = $('cm-ov'), out = {}; if (!ov) return out;
     var vw = innerWidth, vh = innerHeight;
-    [].forEach.call(ov.querySelectorAll('.cm-c'), function (el) {
+    [].forEach.call(ov.querySelectorAll('.cm-c,.gw-face'), function (el) {
       var r = el.getBoundingClientRect();
       if (r.width < 28 || r.height < 28 || r.right < 8 || r.left > vw - 8 || r.bottom < 8 || r.top > vh - 8) return;
       var cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity < .12) return;
@@ -174,7 +174,8 @@
   slot.addEventListener('pointerdown', function () { tour(false); }, true);
   document.addEventListener('keydown', function (e) {
     if (e.metaKey || e.ctrlKey || e.altKey || /input|textarea|select/i.test((e.target && e.target.tagName) || '') || $('xl')) return;
-    var i = KEYS.indexOf(e.key), at = MODES.indexOf(info(CM.get()));
+    var i = KEYS.indexOf(e.key); if (i < 0) i = KEYS.indexOf(e.key.toUpperCase());
+    var at = MODES.indexOf(info(CM.get()));
     if (i >= 0) pick(MODES[i][0]);
     else if (e.key === ']' || e.key === '[') pick(MODES[(at + (e.key === ']' ? 1 : MODES.length - 1)) % MODES.length][0]);
     else if (e.key === 't' || e.key === 'T') tour(!touring);
