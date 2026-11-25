@@ -239,7 +239,7 @@
     if (document.getElementById('mn-bp-css')) return;
     var s = document.createElement('style'); s.id = 'mn-bp-css';
     s.textContent = [
-      '#mn-bp{position:fixed;z-index:2147483645;inset:auto 12px calc(12px + env(safe-area-inset-bottom)) auto;width:min(720px,calc(100vw - 24px));height:min(560px,calc(100vh - 90px));display:flex;flex-direction:column;border-radius:22px;overflow:hidden;font:14px/1.35 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;color:#2b1d12;',
+      '#mn-bp{position:fixed;z-index:2147483647;inset:auto 12px calc(12px + env(safe-area-inset-bottom)) auto;width:min(720px,calc(100vw - 24px));height:min(560px,calc(100vh - 90px));display:flex;flex-direction:column;border-radius:22px;overflow:hidden;font:14px/1.35 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;color:#2b1d12;',
       'background:linear-gradient(180deg,#8a5a36,#6e4426);box-shadow:0 24px 60px rgba(40,22,8,.45),inset 0 0 0 2px #4a2c16;transform-origin:50% 0}',
       '#mn-bp[hidden]{display:none}#mn-bp.opening{animation:bpOpen .38s cubic-bezier(.2,.9,.3,1.2)}@keyframes bpOpen{0%{transform:scaleY(.12) translateY(30px);opacity:0}100%{transform:none;opacity:1}}',
       '#mn-bp .flap{position:relative;padding:12px 16px 10px;background:linear-gradient(180deg,#9c6a40,#7f512e);border-bottom:2px dashed rgba(255,228,180,.35);display:flex;align-items:center;gap:10px}',
@@ -265,6 +265,7 @@
       '#mn-bp .ix button.sel{background:#5b3a20;color:#fbf2e0;border-color:#5b3a20}#mn-bp .ix button.off{opacity:.55}',
       '#mn-bp .ixnote{font-size:12.5px;color:#8a6a48}',
       '#mn-bp .pv .ixpic{width:100%;aspect-ratio:1;object-fit:contain;border-radius:12px;background:#f6ead2;display:grid;place-items:center;color:#8a6a48}',
+      '#mn-bp .pv .source-mark{aspect-ratio:auto;height:84px;max-height:84px;background:linear-gradient(135deg,#ead7b5,#d5bb8e);color:#5b3a20;font-size:20px;font-weight:800;letter-spacing:.1em}',
       '#mn-bp .pv{width:240px;flex:none;display:flex;flex-direction:column;gap:6px;overflow:auto}',
       '#mn-bp .pv canvas{width:240px;height:200px;border-radius:14px;background:radial-gradient(#fffdf6,#ead8b6);touch-action:none;cursor:grab}',
       '#mn-bp .pv h4{margin:2px 0 0;font-size:15px}#mn-bp .pv p{margin:0;font-size:12px;color:#5a4128}#mn-bp .pv dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:2px 8px;font-size:12px}#mn-bp .pv dt{color:#8a6a48}',
@@ -282,7 +283,7 @@
   function open(host) {
     css();
     if (!ui) {
-      var el = document.createElement('div'); el.id = 'mn-bp'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Magical Backpack');
+      var el = document.createElement('div'); el.id = 'mn-bp'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Magical Backpack'); el.setAttribute('popover', 'manual');
       el.innerHTML = '<div class="flap"><span class="buckle" aria-hidden="true"></span><span class="plate">MINEST · BACKPACK</span><input type="search" placeholder="搜索物品…" aria-label="搜索"><button type="button" data-bp="close">合上</button></div>' +
         '<div class="tabs" role="tablist"></div><div class="inside"><div class="grid"></div><div class="pv"></div></div>';
       document.body.appendChild(el);
@@ -295,10 +296,11 @@
       el.addEventListener('keydown', function (e) { e.stopPropagation(); if (e.key === 'Escape') { e.preventDefault(); close(false); } });
     }
     ui.host = host; ui.el.hidden = false;
+    try { if (ui.el.showPopover && !ui.el.matches(':popover-open')) ui.el.showPopover(); } catch (e) {}
     if (!host.reduced || !host.reduced()) { ui.el.classList.remove('opening'); void ui.el.offsetWidth; ui.el.classList.add('opening'); }
     render();
   }
-  function close(placing) { if (!ui || ui.el.hidden) return; ui.el.hidden = true; cancelAnimationFrame(ui.raf); ui.raf = 0; try { if (ui.host && ui.host.onClose) ui.host.onClose(!!placing); } catch (e) {} }
+  function close(placing) { if (!ui || ui.el.hidden) return; try { if (ui.el.matches(':popover-open')) ui.el.hidePopover(); } catch (e) {} ui.el.hidden = true; cancelAnimationFrame(ui.raf); ui.raf = 0; try { if (ui.host && ui.host.onClose) ui.host.onClose(!!placing); } catch (e) {} }
   function isOpen() { return !!(ui && !ui.el.hidden); }
   function items() { return catalog(ui.host); }
 
@@ -322,6 +324,11 @@
   }
   var LIB_GROUPS = [['building', '建筑 Buildings'], ['object', '物件 Objects'], ['diorama', '室内 Interiors'], ['world', '世界 Worlds'], ['subisland', '小岛 Islands'], ['center', '中心岛样式 Centre styles']];
   var BP_GROUPS = [['creations', '我的作品'], ['fixtures', '陈列装置'], ['tools', '工坊工具'], ['magic', '魔法道具'], ['collections', '我的收藏']];
+  var EXTERNAL_LIBRARIES = [{
+    id: 'source:polyfork', name: 'Polyfork 3D', url: 'https://polyfork.dev/',
+    summary: '官网介绍 3500+ 免费可商用的 Three.js ES 模块模型。',
+    details: '模型可在线调整颜色、比例与部件细节，并按中世纪村庄、城市街区、太空基地等主题套件整理。具体模型许可请以 Polyfork 页面说明为准。'
+  }];
   function renderIndex(all, grid) {
     var q = ui.q, hit = function (t) { return !q || String(t).toLowerCase().indexOf(q) >= 0; };
     var h = '<h5>背包里的物品 · 可以直接放出来</h5>';
@@ -332,6 +339,12 @@
         return '<button type="button" data-key="' + esc(it.key) + '" class="' + (ui.sel === it.key ? 'sel' : '') + (it.ready === false ? ' off' : '') + '">' + esc(it.name) + (it.ready === false ? ' · 未完成' : '') + '</button>';
       }).join('') + '</div>';
     });
+    var sources = EXTERNAL_LIBRARIES.filter(function (a) { return hit(a.name + ' ' + a.summary + ' ' + a.details); });
+    if (sources.length) {
+      h += '<h5>外部 3D 模型库</h5><div class="ix">' + sources.map(function (a) {
+        return '<button type="button" data-lib="' + esc(a.id) + '" class="' + (ui.lib === a.id ? 'sel' : '') + '" title="' + esc(a.summary) + '">' + esc(a.name) + '</button>';
+      }).join('') + '</div>';
+    }
     if (!LIB) {
       h += '<h5>My World 3D 库</h5><div class="ix"><span class="ixnote">' + (libWait ? '正在读取建筑库…' : '在 Minest 里打开背包时，这里会列出 My World 所有已上线的建筑、物件、室内和世界。') + '</span></div>';
       grid.innerHTML = h;
@@ -352,6 +365,11 @@
   }
   function libPreview(pv) {
     var a = null, id = ui.lib;
+    if (id === 'source:polyfork') {
+      var source = EXTERNAL_LIBRARIES[0];
+      pv.innerHTML = '<div class="ixpic source-mark" aria-hidden="true">POLYFORK · 3D</div><h4>' + esc(source.name) + '</h4><p>' + esc(source.summary) + '</p><dl><dt>主题</dt><dd>村庄、城市、太空基地套件</dd><dt>编辑</dt><dd>颜色、比例与部件细节</dd><dt>授权</dt><dd>以模型页面说明为准</dd></dl><div class="acts"><button type="button" class="pri" data-bp="open-polyfork">打开 Polyfork ↗</button></div>';
+      return;
+    }
     try { a = (LIB.info && LIB.info(id)) || null; } catch (e) {}
     var C = LIB.catalog || {}, kind = (LIB.kindOf ? LIB.kindOf(id) : ''), row = null;
     LIB_GROUPS.some(function (g) { row = (C[g[0]] || []).filter(function (x) { return x.id === id; })[0]; return !!row; });
@@ -415,7 +433,7 @@
   function preview() {
     var pv = ui.el.querySelector('.pv'), it = selected(), host = ui.host, T = host.THREE;
     cancelAnimationFrame(ui.raf); ui.raf = 0;
-    if (ui.cat === 'index' && ui.lib && LIB) return libPreview(pv);
+    if (ui.cat === 'index' && ui.lib) return libPreview(pv);
     if (!it) { pv.innerHTML = '<p style="margin-top:20px">选一件物品：看它的 3D 模型、尺寸和放置要求，然后一键放进世界。</p><p>桌面：R 旋转 · ←→↑↓ 微调 · Enter 放好 · Esc 取消</p>'; return; }
     var st = host.status(it), PLACE = { floor: '地面 / 展台 / 室外', wall: '墙面', surface: '桌面 / 柜面 / 货架 / 展台' };
     var kindName = { template: '模板 · 可以放多个', owned: '实体作品 · 只有一件', function: '功能物件 · 放好后可进入功能' }[it.kind];
@@ -454,6 +472,7 @@
     if (b.dataset.lib) { ui.lib = b.dataset.lib; ui.sel = null; render(); return; }
     var a = b.dataset.bp, it = selected();
     if (a === 'close') { close(); return; }
+    if (a === 'open-polyfork') { root.open(EXTERNAL_LIBRARIES[0].url, '_blank', 'noopener,noreferrer'); return; }
     if (!it) return;
     if (a === 'fav') { var on = toggleFav(it.key); host.toast(on ? '★ 加入收藏夹和快捷栏' : '已从收藏夹拿出'); render(); return; }
     if (a === 'place' || a === 'move') { touch(it.key); close(true); host.place(it, a === 'move'); return; }
