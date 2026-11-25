@@ -24,7 +24,8 @@
   var EC6 = EC6S[0] || null;
   function use(list, sample) {
     /* Minest's own pages carry the study board built in as EC6 Outline: then it is not added a second time */
-    var ex = list.some(function (b) { return b.id === 'board-ec6-outline'; }) ? EC6S.slice(1) : EC6S;
+    var has = function (id) { return list.some(function (b) { return b.id === id; }); };   /* EC6 Glossary is built in too */
+    var ex = EC6S.filter(function (b) { return !(b.id === 'kb-ec6-study-20261125' && has('board-ec6-outline')) && !(b.id === 'board-ec6-glossary-391' && has('board-ec6-glossary')); });
     if (ex.length) list = ex.concat(list.filter(function (b) { return !ex.some(function (x) { return x.id === b.id; }); }));
     var t = told(list); if (t !== last) { last = t; rev++; }
     boards = list; isSample = !!sample && !EC6;
