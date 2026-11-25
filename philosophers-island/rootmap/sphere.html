@@ -25,16 +25,22 @@
 <body>
 <div id="glow"></div><div id="base"></div>
 <div id="stage"><div id="ball"></div></div><div id="seats"></div>
-<div class="top"><h1>🌐 环球巨幕</h1><button id="mode">🚶 走进球内</button><button id="spin" class="on">⟳ 自转</button><button id="imp">📂 导入素材</button><button id="one">▣ 一幅铺满</button><button id="reset" style="display:none">↺ 恢复词根</button><button id="full">⛶ 全屏</button><button id="hide">👁 隐藏界面</button><input type="file" id="file" accept="image/*,video/*" multiple style="display:none"><span></span><button id="back">🎞 词根馆</button><button id="close">✕ 回到小岛</button></div>
+<div class="top"><h1>🌐 环球巨幕</h1><button id="setsw"></button><button id="mode">🚶 走进球内</button><button id="spin" class="on">⟳ 自转</button><button id="imp">📂 导入素材</button><button id="one">▣ 一幅铺满</button><button id="reset" style="display:none">↺ 恢复词根</button><button id="full">⛶ 全屏</button><button id="hide">👁 隐藏界面</button><input type="file" id="file" accept="image/*,video/*" multiple style="display:none"><span></span><button id="back">🎞 词根馆</button><button id="close">✕ 回到小岛</button></div>
 <div id="roots"></div>
 <div id="tip"></div><div id="big"><div><img alt=""><b></b><i></i></div></div>
 <script src="data.js"></script>
+<script src="thinking-gifs/data.js"></script>
 <script>
 /* A ball of screens, after the Sphere in Las Vegas: every tile is a little television playing one GIF. The tiles are real
    <img> elements placed on a sphere with CSS 3D transforms, so the GIFs animate natively; only the tiles facing the
    viewer carry a src, the rest are unloaded, which keeps memory in check. */
 (function () {
-  var D = window.ROOTMAP, EMBED = parent !== window, words = []; D.roots.forEach(function (r, ri) { r.words.forEach(function (w) { words.push({ w: w[1], zh: w[2], f: 'gifs/' + w[4], r: ri }); }); });
+  var D = window.ROOTMAP, EMBED = parent !== window, words = [];
+  /* two shows on the same ball: the word-root GIFs, or ?set=models — the 111 thinking-model GIFs (thinking-gifs/: 11 thought
+     experiments and the handbook's 100 models in eight categories), filtered by category instead of by root */
+  var TM = /[?&]set=models\b/.test(location.search) && window.THINKING_GIFS ? window.THINKING_GIFS : null;
+  if (TM) TM.items.forEach(function (it) { words.push({ w: it.en, zh: it.zh, line: it.line, f: 'thinking-gifs/' + it.f, r: it.g }); });
+  else D.roots.forEach(function (r, ri) { r.words.forEach(function (w) { words.push({ w: w[1], zh: w[2], f: 'gifs/' + w[4], r: ri }); }); });
   var ball = document.getElementById('ball'), stage = document.getElementById('stage'), R = 500, NEQ = 20, TW = 2 * Math.PI * R / NEQ, TH = TW * 9 / 16, step = TH / R, tiles = [], k = 0;
   for (var row = -8; row <= 8; row++) { var lat = row * step, n = Math.max(6, Math.round(NEQ * Math.cos(lat))); for (var c = 0; c < n; c++) { var lon = (c + (row % 2 ? 0.5 : 0)) / n * Math.PI * 2, wd = words[k % words.length], d = document.createElement('div'), im = document.createElement('img'); k++;
       d.className = 't'; d.style.width = (TW + 1.5) + 'px'; d.style.height = (TH + 1.5) + 'px'; d.style.marginLeft = (-TW / 2) + 'px'; d.style.marginTop = (-TH / 2) + 'px'; d.appendChild(im); ball.appendChild(d); tiles.push({ d: d, im: im, lon: lon, lat: lat, wd: wd, on: false }); (function (wd) { d.onclick = function () { if (moved || custom) return; show(wd); }; })(wd); } }
@@ -49,10 +55,10 @@
   function frame(now) { requestAnimationFrame(frame); if (spin && !drag) ry += vy; var s = Math.min(innerWidth, innerHeight) / 1250 * zoom; ball.style.transform = (inside ? 'translateZ(460px) ' : 'scale(' + s + ') ') + 'rotateX(' + rx + 'rad) rotateY(' + ry + 'rad)'; if (now - lastLoad > 350) { lastLoad = now; load(); } }
   stage.onpointerdown = function (e) { drag = [e.clientX, e.clientY]; moved = false; }; addEventListener('pointermove', function (e) { if (!drag) return; var dx = e.clientX - drag[0], dy = e.clientY - drag[1]; if (Math.abs(dx) + Math.abs(dy) > 4) moved = true; ry += dx * 0.005 * (inside ? -1 : 1); rx = Math.max(-0.9, Math.min(0.9, rx - dy * 0.004 * (inside ? -1 : 1))); drag = [e.clientX, e.clientY]; }); addEventListener('pointerup', function () { drag = null; setTimeout(function () { moved = false; }, 0); });
   stage.onwheel = function (e) { e.preventDefault(); zoom = Math.max(0.6, Math.min(2.4, zoom * (1 - e.deltaY * 0.001))); };
-  var big = document.getElementById('big'); function show(wd) { big.querySelector('img').src = wd.f; big.querySelector('b').textContent = wd.w; big.querySelector('i').textContent = wd.zh + ' · 词根 ' + D.roots[wd.r].root + '（' + D.roots[wd.r].zh + '）'; big.classList.add('on'); try { var u = new SpeechSynthesisUtterance(wd.w); u.lang = 'en-US'; speechSynthesis.speak(u); } catch (e) {} } big.onclick = function () { big.classList.remove('on'); };
+  var big = document.getElementById('big'); function show(wd) { big.querySelector('img').src = wd.f; big.querySelector('b').textContent = wd.w; big.querySelector('i').textContent = TM ? wd.zh + ' · ' + TM.groups[wd.r] + '　' + wd.line : wd.zh + ' · 词根 ' + D.roots[wd.r].root + '（' + D.roots[wd.r].zh + '）'; big.classList.add('on'); try { var u = new SpeechSynthesisUtterance(wd.w); u.lang = 'en-US'; speechSynthesis.speak(u); } catch (e) {} } big.onclick = function () { big.classList.remove('on'); };
   document.getElementById('mode').onclick = function () { inside = !inside; stage.classList.toggle('in', inside); document.body.classList.toggle('inside', inside); rx = inside ? -0.3 : -0.12; this.textContent = inside ? '🌐 回到球外' : '🚶 走进球内'; document.getElementById('glow').style.display = document.getElementById('base').style.display = inside ? 'none' : ''; tiles.forEach(function (t) { t.d.style.backfaceVisibility = t.d.style.webkitBackfaceVisibility = 'hidden'; }); place(); load(); };
   document.getElementById('spin').onclick = function () { spin = !spin; this.classList.toggle('on', spin); };
-  var rb = document.getElementById('roots'); [['全部', -1]].concat(D.roots.map(function (r, i) { return [r.root, i]; })).forEach(function (q) { var b = document.createElement('button'); b.textContent = q[0]; b.onclick = function () { focus = q[1]; [].forEach.call(rb.children, function (x) { x.classList.toggle('on', x === b); }); tiles.forEach(function (t) { t.d.classList.toggle('dim', focus >= 0 && t.wd.r !== focus); }); if (focus >= 0) { var t0 = tiles.filter(function (t) { return t.wd.r === focus; })[0]; if (t0) ry = (inside ? Math.PI : 0) - t0.lon; } }; rb.appendChild(b); });
+  var rb = document.getElementById('roots'); [['全部', -1]].concat(TM ? TM.groups.map(function (g, i) { return [g, i]; }) : D.roots.map(function (r, i) { return [r.root, i]; })).forEach(function (q) { var b = document.createElement('button'); b.textContent = q[0]; b.onclick = function () { focus = q[1]; [].forEach.call(rb.children, function (x) { x.classList.toggle('on', x === b); }); tiles.forEach(function (t) { t.d.classList.toggle('dim', focus >= 0 && t.wd.r !== focus); }); if (focus >= 0) { var t0 = tiles.filter(function (t) { return t.wd.r === focus; })[0]; if (t0) ry = (inside ? Math.PI : 0) - t0.lon; } }; rb.appendChild(b); });
   document.getElementById('back').onclick = function () { location.href = 'index.html'; };
   document.getElementById('close').onclick = function () { if (EMBED) parent.postMessage({ rootmap: 1, op: 'close' }, location.origin); else history.back(); };
   addEventListener('keydown', function (e) { if (e.key === 'Escape') { if (document.body.classList.contains('clean')) { document.body.classList.remove('clean'); return; } if (big.classList.contains('on')) big.classList.remove('on'); else document.getElementById('close').click(); } });
@@ -67,6 +73,8 @@
   document.getElementById('hide').onclick = function () { hideUI(true); };
   addEventListener('keydown', function (e) { if (e.key === 'h' || e.key === 'H') hideUI(!document.body.classList.contains('clean')); if (e.key === 'f' || e.key === 'F') fullOn(); }, true);
   window.__imp = function (files) { var dt = new DataTransfer(); files.forEach(function (f) { dt.items.add(f); }); var inp = document.getElementById('file'); inp.files = dt.files; inp.onchange(); };
+  var sw = document.getElementById('setsw'); sw.textContent = TM ? '🔤 换成词根动图' : '🧠 换成思维模型 · 111'; sw.onclick = function () { location.search = TM ? '' : '?set=models'; };
+  if (TM) { document.querySelector('.top h1').textContent = '🧠 思维模型巨幕'; tip('111 张思维模型动图 · 底部按类别筛选 · 点一块放大'); }
   place(); requestAnimationFrame(frame); document.getElementById('mode').click(); window.__sphere = { n: tiles.length, loaded: load, toggle: function () { document.getElementById('mode').click(); } };
 })();
 </script>
