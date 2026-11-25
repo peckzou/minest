@@ -186824,54 +186824,191 @@ button.mn-fx-scan::after {
      by the second, RV World by a travel world). */
   var BI_SATS = true;
   var BI = [
-    { id: 'park', title: 'Theme Park', zh: '奇想主题乐园', art: 'world_30_entertainment_universe', near: 'hub0', go: function () { themepark(); } },
-    { id: 'phil', title: 'Philosophers’ Island', zh: '哲学家小岛', art: 'world_15_philosophy_wisdom', near: 'hub1', go: function () { island(); } },
-    { id: 'rv', title: 'RV World', zh: '环球房车旅行', art: 'world_28_transportation_universe', near: 'travel', go: function () { rvworld(); } },
-    { id: 'cath', title: 'Cathedrals’ Island', zh: '教堂小岛', art: 'world_14_history_civilizations', near: '', go: function () { cathedrals(); } },
-    { id: 'reef', title: 'Great Barrier Reef', zh: '大堡礁潜水', art: 'world_24_ecology_oceans', near: '', go: function () { reefdive(); } },
-    { id: 'pocket', title: 'Pocket City', zh: '施陶巴赫瀑布', art: 'world_01_natural', near: '', go: function () { pocketcity(); } }
+    { id: 'phil', title: 'Philosophers’ Island', zh: '哲学家小岛', go: function () { island(); } },
+    { id: 'park', title: 'Theme Park', zh: '奇想主题乐园', go: function () { themepark(); } },
+    { id: 'cath', title: 'Cathedrals’ Island', zh: '教堂小岛', go: function () { cathedrals(); } },
+    { id: 'rv', title: 'RV World', zh: '环球房车旅行', go: function () { rvworld(); } },
+    { id: 'reef', title: 'Great Barrier Reef', zh: '大堡礁潜水', go: function () { reefdive(); } },
+    { id: 'pocket', title: 'Pocket City', zh: '施陶巴赫瀑布', go: function () { pocketcity(); } }
   ];
+  /* Each built-in island is a sky island drawn for what is on it, in the manner of Zelda's floating islands: a grass
+     top with a cliff rim, a rock underside tapering to a point (lit on the left, in shade on the right), roots and
+     vines hanging, water spilling over the edge, wisps of cloud below; then the island's own subject on top. */
+  function biArt(k) {
+    var g = 'bi' + k, base =
+      '<defs>' +
+      '<linearGradient id="' + g + 'r" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a88b68"/><stop offset=".55" stop-color="#7a6049"/><stop offset="1" stop-color="#4a3a2e"/></linearGradient>' +
+      '<radialGradient id="' + g + 'g" cx=".42" cy=".35" r=".75"><stop offset="0" stop-color="#b7e77a"/><stop offset=".6" stop-color="#82c85a"/><stop offset="1" stop-color="#5aa443"/></radialGradient>' +
+      '<linearGradient id="' + g + 'w" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8fbff"/><stop offset=".5" stop-color="#9ee4f7"/><stop offset="1" stop-color="#9ee4f7" stop-opacity="0"/></linearGradient>' +
+      '<linearGradient id="' + g + 's" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#dde9f2"/></linearGradient>' +
+      '</defs>' +
+      // cloud wisps behind and below
+      '<g opacity=".85"><ellipse cx="40" cy="176" rx="30" ry="9" fill="#fff"/><ellipse cx="58" cy="170" rx="18" ry="9" fill="#fff"/><ellipse cx="166" cy="160" rx="24" ry="8" fill="#fff"/><ellipse cx="150" cy="156" rx="13" ry="7" fill="#fff"/></g>' +
+      // underside
+      '<path d="M16 112 L26 128 L40 140 L50 156 L66 166 L80 186 L96 206 L106 196 L116 176 L132 168 L146 150 L164 138 L178 124 L184 112 Z" fill="url(#' + g + 'r)"/>' +
+      '<path d="M16 112 L40 140 L50 156 L66 166 L80 186 L96 206 L92 160 L74 138 L48 124 Z" fill="#c4a782" opacity=".45"/>' +
+      '<path d="M184 112 L164 138 L146 150 L132 168 L116 176 L106 196 L118 152 L142 132 L166 122 Z" fill="#2f251d" opacity=".42"/>' +
+      '<path d="M50 156 L66 166 L72 150 Z M128 140 L146 150 L136 132 Z M86 150 L96 206 L100 160 Z" fill="#3b2f25" opacity=".35"/>' +
+      // hanging roots and vines
+      '<g fill="none" stroke-linecap="round"><path d="M38 132 q-3 12 3 22 q3 6 0 12" stroke="#4f8a37" stroke-width="2.4"/><path d="M62 150 q4 10 -1 20" stroke="#3f7530" stroke-width="2"/><path d="M150 140 q-4 12 2 24" stroke="#4f8a37" stroke-width="2.2"/><path d="M120 168 q3 8 -2 16" stroke="#6b4f36" stroke-width="2"/><path d="M168 128 q2 8 -1 13" stroke="#3f7530" stroke-width="2"/></g>' +
+      '<g fill="#6cbf4a"><circle cx="41" cy="166" r="2.4"/><circle cx="61" cy="170" r="2"/><circle cx="152" cy="164" r="2.4"/></g>' +
+      // cliff rim and grass top
+      '<path d="M14 106 Q100 156 186 106 L186 116 Q100 168 14 116 Z" fill="#8b6b4c"/>' +
+      '<path d="M14 112 Q100 162 186 112 L186 116 Q100 168 14 116 Z" fill="#5d4634" opacity=".7"/>' +
+      '<ellipse cx="100" cy="106" rx="86" ry="30" fill="#4d9a3b"/>' +
+      '<ellipse cx="100" cy="103" rx="84" ry="27" fill="url(#' + g + 'g)"/>' +
+      '<g fill="#4d9a3b"><path d="M22 112 l3 -7 l3 7z M176 112 l3 -7 l3 7z M44 124 l3 -6 l3 6z M150 125 l3 -6 l3 6z"/></g>';
+    var top = {
+      // Philosophers' Island: a Doric temple on its steps, an olive tree, a scroll stone, water spilling from the front rim
+      phil:
+        '<path d="M58 126 q2 30 -2 64" stroke="url(#' + g + 'w)" stroke-width="7" fill="none" opacity=".9"/>' +
+        '<g transform="translate(100 98)">' +
+        '<rect x="-46" y="0" width="92" height="7" fill="#e9e1cf"/><rect x="-42" y="-6" width="84" height="7" fill="#f3ecdc"/><rect x="-38" y="-11" width="76" height="6" fill="#fbf7ee"/>' +
+        '<g fill="#fbf7ee">' + [-32, -19, -6, 7, 20, 33].map(function (x) { return '<rect x="' + (x - 3.5) + '" y="-46" width="7" height="35"/>'; }).join('') + '</g>' +
+        '<g fill="#d9cfb8">' + [-32, -19, -6, 7, 20, 33].map(function (x) { return '<rect x="' + (x + 1) + '" y="-46" width="2.5" height="35"/>'; }).join('') + '</g>' +
+        '<rect x="-40" y="-52" width="80" height="7" fill="#f3ecdc"/><path d="M-44 -52 L0 -72 L44 -52 Z" fill="#fbf7ee"/><path d="M-36 -54 L0 -68 L36 -54 Z" fill="#e6c76a" opacity=".55"/>' +
+        '<circle cx="0" cy="-60" r="3.2" fill="#d6a640"/></g>' +
+        '<g transform="translate(40 96)"><rect x="-2" y="-14" width="4" height="16" fill="#7a5a3c"/><ellipse cx="0" cy="-20" rx="13" ry="9" fill="#8fae6a"/><ellipse cx="-5" cy="-23" rx="7" ry="5" fill="#a9c784"/><circle cx="4" cy="-17" r="1.6" fill="#4b5d34"/><circle cx="-3" cy="-15" r="1.4" fill="#4b5d34"/></g>' +
+        '<g transform="translate(158 104)"><rect x="-8" y="-12" width="16" height="12" rx="2" fill="#c9c1b0"/><path d="M-6 -8 h12 M-6 -5 h10 M-6 -2 h12" stroke="#8a8170" stroke-width="1"/></g>' +
+        '<g fill="#f7d86b"><circle cx="70" cy="114" r="1.8"/><circle cx="132" cy="116" r="1.8"/><circle cx="148" cy="96" r="1.6"/></g>',
+      // Theme Park: a fairy-tale castle with blue spires and pink flags, a Ferris wheel, bunting
+      park:
+        '<g transform="translate(150 70)"><circle r="26" fill="none" stroke="#e2e8f0" stroke-width="3"/>' + [0, 45, 90, 135].map(function (a) { return '<line x1="' + (-26 * Math.cos(a * Math.PI / 180)).toFixed(1) + '" y1="' + (-26 * Math.sin(a * Math.PI / 180)).toFixed(1) + '" x2="' + (26 * Math.cos(a * Math.PI / 180)).toFixed(1) + '" y2="' + (26 * Math.sin(a * Math.PI / 180)).toFixed(1) + '" stroke="#e2e8f0" stroke-width="1.4"/>'; }).join('') +
+        [0, 45, 90, 135, 180, 225, 270, 315].map(function (a, i) { var x = 26 * Math.cos(a * Math.PI / 180), y = 26 * Math.sin(a * Math.PI / 180); return '<rect x="' + (x - 3.5).toFixed(1) + '" y="' + (y - 2).toFixed(1) + '" width="7" height="6" rx="1.5" fill="' + ['#f472b6', '#60a5fa', '#facc15', '#34d399'][i % 4] + '"/>'; }).join('') +
+        '<path d="M-10 34 L0 0 L10 34" stroke="#cbd5e1" stroke-width="3" fill="none"/></g>' +
+        '<g transform="translate(86 104)">' +
+        '<rect x="-34" y="-30" width="68" height="30" fill="#f8fafc"/><rect x="-34" y="-30" width="68" height="4" fill="#e2e8f0"/>' +
+        '<path d="M-34 -30 h8 v-5 h6 v5 h8 v-5 h6 v5 h8 v-5 h6 v5 h8 v-5 h6 v5 h8" fill="none" stroke="#f8fafc" stroke-width="3"/>' +
+        '<path d="M-6 0 v-14 a6 6 0 0 1 12 0 v14 z" fill="#6b4f36"/>' +
+        '<rect x="-46" y="-46" width="14" height="46" fill="#f1f5f9"/><path d="M-49 -46 L-39 -70 L-29 -46 Z" fill="#3b82f6"/>' +
+        '<rect x="32" y="-46" width="14" height="46" fill="#e2e8f0"/><path d="M29 -46 L39 -70 L49 -46 Z" fill="#2563eb"/>' +
+        '<rect x="-10" y="-62" width="20" height="34" fill="#f8fafc"/><path d="M-14 -62 L0 -92 L14 -62 Z" fill="#3b82f6"/><path d="M0 -92 L0 -100" stroke="#94a3b8" stroke-width="1.2"/><path d="M0 -100 l8 3 l-8 3z" fill="#ec4899"/>' +
+        '<path d="M-39 -70 v-6" stroke="#94a3b8" stroke-width="1"/><path d="M-39 -76 l6 2 l-6 2z" fill="#f472b6"/><path d="M39 -70 v-6" stroke="#94a3b8" stroke-width="1"/><path d="M39 -76 l6 2 l-6 2z" fill="#f472b6"/>' +
+        '<g fill="#93c5fd"><rect x="-3" y="-54" width="6" height="8" rx="3"/><rect x="-42" y="-34" width="5" height="7" rx="2.5"/><rect x="37" y="-34" width="5" height="7" rx="2.5"/></g></g>' +
+        '<path d="M30 92 Q48 100 66 92" stroke="#94a3b8" stroke-width=".8" fill="none"/><g>' + [0, 1, 2, 3, 4].map(function (i) { return '<path d="M' + (32 + i * 7.5) + ' ' + (93 + (i === 0 || i === 4 ? 0 : i === 2 ? 3 : 2)) + ' l3 6 l3 -6z" fill="' + ['#f472b6', '#facc15', '#60a5fa', '#34d399', '#f472b6'][i] + '"/>'; }).join('') + '</g>' +
+        '<g transform="translate(36 112)"><rect x="-1.5" y="-10" width="3" height="10" fill="#7a5a3c"/><circle cx="0" cy="-14" r="8" fill="#5fae45"/><circle cx="-3" cy="-17" r="4" fill="#86cf63"/></g>',
+      // Cathedrals' Island: a Gothic west front with twin spires and a rose window, cypresses, a small graveyard wall
+      cath:
+        '<g transform="translate(100 104)">' +
+        '<rect x="-28" y="-44" width="56" height="44" fill="#ebe4d4"/><path d="M-28 -44 L0 -62 L28 -44 Z" fill="#d9cfbb"/>' +
+        '<rect x="-44" y="-70" width="18" height="70" fill="#f3eee2"/><path d="M-46 -70 L-35 -104 L-24 -70 Z" fill="#8ea3b8"/><path d="M-35 -104 v-6" stroke="#c9a54a" stroke-width="1.4"/>' +
+        '<rect x="26" y="-70" width="18" height="70" fill="#ddd5c3"/><path d="M24 -70 L35 -104 L46 -70 Z" fill="#6f859b"/><path d="M35 -104 v-6" stroke="#c9a54a" stroke-width="1.4"/>' +
+        '<circle cx="0" cy="-36" r="10" fill="#7c3aed" opacity=".85"/><circle cx="0" cy="-36" r="10" fill="none" stroke="#f3eee2" stroke-width="2"/>' + [0, 45, 90, 135].map(function (a) { return '<line x1="' + (-9 * Math.cos(a * Math.PI / 180)).toFixed(1) + '" y1="' + (-36 - 9 * Math.sin(a * Math.PI / 180)).toFixed(1) + '" x2="' + (9 * Math.cos(a * Math.PI / 180)).toFixed(1) + '" y2="' + (-36 + 9 * Math.sin(a * Math.PI / 180)).toFixed(1) + '" stroke="#f3eee2" stroke-width="1"/>'; }).join('') +
+        '<circle cx="0" cy="-36" r="3" fill="#f59e0b"/>' +
+        '<path d="M-9 0 v-14 l9 -9 l9 9 v14 z" fill="#5b4636"/>' +
+        '<g fill="#93c5fd" opacity=".9"><path d="M-38 -52 v-8 l3 -4 l3 4 v8z"/><path d="M32 -52 v-8 l3 -4 l3 4 v8z"/><path d="M-38 -30 v-8 l3 -4 l3 4 v8z"/><path d="M32 -30 v-8 l3 -4 l3 4 v8z"/></g></g>' +
+        '<g fill="#2f6b3a"><path d="M40 112 q-6 -22 0 -40 q6 18 0 40z"/><path d="M160 112 q-6 -22 0 -40 q6 18 0 40z"/><path d="M150 116 q-5 -16 0 -30 q5 14 0 30z"/></g>' +
+        '<g fill="#b9b2a1"><rect x="52" y="110" width="4" height="6" rx="2"/><rect x="60" y="112" width="4" height="6" rx="2"/><rect x="136" y="112" width="4" height="6" rx="2"/></g>' +
+        '<path d="M150 124 q3 26 -1 52" stroke="url(#' + g + 'w)" stroke-width="5" fill="none" opacity=".85"/>',
+      // RV World: a road winding across the island, a camper van, a tent and a campfire, pines, a signpost
+      rv:
+        '<path d="M22 108 C60 92 70 122 104 108 S150 86 180 102" stroke="#d6b98a" stroke-width="13" fill="none" stroke-linecap="round"/>' +
+        '<path d="M22 108 C60 92 70 122 104 108 S150 86 180 102" stroke="#f8fafc" stroke-width="1.4" stroke-dasharray="5 6" fill="none"/>' +
+        '<g transform="translate(108 96)"><rect x="-26" y="-22" width="48" height="22" rx="5" fill="#f8fafc"/><path d="M22 -16 h8 a4 4 0 0 1 4 4 v12 h-12z" fill="#e2e8f0"/><rect x="-26" y="-9" width="60" height="4" fill="#0ea5e9"/>' +
+        '<rect x="-20" y="-18" width="10" height="7" rx="1.5" fill="#7dd3fc"/><rect x="-6" y="-18" width="10" height="7" rx="1.5" fill="#7dd3fc"/><rect x="24" y="-14" width="7" height="6" rx="1.5" fill="#7dd3fc"/>' +
+        '<rect x="-22" y="-27" width="22" height="5" rx="2" fill="#cbd5e1"/>' +
+        '<circle cx="-14" cy="1" r="5" fill="#1f2937"/><circle cx="-14" cy="1" r="2" fill="#94a3b8"/><circle cx="22" cy="1" r="5" fill="#1f2937"/><circle cx="22" cy="1" r="2" fill="#94a3b8"/></g>' +
+        '<g transform="translate(54 104)"><path d="M-14 0 L0 -20 L14 0 Z" fill="#f97316"/><path d="M0 -20 L0 0 L5 0 Z" fill="#c2410c"/></g>' +
+        '<g transform="translate(76 116)"><path d="M-4 0 l8 -3 M-4 -3 l8 3" stroke="#7a5a3c" stroke-width="1.6"/><path d="M0 -3 q-4 -6 0 -11 q4 5 0 11z" fill="#fb923c"/><path d="M0 -4 q-2 -3 0 -6 q2 3 0 6z" fill="#fde047"/></g>' +
+        '<g fill="#2f7a46">' + [[34, 98, 1], [150, 116, .8], [166, 94, 1.1], [160, 100, .7]].map(function (p) { return '<g transform="translate(' + p[0] + ' ' + p[1] + ') scale(' + p[2] + ')"><rect x="-1.5" y="-4" width="3" height="5" fill="#6b4f36"/><path d="M-9 -4 L0 -20 L9 -4z"/><path d="M-7 -12 L0 -26 L7 -12z" fill="#3c9156"/></g>'; }).join('') + '</g>' +
+        '<g transform="translate(138 84)"><rect x="-1" y="-14" width="2" height="16" fill="#7a5a3c"/><path d="M-1 -13 h12 l3 3 l-3 3 h-12z" fill="#e7c07a"/></g>',
+      // Great Barrier Reef: a turquoise lagoon set into the island with corals and a turtle, a palm, a lighthouse, water falling
+      reef:
+        '<ellipse cx="96" cy="106" rx="56" ry="17" fill="#f1dfae"/>' +
+        '<ellipse cx="96" cy="106" rx="50" ry="14" fill="#22c1d6"/><ellipse cx="90" cy="104" rx="38" ry="9" fill="#5fe1ec"/><ellipse cx="80" cy="102" rx="14" ry="3" fill="#b8f6fb" opacity=".8"/>' +
+        '<g><path d="M70 108 q-3 -8 2 -12 q2 6 4 1 q3 7 -1 11z" fill="#fb7185"/><path d="M112 110 q-2 -7 2 -10 q1 4 3 0 q3 6 0 10z" fill="#f59e0b"/><circle cx="124" cy="104" r="3.4" fill="#a78bfa"/><circle cx="128" cy="106" r="2.4" fill="#f472b6"/><path d="M82 112 l2 -6 l2 6z" fill="#fb923c"/></g>' +
+        '<g transform="translate(100 102) rotate(-15)"><ellipse rx="6" ry="4.4" fill="#16a34a"/><ellipse rx="4" ry="2.8" fill="#4ade80"/><circle cx="7" cy="0" r="1.8" fill="#16a34a"/><path d="M-3 -4 l-3 -2 M3 -4 l3 -2 M-3 4 l-3 2 M3 4 l3 2" stroke="#16a34a" stroke-width="1.6" stroke-linecap="round"/></g>' +
+        '<path d="M58 118 q4 28 -1 62" stroke="url(#' + g + 'w)" stroke-width="8" fill="none"/><path d="M60 120 q3 24 0 50" stroke="#fff" stroke-width="2" fill="none" opacity=".7"/>' +
+        '<g transform="translate(160 100)"><path d="M0 0 q2 -18 -6 -32" stroke="#8b6b4c" stroke-width="3" fill="none"/><g fill="#3fae59"><path d="M-6 -32 q-14 -2 -18 8 q10 -6 18 -8z"/><path d="M-6 -32 q12 -6 18 2 q-10 -4 -18 -2z"/><path d="M-6 -32 q-4 -12 -14 -12 q8 4 14 12z"/><path d="M-6 -32 q6 -10 14 -10 q-8 4 -14 10z"/></g><circle cx="-5" cy="-29" r="2" fill="#7a5a3c"/></g>' +
+        '<g transform="translate(36 106)"><path d="M-6 0 L-4 -28 L4 -28 L6 0 Z" fill="#f8fafc"/><path d="M-5.4 -8 h10.8 v-5 h-10.6z M-4.6 -20 h9.2 v-5 h-9z" fill="#ef4444"/><rect x="-5" y="-34" width="10" height="6" fill="#fde68a"/><path d="M-6 -34 L0 -40 L6 -34z" fill="#ef4444"/><path d="M5 -31 l14 -4 v8z" fill="#fde68a" opacity=".55"/></g>',
+      // Pocket City: the Staubbach cliff — a high rock wall at the back with a long waterfall falling over the island's edge,
+      // chalets with red roofs, a white church spire, a snow peak behind
+      pocket:
+        '<path d="M110 92 L132 36 L148 22 L160 40 L176 54 L184 104 Z" fill="#9aa7b5"/><path d="M132 36 L148 22 L160 40 L150 38 L142 46 Z" fill="#fff"/><path d="M160 40 L176 54 L184 104 L166 96 Z" fill="#6b7a89"/>' +
+        '<path d="M28 100 L36 54 L58 38 L74 56 L84 100 Z" fill="#8d7a66"/><path d="M58 38 L74 56 L84 100 L70 96 Z" fill="#5f5042"/><path d="M36 54 L58 38 L50 52 L44 50 Z" fill="#a8977f"/>' +
+        '<path d="M62 44 q4 30 6 58 q4 40 -2 104" stroke="url(#' + g + 'w)" stroke-width="5" fill="none"/><path d="M62 44 q4 30 6 58" stroke="#fff" stroke-width="1.6" fill="none" opacity=".8"/><ellipse cx="68" cy="104" rx="9" ry="3" fill="#fff" opacity=".7"/>' +
+        [[100, 108, 1], [124, 112, .85], [146, 104, .9], [88, 118, .75]].map(function (c) { return '<g transform="translate(' + c[0] + ' ' + c[1] + ') scale(' + c[2] + ')"><rect x="-9" y="-10" width="18" height="10" fill="#f3e7d3"/><rect x="-9" y="-6" width="18" height="2" fill="#a0764e"/><path d="M-12 -10 L0 -19 L12 -10z" fill="#c2410c"/><rect x="-3" y="-7" width="3" height="3" fill="#7dd3fc"/><rect x="3" y="-7" width="3" height="3" fill="#7dd3fc"/></g>'; }).join('') +
+        '<g transform="translate(114 98)"><rect x="-4" y="-16" width="8" height="16" fill="#f8fafc"/><path d="M-5 -16 L0 -30 L5 -16z" fill="#475569"/><circle cx="0" cy="-11" r="1.6" fill="#facc15"/></g>' +
+        '<g fill="#2f7a46"><path d="M40 112 l6 -14 l6 14z"/><path d="M162 116 l5 -12 l5 12z"/><path d="M170 110 l4 -10 l4 10z"/></g>'
+    }[k] || '';
+    return '<svg viewBox="0 0 200 212" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' + base + top + '</svg>';
+  }
   function biCss() {
     if (document.getElementById('mn-bi-css')) return;
     var st = document.createElement('style'); st.id = 'mn-bi-css';
-    st.textContent = 'html body .uv .uv-sea > .uv-isle.mn-bi{z-index:1}' +
-      'html body .uv[data-island-home=true] .uv-isle.mn-bi b{font-size:11.5px!important;padding:2px 8px!important;max-width:140px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
-      'html body .uv .uv-isle.mn-bi .uv-art{display:block;position:relative;aspect-ratio:1}html body .uv .uv-isle.mn-bi .uv-art img{width:100%;height:100%;object-fit:contain}' +
-      'html body .uv[data-island-home=true] .uv-isle.mn-bi .uv-art img{transform:scale(1.45)}' +
-      'html body .uv .uv-isle.mn-bi.mn-bi-tap .uv-art{animation:mnBiTap .5s ease}@keyframes mnBiTap{40%{transform:translateY(-8px) scale(1.06)}}';
+    st.textContent =
+      // the opening sky: only the middle island and the built-in ones (the user's own worlds and main islands are not shown here)
+      'html:not(.mn-bi-all) body .uv[data-island-home=true] .uv-sea > .uv-isle[data-world],html:not(.mn-bi-all) body .uv[data-island-home=true] .uv-sea > .uv-isle.mn-hub{display:none!important}' +
+      'html:not(.mn-bi-all) body .uv[data-island-home=true] .uv-xbar,html:not(.mn-bi-all) body .uv[data-island-home=true] .uv-hint{display:none!important}' +
+      // the switch: the clean sky (the middle island and the built-in ones) or every island
+      'html body .uv .uv-sea > .mn-bi-all-btn{position:absolute;left:50%;top:6px;transform:translateX(-50%);z-index:4;border:2px solid #3a2a1a;background:#b07a45;color:#fff7e6;font:700 12px/1 system-ui,-apple-system,sans-serif;padding:7px 11px;border-radius:8px;box-shadow:0 3px 0 #3a2a1a;cursor:pointer}' +
+      'html body .uv .uv-sea > .mn-bi-all-btn:active{transform:translate(-50%,2px);box-shadow:0 1px 0 #3a2a1a}' +
+      'html body .uv .uv-sea > .uv-isle.mn-bi{z-index:2}' +
+      'html body .uv .uv-isle.mn-bi .uv-art{display:block;position:relative;overflow:visible;background:none!important;box-shadow:none!important}' +
+      'html body .uv .uv-isle.mn-bi .uv-art svg{display:block;width:100%;height:auto;overflow:visible;filter:drop-shadow(0 16px 14px rgba(10,30,60,.28))}' +
+      'html body .uv[data-island-home=true] .uv-isle.mn-bi b{font-size:12px!important;padding:3px 9px!important;max-width:160px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:-10px!important}' +
+      'html body .uv .uv-isle.mn-bi .uv-art{animation:mnBiFloat 7s ease-in-out infinite}' +
+      'html body .uv .uv-isle.mn-bi:nth-of-type(2n) .uv-art{animation-delay:-2.3s;animation-duration:8s}html body .uv .uv-isle.mn-bi:nth-of-type(3n) .uv-art{animation-delay:-4.6s;animation-duration:6.4s}' +
+      '@keyframes mnBiFloat{0%,100%{transform:translateY(0) rotate(-.6deg)}50%{transform:translateY(-7px) rotate(.6deg)}}' +
+      'html body .uv .uv-isle.mn-bi.mn-bi-tap .uv-art{animation:mnBiTap .5s ease}@keyframes mnBiTap{40%{transform:translateY(-10px) scale(1.06)}}' +
+      '@media (prefers-reduced-motion:reduce){html body .uv .uv-isle.mn-bi .uv-art{animation:none}}';
     document.head.appendChild(st);
   }
   function addSats() {
     var sea = document.querySelector('.uv[data-island-home="true"] .uv-sea'); if (!sea) return;
-    biCss();
+    biCss(); biAllInit();
+    if (!sea.querySelector(':scope > .mn-bi-all-btn')) {
+      var t = document.createElement('button'); t.type = 'button'; t.className = 'mn-bi-all-btn';
+      t.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); biSetAll(!document.documentElement.classList.contains('mn-bi-all')); }, true);
+      sea.appendChild(t);
+    }
+    var tb = sea.querySelector(':scope > .mn-bi-all-btn'), lab = document.documentElement.classList.contains('mn-bi-all') ? '只看默认岛' : '显示全部岛屿';
+    if (tb.textContent !== lab) tb.textContent = lab;
     BI.forEach(function (s) {
       if (sea.querySelector('.uv-isle.mn-bi[data-bi="' + s.id + '"]')) return;
       var e = document.createElement('button'); e.type = 'button'; e.className = 'uv-isle mn-bi'; e.setAttribute('data-bi', s.id);
       e.setAttribute('aria-label', s.title + ' · ' + s.zh + ' — double-tap to land'); e.title = s.zh + ' · 双击登岛';
-      e.innerHTML = '<span class="uv-art ready"><img alt="" data-a3="' + s.art + '"></span><b class="mn-en-keep">' + s.title + '</b>';
+      e.innerHTML = '<span class="uv-art ready">' + biArt(s.id) + '</span><b class="mn-en-keep">' + s.title + '</b>';
       e.style.visibility = 'hidden'; sea.appendChild(e);
     });
     biPlace(sea);
   }
+  var biAllRead = false;
+  function biAllInit() { if (biAllRead) return; biAllRead = true; var on = false; try { on = localStorage.getItem('minest.bi.all') === '1'; } catch (x) {} document.documentElement.classList.toggle('mn-bi-all', on); }
+  function biSetAll(on) {
+    try { localStorage.setItem('minest.bi.all', on ? '1' : '0'); } catch (x) {}
+    document.documentElement.classList.toggle('mn-bi-all', on);
+    try { if (window.MinestUniverse && MinestUniverse.refresh) MinestUniverse.refresh(); } catch (x) {}
+    var sea = document.querySelector('.uv[data-island-home="true"] .uv-sea'); if (sea) { [].forEach.call(sea.querySelectorAll('.uv-isle.mn-bi'), function (e) { e.style.left = ''; }); addSats(); }
+  }
+  // Six places round the middle island, three on each side, like an archipelago seen from the sky
+  var BI_AT = { phil: [-.33, -.30], park: [.33, -.30], cath: [-.40, .04], rv: [.40, .04], reef: [-.26, .34], pocket: [.26, .34] };
+  var BI_AT_N = { phil: -.27, park: -.27, cath: .17, rv: .17, reef: .33, pocket: .33 };   // a tall screen: a pair above the middle island, two pairs below
   function biPlace(sea) {
     var W = sea.clientWidth, H = sea.clientHeight; if (!W || !H) return;
+    if (document.documentElement.classList.contains('mn-bi-all')) return biPlaceFree(sea, W, H);
+    var c = sea.querySelector('.uv-isle[data-center]'), cx = c ? parseFloat(c.style.left) || W / 2 : W / 2, cy = c ? parseFloat(c.style.top) || H * .45 : H * .45;
+    var narrow = W < H * .9, sw = Math.max(92, Math.min(W * (narrow ? .34 : .21), H * .27, 200));
+    var ax = narrow ? .30 : 1, spanX = narrow ? W * 1.0 : W * .98, spanY = H * (narrow ? .92 : 1);
+    [].forEach.call(sea.querySelectorAll('.uv-isle.mn-bi'), function (e) {
+      var p = BI_AT[e.getAttribute('data-bi')]; if (!p) return;
+      var x = narrow ? W / 2 + (p[0] < 0 ? -1 : 1) * (W / 2 - sw * .58) : cx + p[0] * spanX * ax;
+      var y = narrow ? cy + BI_AT_N[e.getAttribute('data-bi')] * H : cy + p[1] * spanY;
+      x = Math.max(sw * .5 + 4, Math.min(W - sw * .5 - 4, x)); y = Math.max(sw * .42, Math.min(H - sw * .42, y));
+      var L = x.toFixed(0) + 'px', T = y.toFixed(0) + 'px', Wd = sw.toFixed(0) + 'px';
+      if (e.style.left !== L) e.style.left = L; if (e.style.top !== T) e.style.top = T; if (e.style.width !== Wd) e.style.width = Wd;
+      if (e.style.visibility) e.style.visibility = '';
+    });
+  }
+  function biPlaceFree(sea, W, H) {   // every island shown: each built-in island takes the freest spot in the sky
     var mine = [].slice.call(sea.querySelectorAll('.uv-isle.mn-bi')), others = [].slice.call(sea.querySelectorAll('.uv-isle:not(.mn-bi)'));
     var pos = function (b) { return { x: parseFloat(b.style.left) || 0, y: parseFloat(b.style.top) || 0, r: (parseFloat(b.style.width) || b.offsetWidth || 100) * .5 }; };
-    var taken = others.map(pos), worldsW = others.filter(function (b) { return b.hasAttribute('data-world'); }).map(function (b) { return parseFloat(b.style.width) || 0; });
-    var sw = Math.max(70, Math.min(130, (worldsW.length ? Math.min.apply(null, worldsW) : W * .26) * .72, W * .2));
-    var hubs = others.filter(function (b) { return b.classList.contains('mn-hub'); });
-    var travel = others.filter(function (b) { return b.hasAttribute('data-world') && /travel|trip|journey|旅/i.test((b.querySelector('b') || {}).textContent || ''); })[0];
-    var anchorOf = function (k) { var a = k === 'hub0' ? hubs[0] : k === 'hub1' ? (hubs[1] || hubs[0]) : k === 'travel' ? travel : null; return a ? pos(a) : null; };
-    var hill = Math.min(H * .14, 110), cand = [];
+    var taken = others.map(pos), sw = Math.max(80, Math.min(140, W * .19, H * .22)), hill = Math.min(H * .14, 110), cand = [];
     for (var gy = 0; gy < 7; gy++) for (var gx = 0; gx < 9; gx++) cand.push({ x: W * (.07 + .86 * gx / 8), y: sw * .5 + 6 + ((H - hill) - sw - 6) * gy / 6 });
     BI.forEach(function (s) {
       var e = mine.filter(function (b) { return b.getAttribute('data-bi') === s.id; })[0]; if (!e) return;
-      var an = anchorOf(s.near), best = null, bs = -1e9;
-      cand.forEach(function (c) {
-        var gap = 1e9; taken.forEach(function (t) { gap = Math.min(gap, Math.hypot(c.x - t.x, (c.y - t.y) * 1.25) - t.r - sw * .5); });
-        var sc = Math.min(gap, sw) - (an ? Math.hypot(c.x - an.x, c.y - an.y) * .35 : 0);
-        if (sc > bs) { bs = sc; best = c; }
-      });
+      var best = null, bs = -1e9;
+      cand.forEach(function (c) { var gap = 1e9; taken.forEach(function (t) { gap = Math.min(gap, Math.hypot(c.x - t.x, (c.y - t.y) * 1.25) - t.r - sw * .5); }); if (gap > bs) { bs = gap; best = c; } });
       if (!best) return;
       var L = best.x.toFixed(0) + 'px', T = best.y.toFixed(0) + 'px', Wd = sw.toFixed(0) + 'px';
       if (e.style.left !== L) e.style.left = L; if (e.style.top !== T) e.style.top = T; if (e.style.width !== Wd) e.style.width = Wd;
