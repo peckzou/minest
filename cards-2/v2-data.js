@@ -15,11 +15,15 @@
   function mem(v) { try { if (v === undefined) return JSON.parse(localStorage.getItem(MINE) || 'null'); localStorage.setItem(MINE, JSON.stringify(v)); } catch (e) { return null; } }
   /* what the boards say, with long values (embedded pictures) cut short: the two copies Minest keeps are told apart by it */
   function told(list) { try { return JSON.stringify(list, function (k, v) { return typeof v === 'string' && v.length > 240 ? v.length + ':' + v.slice(0, 80) + v.slice(-80) : v; }); } catch (e) { return String(Math.random()); } }
-  /* the EC-6 glossary deck (philosophers-island/ec6/glossary.js) is always the first board, and the one 2.0 opens on
-     until you pick another (the pick is remembered) */
-  var EC6 = null; try { EC6 = window.PIEC6 && window.PIEC6.glossaryBoard ? window.PIEC6.glossaryBoard() : null; } catch (e) { EC6 = null; }
+  /* EC-6 391 · 考纲理解与学习工作台 (philosophers-island/ec6/study/board.js, the content package's 8-section board) is the
+     first board and the one 2.0 opens on until you pick another (the pick is remembered); the EC-6 glossary deck
+     (philosophers-island/ec6/glossary.js) comes second */
+  var EC6S = [];
+  try { if (window.PIEC6_STUDY_BOARD && window.PIEC6_STUDY_BOARD.columns) EC6S.push(window.PIEC6_STUDY_BOARD); } catch (e) {}
+  try { if (window.PIEC6 && window.PIEC6.glossaryBoard) EC6S.push(window.PIEC6.glossaryBoard()); } catch (e) {}
+  var EC6 = EC6S[0] || null;
   function use(list, sample) {
-    if (EC6) list = [EC6].concat(list.filter(function (b) { return b.id !== EC6.id; }));
+    if (EC6S.length) list = EC6S.concat(list.filter(function (b) { return !EC6S.some(function (x) { return x.id === b.id; }); }));
     var t = told(list); if (t !== last) { last = t; rev++; }
     boards = list; isSample = !!sample && !EC6;
     var m = mem() || {}, act = ''; try { act = localStorage.getItem(LS_ACTIVE) || ''; } catch (e) {}

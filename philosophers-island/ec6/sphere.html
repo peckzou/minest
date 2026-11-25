@@ -15,7 +15,7 @@
   #subs { position: absolute; left: 16px; right: 16px; bottom: 14px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; z-index: 5; } #subs button { font-size: 12px; }
   #big { position: absolute; inset: 0; z-index: 8; display: none; align-items: center; justify-content: center; background: rgba(2,6,4,.8); } #big.on { display: flex; }
   #big div { max-width: min(620px, 88vw); text-align: center; } #big img { width: min(620px, 88vw); border-radius: 12px; box-shadow: 0 0 70px rgba(126,224,138,.55); display: block; }
-  #big p { margin: 14px 0 0; font-size: 15px; line-height: 1.7; color: #d6ecd9; text-align: left; } #big small { display: block; margin-top: 10px; color: #9cc8a4; }
+  #big p { white-space: pre-line; margin: 14px 0 0; font-size: 15px; line-height: 1.7; color: #d6ecd9; text-align: left; } #big small { display: block; margin-top: 10px; color: #9cc8a4; }
   #tip { position: absolute; left: 50%; bottom: 56px; transform: translateX(-50%); z-index: 9; background: rgba(0,0,0,.75); padding: 6px 16px; border-radius: 999px; font-size: 13px; display: none; }
 </style>
 </head>
@@ -26,14 +26,22 @@
 <div id="subs"></div>
 <div id="tip"></div><div id="big"><div><img alt=""><p></p><small>点任意处合上 · 已为你朗读英文术语</small></div></div>
 <script src="ec6-data.js"></script>
+<script src="study/study.js"></script>
 <script>
 /* EC-6 on the Sphere: every tile is one card of the framework — a competency, or one of its key terms — drawn on a
    canvas in its subject's colour (science, 904, first: Earth and space on a globe). Tiles are <img> elements placed on a
    sphere with CSS 3D transforms, like rootmap/sphere.html; a card's picture is drawn only when its tile first faces you. */
 (function () {
-  var E = window.PIEC6, EMBED = parent !== window, Q = new URLSearchParams(location.search), FOCUS = Q.has('sub') ? +Q.get('sub') : 3;
+  var E = window.PIEC6, SD = window.PIEC6_STUDY, EMBED = parent !== window, Q = new URLSearchParams(location.search), FOCUS = Q.has('sub') ? +Q.get('sub') : SD ? 4 : 3;
   var cards = [];
-  [3, 0, 1, 2, 4].forEach(function (xi) { E.exams[xi].comps.forEach(function (c) {
+  /* with the EC-6 content package: its 44 unit charts (study/sphere/*.svg) first, then its 178 core terms; 905 leads */
+  if (SD) [4, 3, 0, 1, 2].forEach(function (xi) { var code = E.exams[xi].code; SD.modules.filter(function (m) { return m.code.indexOf(code + '-') === 0; }).forEach(function (m) {
+    cards.push({ ex: xi, big: m.code.slice(4), en: m.official_title, zh: m.zh, say: m.official_title, head: true, url: 'study/sphere/' + m.code + '.svg',
+      note: '我能完成的任务：' + m.skill + '\n' + m.knowledge.map(function (x, k) { return (k + 1) + '. ' + x; }).join('\n') + '\n常见误区：' + m.trap });
+  }); });
+  if (SD) [4, 3, 0, 1, 2].forEach(function (xi) { var code = E.exams[xi].code; SD.modules.filter(function (m) { return m.code.indexOf(code + '-') === 0; }).forEach(function (m) {
+    m.terms.forEach(function (t) { cards.push({ ex: xi, big: m.code.slice(4), en: t.en, zh: t.zh, say: t.en, note: t.definition + '\n出自：' + m.code + ' ' + m.zh }); }); }); });
+  if (!SD) [3, 0, 1, 2, 4].forEach(function (xi) { E.exams[xi].comps.forEach(function (c) {
     cards.push({ ex: xi, big: c.n, en: c.en, zh: c.zh, note: c.gist, say: c.en, head: true });
     c.keys.forEach(function (k) { cards.push({ ex: xi, big: c.n, en: k.en, zh: k.zh, note: c.zh + ' · ' + c.en + '\n' + c.gist, say: k.en }); });
   }); });
@@ -73,6 +81,7 @@
   addEventListener('keydown', function (e) { if (e.key === 'Escape') { if (big.classList.contains('on')) big.classList.remove('on'); else document.getElementById('close').click(); } });
   var sb = document.getElementById('subs'); [['全部学科', -1]].concat(E.exams.map(function (e, i) { return [e.code + ' ' + e.zh, i]; })).forEach(function (q) { var b = document.createElement('button'); b.textContent = q[0]; if (q[1] === focus) b.className = 'on';
     b.onclick = function () { focus = q[1]; [].forEach.call(sb.children, function (y) { y.classList.toggle('on', y === b); }); load(); }; sb.appendChild(b); });
+  if (SD) { document.querySelector('.top h1').textContent = '🌐 EC-6 · Sphere 巨幕'; document.getElementById('glow').style.background = 'radial-gradient(circle, rgba(208,140,255,.3), rgba(208,140,255,0) 62%)'; }
   var tip = document.getElementById('tip'); tip.textContent = '拖动旋转 · 滚轮缩放 · 点一块屏放大并朗读 · ' + cards.length + ' 张卡片'; tip.style.display = 'block'; setTimeout(function () { tip.style.display = 'none'; }, 4200);
   place(); requestAnimationFrame(frame);
   window.__ec6sphere = { n: tiles.length, cards: cards.length };

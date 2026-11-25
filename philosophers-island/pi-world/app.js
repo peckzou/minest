@@ -557,7 +557,7 @@
     box(1.0, 0.9, 2.2, -3.9, 0.45, 0, 0x7a5a3c); box(1.2, 0.08, 2.4, -3.9, 0.94, 0, 0x5b4128); box(0.4, 0.05, 0.3, -3.8, 1.0, 0.6, 0xc0392b);   // desk with an apple
     const apple = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 10), L(0xd2382b)); apple.position.set(-3.8, 1.11, -0.55); g.add(apple);
     // five study stations, one per subject exam, along the two sides of the aisle
-    const E6 = window.PIEC6, SP = [[-2.6, -2.4], [0.2, -2.4], [3.0, -2.4], [-1.2, 2.4], [1.8, 2.4]], MODE = { read: 'read:1', paper: 'paper', cone: 'cone', sphere: 'sphere', fold: 'fold' }, ICON = { read: '📖', paper: '🗺', cone: '⏳', sphere: '🌐', fold: '📕' };
+    const E6 = window.PIEC6, SP = [[-2.6, -2.4], [0.2, -2.4], [3.0, -2.4], [-1.2, 2.4], [1.8, 2.4]], MODE = { read: 'read:1', paper: 'paper', cone: 'cone', sphere: 'sphere', fold: 'fold', holo: 'holo:stars' }, ICON = { read: '📖', paper: '🗺', cone: '⏳', sphere: '🌐', fold: '📕', holo: '🔷' };
     SP.forEach((q, i) => {
       const ex = E6 ? E6.exams[i] : { code: '90' + (i + 1), zh: '', en: '', mode: 'read', modeZh: '', color: cols[i] }, col = new THREE.Color(ex.color), face = q[1] < 0 ? 1 : -1;
       const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.52, 0.95, 18), L(0xe9e2d0)); ped.position.set(q[0], 0.48, q[1]); g.add(ped);

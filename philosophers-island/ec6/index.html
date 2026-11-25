@@ -33,6 +33,12 @@
   #sheet .gist { margin: 12px 0; padding: 10px 12px; border-left: 3px solid var(--k); background: rgba(243,236,214,.05); border-radius: 0 8px 8px 0; }
   #sheet p.body { font-family: Georgia, "Songti SC", serif; font-size: 15.5px; line-height: 1.75; color: #efe7cf; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 14px; } .chips span { font-size: 12.5px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); cursor: pointer; } .chips span:hover { border-color: #ffe7a3; } .chips b { font-weight: 600; } .chips small { color: var(--sub); margin-left: 4px; }
+  #sheet .sh { margin: 14px 0 4px; font-size: 12px; letter-spacing: .14em; color: var(--k); text-transform: none; } #sheet .unit p, #sheet .unit li { font-size: 14px; line-height: 1.65; } #sheet ol { margin: 0; padding-left: 20px; }
+  #sheet .checks label { display: block; font-size: 14px; padding: 3px 0; cursor: pointer; } #sheet .checks input { accent-color: #e9c46a; }
+  #sheet .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; } #sheet .flow span { padding: 4px 10px; border-radius: 8px; border: 1px solid var(--k); font-size: 13px; } #sheet .flow i { font-style: normal; color: var(--sub); }
+  #sheet .trap { border-left: 3px solid #ff7a6b; padding-left: 10px; } #sheet details { margin: 6px 0; padding: 8px 10px; border-radius: 8px; background: rgba(243,236,214,.05); } #sheet summary { cursor: pointer; color: #e9c46a; font-size: 13px; }
+  #sheet .defs div { font-size: 13px; line-height: 1.6; color: var(--sub); } #sheet .defs b { color: var(--c); font-weight: 600; }
+  #sheet .res a { display: block; color: #e9c46a; font-size: 13.5px; margin-top: 6px; } #sheet .res small { display: block; color: var(--sub); font-size: 12px; } #sheet .note { font-size: 12px; color: var(--sub); margin-top: 14px; }
   /* a mode, full screen */
   #mode { position: fixed; inset: 0; z-index: 30; display: none; background: #000; } #mode.on { display: block; }
   #mode iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #0b0e10; }
@@ -64,6 +70,7 @@
 <div id="mode"><iframe title=""></iframe><button class="key x" id="modeX">‹ 回到学习馆</button></div>
 <div id="toast"></div>
 <script src="ec6-data.js"></script>
+<script src="study/study.js"></script>
 <script>
 /* EC-6 学习馆 — the hall's own page. It is the embedding page for every mode, so each mode gets its EC-6 data the way
    it gets the island's: the holo console (content, vault, a timeline for the light cone), the papercraft island (a map),
@@ -71,9 +78,12 @@
 (function () {
   'use strict';
   var E = window.PIEC6, EMBED = parent !== window, $ = function (id) { return document.getElementById(id); };
-  var MODE_OF = { read: 'read:1', paper: 'paper', cone: 'cone', sphere: 'sphere', fold: 'fold' };
-  var ICON = { read: '📖', paper: '🗺', cone: '⏳', sphere: '🌐', fold: '📕' };
-  var WHY = { read: '阅读本身就是这一科：十种读法把考纲变成可以读、可以问、可以考的书', paper: '几何、测量与坐标：整门数学是一座按坐标轴铺开的纸岛', cone: '历史、政府与经济都在时间里：五门学科的大事排在一个光锥上', sphere: '地球与太空、力与能量：科学的考点贴满一整个球幕', fold: '视觉艺术、音乐、健康、体育、戏剧，正好是一本立体书的五个纸房间' };
+  var ST = window.PIEC6_STUDY || null, MOD = {}; if (ST) ST.modules.forEach(function (m) { MOD[m.code] = m; });
+  var RES = {}; if (ST) ST.resources.forEach(function (r) { RES[r.id] = r; });
+  var MODE_OF = { read: 'read:1', paper: 'paper', cone: 'cone', sphere: 'sphere', fold: 'fold', holo: 'holo:stars' };
+  var ICON = { read: '📖', paper: '🗺', cone: '⏳', sphere: '🌐', fold: '📕', holo: '🔷' };
+  var WHY = { read: '完整解释作正文，术语作概念节点，问答作检索与复述提示：十种读法读的就是这一科本身', fold: '同一个问题折成六面：模型 → 解释 → 技能 → 误区 → 自测 → 参考，看同一概念的不同表示', paper: '探究中心与历史、地理、经济、公民四馆铺成一座纸岛；历史另配只放真实年份的光锥', holo: '系统边界、变量、输入输出、证据与模型限制，在全息台上看；Obsidian 把概念、技能、图解、练习和资源连起来', sphere: '艺术元素、音乐差异、动作线索和健康决策，44 张图解贴满球幕先看概览，再点开细读' };
+  var EXTRA = { 2: '<button class="key" data-open="cone" data-sub="2">⏳ 光锥 · 真实年份</button>', 3: '<button class="key" data-open="holo:obsidian" data-sub="3">🕸 Obsidian</button>' };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(function () { e.classList.remove('on'); }, 2600); }
   function post(o) { if (EMBED) parent.postMessage(Object.assign({ ec6: 1 }, o), location.origin); }
@@ -84,7 +94,7 @@
       '<div class="meta"><span><b>' + e.items + '</b> 题</span><span><b>' + e.time + '</b></span><span>约占 <b>' + e.weight + '%</b></span><span><b>' + e.comps.length + '</b> 条能力项</span></div><div class="bar"><i style="width:' + (e.weight / 21.5 * 100) + '%"></i></div>' +
       '<button class="key feat" data-open="' + MODE_OF[e.mode] + '" data-sub="' + i + '">' + ICON[e.mode] + ' 主打模式 · ' + e.modeZh + '<em>' + WHY[e.mode] + '</em></button>' +
       '<div class="comps">' + e.comps.map(function (c) { return '<div class="comp" data-c="' + c.id + '"><i>' + c.n + '</i><span>' + esc(c.zh) + '</span><small>' + esc(c.en) + '</small></div>'; }).join('') + '</div>' +
-      '<div class="more"><button class="key" data-open="holo:obsidian" data-sub="' + i + '">🕸 图谱</button><button class="key" data-open="holo:stars" data-sub="' + i + '">🔷 星图</button><button class="key" data-open="read:1" data-sub="' + i + '">📖 读</button></div></div>';
+      '<div class="more">' + (EXTRA[i] || '') + '<button class="key" data-open="read:1" data-sub="' + i + '">📖 读这一科</button><button class="key" data-open="holo:obsidian" data-sub="' + i + '">🕸 图谱</button></div></div>';
   }).join('');
 
   // ── one competency
@@ -92,10 +102,26 @@
     var c = E.get(id); if (!c) return; var e = E.exams[c.exam], s = $('sheet');
     s.style.setProperty('--k', e.color);
     s.querySelector('.box').innerHTML = '<div class="no">' + e.code + ' · COMPETENCY ' + c.n + ' · ' + esc(e.zh) + '</div><h3>' + esc(c.zh) + '</h3><div class="en">' + esc(c.en) + '</div>' +
-      '<div class="gist">' + esc(c.gist) + '</div><p class="body">' + esc(c.body) + '</p><div class="chips">' + c.keys.map(function (k) { return '<span data-say="' + esc(k.en) + '"><b>' + esc(k.en) + '</b><small>' + esc(k.zh) + '</small></span>'; }).join('') + '</div>' +
+      '<div class="gist">' + esc(c.gist) + '</div>' + unitHtml(MOD[c.code + '-' + c.n]) + '<h4 class="sh">English explanation</h4><p class="body">' + esc(c.body) + '</p><div class="chips">' + c.keys.map(function (k) { return '<span data-say="' + esc(k.en) + '"><b>' + esc(k.en) + '</b><small>' + esc(k.zh) + '</small></span>'; }).join('') + '</div>' +
       '<div class="more"><button class="key gold" data-open="' + MODE_OF[e.mode] + '" data-sub="' + c.exam + '">' + ICON[e.mode] + ' 用' + e.modeZh + '看</button><button class="key" data-open="holo:obsidian">🕸 在图谱里看</button><button class="key" id="speak">🔊 朗读讲解</button><button class="key" id="shX">合上</button></div>';
     s.classList.add('on'); post({ op: 'seen', mode: 'sheet', text: e.code + '-' + c.n + ' ' + c.en });
   }
+  function unitHtml(m) {
+    if (!m) return '';
+    var li = function (a) { return '<ol>' + a.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>'; };
+    return '<div class="unit"><h4 class="sh">我能完成的任务</h4><p>' + esc(m.skill) + '</p>' +
+      '<h4 class="sh">知识点</h4>' + li(m.knowledge) +
+      '<h4 class="sh">技能检查</h4><div class="checks">' + m.checks.map(function (x, k) { return '<label><input type="checkbox" data-chk="' + m.code + '-' + k + '"' + (chk(m.code + '-' + k) ? ' checked' : '') + '> ' + esc(x) + '</label>'; }).join('') + '</div>' +
+      '<h4 class="sh">Anchor Chart 提纲</h4><div class="flow">' + m.nodes.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join('<i>→</i>') + '</div>' +
+      '<h4 class="sh">常见误区</h4><p class="trap">' + esc(m.trap) + '</p>' +
+      '<h4 class="sh">自编应用题</h4><p>' + esc(m.question) + '</p><details><summary>先自己想，再看参考解释</summary><p>' + esc(m.answer) + '</p></details>' +
+      '<h4 class="sh">核心术语</h4><div class="chips">' + m.terms.map(function (t) { return '<span data-say="' + esc(t.en) + '" title="' + esc(t.definition) + '"><b>' + esc(t.en) + '</b><small>' + esc(t.zh) + '</small></span>'; }).join('') + '</div>' +
+      '<div class="defs">' + m.terms.map(function (t) { return '<div><b>' + esc(t.en) + ' · ' + esc(t.zh) + '</b>　' + esc(t.definition) + '</div>'; }).join('') + '</div>' +
+      '<h4 class="sh">配套资源</h4><div class="res">' + (m.resources || []).map(function (id) { var r = RES[id]; return r ? '<a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(r.title) + '</a><small>' + esc(r.task || '') + '</small>' : ''; }).join('') + '</div>' +
+      '<p class="note">本单元是自编学习解释与练习，不是官方试题或官方完整释义；回到官方考纲核对 descriptive statements。</p></div>';
+  }
+  function chk(k, v) { var K = 'minest.ec6.checks'; try { var o = JSON.parse(localStorage.getItem(K) || '{}'); if (v === undefined) return !!o[k]; o[k] = v ? 1 : 0; localStorage.setItem(K, JSON.stringify(o)); } catch (x) {} return false; }
+  document.addEventListener('change', function (e) { var c = e.target.closest && e.target.closest('[data-chk]'); if (c) chk(c.getAttribute('data-chk'), c.checked); });
   function say(t) { try { speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(t); u.lang = 'en-US'; u.rate = 0.92; speechSynthesis.speak(u); } catch (x) {} }
   document.addEventListener('click', function (ev) {
     var t = ev.target;
@@ -112,7 +138,7 @@
     var p = spec.split(':'), kind = p[0], url;
     cur = { kind: kind, arg: p[1] || '', sub: sub };
     if (kind === 'holo') url = '../holo-lab-2/index.html';
-    else if (kind === 'read') url = '../library/read.html?file=ec6/framework.txt&title=' + encodeURIComponent('TExES Core Subjects EC-6 (391)') + '&zh=' + encodeURIComponent('EC-6 考纲学习文本') + '&author=' + encodeURIComponent('EC-6 学习馆') + '&mode=' + (p[1] || 1);
+    else if (kind === 'read') { var ex = sub >= 0 ? E.exams[sub] : null; url = '../library/read.html?file=' + (ex && ST ? 'ec6/study/reading/' + ex.code + '.txt' : 'ec6/framework.txt') + '&title=' + encodeURIComponent(ex ? 'EC-6 391 · ' + ex.code + ' ' + ex.en : 'TExES Core Subjects EC-6 (391)') + '&zh=' + encodeURIComponent(ex ? ex.code + ' ' + ex.zh + ' · 学习提要' : 'EC-6 考纲学习文本') + '&author=' + encodeURIComponent('EC-6 学习馆') + '&mode=' + (p[1] || 1); }
     else if (kind === 'paper') url = '../papercraft/index.html';
     else if (kind === 'fold') url = '../popup/index.html?book=ec6';
     else if (kind === 'cone') url = '../lightcone/index.html?set=ec6';
@@ -161,18 +187,22 @@
       h.push(hh); path.push(hh >= 40 && (Math.abs(z - cz) < 1 || Math.abs(x - cx) < 1) ? 1 : 0);
     }
     var halls = [], at = function (gx, gz) { return [gx / gw * W, gz / gh * D]; };
-    var math = E.exams[1].comps, mpos = [[-14, -9], [14, -9], [-22, 6], [22, 6], [-8, 15], [8, 15]];
-    math.forEach(function (c, i) { var p = at(cx + mpos[i][0], cz + mpos[i][1]); halls.push({ id: c.id, name: c.n + ' ' + c.zh, x: p[0], z: p[1], district: '902 数学 · ' + c.en, note: c.gist + '\n关键词：' + c.keys.map(function (k) { return k.en + ' ' + k.zh; }).join('、') }); });
-    [[0, -46, -24], [2, 46, -24], [3, -46, 24], [4, 46, 24]].forEach(function (q) { var e = E.exams[q[0]], n = e.comps.length, cols = Math.ceil(Math.sqrt(n * 1.4)), rows = Math.ceil(n / cols);
+    var noteOf = function (c) { var m = MOD[c.code + '-' + c.n]; return m ? '我能完成的任务：' + m.skill + '\n' + m.knowledge.map(function (x, k) { return (k + 1) + '. ' + x; }).join('\n') + '\n误区：' + m.trap : c.gist; };
+    var ss = E.exams[2].comps, spos = [[0, 0], [-16, -10], [16, -10], [-16, 10], [16, 10]], hallName = ['探究中心', '历史馆', '地理馆', '经济馆', '公民馆'];
+    ss.forEach(function (c, i) { var p = at(cx + spos[i][0], cz + spos[i][1]); halls.push({ id: c.id, name: hallName[i] + ' · ' + c.n + ' ' + c.zh, x: p[0], z: p[1], district: '903 社会研究 · ' + c.en, note: noteOf(c) }); });
+    [[0, -46, -24], [1, 46, -24], [3, -46, 24], [4, 46, 24]].forEach(function (q) { var e = E.exams[q[0]], n = e.comps.length, cols = Math.ceil(Math.sqrt(n * 1.4)), rows = Math.ceil(n / cols);
       e.comps.forEach(function (c, i) { var r = Math.floor(i / cols), k = i % cols, p = at(cx + q[1] + (k - (cols - 1) / 2) * (24 / Math.max(1, cols - 1 || 1)) * (cols > 1 ? 1 : 0), cz + q[2] + (r - (rows - 1) / 2) * Math.min(7, 18 / Math.max(1, rows - 1 || 1)) * (rows > 1 ? 1 : 0));
-        halls.push({ id: c.id, name: c.n + ' ' + c.zh, x: p[0], z: p[1], district: e.code + ' ' + e.zh + ' · ' + c.en, note: c.gist }); }); });
-    return { paper: 1, op: 'map', gw: gw, gh: gh, h: h, path: path, W: W, D: D, halls: halls, title: 'EC-6 纸艺小岛<small>数学在中央的坐标高台上，另外四科在四个角</small>', goLabel: '📄 看这条能力项', hint: '向下滚动往前走，纸片会一件件立起来 · 左右拖动看两侧 · 点一座纸房子看它是哪条能力项' };
+        halls.push({ id: c.id, name: c.n + ' ' + c.zh, x: p[0], z: p[1], district: e.code + ' ' + e.zh + ' · ' + c.en, note: noteOf(c) }); }); });
+    return { paper: 1, op: 'map', gw: gw, gh: gh, h: h, path: path, W: W, D: D, halls: halls, title: 'EC-6 纸艺小岛<small>社会研究的探究中心与历史、地理、经济、公民四馆在中央高台上；位置是设计坐标，不是地理位置</small>', goLabel: '📄 看这条能力项', hint: '向下滚动往前走，纸片会一件件立起来 · 左右拖动看两侧 · 点一座纸房子看它是哪条能力项' };
   }
+  // the content package's own payloads for the console (study/holo-content.json, study/obsidian-vault.json), fetched once
+  var PKG = Promise.all(['study/holo-content.json', 'study/obsidian-vault.json'].map(function (u) { return fetch(u).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); }))
+    .then(function (a) { var c = a[0]; if (c) c.readonly = true; return { content: c, vault: a[1] }; });
   addEventListener('message', function (e) {
     if (!cur || e.source !== frame.contentWindow) return; var m = e.data; if (!m || typeof m !== 'object') return;
     var to = function (o) { frame.contentWindow.postMessage(o, location.origin); };
     if (m.holo === 1) {
-      if (m.op === 'ready') { to({ holo: 1, op: 'vault', data: vault() }); to({ holo: 1, op: 'conedata', title: 'EC-6 学科史', jumps: [['文字', -3200], ['元年', 0], ['印刷', 1440], ['宪法', 1787], ['得州独立', 1836], ['内战后', 1865], ['民权', 1954], ['此刻', 2026]], domains: E.exams.map(function (x) { return [x.code + ' ' + x.zh, x.color]; }), events: E.timeline }); to({ holo: 1, op: 'content', data: holoContent() }); to({ holo: 1, op: 'mode', id: cur.arg || 'stars' }); }
+      if (m.op === 'ready') { PKG.then(function (pk) { to({ holo: 1, op: 'vault', data: pk.vault || vault() }); to({ holo: 1, op: 'content', data: pk.content || holoContent() }); to({ holo: 1, op: 'mode', id: cur && cur.arg || 'stars' }); }); to({ holo: 1, op: 'vault', data: vault() }); to({ holo: 1, op: 'conedata', title: 'EC-6 学科史', jumps: [['文字', -3200], ['元年', 0], ['印刷', 1440], ['宪法', 1787], ['得州独立', 1836], ['内战后', 1865], ['民权', 1954], ['此刻', 2026]], domains: E.exams.map(function (x) { return [x.code + ' ' + x.zh, x.color]; }), events: E.timeline }); to({ holo: 1, op: 'content', data: holoContent() }); to({ holo: 1, op: 'mode', id: cur.arg || 'stars' }); }
       else if (m.op === 'close') closeMode();
       else if (m.op === 'coneSeen' && m.title) post({ op: 'seen', mode: 'cone', text: m.year + ' · ' + m.title });
     } else if (m.paper === 1) {

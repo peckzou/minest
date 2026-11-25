@@ -8,10 +8,10 @@
   'use strict';
   var EXAMS = [
     { code: '901', roman: 'I', en: 'English Language Arts and Reading', zh: '英语语言艺术与阅读', items: 45, time: '1 小时 10 分', weight: 21.5, color: '#6fb7ff', mode: 'read', modeZh: '十种读法' },
-    { code: '902', roman: 'II', en: 'Mathematics', zh: '数学', items: 40, time: '1 小时 10 分', weight: 19, color: '#ffb454', mode: 'paper', modeZh: '纸艺小岛' },
-    { code: '903', roman: 'III', en: 'Social Studies', zh: '社会研究', items: 40, time: '50 分', weight: 19, color: '#ff7a6b', mode: 'cone', modeZh: '光锥' },
-    { code: '904', roman: 'IV', en: 'Science', zh: '科学', items: 45, time: '55 分', weight: 21.5, color: '#7ee08a', mode: 'sphere', modeZh: 'Sphere 巨幕' },
-    { code: '905', roman: 'V', en: 'Fine Arts, Health and Physical Education', zh: '艺术、健康与体育', items: 40, time: '35 分', weight: 19, color: '#d08cff', mode: 'fold', modeZh: '折叠书' }
+    { code: '902', roman: 'II', en: 'Mathematics', zh: '数学', items: 40, time: '1 小时 10 分', weight: 19, color: '#ffb454', mode: 'fold', modeZh: '折叠书' },
+    { code: '903', roman: 'III', en: 'Social Studies', zh: '社会研究', items: 40, time: '50 分', weight: 19, color: '#ff7a6b', mode: 'paper', modeZh: '纸艺小岛 + 光锥' },
+    { code: '904', roman: 'IV', en: 'Science', zh: '科学', items: 45, time: '55 分', weight: 21.5, color: '#7ee08a', mode: 'holo', modeZh: '全息操作台 + Obsidian' },
+    { code: '905', roman: 'V', en: 'Fine Arts, Health and Physical Education', zh: '艺术、健康与体育', items: 40, time: '35 分', weight: 19, color: '#d08cff', mode: 'sphere', modeZh: 'Sphere 巨幕' }
   ];
   /* [exam index, number, English title, 中文标题, 要点 (zh), explanation (en, own words), keys "en|中文;…"] */
   var C = [
@@ -198,7 +198,9 @@
     [1821, '奥斯汀殖民', 2, '墨西哥独立同年，Stephen F. Austin 开始带美国移民到得州定居，被称为"得州之父"。'],
     [1836, '得州独立', 2, '3 月 2 日发表独立宣言；阿拉莫之战失守；4 月 21 日圣哈辛托一战取胜，成立得克萨斯共和国。'],
     [1845, '得州加入美国', 2, '12 月 29 日成为美国第 28 个州。'],
+    [1861, '美国内战开始', 2, '用多源材料解释奴隶制、分离主义及政治经济背景；一个日期不等于完整因果。'],
     [1865, 'Juneteenth', 2, '6 月 19 日联邦军队在加尔维斯敦宣布得州奴隶获得自由，今天是联邦节日。'],
+    [1870, '第十五修正案获批准', 2, '保障投票权不因种族被剥夺；条文批准不等于平等立即实现（903-005）。'],
     [1876, '得州现行宪法', 2, '重建结束后制定，沿用至今，修正案已有数百条。'],
     [1901, '纺锤顶油田', 2, 'Spindletop 喷油，得州经济从牧牛和棉花转向石油（903-004）。'],
     [1920, '第十九修正案', 2, '女性获得联邦选举权。'],
