@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>火柴人小剧场 · 哲学家小岛</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #f6f4ee; color: #141414; font: 15px/1.6 "PingFang SC", "Noto Sans SC", system-ui, sans-serif; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 18px 18px 30px; }
+  .top { display: flex; align-items: center; gap: 12px; }
+  .top h1 { flex: 1; margin: 0; font-size: 20px; } .top h1 small { font-size: 13px; color: #737373; font-weight: 400; margin-left: 8px; }
+  button { font: inherit; padding: 6px 14px; border-radius: 999px; border: 1.5px solid #141414; background: #fff; cursor: pointer; } button:hover { background: #fde68a; }
+  .stage { margin-top: 14px; border: 1.5px solid #141414; border-radius: 14px; background: #fff radial-gradient(#e6e6e6 1px, transparent 1.2px) 0 0 / 14px 14px; overflow: hidden; }
+  .stage stick-scene { display: block; width: 100%; height: min(52vh, 430px); cursor: pointer; }
+  .cap { margin: 12px 2px 0; font-size: 16px; } .cap b { background: #fde68a; padding: 0 6px; border-radius: 4px; }
+  .row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; align-items: center; } .row span { color: #737373; font-size: 13px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-top: 20px; }
+  .card { border: 1px solid #d4d4d4; border-radius: 10px; background: #fff; padding: 6px 8px 8px; cursor: pointer; } .card:hover, .card.on { border-color: #141414; box-shadow: 3px 3px 0 #fde68a; }
+  .card stick-scene { display: block; width: 100%; height: 96px; pointer-events: none; } .card div { font-size: 13px; } .card i { font-style: normal; color: #737373; font-size: 12px; display: block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>🎬 火柴人小剧场<small>一个小动画，讲一个思想</small></h1><button id="close">✕ 回到小岛</button></div>
+  <div class="stage"><div id="main"></div></div>
+  <p class="cap" id="cap"></p>
+  <div class="row"><button id="replay">▶ 再放一遍</button><button id="prev">◀ 上一个</button><button id="next">下一个 ▶</button><span>点画面也能播放 · 动画用 stick-scene 技能绘制</span></div>
+  <div class="grid" id="grid"></div>
+</div>
+<script src="stick.js"></script>
+<script src="scenes-top20.js"></script>
+<script src="scenes-more.js"></script>
+<script>
+(function () {
+  var LIST = [['socrates', '苏格拉底', '产婆术：只问不答'], ['plato', '柏拉图', '洞穴寓言'], ['aristotle', '亚里士多德', '中道'], ['zeno', '芝诺与斯多葛', '控制二分'], ['confucius', '孔子', '己所不欲，勿施于人'],
+    ['laozi', '老子', '无为'], ['zhuangzi', '庄子', '庄周梦蝶'], ['descartes', '笛卡尔', '我思故我在'], ['spinoza', '斯宾诺莎', '万物是同一实体的样态'], ['leibniz', '莱布尼茨', '充足理由律'],
+    ['locke', '洛克', '白板说'], ['hume', '休谟', '因果只是恒常相继'], ['hobbes_rousseau', '霍布斯与卢梭', '社会契约'], ['kant', '康德', '认识的先天框架'], ['hegel', '黑格尔', '正—反—合'],
+    ['marx', '马克思', '经济基础决定上层建筑'], ['schopenhauer_kierkegaard', '叔本华与克尔凯郭尔', '痛苦与无聊之间的钟摆'], ['nietzsche', '尼采', '精神三变'], ['wittgenstein', '维特根斯坦', '意义即用法'], ['heidegger_sartre', '海德格尔与萨特', '存在先于本质'],
+    ['bacon', '培根', '四假相'], ['mill', '密尔', '伤害原则'], ['frege', '弗雷格', '意义与指称'], ['russell', '罗素', '摹状词理论'], ['peirce_dewey', '皮尔士与杜威', '做中学'],
+    ['popper', '波普尔', '证伪'], ['kuhn', '库恩', '范式转换'], ['rawls', '罗尔斯', '无知之幕'], ['foucault', '福柯', '全景敞视'], ['habermas', '哈贝马斯', '讲理而不是压服'],
+    ['smith_ricardo', '斯密与李嘉图', '分工'], ['keynes_friedman', '凯恩斯与弗里德曼', '乘数'], ['hayek_schumpeter', '哈耶克与熊彼特', '创造性破坏'], ['nash', '纳什', '均衡'], ['simon_kahneman', '西蒙与卡尼曼', '损失厌恶'],
+    ['durkheim_weber', '涂尔干与韦伯', '有机团结'], ['simmel_mead', '齐美尔与米德', '镜中我'], ['granovetter', '格兰诺维特', '弱关系'], ['olson_putnam', '奥尔森与帕特南', '搭便车'],
+    ['pavlov_skinner', '巴甫洛夫与斯金纳', '条件反射'], ['piaget_vygotsky', '皮亚杰与维果茨基', '脚手架'], ['ebbinghaus', '艾宾浩斯', '遗忘曲线'], ['maslow_festinger', '马斯洛与费斯廷格', '需要层次']];
+  var q = new URLSearchParams(location.search), cur = Math.max(0, LIST.findIndex(function (x) { return x[0] === q.get('scene'); })), main = document.getElementById('main'), grid = document.getElementById('grid');
+  function play() { var tries = 0; (function go() { if (main.v && main.v.play) { main.v.play(); } else if (tries++ < 60) setTimeout(go, 50); })(); }
+  function show(i, auto) {
+    cur = (i + LIST.length) % LIST.length; var it = LIST[cur], def = window.SCENES[it[0]];
+    var fresh = document.createElement('stick-scene'); fresh.id = 'main'; fresh.setAttribute('play', 'click'); fresh.setAttribute('no-font', ''); fresh.setAttribute('scene', it[0]);
+    if (main.v && window.STICK && STICK.remove) { try { STICK.remove(main.v); } catch (e) {} } main.parentNode.replaceChild(fresh, main); main = fresh;
+    document.getElementById('cap').innerHTML = ''; var b = document.createElement('b'); b.textContent = it[1] + ' · ' + it[2]; document.getElementById('cap').appendChild(b); document.getElementById('cap').appendChild(document.createTextNode('　' + (def ? def.label : '')));
+    Array.prototype.forEach.call(grid.children, function (c, k) { c.classList.toggle('on', k === cur); });
+    if (auto !== false) setTimeout(play, 350);
+    try { parent.postMessage({ stick: 1, op: 'seen', id: it[0] }, location.origin); } catch (e) {}
+  }
+  LIST.forEach(function (it, i) { var c = document.createElement('div'); c.className = 'card'; c.innerHTML = '<stick-scene scene="' + it[0] + '" play="idle" no-font no-floor></stick-scene><div></div><i></i>'; c.children[1].textContent = it[1]; c.children[2].textContent = it[2]; c.onclick = function () { show(i); scrollTo({ top: 0, behavior: 'smooth' }); }; grid.appendChild(c); });
+  document.getElementById('replay').onclick = play; document.getElementById('prev').onclick = function () { show(cur - 1); }; document.getElementById('next').onclick = function () { show(cur + 1); };
+  document.getElementById('close').onclick = function () { try { parent.postMessage({ stick: 1, op: 'close' }, location.origin); } catch (e) {} if (parent === window) history.back(); };
+  addEventListener('keydown', function (e) { if (e.key === 'Escape') document.getElementById('close').click(); if (e.key === 'ArrowRight') show(cur + 1); if (e.key === 'ArrowLeft') show(cur - 1); if (e.key === ' ') { e.preventDefault(); play(); } });
+  show(cur);
+})();
+</script>
+</body>
+</html>

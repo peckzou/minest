@@ -2459,6 +2459,150 @@
       }
     });
 
+    // ───────── Annex island (社会科学岛): a roof feature and a front-yard landmark for each of the 13 halls ─────────
+    (P.eraLandmarks || []).forEach((EL) => {
+      if (!/^ax_/.test(EL.kind)) return;
+      const { x, y, z, cz, x0, x1, z1 } = EL, id = EL.kind.slice(3), E = x + 5, Wx = x - 5, R = y + 11.6, fz = z1 + 1.2;
+      const box = (w, h, d) => new T.BoxGeometry(w, h, d);
+      const plinth = (px, pz, r, h) => mEraWhite.add(cyl(r, r * 1.15, h, 16), M(px, y + h / 2, pz));
+      const portico = (n) => { for (let i = 0; i < n; i++) { const dx = -3.3 + i * 6.6 / (n - 1); mEraWhite.add(cyl(0.28, 0.32, 5.4, 12), M(x + dx, y + 2.7, fz + 1.2)); } mEraWhite.add(box(8.2, 0.5, 2.2), M(x, y + 5.9, fz + 0.5)); mEraWhite.add(cyl(0.02, 4.4, 1.7, 3), M(x, y + 7.0, fz + 0.5, 0, Math.PI / 2, 0, 0.5, 1, 1)); };
+      const belfry = (m) => { mEraWhite.add(box(1.8, 1.4, 1.8), M(x, R + 0.5, cz)); [[-0.75, -0.75], [0.75, -0.75], [-0.75, 0.75], [0.75, 0.75]].forEach(([dx, dz]) => mEraWhite.add(box(0.18, 1.5, 0.18), M(x + dx, R + 1.95, cz + dz))); mEraGold.add(cyl(0.2, 0.5, 0.65, 12), M(x, R + 1.9, cz)); m.add(cyl(0.02, 1.5, 1.5, 4), M(x, R + 3.45, cz, 0, Math.PI / 4, 0)); };
+      const lantern = () => { mEraGlass.add(box(11.0, 1.5, 2.6), M(x, R + 0.3, cz)); for (let px = -5; px <= 5; px += 2.5) mEraWhite.add(box(0.14, 1.6, 2.7), M(x + px, R + 0.3, cz)); mEraWhite.add(box(11.3, 0.14, 2.9), M(x, R + 1.1, cz)); };
+      const globe = () => { mEraWhite.add(box(3.0, 2.2, 3.0), M(x, R - 0.4, cz)); mEraGold.add(sph(1.5), M(x, R + 2.0, cz)); for (let i = 0; i < 4; i++) mEraGold.add(torus(1.56, 0.05), M(x, R + 2.0, cz, 0, i * Math.PI / 4, 0)); };
+      const stepG = () => { [[5.0, 0], [3.6, 1.1], [2.2, 2.2]].forEach(([w, dy]) => mEraWhite.add(box(w, 1.1, 0.5), M(x, y + 6.6 + dy, fz - 0.6))); mEraGold.add(sph(0.22), M(x, y + 10.2, fz - 0.6)); };
+      const turrets = () => { [x0 + 0.5, x1 + 0.5].forEach((px) => { mEraWhite.add(cyl(1.0, 1.05, 9.0, 8), M(px, y + 4.5, z1 + 0.5)); mEraRed.add(cyl(0.02, 1.15, 1.6, 8), M(px, y + 9.8, z1 + 0.5)); }); };
+      if (id === 'smith_ricardo') { portico(4);        // a pin-maker's bench and a merchant ship: division of labour and trade
+        mDarkTimber.add(box(2.6, 0.12, 0.9), M(E, y + 0.9, z)); [[-1.1, -0.35], [1.1, -0.35], [-1.1, 0.35], [1.1, 0.35]].forEach(([dx, dz]) => mDarkTimber.add(box(0.12, 0.9, 0.12), M(E + dx, y + 0.45, z + dz))); for (let i = 0; i < 6; i++) mEraGold.add(cyl(0.02, 0.02, 0.35, 5), M(E - 1 + i * 0.4, y + 1.15, z));
+        mDarkTimber.add(box(2.4, 0.5, 0.8), M(Wx, y + 0.9, z)); mDarkTimber.add(cyl(0.05, 0.05, 2.6, 6), M(Wx, y + 2.3, z)); mEraWhite.add(box(1.4, 1.6, 0.05), M(Wx + 0.1, y + 2.6, z)); plinth(Wx, z, 0.7, 0.6);
+      } else if (id === 'keynes_friedman') {          // a fountain whose water goes round and round: the circular flow
+        mEraWhite.add(cyl(2.4, 2.5, 0.5, 24), M(E - 1, y + 0.25, z)); mEraGlass.add(cyl(2.2, 2.2, 0.1, 24), M(E - 1, y + 0.52, z)); mEraWhite.add(cyl(0.3, 0.4, 1.8, 12), M(E - 1, y + 1.2, z)); mEraWhite.add(cyl(1.0, 0.3, 0.3, 16), M(E - 1, y + 2.2, z)); mEraGlass.add(sph(0.45), M(E - 1, y + 2.7, z));
+        plinth(Wx, z, 0.5, 1.0); for (let i = 0; i < 5; i++) mEraGold.add(cyl(0.45, 0.45, 0.09, 16), M(Wx, y + 1.05 + i * 0.1, z));
+      } else if (id === 'hayek_schumpeter') { globe();   // a signal mast with a price flag, and a broken old wheel beside a new gear
+        mDarkTimber.add(cyl(0.08, 0.12, 5.5, 8), M(E, y + 2.75, z)); mEraRed.add(box(1.2, 0.7, 0.05), M(E + 0.65, y + 5.0, z)); mEraGold.add(sph(0.2), M(E, y + 5.6, z));
+        mDarkTimber.add(torus(0.8, 0.08), M(Wx - 0.6, y + 0.5, z, 1.2, 0, 0.3)); mEraGold.add(torus(0.9, 0.12), M(Wx + 0.8, y + 1.2, z)); for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; mEraGold.add(box(0.25, 0.25, 0.2), M(Wx + 0.8 + Math.cos(a) * 1.05, y + 1.2 + Math.sin(a) * 1.05, z, 0, 0, a)); }
+      } else if (id === 'nash') {                      // a giant chessboard with pieces: strategy
+        for (let i = 0; i < 16; i++) ((i + Math.floor(i / 4)) % 2 ? mDarkTimber : mEraWhite).add(box(1.0, 0.12, 1.0), M(E - 2.5 + (i % 4), y + 0.06, z - 1.2 + Math.floor(i / 4)));
+        [[0, 0, mEraWhite], [3, 3, mDarkTimber], [1, 2, mEraGold]].forEach(([a, b, m]) => { m.add(cyl(0.18, 0.3, 0.9, 10), M(E - 2.5 + a, y + 0.55, z - 1.2 + b)); m.add(sph(0.2), M(E - 2.5 + a, y + 1.1, z - 1.2 + b)); });
+      } else if (id === 'simon_kahneman') { lantern();  // a hedge maze: searching until "good enough"
+        for (let i = 0; i < 4; i++) { const r = 0.7 + i * 0.6; mDarkTimber.add(box(r * 2, 0.7, 0.2), M(E - 1, y + 0.35, z - r)); mDarkTimber.add(box(0.2, 0.7, r * 2), M(E - 1 + r, y + 0.35, z)); if (i % 2) mDarkTimber.add(box(r * 2, 0.7, 0.2), M(E - 1, y + 0.35, z + r)); else mDarkTimber.add(box(0.2, 0.7, r * 2), M(E - 1 - r, y + 0.35, z)); } mEraGold.add(sph(0.25), M(E - 1, y + 0.5, z));
+      } else if (id === 'durkheim_weber') { turrets();  // a totem pole and an iron cage
+        for (let i = 0; i < 4; i++) { (i % 2 ? mEraRed : mEraGold).add(box(0.8, 0.9, 0.8), M(E, y + 0.45 + i * 0.9, z)); } mDarkTimber.add(box(2.0, 0.2, 0.3), M(E, y + 3.0, z));
+        for (let i = 0; i < 6; i++) { mDarkTimber.add(cyl(0.04, 0.04, 2.2, 5), M(Wx - 0.9 + i * 0.36, y + 1.1, z + 0.9)); mDarkTimber.add(cyl(0.04, 0.04, 2.2, 5), M(Wx - 0.9 + i * 0.36, y + 1.1, z - 0.9)); mDarkTimber.add(cyl(0.04, 0.04, 2.2, 5), M(Wx - 0.9, y + 1.1, z - 0.9 + i * 0.36)); mDarkTimber.add(cyl(0.04, 0.04, 2.2, 5), M(Wx + 0.9, y + 1.1, z - 0.9 + i * 0.36)); } mDarkTimber.add(box(2.0, 0.1, 2.0), M(Wx, y + 2.25, z));
+      } else if (id === 'simmel_mead') { stepG();       // three figures in a triangle, and a standing mirror
+        [[0, -1], [-0.9, 0.6], [0.9, 0.6]].forEach(([dx, dz], i) => { [mEraGold, mEraWhite, mEraRed][i].add(cyl(0.12, 0.3, 1.1, 10), M(E + dx, y + 0.55, z + dz)); [mEraGold, mEraWhite, mEraRed][i].add(sph(0.22), M(E + dx, y + 1.3, z + dz)); });
+        mDarkTimber.add(box(1.5, 2.6, 0.12), M(Wx, y + 1.5, z)); mEraGlass.add(box(1.25, 2.3, 0.06), M(Wx, y + 1.5, z + 0.08));
+      } else if (id === 'granovetter') {               // a little network of poles joined by rope bridges
+        const N = [[E - 2.5, z - 1], [E - 0.5, z + 1.2], [E + 1, z - 0.8], [Wx - 1, z + 0.5], [Wx + 1.2, z - 0.6]];
+        N.forEach(([px, pz]) => { mDarkTimber.add(cyl(0.07, 0.1, 2.6, 8), M(px, y + 1.3, pz)); mEraGold.add(sph(0.22), M(px, y + 2.7, pz)); });
+        [[0, 1], [1, 2], [0, 2], [3, 4], [1, 4]].forEach(([a, b]) => { const dx = N[b][0] - N[a][0], dz = N[b][1] - N[a][1], L = Math.hypot(dx, dz); (a === 1 && b === 4 ? mEraGold : mDarkTimber).add(cyl(0.025, 0.025, L, 5), M((N[a][0] + N[b][0]) / 2, y + 2.6, (N[a][1] + N[b][1]) / 2, 0, -Math.atan2(dz, dx), Math.PI / 2)); });
+      } else if (id === 'olson_putnam') { portico(6);   // a bowling lane with ten pins and one lonely ball
+        mEraWhite.add(box(1.4, 0.1, 5.0), M(E, y + 0.05, z + 0.5)); for (let r = 0; r < 4; r++) for (let i = 0; i <= r; i++) mEraWhite.add(cyl(0.08, 0.12, 0.5, 8), M(E - r * 0.16 + i * 0.32, y + 0.35, z - 0.6 - r * 0.3)); mDarkTimber.add(sph(0.26), M(E, y + 0.36, z + 2.4));
+      } else if (id === 'pavlov_skinner') { belfry(mDarkTimber);   // a great bell on a frame, and a food bowl
+        [E - 1.1, E + 1.1].forEach((px) => mDarkTimber.add(box(0.25, 3.4, 0.25), M(px, y + 1.7, z))); mDarkTimber.add(box(2.7, 0.25, 0.4), M(E, y + 3.4, z)); mEraGold.add(cyl(0.3, 0.9, 1.2, 16), M(E, y + 2.5, z)); mEraGold.add(sph(0.2), M(E, y + 1.8, z));
+        mEraWhite.add(cyl(0.7, 0.45, 0.3, 14), M(Wx, y + 0.15, z)); mEraRed.add(cyl(0.55, 0.55, 0.08, 14), M(Wx, y + 0.3, z));
+      } else if (id === 'piaget_vygotsky') {            // building blocks, a short wide jar and a tall thin one, and a scaffold
+        [[0, 0, mEraRed], [0.8, 0, mEraGold], [0.4, 0.8, mEraWhite], [0.4, 1.6, mEraRed]].forEach(([dx, dy, m]) => m.add(box(0.75, 0.75, 0.75), M(E - 1 + dx, y + 0.38 + dy, z)));
+        mEraGlass.add(cyl(0.7, 0.7, 0.6, 16), M(Wx - 0.8, y + 0.3, z)); mEraGlass.add(cyl(0.3, 0.3, 2.2, 14), M(Wx + 0.8, y + 1.1, z));
+        [E + 0.6, E + 1.6].forEach((px) => mDarkTimber.add(cyl(0.05, 0.05, 3.0, 6), M(px, y + 1.5, z))); [1.0, 2.0, 2.9].forEach((h) => mDarkTimber.add(box(1.2, 0.08, 0.5), M(E + 1.1, y + h, z)));
+      } else if (id === 'ebbinghaus') {                 // a row of posts falling away like the forgetting curve, and a sundial
+        for (let i = 0; i < 8; i++) { const h = 0.5 + 2.8 * Math.exp(-i * 0.45); (i ? mEraWhite : mEraGold).add(box(0.4, h, 0.4), M(E - 2.6 + i * 0.75, y + h / 2, z)); }
+        plinth(Wx, z, 0.8, 0.9); mEraGold.add(cyl(0.75, 0.75, 0.06, 24), M(Wx, y + 0.95, z)); mDarkTimber.add(box(0.05, 0.7, 0.9), M(Wx, y + 1.25, z, 0.6, 0, 0));
+      } else if (id === 'maslow_festinger') { globe();  // a five-step pyramid
+        for (let i = 0; i < 5; i++) [mEraRed, mEraGold, mEraWhite, mEraGlass, mEraGold][i].add(box(4.0 - i * 0.8, 0.6, 4.0 - i * 0.8), M(E - 1, y + 0.3 + i * 0.6, z + 0.3));
+      }
+    });
+
+    // ───────── District VII: what makes each building's own silhouette (on the roof / the front) ─────────
+    (P.eraLandmarks || []).forEach((EL) => {
+      if (!/^d7roof_/.test(EL.kind)) return;
+      const { x, y, z, x0, x1, z1 } = EL, id = EL.kind.slice(7), R = y + 11.6, fz = z1 + 1.2;
+      const box = (w, h, d) => new T.BoxGeometry(w, h, d);
+      if (id === 'frege') {            // a stepped stone bell-gable with a clock over the door, and a star finial
+        [[5.0, 0], [3.6, 1.1], [2.2, 2.2]].forEach(([w, dy]) => mEraWhite.add(box(w, 1.1, 0.5), M(x, y + 6.6 + dy, fz - 0.6)));
+        mEraGold.add(cyl(0.62, 0.62, 0.12, 20), M(x, y + 7.7, fz - 0.3, Math.PI / 2, 0, 0)); mDarkTimber.add(box(0.06, 0.5, 0.05), M(x, y + 7.9, fz - 0.2)); mDarkTimber.add(box(0.36, 0.06, 0.05), M(x + 0.16, y + 7.7, fz - 0.2));
+        mDarkTimber.add(cyl(0.04, 0.06, 1.6, 6), M(x, y + 10.2, fz - 0.6)); mEraGold.add(sph(0.22), M(x, y + 11.1, fz - 0.6));
+      } else if (id === 'russell') {   // battlements along the front eave and two corner turrets
+        for (let px = x0 + 1; px <= x1; px += 1.5) mEraWhite.add(box(0.8, 0.8, 0.5), M(px, y + 6.6, z1 + 0.6));
+        [x0 + 0.5, x1 + 0.5].forEach((px) => { mEraWhite.add(cyl(1.0, 1.05, 9.0, 8), M(px, y + 4.5, z1 + 0.5)); for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; mEraWhite.add(box(0.36, 0.5, 0.36), M(px + Math.cos(a) * 0.9, y + 9.25, z1 + 0.5 + Math.sin(a) * 0.9)); } mEraRed.add(cyl(0.02, 0.06, 1.4, 6), M(px, y + 9.9, z1 + 0.5)); });
+      } else if (id === 'peirce_dewey') {  // a white schoolhouse belfry on the ridge
+        mEraWhite.add(box(1.8, 1.4, 1.8), M(x, R + 0.5, z)); [[-0.75, -0.75], [0.75, -0.75], [-0.75, 0.75], [0.75, 0.75]].forEach(([dx, dz]) => mEraWhite.add(box(0.18, 1.5, 0.18), M(x + dx, R + 1.95, z + dz)));
+        mEraGold.add(cyl(0.2, 0.5, 0.65, 12), M(x, R + 1.9, z)); mEraRed.add(cyl(0.02, 1.5, 1.5, 4), M(x, R + 3.45, z, 0, Math.PI / 4, 0)); mDarkTimber.add(cyl(0.03, 0.03, 0.9, 5), M(x, R + 4.6, z));
+      } else if (id === 'popper') {    // the Vienna Secession: a white drum with a golden openwork globe of leaves
+        mEraWhite.add(box(3.0, 2.2, 3.0), M(x, R - 0.4, z)); [[-1.6, -1.6], [1.6, -1.6], [-1.6, 1.6], [1.6, 1.6]].forEach(([dx, dz]) => mEraWhite.add(box(0.7, 3.6, 0.7), M(x + dx, R + 0.3, z + dz)));
+        mEraGold.add(sph(1.75), M(x, R + 2.2, z)); for (let i = 0; i < 4; i++) mEraGold.add(torus(1.82, 0.05), M(x, R + 2.2, z, 0, i * Math.PI / 4, 0));
+      } else if (id === 'rawls') {     // a Harvard portico: four white columns and a pediment
+        [-3.3, -1.1, 1.1, 3.3].forEach((dx) => { mEraWhite.add(cyl(0.3, 0.34, 5.4, 14), M(x + dx, y + 2.7, fz + 1.2)); mEraWhite.add(box(0.85, 0.25, 0.85), M(x + dx, y + 5.5, fz + 1.2)); });
+        mEraWhite.add(box(8.2, 0.5, 2.2), M(x, y + 5.9, fz + 0.5)); mEraWhite.add(cyl(0.02, 4.4, 1.7, 3), M(x, y + 7.0, fz + 0.5, 0, Math.PI / 2, 0, 0.5, 1, 1)); mEraWhite.add(box(8.6, 0.25, 2.6), M(x, y + 0.12, fz + 0.5));
+      } else if (id === 'foucault') {  // a mansard lantern: a ring of dormer "eyes" round a dark belvedere
+        mDarkTimber.add(cyl(1.5, 1.9, 2.2, 12), M(x, R + 0.4, z)); mEraGlass.add(cyl(1.25, 1.25, 1.1, 12), M(x, R + 2.0, z)); mDarkTimber.add(cyl(0.02, 1.5, 1.1, 12), M(x, R + 3.1, z));
+        for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; mEraGold.add(cyl(0.3, 0.3, 0.1, 12), M(x + Math.cos(a) * 1.72, R + 0.6, z + Math.sin(a) * 1.72, Math.PI / 2, 0, a + Math.PI / 2)); }
+      } else if (id === 'habermas') {  // a long glass ridge lantern: the debating hall is lit from above
+        mEraGlass.add(box(11.0, 1.5, 2.6), M(x, R + 0.3, z)); for (let px = -5; px <= 5; px += 2.5) mEraWhite.add(box(0.14, 1.6, 2.7), M(x + px, R + 0.3, z)); mEraWhite.add(box(11.3, 0.14, 2.9), M(x, R + 1.1, z));
+      }
+    });
+
+    // ───────── District VII signature landmarks (front yards of halls 21–30) ─────────
+    (P.eraLandmarks || []).forEach((EL) => {
+      if (!/^d7_/.test(EL.kind)) return;
+      const { x, y, z } = EL, id = EL.kind.slice(3), E = x + 5, Wx = x - 5;
+      const box = (w, h, d) => new T.BoxGeometry(w, h, d);
+      const plinth = (px, pz, r, h) => { mEraWhite.add(cyl(r, r * 1.15, h, 16), M(px, y + h / 2, pz)); };
+      if (id === 'bacon') {
+        // The Pillars of Hercules from the title page of the Novum Organum, with a ship sailing through
+        [Wx, E].forEach((px) => { mEraWhite.add(cyl(0.42, 0.5, 5.4, 16), M(px, y + 2.7, z)); mEraWhite.add(box(1.3, 0.3, 1.3), M(px, y + 5.55, z)); mEraGold.add(sph(0.42), M(px, y + 6.1, z)); mEraWhite.add(box(1.5, 0.4, 1.5), M(px, y + 0.2, z)); });
+        mDarkTimber.add(box(1.5, 0.35, 0.5), M(x, y + 2.2, z)); mDarkTimber.add(cyl(0.04, 0.04, 1.5, 6), M(x, y + 3.0, z)); mEraWhite.add(box(0.9, 0.9, 0.04), M(x + 0.1, y + 3.1, z)); mDarkTimber.add(cyl(0.06, 0.06, 2.0, 6), M(x, y + 1.0, z));
+      } else if (id === 'mill') {
+        // Speakers' Corner: a soapbox platform, a lectern and a ring of listeners' stools
+        mEraWhite.add(cyl(1.5, 1.6, 0.5, 20), M(E, y + 0.25, z)); mDarkTimber.add(box(0.7, 1.1, 0.5), M(E, y + 1.05, z + 0.5)); mDarkTimber.add(box(0.9, 0.08, 0.6), M(E, y + 1.64, z + 0.5, -0.3, 0, 0));
+        for (let i = 0; i < 6; i++) { const a = Math.PI * (0.15 + i * 0.14); mDarkTimber.add(cyl(0.22, 0.22, 0.45, 10), M(E + Math.cos(a) * 2.7 - 0.6, y + 0.22, z + Math.sin(a) * 2.2 + 1.0)); }
+        mDarkTimber.add(cyl(0.07, 0.09, 4.2, 8), M(Wx, y + 2.1, z)); mEraGlass.add(sph(0.36), M(Wx, y + 4.4, z)); mEraGold.add(cyl(0.3, 0.1, 0.25, 8), M(Wx, y + 4.8, z));
+      } else if (id === 'frege') {
+        // Morning star and evening star: two masts, one planet
+        [[Wx, 5.2], [E, 5.2]].forEach(([px, h]) => { mDarkTimber.add(cyl(0.07, 0.11, h, 8), M(px, y + h / 2, z)); mEraGold.add(sph(0.3), M(px, y + h + 0.2, z)); });
+        mEraGold.add(sph(0.62), M(x, y + 7.2, z)); mDarkTimber.add(cyl(0.03, 0.03, 5.6, 6), M((Wx + x) / 2, y + 6.3, z, 0, 0, -1.19)); mDarkTimber.add(cyl(0.03, 0.03, 5.6, 6), M((E + x) / 2, y + 6.3, z, 0, 0, 1.19));
+        plinth(Wx, z, 0.6, 0.4); plinth(E, z, 0.6, 0.4);
+      } else if (id === 'russell') {
+        // A Cambridge gatehouse: two crenellated turrets and a pointed arch
+        [Wx + 1.5, E - 1.5].forEach((px) => { mEraWhite.add(cyl(0.75, 0.8, 5.0, 8), M(px, y + 2.5, z)); for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; mEraWhite.add(box(0.3, 0.45, 0.3), M(px + Math.cos(a) * 0.68, y + 5.2, z + Math.sin(a) * 0.68)); } mEraGold.add(cyl(0.02, 0.12, 0.9, 6), M(px, y + 5.7, z)); });
+        mEraWhite.add(box(5.6, 0.6, 0.7), M(x, y + 4.1, z)); mEraWhite.add(box(0.5, 1.0, 0.7), M(x, y + 4.9, z)); mEraGold.add(sph(0.2), M(x, y + 5.55, z));
+      } else if (id === 'peirce_dewey') {
+        // A New England schoolhouse bell on its frame
+        [E - 0.9, E + 0.9].forEach((px) => mEraWhite.add(box(0.22, 3.6, 0.22), M(px, y + 1.8, z)));
+        mEraWhite.add(box(2.4, 0.22, 0.4), M(E, y + 3.6, z)); mEraRed.add(cyl(0.02, 1.7, 1.0, 4), M(E, y + 4.2, z, 0, Math.PI / 4, 0));
+        mEraGold.add(cyl(0.22, 0.55, 0.7, 14), M(E, y + 2.95, z)); mEraGold.add(sph(0.14), M(E, y + 2.5, z)); mDarkTimber.add(cyl(0.02, 0.02, 2.4, 5), M(E + 0.5, y + 1.3, z));
+        // a round of low benches: learning by doing
+        for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; mDarkTimber.add(box(0.9, 0.3, 0.35), M(Wx + Math.cos(a) * 1.6, y + 0.15, z + Math.sin(a) * 1.6, 0, -a + Math.PI / 2, 0)); }
+      } else if (id === 'popper') {
+        // Five white swans and one black swan on a pond
+        mEraGlass.add(cyl(3.0, 3.0, 0.08, 28), M(E - 1.2, y + 0.06, z));
+        const swan = (m, px, pz, r) => { m.add(sph(0.42), M(px, y + 0.42, pz, 0, 0, 0, 1.3, 0.75, 0.9)); m.add(cyl(0.07, 0.09, 0.8, 6), M(px + Math.cos(r) * 0.42, y + 0.95, pz + Math.sin(r) * 0.42, 0, 0, -0.35 * Math.cos(r))); m.add(sph(0.13), M(px + Math.cos(r) * 0.55, y + 1.38, pz + Math.sin(r) * 0.55)); };
+        for (let i = 0; i < 5; i++) swan(mEraWhite, E - 2.8 + i * 0.75, z - 1.0 + (i % 2) * 0.9, 0.3);
+        swan(mDarkTimber, E + 0.7, z + 0.9, 2.6);
+      } else if (id === 'kuhn') {
+        // An observatory dome with an open slit, and an old armillary beside it
+        plinth(E, z, 1.9, 1.5);
+        const dome = new T.Mesh(makeRibbedDomeGeo(1.85, 1.6), copperPatinaMat); dome.position.set(E, y + 1.5, z); dome.castShadow = true; group.add(dome); made.meshes++;
+        mDarkTimber.add(box(0.5, 1.3, 1.9), M(E, y + 2.45, z + 0.75, -0.55, 0, 0)); mEraGold.add(cyl(0.1, 0.14, 1.6, 8), M(E, y + 3.0, z + 0.9, -0.9, 0, 0));
+        plinth(Wx, z, 0.5, 1.0); for (let i = 0; i < 3; i++) mEraGold.add(torus(0.75, 0.035), M(Wx, y + 1.9, z, i * 1.05, i * 0.7, 0)); mEraGold.add(sph(0.16), M(Wx, y + 1.9, z));
+      } else if (id === 'rawls') {
+        // The veil of ignorance: a glass curtain beside the path (not across the door), and the scales of justice
+        [x + 1.6, E + 1.4].forEach((px) => { mDarkTimber.add(cyl(0.1, 0.14, 4.4, 8), M(px, y + 2.2, z)); mEraGold.add(sph(0.2), M(px, y + 4.5, z)); });
+        for (let i = 0; i < 5; i++) mEraGlass.add(box(0.8, 3.6, 0.06), M(x + 2.2 + i * 0.88, y + 2.3, z + Math.sin(i * 1.3) * 0.18));
+        mDarkTimber.add(cyl(0.05, 0.05, 4.9, 6), M(x + 4.0, y + 4.25, z, 0, 0, Math.PI / 2));
+        plinth(Wx, z, 0.5, 1.2); mEraGold.add(cyl(0.05, 0.08, 1.5, 6), M(Wx, y + 1.95, z)); mEraGold.add(box(2.2, 0.07, 0.07), M(Wx, y + 2.7, z)); [-1, 1].forEach((k2) => { mEraGold.add(cyl(0.38, 0.1, 0.14, 12), M(Wx + k2 * 1.05, y + 2.15, z)); mDarkTimber.add(cyl(0.012, 0.012, 0.55, 4), M(Wx + k2 * 1.05, y + 2.42, z)); });
+      } else if (id === 'foucault') {
+        // The Panopticon: a dark inspection tower with a glass lantern, ringed by open cells
+        mDarkTimber.add(cyl(0.7, 0.85, 5.2, 12), M(E - 1, y + 2.6, z)); mEraGlass.add(cyl(0.95, 0.95, 0.9, 12), M(E - 1, y + 5.6, z)); mDarkTimber.add(cyl(0.02, 1.05, 0.8, 12), M(E - 1, y + 6.45, z));
+        for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2, cx = E - 1 + Math.cos(a) * 3.0, cz = z + Math.sin(a) * 3.0; if (cz < EL.z1 + 1.6) continue; mEraWhite.add(box(1.1, 1.5, 0.16), M(cx + Math.cos(a) * 0.45, y + 0.75, cz + Math.sin(a) * 0.45, 0, -a + Math.PI / 2, 0)); mEraWhite.add(box(0.14, 1.5, 0.9), M(cx - Math.sin(a) * 0.55, y + 0.75, cz + Math.cos(a) * 0.55, 0, -a + Math.PI / 2, 0)); }
+      } else if (id === 'habermas') {
+        // A round-table pavilion: eight slender columns, a glass roof, one table with no head seat
+        const cx = E - 1;
+        for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; mEraWhite.add(cyl(0.11, 0.13, 3.2, 8), M(cx + Math.cos(a) * 2.6, y + 1.6, z + Math.sin(a) * 2.6)); mDarkTimber.add(cyl(0.2, 0.2, 0.5, 8), M(cx + Math.cos(a + 0.39) * 1.75, y + 0.25, z + Math.sin(a + 0.39) * 1.75)); }
+        mEraGlass.add(cyl(3.0, 3.0, 0.1, 28), M(cx, y + 3.25, z)); mEraWhite.add(torus(2.95, 0.09), M(cx, y + 3.25, z, Math.PI / 2, 0, 0));
+        mEraWhite.add(cyl(1.15, 1.15, 0.1, 24), M(cx, y + 0.8, z)); mEraWhite.add(cyl(0.2, 0.3, 0.75, 10), M(cx, y + 0.38, z));
+      }
+    });
+
     mCopper.mesh(copperPatinaMat);
     mDarkTimber.mesh(darkTimberMat);
     mEraGold.mesh(goldMat);
@@ -2474,6 +2618,13 @@
     const bookNavyMat = new T.MeshLambertMaterial({ color: 0x1e3a5f });
     const bookEmeraldMat = new T.MeshLambertMaterial({ color: 0x14532d });
     const museumLampMat = new T.MeshBasicMaterial({ color: 0xfff3c4 });
+    const mMusGlass = new Merger(), mMusPlaster = new Merger();
+    const mMusCeladon = new Merger(), mMusWingA = new Merger(), mMusWingB = new Merger();
+    const celadonMat = new T.MeshPhongMaterial({ color: 0x9cc7b4, specular: 0xffffff, shininess: 70 });
+    const wingAMat = new T.MeshBasicMaterial({ color: 0xf59e0b, side: T.DoubleSide });
+    const wingBMat = new T.MeshBasicMaterial({ color: 0x7dd3fc, side: T.DoubleSide });
+    const vitrineGlassMat = new T.MeshPhongMaterial({ color: 0xd6ecf7, specular: 0xffffff, shininess: 120, transparent: true, opacity: 0.2, depthWrite: false });
+    const plasterTrimMat = new T.MeshLambertMaterial({ color: 0xefe6d2 });
     const texLoader = new T.TextureLoader();
 
     function loadMuseumPhotoTex(url) {
@@ -2536,127 +2687,194 @@
     }
 
     // 2. Minimalist Museum Wall Placard beside/below the Painting (like Louvre / MoMA / Palace Museum)
-    function makeArtPlacardTex(phil, style) {
-      const c = document.createElement('canvas'); c.width = 512; c.height = 128;
-      const x = c.getContext('2d');
-      if (style === 'modern') {
-        x.fillStyle = '#f8fafc'; x.fillRect(0, 0, 512, 128);
-        x.strokeStyle = '#0f172a'; x.lineWidth = 3; x.strokeRect(2, 2, 508, 124);
-        x.fillStyle = '#0f172a'; x.font = '900 22px "PingFang SC", sans-serif'; x.textAlign = 'left';
-        x.fillText(phil.artTitle || '', 20, 40);
-        x.fillStyle = '#475569'; x.font = 'bold 16px "PingFang SC", sans-serif';
-        x.fillText((phil.artArtist || '').slice(0, 34), 20, 72);
-        x.fillStyle = '#334155'; x.font = '14px "PingFang SC", sans-serif';
-        x.fillText((phil.artDesc || '').slice(0, 34) + '…', 20, 102);
-      } else if (style === 'marble') {
-        x.fillStyle = '#f5f2e8'; x.fillRect(0, 0, 512, 128);
-        x.strokeStyle = '#c89d3c'; x.lineWidth = 6; x.strokeRect(4, 4, 504, 120);
-        x.fillStyle = '#1e293b'; x.font = '900 22px "PingFang SC", Georgia, serif'; x.textAlign = 'center';
-        x.fillText(phil.artTitle || '', 256, 44);
-        x.fillStyle = '#78350f'; x.font = 'bold 16px "PingFang SC", serif';
-        x.fillText((phil.artArtist || '').slice(0, 34), 256, 76);
-        x.fillStyle = '#475569'; x.font = '14px "PingFang SC", serif';
-        x.fillText((phil.artDesc || '').slice(0, 34) + '…', 256, 106);
-      } else {
-        // Brushed Brass Museum Placard
-        const g = x.createLinearGradient(0, 0, 512, 128);
-        g.addColorStop(0, '#2a1f10'); g.addColorStop(1, '#1a1209');
-        x.fillStyle = g; x.fillRect(0, 0, 512, 128);
-        x.strokeStyle = '#d4a33b'; x.lineWidth = 5; x.strokeRect(4, 4, 504, 120);
-        x.fillStyle = '#fef08a'; x.font = '900 22px "PingFang SC", Georgia, serif'; x.textAlign = 'center';
-        x.fillText(phil.artTitle || '', 256, 44);
-        x.fillStyle = '#cbd5e1'; x.font = 'bold 15px "PingFang SC", sans-serif';
-        x.fillText((phil.artArtist || '').slice(0, 36), 256, 76);
-        x.fillStyle = '#94a3b8'; x.font = '14px "PingFang SC", sans-serif';
-        x.fillText((phil.artDesc || '').slice(0, 36) + '…', 256, 106);
+    const F_SERIF = '"Songti SC","STSong","Noto Serif CJK SC","Source Han Serif SC",Georgia,serif';
+    const F_SANS = '"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",Arial,sans-serif';
+    const NO_HEAD = '，。、；：！？）》」』”’…·';
+    // Wrap mixed CJK / Latin text to maxW; at most maxLines, ending with an ellipsis when cut
+    function wrapLines(x, text, maxW, maxLines) {
+      const toks = String(text || '').match(/[A-Za-z0-9\u00C0-\u024F\u0370-\u03FF\u1F00-\u1FFF'’.\-]+|\s+|[\s\S]/g) || [];
+      const out = [];
+      let line = '', cut = false;
+      for (let i = 0; i < toks.length; i++) {
+        const tok = toks[i];
+        if (line && x.measureText(line + tok).width > maxW && NO_HEAD.indexOf(tok) < 0) {
+          if (out.length === maxLines - 1) { cut = true; break; }
+          out.push(line.trim());
+          line = tok.trim() ? tok : '';
+        } else line += tok;
       }
+      line = line.trim();
+      if (cut) { while (line && x.measureText(line + '…').width > maxW) line = line.slice(0, -1); line = line.replace(/[，、；：,\s]+$/, '') + '…'; }
+      if (line) out.push(line);
+      return out;
+    }
+    function fitFont(x, text, maxW, size, minSize, mk) {
+      let sz = size;
+      x.font = mk(sz);
+      while (sz > minSize && x.measureText(text).width > maxW) { sz -= 2; x.font = mk(sz); }
+      return sz;
+    }
+    function spaced(x, px) { try { x.letterSpacing = px + 'px'; } catch (e) {} }
+    function finishTex(c) {
       const tex = new T.CanvasTexture(c);
       if (T.sRGBEncoding !== undefined) tex.encoding = T.sRGBEncoding;
+      tex.anisotropy = 8;
       made.textures++;
       return tex;
+    }
+    const WALL_PAL = {
+      marble: { bg0: '#f8f4ea', bg1: '#ece4d1', ink: '#1f2430', sub: '#5b6270', accent: '#9a6b1f', rule: 'rgba(154,107,31,.55)', quote: '#2a2f3c' },
+      lacquer: { bg0: '#22130c', bg1: '#140a06', ink: '#f6ead2', sub: '#c7b697', accent: '#e2b354', rule: 'rgba(226,179,84,.55)', quote: '#fbf3df' },
+      modern: { bg0: '#fbfbfa', bg1: '#f1f1ee', ink: '#111418', sub: '#5a6068', accent: '#c2410c', rule: 'rgba(17,20,24,.28)', quote: '#111418' },
+      velvet: { bg0: '#2a1a20', bg1: '#170e12', ink: '#f4ecdf', sub: '#c5b8aa', accent: '#dcae55', rule: 'rgba(220,174,85,.5)', quote: '#fbf4e4' }
+    };
+    function paintPanel(x, w, h, pal, style, inset) {
+      const g = x.createLinearGradient(0, 0, w * 0.4, h);
+      g.addColorStop(0, pal.bg0); g.addColorStop(1, pal.bg1);
+      x.fillStyle = g; x.fillRect(0, 0, w, h);
+      if (style === 'modern') return;
+      x.strokeStyle = pal.accent; x.lineWidth = Math.max(3, inset * 0.22); x.strokeRect(inset * 0.4, inset * 0.4, w - inset * 0.8, h - inset * 0.8);
+      x.strokeStyle = pal.rule; x.lineWidth = 1.5; x.strokeRect(inset, inset, w - inset * 2, h - inset * 2);
+    }
+
+    function makeArtPlacardTex(phil, style) {
+      const W = 1040, H = 256;
+      const c = document.createElement('canvas'); c.width = W; c.height = H;
+      const x = c.getContext('2d');
+      const pal = style === 'modern' ? WALL_PAL.modern : style === 'marble' ? WALL_PAL.marble : style === 'eastern' ? WALL_PAL.lacquer : WALL_PAL.velvet;
+      paintPanel(x, W, H, pal, style === 'modern' ? 'modern' : '', 14);
+      x.fillStyle = pal.accent; x.fillRect(40, 44, 6, H - 88);
+      x.textAlign = 'left'; x.textBaseline = 'alphabetic';
+      const lx = 70, mw = W - lx - 44;
+      x.fillStyle = pal.ink;
+      fitFont(x, phil.artTitle || '', mw, 56, 30, (sz) => `700 ${sz}px ${F_SERIF}`);
+      x.fillText(phil.artTitle || '', lx, 96);
+      x.fillStyle = pal.accent;
+      fitFont(x, phil.artArtist || '', mw, 31, 20, (sz) => `600 ${sz}px ${F_SANS}`);
+      x.fillText(phil.artArtist || '', lx, 148);
+      x.fillStyle = pal.sub; x.font = `400 27px ${F_SANS}`;
+      wrapLines(x, phil.artDesc || '', mw, 1).forEach((ln) => x.fillText(ln, lx, 198));
+      return finishTex(c);
     }
 
     // 3. West Wall Wikipedia-Grade Encyclopedia Biography, Timeline & Quote Panel
     function makeWallQuoteTex(phil, style) {
-      const c = document.createElement('canvas'); c.width = 760; c.height = 420;
+      const W = 1520, H = 840;
+      const c = document.createElement('canvas'); c.width = W; c.height = H;
       const x = c.getContext('2d');
       const wiki = root.PIWiki ? root.PIWiki.get(phil.id) : null;
-      const isLight = style === 'marble' || style === 'modern';
-      if (style === 'marble') {
-        const g = x.createLinearGradient(0, 0, 760, 420);
-        g.addColorStop(0, '#faf7f0'); g.addColorStop(1, '#ebe4d4');
-        x.fillStyle = g; x.fillRect(0, 0, 760, 420);
-        x.strokeStyle = '#b48a3c'; x.lineWidth = 8; x.strokeRect(8, 8, 744, 404);
-      } else if (style === 'lacquer') {
-        x.fillStyle = '#180c08'; x.fillRect(0, 0, 760, 420);
-        x.strokeStyle = '#eab308'; x.lineWidth = 8; x.strokeRect(8, 8, 744, 404);
-      } else if (style === 'modern') {
-        x.fillStyle = '#ffffff'; x.fillRect(0, 0, 760, 420);
-        x.fillStyle = '#0f172a'; x.fillRect(24, 28, 7, 364);
-      } else {
-        x.fillStyle = '#1a1216'; x.fillRect(0, 0, 760, 420);
-        x.strokeStyle = '#d4a33b'; x.lineWidth = 5; x.strokeRect(10, 10, 740, 400);
-      }
+      const pal = WALL_PAL[style] || WALL_PAL.velvet;
+      paintPanel(x, W, H, pal, style, 30);
+      x.textAlign = 'left'; x.textBaseline = 'alphabetic';
 
-      x.textAlign = 'left';
-      const lx = 44;
-      x.fillStyle = isLight ? '#92400e' : '#fbbf24';
-      x.font = '900 26px "PingFang SC", Georgia, serif';
-      x.fillText(`📚 ${phil.name} (${phil.en}) · 百科档案与生平年表`, lx, 52);
+      // ---- Left column: number, name, dates, quotation
+      const lx = 84, lw = 436;
+      if (style === 'modern') { x.fillStyle = pal.accent; x.fillRect(lx, 78, 64, 8); }
+      x.fillStyle = pal.accent; spaced(x, 6);
+      x.font = `700 24px ${F_SANS}`;
+      x.fillText(`№ ${String(phil.num || 0).padStart(2, '0')}  ·  PHILOSOPHER`, lx, style === 'modern' ? 128 : 112);
+      spaced(x, 0);
+      const nm = phil.name || '';
+      const cutAt = nm.length > 5 ? nm.indexOf('与') : -1;
+      const nameLines = cutAt > 0 ? [nm.slice(0, cutAt), nm.slice(cutAt)] : [nm];
+      let ny = style === 'modern' ? 150 : 134;
+      x.fillStyle = pal.ink;
+      const widest = nameLines.reduce((m, l) => (l.length > m.length ? l : m), '');
+      const nsz = fitFont(x, widest, lw, nameLines.length > 1 ? 80 : 136, 48, (sz) => `700 ${sz}px ${F_SERIF}`);
+      nameLines.forEach((ln) => { ny += nsz * 1.08; x.fillText(ln, lx - 4, ny); });
+      const en = (phil.en || '').split('(')[0].trim(), yrs = ((phil.en || '').match(/\(([^)]*)\)/) || [])[1] || '';
+      x.fillStyle = pal.sub;
+      fitFont(x, en, lw, 36, 22, (sz) => `italic 500 ${sz}px Georgia,${F_SERIF}`);
+      ny += 54; x.fillText(en, lx, ny);
+      x.font = `500 28px Georgia,${F_SERIF}`; spaced(x, 2);
+      ny += 42; x.fillText(yrs, lx, ny); spaced(x, 0);
+      ny += 34; x.fillStyle = pal.accent; x.fillRect(lx, ny, 76, 4);
+
+      const qTop = Math.max(ny + 26, 440);
+      x.fillStyle = pal.accent; x.globalAlpha = 0.55;
+      x.font = `700 150px Georgia,${F_SERIF}`; x.fillText('“', lx - 10, qTop + 96);
+      x.globalAlpha = 1;
+      x.fillStyle = pal.quote;
+      let qsz = 46, qLines;
+      for (;;) {
+        x.font = `600 ${qsz}px ${F_SERIF}`;
+        qLines = wrapLines(x, phil.quote || '', lw, 9);
+        if (qLines.length * qsz * 1.5 <= H - 130 - (qTop + 64) || qsz <= 28) break;
+        qsz -= 2;
+      }
+      let qy = qTop + 64 + qsz;
+      qLines.slice(0, 5).forEach((ln) => { x.fillText(ln, lx, qy); qy += qsz * 1.5; });
+      x.fillStyle = pal.sub; x.font = `italic 400 24px Georgia,${F_SERIF}`;
+      const oLines = wrapLines(x, phil.quoteOrig || '', lw, 2);
+      let oy = Math.min(qy + 8, H - 64 - (oLines.length - 1) * 33);
+      oLines.forEach((ln) => { x.fillText(ln, lx, oy); oy += 33; });
+
+      // ---- Divider
+      x.strokeStyle = pal.rule; x.lineWidth = 1.5;
+      x.beginPath(); x.moveTo(566, 84); x.lineTo(566, H - 84); x.stroke();
+
+      // ---- Right column: life timeline, lineage
+      const rx = 612, rw = W - rx - 78;
+      const head = (zh, enLabel, y) => {
+        x.fillStyle = pal.ink; x.font = `700 42px ${F_SERIF}`; x.fillText(zh, rx, y);
+        const zw = x.measureText(zh).width;
+        x.fillStyle = pal.accent; x.font = `700 20px ${F_SANS}`; spaced(x, 5);
+        x.fillText(enLabel, rx + zw + 18, y - 4); spaced(x, 0);
+        x.strokeStyle = pal.rule; x.lineWidth = 1.5;
+        x.beginPath(); x.moveTo(rx, y + 16); x.lineTo(rx + rw, y + 16); x.stroke();
+      };
+      let y = 114;
+      head('生平', 'LIFE', y);
+      y += 66;
+      const yearW = 212, tx = rx + yearW + 36, tw = rw - yearW - 36;
+      const tl = ((wiki && wiki.timeline) || []).slice(0, 4);
+      const lineTop = y - 8;
+      let lastDot = lineTop;
+      tl.forEach((e) => {
+        x.fillStyle = pal.accent; x.textAlign = 'right';
+        fitFont(x, e[0], yearW, 27, 17, (sz) => `700 ${sz}px ${F_SANS}`);
+        x.fillText(e[0], rx + yearW, y);
+        x.textAlign = 'left';
+        x.beginPath(); x.arc(rx + yearW + 18, y - 9, 6, 0, Math.PI * 2); x.fill();
+        lastDot = y - 9;
+        x.fillStyle = pal.ink; x.font = `400 29px ${F_SANS}`;
+        const lines = wrapLines(x, e[1], tw, 2);
+        lines.forEach((ln, i) => x.fillText(ln, tx, y + i * 40));
+        y += Math.max(1, lines.length) * 40 + 16;
+      });
+      x.strokeStyle = pal.rule; x.lineWidth = 2;
+      x.beginPath(); x.moveTo(rx + yearW + 18, lineTop); x.lineTo(rx + yearW + 18, lastDot); x.stroke();
 
       if (wiki) {
-        x.fillStyle = isLight ? '#1e3a8a' : '#93c5fd';
-        x.font = 'bold 16px "PingFang SC", sans-serif';
-        x.fillText(`生卒：${wiki.born.split('·')[0].trim()} — ${wiki.died.split('·')[0].trim()}  |  流派：${wiki.school}`, lx, 86);
-        x.fillStyle = isLight ? '#334155' : '#cbd5e1';
-        x.font = '15px "PingFang SC", sans-serif';
-        x.fillText(`师承与影响：受 ${wiki.influencedBy} 启发 → 深刻影响 ${wiki.influenced.slice(0, 26)}`, lx, 114);
-
-        // 4-point Historical Life Timeline
-        x.fillStyle = isLight ? '#0f172a' : '#fef08a';
-        x.font = 'bold 16px "PingFang SC", sans-serif';
-        x.fillText('【历史生平年表 · BIOGRAPHY TIMELINE】', lx, 150);
-        (wiki.timeline || []).slice(0, 4).forEach(([yr, ev], i) => {
-          const ty = 180 + i * 32;
-          x.fillStyle = isLight ? '#b45309' : '#f59e0b';
-          x.font = 'bold 15px "PingFang SC", sans-serif';
-          x.fillText(`● ${yr}`, lx, ty);
-          x.fillStyle = isLight ? '#1e293b' : '#e2e8f0';
-          x.font = '15px "PingFang SC", sans-serif';
-          x.fillText(ev.slice(0, 36), lx + 128, ty);
+        y = Math.max(y + 30, 588);
+        head('学脉', 'LINEAGE', y);
+        y += 62;
+        [['流派', wiki.school], ['师承', wiki.influencedBy], ['影响', wiki.influenced]].forEach((r) => {
+          if (!r[1] || y > H - 52) return;
+          x.fillStyle = pal.accent; x.font = `700 26px ${F_SANS}`; x.fillText(r[0], rx, y);
+          x.fillStyle = pal.ink; x.font = `400 27px ${F_SANS}`;
+          const lines = wrapLines(x, r[1], rw - 96, 1);
+          lines.forEach((ln, i) => x.fillText(ln, rx + 96, y + i * 38));
+          y += lines.length * 38 + 4;
         });
       }
-
-      // Bottom Canonical Quote Bar
-      x.fillStyle = isLight ? 'rgba(180,138,60,0.14)' : 'rgba(245,158,11,0.14)';
-      x.fillRect(lx, 310, 672, 82);
-      x.fillStyle = isLight ? '#1e3a8a' : '#7dd3fc';
-      x.font = 'italic bold 15px Georgia, "PingFang SC", serif';
-      x.fillText(`“ ${(phil.quoteOrig || '').slice(0, 56)} ”`, lx + 14, 336);
-      x.fillStyle = isLight ? '#0f172a' : '#fef9c3';
-      x.font = 'bold 19px "PingFang SC", Georgia, serif';
-      x.fillText(`“${(phil.quote || '').slice(0, 32)}”`, lx + 14, 372);
-
-      const tex = new T.CanvasTexture(c);
-      if (T.sRGBEncoding !== undefined) tex.encoding = T.sRGBEncoding;
-      made.textures++;
-      return tex;
+      return finishTex(c);
     }
 
     // 4. East Wall Floating Bookshelf Rail Labels (clean strip identifying the physical 3D books on the shelf!)
     function makeShelfRailTex(phil, booksSlice, isLight) {
-      const c = document.createElement('canvas'); c.width = 512; c.height = 76;
+      const W = 1280, H = 154;
+      const c = document.createElement('canvas'); c.width = W; c.height = H;
       const x = c.getContext('2d');
-      x.fillStyle = isLight ? '#f5f2e8' : '#1a120b'; x.fillRect(0, 0, 512, 76);
-      x.strokeStyle = '#c89d3c'; x.lineWidth = 4; x.strokeRect(2, 2, 508, 72);
-      x.fillStyle = isLight ? '#0f172a' : '#fef08a';
-      x.font = 'bold 20px "PingFang SC", Georgia, serif';
-      x.textAlign = 'center';
-      x.fillText(booksSlice.map((b) => b.split('(')[0].trim()).join('   |   '), 256, 46);
-      const tex = new T.CanvasTexture(c);
-      if (T.sRGBEncoding !== undefined) tex.encoding = T.sRGBEncoding;
-      made.textures++;
-      return tex;
+      const pal = isLight ? WALL_PAL.marble : WALL_PAL.velvet;
+      paintPanel(x, W, H, pal, '', 12);
+      const titles = booksSlice.map((b) => (b.match(/^[^《]*《[^》]*》/) || [b.split('(')[0].trim()])[0]);
+      const text = titles.join('　·　');
+      x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.fillStyle = pal.ink;
+      fitFont(x, text, W - 250, 54, 26, (sz) => `600 ${sz}px ${F_SERIF}`);
+      x.fillText(text, W / 2, H / 2 + 2);
+      return finishTex(c);
     }
 
     // Helper: Mount a 3D Wall-Mounted Art Frame with Real Beveled Moldings, Wall Picture Lamp & Minimalist Placard
@@ -2731,10 +2949,10 @@
 
         // Minimalist Wall-Mounted Curator Placard cleanly underneath the painting!
         const placMesh = new T.Mesh(
-          new T.PlaneGeometry(1.95, 0.48),
+          new T.PlaneGeometry(2.1, 0.517),
           new T.MeshBasicMaterial({ map: makeArtPlacardTex(phil, style), side: T.DoubleSide })
         );
-        placMesh.position.set(px + nX * 0.06, py - ph / 2 - 0.44, pz + nZ * 0.06);
+        placMesh.position.set(px + nX * 0.06, py - ph / 2 - 0.40, pz + nZ * 0.06);
         placMesh.rotation.y = ry;
         group.add(placMesh); made.meshes++;
       }
@@ -2791,26 +3009,434 @@
     }
 
     // Helper: Sculpt a Real 3D Classical Marble / Antique Bronze Philosopher Portrait Bust on a Fluted Museum Pedestal!
-    function buildPhilosopherBust(sx, sy, sz, isBronze) {
-      const matM = isBronze ? mMusBronze : mMusMarble;
-      // Fluted Museum Pedestal & Moulded Base/Capital
-      mMusMarble.add(new T.BoxGeometry(0.76, 0.16, 0.76), M(sx, sy + 0.08, sz));
-      mMusMarble.add(cyl(0.28, 0.32, 0.96, 16), M(sx, sy + 0.64, sz));
-      mMusGold.add(new T.BoxGeometry(0.68, 0.07, 0.68), M(sx, sy + 1.14, sz));
-      // Classical Turned Bust Socle Base
-      matM.add(cyl(0.14, 0.22, 0.18, 16), M(sx, sy + 1.26, sz));
-      // Sculpted Draped Shoulders & Classical Toga / Coat Collar
-      matM.add(sph(0.32), M(sx, sy + 1.48, sz, 0, 0, 0, 1.25, 0.62, 0.75));
-      matM.add(torus(0.22, 0.055), M(sx, sy + 1.56, sz + 0.04, 1.2, 0, 0));
-      // Sculpted Neck & Classical Head
-      matM.add(cyl(0.10, 0.12, 0.22, 14), M(sx, sy + 1.72, sz));
-      matM.add(sph(0.21), M(sx, sy + 1.94, sz, 0, 0, 0, 0.92, 1.12, 0.98));
-      // Classical Brow Ridge, Nose & Hair/Beard Massing
-      matM.add(new T.BoxGeometry(0.06, 0.10, 0.09), M(sx, sy + 1.93, sz + 0.19));
-      matM.add(sph(0.215), M(sx, sy + 2.02, sz - 0.03, 0, 0, 0, 1.0, 0.82, 1.0));
-      matM.add(sph(0.14), M(sx, sy + 1.78, sz + 0.12, 0, 0, 0, 0.95, 0.95, 0.72));
+    function makeBustPlateTex(phil) {
+      const c = document.createElement('canvas'); c.width = 256; c.height = 112;
+      const x = c.getContext('2d');
+      x.fillStyle = '#1b140c'; x.fillRect(0, 0, 256, 112);
+      x.strokeStyle = '#c9a353'; x.lineWidth = 4; x.strokeRect(6, 6, 244, 100);
+      x.textAlign = 'center'; x.fillStyle = '#f1d99a';
+      x.font = '700 40px "Songti SC","STSong","PingFang SC",serif';
+      x.fillText(phil.name, 128, 56, 228);
+      const years = ((phil.en || '').match(/\(([^)]*)\)/) || [])[1] || '';
+      x.font = '500 19px Georgia,serif'; x.fillStyle = '#c9a353';
+      x.fillText(years, 128, 88, 228);
+      const t = new T.CanvasTexture(c); t.anisotropy = 4; return t;
     }
 
+    const BUST_STYLE = {
+      socrates: 'bald beard', plato: 'beard long', aristotle: 'beard', zeno: 'beard',
+      confucius: 'knot beard long', laozi: 'bald knot beard long', zhuangzi: 'knot beard',
+      descartes: 'wig moustache', spinoza: 'wig', leibniz: 'wig big', locke: 'wig', hume: 'wig',
+      hobbes_rousseau: 'wig', kant: 'wig', hegel: 'wig', marx: 'beard long big',
+      schopenhauer_kierkegaard: 'tufts', nietzsche: 'moustache big', wittgenstein: '', heidegger_sartre: 'moustache'
+    };
+
+    if (root.PIExpansion) Object.assign(BUST_STYLE, root.PIExpansion.bust);
+
+    function buildPhilosopherBust(sx, sy, sz, isBronze, phil) {
+      const m = isBronze ? mMusBronze : mMusMarble;
+      const st = ' ' + ((phil && BUST_STYLE[phil.id]) || '') + ' ';
+      const has = (k) => st.indexOf(' ' + k + ' ') >= 0;
+      // Stepped plinth, panelled die & moulded cap
+      mMusMarble.add(new T.BoxGeometry(0.84, 0.12, 0.84), M(sx, sy + 0.06, sz));
+      mMusMarble.add(new T.BoxGeometry(0.70, 0.08, 0.70), M(sx, sy + 0.16, sz));
+      mMusMarble.add(new T.BoxGeometry(0.54, 0.86, 0.54), M(sx, sy + 0.63, sz));
+      mMusGold.add(new T.BoxGeometry(0.58, 0.03, 0.58), M(sx, sy + 0.215, sz));
+      mMusMarble.add(new T.BoxGeometry(0.64, 0.06, 0.64), M(sx, sy + 1.09, sz));
+      mMusGold.add(new T.BoxGeometry(0.72, 0.045, 0.72), M(sx, sy + 1.142, sz));
+      if (phil) {
+        const plate = new T.Mesh(new T.PlaneGeometry(0.44, 0.19), new T.MeshBasicMaterial({ map: makeBustPlateTex(phil) }));
+        plate.position.set(sx, sy + 0.78, sz + 0.274);
+        group.add(plate); made.meshes++;
+      }
+      const y0 = sy + 1.165;
+      // Socle, tapered chest, sloping shoulders & drapery fold
+      m.add(cyl(0.10, 0.17, 0.13, 18), M(sx, y0 + 0.065, sz));
+      m.add(cyl(0.31, 0.13, 0.30, 22), M(sx, y0 + 0.28, sz, 0, 0, 0, 1, 1, 0.62));
+      m.add(sph(0.31), M(sx, y0 + 0.43, sz, 0, 0, 0, 1.04, 0.34, 0.64));
+      m.add(torus(0.20, 0.035), M(sx + 0.03, y0 + 0.38, sz + 0.05, 1.25, 0, 0.5, 1, 0.8, 1));
+      // Neck, skull, jaw, brow, nose & ears
+      m.add(cyl(0.078, 0.10, 0.20, 14), M(sx, y0 + 0.56, sz));
+      m.add(sph(0.17), M(sx, y0 + 0.80, sz, 0, 0, 0, 0.88, 1.12, 1.0));
+      m.add(sph(0.12), M(sx, y0 + 0.71, sz + 0.035, 0, 0, 0, 0.92, 0.9, 0.95));
+      for (const sd of [-1, 1]) m.add(sph(0.05), M(sx + sd * 0.062, y0 + 0.852, sz + 0.118, 0, 0, sd * -0.18, 1.25, 0.42, 0.8));
+      m.add(sph(0.04), M(sx, y0 + 0.795, sz + 0.158, -0.25, 0, 0, 0.62, 1.55, 1.0));
+      m.add(sph(0.03), M(sx, y0 + 0.705, sz + 0.142, 0, 0, 0, 1.5, 0.5, 0.8));
+      for (const sd of [-1, 1]) m.add(sph(0.04), M(sx + sd * 0.152, y0 + 0.79, sz - 0.01, 0, 0, 0, 0.5, 1.1, 0.8));
+      // Hair, wig, top-knot, beard & moustache massing
+      const big = has('big') ? 1.18 : 1;
+      if (!has('bald')) m.add(sph(0.178), M(sx, y0 + 0.865, sz - 0.03, 0, 0, 0, 0.96 * big, 0.80, 1.04));
+      else m.add(torus(0.135, 0.04), M(sx, y0 + 0.80, sz - 0.05, Math.PI / 2, 0, 0, 1, 1.1, 1.3));
+      if (has('wig')) {
+        for (const sd of [-1, 1]) {
+          m.add(sph(0.085), M(sx + sd * 0.145, y0 + 0.74, sz - 0.02, 0, 0, 0, 0.8 * big, 1.5, 1.0));
+          m.add(sph(0.075), M(sx + sd * 0.15, y0 + 0.60, sz - 0.02, 0, 0, 0, 0.8 * big, 1.2, 1.0));
+        }
+        m.add(sph(0.13), M(sx, y0 + 0.70, sz - 0.11, 0, 0, 0, 1.1, 1.5, 0.7));
+      }
+      if (has('tufts')) for (const sd of [-1, 1]) m.add(sph(0.075), M(sx + sd * 0.16, y0 + 0.86, sz - 0.03, 0, 0, 0, 0.9, 1.0, 1.1));
+      if (has('knot')) {
+        m.add(cyl(0.05, 0.06, 0.09, 12), M(sx, y0 + 1.03, sz - 0.03));
+        mMusGold.add(cyl(0.01, 0.01, 0.2, 6), M(sx, y0 + 1.04, sz - 0.03, 0, 0, Math.PI / 2));
+      }
+      if (has('beard')) {
+        m.add(sph(0.125), M(sx, y0 + 0.655, sz + 0.075, 0, 0, 0, 1.08 * big, 1.2, 0.98));
+        for (const sd of [-1, 1]) m.add(sph(0.07), M(sx + sd * 0.115, y0 + 0.72, sz + 0.03, 0, 0, 0, 0.8, 1.5, 1.0));
+        if (has('long')) m.add(cyl(0.10 * big, 0.03, 0.26, 12), M(sx, y0 + 0.50, sz + 0.125, 0.14, 0, 0, 1, 1, 0.7));
+      }
+      if (has('moustache') || has('beard')) for (const sd of [-1, 1]) m.add(sph(0.045), M(sx + sd * 0.045 * big, y0 + 0.738, sz + 0.158, 0, 0, sd * -0.35, 1.5 * big, 0.55 * big, 0.8));
+    }
+
+    // Glass museum vitrine with an open manuscript on a velvet pad
+    function buildVitrine(vx, vy, vz, baseM) {
+      baseM.add(new T.BoxGeometry(0.98, 0.10, 0.70), M(vx, vy + 0.05, vz));
+      baseM.add(new T.BoxGeometry(0.90, 0.68, 0.62), M(vx, vy + 0.44, vz));
+      mMusGold.add(new T.BoxGeometry(0.96, 0.04, 0.68), M(vx, vy + 0.80, vz));
+      mMusVelvet.add(new T.BoxGeometry(0.84, 0.03, 0.56), M(vx, vy + 0.835, vz));
+      mMusPage.add(new T.BoxGeometry(0.27, 0.035, 0.38), M(vx - 0.137, vy + 0.875, vz, 0, 0, 0.10));
+      mMusPage.add(new T.BoxGeometry(0.27, 0.035, 0.38), M(vx + 0.137, vy + 0.875, vz, 0, 0, -0.10));
+      mMusWood.add(new T.BoxGeometry(0.60, 0.02, 0.42), M(vx, vy + 0.856, vz));
+      mMusVelvet.add(new T.BoxGeometry(0.03, 0.02, 0.40), M(vx, vy + 0.892, vz));
+      mMusGlass.add(new T.BoxGeometry(0.90, 0.42, 0.62), M(vx, vy + 1.03, vz));
+      for (const dx of [-0.45, 0.45]) for (const dz of [-0.31, 0.31]) mMusGold.add(new T.BoxGeometry(0.025, 0.42, 0.025), M(vx + dx, vy + 1.03, vz + dz));
+      for (const dz of [-0.31, 0.31]) mMusGold.add(new T.BoxGeometry(0.925, 0.025, 0.025), M(vx, vy + 1.24, vz + dz));
+      for (const dx of [-0.45, 0.45]) mMusGold.add(new T.BoxGeometry(0.025, 0.025, 0.645), M(vx + dx, vy + 1.24, vz));
+      mMusGold.add(new T.BoxGeometry(0.30, 0.10, 0.012), M(vx, vy + 0.56, vz + 0.317));
+    }
+
+    // Brass stanchions joined by sagging velvet ropes along X
+    function buildRopeLine(xa, xb, ry, rz, posts) {
+      const xs = [];
+      for (let i = 0; i < posts; i++) xs.push(xa + (xb - xa) * (i / (posts - 1)));
+      xs.forEach((px) => {
+        mMusGold.add(cyl(0.15, 0.17, 0.04, 16), M(px, ry + 0.02, rz));
+        mMusGold.add(cyl(0.028, 0.034, 0.86, 10), M(px, ry + 0.47, rz));
+        mMusGold.add(sph(0.058), M(px, ry + 0.93, rz));
+      });
+      for (let i = 0; i < xs.length - 1; i++) {
+        const SEG = 7, span = xs[i + 1] - xs[i];
+        const pt = (k) => { const t = k / SEG; return [xs[i] + span * t, ry + 0.84 - 0.2 * 4 * t * (1 - t)]; };
+        for (let k = 0; k < SEG; k++) {
+          const A = pt(k), Bp = pt(k + 1), dx = Bp[0] - A[0], dy = Bp[1] - A[1];
+          mMusVelvet.add(cyl(0.022, 0.022, Math.hypot(dx, dy) + 0.01, 6), M((A[0] + Bp[0]) / 2, (A[1] + Bp[1]) / 2, rz, 0, 0, Math.atan2(dy, dx) - Math.PI / 2));
+        }
+      }
+    }
+
+    function buildTopiary(tx, ty, tz) {
+      mMusBronze.add(cyl(0.20, 0.14, 0.30, 12), M(tx, ty + 0.15, tz));
+      mMusWood.add(cyl(0.03, 0.03, 0.62, 6), M(tx, ty + 0.60, tz));
+      mMusEmerald.add(sph(0.24), M(tx, ty + 0.78, tz));
+      mMusEmerald.add(sph(0.17), M(tx, ty + 1.14, tz));
+    }
+
+    // Panelled dado, chair rail & plaster crown cornice around a rectangular gallery (inner faces of the voxel walls)
+    function buildGalleryTrim(ME) {
+      const { x0, z0, x1, z1, y, phil } = ME;
+      const xi0 = x0 + 1, xi1 = x1, zi0 = z0 + 1, zi1 = z1, H = ME.trimH || 6, EH = ME.eaveH || 6;
+      const runX = (xa, xb, zf, sgn) => {
+        const len = xb - xa, cx = (xa + xb) / 2;
+        if (len <= 0.05) return;
+        mMusWood.add(new T.BoxGeometry(len, 0.90, 0.05), M(cx, y + 0.45, zf + sgn * 0.025));
+        mMusDark.add(new T.BoxGeometry(len, 0.12, 0.08), M(cx, y + 0.06, zf + sgn * 0.04));
+        mMusGold.add(new T.BoxGeometry(len, 0.045, 0.09), M(cx, y + 0.925, zf + sgn * 0.045));
+        for (let px = xa + 0.5; px < xb - 0.2; px += 1) mMusDark.add(new T.BoxGeometry(0.04, 0.62, 0.065), M(px + 0.5, y + 0.50, zf + sgn * 0.033));
+      };
+      const runZ = (za, zb, xf, sgn) => {
+        const len = zb - za, cz = (za + zb) / 2;
+        if (len <= 0.05) return;
+        mMusWood.add(new T.BoxGeometry(0.05, 0.90, len), M(xf + sgn * 0.025, y + 0.45, cz));
+        mMusDark.add(new T.BoxGeometry(0.08, 0.12, len), M(xf + sgn * 0.04, y + 0.06, cz));
+        mMusGold.add(new T.BoxGeometry(0.09, 0.045, len), M(xf + sgn * 0.045, y + 0.925, cz));
+        for (let pz = za + 0.5; pz < zb - 0.2; pz += 1) mMusDark.add(new T.BoxGeometry(0.065, 0.62, 0.04), M(xf + sgn * 0.033, y + 0.50, pz + 0.5));
+      };
+      runX(xi0, xi1, zi0, 1);
+      runX(xi0, phil.x - 1, zi1, -1);
+      runX(phil.x + 2, xi1, zi1, -1);
+      runZ(zi0, zi1, xi0, 1);
+      runZ(zi0, zi1 - 3.5, xi1, -1);
+      // Crown cornice (two stepped plaster mouldings + gilt bead)
+      const cx = (xi0 + xi1) / 2, cz = (zi0 + zi1) / 2, lx = xi1 - xi0, lz = zi1 - zi0;
+      for (const [zf, sgn] of [[zi0, 1], [zi1, -1]]) {
+        mMusPlaster.add(new T.BoxGeometry(lx, 0.14, 0.20), M(cx, y + H - 0.07, zf + sgn * 0.10));
+        mMusPlaster.add(new T.BoxGeometry(lx, 0.10, 0.10), M(cx, y + H - 0.19, zf + sgn * 0.05));
+        mMusGold.add(new T.BoxGeometry(lx, 0.025, 0.115), M(cx, y + H - 0.255, zf + sgn * 0.057));
+      }
+      for (const [xf, sgn] of [[xi0, 1], [xi1, -1]]) {
+        mMusPlaster.add(new T.BoxGeometry(0.20, 0.14, lz), M(xf + sgn * 0.10, y + H - 0.07, cz));
+        mMusPlaster.add(new T.BoxGeometry(0.10, 0.10, lz), M(xf + sgn * 0.05, y + H - 0.19, cz));
+        mMusGold.add(new T.BoxGeometry(0.115, 0.025, lz), M(xf + sgn * 0.057, y + H - 0.255, cz));
+      }
+      // Facade: eaves modillions front & back, brass carriage lanterns on the porch piers
+      const eaveM = (phil.id === 'locke' || phil.id === 'schopenhauer_kierkegaard') ? mMusDark : mMusPlaster;
+      for (let bx = x0 + 0.5; bx <= x1 + 0.5; bx += 1) {
+        eaveM.add(new T.BoxGeometry(0.18, 0.30, 0.24), M(bx, y + EH - 0.25, z1 + 1.12));
+        eaveM.add(new T.BoxGeometry(0.18, 0.30, 0.24), M(bx, y + EH - 0.25, z0 - 0.12));
+      }
+      for (const lx of [phil.x - 1.5, phil.x + 2.5]) {
+        const lz = z1 + 2.16, ly = y + 2.45;
+        mMusGold.add(new T.BoxGeometry(0.05, 0.05, 0.18), M(lx, ly + 0.2, lz - 0.08));
+        mMusDark.add(new T.BoxGeometry(0.22, 0.03, 0.22), M(lx, ly - 0.16, lz));
+        mMusDark.add(new T.BoxGeometry(0.22, 0.03, 0.22), M(lx, ly + 0.16, lz));
+        for (const ex of [-0.1, 0.1]) for (const ez of [-0.1, 0.1]) mMusDark.add(new T.BoxGeometry(0.025, 0.32, 0.025), M(lx + ex, ly, lz + ez));
+        mMusLamp.add(new T.BoxGeometry(0.15, 0.27, 0.15), M(lx, ly, lz));
+        mMusDark.add(cyl(0.0, 0.17, 0.13, 4), M(lx, ly + 0.24, lz, 0, Math.PI / 4, 0));
+        mMusGold.add(sph(0.03), M(lx, ly + 0.32, lz));
+      }
+      // Rope line before the north picture wall & topiaries flanking the door
+      buildRopeLine(ME.x - 3.3, ME.x + 3.5, y, zi0 + 1.35, 4);
+      buildTopiary(phil.x - 2.4, y, zi1 - 0.55);
+      buildTopiary(phil.x + 3.4, y, zi1 - 0.55);
+    }
+
+    // ---------- Bespoke scholar's-hall furnishings: Confucius, Laozi, Zhuangzi & Kant ----------
+    const bx3 = (w, h, d) => new T.BoxGeometry(w, h, d);
+    function lowTable(tx, ty, tz, w, d, h, mg) {
+      mg.add(bx3(w, 0.06, d), M(tx, ty + h, tz));
+      mg.add(bx3(w - 0.16, 0.08, d - 0.16), M(tx, ty + h - 0.07, tz));
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) mg.add(bx3(0.07, h, 0.07), M(tx + sx * (w / 2 - 0.07), ty + h / 2, tz + sz * (d / 2 - 0.07)));
+    }
+    const cushion = (x, y, z, mg) => mg.add(cyl(0.30, 0.33, 0.10, 16), M(x, y + 0.05, z));
+    function palaceLantern(lx, top, lz) {
+      mMusGold.add(cyl(0.015, 0.015, 0.46, 6), M(lx, top - 0.23, lz));
+      mMusGold.add(cyl(0.16, 0.13, 0.06, 12), M(lx, top - 0.47, lz));
+      mMusVelvet.add(sph(0.27), M(lx, top - 0.76, lz, 0, 0, 0, 1, 1.15, 1));
+      mMusLamp.add(sph(0.08), M(lx, top - 0.76, lz, 0, 0, 0, 3.45, 0.5, 3.45));
+      mMusGold.add(cyl(0.13, 0.16, 0.06, 12), M(lx, top - 1.05, lz));
+      mMusVelvet.add(cyl(0.03, 0.006, 0.34, 6), M(lx, top - 1.25, lz));
+    }
+    function wallCanvas(w, h, draw, cw, ch, px, py, pz, ry, lit) {
+      const c = document.createElement('canvas'); c.width = cw; c.height = ch;
+      draw(c.getContext('2d'), cw, ch);
+      const tex = new T.CanvasTexture(c); tex.anisotropy = 4;
+      const mat = lit ? new T.MeshLambertMaterial({ map: tex, transparent: true }) : new T.MeshBasicMaterial({ map: tex });
+      const me = new T.Mesh(new T.PlaneGeometry(w, h), mat);
+      me.position.set(px, py, pz); me.rotation.y = ry || 0;
+      group.add(me); made.meshes++; made.textures++;
+      return me;
+    }
+    function standBlock(sx, sy, sz, w, h) {
+      mMusDark.add(bx3(w + 0.1, 0.08, w + 0.1), M(sx, sy + 0.04, sz));
+      mMusDark.add(bx3(w, h - 0.14, w), M(sx, sy + h / 2 + 0.01, sz));
+      mMusGold.add(bx3(w + 0.06, 0.04, w + 0.06), M(sx, sy + h - 0.04, sz));
+      mMusGold.add(bx3(0.3, 0.1, 0.012), M(sx, sy + h * 0.55, sz + w / 2 + 0.007));
+    }
+
+    function buildThemedInterior(ME) {
+      const { x0, z0, x1, z1, y, phil } = ME;
+      const id = phil.id, cx = ME.x, cz = ME.z;
+      const xi0 = x0 + 1, xi1 = x1, zi0 = z0 + 1, zi1 = z1;
+
+      if (id === 'confucius' || id === 'laozi' || id === 'zhuangzi') {
+        const top = y + (ME.hallH || 6);
+        for (const lx of [xi0 + 2.2, xi1 - 2.2]) for (const lz of [zi0 + 2.4, zi1 - 2.4]) palaceLantern(lx, top, lz);
+      }
+
+      if (id === 'confucius') {
+        // Apricot-altar teaching dais with a low table, guqin & bamboo slips
+        const dz = zi0 + 1.55, dy = y + 0.16;
+        mMusGold.add(bx3(6.3, 0.05, 2.5), M(cx, y + 0.025, dz));
+        mMusWood.add(bx3(6.1, 0.16, 2.3), M(cx, y + 0.08, dz));
+        lowTable(cx, dy, dz + 0.2, 1.9, 0.62, 0.36, mMusDark);
+        mMusDark.add(bx3(1.25, 0.05, 0.21), M(cx - 0.15, dy + 0.445, dz + 0.2));
+        mMusGold.add(bx3(1.15, 0.008, 0.13), M(cx - 0.15, dy + 0.474, dz + 0.2));
+        for (let k = 0; k < 3; k++) mMusPage.add(cyl(0.045, 0.045, 0.40, 10), M(cx + 0.70, dy + 0.435 + (k === 2 ? 0.078 : 0), dz + 0.12 + (k === 2 ? 0.045 : k * 0.09), 0, 0, Math.PI / 2));
+        cushion(cx, dy, dz - 0.55, mMusVelvet);
+        for (const rz of [zi0 + 3.7, zi0 + 4.9]) for (const dx of [-2.4, -0.8, 0.8, 2.4]) cushion(cx + dx, y, rz, mMusBronze);
+        // Two-tier bronze bianzhong chime rack along the east side
+        const bxr = xi1 - 1.35, za = cz + 2.5, zb = cz + 6.1, len = zb - za;
+        for (const pz of [za, zb]) {
+          mMusBronze.add(bx3(0.46, 0.12, 0.46), M(bxr, y + 0.06, pz));
+          mMusVelvet.add(bx3(0.14, 2.05, 0.14), M(bxr, y + 1.08, pz));
+          mMusGold.add(sph(0.1), M(bxr, y + 2.16, pz));
+        }
+        [1.96, 1.14].forEach((by, row) => {
+          mMusVelvet.add(bx3(0.12, 0.12, len + 0.5), M(bxr, y + by, (za + zb) / 2));
+          for (const ez of [za - 0.27, zb + 0.27]) mMusGold.add(bx3(0.15, 0.15, 0.05), M(bxr, y + by, ez));
+          for (let k = 0; k < 6; k++) {
+            const sc = (row === 0 ? 0.74 : 1.0) * (1 - k * 0.07), bz = za + (k + 0.5) * len / 6;
+            mMusGold.add(cyl(0.012, 0.012, 0.08, 6), M(bxr, y + by - 0.10, bz));
+            mMusBronze.add(cyl(0.075 * sc, 0.125 * sc, 0.30 * sc, 12), M(bxr, y + by - 0.14 - 0.15 * sc, bz, 0, 0, 0, 0.72, 1, 1));
+          }
+        });
+      } else if (id === 'laozi') {
+        // Taiji & eight-trigram floor medallion
+        const tj = wallCanvas(4.2, 4.2, (g, w) => {
+          const c = w / 2, R = w * 0.30;
+          g.clearRect(0, 0, w, w);
+          g.fillStyle = '#f3ead3'; g.beginPath(); g.arc(c, c, w * 0.49, 0, 7); g.fill();
+          g.strokeStyle = '#1f2937'; g.lineWidth = 6; g.beginPath(); g.arc(c, c, w * 0.48, 0, 7); g.stroke();
+          g.fillStyle = '#f8fafc'; g.beginPath(); g.arc(c, c, R, 0, 7); g.fill();
+          g.fillStyle = '#111827'; g.beginPath(); g.arc(c, c, R, -Math.PI / 2, Math.PI / 2); g.fill();
+          g.beginPath(); g.arc(c, c - R / 2, R / 2, 0, 7); g.fill();
+          g.fillStyle = '#f8fafc'; g.beginPath(); g.arc(c, c + R / 2, R / 2, 0, 7); g.fill();
+          g.beginPath(); g.arc(c, c - R / 2, R / 8, 0, 7); g.fill();
+          g.fillStyle = '#111827'; g.beginPath(); g.arc(c, c + R / 2, R / 8, 0, 7); g.fill();
+          g.strokeStyle = '#111827'; g.lineWidth = 3; g.beginPath(); g.arc(c, c, R, 0, 7); g.stroke();
+          const TRI = [[1, 1, 1], [0, 1, 1], [1, 0, 1], [0, 0, 1], [0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0]];
+          TRI.forEach((bars, k) => {
+            g.save(); g.translate(c, c); g.rotate(k * Math.PI / 4); g.fillStyle = '#1f2937';
+            bars.forEach((solid, r) => {
+              const yy = -w * 0.365 - r * w * 0.03, bw = w * 0.10, bh = w * 0.017;
+              if (solid) g.fillRect(-bw / 2, yy, bw, bh);
+              else { g.fillRect(-bw / 2, yy, bw * 0.4, bh); g.fillRect(bw * 0.1, yy, bw * 0.4, bh); }
+            });
+            g.restore();
+          });
+        }, 512, 512, cx, y + 0.02, cz - 0.2, 0, true);
+        tj.rotation.x = -Math.PI / 2;
+        tj.material.polygonOffset = true; tj.material.polygonOffsetFactor = -2;
+        // Celadon vessel — "当其无，有器之用"
+        const vx = xi0 + 1.7, vz = zi0 + 1.7;
+        standBlock(vx, y, vz, 0.8, 0.62);
+        const prof = [[0.13, 0], [0.30, 0.07], [0.37, 0.30], [0.30, 0.56], [0.13, 0.72], [0.105, 0.84], [0.18, 0.92]].map((p) => new T.Vector2(p[0], p[1]));
+        mMusCeladon.add(new T.LatheGeometry(prof, 24), M(vx, y + 0.62, vz));
+        // Bronze tripod censer with incense
+        const ex = xi1 - 1.7, ez = zi0 + 1.7;
+        for (let k = 0; k < 3; k++) { const a = k * 2.094 + 0.5; mMusBronze.add(cyl(0.05, 0.035, 0.5, 8), M(ex + Math.cos(a) * 0.26, y + 0.25, ez + Math.sin(a) * 0.26)); }
+        mMusBronze.add(sph(0.42), M(ex, y + 0.70, ez, 0, 0, 0, 1, 0.62, 1));
+        mMusBronze.add(torus(0.39, 0.04), M(ex, y + 0.86, ez, Math.PI / 2, 0, 0));
+        for (const sd of [-1, 1]) mMusBronze.add(torus(0.09, 0.025), M(ex + sd * 0.40, y + 0.96, ez, 0, Math.PI / 2, 0));
+        for (let k = 0; k < 3; k++) {
+          mMusVelvet.add(cyl(0.008, 0.008, 0.36, 5), M(ex - 0.08 + k * 0.08, y + 1.02, ez));
+          mMusLamp.add(sph(0.016), M(ex - 0.08 + k * 0.08, y + 1.21, ez));
+        }
+        // Low table with an unrolled silk manuscript, two cushions
+        const tx = xi0 + 1.5, tz = cz + 3.1;
+        lowTable(tx, y, tz, 0.66, 1.7, 0.36, mMusDark);
+        mMusPage.add(bx3(0.42, 0.012, 1.15), M(tx, y + 0.40, tz));
+        for (const sz of [-0.6, 0.6]) mMusPage.add(cyl(0.04, 0.04, 0.48, 10), M(tx, y + 0.43, tz + sz, 0, 0, Math.PI / 2));
+        cushion(tx + 0.75, y, tz - 0.4, mMusVelvet); cushion(tx + 0.75, y, tz + 0.4, mMusVelvet);
+      } else if (id === 'zhuangzi') {
+        // A drift of butterflies under the ceiling
+        const wingGeo = (side) => { const g = new T.PlaneGeometry(0.2, 0.17); g.rotateX(-Math.PI / 2); g.translate(side * 0.1, 0, 0); return g; };
+        for (let k = 0; k < 12; k++) {
+          const a = k * 2.399, rad = 1.1 + (k % 4) * 0.55, bx = cx + Math.cos(a) * rad, bz = cz - 0.3 + Math.sin(a) * rad, by = y + 2.5 + ((k * 7) % 5) * 0.32;
+          const mg = k % 2 ? mMusWingB : mMusWingA, heading = a * 1.7, dih = 0.35 + (k % 3) * 0.25;
+          mg.add(wingGeo(1), M(bx, by, bz, 0, heading, dih));
+          mg.add(wingGeo(-1), M(bx, by, bz, 0, heading, -dih));
+          mMusDark.add(cyl(0.012, 0.012, 0.16, 5), M(bx, by, bz, Math.PI / 2, 0, heading));
+        }
+        // Fish bowl — the debate on the bridge over the Hao
+        const fx = xi0 + 1.7, fz = zi0 + 1.7;
+        standBlock(fx, y, fz, 0.8, 0.62);
+        mMusCeladon.add(sph(0.36), M(fx, y + 0.90, fz, 0, 0, 0, 1, 0.5, 1));
+        mMusGlass.add(sph(0.42), M(fx, y + 1.0, fz, 0, 0, 0, 1, 0.84, 1));
+        mMusWingA.add(sph(0.07), M(fx - 0.12, y + 1.11, fz + 0.05, 0, 0.5, 0, 1.8, 0.8, 0.6));
+        mMusWingA.add(sph(0.06), M(fx + 0.13, y + 1.10, fz - 0.08, 0, -0.9, 0, 1.8, 0.8, 0.6));
+        // The great gourd
+        const gx = xi1 - 1.7, gz = zi0 + 1.7;
+        standBlock(gx, y, gz, 0.8, 0.62);
+        mMusPage.add(sph(0.30), M(gx, y + 0.90, gz));
+        mMusPage.add(sph(0.19), M(gx, y + 1.30, gz));
+        mMusDark.add(cyl(0.02, 0.03, 0.14, 6), M(gx, y + 1.52, gz, 0, 0, 0.3));
+        mMusVelvet.add(torus(0.13, 0.02), M(gx, y + 1.14, gz, Math.PI / 2, 0, 0));
+        // Tea table
+        const tx = xi0 + 1.7, tz = cz + 3.1;
+        lowTable(tx, y, tz, 1.0, 1.0, 0.34, mMusDark);
+        mMusCeladon.add(sph(0.13), M(tx, y + 0.49, tz, 0, 0, 0, 1, 0.85, 1));
+        mMusCeladon.add(cyl(0.02, 0.03, 0.16, 6), M(tx + 0.15, y + 0.50, tz, 0, 0, -0.9));
+        mMusCeladon.add(sph(0.03), M(tx, y + 0.61, tz));
+        for (const s2 of [-1, 1]) mMusCeladon.add(cyl(0.045, 0.032, 0.06, 10), M(tx - 0.1, y + 0.40, tz + s2 * 0.3));
+        cushion(tx, y, tz - 0.85, mMusBronze); cushion(tx, y, tz + 0.85, mMusBronze);
+      } else if (id === 'kant') {
+        // Ground-floor study: writing desk, chair & the punctual longcase clock
+        const dx = xi1 - 2.3, dz = zi0 + 2.7;
+        mMusWood.add(bx3(1.55, 0.07, 0.78), M(dx, y + 0.775, dz));
+        for (const sd of [-1, 1]) mMusDark.add(bx3(0.42, 0.74, 0.70), M(dx + sd * 0.52, y + 0.37, dz));
+        mMusPage.add(bx3(0.30, 0.012, 0.42), M(dx - 0.1, y + 0.817, dz + 0.05, 0, 0.15, 0));
+        mMusPage.add(bx3(0.30, 0.03, 0.42), M(dx + 0.42, y + 0.826, dz, 0, -0.08, 0));
+        mMusDark.add(cyl(0.045, 0.055, 0.07, 10), M(dx - 0.42, y + 0.845, dz - 0.18));
+        mMusPage.add(cyl(0.006, 0.014, 0.34, 5), M(dx - 0.40, y + 0.99, dz - 0.16, 0.3, 0, -0.35));
+        mMusGold.add(cyl(0.07, 0.09, 0.03, 12), M(dx + 0.55, y + 0.825, dz - 0.24));
+        mMusGold.add(cyl(0.018, 0.018, 0.2, 8), M(dx + 0.55, y + 0.93, dz - 0.24));
+        mMusPage.add(cyl(0.022, 0.022, 0.16, 8), M(dx + 0.55, y + 1.10, dz - 0.24));
+        mMusLamp.add(sph(0.03), M(dx + 0.55, y + 1.21, dz - 0.24, 0, 0, 0, 1, 1.6, 1));
+        mMusDark.add(bx3(0.46, 0.05, 0.44), M(dx, y + 0.47, dz + 0.80));
+        mMusVelvet.add(bx3(0.40, 0.04, 0.38), M(dx, y + 0.51, dz + 0.80));
+        mMusDark.add(bx3(0.46, 0.60, 0.05), M(dx, y + 0.80, dz + 1.02));
+        for (const sx of [-1, 1]) for (const sz of [-1, 1]) mMusDark.add(bx3(0.05, 0.46, 0.05), M(dx + sx * 0.2, y + 0.23, dz + 0.80 + sz * 0.19));
+        const kx = cx - 4.7, kz = zi0 + 0.2;
+        mMusDark.add(bx3(0.58, 0.14, 0.40), M(kx, y + 0.07, kz));
+        mMusDark.add(bx3(0.44, 1.75, 0.30), M(kx, y + 1.01, kz));
+        mMusDark.add(bx3(0.60, 0.56, 0.38), M(kx, y + 2.16, kz));
+        mMusGold.add(bx3(0.66, 0.05, 0.44), M(kx, y + 2.465, kz));
+        mMusGold.add(sph(0.06), M(kx, y + 2.55, kz));
+        mMusGold.add(cyl(0.008, 0.008, 0.7, 5), M(kx, y + 1.30, kz + 0.155));
+        mMusGold.add(cyl(0.075, 0.075, 0.015, 16), M(kx, y + 0.95, kz + 0.158, Math.PI / 2, 0, 0));
+        wallCanvas(0.44, 0.44, (g, w) => {
+          const c = w / 2;
+          g.fillStyle = '#f5efe0'; g.beginPath(); g.arc(c, c, c - 4, 0, 7); g.fill();
+          g.strokeStyle = '#b9934c'; g.lineWidth = 8; g.beginPath(); g.arc(c, c, c - 6, 0, 7); g.stroke();
+          g.strokeStyle = '#1f2937';
+          for (let k = 0; k < 12; k++) {
+            const a = k * Math.PI / 6;
+            g.lineWidth = k % 3 === 0 ? 6 : 3;
+            g.beginPath(); g.moveTo(c + Math.sin(a) * (c - 22), c - Math.cos(a) * (c - 22)); g.lineTo(c + Math.sin(a) * (c - 38), c - Math.cos(a) * (c - 38)); g.stroke();
+          }
+          const hand = (a, len, lw) => { g.lineWidth = lw; g.beginPath(); g.moveTo(c, c); g.lineTo(c + Math.sin(a) * len, c - Math.cos(a) * len); g.stroke(); };
+          hand(Math.PI * 2 * 3.5 / 12, c * 0.48, 8); hand(Math.PI, c * 0.72, 5);
+          g.fillStyle = '#b9934c'; g.beginPath(); g.arc(c, c, 8, 0, 7); g.fill();
+        }, 256, 256, kx, y + 2.16, kz + 0.196, 0, true);
+
+        // Loft observatory: armillary stand & globe, star chart, the "two things" inscription, telescope, celestial globe
+        const fy = y + 5;
+        mMusMarble.add(bx3(0.9, 0.12, 0.9), M(cx, fy + 0.06, cz));
+        mMusMarble.add(cyl(0.24, 0.30, 0.78, 16), M(cx, fy + 0.51, cz));
+        mMusGold.add(cyl(0.34, 0.26, 0.06, 16), M(cx, fy + 0.93, cz));
+        mMusGold.add(cyl(0.03, 0.05, 0.5, 8), M(cx, fy + 1.2, cz));
+        mMusGold.add(torus(1.06, 0.035), M(cx, fy + 1.9, cz));
+        mMusGold.add(cyl(0.018, 0.018, 2.2, 6), M(cx, fy + 1.9, cz, 0, 0, 0.41));
+        mMusBlue.add(sph(0.2), M(cx, fy + 1.9, cz));
+        const frame = (fx, fyy, fz, w, h, sgn) => {
+          mMusGold.add(bx3(0.05, 0.07, w + 0.14), M(fx, fyy + h / 2 + 0.035, fz)); mMusGold.add(bx3(0.05, 0.07, w + 0.14), M(fx, fyy - h / 2 - 0.035, fz));
+          for (const s2 of [-1, 1]) mMusGold.add(bx3(0.05, h, 0.07), M(fx, fyy, fz + s2 * (w / 2 + 0.035)));
+        };
+        wallCanvas(4.4, 2.5, (g, w, h) => {
+          const bg = g.createRadialGradient(w / 2, h / 2, 20, w / 2, h / 2, w * 0.6);
+          bg.addColorStop(0, '#16224a'); bg.addColorStop(1, '#070b1c'); g.fillStyle = bg; g.fillRect(0, 0, w, h);
+          const rs = rng(1724);
+          for (let k = 0; k < 420; k++) { const r = rs() < 0.07 ? 2.6 : 0.6 + rs() * 1.1; g.fillStyle = `rgba(255,${235 + rs() * 20 | 0},${190 + rs() * 60 | 0},${0.5 + rs() * 0.5})`; g.beginPath(); g.arc(rs() * w, rs() * h, r, 0, 7); g.fill(); }
+          g.strokeStyle = 'rgba(201,163,83,.55)'; g.lineWidth = 1.5;
+          g.beginPath(); g.ellipse(w / 2, h / 2, w * 0.40, h * 0.40, 0, 0, 7); g.stroke();
+          g.beginPath(); g.ellipse(w / 2, h / 2, w * 0.40, h * 0.16, -0.41, 0, 7); g.stroke();
+          const cons = [[[150, 150], [215, 120], [280, 140], [330, 200], [300, 265], [230, 250]], [[560, 110], [620, 160], [690, 150], [740, 205], [810, 190]], [[470, 400], [530, 350], [600, 380], [650, 440], [580, 470]], [[820, 380], [870, 330], [930, 360], [900, 430]]];
+          g.strokeStyle = 'rgba(186,230,253,.6)'; g.lineWidth = 1.5;
+          cons.forEach((pts) => { g.beginPath(); pts.forEach((p, k) => (k ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.stroke(); pts.forEach((p) => { g.fillStyle = '#fff'; g.beginPath(); g.arc(p[0], p[1], 3.4, 0, 7); g.fill(); }); });
+          g.fillStyle = '#dec07c'; g.textAlign = 'center';
+          g.font = '600 30px Georgia,serif'; g.fillText('DER BESTIRNTE HIMMEL ÜBER MIR', w / 2, 52);
+          g.font = '500 24px "Songti SC","STSong",serif'; g.fillText('头 上 的 星 空', w / 2, h - 30);
+        }, 1024, 580, xi0 + 0.05, fy + 2.0, cz + 1.6, Math.PI / 2, false);
+        frame(xi0 + 0.06, fy + 2.0, cz + 1.6, 4.4, 2.5);
+        wallCanvas(5.7, 2.6, (g, w, h) => {
+          g.fillStyle = '#efe6d2'; g.fillRect(0, 0, w, h);
+          g.strokeStyle = '#8b6b2e'; g.lineWidth = 5; g.strokeRect(14, 14, w - 28, h - 28);
+          g.fillStyle = '#2b2117'; g.textAlign = 'center';
+          g.font = 'italic 500 29px Georgia,serif';
+          ['Zwei Dinge erfüllen das Gemüt mit immer neuer und zunehmender', 'Bewunderung und Ehrfurcht, je öfter und anhaltender sich das', 'Nachdenken damit beschäftigt: der bestirnte Himmel über mir', 'und das moralische Gesetz in mir.'].forEach((ln, k) => g.fillText(ln, w / 2, 92 + k * 44));
+          g.font = '600 31px "Songti SC","STSong",serif'; g.fillStyle = '#7c2d12';
+          g.fillText('有两样东西，越是经常而持久地思考，', w / 2, 300); g.fillText('越使心灵充满常新而日增的惊赞与敬畏：', w / 2, 344); g.fillText('我头上的星空，与我心中的道德律。', w / 2, 388);
+          g.font = '500 20px Georgia,serif'; g.fillStyle = '#57534e';
+          g.fillText('Kritik der praktischen Vernunft (1788), Beschluß', w / 2, 432);
+        }, 1024, 466, xi1 - 0.05, fy + 2.0, cz + 1.6, -Math.PI / 2, false);
+        frame(xi1 - 0.06, fy + 2.0, cz + 1.6, 5.7, 2.6);
+        // Brass refracting telescope on a tripod by the south windows
+        const tx = cx + 3.2, tz = zi1 - 2.2;
+        for (let k = 0; k < 3; k++) { const a = k * 2.094 + 0.3; mMusDark.add(cyl(0.025, 0.035, 1.35, 6), M(tx + Math.cos(a) * 0.3, fy + 0.62, tz + Math.sin(a) * 0.3, Math.sin(a) * 0.45, 0, -Math.cos(a) * 0.45)); }
+        mMusGold.add(sph(0.07), M(tx, fy + 1.27, tz));
+        mMusGold.add(cyl(0.085, 0.06, 1.5, 14), M(tx, fy + 1.42, tz + 0.15, Math.PI / 2 - 0.5, 0, 0));
+        mMusDark.add(cyl(0.035, 0.035, 0.18, 10), M(tx, fy + 1.0, tz - 0.6, Math.PI / 2 - 0.5, 0, 0));
+        // Celestial globe
+        const gx = cx - 3.4, gz = zi1 - 2.2;
+        for (let k = 0; k < 3; k++) { const a = k * 2.094; mMusDark.add(cyl(0.03, 0.04, 0.7, 6), M(gx + Math.cos(a) * 0.2, fy + 0.34, gz + Math.sin(a) * 0.2, Math.sin(a) * 0.3, 0, -Math.cos(a) * 0.3)); }
+        mMusDark.add(torus(0.44, 0.03), M(gx, fy + 0.72, gz, Math.PI / 2, 0, 0));
+        mMusBlue.add(sph(0.38), M(gx, fy + 0.86, gz));
+        mMusGold.add(torus(0.40, 0.018), M(gx, fy + 0.86, gz, 0, 0, 0.41));
+        mMusGold.add(torus(0.385, 0.012), M(gx, fy + 0.86, gz, Math.PI / 2, 0, 0));
+      }
+    }
+
+    const mTalkWood = new Merger(), mTalkGold = new Merger(), mTalkWhite = new Merger();
     (P.museumExhibits || []).forEach((ME) => {
       const { x, y, z, nZ, wX, eX, isGreekTemple, isTholos, isEastern, isModern, phil } = ME;
       const artStyle = isEastern ? 'eastern' : (isGreekTemple || isTholos) ? 'marble' : isModern ? 'modern' : 'louvre';
@@ -2849,37 +3475,41 @@
         group.add(qMesh); made.meshes++;
       } else {
         // 1. NORTH FOCAL WALL: Real Museum Oil Painting (left-center) + Real Historical Philosopher Portrait (right)!
-        mountWallPainting(x - 1.05, y + 2.38, nZ, 0, phil, artStyle);
-        mountWallPortrait(x + 2.05, y + 2.38, nZ, 0, phil, artStyle);
+        const artY = y + (ME.trimH === 4 ? 2.5 : 2.62);
+        mountWallPainting(x - 1.05, artY, nZ, 0, phil, artStyle);
+        mountWallPortrait(x + 2.05, artY, nZ, 0, phil, artStyle);
 
         // 2. WEST INTERIOR WALL: Wikipedia-Grade Museum Biography, Life Timeline & Canonical Quote Wall Panel!
         const qMesh = new T.Mesh(
-          new T.PlaneGeometry(3.65, 2.02),
+          new T.PlaneGeometry(4.6, 2.54),
           new T.MeshBasicMaterial({ map: makeWallQuoteTex(phil, quoteStyle), side: T.DoubleSide })
         );
-        qMesh.position.set(wX + 0.05, y + 2.25, z - 0.2);
+        qMesh.position.set(wX + 0.05, y + 2.32, z - 0.2);
         qMesh.rotation.y = Math.PI / 2;
         group.add(qMesh); made.meshes++;
-        mMusGold.add(cyl(0.03, 0.03, 1.6, 8), M(wX + 0.28, y + 3.45, z - 0.2, Math.PI / 2, 0, 0));
+        mMusGold.add(cyl(0.03, 0.03, 2.2, 8), M(wX + 0.28, y + 3.74, z - 0.2, Math.PI / 2, 0, 0));
 
         // 3. EAST INTERIOR WALL: Wall-Mounted 3D Floating Magnum Opus Bookshelf with Physical Leather-Bound 3D Books!
         mountWallBookNiche(eX, y + 1.50, z - 0.2, -Math.PI / 2, phil, isModern);
       }
 
       // 4. VARIED OPEN-FLOOR SCULPTURAL EXHIBITS:
-      // (A) Left-Side Sleek Tilted Museum Manuscript Lectern with Open 3D Gold-Leaf Tome
+      // (A) Left-Side Glass Museum Vitrine with Open Manuscript on a Velvet Pad
       const xL = x - 2.35, zL = z + 1.15;
-      (isEastern ? mMusDark : mMusMarble).add(cyl(0.14, 0.22, 0.96, 12), M(xL, y + 0.48, zL));
-      mMusGold.add(cyl(0.32, 0.36, 0.08, 12), M(xL, y + 0.04, zL));
-      mMusWood.add(new T.BoxGeometry(0.76, 0.06, 0.56), M(xL, y + 1.02, zL, 0.34, 0, 0));
-      mMusGold.add(new T.BoxGeometry(0.64, 0.03, 0.44), M(xL, y + 1.06, zL, 0.34, 0, 0));
-      mMusPage.add(new T.BoxGeometry(0.28, 0.05, 0.40), M(xL - 0.14, y + 1.10, zL, 0.34, 0, 0.12));
-      mMusPage.add(new T.BoxGeometry(0.28, 0.05, 0.40), M(xL + 0.14, y + 1.10, zL, 0.34, 0, -0.12));
-      mMusVelvet.add(new T.BoxGeometry(0.035, 0.055, 0.45), M(xL, y + 1.11, zL + 0.02, 0.34, 0, 0));
+      buildVitrine(xL, y, zL, isEastern ? mMusDark : (isGreekTemple || isTholos) ? mMusMarble : mMusWood);
+      if (ME.trim) buildGalleryTrim(ME);
+      buildThemedInterior(ME);
 
       // (B) Right-Side Real Sculpted 3D Classical Marble / Antique Bronze Philosopher Portrait Bust on a Fluted Museum Pedestal!
-      buildPhilosopherBust(x + 2.35, y, z + 1.15, isEastern || isModern);
+      buildPhilosopherBust(x + 2.35, y, z + 1.15, isEastern || isModern, phil);
+      // A small round table and two chairs for the round-table talk (positions match app.js tableOf)
+      { const tx = phil.id === 'plato' ? phil.x - 8.4 : x - 3.2, tz = phil.id === 'plato' ? phil.z + 17.2 : z + 3.1;
+        mTalkWood.add(cyl(0.55, 0.55, 0.05, 20), M(tx, y + 0.72, tz)); mTalkWood.add(cyl(0.06, 0.09, 0.7, 8), M(tx, y + 0.36, tz)); mTalkWood.add(cyl(0.3, 0.34, 0.04, 14), M(tx, y + 0.02, tz));
+        mTalkGold.add(cyl(0.05, 0.07, 0.1, 8), M(tx + 0.12, y + 0.8, tz + 0.1)); mTalkWhite.add(new T.BoxGeometry(0.3, 0.02, 0.22), M(tx - 0.12, y + 0.76, tz - 0.08));
+        [-1, 1].forEach((k2) => { const cx = tx + k2 * 0.82; mTalkWood.add(new T.BoxGeometry(0.44, 0.05, 0.44), M(cx, y + 0.44, tz)); mTalkWood.add(new T.BoxGeometry(0.05, 0.6, 0.44), M(cx + k2 * 0.22, y + 0.74, tz));
+          [[-0.18, -0.18], [0.18, -0.18], [-0.18, 0.18], [0.18, 0.18]].forEach(([dx, dz]) => mTalkWood.add(new T.BoxGeometry(0.05, 0.42, 0.05), M(cx + dx, y + 0.21, tz + dz))); }); }
     });
+    mTalkWood.mesh(darkTimberMat); mTalkGold.mesh(goldMat); mTalkWhite.mesh(pentelicMat);
 
     mMusWood.mesh(oakPostMat);
     mMusGold.mesh(goldMat);
@@ -2891,6 +3521,67 @@
     mMusEmerald.mesh(bookEmeraldMat);
     mMusBronze.mesh(bronzeMat);
     mMusLamp.mesh(museumLampMat);
+    mMusPlaster.mesh(plasterTrimMat);
+    mMusCeladon.mesh(celadonMat);
+    mMusWingA.mesh(wingAMat);
+    mMusWingB.mesh(wingBMat);
+    { const gm = mMusGlass.mesh(vitrineGlassMat); if (gm) gm.renderOrder = 5; }
+
+    /* ---------------- 3F. HOLOGRAPHIC CONSOLES (one per hall + the hub in the Thinking Workshop) ---------------- */
+    const holoRigs = [];
+    (function buildHoloConsoles() {
+      const list = P.holoConsoles || [];
+      if (!list.length) return;
+      const mBody = new Merger(), mGlow = new Merger(), mBeam = new Merger();
+      const bodyMat = new T.MeshPhongMaterial({ color: 0x1a2536, specular: 0x8fb4d8, shininess: 60 });
+      const glowMat = new T.MeshBasicMaterial({ color: 0x6fe3ff });
+      const beamMat = new T.MeshBasicMaterial({ color: 0x46d2ff, transparent: true, opacity: 0.13, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide });
+      const wireMat = new T.LineBasicMaterial({ color: 0x8fe9ff, transparent: true, opacity: 0.9, blending: T.AdditiveBlending, depthWrite: false });
+      const wireHubMat = new T.LineBasicMaterial({ color: 0xffc46a, transparent: true, opacity: 0.95, blending: T.AdditiveBlending, depthWrite: false });
+      const ringMat = new T.MeshBasicMaterial({ color: 0x6fe3ff, transparent: true, opacity: 0.75, blending: T.AdditiveBlending, depthWrite: false });
+      const coreMat = new T.MeshBasicMaterial({ color: 0xffb454, transparent: true, opacity: 0.85, blending: T.AdditiveBlending, depthWrite: false });
+      const icoGeo = new T.EdgesGeometry(new T.IcosahedronGeometry(0.36, 1));
+      const octGeo = new T.OctahedronGeometry(0.13, 0);
+      const ringGeo = new T.TorusGeometry(0.5, 0.009, 6, 48);
+      const labelTex = (text) => {
+        const c = document.createElement('canvas'); c.width = 512; c.height = 96;
+        const x = c.getContext('2d');
+        x.fillStyle = 'rgba(4,14,28,.72)'; x.fillRect(0, 0, 512, 96);
+        x.strokeStyle = 'rgba(111,227,255,.8)'; x.lineWidth = 3; x.strokeRect(3, 3, 506, 90);
+        x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#dff7ff';
+        x.font = `700 38px ${F_SANS}`; x.fillText(text, 256, 50, 480);
+        const t = new T.CanvasTexture(c); made.textures++; return t;
+      };
+      list.forEach((hc, i) => {
+        const { x, y, z } = hc, s = hc.hub ? 1.35 : 1;
+        mBody.add(cyl(0.62 * s, 0.70 * s, 0.14, 6), M(x, y + 0.07, z));
+        mBody.add(cyl(0.26 * s, 0.38 * s, 0.56, 6), M(x, y + 0.42, z));
+        mBody.add(cyl(0.56 * s, 0.40 * s, 0.12, 6), M(x, y + 0.76, z));
+        mBody.add(new T.BoxGeometry(0.46 * s, 0.03, 0.26), M(x, y + 0.80, z + 0.52 * s, 0.75, 0, 0));
+        mGlow.add(new T.BoxGeometry(0.38 * s, 0.012, 0.18), M(x, y + 0.815, z + 0.53 * s, 0.75, 0, 0));
+        mGlow.add(torus(0.57 * s, 0.014), M(x, y + 0.825, z, Math.PI / 2, 0, 0));
+        mGlow.add(torus(0.66 * s, 0.012), M(x, y + 0.15, z, Math.PI / 2, 0, 0));
+        mGlow.add(cyl(0.2 * s, 0.2 * s, 0.02, 20), M(x, y + 0.83, z));
+        mBeam.add(new T.CylinderGeometry(0.66 * s, 0.18 * s, 1.15 * s, 28, 1, true), M(x, y + 0.84 + 0.575 * s, z));
+        const rig = new T.Group();
+        rig.position.set(x, y + 0.84 + 0.72 * s, z);
+        rig.scale.setScalar(s);
+        const ico = new T.LineSegments(icoGeo, hc.hub ? wireHubMat : wireMat);
+        const core = new T.Mesh(octGeo, coreMat);
+        const r1 = new T.Mesh(ringGeo, ringMat), r2 = new T.Mesh(ringGeo, ringMat);
+        r2.scale.setScalar(0.8);
+        rig.add(ico, core, r1, r2);
+        group.add(rig); made.meshes += 4;
+        const sp = new T.Sprite(new T.SpriteMaterial({ map: labelTex(hc.hub ? '全息操作台 · 全部模型' : '全息操作台'), transparent: true, depthWrite: false }));
+        sp.scale.set(1.5 * s, 0.28 * s, 1);
+        sp.position.set(x, y + 0.84 + 1.45 * s, z);
+        group.add(sp); made.meshes++;
+        holoRigs.push({ rig, ico, core, r1, r2, baseY: rig.position.y, ph: i * 1.7 });
+      });
+      mBody.mesh(bodyMat);
+      mGlow.mesh(glowMat);
+      const bm = mBeam.mesh(beamMat); if (bm) bm.renderOrder = 4;
+    })();
 
     /* ---------------- 4. SLEEK MUSEUM PORTAL CRYSTAL PLINTHS & WATERWHEELS ---------------- */
     const floatingCrystals = [];
@@ -3240,6 +3931,13 @@
     mTrimRedSilk.mesh(new T.MeshLambertMaterial({ color: 0xdc2626 }));
 
     function update(dt, time, cam, night) {
+      for (const h of holoRigs) {
+        h.rig.position.y = h.baseY + Math.sin(time * 1.1 + h.ph) * 0.04;
+        h.ico.rotation.y = time * 0.5 + h.ph; h.ico.rotation.x = Math.sin(time * 0.3 + h.ph) * 0.3;
+        h.core.rotation.y = -time * 1.4; h.core.rotation.z = time * 0.9;
+        h.r1.rotation.set(Math.PI / 2 + Math.sin(time * 0.7 + h.ph) * 0.5, time * 0.8, 0);
+        h.r2.rotation.set(time * 0.6 + h.ph, Math.PI / 2, time * 0.4);
+      }
       if (saClouds.length) {
         const op = Math.max(0.06, 0.82 * (1 - (night || 0) * 0.92));
         for (const cm of saClouds) cm.opacity = op;

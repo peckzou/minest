@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>时光图书馆</title>
+<style>
+  html, body { margin: 0; min-height: 100%; background: #2a1c12; color: #f3e6cc; font: 15px/1.6 "Songti SC", "Noto Serif SC", Georgia, serif; }
+  .top { position: sticky; top: 0; z-index: 5; background: linear-gradient(#1c120b, #2a1c12); padding: 12px 20px 10px; box-shadow: 0 4px 14px rgba(0,0,0,.4); }
+  .top .r { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; } .top h1 { margin: 0; font-size: 22px; letter-spacing: .12em; flex: 1; min-width: 220px; } .top h1 small { font-size: 13px; letter-spacing: .04em; color: #c9b48a; font-weight: 400; margin-left: 10px; }
+  button { font: inherit; font-size: 13.5px; padding: 5px 13px; border-radius: 999px; border: 1px solid #8a6a44; background: rgba(0,0,0,.25); color: #f3e6cc; cursor: pointer; white-space: nowrap; } button:hover { border-color: #e9b949; } button.on { background: #e9b949; color: #2a1c12; border-color: #e9b949; }
+  input { font: inherit; padding: 5px 13px; border-radius: 999px; border: 1px solid #8a6a44; background: #1c120b; color: #fff; width: 190px; }
+  #tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; } #tabs button i { font-style: normal; opacity: .65; font-size: 12px; margin-left: 4px; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 8px 20px 60px; }
+  h2 { margin: 26px 0 0; font-size: 17px; color: #e9b949; letter-spacing: .1em; } h2 small { color: #c9b48a; font-weight: 400; font-size: 12.5px; margin-left: 10px; letter-spacing: 0; }
+  .shelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 22px 14px; padding: 18px 16px 10px; margin-top: 10px; border-radius: 10px; background: linear-gradient(#5a3d28, #49301f); box-shadow: inset 0 0 0 2px #1c120b, inset 0 -10px 0 #38241a; }
+  .bk { cursor: pointer; text-align: center; } .bk img, .bk .nc { width: 116px; height: 170px; object-fit: cover; border-radius: 2px 6px 6px 2px; background: #7a5a3a; box-shadow: 4px 5px 0 rgba(0,0,0,.4), inset 3px 0 0 rgba(255,255,255,.14); transition: transform .18s; }
+  .bk .nc { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; padding: 10px; font: 700 17px/1.35 "Songti SC", serif; color: #fff3d6; background: linear-gradient(135deg, #8c3b2e, #4a2420); }
+  .bk:hover img, .bk:hover .nc { transform: translateY(-8px) rotate(-2deg); } .bk b { display: block; margin-top: 8px; font-size: 13px; line-height: 1.35; } .bk i { display: block; font-style: normal; font-size: 11.5px; color: #c9b48a; } .bk u { display: inline-block; text-decoration: none; margin-top: 3px; font-size: 11px; padding: 0 7px; border-radius: 999px; background: rgba(0,0,0,.4); color: #ffd96b; } .bk.no u { color: #b8b0a0; } .bk.no img { filter: saturate(.65) brightness(.9); }
+  #rd { position: fixed; inset: 0; z-index: 9; display: none; background: #f3ecdc; } #rd iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  #toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); z-index: 8; background: rgba(0,0,0,.85); padding: 7px 16px; border-radius: 999px; font-size: 13.5px; display: none; max-width: 90vw; }
+  .feat { display: flex; gap: 18px; align-items: center; margin-top: 16px; padding: 16px 18px; border-radius: 12px; background: linear-gradient(120deg, #3a2a4a, #2a2238); border: 1px solid #6b5a8c; flex-wrap: wrap; } .feat img { width: 84px; height: 122px; object-fit: cover; border-radius: 3px; box-shadow: 4px 5px 0 rgba(0,0,0,.4); } .feat div { flex: 1; min-width: 240px; } .feat h3 { margin: 0 0 4px; font-size: 18px; } .feat p { margin: 0 0 10px; color: #cfc4e6; font-size: 13.5px; } .feat .m { display: flex; gap: 6px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div class="top"><div class="r"><h1>时光图书馆<small id="sub"></small></h1><input id="q" placeholder="搜书名或作者"><button id="only">只看能读的</button><button id="close">✕ 回到小岛</button></div><div id="tabs"></div></div>
+<div class="wrap"><div id="feat"></div><div id="list"></div></div>
+<div id="rd"><iframe title="阅读"></iframe></div><div id="toast"></div>
+<script src="catalog.js"></script><script src="books.js"></script>
+<script>
+(function () {
+  var CAT = window.PICATALOG || [], HALLS = window.PILIB || {}, EMBED = parent !== window, NAMES = {}, tab = '影响世界', only = false;
+  var $ = function (i) { return document.getElementById(i); }, el = function (t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
+  var hallBooks = []; Object.keys(HALLS).forEach(function (h) { HALLS[h].forEach(function (b) { hallBooks.push({ key: b.key, zh: b.zh || '', title: b.title, author: b.authorZh || b.author, cat: '思想家书架', hall: h, cover: b.cover, file: b.file, src: b.src, url: b.url }); }); });
+  var ALL = CAT.concat(hallBooks), TABS = ['影响世界', '文学名著', '哲学', '政治学', '经济学', '社会学', '心理学', '美学', '科学与历史', '思想家书架'];
+  var inTab = function (b, t) { return t === '影响世界' ? b.world : b.cat === t; };
+  function toast(t) { var e = $('toast'); e.textContent = t; e.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(function () { e.style.display = 'none'; }, 2600); }
+  function open(b, mode) { if (!b.file) { toast('《' + (b.zh || b.title) + '》仍在版权期或没有公版文字，这里只有封面和书目'); if (b.url) window.open(b.url, '_blank', 'noopener'); return; }
+    $('rd').style.display = 'block'; $('rd').firstChild.src = 'read.html?file=' + encodeURIComponent(b.file) + '&title=' + encodeURIComponent(b.title) + '&zh=' + encodeURIComponent(b.zh || '') + '&author=' + encodeURIComponent(b.author || '') + '&mode=' + (mode == null ? (b.world ? 1 : 0) : mode); }
+  function cell(b) { var c = el('div', 'bk' + (b.file ? '' : ' no')); if (b.cover) { var im = el('img'); im.loading = 'lazy'; im.src = '../' + b.cover; im.alt = ''; c.appendChild(im); } else c.appendChild(el('span', 'nc', (b.zh || b.title).slice(0, 22))); c.appendChild(el('b', '', (b.zh || b.title).slice(0, 28))); c.appendChild(el('i', '', (b.author || '').slice(0, 22))); c.appendChild(el('u', '', b.file ? (b.world ? '✨ 沉浸读' : '点开就读') : '只有书目')); c.onclick = function () { open(b); }; return c; }
+  function shelf(title, sub, books) { if (!books.length) return; var h = el('h2', '', title); if (sub) h.appendChild(el('small', '', sub)); $('list').appendChild(h); var s = el('div', 'shelf'); books.forEach(function (b) { s.appendChild(cell(b)); }); $('list').appendChild(s); }
+  function draw() { var q = $('q').value.trim().toLowerCase(), list = $('list'); list.innerHTML = ''; var ok = function (b) { return (!only || b.file) && (!q || ((b.zh || '') + b.title + (b.author || '')).toLowerCase().indexOf(q) >= 0); };
+    if (q) { shelf('搜索结果', '', ALL.filter(ok)); if (!list.children.length) list.appendChild(el('h2', '', '没有找到。')); }
+    else if (tab === '思想家书架') Object.keys(HALLS).forEach(function (h) { shelf(NAMES[h] || h, '', hallBooks.filter(function (b) { return b.hall === h && ok(b); })); });
+    else { var bs = ALL.filter(function (b) { return inTab(b, tab) && ok(b); }); shelf(tab, bs.filter(function (b) { return b.file; }).length + ' 本可以直接读 · 共 ' + bs.length + ' 本', bs); }
+    Array.prototype.forEach.call($('tabs').children, function (b) { b.className = b.dataset.t === tab && !q ? 'on' : ''; }); $('only').className = only ? 'on' : ''; }
+  TABS.forEach(function (t) { var n = t === '思想家书架' ? hallBooks.length : ALL.filter(function (b) { return inTab(b, t); }).length; if (!n) return; var b = el('button', '', t); b.dataset.t = t; b.appendChild(el('i', '', n)); b.onclick = function () { tab = t; $('q').value = ''; draw(); scrollTo(0, 0); }; $('tabs').appendChild(b); });
+  $('q').oninput = draw; $('only').onclick = function () { only = !only; draw(); };
+  $('sub').textContent = '共 ' + ALL.length + ' 本，其中 ' + ALL.filter(function (b) { return b.file; }).length + ' 本的正文在本地，点封面就能读';
+  var cpr = CAT.filter(function (b) { return /Critique of Pure Reason/i.test(b.title) && b.file; })[0];
+  if (cpr) { var f = el('div', 'feat'); if (cpr.cover) { var im = el('img'); im.src = '../' + cpr.cover; f.appendChild(im); } var d = el('div'); d.appendChild(el('h3', '', '换个读法：《纯粹理性批判》的十种读法')); d.appendChild(el('p', '', '同一本书，除了从头翻，还可以请康德一站一站讲给你听、把全书当成一座城来逛、看它的概念连成星图、在二律背反里选边站、或者一张张翻句子卡片。其他能读的书打开后也有这些读法（没有手写导读）。')); var m = el('div', 'm'); [['📖 翻书', 0], ['🕯 烛光对话', 1], ['🌃 霓虹书城', 2], ['✨ 概念星图', 3], ['🚀 穿越阅读', 4], ['💫 金句长廊', 5], ['🏮 名言天灯', 6], ['🏆 引用榜', 7], ['🪐 关联星门', 8], ['🔮 问书', 9]].forEach(function (q) { var b = el('button', '', q[0]); b.onclick = function () { open(cpr, q[1]); }; m.appendChild(b); }); d.appendChild(m); f.appendChild(d); $('feat').appendChild(f); }
+  addEventListener('message', function (e) { var m = e.data; if (!m) return;
+    if (m.read2 === 1 && e.source === $('rd').firstChild.contentWindow) { if (m.op === 'close') { $('rd').style.display = 'none'; $('rd').firstChild.src = 'about:blank'; if (m.kept) toast('📓 这次留下的 ' + m.kept + ' 条已记到笔记本'); } if (m.op === 'note' && EMBED) parent.postMessage({ lib: 1, op: 'note', book: m.book, author: m.author, title: m.title, text: m.text }, location.origin); }
+    if (m.lib === 1 && e.source === parent && m.op === 'names') { NAMES = m.names || {}; draw(); } });
+  $('close').onclick = function () { if (EMBED) parent.postMessage({ lib: 1, op: 'close' }, location.origin); else history.back(); };
+  addEventListener('keydown', function (e) { if (e.key === 'Escape' && $('rd').style.display !== 'block') $('close').click(); });
+  draw(); if (EMBED) parent.postMessage({ lib: 1, op: 'ready' }, location.origin);
+  window.__lib = { open: open, ALL: ALL, cpr: cpr, setTab: function (t) { tab = t; draw(); } };
+})();
+</script>
+</body>
+</html>

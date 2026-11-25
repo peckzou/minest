@@ -24422,12 +24422,12 @@ var De = function(props) {
               disabled: lm === 'off',
               onClick: function() {
                 if (!window.FBFX || !window.FBFX.active) return;
-                var M = ['none', 'lasers', 'firework', 'spotlight', 'neon'];
+                var M = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco'];
                 window.FBFX.setMode(M[(M.indexOf(window.FBFX.mode) + 1) % M.length]);
                 setFxTab(window.FBFX.mode + '|' + fxTab.split('|')[1]);
               },
               className: "bar-fx-btn " + (on ? "on " + lm + " " : "") + "p-2 rounded-xl border transition-all duration-200 " + (isDark ? "bg-white/8 border-white/15 text-white/80 hover:text-white hover:bg-white/15" : "bg-slate-100 border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-200"),
-              title: "Light FX: " + (on ? lm : "off") + " — tap to cycle (off → lasers → firework → spotlight)",
+              title: "Light FX: " + (on ? lm : "off") + " — tap to cycle (off → lasers → firework → spotlight → neon → aurora → meteor → disco)",
               'aria-label': "Light FX",
               children: [(0, P.jsxs)('svg', { viewBox: "0 0 24 24", className: "w-4 h-4 block", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round", 'aria-hidden': "true",
                 children: [(0, P.jsx)('path', { d: "M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z" }), (0, P.jsx)('path', { d: "M18.5 16v4M16.5 18h4" })] }),
@@ -24810,7 +24810,7 @@ var De = function(props) {
               disabled: false,
               onClick: function() {
                 if (!window.FBFX) return;
-                var M = ['none', 'lasers', 'firework', 'spotlight', 'neon'];
+                var M = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco'];
                 var cur = window.FBFX.mode || 'none';
                 var next = M[(M.indexOf(cur) + 1) % M.length];
                 window.FBFX.setMode(next);
@@ -24818,7 +24818,7 @@ var De = function(props) {
                 try { if (SoundEngine && SoundEngine.play) SoundEngine.play('click'); } catch(e){}
               },
               className: "ios-tab-item dock-fx-tab " + (on ? "active " + lm : ""),
-              title: "Light FX — tap to cycle (off → lasers → firework → spotlight → neon)",
+              title: "Light FX — tap to cycle (off → lasers → firework → spotlight → neon → aurora → meteor → disco)",
               children: [
                 (0, P.jsx)('span', { className: "ios-tab-icon", children: (0, P.jsxs)('svg', { viewBox: "0 0 24 24", className: "w-5 h-5", fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", 'aria-hidden': "true",
                   children: [(0, P.jsx)('path', { d: "M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z" }), (0, P.jsx)('path', { d: "M18.5 16v4M16.5 18h4" })] }) }),
@@ -31801,7 +31801,7 @@ var Oe = function(props) {
             type: "button",
             onClick: function() {
               if (window.FBFX) {
-                var M = ['none', 'lasers', 'firework', 'spotlight', 'neon'];
+                var M = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco'];
                 var cur = (window.FBFX.mode) || 'none';
                 var next = M[(M.indexOf(cur) + 1) % M.length];
                 window.FBFX.setMode(next);
@@ -37268,7 +37268,8 @@ var isDark = themeMode === 'dark';
     return function() { if (window.RippleExplore && window.RippleExplore.exitMode) window.RippleExplore.exitMode(); };
   }, []);
   var cycleBoardCardMode = function() {
-    var next = boardCardMode === 'none' ? 'liq' : (boardCardMode === 'liq' ? 'smash' : (boardCardMode === 'smash' ? 'ink' : (boardCardMode === 'ink' ? 'ripple' : (boardCardMode === 'ripple' ? 'list-wallet' : 'none'))));
+    var CYCLE = ['none', 'liq', 'smash', 'ink', 'ripple', 'holo', 'float', 'wave', 'list-wallet'];
+    var next = CYCLE[(CYCLE.indexOf(boardCardMode) + 1) % CYCLE.length];
     if (boardCardMode === 'ink' && next !== 'ink' && onUpdateBoard) {
       onUpdateBoard(Object.assign({}, board, { inkEnabled: false }));
     }
@@ -37334,21 +37335,22 @@ var isDark = themeMode === 'dark';
       none: CARD_FX_ICON, liq: '≋',
       smash: '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M10.2 1.6 8.9 4.4l2.4.4-1.9 2.2 2.8.3M13.9 3.2l-2.6 1.6M14.6 8.2l-2.4-1.2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="10" r="4.6" fill="currentColor"/><circle cx="4.6" cy="8.5" r="1.3" fill="#fff" opacity=".85"/></svg>',
       ink: '<svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><path d="M9.2 3.2c-2.3 3-4 5.3-4 7.6a4.8 4.8 0 0 0 9.6 0c0-2.3-1.7-4.6-4-7.6a.97.97 0 0 0-1.6 0z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="8.4" cy="11.4" r=".95" fill="currentColor"/><circle cx="11.4" cy="12.6" r=".75" fill="currentColor" opacity=".75"/><circle cx="16.2" cy="5.2" r=".8" fill="currentColor" opacity=".55"/></svg>',
-      'list-wallet': '▣', ripple: '≋'
+      'list-wallet': '▣', ripple: '≋', holo: '◇', float: '⇡', wave: '∿'
     };
-    var LABEL = { none: 'Card FX', liq: 'liq', smash: 'smash', ink: 'ink', ripple: 'ripple', 'list-wallet': 'List Wallet' };
+    var LABEL = { none: 'Card FX', liq: 'liq', smash: 'smash', ink: 'ink', ripple: 'ripple', holo: 'holo', float: 'float', wave: 'wave', 'list-wallet': 'List Wallet' };
     // sit beside the light-effects button, wherever that lives (inside the phone screen on iPhone)
     var fxb = document.querySelector('.fbfx-btn');
     if (fxb && fxb.parentElement && b.parentElement !== fxb.parentElement) fxb.parentElement.appendChild(b);
     var inShell = !!(fxb && fxb.classList.contains('in-shell'));
     b.className = "card-mode-btn board-mode-btn" + (inShell ? " in-shell" : "") + (m !== 'none' ? " on " + m : " none");
-    var modeTitle = m === 'liq' ? "liq (Liquid Glass cards with ripples)" : (m === 'smash' ? "smash (Shoot steel ball at glass cards)" : (m === 'ink' ? "ink (Invisible Ink across entire board)" : (m === 'ripple' ? "ripple" : (m === 'list-wallet' ? "List Wallet" : "Off"))));
-    b.title = "Board card mode: " + modeTitle + " — Tap to cycle (Card FX ➔ liq ➔ smash ➔ ink ➔ ripple ➔ List Wallet)";
+    var modeTitle = m === 'holo' ? "holo (Holographic foil; the card under your finger tilts)" : m === 'float' ? "float (Cards hover)" : m === 'wave' ? "wave (A wave of light crosses the lists; tap a card to send one)" : m === 'liq' ? "liq (Liquid Glass cards with ripples)" : (m === 'smash' ? "smash (Shoot steel ball at glass cards)" : (m === 'ink' ? "ink (Invisible Ink across entire board)" : (m === 'ripple' ? "ripple" : (m === 'list-wallet' ? "List Wallet" : "Off"))));
+    b.title = "Board card mode: " + modeTitle + " — Tap to cycle (Card FX ➔ liq ➔ smash ➔ ink ➔ ripple ➔ holo ➔ float ➔ wave ➔ List Wallet)";
     b.setAttribute('aria-label', "Board card mode: " + m);
     b.innerHTML = '<span class="mode-glyph">' + GLYPH[m] + '</span><span class="mode-label">' + LABEL[m] + '</span>';
     document.documentElement.classList.toggle('fb-cardfx-on', m !== 'none');
+    try { document.documentElement.setAttribute('data-cfx', m); window.dispatchEvent(new Event('minest:cardfx')); } catch (err) {}
   }, [boardCardMode]);
-  (0, _.useEffect)(function() { return function() { document.documentElement.classList.remove('fb-cardfx-on'); }; }, []);
+  (0, _.useEffect)(function() { return function() { document.documentElement.classList.remove('fb-cardfx-on'); try { document.documentElement.removeAttribute('data-cfx'); window.dispatchEvent(new Event('minest:cardfx')); } catch (err) {} }; }, []);
 
   var toggleShowCardCount = function(colId) {
     if (onUpdateBoard) {
@@ -87764,10 +87766,10 @@ var Ve = (function(_Component) {
   'use strict';
   if (window.FBFX) return;
 
-  var MODES = ['none', 'lasers', 'firework', 'spotlight', 'neon'];
+  var MODES = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco'];
   var INTROS = ['balloons', 'confetti', 'celebration', 'love'];
-  var LABEL = { none: 'Light FX', lasers: 'lasers', firework: 'firework', spotlight: 'spotlight', neon: 'neon' };
-  var GLYPH = { none: '✦', lasers: '⟡', firework: '✺', spotlight: '◎', neon: '◈' };
+  var LABEL = { none: 'Light FX', lasers: 'lasers', firework: 'firework', spotlight: 'spotlight', neon: 'neon', aurora: 'aurora', meteor: 'meteor', disco: 'disco' };
+  var GLYPH = { none: '✦', lasers: '⟡', firework: '✺', spotlight: '◎', neon: '◈', aurora: '≈', meteor: '☄', disco: '❖' };
 
   // 40.9 NEON — every card becomes a 3D light box glowing from inside. The colour is a
   // real noble-gas discharge, picked from the right-hand column of the periodic table.
@@ -88097,7 +88099,7 @@ var Ve = (function(_Component) {
     // in a dark room the button is always the dark one, whatever the theme
     btn.className = 'fbfx-btn' + (HOST_SHELL ? ' in-shell' : '') + (mode !== 'none' ? ' on ' + mode : '') + (mode === 'none' && document.querySelector('.theme-white') ? ' light' : '');
     btn.innerHTML = '<span class="fbfx-glyph">' + GLYPH[mode] + '</span><span>' + LABEL[mode] + '</span>';
-    btn.title = 'Light FX: ' + (mode === 'none' ? 'off' : LABEL[mode]) + ' — click to cycle (off ➔ lasers ➔ firework ➔ spotlight) · Shift+click: replay an opening effect';
+    btn.title = 'Light FX: ' + (mode === 'none' ? 'off' : LABEL[mode]) + ' — click to cycle (off ➔ lasers ➔ firework ➔ spotlight ➔ neon ➔ aurora ➔ meteor ➔ disco) · Shift+click: replay an opening effect';
     btn.setAttribute('aria-label', 'Screen effect: ' + mode);
   }
 
@@ -89220,6 +89222,7 @@ var Ve = (function(_Component) {
         if (a > 0.02) Ls.push({ x: g.x, y: g.y, z: 520, rgb: g.rgb, p: 1.2 * a, kind: 'burst' });
       }
     }
+    if (ambient) xfxLights(Ls);
     if (intro && intro.kind === 'love' && intro.extra.pos) { var hp = intro.extra.pos; Ls.push({ x: hp.x, y: hp.y, z: 160 + hp.S * 0.4, rgb: LOVE_RGB, p: 0.85, kind: 'heart' }); }
     if (intro && intro.kind === 'celebration') {
       var ca = 0.9 * Math.max(0, 1 - intro.t / 2.8) * smooth(intro.t / 0.3);
@@ -90246,6 +90249,226 @@ var Ve = (function(_Component) {
   window.addEventListener('touchmove', function (e) { if (inkRub) { e.preventDefault(); e.stopImmediatePropagation(); } }, { capture: true, passive: false });
 
   // ---------------------------------------------------------------- loop
+  // ---------------------------------------------------------------- 71: aurora · meteor · disco
+  // Three quieter rooms than lasers / firework / spotlight, made for reading the board under them:
+  //   aurora — curtains of northern light drift across the top of a starry room;
+  //   meteor — a night sky with shooting stars; tap empty space to send one there;
+  //   disco  — a mirror ball turns overhead and throws coloured dots round the room, on the beat.
+  // All three light the glass cards through sceneLights (xfxLights), like the older modes.
+  var xfx = { stars: null, sw: 0, sh: 0, meteors: [], glows: [], next: 0.4, strips: {}, dots: null, sprites: {} };
+  var XFX_CALM = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function xfxReset() { xfx.meteors.length = 0; xfx.glows.length = 0; xfx.next = 0.4; }
+  function xfxStars() {
+    if (xfx.stars && xfx.sw === W && xfx.sh === H) return xfx.stars;
+    var n = Math.round(clamp(W * H / 5200, 40, 170)), a = [];
+    for (var i = 0; i < n; i++) a.push({ x: Math.random() * W, y: Math.random() * H, r: rnd(0.5, 1.5), ph: rnd(0, 6.28), sp: rnd(0.6, 2.2), h: pick([212, 212, 212, 44, 190]) });
+    xfx.stars = a; xfx.sw = W; xfx.sh = H;
+    return a;
+  }
+  function xfxDrawStars(c, k, maxY) {
+    var st = xfxStars();
+    for (var i = 0; i < st.length; i++) {
+      var s = st[i];
+      if (s.y > maxY) continue;
+      var tw = XFX_CALM ? 0.8 : 0.45 + 0.55 * Math.sin(clock * s.sp + s.ph);
+      c.globalAlpha = k * tw * (1 - 0.6 * s.y / maxY);
+      c.fillStyle = 'hsl(' + s.h + ',70%,88%)';
+      c.beginPath(); c.arc(s.x, s.y, s.r, 0, 6.2832); c.fill();
+    }
+  }
+  // a soft round dot of one hue, drawn once and stamped wherever it is needed
+  function xfxSprite(h) {
+    var s = xfx.sprites[h];
+    if (s) return s;
+    s = document.createElement('canvas'); s.width = s.height = 64;
+    var g = s.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, 'hsla(' + h + ',100%,86%,1)');
+    gr.addColorStop(0.45, 'hsla(' + h + ',100%,62%,.42)');
+    gr.addColorStop(1, 'hsla(' + h + ',100%,55%,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+    xfx.sprites[h] = s;
+    return s;
+  }
+
+  // ---- aurora
+  var AUR = [{ h: 150, y: 0.09, a: 1, sp: 0.11, k: 1 }, { h: 174, y: 0.15, a: 0.8, sp: -0.08, k: 1.6 }, { h: 286, y: 0.05, a: 0.62, sp: 0.06, k: 2.3 }];
+  // one curtain's fall-off from its bright lower edge up into the dark (stretched over every strip)
+  function auroraStrip(h) {
+    var s = xfx.strips[h];
+    if (s) return s;
+    s = document.createElement('canvas'); s.width = 2; s.height = 128;
+    var g = s.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 128);
+    gr.addColorStop(0, 'hsla(' + (h + 46) + ',90%,60%,0)');
+    gr.addColorStop(0.5, 'hsla(' + (h + 24) + ',92%,60%,.3)');
+    gr.addColorStop(0.84, 'hsla(' + h + ',96%,64%,.86)');
+    gr.addColorStop(1, 'hsla(' + h + ',96%,70%,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 2, 128);
+    xfx.strips[h] = s;
+    return s;
+  }
+  function drawAurora(c, dt) {
+    var ga = c.globalAlpha, t = XFX_CALM ? 12 : clock;
+    c.fillStyle = 'rgba(2,6,20,' + roomA(0.76).toFixed(3) + ')';
+    c.fillRect(0, 0, W, H);
+    liftFront(c, 14);
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    xfxDrawStars(c, ga * 0.85, H * 0.8);
+    // (the board is read under it: the curtains are thinner there, so card text stays clear)
+    var step = W > 700 ? 8 : 6, kb = stageKind === 'board' ? 0.5 : 0.9;
+    for (var k = 0; k < AUR.length; k++) {
+      var L = AUR[k], img = auroraStrip(L.h);
+      for (var x = 0; x < W + step; x += step) {
+        var u = x / W;
+        var n = Math.sin(u * 5.2 * L.k + t * L.sp * 6) * 0.5 + Math.sin(u * 11.7 + t * L.sp * 9 + k) * 0.28 + Math.sin(u * 2.1 - t * 0.07 + k * 2) * 0.6;
+        var top = H * (L.y - 0.1 + 0.05 * n), hgt = H * (0.42 + 0.13 * Math.sin(u * 7.3 * L.k + t * 0.23 + k * 1.7) + 0.08 * n);
+        var a = 0.5 + 0.5 * Math.sin(u * 9.1 + t * 0.31 * L.k + k * 3);
+        c.globalAlpha = ga * L.a * (0.22 + 0.78 * a * a) * kb;
+        c.drawImage(img, x, top, step, hgt);
+      }
+    }
+    c.restore();
+    c.globalAlpha = ga;
+  }
+
+  // ---- meteor
+  function meteorSpawn(tx, ty) {
+    var dir = Math.random() < 0.5 ? -1 : 1, ang = rnd(0.42, 0.9), sp = rnd(0.85, 1.4) * Math.max(W, H);
+    var m = { vx: Math.cos(ang) * sp * dir, vy: Math.sin(ang) * sp, life: 0, max: rnd(0.75, 1.2), h: pick([205, 190, 48, 268]), aimed: tx != null };
+    if (m.aimed) { m.max = 0.8; m.x = tx - m.vx * m.max; m.y = ty - m.vy * m.max; }
+    else { m.x = dir > 0 ? rnd(-0.1, 0.6) * W : rnd(0.4, 1.1) * W; m.y = rnd(-0.12, 0.28) * H; }
+    xfx.meteors.push(m);
+  }
+  function meteorTo(tx, ty) { meteorSpawn(tx, ty); }
+  function drawMeteor(c, dt) {
+    var ga = c.globalAlpha;
+    if (!XFX_CALM) {
+      xfx.next -= dt;
+      if (xfx.next <= 0) { meteorSpawn(); if (Math.random() < 0.22) meteorSpawn(); xfx.next = rnd(0.9, 2.3); }
+    }
+    c.fillStyle = 'rgba(1,3,16,' + roomA(0.8).toFixed(3) + ')';
+    c.fillRect(0, 0, W, H);
+    liftFront(c, 14);
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    xfxDrawStars(c, ga, H);
+    c.lineCap = 'round';
+    for (var i = xfx.meteors.length - 1; i >= 0; i--) {
+      var m = xfx.meteors[i];
+      m.life += dt; m.x += m.vx * dt; m.y += m.vy * dt;
+      if (m.life >= m.max) {
+        // where it burns out: a short flash (an aimed one, on the spot that was tapped)
+        xfx.glows.push({ x: m.x, y: m.y, life: 0, max: m.aimed ? 0.7 : 0.4, rgb: hsl2rgb(m.h, 90, 72), big: m.aimed });
+        xfx.meteors.splice(i, 1);
+        continue;
+      }
+      var p = m.life / m.max, a = Math.pow(Math.sin(Math.PI * Math.min(1, p * 1.15)), 0.6), tl = 0.2 * smooth(m.life / 0.18);
+      var x0 = m.x - m.vx * tl, y0 = m.y - m.vy * tl;
+      var g = c.createLinearGradient(m.x, m.y, x0, y0);
+      g.addColorStop(0, 'hsla(' + m.h + ',100%,94%,1)');
+      g.addColorStop(0.25, 'hsla(' + m.h + ',100%,72%,.55)');
+      g.addColorStop(1, 'hsla(' + m.h + ',100%,60%,0)');
+      c.globalAlpha = ga * a;
+      c.strokeStyle = g; c.lineWidth = 3;
+      c.beginPath(); c.moveTo(m.x, m.y); c.lineTo(x0, y0); c.stroke();
+      c.drawImage(xfxSprite(m.h), m.x - 13, m.y - 13, 26, 26);
+    }
+    for (var j = xfx.glows.length - 1; j >= 0; j--) {
+      var gl = xfx.glows[j];
+      gl.life += dt;
+      if (gl.life >= gl.max) { xfx.glows.splice(j, 1); continue; }
+      var gk = Math.pow(1 - gl.life / gl.max, 2), gr = (gl.big ? 120 : 54) * (0.5 + 0.5 * gl.life / gl.max);
+      var rg = c.createRadialGradient(gl.x, gl.y, 0, gl.x, gl.y, gr);
+      rg.addColorStop(0, 'rgba(' + gl.rgb.join(',') + ',' + (0.75 * gk).toFixed(3) + ')');
+      rg.addColorStop(1, 'rgba(' + gl.rgb.join(',') + ',0)');
+      c.globalAlpha = ga;
+      c.fillStyle = rg; c.fillRect(gl.x - gr, gl.y - gr, gr * 2, gr * 2);
+    }
+    c.restore();
+    c.globalAlpha = ga;
+  }
+
+  // ---- disco
+  var DISCO_HUES = [322, 198, 48, 274, 162];
+  function discoBall() { return { x: W / 2, y: Math.max(34, H * 0.085), r: clamp(Math.min(W, H) * 0.045, 14, 30) }; }
+  function discoBeat() { return XFX_CALM ? 0.8 : 0.62 + 0.38 * Math.exp(-((clock * 2) % 1) * 5); }
+  function drawDisco(c, dt) {
+    var ga = c.globalAlpha, B = discoBall(), beat = discoBeat(), rot = XFX_CALM ? 1 : clock * 0.42, i;
+    if (!xfx.dots) {
+      xfx.dots = [];
+      for (i = 0; i < 48; i++) xfx.dots.push({ th: rnd(0, 6.2832), el: rnd(0.08, 1), h: pick(DISCO_HUES), s: rnd(0.7, 1.3) });
+    }
+    c.fillStyle = 'rgba(6,2,18,' + roomA(0.8).toFixed(3) + ')';
+    c.fillRect(0, 0, W, H);
+    liftFront(c, 14);
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    for (i = 0; i < xfx.dots.length; i++) {
+      var d = xfx.dots[i], a = d.th + rot, ca = Math.cos(a), depth = 0.5 + 0.5 * Math.sin(a);
+      var x = B.x + ca * W * 0.62 * (0.4 + 0.6 * d.el), y = B.y + d.el * H * 0.95 + Math.sin(a) * H * 0.07;
+      var r = (5 + 9 * d.el) * d.s * (0.7 + 0.5 * depth), rx = r * (1.6 + Math.abs(ca) * 1.4), ry = r * 1.6;
+      c.globalAlpha = ga * beat * (0.22 + 0.62 * depth);
+      c.drawImage(xfxSprite(d.h), x - rx, y - ry, rx * 2, ry * 2);
+      if (i % 6 === 0) {
+        // a few of the rays that carry the dots, seen in the haze
+        c.globalAlpha = ga * beat * 0.07 * depth;
+        c.strokeStyle = 'hsl(' + d.h + ',100%,72%)'; c.lineWidth = 1.2;
+        c.beginPath(); c.moveTo(B.x, B.y); c.lineTo(x, y); c.stroke();
+      }
+    }
+    // the ball's own halo
+    c.globalAlpha = ga * (0.35 + 0.4 * beat);
+    c.drawImage(xfxSprite(DISCO_HUES[Math.floor(clock * 0.5) % DISCO_HUES.length]), B.x - B.r * 3.4, B.y - B.r * 3.4, B.r * 6.8, B.r * 6.8);
+    c.restore();
+    // the mirror ball on its cord
+    c.save();
+    c.globalAlpha = ga;
+    c.strokeStyle = 'rgba(200,205,220,.55)'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(B.x, 0); c.lineTo(B.x, B.y - B.r); c.stroke();
+    var bg = c.createRadialGradient(B.x - B.r * 0.35, B.y - B.r * 0.4, B.r * 0.1, B.x, B.y, B.r);
+    bg.addColorStop(0, '#f4f6fb'); bg.addColorStop(0.55, '#8d93a6'); bg.addColorStop(1, '#2a2d3a');
+    c.fillStyle = bg;
+    c.beginPath(); c.arc(B.x, B.y, B.r, 0, 6.2832); c.fill();
+    c.save();
+    c.beginPath(); c.arc(B.x, B.y, B.r, 0, 6.2832); c.clip();
+    c.strokeStyle = 'rgba(10,12,24,.42)'; c.lineWidth = 0.8;
+    for (i = -3; i <= 3; i++) {
+      var ly0 = B.y + (i / 4) * B.r;
+      c.beginPath(); c.moveTo(B.x - B.r, ly0); c.lineTo(B.x + B.r, ly0); c.stroke();
+      var mx = Math.sin(rot * 1.4 + i * 0.9) * B.r;
+      c.beginPath(); c.ellipse(B.x, B.y, Math.max(0.5, Math.abs(mx)), B.r, 0, 0, 6.2832); c.stroke();
+    }
+    for (i = 0; i < 5; i++) {
+      var ga2 = rot * 2.2 + i * 1.3, gx = B.x + Math.cos(ga2) * B.r * 0.62, gy = B.y + Math.sin(ga2 * 0.7 + i) * B.r * 0.55;
+      c.globalAlpha = ga * (0.35 + 0.65 * Math.abs(Math.sin(ga2 * 1.7))) * beat;
+      c.fillStyle = '#fff';
+      c.fillRect(gx - 1.5, gy - 1.5, 3, 3);
+    }
+    c.restore();
+    c.restore();
+    c.globalAlpha = ga;
+  }
+
+  // what the three rooms shine on the glass cards
+  function xfxLights(Ls) {
+    if (mode === 'aurora') {
+      var at = XFX_CALM ? 12 : clock;
+      Ls.push({ x: W * (0.5 + 0.36 * Math.sin(at * 0.21)), y: -H * 0.08, z: 620, rgb: hsl2rgb(158 + 44 * Math.sin(at * 0.17), 90, 64), p: 0.78, kind: 'burst' });
+    } else if (mode === 'meteor') {
+      for (var i = 0; i < xfx.meteors.length; i++) {
+        var m = xfx.meteors[i], a = Math.sin(Math.PI * Math.min(1, m.life / m.max));
+        if (a > 0.05) Ls.push({ x: m.x, y: m.y, z: 420, rgb: hsl2rgb(m.h, 90, 74), p: 0.9 * a, kind: 'burst' });
+      }
+      for (var j = 0; j < xfx.glows.length; j++) {
+        var g = xfx.glows[j], ga = Math.pow(1 - g.life / g.max, 1.6);
+        if (ga > 0.04) Ls.push({ x: g.x, y: g.y, z: 300, rgb: g.rgb, p: (g.big ? 1.2 : 0.7) * ga, kind: 'burst' });
+      }
+    } else if (mode === 'disco') {
+      var B = discoBall();
+      Ls.push({ x: B.x, y: B.y, z: 300, rgb: hsl2rgb(DISCO_HUES[Math.floor(clock * 0.5) % DISCO_HUES.length], 95, 66), p: 0.95 * discoBeat(), kind: 'burst' });
+    }
+  }
+
   function drawHint(c) {
     // (no on-screen instructions for any light mode: the lasers and the spotlight speak for themselves)
     return;
@@ -90291,6 +90514,9 @@ var Ve = (function(_Component) {
       if (mode === 'lasers') { glide(src, dt); drawLasers(ctx, dt); }
       else if (mode === 'spotlight') { glide(spot, dt); drawSpotlight(ctx, dt); }
       else if (mode === 'firework') drawFireworks(ctx, dt);
+      else if (mode === 'aurora') drawAurora(ctx, dt);
+      else if (mode === 'meteor') drawMeteor(ctx, dt);
+      else if (mode === 'disco') drawDisco(ctx, dt);
       ctx.globalAlpha = 1;
       audioTick(dt);
       drawHint(ctx);
@@ -90316,6 +90542,7 @@ var Ve = (function(_Component) {
     modeT = 0;
     fw.rockets.length = 0; fw.sparks.length = 0; fw.flashes.length = 0; fw.glows.length = 0; fw.smoke.length = 0; fw.next = 0.15;
     clearTrail();
+    xfxReset();
     hintUntil = 0;
     if (m !== 'spotlight' && m !== 'lasers') document.documentElement.classList.remove('fbfx-grab');
     if (m === 'lasers' || m === 'spotlight') {
@@ -90406,13 +90633,13 @@ var Ve = (function(_Component) {
 
   // Fireworks: a click on empty space sends a rocket up to that point.
   document.addEventListener('pointerdown', function (e) {
-    if (!stageOn || mode !== 'firework' || !W) return;
+    if (!stageOn || (mode !== 'firework' && mode !== 'meteor') || !W) return;
     syncOrigin();
     var ex = lx(e.clientX), ey = ly(e.clientY);
     if (!inLayer(ex, ey)) return;
     var t = e.target;
     if (t && t.closest && t.closest('[data-card-id], .coverflow-card-item, button, a, input, textarea, select, [role="button"], [contenteditable], .fbfx-btn, header')) return;
-    launch(ex, ey, clamp(ex + rnd(-40, 40), 10, W - 10));
+    if (mode === 'meteor') meteorTo(ex, ey); else launch(ex, ey, clamp(ex + rnd(-40, 40), 10, W - 10));
     kick();
   }, true);
 
@@ -92781,6 +93008,9 @@ var Ve = (function(_Component) {
     else if (fxMode === 'lasers') { p.play('bounce'); p.say('Party time! 🪩'); }
     else if (fxMode === 'spotlight') { p.play('look'); p.lookAt(innerWidth / 2, innerHeight / 2, 2400); p.say('Who’s on stage? 🔦'); }
     else if (fxMode === 'neon') { p.play('happy'); p.say('So glowy ✨'); }
+    else if (fxMode === 'aurora') { p.play('look'); p.lookAt(innerWidth / 2, innerHeight * .15, 2400); p.say('Northern lights…'); }
+    else if (fxMode === 'meteor') { p.play('look'); p.lookAt(innerWidth / 2, innerHeight * .2, 2200); p.say('Make a wish!'); }
+    else if (fxMode === 'disco') { p.play('bounce'); p.say('Disco time!'); }
   });
   window.addEventListener('fbfx:intro', function (e) {
     var k = e.detail && e.detail.kind, p = P(); if (!p) return;
@@ -184836,7 +185066,7 @@ button.mn-fx-scan::after {
       var hb = document.createElement('button'); hb.className = 'hl-k'; hb.innerHTML = ico('holo'); hb.title = '全息 · 叠加全息投影';
       hb.onclick = function (e) { e.stopPropagation(); setHolo(!HOLO); flashName(bar, '全息 ' + (HOLO ? '开' : '关')); }; bar.appendChild(hb);
       if (window.FBFX) { var lb = document.createElement('button'); lb.className = 'lfx-k'; lb.innerHTML = ico('lfx'); lb.title = 'Light FX';
-        lb.onclick = function (e) { e.stopPropagation(); var M = ['none', 'lasers', 'firework', 'spotlight', 'neon'], nx = M[(M.indexOf(window.FBFX.mode) + 1) % M.length]; window.FBFX.setMode(nx); flashName(bar, 'Light FX · ' + ({ none: '关', lasers: '激光', firework: '烟花', spotlight: '聚光灯', neon: '霓虹' })[nx]); paintBarKeys(); }; bar.appendChild(lb); }
+        lb.onclick = function (e) { e.stopPropagation(); var M = ['none', 'lasers', 'firework', 'spotlight', 'neon', 'aurora', 'meteor', 'disco'], nx = M[(M.indexOf(window.FBFX.mode) + 1) % M.length]; window.FBFX.setMode(nx); flashName(bar, 'Light FX · ' + ({ none: '关', lasers: '激光', firework: '烟花', spotlight: '聚光灯', neon: '霓虹', aurora: '极光', meteor: '流星', disco: '迪斯科' })[nx]); paintBarKeys(); }; bar.appendChild(lb); }
       if (window.__cmCardFx) { var cb = document.createElement('button'); cb.className = 'cfx-k'; cb.innerHTML = ico('cfx'); cb.title = 'Card FX';
         cb.onclick = function (e) { e.stopPropagation(); flashName(bar, 'Card FX · ' + window.__cmCardFx.next()); paintBarKeys(); }; bar.appendChild(cb); }
       paintBarKeys();
@@ -187033,7 +187263,6 @@ html.sh-main-dock-disabled body .mn-bdock { display: none !important; }
 </style>
 <script id="mn-spatial-home">
 window.__SPATIAL_HOME_EMBEDDED__ = true;
-window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
 /* Minest · Spatial Home — voxel kit.
    Boxes with baked face shading and a shared 16×16 pixel grain (the same idea as santorini-world/textures.js:
    near-white pixel tiles tinted by vertex colour), merged into one BufferGeometry per part.
@@ -196664,7 +196893,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     if (document.getElementById('mn-bp-css')) return;
     var s = document.createElement('style'); s.id = 'mn-bp-css';
     s.textContent = [
-      '#mn-bp{position:fixed;z-index:2147483645;inset:auto 12px calc(12px + env(safe-area-inset-bottom)) auto;width:min(720px,calc(100vw - 24px));height:min(560px,calc(100vh - 90px));display:flex;flex-direction:column;border-radius:22px;overflow:hidden;font:14px/1.35 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;color:#2b1d12;',
+      '#mn-bp{position:fixed;z-index:2147483647;inset:auto 12px calc(12px + env(safe-area-inset-bottom)) auto;width:min(720px,calc(100vw - 24px));height:min(560px,calc(100vh - 90px));display:flex;flex-direction:column;border-radius:22px;overflow:hidden;font:14px/1.35 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;color:#2b1d12;',
       'background:linear-gradient(180deg,#8a5a36,#6e4426);box-shadow:0 24px 60px rgba(40,22,8,.45),inset 0 0 0 2px #4a2c16;transform-origin:50% 0}',
       '#mn-bp[hidden]{display:none}#mn-bp.opening{animation:bpOpen .38s cubic-bezier(.2,.9,.3,1.2)}@keyframes bpOpen{0%{transform:scaleY(.12) translateY(30px);opacity:0}100%{transform:none;opacity:1}}',
       '#mn-bp .flap{position:relative;padding:12px 16px 10px;background:linear-gradient(180deg,#9c6a40,#7f512e);border-bottom:2px dashed rgba(255,228,180,.35);display:flex;align-items:center;gap:10px}',
@@ -196690,6 +196919,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       '#mn-bp .ix button.sel{background:#5b3a20;color:#fbf2e0;border-color:#5b3a20}#mn-bp .ix button.off{opacity:.55}',
       '#mn-bp .ixnote{font-size:12.5px;color:#8a6a48}',
       '#mn-bp .pv .ixpic{width:100%;aspect-ratio:1;object-fit:contain;border-radius:12px;background:#f6ead2;display:grid;place-items:center;color:#8a6a48}',
+      '#mn-bp .pv .source-mark{aspect-ratio:auto;height:84px;max-height:84px;background:linear-gradient(135deg,#ead7b5,#d5bb8e);color:#5b3a20;font-size:20px;font-weight:800;letter-spacing:.1em}',
       '#mn-bp .pv{width:240px;flex:none;display:flex;flex-direction:column;gap:6px;overflow:auto}',
       '#mn-bp .pv canvas{width:240px;height:200px;border-radius:14px;background:radial-gradient(#fffdf6,#ead8b6);touch-action:none;cursor:grab}',
       '#mn-bp .pv h4{margin:2px 0 0;font-size:15px}#mn-bp .pv p{margin:0;font-size:12px;color:#5a4128}#mn-bp .pv dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:2px 8px;font-size:12px}#mn-bp .pv dt{color:#8a6a48}',
@@ -196707,7 +196937,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   function open(host) {
     css();
     if (!ui) {
-      var el = document.createElement('div'); el.id = 'mn-bp'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Magical Backpack');
+      var el = document.createElement('div'); el.id = 'mn-bp'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Magical Backpack'); el.setAttribute('popover', 'manual');
       el.innerHTML = '<div class="flap"><span class="buckle" aria-hidden="true"></span><span class="plate">MINEST · BACKPACK</span><input type="search" placeholder="搜索物品…" aria-label="搜索"><button type="button" data-bp="close">合上</button></div>' +
         '<div class="tabs" role="tablist"></div><div class="inside"><div class="grid"></div><div class="pv"></div></div>';
       document.body.appendChild(el);
@@ -196720,10 +196950,11 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       el.addEventListener('keydown', function (e) { e.stopPropagation(); if (e.key === 'Escape') { e.preventDefault(); close(false); } });
     }
     ui.host = host; ui.el.hidden = false;
+    try { if (ui.el.showPopover && !ui.el.matches(':popover-open')) ui.el.showPopover(); } catch (e) {}
     if (!host.reduced || !host.reduced()) { ui.el.classList.remove('opening'); void ui.el.offsetWidth; ui.el.classList.add('opening'); }
     render();
   }
-  function close(placing) { if (!ui || ui.el.hidden) return; ui.el.hidden = true; cancelAnimationFrame(ui.raf); ui.raf = 0; try { if (ui.host && ui.host.onClose) ui.host.onClose(!!placing); } catch (e) {} }
+  function close(placing) { if (!ui || ui.el.hidden) return; try { if (ui.el.matches(':popover-open')) ui.el.hidePopover(); } catch (e) {} ui.el.hidden = true; cancelAnimationFrame(ui.raf); ui.raf = 0; try { if (ui.host && ui.host.onClose) ui.host.onClose(!!placing); } catch (e) {} }
   function isOpen() { return !!(ui && !ui.el.hidden); }
   function items() { return catalog(ui.host); }
 
@@ -196747,6 +196978,11 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
   var LIB_GROUPS = [['building', '建筑 Buildings'], ['object', '物件 Objects'], ['diorama', '室内 Interiors'], ['world', '世界 Worlds'], ['subisland', '小岛 Islands'], ['center', '中心岛样式 Centre styles']];
   var BP_GROUPS = [['creations', '我的作品'], ['fixtures', '陈列装置'], ['tools', '工坊工具'], ['magic', '魔法道具'], ['collections', '我的收藏']];
+  var EXTERNAL_LIBRARIES = [{
+    id: 'source:polyfork', name: 'Polyfork 3D', url: 'https://polyfork.dev/',
+    summary: '官网介绍 3500+ 免费可商用的 Three.js ES 模块模型。',
+    details: '模型可在线调整颜色、比例与部件细节，并按中世纪村庄、城市街区、太空基地等主题套件整理。具体模型许可请以 Polyfork 页面说明为准。'
+  }];
   function renderIndex(all, grid) {
     var q = ui.q, hit = function (t) { return !q || String(t).toLowerCase().indexOf(q) >= 0; };
     var h = '<h5>背包里的物品 · 可以直接放出来</h5>';
@@ -196757,6 +196993,12 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
         return '<button type="button" data-key="' + esc(it.key) + '" class="' + (ui.sel === it.key ? 'sel' : '') + (it.ready === false ? ' off' : '') + '">' + esc(it.name) + (it.ready === false ? ' · 未完成' : '') + '</button>';
       }).join('') + '</div>';
     });
+    var sources = EXTERNAL_LIBRARIES.filter(function (a) { return hit(a.name + ' ' + a.summary + ' ' + a.details); });
+    if (sources.length) {
+      h += '<h5>外部 3D 模型库</h5><div class="ix">' + sources.map(function (a) {
+        return '<button type="button" data-lib="' + esc(a.id) + '" class="' + (ui.lib === a.id ? 'sel' : '') + '" title="' + esc(a.summary) + '">' + esc(a.name) + '</button>';
+      }).join('') + '</div>';
+    }
     if (!LIB) {
       h += '<h5>My World 3D 库</h5><div class="ix"><span class="ixnote">' + (libWait ? '正在读取建筑库…' : '在 Minest 里打开背包时，这里会列出 My World 所有已上线的建筑、物件、室内和世界。') + '</span></div>';
       grid.innerHTML = h;
@@ -196777,6 +197019,11 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
   function libPreview(pv) {
     var a = null, id = ui.lib;
+    if (id === 'source:polyfork') {
+      var source = EXTERNAL_LIBRARIES[0];
+      pv.innerHTML = '<div class="ixpic source-mark" aria-hidden="true">POLYFORK · 3D</div><h4>' + esc(source.name) + '</h4><p>' + esc(source.summary) + '</p><dl><dt>主题</dt><dd>村庄、城市、太空基地套件</dd><dt>编辑</dt><dd>颜色、比例与部件细节</dd><dt>授权</dt><dd>以模型页面说明为准</dd></dl><div class="acts"><button type="button" class="pri" data-bp="open-polyfork">打开 Polyfork ↗</button></div>';
+      return;
+    }
     try { a = (LIB.info && LIB.info(id)) || null; } catch (e) {}
     var C = LIB.catalog || {}, kind = (LIB.kindOf ? LIB.kindOf(id) : ''), row = null;
     LIB_GROUPS.some(function (g) { row = (C[g[0]] || []).filter(function (x) { return x.id === id; })[0]; return !!row; });
@@ -196840,7 +197087,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   function preview() {
     var pv = ui.el.querySelector('.pv'), it = selected(), host = ui.host, T = host.THREE;
     cancelAnimationFrame(ui.raf); ui.raf = 0;
-    if (ui.cat === 'index' && ui.lib && LIB) return libPreview(pv);
+    if (ui.cat === 'index' && ui.lib) return libPreview(pv);
     if (!it) { pv.innerHTML = '<p style="margin-top:20px">选一件物品：看它的 3D 模型、尺寸和放置要求，然后一键放进世界。</p><p>桌面：R 旋转 · ←→↑↓ 微调 · Enter 放好 · Esc 取消</p>'; return; }
     var st = host.status(it), PLACE = { floor: '地面 / 展台 / 室外', wall: '墙面', surface: '桌面 / 柜面 / 货架 / 展台' };
     var kindName = { template: '模板 · 可以放多个', owned: '实体作品 · 只有一件', function: '功能物件 · 放好后可进入功能' }[it.kind];
@@ -196879,6 +197126,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     if (b.dataset.lib) { ui.lib = b.dataset.lib; ui.sel = null; render(); return; }
     var a = b.dataset.bp, it = selected();
     if (a === 'close') { close(); return; }
+    if (a === 'open-polyfork') { root.open(EXTERNAL_LIBRARIES[0].url, '_blank', 'noopener,noreferrer'); return; }
     if (!it) return;
     if (a === 'fav') { var on = toggleFav(it.key); host.toast(on ? '★ 加入收藏夹和快捷栏' : '已从收藏夹拿出'); render(); return; }
     if (a === 'place' || a === 'move') { touch(it.key); close(true); host.place(it, a === 'move'); return; }
@@ -197586,7 +197834,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
 (function (root) {
   'use strict';
   if (root.SpatialHoloLab) return;
-  var WEB = 'https://minest-app.vercel.app/holo-lab-2/index.html', LKEY = 'minest.holoLab.layout.v1';
+  var WEB = 'https://minest-app.vercel.app/holo-lab/index.html', LKEY = 'minest.holoLab.layout.v1';
   function HW() { var B = root.SpatialBridge; try { var w = B && B.hostWindow && B.hostWindow(); if (w && w.MinestAI) return w; } catch (e) {} return root; }
   function AI() { var w = HW(); return w && w.MinestAI && w.MinestAI.boards ? w.MinestAI : null; }
   function KN() { var w = HW(); return (w && w.MinestKnowledge) || root.MinestKnowledge || null; }
@@ -197642,7 +197890,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   function saveLayout(l) { try { localStorage.setItem(LKEY, JSON.stringify(l)); } catch (e) {} var K = KN(); try { if (K && K.set) K.set('holo:layout', l); } catch (e) {} }
 
   function src() {
-    if (/^https?:$/.test(location.protocol)) return /\/spatial-home\//.test(location.pathname) ? '../holo-lab-2/index.html' : 'holo-lab-2/index.html';
+    if (/^https?:$/.test(location.protocol)) return /\/spatial-home\//.test(location.pathname) ? '../holo-lab/index.html' : 'holo-lab/index.html';
     return WEB;
   }
   var el = null, frame = null, done = null, saveT = 0;
@@ -200095,7 +200343,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
      Clun 是单独的页面，放在一个全屏 iframe 里；iOS 包里没有它的文件，走线上地址。?clun=0 或载入失败时直接进房间。 */
   function clunSrc(inside) {
     var q = '?scene=valley&entry=1' + (inside ? '&inside=1' : '');
-    return location.protocol === 'file:' ? 'https://minest-app.vercel.app/spatial-home/clun-2/' + q : 'spatial-home/clun-2/index.html' + q;
+    return location.protocol === 'file:' ? 'https://minest-app.vercel.app/spatial-home/clun/' + q : 'spatial-home/clun/index.html' + q;
   }
   function clunFirst(done, force, inside) {
     if (!force && /[?&]clun=0\b/.test(location.search)) { done(); return; }
@@ -200991,5 +201239,229 @@ html.student-mode .mn-sk-world { display: none !important; }
   window.MinestV2Routes = { open: open, close: function () { close(); }, isOpen: function () { return !!ov; }, dyn: dyn, version: '1.1' };
 })();
 </script><!-- mn-v2-routes:end -->
+<style id="mn-fx71-css">
+/* Minest · FX 71 (tools/fx-71): Light FX aurora / meteor / disco, Card FX holo / float / wave, and the buttons' looks */
+
+/* ---- the switches name every mode in its own colour (ripple and List Wallet had none) */
+.ios-tab-item.dock-fx-tab.active.aurora { color: #34e3a4; }
+.ios-tab-item.dock-fx-tab.active.meteor { color: #7db8ff; }
+.ios-tab-item.dock-fx-tab.active.disco { color: #ff5fc4; }
+.theme-white .ios-tab-item.dock-fx-tab.active.aurora { color: #0b8f63; }
+.theme-white .ios-tab-item.dock-fx-tab.active.meteor { color: #2563eb; }
+.theme-white .ios-tab-item.dock-fx-tab.active.disco { color: #c026a3; }
+.bar-fx-btn.on.aurora { background: rgba(52,227,164,.26) !important; border-color: rgba(52,227,164,.58) !important; }
+.bar-fx-btn.on.meteor { background: rgba(125,184,255,.28) !important; border-color: rgba(125,184,255,.6) !important; }
+.bar-fx-btn.on.disco { background: rgba(255,95,196,.28) !important; border-color: rgba(255,95,196,.6) !important; }
+.fbfx-btn.on.neon { background: rgba(255,58,26,.2); border-color: rgba(255,154,107,.5); box-shadow: 0 0 18px rgba(255,58,26,.34), inset 0 1px 0 rgba(255,255,255,.35); }
+.fbfx-btn.on.aurora { background: rgba(52,227,164,.2); border-color: rgba(134,239,200,.5); box-shadow: 0 0 18px rgba(52,227,164,.34), inset 0 1px 0 rgba(255,255,255,.35); }
+.fbfx-btn.on.meteor { background: rgba(96,165,250,.22); border-color: rgba(165,205,255,.5); box-shadow: 0 0 18px rgba(96,165,250,.36), inset 0 1px 0 rgba(255,255,255,.35); }
+.fbfx-btn.on.disco { background: rgba(236,72,153,.22); border-color: rgba(249,168,212,.5); box-shadow: 0 0 18px rgba(236,72,153,.36), inset 0 1px 0 rgba(255,255,255,.35); }
+
+.card-mode-btn.on.ripple { color: #fff; background: rgba(14,165,233,.24); border-color: rgba(125,211,252,.5); box-shadow: 0 0 18px rgba(14,165,233,.32), inset 0 1px 0 rgba(255,255,255,.35); }
+.card-mode-btn.on.holo { color: #fff; background: linear-gradient(110deg, rgba(34,211,238,.3), rgba(232,121,249,.3) 55%, rgba(250,204,21,.3)); border-color: rgba(255,255,255,.5); box-shadow: 0 0 18px rgba(192,132,252,.34), inset 0 1px 0 rgba(255,255,255,.4); }
+.card-mode-btn.on.float { color: #fff; background: rgba(129,140,248,.26); border-color: rgba(199,210,254,.5); box-shadow: 0 0 18px rgba(129,140,248,.34), inset 0 1px 0 rgba(255,255,255,.35); }
+.card-mode-btn.on.wave { color: #fff; background: rgba(45,212,191,.24); border-color: rgba(153,246,228,.5); box-shadow: 0 0 18px rgba(45,212,191,.32), inset 0 1px 0 rgba(255,255,255,.35); }
+.theme-white .card-mode-btn.on.ripple, .theme-white .card-mode-btn.on.holo, .theme-white .card-mode-btn.on.float, .theme-white .card-mode-btn.on.wave { color: #0f172a; }
+.ios-tab-item.dock-fx-tab.active.holo { color: #c084fc; }
+.ios-tab-item.dock-fx-tab.active.float { color: #818cf8; }
+.ios-tab-item.dock-fx-tab.active.wave { color: #2dd4bf; }
+.bar-fx-btn.on.holo { background: rgba(192,132,252,.3) !important; border-color: rgba(192,132,252,.6) !important; }
+.bar-fx-btn.on.float { background: rgba(129,140,248,.3) !important; border-color: rgba(129,140,248,.6) !important; }
+.bar-fx-btn.on.wave { background: rgba(45,212,191,.28) !important; border-color: rgba(45,212,191,.6) !important; }
+
+/* ---- the foil layer every board card gets while a 71 card mode is on */
+.cfx-foil { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 5; opacity: 0; transition: opacity .35s ease; }
+
+/* holo */
+@keyframes cfxFoilDrift { from { background-position: 0% 30%; } to { background-position: 100% 70%; } }
+html[data-cfx="holo"] .cfx-foil {
+  opacity: .5;
+  background-image: linear-gradient(115deg, transparent 18%, hsla(188,100%,68%,.6) 34%, hsla(292,100%,72%,.6) 47%, hsla(48,100%,68%,.6) 60%, transparent 78%);
+  background-size: 300% 300%;
+  mix-blend-mode: color-dodge;
+  animation: cfxFoilDrift 7s ease-in-out var(--cfx-dl, 0s) infinite alternate;
+}
+html[data-cfx="holo"] .cfx-hot > .cfx-foil {
+  opacity: .78;
+  animation: none;
+  background-image: radial-gradient(circle at var(--cfx-mx, 50%) var(--cfx-my, 50%), rgba(255,255,255,.7), rgba(255,255,255,0) 46%),
+    linear-gradient(115deg, transparent 18%, hsla(188,100%,68%,.6) 34%, hsla(292,100%,72%,.6) 47%, hsla(48,100%,68%,.6) 60%, transparent 78%);
+  background-size: 100% 100%, 300% 300%;
+  background-position: 0 0, var(--cfx-mx, 50%) var(--cfx-my, 50%);
+}
+.theme-white[data-cfx="holo"] .cfx-foil, html[data-cfx="holo"] .theme-white .cfx-foil { mix-blend-mode: hard-light; opacity: .34; }
+.theme-white[data-cfx="holo"] .cfx-hot > .cfx-foil, html[data-cfx="holo"] .theme-white .cfx-hot > .cfx-foil { opacity: .5; }
+html[data-cfx="holo"] .fb-board-stage article.kanban-card[data-card-id],
+html[data-cfx="holo"] .board-swimlane-scroll article.kanban-card[data-card-id] { transition: transform .5s cubic-bezier(.2,.8,.2,1); }
+html[data-cfx="holo"] .fb-board-stage article.kanban-card[data-card-id].cfx-hot,
+html[data-cfx="holo"] .board-swimlane-scroll article.kanban-card[data-card-id].cfx-hot {
+  transform: perspective(720px) rotateX(var(--cfx-rx, 0deg)) rotateY(var(--cfx-ry, 0deg)) scale(1.02) !important;
+  transition: transform .09s linear;
+  z-index: 3;
+}
+
+/* float */
+@keyframes cfxFloat { 0%, 100% { translate: 0 0; rotate: 0deg; } 50% { translate: 0 -5px; rotate: var(--cfx-r, .3deg); } }
+html[data-cfx="float"] .fb-board-stage article.kanban-card[data-card-id],
+html[data-cfx="float"] .board-swimlane-scroll article.kanban-card[data-card-id] {
+  animation: cfxFloat var(--cfx-dur, 4s) ease-in-out var(--cfx-dl, 0s) infinite;
+  transition: scale .18s ease;
+}
+html[data-cfx="float"] .fb-board-stage article.kanban-card[data-card-id]:active,
+html[data-cfx="float"] .board-swimlane-scroll article.kanban-card[data-card-id]:active { scale: .97; }
+html[data-cfx="float"] .cfx-foil { opacity: 1; z-index: 0; box-shadow: 0 16px 20px -14px rgba(0,0,0,.6); }
+html[data-cfx="float"] .theme-white .cfx-foil { box-shadow: 0 16px 20px -14px rgba(15,23,42,.3); }
+
+/* wave */
+@keyframes cfxWave { 0%, 22%, 100% { translate: 0 0; scale: 1; } 9% { translate: 0 -4px; scale: 1.03; } }
+@keyframes cfxWaveSheen { 0% { background-position: 140% 0; opacity: 0; } 3% { opacity: 1; } 19% { background-position: -70% 0; opacity: 1; } 23%, 100% { background-position: -70% 0; opacity: 0; } }
+html[data-cfx="wave"] .fb-board-stage article.kanban-card[data-card-id],
+html[data-cfx="wave"] .board-swimlane-scroll article.kanban-card[data-card-id] { animation: cfxWave 4.4s cubic-bezier(.3,.7,.3,1) var(--cfx-wd, 0s) infinite; }
+html[data-cfx="wave"] .cfx-foil {
+  background-image: linear-gradient(105deg, transparent 34%, rgba(255,255,255,.5) 50%, transparent 66%);
+  background-size: 220% 100%;
+  background-repeat: no-repeat;
+  mix-blend-mode: screen;
+  animation: cfxWaveSheen 4.4s linear var(--cfx-wd, 0s) infinite;
+}
+html[data-cfx="wave"] .theme-white .cfx-foil { mix-blend-mode: normal; background-image: linear-gradient(105deg, transparent 34%, rgba(56,132,255,.2) 50%, transparent 66%); }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-cfx] .cfx-foil,
+  html[data-cfx] .fb-board-stage article.kanban-card[data-card-id],
+  html[data-cfx] .board-swimlane-scroll article.kanban-card[data-card-id] { animation: none !important; }
+  html[data-cfx="wave"] .cfx-foil { opacity: 0; }
+}
+</style>
+<script id="mn-fx71-cardfx-js">
+/* Minest · board Card FX 71 — holo · float · wave (tools/fx-71).
+   The board's card-mode switch writes the mode to <html data-cfx="…"> and fires `minest:cardfx`;
+   this block gives every board card a foil layer and drives the three looks:
+     holo  — a holographic foil on every card; the card under the pointer tilts toward it
+     float — the cards hover, each on its own slow beat
+     wave  — a wave of lift and light runs across the lists; tap a card to send one out from it
+   The look itself is in the stylesheet beside this file. */
+(function () {
+  'use strict';
+  if (window.MinestCardFX) return;
+  var root = document.documentElement, MODES = ['holo', 'float', 'wave'];
+  var SEL = '.fb-board-stage article.kanban-card[data-card-id], .board-swimlane-scroll article.kanban-card[data-card-id]';
+  var mode = 'none', timer = 0, hot = null, raf = 0, pend = null;
+  var calm = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  function hash(s) { var x = 2166136261; for (var i = 0; i < s.length; i++) { x ^= s.charCodeAt(i); x = Math.imul(x, 16777619); } return x >>> 0; }
+  function cardOf(t) { return t && t.closest ? t.closest('article.kanban-card[data-card-id]') : null; }
+  function inBoard(el) { return !!(el && el.closest('.fb-board-stage, .board-swimlane-scroll')); }
+
+  function sync() {
+    var els = document.querySelectorAll(SEL), cols = [], count = [];
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i], f = el.__cfxFoil;
+      if (!f || f.parentNode !== el) {
+        f = document.createElement('i');
+        f.className = 'cfx-foil';
+        f.setAttribute('aria-hidden', 'true');
+        el.appendChild(f);
+        el.__cfxFoil = f;
+      }
+      if (el.__cfxMode === mode) {
+        if (mode === 'wave') { var c0 = el.closest('.kanban-cards-scroll') || el.parentNode, k0 = cols.indexOf(c0); if (k0 < 0) { k0 = cols.push(c0) - 1; count[k0] = 0; } count[k0]++; }
+        continue;
+      }
+      el.__cfxMode = mode;
+      var h = hash(el.getAttribute('data-card-id') || String(i));
+      if (mode === 'float') {
+        el.style.setProperty('--cfx-dur', (3.4 + (h % 7) * 0.28).toFixed(2) + 's');
+        el.style.setProperty('--cfx-dl', (-((h >>> 4) % 4000) / 1000).toFixed(2) + 's');
+        el.style.setProperty('--cfx-r', (((h >>> 9) % 2 ? 1 : -1) * (0.2 + ((h >>> 11) % 5) * 0.07)).toFixed(2) + 'deg');
+      } else if (mode === 'wave') {
+        // the wave runs list by list, top to bottom: the delay comes from the card's place on the board
+        var col = el.closest('.kanban-cards-scroll') || el.parentNode, k = cols.indexOf(col);
+        if (k < 0) { k = cols.push(col) - 1; count[k] = 0; }
+        el.style.setProperty('--cfx-wd', ((k * 0.24 + count[k] * 0.085) % 4.4).toFixed(2) + 's');
+        count[k]++;
+      } else if (mode === 'holo') {
+        el.style.setProperty('--cfx-dl', (-((h >>> 4) % 7000) / 1000).toFixed(2) + 's');
+      }
+    }
+  }
+  function clear() {
+    var fs = document.querySelectorAll('.cfx-foil');
+    for (var i = 0; i < fs.length; i++) {
+      var el = fs[i].parentNode;
+      if (el) { el.__cfxFoil = null; el.__cfxMode = null; el.classList.remove('cfx-hot'); ['--cfx-dur', '--cfx-dl', '--cfx-r', '--cfx-wd', '--cfx-rx', '--cfx-ry', '--cfx-mx', '--cfx-my'].forEach(function (p) { el.style.removeProperty(p); }); el.removeChild(fs[i]); }
+    }
+    hot = null;
+  }
+  function cool() { if (hot) { hot.classList.remove('cfx-hot'); hot = null; } }
+
+  function set(m) {
+    m = MODES.indexOf(m) >= 0 ? m : 'none';
+    if (m === mode) return;
+    mode = m;
+    cool();
+    clearInterval(timer); timer = 0;
+    if (m === 'none') { clear(); return; }
+    sync();
+    timer = setInterval(sync, 700);
+  }
+  function read() { set(root.getAttribute('data-cfx') || 'none'); }
+
+  // holo: the card under the pointer tilts toward it and its glare follows
+  function tilt() {
+    raf = 0;
+    var e = pend; pend = null;
+    if (!e || mode !== 'holo') return;
+    var el = cardOf(e.t);
+    if (!el || !inBoard(el)) { cool(); return; }
+    if (el !== hot) { cool(); hot = el; el.classList.add('cfx-hot'); }
+    var r = el.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    var u = Math.min(1, Math.max(0, (e.x - r.left) / r.width)), v = Math.min(1, Math.max(0, (e.y - r.top) / r.height));
+    // (a wide, short card needs less turn about its long axis to read the same)
+    var kx = calm ? 0 : Math.min(9, 520 / r.width * 4), ky = calm ? 0 : 7;
+    el.style.setProperty('--cfx-ry', ((u - 0.5) * 2 * kx).toFixed(2) + 'deg');
+    el.style.setProperty('--cfx-rx', ((0.5 - v) * 2 * ky).toFixed(2) + 'deg');
+    el.style.setProperty('--cfx-mx', (u * 100).toFixed(1) + '%');
+    el.style.setProperty('--cfx-my', (v * 100).toFixed(1) + '%');
+  }
+  var onMove = function (e) {
+    if (mode !== 'holo') return;
+    pend = { t: e.target, x: e.clientX, y: e.clientY };
+    if (!raf) raf = requestAnimationFrame(tilt);
+  };
+  document.addEventListener('pointermove', onMove, { passive: true, capture: true });
+  document.addEventListener('pointerdown', onMove, { passive: true, capture: true });
+  ['pointerup', 'pointercancel'].forEach(function (n) {
+    document.addEventListener(n, function (e) { if (mode === 'holo' && e.pointerType !== 'mouse') cool(); }, { passive: true, capture: true });
+  });
+  document.addEventListener('pointerleave', cool, true);
+
+  // wave: a tap on a card sends a ring of lift out from it
+  document.addEventListener('click', function (e) {
+    if (mode !== 'wave' || calm) return;
+    var from = cardOf(e.target);
+    if (!from || !inBoard(from) || !from.animate) return;
+    var fr = from.getBoundingClientRect(), fx = fr.left + fr.width / 2, fy = fr.top + fr.height / 2;
+    var els = document.querySelectorAll(SEL), vh = window.innerHeight, vw = window.innerWidth;
+    for (var i = 0; i < els.length; i++) {
+      var r = els[i].getBoundingClientRect();
+      if (!r.width || r.bottom < 0 || r.top > vh || r.right < 0 || r.left > vw) continue;
+      var d = Math.hypot(r.left + r.width / 2 - fx, r.top + r.height / 2 - fy), k = Math.max(0.25, 1 - d / 900);
+      try {
+        els[i].animate([
+          { translate: '0 0', scale: '1' },
+          { translate: '0 ' + (-8 * k).toFixed(1) + 'px', scale: (1 + 0.05 * k).toFixed(3), offset: 0.35 },
+          { translate: '0 0', scale: '1' }
+        ], { duration: 560, delay: d * 0.9, easing: 'cubic-bezier(.2,.8,.2,1)' });
+      } catch (err) {}
+    }
+  }, true);
+
+  window.addEventListener('minest:cardfx', read);
+  window.MinestCardFX = { set: set, sync: sync, get mode() { return mode; }, modes: MODES.slice() };
+  read();
+})();
+</script>
 </body>
 </html>

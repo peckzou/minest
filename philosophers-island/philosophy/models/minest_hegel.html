@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 黑格尔辩证法 · 有—无—变易</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#1a1a1a;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:52px;background:#2c3e50;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:10px;white-space:nowrap}
+.tab{background:#3d566e;color:#cfe;border:none;border-radius:6px;padding:8px 12px;font-size:14px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#nav{margin-left:auto;display:flex;gap:6px}
+#nav button{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:13px;white-space:nowrap}
+#cv{position:fixed;left:0;top:52px;width:100%;height:calc(100% - 52px - 220px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;width:62%;height:220px;overflow:auto;background:#f1f1f2;border-top:1px solid #bbb;font-size:13.5px;line-height:1.55}
+#side .tt{background:#3a6f99;color:#fff;padding:6px 10px;font-size:15px;position:sticky;top:0;z-index:1}
+#side .bd{padding:6px 10px}
+#ctl{position:fixed;left:62%;right:0;bottom:0;height:220px;background:#e7e9ec;border-top:1px solid #bbb;border-left:1px solid #bbb;padding:10px 12px;display:flex;flex-direction:column;gap:8px;overflow:auto}
+.btn{background:#fff;border:1px solid #999;border-radius:6px;padding:8px 12px;font-size:14px;cursor:pointer;color:#222}
+.btn.blue{background:#4a9fe0;border-color:#2b78bd;color:#fff}
+.btn.org{background:#f3a52b;border-color:#c8700a;color:#222;font-weight:600}
+.btn.sel{outline:3px solid #f3a52b}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:#fff;border:1px solid #8aa;border-radius:14px;padding:5px 10px;font-size:13px;cursor:grab;touch-action:none}
+.chip.used{opacity:.35;text-decoration:line-through;cursor:default}
+input[type=range]{width:100%;accent-color:#2a6ad6;height:26px}
+.row{display:flex;align-items:center;gap:8px;font-size:13px}
+.map{margin-top:2px}
+.mr{display:grid;grid-template-columns:36% 64%;border:1px solid #d5d8de;border-radius:6px;margin:5px 0;background:#fafafa;opacity:.45;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:6px 8px;font-size:13px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:6px}
+.mr .n{flex:0 0 18px;height:18px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:18px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:6px 8px;font-size:13px}
+.mr .en{font-style:italic;color:#778;font-size:11px;margin-top:2px}
+.mr .ref{font-size:11px;color:#3a6f99}
+.drag{position:fixed;z-index:20;pointer-events:none;transform:scale(1.1)}
+#toast{position:fixed;left:50%;top:62px;transform:translateX(-50%);background:rgba(0,0,0,.78);color:#fff;padding:8px 16px;border-radius:18px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 52px - 46%)}#side{width:100%;height:28%;bottom:18%}#ctl{left:0;height:18%;border-left:none}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>黑格尔 · 辩证法</b><select id="case" style="font-size:13px;padding:5px;border-radius:6px;margin-right:8px"><option value="a">案例一：有—无—变易（《逻辑学》）</option><option value="b">案例二：主人与奴隶（《精神现象学》）</option></select>
+  <button class="tab on" data-l="1">① 纯有</button>
+  <button class="tab" data-l="2">② 有与无</button>
+  <button class="tab" data-l="3">③ 变易</button>
+  <button class="tab" data-l="4">④ 扬弃</button>
+  <div id="nav"><button id="bPrev">◀ 回退</button><button id="bNext">前进 ▶</button><button id="bReset">↺ 重置</button></div>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="bd" id="sBody"></div></div>
+<div id="ctl"></div>
+<div id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0;
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+let done={};let L=1,T=0;let CASE='a';const DONE={a:{},b:{}};
+
+/* ---------- 原文对应（Wallace 英译《哲学全书·逻辑学》1892；中文为编译） ---------- */
+const E='《哲学全书·逻辑学》';
+let MAP={
+1:[["中央的“有”：没有任何规定","纯有构成开端：因为它一方面是纯思想，另一方面是直接性本身，单纯而无规定。","Pure Being makes the beginning: because it is on one hand pure thought, and on the other immediacy itself, simple and indeterminate","§86"],
+   ["把规定拖到“有”上：它们滑落","为了把“有”固定住、使它不过渡为“无”，反思便设法为“有”找到某个固定的谓词，以把它与“无”区别开。","reflection has recourse to the plan of discovering some fixed predicate for Being, to mark it off from Nothing","§87 说明(2)"],
+   ["按住思维纯有：规定被抽空","但这单纯的“有”，因为它是单纯的抽象，所以是绝对的否定；从同样直接的方面看，它恰恰就是“无”。","But this mere Being, as it is mere abstraction, is therefore the absolutely negative: which, in a similarly immediate aspect, is just Nothing.","§87"],
+   ["纯粹度 100%：“有”沉入“无”","“有”作为“有”，并不是固定的或最终的东西：它服从辩证法，沉入它的反面。","Being, as Being, is nothing fixed or ultimate: it yields to dialectic and sinks into its opposite","§86 说明"]],
+2:[["探针来回扫描两边","“无”如果这样是直接的、自身等同的，那么反过来，它也与“有”是同一的。","Nothing, if it be thus immediate and equal to itself, is also conversely the same as Being is.","§88"],
+   ["扫得再多，差别仍为 0","二者都只是空洞的抽象，一个与另一个同样空。","nothing but these empty abstractions, one as empty as the other","§87 说明(2)"],
+   ["拖到一起：不融合，而是相互过渡","我们在强调变易的统一时，也不可忽略这种区别：没有这区别，我们就会再次回到抽象的“有”。","Nor must we omit the distinction, while we emphasise the unity of Becoming","§88 附释"]],
+3:[["左右来回拖动：有↔无过渡","“有”与“无”的真理，因而是二者的统一：这个统一就是变易。","The truth of Being and of Nothing is accordingly the unity of the two: and this unity is Becoming.","§88"],
+   ["拖得越快，生成与消逝越剧烈","在“有”中我们有“无”，在“无”中我们有“有”。","In Being then we have Nothing, and in Nothing Being","§88 附释"],
+   ["持续的剧烈过渡：变易本身","持续的剧烈过渡：变易本身，因而是第一个概念；而“有”与“无”是空洞的抽象。","Becoming is the first concrete thought, and therefore the first notion: whereas Being and Nought are empty abstractions.","§88 附释"],
+   ["慢下来、松手：静止为定在","在变易中，有与无只是消逝着的环节；它们存在又不存在。……这个结果就是定在。","they are and they are not. … This result is accordingly Being Determinate","§89"]],
+4:[["透镜停在左区：知性","思维作为知性，坚持于固定的规定性及其彼此的区别。","Thought, as Understanding, sticks to fixity of characters and their distinctness from one another","§80"],
+   ["透镜停在中区：辩证","在辩证的阶段，这些有限的规定扬弃自身，并过渡到它们的反面。","In the Dialectical stage these finite characterisations or formulae supersede themselves, and pass into their opposites.","§81"],
+   ["透镜停在右区：思辨","思辨的阶段，或肯定理性的阶段，在诸规定的对立中把握它们的统一。","The Speculative stage, or stage of Positive Reason, apprehends the unity of terms (propositions) in their opposition","§82"],
+   ["拉开定在：有与无仍在其中","辩证法的结果是肯定的，……它的结果不是空洞抽象的无，而是对某些规定的否定，这些规定包含在结果之中。","its result is not empty and abstract nothing, but the negation of certain specific propositions which are contained in the result","§82 说明(1)"],
+   ["完全拉开：取消又保存","德文 aufheben 有双重意义：(1) 清除、取消；(2) 保持、保存。","the double meaning of the German word aufheben … (1) to clear away, or annul … (2) to keep, or preserve","§96 附释"],
+   ["三个区域都看过：三个环节","这三个方面并不构成逻辑学的三个部分，而是每一个逻辑事物……的环节。","These three sides do not make three parts of logic, but are stages or 'moments' in every logical entity","§79"]]};
+let TITLE={1:'第 1 关 · 纯有：拖规定上去；按住中央只思维纯有',2:'第 2 关 · 有与无：扫描探针；把两者拖到一起',3:'第 3 关 · 变易：左右来回拖动，再慢下来',4:'第 4 关 · 扬弃：按住移动透镜；拉开定在'};
+function mapHTML(l){return `<div class="map">${MAP[l].map((r,i)=>`<div class="mr" id="mr${CASE}${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——黑格尔${CASE==='a'?E:'《精神现象学》'} ${r[3]}</div></div></div>`).join('')}</div>`;}
+function hit(l,i){const e=$('mr'+CASE+l+'_'+i);if(!e||e.classList.contains('on'))return;e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});
+  if(MAP[l].every((_,k)=>$('mr'+CASE+l+'_'+k).classList.contains('on'))){done[l]=1;tabs();}}
+
+/* ---------- 绘制工具 ---------- */
+function stage(label){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#eef3f7');g.addColorStop(1,'#cfd9e2');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#9aa8b5';ctx.beginPath();ctx.ellipse(W/2,H-30,W*0.38,18,0,0,7);ctx.fill();
+  if(label){ctx.fillStyle='rgba(0,0,0,.6)';ctx.font='bold 16px sans-serif';ctx.textAlign='left';ctx.fillText(label,16,28);}}
+function orb(x,y,r,fill,alpha,txt,dash){ctx.globalAlpha=alpha;const g=ctx.createRadialGradient(x-r*.35,y-r*.35,r*.1,x,y,r);g.addColorStop(0,'#fff');g.addColorStop(1,fill);
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='rgba(0,0,0,.35)';if(dash)ctx.setLineDash([6,5]);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
+  if(txt){ctx.fillStyle='#223';ctx.font=`bold ${Math.max(16,r*.42)}px "PingFang SC",sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,x,y);ctx.textBaseline='alphabetic';}}
+function label(x,y,t,c){ctx.fillStyle=c||'#333';ctx.font='14px sans-serif';ctx.textAlign='center';ctx.fillText(t,x,y);}
+
+/* ================= 案例一：实时交互 ================= */
+const clampA=(v,a,b)=>Math.max(a,Math.min(b,v)),lerpA=(a,b,k)=>a+(b-a)*k;
+let APT=null;
+cv.addEventListener('pointerdown',e=>{if(CASE!=='a')return;const [x,y]=cpos(e);APT={x,y,dx:0,dy:0,vx:0};cv.setPointerCapture(e.pointerId);APD[L]&&APD[L](x,y);});
+cv.addEventListener('pointermove',e=>{if(CASE!=='a')return;const [x,y]=cpos(e);if(APT){APT.dx=x-APT.x;APT.dy=y-APT.y;APT.x=x;APT.y=y;}APM[L]&&APM[L](x,y,APT?APT.dx:0,APT?APT.dy:0,!!APT);});
+addEventListener('pointerup',()=>{if(CASE!=='a')return;APT=null;APU[L]&&APU[L]();});
+const APD={},APM={},APU={};
+function ahint(t){ctx.fillStyle='rgba(0,0,0,.6)';ctx.font='14px sans-serif';ctx.textAlign='center';ctx.fillText(t,W/2,H-14);}
+
+/* ① 纯有：规定拖上去会滑落；按住“思维纯有”，规定被逐渐抽空，直到与无无法分辨 */
+const PRED=['物质','红色','这一个','持存者','上帝','我 = 我','大小','此时此地'];
+const L1={tags:[],chips:[],drag:null,think:0,hold:false};
+function l1(){$('ctl').innerHTML=`<div style="font-size:13px">● 把周围漂浮的规定拖到中央的“有”上<br>● 按住中央：只思维“纯有”，越久越纯</div><div id="l1r" style="font-size:12px;color:#556"></div>`;
+  L1.tags=[];L1.think=0;L1.chips=PRED.map((p,i)=>({t:p,a:i/PRED.length*6.283,x:0,y:0,free:true}));hit(1,0);}
+function c1(){return{cx:W/2,cy:H*0.47,R:Math.min(W,H)*0.2};}
+APD[1]=(x,y)=>{const c=c1();for(const ch of L1.chips){if(ch.free&&Math.hypot(x-ch.x,y-ch.y)<34){L1.drag=ch;return;}}if(Math.hypot(x-c.cx,y-c.cy)<c.R)L1.hold=true;};
+APM[1]=(x,y)=>{if(L1.drag){L1.drag.x=x;L1.drag.y=y;}};
+APU[1]=()=>{L1.hold=false;const d=L1.drag;L1.drag=null;if(!d)return;const c=c1();
+  if(Math.hypot(d.x-c.cx,d.y-c.cy)<c.R*1.1){d.free=false;L1.tags.push({t:d.t,ang:Math.random()*6.28,stick:1,vy:0,y:0,src:d});hit(1,1);toast(`“${d.t}”：一旦加上，它就不再是纯有`);}};
+function d1(dt){stage('纯有：无规定的直接性');const c=c1();
+  if(L1.hold)L1.think=Math.min(1,L1.think+dt*0.18);else L1.think=Math.max(0,L1.think-dt*0.03);
+  const k=L1.think;
+  // 被加上的规定：随着思维“纯有”，它们松脱、滑落、消散
+  L1.tags.forEach(g=>{g.stick-=dt*(0.06+k*0.9);if(g.stick<0.4){g.vy+=500*dt;g.y+=g.vy*dt;}});
+  L1.tags=L1.tags.filter(g=>{if(g.y>H){g.src.free=true;g.src.a=Math.random()*6.28;return false;}return true;});
+  // 漂浮的规定
+  L1.chips.forEach(ch=>{if(!ch.free||ch===L1.drag)return;ch.a+=dt*0.25;ch.x=c.cx+Math.cos(ch.a)*c.R*1.75;ch.y=c.cy+Math.sin(ch.a)*c.R*1.15;});
+  // 中央：随纯化而失去颜色、轮廓、纹理
+  const col=`rgb(${Math.round(lerpA(243,150,k))},${Math.round(lerpA(196,150,k))},${Math.round(lerpA(80,160,k))})`;
+  for(let i=0;i<Math.round(30*(1-k));i++){const a=i*2.39,r=c.R*0.8*((i*37%100)/100);ctx.fillStyle=`rgba(120,80,20,${0.25*(1-k)})`;ctx.beginPath();ctx.arc(c.cx+Math.cos(a)*r,c.cy+Math.sin(a)*r,3,0,7);ctx.fill();}
+  orb(c.cx,c.cy,c.R,col,lerpA(1,0.18,k),'',k>0.4);
+  ctx.globalAlpha=1-clampA((k-0.55)*2.5,0,1);label(c.cx,c.cy+6,'有','#223');ctx.globalAlpha=clampA((k-0.6)*2.5,0,1);label(c.cx,c.cy+6,'无','#223');ctx.globalAlpha=1;
+  if(L1.hold&&k<1){ctx.strokeStyle=`rgba(58,111,153,${0.5+0.4*Math.sin(T*4)})`;ctx.lineWidth=3;ctx.beginPath();ctx.arc(c.cx,c.cy,c.R*(1.05+0.05*Math.sin(T*3)),0,6.283*k);ctx.stroke();}
+  L1.tags.forEach(g=>{const tx=c.cx+Math.cos(g.ang)*c.R*0.9,ty=c.cy+Math.sin(g.ang)*c.R*0.9+g.y;ctx.globalAlpha=clampA(g.stick+0.6,0,1);ctx.fillStyle='#fff';ctx.strokeStyle='#c62828';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(tx-34,ty-13,68,26,13);ctx.fill();ctx.stroke();label(tx,ty+5,g.t,'#c62828');ctx.globalAlpha=1;});
+  L1.chips.forEach(ch=>{if(!ch.free)return;ctx.fillStyle='rgba(255,255,255,.9)';ctx.strokeStyle='#8aa';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(ch.x-34,ch.y-13,68,26,13);ctx.fill();ctx.stroke();label(ch.x,ch.y+5,ch.t,'#334');});
+  if(k>0.5)hit(1,2);if(k>0.95)hit(1,3);
+  const r=$('l1r');if(r)r.textContent=`纯粹程度：${Math.round(k*100)}% · 附着的规定：${L1.tags.length}`;
+  ahint(k>0.95?'纯有 = 无：它沉入了自己的反面':L1.hold?'只思维“有”……一切规定都在脱落':L1.tags.length?'规定会自己滑落。按住中央，试着只思维“纯有”':'拖动外圈的规定到“有”上');}
+
+/* ② 有与无：探针差别恒为 0；把两者拖到一起，它们不融合，而是相互过渡、来回摆动 */
+const L2={xa:0.3,xb:0.7,drag:null,probe:0.5,probing:false,scans:0,osc:0,lastSide:0};
+function l2(){$('ctl').innerHTML=`<div style="font-size:13px">● 拖动中间的探针扫过两边<br>● 把“有”和“无”拖到一起，试着让它们合一</div><div id="l2r" style="font-size:12px;color:#556"></div>`;Object.assign(L2,{xa:0.3,xb:0.7,drag:null,probe:0.5,scans:0,osc:0});}
+APD[2]=(x,y)=>{const R=Math.min(W*0.15,H*0.25),y0=H*0.45;if(Math.abs(y-(y0+R+40))<24){L2.probing=true;return;}
+  if(Math.hypot(x-W*L2.xa,y-y0)<R)L2.drag='a';else if(Math.hypot(x-W*L2.xb,y-y0)<R)L2.drag='b';};
+APM[2]=(x,y,dx)=>{if(L2.probing){const np=clampA(x/W,0,1);if((np-0.5)*(L2.probe-0.5)<0)L2.scans++;L2.probe=np;if(L2.scans>=3)hit(2,0);if(L2.scans>=6)hit(2,1);}
+  if(L2.drag){const k='x'+L2.drag;L2[k]=clampA(L2[k]+dx/W,0.12,0.88);}};
+APU[2]=()=>{L2.probing=false;L2.drag=null;};
+function d2(dt){stage('有与无：并置比较');const R=Math.min(W*0.15,H*0.25),y=H*0.45;
+  // 靠近时：不融合，而是互相穿过、交换、摆动
+  const gap=(L2.xb-L2.xa);
+  if(gap<0.16&&!L2.drag){L2.osc+=dt;hit(2,2);}
+  if(!L2.drag&&gap<0.16){const m=(L2.xa+L2.xb)/2,amp=0.14;const s=Math.sin(L2.osc*3);L2.xa=lerpA(L2.xa,m-amp*s,dt*4);L2.xb=lerpA(L2.xb,m+amp*s,dt*4);}
+  const swap=L2.xa>L2.xb;const xa=W*L2.xa,xb=W*L2.xb;
+  orb(xa,y,R,'#e8dcc0',0.55,'',true);orb(xb,y,R,'#e8dcc0',0.55,'',true);
+  label(xa,y-R-14,'有','#223');label(xb,y-R-14,'无','#223');
+  if(gap<0.16){ctx.strokeStyle='rgba(243,165,43,.8)';ctx.lineWidth=3;ctx.setLineDash([6,5]);ctx.beginPath();ctx.moveTo(xa,y-R*0.4);ctx.quadraticCurveTo((xa+xb)/2,y-R*1.4,xb,y-R*0.4);ctx.stroke();ctx.beginPath();ctx.moveTo(xb,y+R*0.4);ctx.quadraticCurveTo((xa+xb)/2,y+R*1.4,xa,y+R*0.4);ctx.stroke();ctx.setLineDash([]);
+    label(W/2,y-R-40,'它们不融为一体：每一方都过渡到另一方','#a0620a');}
+  const px=W*L2.probe;ctx.strokeStyle='#3a6f99';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(px,y-R-20);ctx.lineTo(px,y+R+20);ctx.stroke();
+  ctx.fillStyle='#3a6f99';ctx.beginPath();ctx.arc(px,y+R+40,12,0,7);ctx.fill();
+  const inA=Math.abs(px-xa)<R,inB=Math.abs(px-xb)<R;
+  label(W/2,y+R+80,`探针所在：${inA&&inB?'两者':inA?'有':inB?'无':'外面'} · 内容：（无规定）`,'#556');
+  ctx.font='bold 18px sans-serif';ctx.fillStyle='#c62828';ctx.textAlign='center';ctx.fillText('可指出的差别：0',W/2,40);
+  const r=$('l2r');if(r)r.textContent=`扫描 ${L2.scans} 次`;
+  ahint(gap<0.16?'松手看它们如何相互过渡':'拖动下方圆点扫描；或把两个圆拖到一起');}
+
+/* ③ 变易：用户拖动的速度和幅度产生生成/消逝的粒子流；放慢，逐渐静止为定在 */
+const L3={v:0.5,parts:[],energy:0,peak:0,settle:0,settled:false,moved:0};
+function l3(){$('ctl').innerHTML=`<div style="font-size:13px">● 在画面上左右来回拖动：让“有”与“无”相互过渡<br>● 拖得越快，生成与消逝越剧烈；慢下来，它会静止</div><div id="l3r" style="font-size:12px;color:#556"></div>`;Object.assign(L3,{v:0.5,parts:[],energy:0,peak:0,settle:0,settled:false,moved:0});}
+APM[3]=(x,y,dx,dy,down)=>{if(!down||L3.settled)return;L3.v=clampA(x/W,0,1);L3.energy=Math.min(1,L3.energy+Math.abs(dx)/(W*0.35));L3.moved+=Math.abs(dx);};
+function d3(dt){stage('变易：生成与消逝');const cx=W/2,cy=H*0.45,R=Math.min(W,H)*0.2;
+  L3.energy=Math.max(0,L3.energy-dt*0.35);L3.peak=Math.max(L3.peak,L3.energy);
+  if(L3.moved>W*0.8)hit(3,0);if(L3.energy>0.5)hit(3,1);if(L3.peak>0.6&&L3.energy>0.3)hit(3,2);
+  // 静止：曾经剧烈运动之后、长时间平静
+  if(!L3.settled&&L3.peak>0.5&&L3.energy<0.05&&!APT){L3.settle+=dt*0.5;if(L3.settle>=1){L3.settled=true;hit(3,3);toast('过渡静止下来：变易的结果是定在');}}else if(!L3.settled)L3.settle=Math.max(0,L3.settle-dt);
+  const s=L3.v,e=L3.energy;
+  const n=Math.round(e*14);for(let i=0;i<n;i++){const a=Math.random()*6.28,r=R*Math.sqrt(Math.random());L3.parts.push({x:cx+Math.cos(a)*r,y:cy+Math.sin(a)*r,l:1,up:Math.random()<s,vx:(Math.random()-.5)*60*e,vy:(Math.random()-.5)*60*e});}
+  L3.parts.forEach(p=>{p.l-=dt*1.1;p.x+=p.vx*dt;p.y+=p.vy*dt;});L3.parts=L3.parts.filter(p=>p.l>0);
+  L3.parts.forEach(p=>{const r=4.5*(p.up?1-p.l:p.l)+1;ctx.fillStyle=p.up?'rgba(243,165,43,.85)':'rgba(70,90,130,.6)';ctx.beginPath();ctx.arc(p.x,p.y,r,0,7);ctx.fill();});
+  const st=L3.settled?1:L3.settle;
+  if(st<1){const wob=e*12*Math.sin(T*20);orb(cx+wob,cy,R*(1+e*0.08*Math.sin(T*9)),`rgb(${Math.round(120+123*s)},${Math.round(130+66*s)},${Math.round(160-80*s)})`,0.35+0.4*(1-st),'',true);
+    ctx.globalAlpha=s*(1-st);label(cx-22,cy+8,'有','#223');ctx.globalAlpha=(1-s)*(1-st);label(cx+22,cy+8,'无','#223');ctx.globalAlpha=1;}
+  if(st>0){orb(cx,cy,R*(0.6+0.4*st),'#7fb08a',st,st>0.6?'定在':'');}
+  // 能量条
+  ctx.fillStyle='#fff';ctx.fillRect(20,20,180,10);ctx.fillStyle='#f3a52b';ctx.fillRect(20,20,180*e,10);ctx.strokeStyle='#888';ctx.strokeRect(20,20,180,10);label(110,46,'过渡的强度','#334');
+  if(!L3.settled&&L3.settle>0){ctx.fillStyle='#7fb08a';ctx.fillRect(20,56,180*L3.settle,6);}
+  const r=$('l3r');if(r)r.textContent=L3.settled?'已静止为定在':`过渡强度 ${Math.round(e*100)}%`;
+  ahint(L3.settled?'“有”与“无”成为消逝着的环节，结果是定在':L3.peak<0.5?'在画面上快速左右拖动':e>0.05?'现在慢下来，松手，让它平静':'保持平静……');}
+
+/* ④ 扬弃：按住并移动透镜；透镜覆盖处按所选思维方式显示；把定在向两侧拉开，看见被保存的环节 */
+const L4={lx:0.5,ly:0.45,hold:false,mode:'u',seen:new Set(),open:0,pull:false,dwell:{u:0,d:0,s:0}};
+function l4(){$('ctl').innerHTML=`<div style="font-size:13px">● 按住画面并移动：透镜所到之处，看到的方式不同<br>　 左区＝知性，中区＝辩证，右区＝思辨<br>● 按住中央的“定在”上下拉开</div><div id="l4r" style="font-size:12px;color:#556"></div>`;Object.assign(L4,{lx:0.5,ly:0.3,hold:false,seen:new Set(),open:0,pull:false,dwell:{u:0,d:0,s:0}});}
+APD[4]=(x,y)=>{const cx=W/2,cy=H*0.68;if(Math.hypot(x-cx,y-cy)<Math.min(W,H)*0.12){L4.pull=true;L4.py=y;return;}L4.hold=true;L4.lx=x/W;L4.ly=y/H;};
+APM[4]=(x,y,dx,dy,down)=>{if(!down)return;if(L4.pull){L4.open=clampA(L4.open+Math.abs(dy)/(H*0.5),0,1);if(L4.open>0.4)hit(4,3);if(L4.open>0.85)hit(4,4);return;}L4.lx=x/W;L4.ly=y/H;};
+APU[4]=()=>{L4.hold=false;L4.pull=false;};
+function d4(dt){stage('');const cy=H*0.3,R=Math.min(W*0.07,H*0.13),xa=W*0.38,xb=W*0.62;
+  ['知性','辩证','思辨'].forEach((t,i)=>{ctx.fillStyle=['rgba(58,111,153,.06)','rgba(243,165,43,.07)','rgba(31,94,47,.07)'][i];ctx.fillRect(i*W/3,0,W/3,H*0.52);label(i*W/3+W/6,22,t,'#556');});
+  // 底层：结构（有、无）
+  orb(xa,cy,R,'#f3c46b',0.9,'有');orb(xb,cy,R,'#8b9bb8',0.9,'无');
+  if(L4.hold){const mode=L4.lx<1/3?'u':L4.lx<2/3?'d':'s';L4.dwell[mode]+=dt;if(L4.dwell[mode]>1.2&&!L4.seen.has(mode)){L4.seen.add(mode);hit(4,{u:0,d:1,s:2}[mode]);}
+    if(L4.seen.size===3)hit(4,5);
+    const lx=W*L4.lx,ly=H*L4.ly,lr=Math.min(W,H)*0.16;ctx.save();ctx.beginPath();ctx.arc(lx,ly,lr,0,7);ctx.clip();ctx.fillStyle='rgba(255,255,255,.93)';ctx.fillRect(lx-lr,ly-lr,lr*2,lr*2);
+    if(mode==='u'){orb(xa,cy,R,'#f3c46b',1,'有');orb(xb,cy,R,'#8b9bb8',1,'无');ctx.strokeStyle='#c62828';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(W/2,cy-R*1.4);ctx.lineTo(W/2,cy+R*1.4);ctx.stroke();label(W/2,cy+R*1.8,'各自固定、彼此分离','#c62828');}
+    else if(mode==='d'){const k=(Math.sin(T*2.5)+1)/2;orb(lerpA(xa,xb,k),cy,R,'#f3c46b',1-0.5*k,'有');orb(lerpA(xb,xa,k),cy,R,'#8b9bb8',0.5+0.5*k,'无');label(W/2,cy+R*1.8,'每一方过渡为它的反面','#a0620a');}
+    else{orb(W/2,cy,R*1.6,'#7fb08a',0.95,'');orb(W/2-R*0.6,cy,R*0.55,'#f3c46b',0.8,'有');orb(W/2+R*0.6,cy,R*0.55,'#8b9bb8',0.8,'无');label(W/2,cy+R*2,'在对立中把握统一','#1f5e2f');}
+    ctx.restore();ctx.strokeStyle='#3a6f99';ctx.lineWidth=4;ctx.beginPath();ctx.arc(lx,ly,lr,0,7);ctx.stroke();}
+  // 结果：定在，可被拉开
+  const ox=W/2,oy=H*0.68,RR=Math.min(W,H)*0.12,k=L4.open;
+  if(!L4.pull)L4.open=Math.max(0,L4.open-dt*0.15);
+  ctx.save();ctx.beginPath();ctx.arc(ox,oy-k*RR*0.6,RR,Math.PI,0);ctx.closePath();ctx.fillStyle='#7fb08a';ctx.fill();ctx.restore();
+  ctx.save();ctx.beginPath();ctx.arc(ox,oy+k*RR*0.6,RR,0,Math.PI);ctx.closePath();ctx.fillStyle='#6a9a75';ctx.fill();ctx.restore();
+  if(k>0.05){ctx.globalAlpha=clampA(k*1.5,0,1);orb(ox-RR*0.4,oy,RR*0.32*Math.min(1,k*1.4),'#f3c46b',0.95,k>0.4?'有':'');orb(ox+RR*0.4,oy,RR*0.32*Math.min(1,k*1.4),'#8b9bb8',0.95,k>0.4?'无':'');ctx.globalAlpha=1;}
+  label(ox,oy+RR+k*RR*0.6+22,k>0.6?'“有”与“无”被取消为独立的东西，又作为环节被保存':'定在（结果）','#1f5e2f');
+  const r=$('l4r');if(r)r.textContent=`已用透镜看过：${[...L4.seen].map(m=>({u:'知性',d:'辩证',s:'思辨'})[m]).join('、')||'—'}`;
+  ahint(L4.seen.size<3?'按住并移动透镜，在三个区域各停留一会儿':L4.open<0.85?'按住“定在”上下拉开':'三种思维方式是每个逻辑事物的环节');}
+
+/* ---------- 切换 ---------- */
+let UI={1:l1,2:l2,3:l3,4:l4},DR={1:d1,2:d2,3:d3,4:d4};
+function resetLevel(n){}
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!done[t.dataset.l]);});}
+function go(n){L=Math.max(1,Math.min(4,n));tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);UI[L]();$('side').scrollTop=0;}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bPrev').onclick=()=>go(L-1);$('bNext').onclick=()=>go(L+1);
+$('bReset').onclick=()=>{if(CASE==='b')resetB(L);else resetLevel(L);done[L]=0;go(L);toast('本关已重置');};
+
+/* ================= 案例二：主人与奴隶（《精神现象学》Baillie 英译 1910；段号用通行编号 Φ） ================= */
+const MAP_B={
+1:[["单独的自我意识：无法确证自己","自我意识是自在自为的，这是由于、并且只是由于它为另一个自我意识而存在；也就是说，它只是作为被承认的东西而存在。","SELF-CONSCIOUSNESS exists in itself and for itself, in that, and by the fact that it exists for another self-consciousness; that is to say, it is only by being acknowledged or “recognized”.","Φ178"],
+   ["把另一个意识放到对面","意识发现它直接地是又不是另一个意识；而这另一个，只有当它扬弃自己的自为存在时，才是自为的。","Consciousness finds that it immediately is and is not another consciousness","Φ184"]],
+2:[["双方都冒生命危险","两个自我意识的关系是这样规定的：它们通过生死斗争来证明自己和对方。","they prove themselves and each other through a life-and-death struggle","Φ187"],
+   ["坚持到底的一方","唯有冒生命危险，才能获得自由。","it is solely by risking life that freedom is obtained","Φ187"],
+   ["双方都死：承认落空","然而这种以死亡为考验的方式，取消了本应由此产生的真理，也就取消了自我确定性本身。","This trial by death, however, cancels both the truth which was to result from it, and therewith the certainty of self altogether.","Φ188"],
+   ["一方退让：主人与奴隶","一方是独立的，其本质是自为存在；另一方是依赖的，其本质是生命或为他存在。前者是主人，后者是奴隶。","The one is independent, and its essential nature is to be for itself; the other is dependent, and its essence is life or existence for another. The former is the Master, or Lord, the latter the Bondsman.","Φ189"]],
+3:[["主人通过奴隶享受物","主人把奴隶插在物与自己之间，……毫无保留地享受它。物的独立性一面，他留给了对它进行劳动的奴隶。","The master, however, who has interposed the bondsman between it and himself … enjoys it without qualification and without reserve. The aspect of its independence he leaves to the bondsman, who labours upon it.","Φ190"],
+   ["主人得到的承认来自依赖的意识","恰恰在主人有效地实现了主人身份的地方，他发现……他所得到的不是一个独立的意识，而是一个依赖的意识。","It is not an independent, but rather a dependent consciousness that he has achieved.","Φ192"],
+   ["反转：独立意识的真理在奴隶","因此，独立意识的真理是奴隶的意识。……正如主人身份表明其本质是它所想要的东西的反面，奴隶身份……也将过渡到它直接所是的东西的反面。","The truth of the independent consciousness is accordingly the consciousness of the bondsman. … bondage will, when completed, pass into the opposite of what it immediately is","Φ193"]],
+4:[["奴隶的恐惧","它感受到了死亡这个绝对主人的恐惧。","it felt the fear of death, the sovereign master","Φ194"],
+   ["通过劳动，意识回到自身","对主人的恐惧是智慧的开端，……然而通过劳动，奴隶的意识回到了它自身。","the fear of the lord is the beginning of wisdom … Through work and labour, however, this consciousness of the bondsman comes to itself.","Φ195"],
+   ["劳动塑造物：物被保留下来","劳动是受到抑制的欲望，是被延迟的消逝；换言之，劳动陶冶事物。","Labour, on the other hand, is desire restrained and checked, evanescence delayed and postponed; in other words, labour shapes and fashions the thing.","Φ195"],
+   ["在作品中重新发现自己","正是在劳动中，……奴隶通过这种对自己的重新发现，意识到自己具有并且就是“自己的心灵”。","precisely in labour … the bondsman becomes aware, through this re-discovery of himself by himself, of having and being a “mind of his own”.","Φ196"]]};
+const TITLE_B={1:'第 1 关 · 承认的需要',2:'第 2 关 · 生死斗争',3:'第 3 关 · 主人的困境',4:'第 4 关 · 恐惧、劳动与自我发现'};
+const TABS={a:['① 纯有','② 有与无','③ 变易','④ 扬弃'],b:['① 承认','② 生死斗争','③ 主人','④ 劳动']};
+function fig(x,y,r,col,name,alpha,crown){ctx.globalAlpha=alpha==null?1:alpha;ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y-r*1.5,r*0.55,0,7);ctx.fill();
+  ctx.beginPath();ctx.moveTo(x-r*0.7,y+r*0.6);ctx.quadraticCurveTo(x,y-r*1.3,x+r*0.7,y+r*0.6);ctx.closePath();ctx.fill();
+  if(crown){ctx.fillStyle='#e0b020';ctx.beginPath();ctx.moveTo(x-r*.4,y-r*2.05);ctx.lineTo(x-r*.4,y-r*2.4);ctx.lineTo(x-r*.15,y-r*2.2);ctx.lineTo(x,y-r*2.5);ctx.lineTo(x+r*.15,y-r*2.2);ctx.lineTo(x+r*.4,y-r*2.4);ctx.lineTo(x+r*.4,y-r*2.05);ctx.fill();}
+  ctx.globalAlpha=1;label(x,y+r*0.6+20,name,'#223');}
+function arrowL(x1,y1,x2,y2,col,w){ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=w||3;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();const a=Math.atan2(y2-y1,x2-x1);ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-12*Math.cos(a-.4),y2-12*Math.sin(a-.4));ctx.lineTo(x2-12*Math.cos(a+.4),y2-12*Math.sin(a+.4));ctx.fill();}
+function bar(x,y,w,v,col,t){ctx.fillStyle='#fff';ctx.fillRect(x,y,w,10);ctx.fillStyle=col;ctx.fillRect(x,y,w*v,10);ctx.strokeStyle='#888';ctx.strokeRect(x,y,w,10);ctx.fillStyle='#334';ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText(t,x+w/2,y-4);}
+
+/* ====== 主奴：实时模拟 ====== */
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+let PTR=null;const cpos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+cv.addEventListener('pointerdown',e=>{if(CASE!=='b')return;const [x,y]=cpos(e);PTR={x,y,dx:0,dy:0,x0:x,y0:y};cv.setPointerCapture(e.pointerId);if(BPD[L])BPD[L](x,y);});
+cv.addEventListener('pointermove',e=>{if(CASE!=='b'||!PTR)return;const [x,y]=cpos(e);PTR.dx=x-PTR.x;PTR.dy=y-PTR.y;PTR.x=x;PTR.y=y;if(BPM[L])BPM[L](x,y,PTR.dx,PTR.dy);});
+addEventListener('pointerup',()=>{if(CASE!=='b')return;PTR=null;if(BPU[L])BPU[L]();});
+const BPD={},BPM={},BPU={};
+function person(x,y,r,col,lean,alpha,crown,kneel){ctx.save();ctx.globalAlpha=alpha==null?1:alpha;ctx.translate(x,y);ctx.rotate(lean||0);
+  const h=kneel?0.6:1;ctx.fillStyle=col;ctx.beginPath();ctx.arc(0,-r*2.1*h,r*.45,0,7);ctx.fill();
+  ctx.beginPath();ctx.moveTo(-r*.55,0);ctx.quadraticCurveTo(-r*.6,-r*1.7*h,0,-r*1.75*h);ctx.quadraticCurveTo(r*.6,-r*1.7*h,r*.55,0);ctx.closePath();ctx.fill();
+  if(crown){ctx.fillStyle='#e0b020';ctx.beginPath();ctx.moveTo(-r*.35,-r*2.45*h);ctx.lineTo(-r*.35,-r*2.8*h);ctx.lineTo(-r*.12,-r*2.6*h);ctx.lineTo(0,-r*2.9*h);ctx.lineTo(r*.12,-r*2.6*h);ctx.lineTo(r*.35,-r*2.8*h);ctx.lineTo(r*.35,-r*2.45*h);ctx.fill();}
+  ctx.restore();}
+function meter(x,y,w,v,col,t){ctx.fillStyle='rgba(255,255,255,.9)';ctx.fillRect(x,y,w,9);ctx.fillStyle=col;ctx.fillRect(x,y,w*clamp(v,0,1),9);ctx.strokeStyle='#777';ctx.strokeRect(x,y,w,9);ctx.fillStyle='#223';ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText(t,x+w/2,y-4);}
+function ghint(t){ctx.fillStyle='rgba(0,0,0,.6)';ctx.font='14px sans-serif';ctx.textAlign='center';ctx.fillText(t,W/2,H-14);}
+
+/* ① 承认：一个自我意识发出“我”，回响空洞；拖近另一个，二者互为镜像，承认之流在两者间往返 */
+const M1={bx:0.85,ping:[],flow:0,drag:false,t:0};
+function m1(){$('ctl').innerHTML=`<div style="font-size:13px">● 点击 A：它向四周宣告“我”<br>● 把右侧的 B 拖近 A</div><div style="font-size:12px;color:#556">单独时，宣告没有回应；只有在另一个自我意识中，它才得到回应。</div>`;
+  M1.bx=0.85;M1.ping=[];M1.flow=0;hit(1,0);}
+BPD[1]=(x,y)=>{const ax=W*0.3,ay=H*0.6;if(Math.hypot(x-W*M1.bx,y-ay+40)<60)M1.drag=true;else if(Math.hypot(x-ax,y-ay+40)<60){M1.ping.push({r:0,a:1,ret:M1.bx<0.62});}};
+BPM[1]=(x)=>{if(M1.drag)M1.bx=clamp(x/W,0.42,0.9);};BPU[1]=()=>M1.drag=false;
+function n1(dt){stage('承认');const ax=W*0.3,ay=H*0.62,r=Math.min(W,H)*0.07,bx=W*M1.bx;
+  const near=clamp((0.9-M1.bx)/0.45,0,1);M1.flow=lerp(M1.flow,near>0.6?1:0,dt*2);
+  person(ax,ay,r,'#3a6f99',0);person(bx,ay,r,'#a0522d',0,0.5+0.5*near);
+  M1.ping.forEach(p=>{p.r+=dt*W*0.25;p.a-=dt*0.45;ctx.strokeStyle=`rgba(58,111,153,${Math.max(0,p.a)})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(ax,ay-r*1.2,p.r,0,7);ctx.stroke();
+    if(p.ret&&!p.done&&ax+p.r>bx){p.done=true;M1.ping.push({r:0,a:1,fromB:true});}});
+  M1.ping.filter(p=>p.fromB).forEach(p=>{ctx.strokeStyle=`rgba(160,82,45,${Math.max(0,p.a)})`;ctx.beginPath();ctx.arc(bx,ay-r*1.2,p.r,0,7);ctx.stroke();});
+  M1.ping=M1.ping.filter(p=>p.a>0);
+  if(M1.ping.some(p=>!p.ret&&!p.fromB)&&near<0.3){ctx.fillStyle='#c62828';ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText('“我”……  没有回应',ax,ay-r*3.5);}
+  if(M1.flow>0.05){for(let i=0;i<8;i++){const k=((T*0.6+i/8)%1);const x1=lerp(ax+r,bx-r,k),x2=lerp(bx-r,ax+r,k);
+      ctx.fillStyle=`rgba(58,111,153,${M1.flow})`;ctx.beginPath();ctx.arc(x1,ay-r*1.6+Math.sin(k*3.14)*-30,4,0,7);ctx.fill();
+      ctx.fillStyle=`rgba(160,82,45,${M1.flow})`;ctx.beginPath();ctx.arc(x2,ay-r*0.8+Math.sin(k*3.14)*30,4,0,7);ctx.fill();}
+    ctx.fillStyle=`rgba(30,30,30,${M1.flow})`;ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText('每一方只在对方之中才是自为的',(ax+bx)/2,ay+r*1.4);hit(1,1);}
+  ghint(near<0.3?'点击 A 宣告“我”；拖动 B 靠近':'再点击 A：这一次，宣告在 B 那里得到回应');}
+
+/* ② 生死斗争：两人在中间角力，A 由你拖动施压；B 自动应对。你的“冒险”越高，生命条越低——松手就是退让 */
+const M2={pos:0,riskA:0,riskB:0,lifeA:1,lifeB:1,res:'',hold:false,t:0};
+function m2(){$('ctl').innerHTML=`<div style="font-size:13px">● 按住画面向右推：A 冒生命危险压向 B<br>● 松手：A 退缩</div><div class="row">B 的意志<input type="range" id="bw" min="10" max="100" value="55"></div><button class="btn" id="r2">重新开始</button>`;
+  $('r2').onclick=()=>Object.assign(M2,{pos:0,riskA:0,riskB:0,lifeA:1,lifeB:1,res:'',t:0});Object.assign(M2,{pos:0,riskA:0,riskB:0,lifeA:1,lifeB:1,res:''});}
+BPD[2]=()=>M2.hold=true;BPU[2]=()=>M2.hold=false;BPM[2]=(x,y,dx)=>{if(M2.hold)M2.riskA=clamp(M2.riskA+dx/(W*0.4),0,1);};
+function n2(dt){stage('生死斗争');const cy=H*0.62,r=Math.min(W,H)*0.07;
+  if(!M2.res){const will=+($('bw')?$('bw').value:55)/100;
+    if(!M2.hold)M2.riskA=Math.max(0,M2.riskA-dt*0.5);
+    M2.riskB=lerp(M2.riskB,will*(0.4+0.6*M2.riskA),dt*1.5);
+    M2.pos+=(M2.riskA-M2.riskB)*dt*0.8;M2.pos=clamp(M2.pos,-1,1);
+    const clash=Math.min(M2.riskA,M2.riskB);M2.lifeA-=dt*0.12*clash*M2.riskA;M2.lifeB-=dt*0.12*clash*M2.riskB;
+    if(clash>0.3)hit(2,0);
+    if(M2.lifeA<=0&&M2.lifeB<=0||M2.lifeA<=0.02&&M2.lifeB<=0.15||M2.lifeB<=0.02&&M2.lifeA<=0.15){M2.res='death';hit(2,2);}
+    else if(M2.pos>0.85&&M2.riskA>0.6){M2.res='lordA';hit(2,1);hit(2,3);}
+    else if(M2.pos<-0.85){M2.res='lordB';hit(2,3);}}
+  const mid=W/2+M2.pos*W*0.2,xa=mid-r*1.6,xb=mid+r*1.6;
+  if(M2.res==='death'){person(W*0.4,cy+r*0.6,r,'#999',-1.4,0.4);person(W*0.6,cy+r*0.6,r,'#999',1.4,0.4);ctx.fillStyle='#c62828';ctx.font='bold 15px sans-serif';ctx.textAlign='center';ctx.fillText('双方都死了：没有人留下来给予承认',W/2,H*0.25);ghint('点“重新开始”；这次让一方在最后关头退让');return;}
+  if(M2.res==='lordA'||M2.res==='lordB'){const A=M2.res==='lordA';person(W*0.42,cy,r,A?'#3a6f99':'#a0522d',0,1,true);person(W*0.6,cy,r*0.9,A?'#a0522d':'#3a6f99',0.15,1,false,true);
+    ctx.fillStyle='#223';ctx.font='bold 15px sans-serif';ctx.textAlign='center';ctx.fillText(`${A?'A':'B'} 成为主人；退让者为了保住生命，成为奴隶`,W/2,H*0.22);ghint('进入下一关：看看这种承认是否令主人满足');return;}
+  const shake=Math.min(M2.riskA,M2.riskB)*6;
+  person(xa+(Math.random()-.5)*shake,cy,r,'#3a6f99',0.25*M2.riskA);person(xb+(Math.random()-.5)*shake,cy,r,'#a0522d',-0.25*M2.riskB);
+  if(Math.min(M2.riskA,M2.riskB)>0.25){ctx.strokeStyle='rgba(198,40,40,.7)';ctx.lineWidth=3;for(let i=0;i<5;i++){const xx=mid+(Math.random()-.5)*16;ctx.beginPath();ctx.moveTo(xx,cy-r*2.4);ctx.lineTo(xx+(Math.random()-.5)*30,cy-r*0.4);ctx.stroke();}}
+  meter(W*0.08,H*0.12,W*0.22,M2.lifeA,'#2f9e57','A 的生命');meter(W*0.08,H*0.2,W*0.22,M2.riskA,'#c62828','A 的冒险');
+  meter(W*0.7,H*0.12,W*0.22,M2.lifeB,'#2f9e57','B 的生命');meter(W*0.7,H*0.2,W*0.22,M2.riskB,'#c62828','B 的冒险');
+  ctx.fillStyle='#ccc';ctx.fillRect(W*0.3,cy+r*0.4,W*0.4,3);ctx.fillStyle='#f3a52b';ctx.fillRect(mid-3,cy+r*0.2,6,10);
+  ghint('按住向右推，把 B 逼到边缘。冒险越大，生命消耗越快');}
+
+/* ③ 主人：奴隶劳动把物送来，主人点击享受；每次享受都是瞬间的。主人的“确定性”在每一次被依赖意识承认时被慢慢掏空 */
+const M3={items:[],work:0,cert:1,joy:0,eaten:0,look:0};
+function m3(){$('ctl').innerHTML=`<div style="font-size:13px">● 奴隶不断加工、送来物品<br>● 点击送到主人面前的物：享受它<br>● 按住主人：审视承认他的是谁</div>`;Object.assign(M3,{items:[],work:0,cert:1,joy:0,eaten:0,look:0});}
+BPD[3]=(x,y)=>{const mx=W*0.2,my=H*0.62;if(Math.hypot(x-mx,y-my+40)<60){M3.looking=true;return;}
+  M3.items.forEach(it=>{if(it.arrived&&!it.gone&&Math.hypot(x-it.x,y-it.y)<30){it.gone=true;M3.joy=1;M3.eaten++;hit(3,0);}});};
+BPU[3]=()=>M3.looking=false;
+function n3(dt){stage('主人的困境');const my=H*0.62,r=Math.min(W,H)*0.065,mx=W*0.2,sx=W*0.55;
+  M3.work+=dt;if(M3.work>2.2){M3.work=0;M3.items.push({x:W*0.85,y:my-12,arrived:false,gone:false,a:1});}
+  M3.items.forEach(it=>{if(!it.arrived){it.x-=dt*W*0.12;if(it.x<mx+r*2){it.x=mx+r*2;it.arrived=true;}}if(it.gone)it.a-=dt*2;});
+  M3.items=M3.items.filter(it=>it.a>0).slice(-6);
+  M3.joy*=0.96;
+  if(M3.looking){M3.look+=dt;M3.cert=Math.max(0.15,M3.cert-dt*0.18);if(M3.look>0.8)hit(3,1);if(M3.cert<0.4)hit(3,2);}
+  else M3.cert=Math.max(0.15,M3.cert-dt*0.004*M3.eaten);
+  // 原料堆 → 奴隶加工
+  ctx.fillStyle='#8b6b3d';for(let i=0;i<5;i++)ctx.fillRect(W*0.82+(i%3)*14,my-10-Math.floor(i/3)*14,12,12);
+  const hammer=Math.sin(T*8);person(sx,my,r*0.9,'#a0522d',0.1+hammer*0.05,1,false,true);
+  ctx.strokeStyle='#5a3b1e';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(sx+r*0.4,my-r*1.4);ctx.lineTo(sx+r*1.1,my-r*1.2+hammer*12);ctx.stroke();
+  M3.items.forEach(it=>{ctx.globalAlpha=it.a;ctx.fillStyle='#c79a52';ctx.beginPath();ctx.ellipse(it.x,it.y,14,18,0,0,7);ctx.fill();ctx.globalAlpha=1;
+    if(it.arrived&&!it.gone){ctx.strokeStyle='#f3a52b';ctx.lineWidth=2;ctx.beginPath();ctx.arc(it.x,it.y,24+Math.sin(T*4)*3,0,7);ctx.stroke();}});
+  person(mx,my,r,'#3a6f99',0,1,true);
+  if(M3.joy>0.05){ctx.fillStyle=`rgba(243,165,43,${M3.joy})`;ctx.font='bold 14px sans-serif';ctx.textAlign='center';ctx.fillText('享受！……已消逝',mx,my-r*3.4);}
+  if(M3.looking){ctx.strokeStyle='rgba(160,82,45,.9)';ctx.setLineDash([5,5]);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(sx,my-r*2);ctx.quadraticCurveTo((mx+sx)/2,my-r*4,mx,my-r*2.2);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#a0522d';ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText('承认他的，只是一个依赖的、被视为“物”的意识',(mx+sx)/2,my-r*4.2);}
+  meter(W*0.06,H*0.12,W*0.25,M3.cert,'#3a6f99','主人的自我确定性');
+  ctx.fillStyle='#334';ctx.font='12px sans-serif';ctx.textAlign='left';ctx.fillText(`已享受 ${M3.eaten} 件：没有一件留下来`,W*0.06,H*0.22);
+  ghint('点击送到主人面前的物去享受；按住主人，看是谁在承认他');}
+
+/* ④ 劳动：先在恐惧中颤抖（自动、短暂）；然后你亲手按住拖动“打磨”物：粗糙的石块逐渐成形；完成后，作品中映出奴隶自己的轮廓 */
+const M4={fear:0,feared:false,verts:[],work:0,mirror:0,started:false};
+function m4(){$('ctl').innerHTML=`<button class="btn" id="fear">体验：对死亡的恐惧</button><div style="font-size:13px">● 然后在画面右侧的石块上来回拖动，亲手塑造它</div><div id="wk" style="font-size:12px;color:#556">塑形：0%</div>`;
+  $('fear').onclick=()=>{M4.fear=1;M4.feared=true;hit(4,0);};
+  M4.verts=[];for(let i=0;i<48;i++){M4.verts.push(1+0.32*Math.sin(i*1.7)*Math.cos(i*0.9)+0.12*Math.sin(i*5.3));}M4.work=0;M4.mirror=0;M4.fear=0;M4.feared=false;}
+function target(i){const a=i/48*6.28;const y=Math.sin(a);return 0.62+0.28*Math.cos(y*2.6)+(y<-0.7?-0.25:0);}
+BPM[4]=(x,y,dx,dy)=>{if(!PTR)return;const cx=W*0.64,cy=H*0.5;const R=Math.min(W,H)*0.2;const d=Math.hypot(x-cx,y-cy);if(d>R*1.6)return;
+  if(!M4.feared){toast('先体验恐惧：那是劳动的前提');return;}
+  const ang=Math.atan2(y-cy,x-cx);const idx=Math.round(((ang+6.283)%6.283)/6.283*48)%48;const mv=Math.hypot(dx,dy)/40;
+  for(let k=-3;k<=3;k++){const j=(idx+k+48)%48;M4.verts[j]=lerp(M4.verts[j],target(j),clamp(mv*(1-Math.abs(k)/4),0,0.35));}
+  const err=M4.verts.reduce((a,v,i)=>a+Math.abs(v-target(i)),0)/48;M4.work=clamp(1-err/0.25,0,1);
+  if(M4.work>0.1)hit(4,1);if(M4.work>0.55)hit(4,2);};
+function n4(dt){stage('恐惧、劳动与自我发现');const sy=H*0.66,r=Math.min(W,H)*0.07,sx=W*0.26,cx=W*0.64,cy=H*0.5,R=Math.min(W,H)*0.2;
+  M4.fear*=0.992;const sh=M4.fear*10;
+  // 作品
+  ctx.fillStyle=`rgb(${Math.round(120+60*M4.work)},${Math.round(92+50*M4.work)},${Math.round(60+30*M4.work)})`;ctx.beginPath();
+  M4.verts.forEach((v,i)=>{const a=i/48*6.283;const px=cx+Math.cos(a)*R*v*0.75,py=cy+Math.sin(a)*R*v;i?ctx.lineTo(px,py):ctx.moveTo(px,py);});ctx.closePath();ctx.fill();
+  if(M4.work>0.5){ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(cx-R*0.18,cy-R*0.1,R*0.08,R*0.45,0,0,7);ctx.stroke();}
+  // 打磨粒子
+  if(PTR&&Math.hypot(PTR.x-cx,PTR.y-cy)<R*1.6&&M4.feared){for(let i=0;i<3;i++){ctx.fillStyle='rgba(200,170,120,.8)';ctx.fillRect(PTR.x+(Math.random()-.5)*20,PTR.y+(Math.random()-.5)*20,3,3);}}
+  // 作品中的倒影（自我发现）
+  if(M4.work>0.85){M4.mirror=Math.min(1,M4.mirror+dt*0.4);if(M4.mirror>0.6)hit(4,3);}
+  if(M4.mirror>0){person(cx,cy+R*0.3,R*0.22,`rgba(255,240,210,${0.7*M4.mirror})`,0,0.8*M4.mirror);
+    ctx.fillStyle=`rgba(31,94,47,${M4.mirror})`;ctx.font='bold 14px sans-serif';ctx.textAlign='center';ctx.fillText('在作品中，他看见了自己的形式：“自己的心灵”',cx,cy-R*1.2);}
+  person(sx+(Math.random()-.5)*sh,sy,r,'#a0522d',0.15,1,false,!M4.feared||M4.fear>0.3);
+  if(M4.fear>0.03){ctx.fillStyle=`rgba(20,20,20,${0.55*M4.fear})`;ctx.fillRect(0,0,W,H);ctx.fillStyle=`rgba(255,255,255,${M4.fear})`;ctx.font='bold 16px sans-serif';ctx.textAlign='center';ctx.fillText('死亡这个绝对的主人……一切固定的东西都在动摇',W/2,H*0.3);}
+  meter(W*0.06,H*0.12,W*0.22,M4.work,'#1f5e2f','塑形');if($('wk'))$('wk').textContent='塑形：'+Math.round(M4.work*100)+'%';
+  ghint(!M4.feared?'先点“体验恐惧”':M4.work<0.85?'在石块边缘来回拖动，把它塑造成器皿':'作品留存下来：欲望被抑制，消逝被延迟');}
+const A_SET={MAP,TITLE,UI,DR},B_SET={MAP:MAP_B,TITLE:TITLE_B,UI:{1:m1,2:m2,3:m3,4:m4},DR:{1:n1,2:n2,3:n3,4:n4}};
+function resetB(n){}
+$('case').onchange=e=>{CASE=e.target.value;const S=CASE==='a'?A_SET:B_SET;MAP=S.MAP;TITLE=S.TITLE;UI=S.UI;DR=S.DR;done=DONE[CASE];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.textContent=TABS[CASE][i]);go(1);toast(CASE==='a'?'案例一：《逻辑学》开端':'案例二：《精神现象学》自我意识章');};
+
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);DR[L](dt);requestAnimationFrame(loop);}
+go(1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

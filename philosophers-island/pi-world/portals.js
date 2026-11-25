@@ -460,55 +460,80 @@
     }
   };
 
+  const THOUGHT_MODELS = {
+    socrates: { title: '苏格拉底问答法', steps: ['提问：追问一件事物是什么。什么是勇敢？', '回答：对话者给出一个定义。', '检验：用例子揭示定义在哪里不成立。', '困惑：承认自己并不知道，更诚实地重新探求。'] },
+    plato: { title: '洞穴寓言', steps: ['影子：囚徒把墙上的影子当作真实。', '火光：一名囚徒转过身，看见投下影子的物体。', '上升：陡峭而痛苦地爬出洞穴。', '太阳：洞外的太阳象征善的理念。', '返回：他回到洞中想解救他人，却受到嘲笑。'] },
+    aristotle: { title: '四因说', steps: ['质料因：事物由什么构成——铜像的青铜。', '形式因：事物是什么——雕像的形状与定义。', '动力因：是什么使它产生——雕塑家的技艺。', '目的因：它为了什么——为敬神或纪念而立。'] },
+    zeno: { title: '斯多葛控制二分', steps: ['区分：哪些取决于我（判断、意愿、行动），哪些不取决于我（身体、名声、财富）。', '接受：对不取决于我的事，按其本然接受。', '用力：把全部努力放在自己的判断与选择上。', '合乎自然：依理性生活，获得内心的宁静。'] },
+    confucius: { title: '人生的阶段（《论语·为政》）', steps: ['吾十有五而志于学。', '三十而立。', '四十而不惑。', '五十而知天命。', '六十而耳顺。', '七十而从心所欲，不逾矩。'] },
+    laozi: { title: '道生万物（《道德经》四十二章）', steps: ['道生一。', '一生二。', '二生三。', '三生万物。', '万物负阴而抱阳，冲气以为和。'] },
+    zhuangzi: { title: '庄周梦蝶（《庄子·齐物论》）', steps: ['梦：昔者庄周梦为胡蝶，栩栩然胡蝶也，不知周也。', '觉：俄然觉，则蘧蘧然周也。', '疑：不知周之梦为胡蝶与，胡蝶之梦为周与？', '化：周与胡蝶则必有分矣，此之谓物化。'] },
+    descartes: { title: '从普遍怀疑到“我思”', steps: ['怀疑感官：感官有时欺骗我们。', '梦境论证：我无法确然区分清醒与做梦。', '恶魔假设：设想一个强大的欺骗者让我在一切事上出错。', '我思故我在：即使被欺骗，正在怀疑的“我”必然存在。', '清楚分明：凡是清楚分明地领会到的，才接受为真。'] },
+    spinoza: { title: '三种知识（《伦理学》第二部分）', steps: ['想象：来自零散的感官经验与传闻，是错误的来源。', '理性：凭借共同概念把握事物的必然联系。', '直观知识：从神（即自然）的本质出发认识个别事物。', '结果：由此产生对神的理智之爱与心灵的自由。'] },
+    leibniz: { title: '单子论', steps: ['单子：构成万物的单纯实体，没有部分。', '无窗：单子没有可供事物出入的窗户，变化来自内部。', '知觉：每个单子都从自己的视角表象整个宇宙。', '前定和谐：上帝预先使各单子的变化彼此协调，如同两座校准的钟。'] },
+    locke: { title: '观念的来源', steps: ['白板：心灵起初如同白纸，没有天赋观念。', '感觉：外物经由感官提供观念。', '反省：心灵观察自身的活动而得到观念。', '从简单到复杂：心灵把简单观念组合、比较、抽象为复杂观念。'] },
+    hume: { title: '因果关系的分析', steps: ['印象与观念：一切观念都来自先前的印象。', '接近与先后：我们只观察到一个台球碰到另一个，前后相继。', '恒常会合：类似的事件总是相伴出现。', '习惯：必然联系的观念来自心灵的习惯性期待，而非对象本身。'] },
+    hobbes_rousseau: { title: '社会契约的两条路', steps: ['【霍布斯】自然状态：没有共同权力时，是一切人对一切人的战争。', '【霍布斯】授权：人们相互订约，把权利交给主权者“利维坦”以求和平。', '【卢梭】人生而自由，却无往不在枷锁之中。', '【卢梭】公意：每个人把自己置于公意的最高指导之下，服从法律即服从自己。'] },
+    kant: { title: '十二范畴', steps: ['量：单一性、多数性、全体性。', '质：实在性、否定性、限制性。', '关系：实体与偶性、原因与结果、交互作用。', '模态：可能性、存在、必然性。'] },
+    hegel: { title: '主奴辩证法（《精神现象学》）', steps: ['欲望：自我意识要求被另一个自我意识承认。', '生死斗争：双方以生命为赌注争取承认。', '主与奴：畏死的一方成为奴隶，另一方成为主人。', '劳动：奴隶在劳动中塑造事物，也认识到自己的力量。', '颠倒：主人依赖奴隶，奴隶的意识反而走向独立。'] },
+    marx: { title: '历史唯物主义', steps: ['生产力：人们改造自然的能力——工具、技术与劳动者。', '生产关系：人们在生产中结成的关系，核心是生产资料所有制。', '经济基础与上层建筑：生产关系的总和制约着法律、政治与意识形态。', '矛盾：生产力发展到一定阶段，便与现存的生产关系发生冲突。', '变革：社会革命的时代到来，上层建筑或慢或快地发生变革。'] },
+    schopenhauer_kierkegaard: { title: '意志钟摆与人生三阶段', steps: ['【叔本华】意志：世界的内在本质是盲目的生命意志。', '【叔本华】钟摆：人生在痛苦与无聊之间摆动。', '【叔本华】出路：审美静观、同情与禁欲。', '【克尔凯郭尔】审美阶段：追逐当下的享乐，终陷绝望。', '【克尔凯郭尔】伦理阶段：承担责任与普遍义务。', '【克尔凯郭尔】宗教阶段：以信仰之跃，独自面对上帝。'] },
+    nietzsche: { title: '精神三变', steps: ['骆驼：精神跪下，背负最沉重的负担。“你应当”。', '狮子：在荒漠中说出神圣的“不”，赢得自由。“我要”。', '孩子：纯真与新的开始，以神圣的“是”创造新价值。'] },
+    wittgenstein: { title: '从图像论到语言游戏', steps: ['图像论：命题是事实的逻辑图像（《逻辑哲学论》）。', '界限：对于不可说的东西，必须保持沉默。', '转向：词的意义在于它在语言中的使用（《哲学研究》）。', '语言游戏：说话是生活形式的一部分，规则在实践中被遵守。', '治疗：哲学的任务是给苍蝇指出飞出捕蝇瓶的路。'] },
+    heidegger_sartre: { title: '此在与自由', steps: ['【海德格尔】此在：人是“在世界之中存在”的存在者。', '【海德格尔】常人：日常中我们随“常人”而活，陷于沉沦。', '【海德格尔】向死而在：直面自己的死亡，才回到本真的存在。', '【萨特】存在先于本质：人先存在，然后通过行动造就自己。', '【萨特】自欺：假装自己别无选择，是在逃避自由。', '【萨特】责任：人被判定为自由，要对自己的选择负全责。'] }
+  };
+
+  if (root.PIExpansion) { Object.assign(PORTAL_DETAILS, root.PIExpansion.details); Object.assign(PHILOSOPHER_PERSPECTIVES, root.PIExpansion.perspectives); Object.assign(PHILOSOPHER_VOICE, root.PIExpansion.voice); Object.assign(THOUGHT_MODELS, root.PIExpansion.thought); }
+
+  const CITED_SOURCES = {
+    kant: { works: ['《纯粹理性批判》（1781/1787），A80/B106', '《道德形而上学奠基》（1785）', '《实践理性批判》（1788）', '《什么是启蒙？》（1784）'], concepts: ['定言命令：只按照你愿意它成为普遍法则的准则行动。', '人是目的：永远不要把人仅仅当作手段。', '自律：自由就是理性为自己立法。'] },
+    socrates: { works: ['柏拉图：《申辩篇》，38a', '柏拉图：《克力同篇》', '柏拉图：《游叙弗伦篇》', '色诺芬：《回忆苏格拉底》'], concepts: ['经过省察的人生：未经省察的人生不值得过。', '自知无知：智慧始于承认自己的无知。', '美德即知识：真正知道善的人必然行善。'] },
+    plato: { works: ['《理想国》（约公元前375年），514a–520a', '《会饮篇》（约公元前385年）', '《斐多篇》（约公元前380年）', '《斐德若篇》（约公元前370年）'], concepts: ['理念：可见事物只是永恒不变的理念的影像。', '善的理念：最高的理念，真理与存在的源泉。', '灵魂三分：理性、激情与欲望；正义是三者的和谐。'] },
+    nietzsche: { works: ['《查拉图斯特拉如是说》（1883–85），第一部：论三种变形', '《快乐的科学》（1882），第341节', '《善恶的彼岸》（1886）', '《道德谱系》（1887）'], concepts: ['重估一切价值：追问你的价值从何而来，又为谁服务。', '永恒轮回：你是否愿意让这一生无限次重来？', '自我超越：通过超越自己，成为你自己。'] },
+    confucius: { works: ['《论语·为政》2.4', '《论语·颜渊》12.1–12.2', '《论语·卫灵公》15.24'], concepts: ['仁：爱人，以人道待人。', '礼：使行为合乎分寸的规范。', '恕：己所不欲，勿施于人。'] }
+  };
+
+  const COMPARE_DEFAULT = ['socrates', 'plato', 'confucius', 'kant', 'nietzsche'];
+
+  const TOPIC_LABEL = { life: '论人生', truth: '论真理', suffering: '论苦难', ai: '论今日 AI', rivals: '论敌与知己', art: '馆藏名画', greeting: '初见', debate: '交锋', elaborate: '再深一层', thanks: '作别' };
+
+  function classifyTopic(qLow) {
+    if (/^(你好|您好|hi|hello|嗨|在吗|你是谁|介绍一下)/.test(qLow)) return 'greeting';
+    if (/不同意|反对|不对|胡说|扯|但是|可是|质疑|反驳/.test(qLow)) return 'debate';
+    if (/画|油画|艺术|展览|作品|代表作|书|名言|雕塑|墙上|展馆/.test(qLow)) return 'art';
+    if (/ai|人工智能|科技|机器|算法|电脑|大模型|llm|gpt|现代|未来/.test(qLow)) return 'ai';
+    if (/痛苦|焦虑|迷茫|难过|失败|死|孤独|内耗|压力|怎么办|悲伤|累|烦恼|抑郁|挫折/.test(qLow)) return 'suffering';
+    if (/真|世界|科学|知识|怀疑|存在|实在|真理|因果|理念|自然|语言|辩证|白板|二进制|单子|四因|洞穴|无为|逍遥|仁|礼/.test(qLow)) return 'truth';
+    if (/其他|别人|对手|柏拉图|苏格拉底|亚里士多德|康德|黑格尔|孔子|老子|庄子|笛卡尔|休谟|尼采|马克思|萨特|谁|比较|分歧|争吵/.test(qLow)) return 'rivals';
+    if (/为什么|展开|细说|具体|例子|继续|然后呢|怎么说/.test(qLow)) return 'elaborate';
+    if (/谢谢|感谢|受教|懂了|明白了|有道理|佩服|再见|拜拜/.test(qLow)) return 'thanks';
+    return 'life';
+  }
+
   // Natural, conversational multi-turn philosopher reply generator (no robotic templates)
-  function generateConversationalReply(philObj, userQ, session) {
+  function generateConversationalReply(philObj, userQ, session, opts) {
     const pData = PHILOSOPHER_PERSPECTIVES[philObj.id] || PHILOSOPHER_PERSPECTIVES.socrates;
     const voice = PHILOSOPHER_VOICE[philObj.id] || PHILOSOPHER_VOICE.socrates;
-    const q = (userQ || '').trim();
-    const qLow = q.toLowerCase();
     const firstWork = (philObj.works && philObj.works[0]) || '我的著作';
     const asked = session ? session.askedTopics : new Set();
+    const topic = (opts && opts.topic) || classifyTopic((userQ || '').trim().toLowerCase());
+    let body;
 
-    let body = '';
-    let topic = 'general';
-
-    if (/^(你好|您好|hi|hello|嗨|在吗|你是谁|介绍一下)/.test(qLow)) {
-      topic = 'greeting';
-      body = pData.greeting;
-    } else if (/不同意|反对|不对|胡说|扯|但是|可是|质疑|反驳/.test(qLow)) {
-      topic = 'debate';
-      body = `${voice.counter}\n\n从我的视角来看，${pData.truth}`;
-    } else if (/为什么|展开|细说|具体|例子|继续|然后呢|怎么说/.test(qLow)) {
-      topic = 'elaborate';
-      const unused = !asked.has('truth') ? pData.truth : (!asked.has('life') ? pData.life : pData.suffering);
-      body = `既然你想听得更深一层，那我结合《${firstWork.split('(')[0].trim()}》里的核心脉络接着说：\n\n${unused}`;
-    } else if (/画|油画|艺术|展览|作品|代表作|书|名言|雕塑|墙上|展馆/.test(qLow)) {
-      topic = 'art';
-      body = `你留意到展馆墙上的馆藏了！我身后这幅《${philObj.artTitle}》（${philObj.artArtist}）对我意义非凡：${philObj.artDesc} 你也可以看看旁边的《${firstWork}》——我毕生想说的，浓缩成一句话就是：“${philObj.quote}”`;
-    } else if (/ai|人工智能|科技|机器|算法|电脑|大模型|llm|gpt|现代|未来/.test(qLow)) {
-      topic = 'ai';
-      body = pData.ai;
-    } else if (/痛苦|焦虑|迷茫|难过|失败|死|孤独|内耗|压力|怎么办|悲伤|累|烦恼|抑郁|挫折/.test(qLow)) {
-      topic = 'suffering';
-      body = pData.suffering;
-    } else if (/真|世界|科学|知识|怀疑|存在|实在|真理|因果|理念|自然|语言|辩证|白板|二进制|单子|四因|洞穴|无为|逍遥|仁|礼/.test(qLow)) {
-      topic = 'truth';
-      body = pData.truth;
-    } else if (/其他|别人|对手|柏拉图|苏格拉底|亚里士多德|康德|黑格尔|孔子|老子|庄子|笛卡尔|休谟|尼采|马克思|萨特|谁|比较|分歧|争吵/.test(qLow)) {
-      topic = 'rivals';
-      body = pData.rivals;
-    } else if (/谢谢|感谢|受教|懂了|明白了|有道理|佩服|再见|拜拜/.test(qLow)) {
-      topic = 'thanks';
-      body = `不必客气，能在这座小岛上与你畅谈，于我同样是一桩乐事。记住那句话——“${philObj.quote}”。你随时可以转身看看馆里的画作与典籍，或者去隔壁拜访其他思想家，改日再来切磋！`;
-    } else {
-      topic = 'life';
-      body = pData.life;
-    }
+    if (topic === 'greeting') body = pData.greeting;
+    else if (topic === 'debate') body = `${voice.counter}\n\n从我的视角来看，${pData.truth}`;
+    else if (topic === 'art') body = `你留意到展馆墙上的馆藏了！我身后这幅《${philObj.artTitle}》（${philObj.artArtist}）对我意义非凡：${philObj.artDesc} 你也可以看看旁边的《${firstWork}》——我毕生想说的，浓缩成一句话就是：“${philObj.quote}”`;
+    else if (topic === 'ai') body = pData.ai;
+    else if (topic === 'suffering') body = pData.suffering;
+    else if (topic === 'truth') body = pData.truth;
+    else if (topic === 'rivals') body = pData.rivals;
+    else if (topic === 'elaborate') body = !asked.has('truth') ? pData.truth : (!asked.has('life') ? pData.life : pData.suffering);
+    else if (topic === 'thanks') body = `不必客气，能在这座小岛上与你畅谈，于我同样是一桩乐事。记住那句话——“${philObj.quote}”。你随时可以转身看看馆里的画作与典籍，或者去隔壁拜访其他思想家，改日再来切磋！`;
+    else body = pData.life;
 
     if (session) session.askedTopics.add(topic);
 
     // Append natural conversational hook (except on farewells)
-    if (topic !== 'thanks' && topic !== 'greeting') {
+    if (topic !== 'thanks' && topic !== 'greeting' && !(opts && opts.noHook)) {
       body += `\n\n${voice.hook}`;
     }
 
@@ -582,7 +607,7 @@
 
     function updateJournalBadge() {
       const el = document.getElementById('pi-journal-count');
-      if (el) el.textContent = `${getVisitedCount()} / 20`;
+      if (el) el.textContent = `${getVisitedCount()} / ${world.PHILOSOPHERS.length}`;
     }
 
     // Expose Global Bridge for Claude's Cognitive Navigation Engine!
@@ -599,8 +624,10 @@
     };
 
     // Check which InteractionPortal the player is closest to (including Plato's Underground Cave portal!)
-    let nearestPortal = null;
+    let nearestPortal = null, nearestConsole = null;
+    const CONSOLES = (world.props && world.props.holoConsoles) || [];
     function checkProximity() {
+      studyTick(); hallTick();
       const pp = player.pos;
       let best = null, bestD = 4.5;
       for (const item of REGISTRY) {
@@ -635,9 +662,23 @@
         }
       }
       nearestPortal = best;
+      // A holo console within reach wins over the philosopher when the player stands nearer to it
+      let cBest = null, cD = 2.6;
+      for (const c of CONSOLES) {
+        const d = Math.hypot(pp.x - c.x, pp.z - c.z);
+        if (d < cD && Math.abs(pp.y - c.y) < 2.5) { cD = d; cBest = c; }
+      }
+      if (cBest && best) {
+        const npc = ctx.getNpc ? ctx.getNpc(best.philosopher_id) : null;
+        if (npc && Math.hypot(pp.x - npc.x, pp.z - npc.z) < cD) cBest = null;
+      }
+      nearestConsole = cBest;
       const btn = document.getElementById('pi-portal-prompt');
       if (btn) {
-        if (best && !isModalOpen() && !isDialogueOpen()) {
+        if (cBest && !isModalOpen() && !isDialogueOpen() && !isHoloOpen()) {
+          btn.style.display = 'flex';
+          btn.querySelector('.pi-pp-title').textContent = cBest.hub ? '🔷 [按 E 或点击] 启动全息操作台 · 全部交互模型' : '🔷 [按 E 或点击] 启动全息操作台';
+        } else if (best && !isModalOpen() && !isDialogueOpen() && !isHoloOpen()) {
           btn.style.display = 'flex';
           btn.querySelector('.pi-pp-title').textContent = `💬 [按 E 或点击] 与「${best.philosopher_name}」面对面交谈`;
         } else {
@@ -657,10 +698,21 @@
       return !!(d && d.style.display === 'block');
     }
 
-    // ================= IMMERSIVE 3D BOTTOM RPG FACE-TO-FACE DIALOGUE DOCK =================
-    const chatSessions = {}; // philId -> { messages: [{role, text}], askedTopics: Set }
+    // ================= ENCOUNTER: CINEMATIC FACE-TO-FACE CONVERSATION WITH A THOUGHT CONSTELLATION =================
+    const chatSessions = {}; // philId -> { messages: [{role, text}], askedTopics: Set, lit: Set, usedChips: Set }
     let activeDialoguePortal = null;
-    let activeTypeTimer = null;
+    const SAVED_KEY = 'minest.philosophers.saved.v1';
+    const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const $id = (id) => document.getElementById(id);
+    const philById = (id) => world.PHILOSOPHERS.find((p) => p.id === id);
+    const today = () => new Date().toLocaleDateString('zh-CN');
+    let saved = [];
+    try {
+      const raw = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]');
+      if (Array.isArray(raw)) saved = raw.filter((x) => x && x.id && (x.type === 'talk' || x.type === 'compare'));
+    } catch (e) {}
+    const persistSaved = () => { try { localStorage.setItem(SAVED_KEY, JSON.stringify(saved)); } catch (e) {} };
+    const compareState = { q: '', picks: new Set(COMPARE_DEFAULT), results: null };
 
     function formatBubbleHTML(rawText) {
       return String(rawText || '')
@@ -670,89 +722,406 @@
         .replace(/\n/g, '<br>');
     }
 
-    function stopTypewriter() {
-      if (activeTypeTimer) {
-        clearInterval(activeTypeTimer);
-        activeTypeTimer = null;
-      }
+    function splitBeats(text) {
+      const OPEN = '“‘（(「『《【', CLOSE = '”’）)」』》】', END = '。！？!?';
+      const out = [];
+      String(text || '').split(/\n{2,}/).forEach((para) => {
+        const sents = [];
+        let depth = 0, cur = '';
+        for (let i = 0; i < para.length; i++) {
+          const ch = para[i];
+          cur += ch;
+          if (OPEN.indexOf(ch) >= 0) depth++;
+          else if (CLOSE.indexOf(ch) >= 0) depth = Math.max(0, depth - 1);
+          else if (depth === 0 && END.indexOf(ch) >= 0) {
+            while (i + 1 < para.length && (END + '…').indexOf(para[i + 1]) >= 0) cur += para[++i];
+            sents.push(cur);
+            cur = '';
+          }
+        }
+        if (cur.trim()) sents.push(cur);
+        let beat = '';
+        sents.forEach((st) => {
+          if (beat && beat.length + st.length > 78) { out.push(beat.trim()); beat = ''; }
+          beat += st;
+        });
+        if (beat.trim()) out.push(beat.trim());
+      });
+      return out.length ? out : [''];
     }
 
-    function appendChatBubble(role, whoLabel, text, stream) {
-      const log = document.getElementById('pi-rpg-log');
-      if (!log) return;
-      const wrap = document.createElement('div');
-      wrap.className = 'pi-msg ' + (role === 'user' ? 'user' : 'phil');
-      const who = document.createElement('div');
-      who.className = 'pi-msg-who';
-      who.textContent = whoLabel;
-      const bubble = document.createElement('div');
-      bubble.className = 'pi-msg-bubble';
-      wrap.appendChild(who);
-      wrap.appendChild(bubble);
-      log.appendChild(wrap);
+    function freshSession() {
+      return { messages: [], askedTopics: new Set(), lit: new Set(), usedChips: new Set() };
+    }
 
-      if (!stream) {
-        bubble.innerHTML = formatBubbleHTML(text);
-        log.scrollTop = log.scrollHeight;
-        return;
+    const MAIN_ORBS = [
+      { id: 'life', glyph: '生', label: '人生' }, { id: 'truth', glyph: '真', label: '真理' },
+      { id: 'suffering', glyph: '苦', label: '苦难' }, { id: 'ai', glyph: '智', label: '今日 AI' },
+      { id: 'rivals', glyph: '辩', label: '论敌与知己' }, { id: 'art', glyph: '画', label: '馆藏名画' }
+    ];
+    const MAIN_ANG = [205, 165, 125, 55, 15, -25], KNOW_ANG = [188, 150, 112, 68, 30, -8];
+
+    function orbsFor(philObj) {
+      const wiki = root.PIWiki ? root.PIWiki.get(philObj.id) : null;
+      const model = THOUGHT_MODELS[philObj.id];
+      const know = [{ id: 'bio', glyph: '传', label: '生平' }];
+      if (model) know.push({ id: 'model', glyph: '式', label: model.title.split('（')[0] });
+      know.push({ id: 'works', glyph: '书', label: '著作' });
+      ((wiki && wiki.concepts) || []).slice(0, 3).forEach((c, i) => know.push({ id: 'concept' + i, glyph: '念', label: c.term }));
+      return MAIN_ORBS.map((o, i) => Object.assign({ main: true, ang: MAIN_ANG[i], rho: 1 }, o))
+        .concat(know.map((o, i) => Object.assign({ main: false, ang: KNOW_ANG[i], rho: 0.6 }, o)));
+    }
+
+    // What the philosopher says when a star is lit: { tag, beats: [{ t, q }], text, stage, topical }
+    function utteranceFor(philObj, orb, session) {
+      const wiki = root.PIWiki ? root.PIWiki.get(philObj.id) : null;
+      const voice = PHILOSOPHER_VOICE[philObj.id] || PHILOSOPHER_VOICE.socrates;
+      const B1 = (arr) => arr.map((t) => ({ t }));
+      if (orb.main) {
+        const r = generateConversationalReply(philObj, '', session, { topic: orb.id, noHook: true });
+        return {
+          tag: TOPIC_LABEL[orb.id], topical: true, text: r.text + '\n\n' + voice.hook,
+          beats: B1(splitBeats(r.text)).concat(splitBeats(voice.hook).map((t) => ({ t, q: true })))
+        };
       }
+      if (orb.id === 'bio') {
+        const sum = splitBeats((wiki && wiki.summary) || '');
+        const tl = (wiki && wiki.timeline) || [];
+        const beats = sum.concat(tl.map((e) => `**${e[0]}**　${e[1]}`));
+        return { tag: '生平', beats: B1(beats), text: beats.join('\n\n'), stage: { title: '生平年表', nodes: tl.map((e) => e[0]), offset: sum.length } };
+      }
+      if (orb.id === 'model') {
+        const model = THOUGHT_MODELS[philObj.id];
+        return { tag: '思想模型 · ' + model.title, beats: B1(model.steps), text: model.steps.join('\n\n'), stage: { title: model.title, nodes: model.steps.map((_, k) => String(k + 1)), offset: 0 } };
+      }
+      if (orb.id === 'works') {
+        const works = philObj.works || [];
+        const cited = CITED_SOURCES[philObj.id];
+        let beats = works.map((w) => `**${w}**`);
+        if (cited) beats = beats.concat(cited.works.map((w) => `出处　${w}`), cited.concepts.map((c) => `要义　${c}`));
+        beats.push(`“${philObj.quote}”`);
+        return { tag: '著作', beats: B1(beats), text: beats.join('\n\n'), stage: { title: '代表作', books: true, nodes: works.map((w) => (w.match(/《[^》]*》/) || [w])[0]), offset: 0 } };
+      }
+      const c = ((wiki && wiki.concepts) || [])[+orb.id.replace('concept', '')] || { term: orb.label, desc: '' };
+      const beats = [`**${c.term}**${c.en ? '　' + c.en : ''}`].concat(splitBeats(c.desc));
+      return { tag: '核心概念', beats: B1(beats), text: beats.join('\n\n') };
+    }
 
-      stopTypewriter();
-      let idx = 0;
-      const len = text.length;
-      const finish = () => {
-        stopTypewriter();
-        bubble.innerHTML = formatBubbleHTML(text);
-        log.scrollTop = log.scrollHeight;
-      };
-      bubble.title = '点击立即显示全文';
-      bubble.style.cursor = 'pointer';
-      bubble.onclick = finish;
+    const enc = { orbs: [], utter: null, typingUntil: 0, raf: 0, ax: 0, ay: 0, vec: null };
 
-      activeTypeTimer = setInterval(() => {
-        idx = Math.min(len, idx + 3);
-        bubble.innerHTML = formatBubbleHTML(text.slice(0, idx)) + (idx < len ? '<span class="pi-msg-cursor"></span>' : '');
-        log.scrollTop = log.scrollHeight;
-        if (idx >= len) finish();
-      }, 18);
+    function encSession() {
+      const pid = activeDialoguePortal && activeDialoguePortal.philosopher_id;
+      return pid ? chatSessions[pid] : null;
+    }
+
+    function renderChars(el, text) {
+      const out = [];
+      let i = 0, bold = false;
+      String(text).split(/(\*\*)/).forEach((seg) => {
+        if (seg === '**') { bold = !bold; return; }
+        for (const ch of seg) {
+          if (ch === '\n') { out.push('<br>'); continue; }
+          out.push(`<span class="c${bold ? ' k' : ''}" style="animation-delay:${i * 20}ms">${esc(ch)}</span>`);
+          i++;
+        }
+      });
+      el.classList.remove('instant');
+      el.innerHTML = out.join('');
+      enc.typingUntil = performance.now() + i * 20 + 300;
+    }
+
+    function syncStage() {
+      const u = enc.utter, stage = $id('pi-enc-stage');
+      if (!stage || !u || !u.stage) return;
+      const cur = u.idx - u.stage.offset;
+      stage.querySelectorAll('.pi-stage-node').forEach((n, k) => { n.classList.toggle('on', k === cur); n.classList.toggle('done', k < cur); });
+      stage.querySelectorAll('.pi-stage-link').forEach((n, k) => n.classList.toggle('done', k < cur));
+    }
+
+    function renderStage() {
+      const u = enc.utter, stage = $id('pi-enc-stage');
+      if (!stage) return;
+      if (!u || !u.stage || !u.stage.nodes.length) { stage.style.display = 'none'; stage.innerHTML = ''; return; }
+      stage.className = 'pi-enc-stage' + (u.stage.books ? ' books' : '');
+      stage.style.display = 'flex';
+      stage.innerHTML = `<span class="pi-stage-title">${esc(u.stage.title)}</span><div class="pi-stage-track">` +
+        u.stage.nodes.map((lb, k) => `<button type="button" class="pi-stage-node" data-node="${k}" style="animation-delay:${k * 70}ms">${esc(lb)}</button>`).join('<i class="pi-stage-link"></i>') + '</div>';
+      stage.querySelectorAll('[data-node]').forEach((n) => {
+        n.onclick = (e) => { e.stopPropagation(); u.idx = u.stage.offset + (+n.getAttribute('data-node')); showBeat(); };
+      });
+    }
+
+    function showBeat() {
+      const u = enc.utter;
+      if (!u) return;
+      const beat = u.beats[u.idx], last = u.idx >= u.beats.length - 1;
+      const name = activeDialoguePortal ? activeDialoguePortal.philosopher_name : '';
+      const tag = $id('pi-enc-tag'), text = $id('pi-enc-text'), dots = $id('pi-enc-dots'), next = $id('pi-enc-next');
+      if (tag) tag.textContent = `${name} · ${beat.q ? '反问' : u.tag}`;
+      if (text) { text.classList.toggle('is-q', !!beat.q); renderChars(text, beat.t); }
+      if (dots) dots.innerHTML = u.beats.length > 1 ? u.beats.map((_, k) => `<i class="${k < u.idx ? 'done' : k === u.idx ? 'on' : ''}"></i>`).join('') : '';
+      if (next) next.style.display = last ? 'none' : '';
+      document.querySelectorAll('#pi-rpg-dialogue .pi-enc-act').forEach((b) => { b.style.display = (u.topical && last) ? '' : 'none'; });
+      syncStage();
+    }
+
+    function speak(u, record) {
+      u.idx = 0;
+      enc.utter = u;
+      const session = encSession();
+      if (record !== false && session) session.messages.push({ role: 'phil', text: u.text });
+      renderStage();
+      showBeat();
+    }
+
+    function advance() {
+      const u = enc.utter, text = $id('pi-enc-text');
+      if (!u) return;
+      if (performance.now() < enc.typingUntil) { enc.typingUntil = 0; if (text) text.classList.add('instant'); return; }
+      if (u.idx < u.beats.length - 1) { u.idx++; showBeat(); return; }
+      const box = $id('pi-enc-orbs');
+      if (box) { box.classList.remove('hint'); void box.offsetWidth; box.classList.add('hint'); }
+    }
+
+    function syncOrbs(activeId) {
+      const session = encSession();
+      if (!session) return;
+      enc.orbs.forEach((o) => {
+        const lit = session.lit.has(o.id);
+        o.el.classList.toggle('lit', lit);
+        o.el.classList.toggle('active', o.id === activeId);
+        o.line.setAttribute('class', o.id === activeId ? 'active' : lit ? 'lit' : '');
+      });
+      const n = enc.orbs.filter((o) => session.lit.has(o.id)).length, total = enc.orbs.length;
+      const prog = $id('pi-enc-prog'), count = $id('pi-enc-count');
+      if (prog) prog.style.strokeDashoffset = String(182.2 * (1 - (total ? n / total : 0)));
+      if (count) count.textContent = `思想星图 ${n} / ${total}`;
+      return n === total;
+    }
+
+    function lightOrb(orbId) {
+      const session = encSession();
+      const philObj = activeDialoguePortal && philById(activeDialoguePortal.philosopher_id);
+      const orb = enc.orbs.find((o) => o.id === orbId);
+      if (!session || !philObj || !orb) return;
+      const wasComplete = enc.orbs.every((o) => session.lit.has(o.id));
+      session.lit.add(orb.id);
+      session.messages.push({ role: 'user', text: `〔${orb.label}〕` });
+      const you = $id('pi-enc-you');
+      if (you) you.textContent = '';
+      speak(utteranceFor(philObj, orb, session));
+      if (syncOrbs(orb.id) && !wasComplete) {
+        const rootEl = $id('pi-rpg-dialogue');
+        if (rootEl) { rootEl.classList.remove('complete'); void rootEl.offsetWidth; rootEl.classList.add('complete'); }
+        toast(`✨ 你已点亮「${philObj.name}」的整幅思想星图`);
+      }
     }
 
     function renderDialogueChips(philObj) {
-      const chipsEl = document.getElementById('pi-rpg-chips');
+      const chipsEl = $id('pi-rpg-chips');
       if (!chipsEl) return;
       const voice = PHILOSOPHER_VOICE[philObj.id] || PHILOSOPHER_VOICE.socrates;
-      const list = voice.chips || ['聊聊你的核心思想', '面对痛苦怎么办？', '你怎么看今天的 AI？'];
+      const session = chatSessions[philObj.id];
+      const used = session.usedChips || (session.usedChips = new Set());
+      const list = (voice.chips || ['聊聊你的核心思想', '面对痛苦怎么办？', '你怎么看今天的 AI？']).filter((q) => !used.has(q));
       chipsEl.innerHTML = list.map((q) => `<button type="button" class="pi-rpg-chip">${q}</button>`).join('');
       chipsEl.querySelectorAll('.pi-rpg-chip').forEach((btn) => {
-        btn.onclick = () => sendDialogueMessage(btn.textContent);
+        btn.onclick = (e) => { e.stopPropagation(); used.add(btn.textContent); sendDialogueMessage(btn.textContent); };
       });
     }
 
     function sendDialogueMessage(rawText) {
       if (!activeDialoguePortal) return;
       const text = (rawText || '').trim();
-      if (!text) return;
-      const philObj = world.PHILOSOPHERS.find((p) => p.id === activeDialoguePortal.philosopher_id);
-      if (!philObj) return;
-      const session = chatSessions[philObj.id];
+      const input = $id('pi-rpg-input');
+      if (!text) { advance(); return; }
+      const philObj = philById(activeDialoguePortal.philosopher_id);
+      const session = encSession();
+      if (!philObj || !session) return;
+      const voice = PHILOSOPHER_VOICE[philObj.id] || PHILOSOPHER_VOICE.socrates;
 
       session.messages.push({ role: 'user', text });
-      appendChatBubble('user', '你', text, false);
+      const you = $id('pi-enc-you');
+      if (you) { you.textContent = `你 · ${text}`; you.classList.remove('pop'); void you.offsetWidth; you.classList.add('pop'); }
 
-      const { text: replyText } = generateConversationalReply(philObj, text, session);
-      session.messages.push({ role: 'phil', text: replyText });
-      appendChatBubble('phil', philObj.name, replyText, true);
-
-      const input = document.getElementById('pi-rpg-input');
-      if (input) { input.value = ''; input.focus(); }
+      const r = generateConversationalReply(philObj, text, session, { noHook: true });
+      const hooked = r.topic !== 'thanks' && r.topic !== 'greeting';
+      const beats = splitBeats(r.text).map((t) => ({ t })).concat(hooked ? splitBeats(voice.hook).map((t) => ({ t, q: true })) : []);
+      const orb = enc.orbs.find((o) => o.id === r.topic);
+      if (orb) session.lit.add(orb.id);
+      if (r.topic === 'debate') {
+        const rootEl = $id('pi-rpg-dialogue');
+        if (rootEl) { rootEl.classList.remove('clash'); void rootEl.offsetWidth; rootEl.classList.add('clash'); }
+      }
+      speak({ tag: TOPIC_LABEL[r.topic] || '回应', topical: hooked, beats, text: r.text + (hooked ? '\n\n' + voice.hook : '') });
+      syncOrbs(orb ? orb.id : null);
+      renderDialogueChips(philObj);
+      if (input) { input.value = ''; input.blur(); }
     }
 
+    function encLayout(now) {
+      if (!activeDialoguePortal) return;
+      enc.raf = requestAnimationFrame(encLayout);
+      const vw = window.innerWidth, vh = window.innerHeight, t = now / 1000;
+      let ax = vw / 2, ay = vh * 0.34;
+      const npc = ctx.getNpc ? ctx.getNpc(activeDialoguePortal.philosopher_id) : null;
+      if (npc && root.THREE) {
+        const v = enc.vec || (enc.vec = new root.THREE.Vector3());
+        v.set(npc.x, npc.y + 1.35, npc.z).project(camera);
+        if (v.z < 1 && Math.abs(v.x) < 0.95) { ax = (v.x * 0.5 + 0.5) * vw; ay = (-v.y * 0.5 + 0.5) * vh; }
+      }
+      ax = Math.max(vw * 0.32, Math.min(vw * 0.68, ax));
+      ay = Math.max(vh * 0.26, Math.min(vh * 0.40, ay));
+      if (!enc.ax) { enc.ax = ax; enc.ay = ay; }
+      enc.ax += (ax - enc.ax) * 0.1; enc.ay += (ay - enc.ay) * 0.1;
+      // Face keep-out ellipse (projected head of the philosopher), so no star ever covers the face
+      let face = null;
+      if (npc && root.THREE) {
+        const v = enc.vec, hy = npc.y + 1.62;
+        v.set(npc.x, hy, npc.z).project(camera);
+        if (v.z < 1) {
+          const fx = (v.x * 0.5 + 0.5) * vw, fy = (-v.y * 0.5 + 0.5) * vh;
+          v.set(npc.x, hy + 0.3, npc.z).project(camera);
+          const fr = Math.abs((-v.y * 0.5 + 0.5) * vh - fy);
+          if (!enc.face) enc.face = { x: fx, y: fy, r: fr };
+          enc.face.x += (fx - enc.face.x) * 0.15; enc.face.y += (fy - enc.face.y) * 0.15; enc.face.r += (fr - enc.face.r) * 0.15;
+          face = enc.face;
+        }
+      }
+      const yMin = 92;
+      if (!enc.capEl) enc.capEl = document.querySelector('#pi-rpg-dialogue .pi-enc-caption');
+      const capTop = enc.capEl ? enc.capEl.getBoundingClientRect().top : vh * 0.6;
+      const yMax = Math.max(yMin + 120, Math.min(vh * 0.55, capTop - 44));
+      const Rx = Math.max(Math.min(vw * 0.42, 540), face ? face.r * 1.5 + 90 : 0), Ry = Math.min(vh * 0.27, 250);
+      const pts = enc.orbs.map((o, i) => {
+        const th = (o.ang + 2.4 * Math.sin(t * 0.33 + i * 1.9)) * Math.PI / 180;
+        return {
+          x: enc.ax + Math.cos(th) * Rx * o.rho,
+          y: enc.ay - Math.sin(th) * Ry * o.rho + 5 * Math.sin(t * 0.9 + i * 1.3),
+          r: o.r, side: Math.cos(o.ang * Math.PI / 180) < 0 ? -1 : 1
+        };
+      });
+      const keepOut = (p) => {
+        if (!face) return;
+        const ex = face.r * 1.2 + p.r + 6, ey = face.r * 1.5 + p.r + 6, cyy = face.y + face.r * 0.15;
+        let dx = (p.x - face.x) / ex, dy = (p.y - cyy) / ey;
+        const d = Math.hypot(dx, dy);
+        if (d >= 1) return;
+        if (d < 0.05) { dx = p.side; dy = -0.2; }
+        const k = 1 / Math.max(0.05, Math.hypot(dx, dy));
+        p.x = face.x + dx * k * ex; p.y = cyy + dy * k * ey;
+      };
+      const clampPt = (p) => { p.x = Math.max(p.r + 14, Math.min(vw - p.r - 14, p.x)); p.y = Math.max(yMin, Math.min(yMax, p.y)); };
+      for (let it = 0; it < 4; it++) {
+        for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
+          const A = pts[i], Bp = pts[j], need = A.r + Bp.r + 22;
+          let dx = Bp.x - A.x, dy = Bp.y - A.y, d = Math.hypot(dx, dy);
+          if (d >= need) continue;
+          if (d < 0.01) { dx = 1; dy = 0; d = 1; }
+          const push = (need - d) / 2;
+          A.x -= dx / d * push; A.y -= dy / d * push; Bp.x += dx / d * push; Bp.y += dy / d * push;
+        }
+        pts.forEach((p) => { keepOut(p); clampPt(p); });
+      }
+      // Clamping can push a star back onto the face on narrow screens: slide it along the screen edge, above or below the face
+      if (face) pts.forEach((p) => {
+        const ex = face.r * 1.2 + p.r, ey = face.r * 1.5 + p.r, cyy = face.y + face.r * 0.15;
+        if (Math.hypot((p.x - face.x) / ex, (p.y - cyy) / ey) >= 0.98) return;
+        const up = cyy - ey, down = cyy + ey;
+        p.y = (up >= yMin && (p.y <= cyy || down > yMax)) ? up : Math.min(yMax, down);
+      });
+      enc.orbs.forEach((o, i) => {
+        const p = pts[i];
+        if (o.px == null) { o.px = p.x; o.py = p.y; }
+        o.px += (p.x - o.px) * 0.18; o.py += (p.y - o.py) * 0.18;
+        o.el.style.transform = `translate(${o.px.toFixed(1)}px,${o.py.toFixed(1)}px)`;
+        o.line.setAttribute('x1', enc.ax.toFixed(1)); o.line.setAttribute('y1', enc.ay.toFixed(1));
+        o.line.setAttribute('x2', o.px.toFixed(1)); o.line.setAttribute('y2', o.py.toFixed(1));
+      });
+    }
+
+    function buildOrbs(philObj) {
+      const box = $id('pi-enc-orbs'), svg = $id('pi-enc-lines');
+      if (!box || !svg) { enc.orbs = []; return; }
+      box.innerHTML = ''; svg.innerHTML = '';
+      enc.orbs = orbsFor(philObj).map((o, i) => {
+        const el = document.createElement('button');
+        el.type = 'button';
+        el.className = 'pi-orb ' + (o.main ? 'main' : 'know');
+        el.title = o.label;
+        el.innerHTML = `<span class="pi-orb-in" style="animation-delay:${120 + i * 55}ms"><span class="pi-orb-glyph">${o.glyph}</span></span><span class="pi-orb-label">${esc(o.label)}</span>`;
+        el.onclick = (e) => { e.stopPropagation(); lightOrb(o.id); };
+        box.appendChild(el);
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        svg.appendChild(line);
+        return Object.assign({ el, line, r: (el.offsetWidth || (o.main ? 66 : 50)) / 2 }, o);
+      });
+    }
+
+    function encKey(e) {
+      if (!activeDialoguePortal || isModalOpen()) return;
+      const typing = e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA');
+      if (typing) return;
+      if (e.code === 'Space' || e.code === 'Enter' || e.code === 'ArrowRight') { e.preventDefault(); advance(); }
+      else if (e.key === '/' || e.code === 'KeyT') { e.preventDefault(); const input = $id('pi-rpg-input'); if (input) input.focus(); }
+    }
+    document.addEventListener('keydown', encKey);
+
     function closeDialogue() {
-      stopTypewriter();
-      const d = document.getElementById('pi-rpg-dialogue');
+      nbCaptureDialogue();
+      const d = $id('pi-rpg-dialogue');
       if (d) d.style.display = 'none';
+      cancelAnimationFrame(enc.raf);
+      enc.utter = null; enc.ax = 0; enc.face = null;
       activeDialoguePortal = null;
+      S.encounter = false;
+      if (ctx.endTalk) ctx.endTalk();
+      document.body.classList.remove('pi-encounter');
       if (!isModalOpen()) S.ui = false;
+    }
+
+    function saveCurrentChat() {
+      const philObj = activeDialoguePortal && philById(activeDialoguePortal.philosopher_id);
+      if (!philObj) return;
+      const session = chatSessions[philObj.id];
+      const firstQ = session && session.messages.find((m) => m.role === 'user');
+      if (!firstQ) { toast('先点亮一颗星或问一个问题，再保存对话'); return; }
+      saved.unshift({
+        id: Date.now(), type: 'talk', philId: philObj.id, thinker: philObj.name,
+        title: firstQ.text.slice(0, 55), date: today(),
+        messages: session.messages.map((m) => ({ role: m.role, text: m.text }))
+      });
+      persistSaved();
+      toast(`💾 已保存与「${philObj.name}」的对话 · 可在 📑 收藏中继续`);
+    }
+
+    function openTranscript() {
+      const pid = activeDialoguePortal && activeDialoguePortal.philosopher_id;
+      const philObj = pid && philById(pid);
+      const session = pid && chatSessions[pid];
+      if (!philObj || !session) return;
+      const rows = session.messages.map((m) => `
+        <div class="pi-tr-row ${m.role === 'user' ? 'user' : 'phil'}">
+          <b>${m.role === 'user' ? '你' : esc(philObj.name)}</b>
+          <div>${formatBubbleHTML(m.text)}</div>
+        </div>`).join('');
+      const box = showModal(`
+        <div class="pi-m-header">
+          <div>
+            <span class="pi-m-badge">TRANSCRIPT</span>
+            <h2>📜 与「${esc(philObj.name)}」的对话回顾</h2>
+            <div class="pi-m-sub">回应由岛内本地脚本按各家立场生成，未连接 AI 服务，也不是哲学家的原话。</div>
+          </div>
+          <button type="button" class="pi-m-close" id="pi-m-close-btn">✕</button>
+        </div>
+        ${rows || '<p class="pi-save-empty">还没有说过话。</p>'}
+        <div class="pi-m-footer">
+          <button type="button" class="pi-act-btn gold" id="pi-tr-back">↩ 返回对谈</button>
+        </div>`);
+      if (!box) return;
+      const back = () => { closeModal(); openDialogue(pid); };
+      $id('pi-tr-back').onclick = back;
+      $id('pi-m-close-btn').onclick = back;
     }
 
     function openDialogue(portalOrPhilId) {
@@ -760,93 +1129,644 @@
       if (!portal) return false;
 
       // Close full-screen modal if it was open
-      const m = document.getElementById('pi-modal-overlay');
+      const m = $id('pi-modal-overlay');
       if (m) m.style.display = 'none';
 
       markVisited(portal.portal_id);
       root.dispatchEvent(new CustomEvent('minest:portal-activate', { detail: portal }));
 
-      const philObj = world.PHILOSOPHERS.find((p) => p.id === portal.philosopher_id) || {};
+      const philObj = philById(portal.philosopher_id) || {};
       const pData = PHILOSOPHER_PERSPECTIVES[portal.philosopher_id] || PHILOSOPHER_PERSPECTIVES.socrates;
       const wiki = root.PIWiki ? root.PIWiki.get(portal.philosopher_id) : null;
 
       // Gently turn player camera to look face-to-face at the Philosopher NPC if nearby
-      const npcX = philObj.x + 1.15, npcZ = philObj.z + 0.55, npcEyeY = (philObj.gy || 0) + 1.58;
+      const npc = ctx.getNpc ? ctx.getNpc(portal.philosopher_id) : null;
+      const npcX = npc ? npc.x : philObj.x + 1.15, npcZ = npc ? npc.z : philObj.z + 0.55, npcEyeY = (npc ? npc.y : (philObj.gy || 0)) + 1.5;
       if (Math.hypot(player.pos.x - npcX, player.pos.z - npcZ) < 12) {
         const dx = npcX - player.pos.x;
         const dy = npcEyeY - (player.pos.y + 1.62);
         const dz = npcZ - player.pos.z;
         player.yaw = Math.atan2(-dx, -dz);
-        player.pitch = Math.max(-0.5, Math.min(0.45, Math.atan2(dy, Math.hypot(dx, dz))));
+        player.pitch = Math.max(-0.5, Math.min(0.45, Math.atan2(dy, Math.hypot(dx, dz)) - 0.1));
       }
 
       activeDialoguePortal = portal;
       S.ui = true;
+      S.encounter = true;
+      if (ctx.startTableTalk) ctx.startTableTalk(portal.philosopher_id);   // round-table talk: third person, both seated
+      // Zoom in less when standing very close, so the face never fills the frame
+      S.encounterFov = Math.max(50, Math.min(72, 50 + (3.2 - Math.hypot(player.pos.x - npcX, player.pos.z - npcZ)) * 14));
+      enc.face = null;
+      document.body.classList.add('pi-encounter');
       if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
 
-      const dock = document.getElementById('pi-rpg-dialogue');
+      const dock = $id('pi-rpg-dialogue');
       if (!dock) return openPortal(portal.portal_id);
 
-      const portraitImg = document.getElementById('pi-rpg-portrait');
-      if (portraitImg) {
-        portraitImg.src = `assets/portraits/${portal.philosopher_id}.jpg`;
-        portraitImg.alt = portal.philosopher_name;
-      }
-      const nameEl = document.getElementById('pi-rpg-name');
+      const portraitImg = $id('pi-rpg-portrait');
+      if (portraitImg) { portraitImg.src = `assets/portraits/${portal.philosopher_id}.jpg`; portraitImg.alt = portal.philosopher_name; }
+      const nameEl = $id('pi-rpg-name');
       if (nameEl) nameEl.textContent = portal.philosopher_name;
-      const eraEl = document.getElementById('pi-rpg-era');
-      if (eraEl) eraEl.textContent = wiki ? wiki.era : portal.district;
-      const stanceEl = document.getElementById('pi-rpg-stance');
-      if (stanceEl) stanceEl.innerHTML = `<b>💬 面对面交谈</b> · ${pData.stance}`;
+      const eraEl = $id('pi-rpg-era');
+      if (eraEl) eraEl.textContent = pData.stance || (wiki ? wiki.era : portal.district);
 
       // Initialize or restore multi-turn session for this philosopher
-      if (!chatSessions[philObj.id]) {
-        chatSessions[philObj.id] = {
-          messages: [{ role: 'phil', text: pData.greeting }],
-          askedTopics: new Set()
-        };
-      }
-      const session = chatSessions[philObj.id];
-      const log = document.getElementById('pi-rpg-log');
-      if (log) log.innerHTML = '';
+      const session = chatSessions[philObj.id] || (chatSessions[philObj.id] = freshSession());
+      nbMark[philObj.id] = session.messages.length;
+      if (!session.lit) session.lit = new Set();
+      if (!session.usedChips) session.usedChips = new Set();
+      if (!session.askedTopics) session.askedTopics = new Set();
 
-      session.messages.forEach((msg, idx) => {
-        const isFreshGreeting = session.messages.length === 1 && idx === 0;
-        appendChatBubble(msg.role, msg.role === 'user' ? '你' : philObj.name, msg.text, isFreshGreeting);
-      });
-
+      buildOrbs(philObj);
       renderDialogueChips(philObj);
+      dock.classList.remove('clash', 'complete');
+      dock.style.display = 'none'; void dock.offsetWidth;
+      dock.style.display = 'block';
+      const you = $id('pi-enc-you');
+      if (you) you.textContent = '';
 
-      // Wire action buttons
-      const btnWiki = document.getElementById('pi-rpg-open-wiki');
-      if (btnWiki) btnWiki.onclick = () => { closeDialogue(); openPortal(portal.portal_id); };
-      const btnExp = document.getElementById('pi-rpg-open-exp');
-      if (btnExp) btnExp.onclick = () => {
-        closeDialogue();
-        openPortal(portal.portal_id);
+      const lastPhil = session.messages.filter((x) => x.role === 'phil').pop();
+      if (lastPhil) speak({ tag: '接着聊', topical: true, beats: splitBeats(lastPhil.text).map((t) => ({ t })), text: lastPhil.text }, false);
+      else speak({ tag: '初见', beats: splitBeats(pData.greeting).map((t) => ({ t })), text: pData.greeting });
+      syncOrbs(null);
+      cancelAnimationFrame(enc.raf);
+      enc.ax = 0;
+      enc.raf = requestAnimationFrame(encLayout);
+
+      // Wire controls
+      const on = (id, fn) => { const el = $id(id); if (el) el.onclick = (e) => { e.stopPropagation(); fn(e); }; };
+      const menu = $id('pi-rpg-menu');
+      if (menu) menu.style.display = 'none';
+      const hideMenu = () => { if (menu) menu.style.display = 'none'; };
+      on('pi-rpg-more', () => { if (menu) menu.style.display = menu.style.display === 'none' ? 'flex' : 'none'; });
+      on('pi-rpg-close', closeDialogue);
+      on('pi-enc-next', advance);
+      on('pi-enc-rebut', () => sendDialogueMessage('我不同意'));
+      on('pi-enc-deeper', () => sendDialogueMessage('再展开讲讲'));
+      on('pi-rpg-transcript', () => { hideMenu(); openTranscript(); });
+      on('pi-rpg-stick', () => { hideMenu(); const id = activeDialoguePortal && activeDialoguePortal.philosopher_id; openStick(id); });
+      on('pi-rpg-shelf', () => { hideMenu(); const id = activeDialoguePortal && activeDialoguePortal.philosopher_id; if (id) openShelf(id); });
+      on('pi-rpg-council', () => { hideMenu(); const id = activeDialoguePortal && activeDialoguePortal.philosopher_id; closeDialogue(); openCouncilSetup(id); });
+      on('pi-rpg-walk', () => { hideMenu(); nbFlags.walk = true; if (activeDialoguePortal && ctx.startWalkTalk) { ctx.startWalkTalk(activeDialoguePortal.philosopher_id); toast('🚶 边走边谈：你们沿着馆前的小路散步，对谈照常进行'); } });
+      on('pi-rpg-table', () => { hideMenu(); if (activeDialoguePortal && ctx.startTableTalk) ctx.startTableTalk(activeDialoguePortal.philosopher_id); });
+      on('pi-rpg-save', () => { hideMenu(); saveCurrentChat(); });
+      on('pi-rpg-reset', () => { hideMenu(); chatSessions[philObj.id] = freshSession(); openDialogue(philObj.id); });
+      on('pi-rpg-open-saved', () => { hideMenu(); openSavedModal('talk'); });
+      on('pi-rpg-open-compare', () => {
+        hideMenu();
+        const lastQ = session.messages.filter((x) => x.role === 'user' && x.text.charAt(0) !== '〔').pop();
+        compareState.picks.add(philObj.id);
+        openCompareModal(lastQ ? lastQ.text : '');
+      });
+      on('pi-rpg-open-holo', () => { hideMenu(); closeDialogue(); openHolo(philObj.id); });
+      on('pi-rpg-open-wiki', () => { hideMenu(); closeDialogue(); openPortal(portal.portal_id); });
+      on('pi-rpg-open-exp', () => {
+        hideMenu(); closeDialogue(); openPortal(portal.portal_id);
         setTimeout(() => {
           const exp = document.querySelector('#pi-modal-content .pi-exp-box');
           if (exp) exp.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 60);
+      });
+      dock.onclick = (e) => {
+        if (e.target.closest && e.target.closest('button, input, .pi-rpg-menu')) return;
+        hideMenu();
+        advance();
       };
-      const btnClose = document.getElementById('pi-rpg-close');
-      if (btnClose) btnClose.onclick = closeDialogue;
-
-      const input = document.getElementById('pi-rpg-input');
-      const sendBtn = document.getElementById('pi-rpg-send');
-      if (sendBtn && input) {
-        sendBtn.onclick = () => sendDialogueMessage(input.value);
+      const input = $id('pi-rpg-input');
+      on('pi-rpg-send', () => { if (input) sendDialogueMessage(input.value); });
+      if (input) {
+        input.value = '';
+        input.onclick = (e) => e.stopPropagation();
         input.onkeydown = (e) => {
           if (e.key === 'Enter') { e.preventDefault(); sendDialogueMessage(input.value); }
           if (e.key === 'Escape') { e.preventDefault(); closeDialogue(); }
         };
       }
 
-      dock.style.display = 'block';
-      const promptBtn = document.getElementById('pi-portal-prompt');
+      const promptBtn = $id('pi-portal-prompt');
       if (promptBtn) promptBtn.style.display = 'none';
-      if (input) setTimeout(() => input.focus(), 40);
       return true;
+    }
+
+    // ================= HOLO CONSOLE: the hall's knowledge as a star map + its interactive thinking models =================
+    const MODEL_KEY = 'minest.philosophers.models.v1', HOLO_LAYOUT_KEY = 'minest.philosophers.holo.layout.v1', HOLO_WB_KEY = 'minest.philosophers.holo.wb.v1';
+    const loadJSON = (k) => { try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return v && typeof v === 'object' ? v : null; } catch (e) { return null; } };
+    const saveJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+    const modelsDone = loadJSON(MODEL_KEY) || {};
+    const holoWB = loadJSON(HOLO_WB_KEY) || {};
+    const holo = { id: null, model: null, want: null, cone: [] };
+    const CAT_INK = { '哲学 · 实时模拟': '#ffb454', '哲学 · 逻辑与悖论': '#6fe3ff', '经济学与博弈论': '#7dffb0', '社会学': '#b58cff', '心理学与认知科学': '#ff8fb1', '政治 · 传播 · 系统': '#9fc4ff' };
+
+    function isHoloOpen() { const el = $id('pi-holo'); return !!(el && el.style.display === 'block'); }
+    function modelsFor(id) {
+      const PM = root.PIModels;
+      if (!PM) return [];
+      return id === 'workshop' ? PM.ALL : PM.forRoom(id);
+    }
+
+    function holoContent(id) {
+      const hub = id === 'workshop';
+      const cats = [];
+      const charts = modelsFor(id).map((m) => {
+        if (cats.indexOf(m.cat) < 0) cats.push(m.cat);
+        const room = hub && m.room ? philById(m.room) : null;
+        return {
+          id: 'model:' + m.key, sub: hub ? 'cat' + cats.indexOf(m.cat) : 'models', subName: hub ? m.cat : '交互模型', ink: hub ? (CAT_INK[m.cat] || '#6fe3ff') : '#ffb454',
+          title: m.title, text: (m.note ? m.note + '\n' : '') + '可以动手操作的交互模型，会直接投影在操作台上。点「▶ 启动交互模型」开始。' + (room ? `\n它也陈列在「${room.name}」馆的全息操作台里。` : ''),
+          mastered: !!modelsDone[m.key], tags: ['交互模型']
+        };
+      });
+      const data = { lists: [], charts, knowledge: [], works: [], readonly: true, layout: loadJSON(HOLO_LAYOUT_KEY) || undefined };
+      const p = hub ? null : philById(id);
+      if (!p) return data;
+      const wiki = root.PIWiki ? root.PIWiki.get(p.id) : null;
+      const pData = PHILOSOPHER_PERSPECTIVES[p.id] || {};
+      const K = (board, kid, title, text, tags) => data.knowledge.push({ id: kid, board, title, text: text || '', tags: tags || [] });
+      ((wiki && wiki.concepts) || []).forEach((c, i) => K('核心概念', 'c' + i, c.term, (c.en ? c.en + '\n' : '') + c.desc, ['概念']));
+      const tm = THOUGHT_MODELS[p.id];
+      if (tm) tm.steps.forEach((st, i) => K('思想模型 · ' + tm.title.split('（')[0], 's' + i, `${i + 1}. ${st.split(/[：:]/)[0].slice(0, 16)}`, st, ['第 ' + (i + 1) + ' 步']));
+      ((wiki && wiki.timeline) || []).forEach((e, i) => K('生平', 't' + i, e[0], e[1], ['年表']));
+      (p.works || []).forEach((w, i) => K('著作', 'w' + i, (w.match(/^[^《]*《[^》]*》/) || [w])[0], w, ['代表作']));
+      [['life', '论人生'], ['truth', '论真理'], ['suffering', '论苦难'], ['ai', '论今日 AI'], ['rivals', '论敌与知己']].forEach((r) => { if (pData[r[0]]) K('观点', 'v' + r[0], r[1], pData[r[0]], ['立场']); });
+      if (p.quote) data.lists.push({ key: 'quotes', title: '名言', source: 'kanban', items: [{ id: 'q0', title: p.quote, text: p.quoteOrig || '' }] });
+      return data;
+    }
+
+    // The whole island as an Obsidian-style vault: philosophers, concepts, thought models and interactive models, joined by [[links]]
+    let vaultCache = null;
+    function islandVault() {
+      if (vaultCache) return vaultCache;
+      const slug = (t) => String(t).normalize('NFKC').toLowerCase().replace(/[^a-z0-9\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+      const pages = [], seen = {}, now = Date.now();
+      const page = (title, type, markdown, extra) => {
+        const id = 'pg_' + (slug(title) || 'x');
+        if (seen[id]) { seen[id].markdown += '\n\n' + markdown; return seen[id]; }
+        const pg = Object.assign({ id, title, type, markdown, tags: [], claims: [], createdAt: now, updatedAt: now }, extra || {});
+        seen[id] = pg; pages.push(pg); return pg;
+      };
+      const L = (t) => '[[' + t + ']]';
+      const PM = root.PIModels;
+      world.PHILOSOPHERS.forEach((p) => {
+        const wiki = root.PIWiki ? root.PIWiki.get(p.id) : null;
+        const concepts = (wiki && wiki.concepts) || [];
+        const tm = THOUGHT_MODELS[p.id];
+        const lineage = wiki ? [wiki.influencedBy, wiki.influenced].join('、') : '';
+        const kin = world.PHILOSOPHERS.filter((q) => q !== p && q.name.split('与').some((part) => part.length >= 2 && lineage.indexOf(part) >= 0));
+        const models = PM ? PM.forRoom(p.id) : [];
+        let md = (wiki ? wiki.summary : '') + `\n\n> ${p.quote}`;
+        if (concepts.length) md += '\n\n## 核心概念\n' + concepts.map((c) => '- ' + L(c.term)).join('\n');
+        if (tm) md += '\n\n## 思想模型\n- ' + L(tm.title);
+        if (models.length) md += '\n\n## 交互模型\n' + models.map((m) => '- ' + L(m.title)).join('\n');
+        if (p.works && p.works.length) md += '\n\n## 著作\n' + p.works.map((w) => '- ' + w).join('\n');
+        if (kin.length) md += '\n\n## 师承与影响\n' + kin.map((q) => '- ' + L(q.name)).join('\n');
+        page(p.name, 'person', md, { tags: [p.district.split('·')[0].trim()], goto: p.id });
+        concepts.forEach((c) => page(c.term, 'concept', `${c.en ? '*' + c.en + '*\n\n' : ''}${c.desc}\n\n提出者：${L(p.name)}`));
+        if (tm) page(tm.title, 'topic', tm.steps.map((st, i) => `${i + 1}. ${st}`).join('\n') + `\n\n出自：${L(p.name)}`);
+        models.forEach((m) => page(m.title, 'howto', `可以动手操作的交互模型。${m.note ? '\n\n' + m.note : ''}\n\n陈列于：${L(p.name)} 馆的全息操作台`, { model: m.key }));
+      });
+      vaultCache = { pages, decisions: [], sources: [], relations: [] };
+      return vaultCache;
+    }
+
+    function holoPost(o) {
+      const frame = $id('pi-holo-frame');
+      if (frame && frame.contentWindow) frame.contentWindow.postMessage(Object.assign({ holo: 1 }, o), location.origin);
+    }
+
+    root.addEventListener('message', (e) => {
+      const frame = $id('pi-holo-frame'), m = e.data;
+      if (!frame || e.source !== frame.contentWindow || !m || typeof m !== 'object' || m.holo !== 1 || !holo.id) return;
+      if (m.op === 'ready') { holoPost({ op: 'vault', data: islandVault() }); holoPost({ op: 'cone', people: conePeople(), focus: holo.id === 'workshop' ? null : holo.id }); holoPost({ op: 'content', data: holoContent(holo.id) }); holoPost({ op: 'mode', id: holo.want || 'stars' }); holoPost({ op: 'boot' }); }
+      else if (m.op === 'coneSeen' && m.title) { if (!holo.cone.some((c) => c.title === m.title)) holo.cone.push({ title: String(m.title), year: String(m.year || ''), domain: String(m.domain || ''), note: String(m.note || '') }); }
+      else if (m.op === 'goto' && philById(m.id)) {
+        const p = philById(m.id);
+        closeHolo(true);
+        teleport({ mode: 'walk', p: [p.x + 0.5, p.gy, p.z + Math.min(4.8, Math.floor((p.d || 14) / 2) - 1.2)], t: [p.x + 0.5, p.gy + 1.75, p.z - 0.85] });
+        toast(`🏛️ 已来到「${p.name}」馆`);
+      }
+      else if (m.op === 'wb-get') holoPost({ op: 'wb', data: holoWB });
+      else if (m.op === 'wb-write' && typeof m.key === 'string') { if (m.value == null) delete holoWB[m.key]; else holoWB[m.key] = m.value; saveJSON(HOLO_WB_KEY, holoWB); }
+      else if (m.op === 'save' && m.layout && typeof m.layout === 'object') saveJSON(HOLO_LAYOUT_KEY, Object.assign({}, m.layout, { mode: 'stars' }));
+      else if (m.op === 'open' && typeof m.id === 'string' && m.id.indexOf('model:') === 0) openModel(m.id.slice(6));
+      else if (m.op === 'sim-2d' && root.PIModels) { const fm = root.PIModels.ALL.find((x) => (m.key && x.holo === m.key) || (m.file && x.file === m.file)); if (fm) openModel(fm.key, true); }
+      else if (m.op === 'close') closeHolo(true);
+    });
+
+    function renderHoloRail() {
+      const rail = $id('pi-holo-rail');
+      if (!rail) return;
+      const hub = holo.id === 'workshop', p = hub ? null : philById(holo.id), models = modelsFor(holo.id);
+      const done = models.filter((m) => modelsDone[m.key]).length;
+      let body;
+      if (hub) body = `<div class="sub">共 ${models.length} 个交互模型，已体验 ${done} 个。在星图里点任意一颗模型星 →「▶ 启动交互模型」。</div><button type="button" class="pi-holo-m" data-holo-index>☰ 按目录浏览全部模型</button>`;
+      else if (models.length) body = `<div class="sub">本馆交互模型 · 已体验 ${done} / ${models.length}</div>` + models.map((m) => `<button type="button" class="pi-holo-m holo ${modelsDone[m.key] ? 'done' : ''}" data-holo-model="${m.key}">◈ ${esc(m.title)}<em>${m.holo ? '全息 3D' : '全息投影'}</em></button>`).join('');
+      else body = '<div class="sub">这一馆暂时没有收录交互模型。星图里是这位哲学家的概念、生平、著作与观点。</div><button type="button" class="pi-holo-m" data-holo-hub>🔷 去思维工坊看全部模型</button>';
+      rail.innerHTML = `<button type="button" class="pi-holo-fold" id="pi-holo-fold" title="收起 / 展开">${hub ? '思维工坊' : esc(p ? p.name : '')} · 全息操作台 <i>▾</i></button><div class="pi-holo-body">${body}</div>`;
+      $id('pi-holo-fold').onclick = () => rail.classList.toggle('min');
+      rail.querySelectorAll('[data-holo-model]').forEach((b) => { b.onclick = () => openModel(b.getAttribute('data-holo-model')); });
+      const idx = rail.querySelector('[data-holo-index]');
+      if (idx) idx.onclick = () => openModel(null);
+      const hb = rail.querySelector('[data-holo-hub]');
+      if (hb) hb.onclick = () => openHolo('workshop');
+    }
+
+    // key === null opens the models' own catalogue page; a model with a hologram version is projected on the console itself
+    function openModel(key, flat) {
+      const PM = root.PIModels, m = key && PM ? PM.byKey[key] : null;
+      const layer = $id('pi-holo-model'), frame = $id('pi-holo-model-frame');
+      if (!PM || !layer || !frame || (key && !m)) return;
+      if (m && !flat) {
+        holoPost(m.holo ? { op: 'sim', key: m.holo } : { op: 'proj', file: m.file, title: m.title, note: m.note || '' });
+        modelsDone[m.key] = Date.now(); saveJSON(MODEL_KEY, modelsDone);
+        studyMark('holo', holo.id, m.title);
+        renderHoloRail();
+        const rail = $id('pi-holo-rail');
+        if (rail) rail.classList.add('min');
+        return;
+      }
+      holo.model = key || 'index';
+      $id('pi-holo-model-title').textContent = m ? m.title : '全部交互模型 · 总目录';
+      $id('pi-holo-model-note').textContent = m && m.note ? m.note : '';
+      frame.src = PM.DIR + (m ? m.file : 'index.html');
+      layer.style.display = 'flex';
+      if (m) { modelsDone[m.key] = Date.now(); saveJSON(MODEL_KEY, modelsDone); }
+    }
+
+    function closeModel() {
+      const layer = $id('pi-holo-model'), frame = $id('pi-holo-model-frame');
+      if (layer) layer.style.display = 'none';
+      if (frame) frame.src = 'about:blank';
+      holo.model = null;
+      renderHoloRail();
+      holoPost({ op: 'content', data: holoContent(holo.id) });
+    }
+
+    // the island's thinkers for the light cone: [{ id, name, year (of birth; negative = BCE) }]
+    function conePeople() {
+      return world.PHILOSOPHERS.map((p) => { const w = root.PIWiki ? root.PIWiki.get(p.id) : null, b = String((w && w.born) || ''), bc = b.match(/公元前\s*(\d+)/), ad = b.match(/(\d{3,4})\s*年/);
+        const year = bc ? -parseInt(bc[1], 10) : ad ? parseInt(ad[1], 10) : null; return year == null ? null : { id: p.id, name: p.name, year, note: ((w && w.summary) || '').slice(0, 150) }; }).filter(Boolean);
+    }
+    // ── the stick-figure theatre: one short animation per idea (stick/index.html, in an overlay) ──
+    const STICK_IDS = new Set(world.PHILOSOPHERS.map((p) => p.id));
+    function openStick(id) {
+      let el = $id('pi-stick');
+      if (!el) { el = document.createElement('div'); el.id = 'pi-stick'; el.style.cssText = 'position:fixed;inset:0;z-index:62;display:none;background:rgba(5,7,13,.72);';
+        el.innerHTML = '<iframe title="火柴人小剧场" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(1020px,96vw);height:min(92vh,860px);border:0;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.6);background:#f6f4ee"></iframe>';
+        document.body.appendChild(el); el.addEventListener('click', (e) => { if (e.target === el) closeStick(); });
+        root.addEventListener('message', (e) => { const m = e.data; if (!m || m.stick !== 1 || e.source !== el.firstChild.contentWindow) return; if (m.op === 'close') closeStick(); if (m.op === 'seen' && philById(m.id)) studyMark('holo', m.id, '火柴人小剧场'); }); }
+      closeModal(); if (isDialogueOpen()) closeDialogue();
+      el.firstChild.src = 'stick/index.html' + (id && STICK_IDS.has(id) ? '?scene=' + encodeURIComponent(id) : '');
+      el.style.display = 'block'; S.ui = true; if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
+      if (id && !STICK_IDS.has(id)) toast('🎬 这位思想者的小动画还没画，先看看前二十位的');
+      return true;
+    }
+    function closeStick() { const el = $id('pi-stick'); if (!el || el.style.display === 'none') return; el.style.display = 'none'; el.firstChild.src = 'about:blank'; if (!isModalOpen() && !isDialogueOpen()) S.ui = false; }
+    const isStickOpen = () => { const el = $id('pi-stick'); return !!(el && el.style.display === 'block'); };
+    // ── the storybook river: a picture-book SVG scene, the thinkers' houses along the bank in order of birth ──
+    function openStory(focus) {
+      let el = $id('pi-story');
+      if (!el) { el = document.createElement('div'); el.id = 'pi-story'; el.style.cssText = 'position:fixed;inset:0;z-index:62;display:none;background:#f6e9d2;';
+        el.innerHTML = '<iframe title="思想之河" style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>'; document.body.appendChild(el);
+        root.addEventListener('message', (e) => { const m = e.data; if (!m || m.story !== 1 || e.source !== el.firstChild.contentWindow) return;
+          if (m.op === 'ready') el.firstChild.contentWindow.postMessage({ story: 1, op: 'people', people: conePeople(), focus: el.dataset.focus || null }, location.origin);
+          if (m.op === 'close') closeStory();
+          if (m.op === 'goto' && philById(m.id)) { const p = philById(m.id); closeStory(); teleport({ mode: 'walk', p: [p.x + 0.5, p.gy, p.z + Math.min(4.8, Math.floor((p.d || 14) / 2) - 1.2)], t: [p.x + 0.5, p.gy + 1.75, p.z - 0.85] }); } }); }
+      closeModal(); if (isDialogueOpen()) closeDialogue();
+      el.dataset.focus = focus || ''; el.firstChild.src = 'storybook/atlas.html'; el.style.display = 'block'; S.ui = true; if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
+      return true;
+    }
+    function closeStory() { const el = $id('pi-story'); if (!el || el.style.display === 'none') return; el.style.display = 'none'; el.firstChild.src = 'about:blank'; if (!isModalOpen() && !isDialogueOpen()) S.ui = false; }
+    const isStoryOpen = () => { const el = $id('pi-story'); return !!(el && el.style.display === 'block'); };
+    // ── the pop-up book: the handbook's eight themes as eight paper rooms that fold open (popup/index.html) ──
+    function openFold(book) {
+      let el = $id('pi-fold');
+      if (!el) { el = document.createElement('div'); el.id = 'pi-fold'; el.style.cssText = 'position:fixed;inset:0;z-index:62;display:none;background:#efe6d4;';
+        el.innerHTML = '<iframe title="折叠书" style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>'; document.body.appendChild(el);
+        root.addEventListener('message', (e) => { const m = e.data; if (!m || m.fold !== 1 || e.source !== el.firstChild.contentWindow) return;
+          if (m.op === 'ready') { const names = {}; world.PHILOSOPHERS.forEach((p) => { names[p.id] = p.name; }); el.firstChild.contentWindow.postMessage({ fold: 1, op: 'names', names }, location.origin); }
+          if (m.op === 'close') closeFold();
+          if (m.op === 'goto' && philById(m.id)) { closeFold(); setStudy(String(m.name || ''), m.id); studyGo('table'); } }); }
+      closeModal(); if (isDialogueOpen()) closeDialogue();
+      el.firstChild.src = 'popup/index.html' + (book === 'ideas' ? '?book=ideas' : ''); el.style.display = 'block'; S.ui = true; if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
+      return true;
+    }
+    function closeFold() { const el = $id('pi-fold'); if (!el || el.style.display === 'none') return; el.style.display = 'none'; el.firstChild.src = 'about:blank'; if (!isModalOpen() && !isDialogueOpen()) S.ui = false; }
+    const isFoldOpen = () => { const el = $id('pi-fold'); return !!(el && el.style.display === 'block'); };
+    // ── the papercraft map: the island as a stack of cut-paper layers with little paper halls (papercraft/index.html) ──
+    function paperMap() { const W = world.W, D = world.D, q = 4, gw = W / q, gh = D / q, h = [], path = [];
+      for (let gz = 0; gz < gh; gz++) for (let gx = 0; gx < gw; gx++) { let mx = 0, pp = 0; for (let b = 0; b < q; b++) for (let a = 0; a < q; a++) { const i = gx * q + a + W * (gz * q + b); if (world.hm[i] > mx) mx = world.hm[i]; if (world.pathM && world.pathM[i]) pp++; } h.push(mx); path.push(pp >= 5 ? 1 : 0); }
+      return { paper: 1, op: 'map', gw, gh, h, path, W, D, halls: world.PHILOSOPHERS.map((p) => { const w = root.PIWiki ? root.PIWiki.get(p.id) : null; return { id: p.id, name: p.name, x: p.x, z: p.z, district: String(p.district || '').split('·')[0].trim(), note: ((w && w.summary) || '').slice(0, 130) }; }) }; }
+    function openPaper() {
+      let el = $id('pi-paper');
+      if (!el) { el = document.createElement('div'); el.id = 'pi-paper'; el.style.cssText = 'position:fixed;inset:0;z-index:62;display:none;background:#d9c9a8;';
+        el.innerHTML = '<iframe title="纸艺小岛" style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>'; document.body.appendChild(el);
+        root.addEventListener('message', (e) => { const m = e.data; if (!m || m.paper !== 1 || e.source !== el.firstChild.contentWindow) return;
+          if (m.op === 'ready') el.firstChild.contentWindow.postMessage(paperMap(), location.origin);
+          if (m.op === 'close') closePaper();
+          if (m.op === 'goto' && philById(m.id)) { const p = philById(m.id); closePaper(); teleport({ mode: 'walk', p: [p.x + 0.5, p.gy, p.z + Math.min(4.8, Math.floor((p.d || 14) / 2) - 1.2)], t: [p.x + 0.5, p.gy + 1.75, p.z - 0.85] }); } }); }
+      closeModal(); if (isDialogueOpen()) closeDialogue();
+      el.firstChild.src = 'papercraft/index.html'; el.style.display = 'block'; S.ui = true; if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
+      return true;
+    }
+    function closePaper() { const el = $id('pi-paper'); if (!el || el.style.display === 'none') return; el.style.display = 'none'; el.firstChild.src = 'about:blank'; if (!isModalOpen() && !isDialogueOpen()) S.ui = false; }
+    const isPaperOpen = () => { const el = $id('pi-paper'); return !!(el && el.style.display === 'block'); };
+    // ── 词根馆 (the GIF hall on the Island of Time): 191 word GIFs under 25 roots, and the verified thinking-model GIFs ──
+    function openRootmap(tab, model) {
+      let el = $id('pi-rootmap');
+      if (!el) { el = document.createElement('div'); el.id = 'pi-rootmap'; el.style.cssText = 'position:fixed;inset:0;z-index:62;display:none;background:#14121f;';
+        el.innerHTML = '<iframe title="词根馆" allow="fullscreen" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>'; document.body.appendChild(el);
+        root.addEventListener('message', (e) => { const m = e.data; if (!m || m.rootmap !== 1 || e.source !== el.firstChild.contentWindow) return;
+          if (m.op === 'close') closeRootmap();
+          if (m.op === 'note' && m.title) { const now = Date.now(); notebook.unshift({ id: now, ts: now, at: new Date(now).toISOString(), type: 'word', thinker: '词根馆', question: String(m.title), modes: ['词根地图'], models: [], steps: null, messages: [{ role: 'phil', who: '词根', text: String(m.text || '') }] }); saveNotebook(); toast('📓 已记到笔记本'); }
+          if (m.op === 'hb') { closeRootmap(); openHandbook(String(m.name)); }
+          if (m.op === 'goto' && philById(m.id)) { closeRootmap(); setStudy(String(m.name || ''), m.id); studyGo('table'); } }); }
+      closeModal(); if (isDialogueOpen()) closeDialogue();
+      el.firstChild.src = tab === 'sphere' ? 'rootmap/sphere.html' : 'rootmap/index.html' + (tab === 'models' ? '?tab=models' + (model ? '&model=' + encodeURIComponent(model) : '') : ''); el.style.display = 'block'; S.ui = true; if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
+      return true;
+    }
+    function closeRootmap() { const el = $id('pi-rootmap'); if (!el || el.style.display === 'none') return; el.style.display = 'none'; el.firstChild.src = 'about:blank'; if (!isModalOpen() && !isDialogueOpen()) S.ui = false; }
+    const isRootmapOpen = () => { const el = $id('pi-rootmap'); return !!(el && el.style.display === 'block'); };
+    // ── the great library on the Island of Time (library/index.html): shelves by subject, real covers, six ways to read ──
+    function libNote(m) { const now = Date.now(), k = 'lib:' + String(m.book); let n = notebook.find((x) => x.type === 'read' && x.bookKey === k);
+      if (!n) n = { id: now, type: 'read', bookKey: k, thinker: String(m.author || ''), question: '读《' + String(m.book) + '》', modes: ['时光图书馆'], models: [], steps: null, messages: [] }; else notebook.splice(notebook.indexOf(n), 1);
+      n.ts = now; n.at = new Date(now).toISOString(); n.messages.push({ role: 'phil', who: String(m.title || '摘录'), text: String(m.text || '').slice(0, 900) }); notebook.unshift(n); saveNotebook(); }
+    function overlayFrame(id, title, bg) { let el = $id(id); if (!el) { el = document.createElement('div'); el.id = id; el.style.cssText = 'position:fixed;inset:0;z-index:63;display:none;background:' + bg + ';'; el.innerHTML = '<iframe title="' + title + '" style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>'; document.body.appendChild(el); el.dataset.fresh = '1'; } return el; }
+    function openCatalogBook(b) { if (!b) return false; if (!b.file) { toast('《' + (b.zh || b.title) + '》仍在版权期或没有公版文字，这里只有封面和书目'); return true; }
+      openReader({ philId: b.hall || null, title: b.zh ? b.zh + ' · ' + b.title : b.title, author: b.author, key: 'lib:' + b.key, file: b.file, kind: b.kind, srcLabel: b.src, url: b.url, mode: 'text' }); return true; }
+    function openLibrary() { const el = overlayFrame('pi-library', '时光图书馆', '#2a1c12');
+      if (el.dataset.fresh) { delete el.dataset.fresh; root.addEventListener('message', (e) => { const m = e.data; if (!m || m.lib !== 1 || e.source !== el.firstChild.contentWindow) return;
+        if (m.op === 'ready') { const names = {}; world.PHILOSOPHERS.forEach((p) => { names[p.id] = p.name; }); el.firstChild.contentWindow.postMessage({ lib: 1, op: 'names', names }, location.origin); }
+        if (m.op === 'note') libNote(m); if (m.op === 'close') closeLibrary(); }); }
+      closeModal(); if (isDialogueOpen()) closeDialogue(); el.firstChild.src = 'library/index.html'; el.style.display = 'block'; S.ui = true; if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock(); return true; }
+    function closeLibrary() { const el = $id('pi-library'); if (!el || el.style.display === 'none') return; el.style.display = 'none'; el.firstChild.src = 'about:blank'; if (!isModalOpen() && !isDialogueOpen()) S.ui = false; }
+    const isLibraryOpen = () => { const el = $id('pi-library'); return !!(el && el.style.display === 'block'); };
+    // the same six ways to read, for a book from a hall's own shelf
+    function openCreative(b, mode) { if (!b || !b.file) return false; const el = overlayFrame('pi-read2', '阅读', '#f3ecdc');
+      if (el.dataset.fresh) { delete el.dataset.fresh; root.addEventListener('message', (e) => { const m = e.data; if (!m || m.read2 !== 1 || e.source !== el.firstChild.contentWindow) return; if (m.op === 'note') libNote(m);
+        if (m.op === 'close') { el.style.display = 'none'; el.firstChild.src = 'about:blank'; if (m.kept) toast('📓 这次留下的 ' + m.kept + ' 条已记到笔记本'); if (!isModalOpen() && !isDialogueOpen() && !isReaderOpen()) S.ui = false; } }); }
+      el.firstChild.src = 'library/read.html?file=' + encodeURIComponent(b.file) + '&title=' + encodeURIComponent(b.title || '') + '&zh=' + encodeURIComponent(b.zh || '') + '&author=' + encodeURIComponent(b.author || '') + '&mode=' + (mode == null ? 1 : mode);
+      el.style.display = 'block'; S.ui = true; return true; }
+    // ── the light cone, second version: the coil of technology (lightcone/index.html, full-screen overlay) ──
+    let coneSeen = [];
+    function openLightCone(focus) {
+      let el = $id('pi-cone2');
+      if (!el) { el = document.createElement('div'); el.id = 'pi-cone2'; el.style.cssText = 'position:fixed;inset:0;z-index:62;display:none;background:#0b0920;';
+        el.innerHTML = '<iframe title="光锥" style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>'; document.body.appendChild(el);
+        root.addEventListener('message', (e) => { const m = e.data; if (!m || m.cone2 !== 1 || e.source !== el.firstChild.contentWindow) return;
+          if (m.op === 'ready') el.firstChild.contentWindow.postMessage({ cone2: 1, op: 'people', people: conePeople(), focus: el.dataset.focus || null }, location.origin);
+          if (m.op === 'seen' && m.title && !coneSeen.some((c) => c.title === m.title)) coneSeen.push({ title: String(m.title), year: String(m.year || ''), domain: String(m.domain || ''), note: String(m.note || '') });
+          if (m.op === 'close') closeLightCone();
+          if (m.op === 'goto' && philById(m.id)) { const p = philById(m.id); closeLightCone(); teleport({ mode: 'walk', p: [p.x + 0.5, p.gy, p.z + Math.min(4.8, Math.floor((p.d || 14) / 2) - 1.2)], t: [p.x + 0.5, p.gy + 1.75, p.z - 0.85] }); } }); }
+      closeModal(); if (isDialogueOpen()) closeDialogue();
+      coneSeen = []; el.dataset.focus = focus || ''; el.firstChild.src = 'lightcone/index.html'; el.style.display = 'block'; S.ui = true; if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
+      return true;
+    }
+    function closeLightCone() { const el = $id('pi-cone2'); if (!el || el.style.display === 'none') return; el.style.display = 'none'; el.firstChild.src = 'about:blank';
+      if (coneSeen.length) { const now = Date.now(); notebook.unshift({ id: now, ts: now, at: new Date(now).toISOString(), type: 'cone', thinker: '光锥', question: '光锥 · 330 万年人类科技史（看了 ' + coneSeen.length + ' 件）', modes: ['光锥'], models: [], steps: null, messages: coneSeen.map((c) => ({ role: 'phil', who: c.year + ' · ' + c.domain, text: c.title + (c.note ? '：' + c.note : '') })) }); saveNotebook(); toast('📓 你在光锥上看过的 ' + coneSeen.length + ' 件已记入笔记本'); coneSeen = []; }
+      if (!isModalOpen() && !isDialogueOpen()) S.ui = false; }
+    const isLightConeOpen = () => { const el = $id('pi-cone2'); return !!(el && el.style.display === 'block'); };
+    function openHolo(id, want) {
+      const el = $id('pi-holo'), frame = $id('pi-holo-frame');
+      if (!el || !frame || !(id === 'workshop' || philById(id))) return false;
+      closeDialogue();
+      const mo = $id('pi-modal-overlay');
+      if (mo) mo.style.display = 'none';
+      holo.id = id; holo.model = null; holo.want = want || null; holo.cone = [];
+      studyMark('holo', id);
+      S.ui = true;
+      if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
+      const layer = $id('pi-holo-model');
+      if (layer) layer.style.display = 'none';
+      el.style.display = 'block';
+      frame.src = 'holo-lab-2/index.html';
+      renderHoloRail();
+      $id('pi-holo-model-back').onclick = closeModel;
+      $id('pi-holo-exit').onclick = () => closeHolo(true);
+      const promptBtn = $id('pi-portal-prompt');
+      if (promptBtn) promptBtn.style.display = 'none';
+      return true;
+    }
+
+    // Esc steps back out of a model first; all === true leaves the console outright
+    function closeHolo(all) {
+      if (holo.model && !all) { closeModel(); return; }
+      const el = $id('pi-holo'), frame = $id('pi-holo-frame'), mf = $id('pi-holo-model-frame');
+      if (el) el.style.display = 'none';
+      if (frame) frame.src = 'about:blank';
+      if (mf) mf.src = 'about:blank';
+      if (holo.cone && holo.cone.length) { const now = Date.now();
+        notebook.unshift({ id: now, ts: now, at: new Date(now).toISOString(), type: 'cone', thinker: '光锥', question: '光锥 · 330 万年人类科技史（看了 ' + holo.cone.length + ' 件）', modes: ['全息光锥'], models: [], steps: null,
+          messages: holo.cone.map((c) => ({ role: 'phil', who: c.year + ' · ' + c.domain, text: c.title + (c.note ? '：' + c.note : '') })) });
+        saveNotebook(); toast('📓 你在光锥上看过的 ' + holo.cone.length + ' 件已记入笔记本'); holo.cone = []; }
+      holo.id = null; holo.model = null; holo.want = null;
+      if (!isModalOpen() && !isDialogueOpen()) S.ui = false;
+    }
+
+    function visitAndTalk(pid) {
+      const p = philById(pid);
+      if (!p) return false;
+      closeModal();
+      const zInside = p.z + Math.min(3.8, Math.floor((p.d || 14) / 2) - 1.4);
+      teleport({ mode: 'walk', p: [p.x + 0.5, p.gy, zInside], t: [p.x + 1.15, p.gy + 1.58, p.z + 0.55] });
+      setTimeout(() => openDialogue(pid), 30);
+      return true;
+    }
+
+    function showModal(html) {
+      closeDialogue();
+      S.ui = true;
+      if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
+      const overlay = document.getElementById('pi-modal-overlay');
+      const box = document.getElementById('pi-modal-content');
+      if (!overlay || !box) return null;
+      box.innerHTML = html;
+      overlay.style.display = 'flex';
+      box.scrollTop = 0;
+      const x = document.getElementById('pi-m-close-btn');
+      if (x) x.onclick = closeModal;
+      return box;
+    }
+
+    function openCompareModal(prefillQ) {
+      const pre = typeof prefillQ === 'string' ? prefillQ.trim() : '';
+      if (pre && pre !== compareState.q) { compareState.q = pre; compareState.results = null; }
+      const box = showModal(`
+        <div class="pi-m-header">
+          <div>
+            <span class="pi-m-badge">ONE QUESTION · MANY MINDS</span>
+            <h2>⚖️ 观点对比 · 同一个问题问诸家</h2>
+            <div class="pi-m-sub">写下一个问题，勾选要请教的哲学家，并排看各家立场；之后可以挑一位接着面对面对谈。</div>
+          </div>
+          <button type="button" class="pi-m-close" id="pi-m-close-btn">✕</button>
+        </div>
+        <textarea id="pi-cmp-q" class="pi-cmp-q" rows="2" placeholder="例如：什么使一种生活值得过？">${esc(compareState.q)}</textarea>
+        <div class="pi-btn-row" id="pi-cmp-picks">
+          ${REGISTRY.map((r) => `<button type="button" class="pi-act-btn ${compareState.picks.has(r.philosopher_id) ? 'active' : ''}" data-cmp-pick="${r.philosopher_id}">${esc(r.philosopher_name)}</button>`).join('')}
+        </div>
+        <div class="pi-btn-row" style="margin-top:10px;">
+          <button type="button" class="pi-act-btn" data-cmp-preset="five">经典五家</button>
+          <button type="button" class="pi-act-btn" data-cmp-preset="all">全部诸家</button>
+          <button type="button" class="pi-act-btn" data-cmp-preset="none">清空</button>
+          <button type="button" class="pi-act-btn gold" id="pi-cmp-go">⚖️ 比较观点</button>
+        </div>
+        <div id="pi-cmp-results"></div>
+        <div class="pi-m-footer">
+          <button type="button" class="pi-act-btn" id="pi-cmp-saved">📑 我的收藏</button>
+          <button type="button" class="pi-act-btn" id="pi-cmp-compass">🧭 返回罗盘</button>
+        </div>`);
+      if (!box) return;
+      const qEl = document.getElementById('pi-cmp-q');
+      const host = document.getElementById('pi-cmp-results');
+      const syncPicks = () => box.querySelectorAll('[data-cmp-pick]').forEach((b) => b.classList.toggle('active', compareState.picks.has(b.getAttribute('data-cmp-pick'))));
+
+      const renderResults = () => {
+        const res = compareState.results;
+        if (!res) { host.innerHTML = ''; return; }
+        host.innerHTML = `
+          <div class="pi-m-guardrail">以下回应由岛内本地脚本按各家立场生成，未连接 AI 服务，也不是哲学家的原话。</div>
+          ${res.map((r) => {
+            const p = philById(r.philId) || {};
+            const pData = PHILOSOPHER_PERSPECTIVES[r.philId] || {};
+            return `
+              <article class="pi-cmp-card">
+                <img src="assets/portraits/${r.philId}.jpg" alt="${esc(p.name)}">
+                <div class="pi-cmp-body">
+                  <h4>#${p.num} ${esc(p.name)} <span>${esc(pData.stance || '')}</span></h4>
+                  <div class="pi-cmp-text">${formatBubbleHTML(splitBeats(r.text)[0])}</div>
+                  ${splitBeats(r.text).length > 1 ? `<div class="pi-cmp-text pi-cmp-rest" style="display:none">${formatBubbleHTML(splitBeats(r.text).slice(1).join('\n\n'))}</div><button type="button" class="pi-cmp-toggle" data-cmp-more>展开 ▾</button>` : ''}
+                  <button type="button" class="pi-cmp-toggle" data-cmp-talk="${r.philId}">💬 接着聊</button>
+                </div>
+              </article>`;
+          }).join('')}
+          <div class="pi-btn-row" style="margin-top:12px;">
+            <button type="button" class="pi-act-btn gold" id="pi-cmp-save">💾 保存这组对比</button>
+          </div>`;
+        host.querySelectorAll('[data-cmp-more]').forEach((b) => {
+          b.onclick = () => {
+            const rest = b.previousElementSibling;
+            const open = rest.style.display === 'none';
+            rest.style.display = open ? 'block' : 'none';
+            b.textContent = open ? '收起 ▴' : '展开 ▾';
+          };
+        });
+        host.querySelectorAll('[data-cmp-talk]').forEach((b) => {
+          b.onclick = () => {
+            const pid = b.getAttribute('data-cmp-talk');
+            const r = res.find((x) => x.philId === pid);
+            const session = chatSessions[pid] || (chatSessions[pid] = freshSession());
+            session.messages.push({ role: 'user', text: compareState.q }, { role: 'phil', text: r.text });
+            visitAndTalk(pid);
+          };
+        });
+        const saveBtn = document.getElementById('pi-cmp-save');
+        saveBtn.onclick = () => {
+          saved.unshift({
+            id: Date.now(), type: 'compare', title: compareState.q.slice(0, 55), q: compareState.q, date: today(),
+            results: res.map((r) => ({ philId: r.philId, text: r.text }))
+          });
+          persistSaved();
+          saveBtn.textContent = '✓ 已保存到收藏';
+          saveBtn.disabled = true;
+        };
+      };
+
+      box.querySelectorAll('[data-cmp-pick]').forEach((b) => {
+        b.onclick = () => {
+          const pid = b.getAttribute('data-cmp-pick');
+          if (compareState.picks.has(pid)) compareState.picks.delete(pid); else compareState.picks.add(pid);
+          syncPicks();
+        };
+      });
+      box.querySelectorAll('[data-cmp-preset]').forEach((b) => {
+        b.onclick = () => {
+          const kind = b.getAttribute('data-cmp-preset');
+          compareState.picks = new Set(kind === 'five' ? COMPARE_DEFAULT : kind === 'all' ? REGISTRY.map((r) => r.philosopher_id) : []);
+          syncPicks();
+        };
+      });
+      document.getElementById('pi-cmp-go').onclick = () => {
+        const q = qEl.value.trim();
+        const picks = REGISTRY.filter((r) => compareState.picks.has(r.philosopher_id));
+        if (!q || !picks.length) {
+          compareState.results = null;
+          host.innerHTML = `<div class="pi-cmp-warn">${!q ? '请先写下一个问题。' : '请至少勾选一位哲学家。'}</div>`;
+          if (!q) qEl.focus();
+          return;
+        }
+        compareState.q = q;
+        compareState.results = picks.map((r) => ({
+          philId: r.philosopher_id,
+          text: generateConversationalReply(philById(r.philosopher_id), q, null, { noHook: true }).text
+        }));
+        renderResults();
+      };
+      document.getElementById('pi-cmp-saved').onclick = () => openSavedModal('compare');
+      document.getElementById('pi-cmp-compass').onclick = openCompassModal;
+      renderResults();
+    }
+
+    function openSavedModal(tab) {
+      const which = tab === 'compare' ? 'compare' : 'talk';
+      const talks = saved.filter((x) => x.type === 'talk');
+      const compares = saved.filter((x) => x.type === 'compare');
+      const list = which === 'talk' ? talks : compares;
+      const rows = list.map((item) => {
+        const meta = item.type === 'talk'
+          ? `${esc(item.thinker)} · ${esc(item.date)} · ${item.messages.length} 条消息`
+          : `${item.results.length} 位哲学家 · ${esc(item.date)}`;
+        return `
+          <div class="pi-save-row">
+            <div class="pi-save-meta"><b>${esc(item.title)}</b><span>${meta}</span></div>
+            <div class="pi-pc-actions">
+              <button type="button" class="pri" data-save-open="${item.id}">${item.type === 'talk' ? '💬 继续对谈' : '⚖️ 查看'}</button>
+              <button type="button" data-save-del="${item.id}">删除</button>
+            </div>
+          </div>`;
+      }).join('');
+      const box = showModal(`
+        <div class="pi-m-header">
+          <div>
+            <span class="pi-m-badge">MY COLLECTION</span>
+            <h2>📑 我的收藏</h2>
+            <div class="pi-m-sub">保存在本机浏览器里的对话与观点对比，刷新后仍在。</div>
+          </div>
+          <button type="button" class="pi-m-close" id="pi-m-close-btn">✕</button>
+        </div>
+        <div class="pi-btn-row" style="margin-bottom:6px;">
+          <button type="button" class="pi-act-btn ${which === 'talk' ? 'active' : ''}" data-save-tab="talk">💬 对话 (${talks.length})</button>
+          <button type="button" class="pi-act-btn ${which === 'compare' ? 'active' : ''}" data-save-tab="compare">⚖️ 观点对比 (${compares.length})</button>
+        </div>
+        ${rows || `<p class="pi-save-empty">${which === 'talk' ? '还没有保存的对话。与哲学家交谈时点「💾 保存对话」。' : '还没有保存的观点对比。'}</p>`}
+        <div class="pi-m-footer">
+          <button type="button" class="pi-act-btn" id="pi-save-compare">⚖️ 观点对比</button>
+          <button type="button" class="pi-act-btn" id="pi-save-compass">🧭 返回罗盘</button>
+        </div>`);
+      if (!box) return;
+      box.querySelectorAll('[data-save-tab]').forEach((b) => { b.onclick = () => openSavedModal(b.getAttribute('data-save-tab')); });
+      box.querySelectorAll('[data-save-del]').forEach((b) => {
+        b.onclick = () => {
+          saved = saved.filter((x) => x.id !== Number(b.getAttribute('data-save-del')));
+          persistSaved();
+          openSavedModal(which);
+        };
+      });
+      box.querySelectorAll('[data-save-open]').forEach((b) => {
+        b.onclick = () => {
+          const item = saved.find((x) => x.id === Number(b.getAttribute('data-save-open')));
+          if (!item) return;
+          if (item.type === 'talk') {
+            chatSessions[item.philId] = Object.assign(freshSession(), { messages: item.messages.map((m) => ({ role: m.role, text: m.text })) });
+            visitAndTalk(item.philId);
+          } else {
+            compareState.q = item.q;
+            compareState.picks = new Set(item.results.map((r) => r.philId));
+            compareState.results = item.results.map((r) => ({ philId: r.philId, text: r.text }));
+            openCompareModal();
+          }
+        };
+      });
+      document.getElementById('pi-save-compare').onclick = () => openCompareModal();
+      document.getElementById('pi-save-compass').onclick = openCompassModal;
     }
 
     function closeModal() {
@@ -1100,7 +2020,7 @@
           <button type="button" class="pi-act-btn gold" id="pi-tp-gallery">🏛️ 直接进入室内展览馆 (看壁挂真迹、肖像与雕塑)</button>
           <button type="button" class="pi-act-btn" id="pi-tp-door">🚶 传送至住宅正门</button>
           <button type="button" class="pi-act-btn" id="pi-open-all-map">🧭 全岛罗盘</button>
-          <button type="button" class="pi-act-btn" id="pi-done-btn">✓ 记入笔记 (${getVisitedCount()}/20)</button>
+          <button type="button" class="pi-act-btn" id="pi-done-btn">✓ 记入笔记 (${getVisitedCount()}/${world.PHILOSOPHERS.length})</button>
         </div>
       `;
 
@@ -1155,7 +2075,7 @@
       document.getElementById('pi-m-close-btn').onclick = closeModal;
       document.getElementById('pi-done-btn').onclick = () => {
         closeModal();
-        toast(`📚 已收录「${portal.philosopher_name}」思想展览馆笔记 (${getVisitedCount()}/20)`);
+        toast(`📚 已收录「${portal.philosopher_name}」思想展览馆笔记 (${getVisitedCount()}/${world.PHILOSOPHERS.length})`);
       };
       document.getElementById('pi-open-all-map').onclick = () => {
         openCompassModal();
@@ -1295,17 +2215,32 @@
       box.innerHTML = `
         <div class="pi-m-header">
           <div>
-            <span class="pi-m-badge">SIX EPISTEMOLOGICAL DISTRICTS · TOP 20 PHILOSOPHERS</span>
-            <h2>🧭 哲学家体素小岛 · Top 20 思想街区全景罗盘</h2>
-            <div class="pi-m-sub">点击任意哲学家可瞬间传送至其宅邸门前，或直接预览其屋内的 InteractionPortal 思想实验 (${getVisitedCount()}/20 已探索)</div>
+            <span class="pi-m-badge">MAIN ISLAND + ANNEX ISLAND · ${world.PHILOSOPHERS.length} HALLS</span>
+            <h2>🧭 哲学家体素小岛 · 主岛与社会科学岛 ${world.PHILOSOPHERS.length} 座展馆全景罗盘</h2>
+            <div class="pi-m-sub">点击任意哲学家可瞬间传送至其宅邸门前，或直接预览其屋内的 InteractionPortal 思想实验 (${getVisitedCount()}/${world.PHILOSOPHERS.length} 已探索)</div>
           </div>
           <button type="button" class="pi-m-close" id="pi-m-close-btn">✕</button>
         </div>
 
         <div class="pi-btn-row" style="margin-bottom:10px;">
           <button type="button" class="pi-act-btn gold" id="pi-quick-cave">🔥 直达：柏拉图地下洞穴剧场</button>
+          <button type="button" class="pi-act-btn gold" id="pi-quick-story">📖 思想之河：绘本里沿河走一遍（P）</button>
+          <button type="button" class="pi-act-btn gold" id="pi-quick-lib">🏛 时光图书馆：书墙 + 六种读法（G）</button>
+          <button type="button" class="pi-act-btn gold" id="pi-quick-sphere">🌐 Sphere 环球巨幕：两百块屏幕一起播（时光岛）</button>
+          <button type="button" class="pi-act-btn gold" id="pi-quick-root">🎞 词根馆：191 个词汇动图 + 思维模型动图（时光岛）</button>
+          <button type="button" class="pi-act-btn gold" id="pi-quick-paper">✂️ 纸艺小岛：厚纸叠出来的全岛地图（U）</button>
+          <button type="button" class="pi-act-btn gold" id="pi-quick-fold2">📗 折叠书：十大哲学思想（I）</button>
+          <button type="button" class="pi-act-btn gold" id="pi-quick-fold">📐 折叠书：把思维手册翻成八个纸房间（O）</button>
+          <button type="button" class="pi-act-btn gold" id="pi-quick-hb">🧰 思维手册：100 个常用思维模型（J）</button>
+          <button type="button" class="pi-act-btn gold" id="pi-quick-stick">🎬 火柴人小剧场：43 个思想的小动画（K）</button>
+          <button type="button" class="pi-act-btn gold" id="pi-quick-cone">⏳ 时光岛 · 光锥：330 万年科技史（L）</button>
+          <button type="button" class="pi-act-btn gold" id="pi-quick-council">🏛 召开圆桌会议（C）</button>
+          <button type="button" class="pi-act-btn gold" id="pi-quick-kantwalk">🚶 陪康德下午散步（柯尼斯堡 · 约 1790 年）</button>
           <button type="button" class="pi-act-btn gold" id="pi-quick-kant2f">🌌 直达：康德二楼星空浑天仪阁楼</button>
           <button type="button" class="pi-act-btn" id="pi-quick-bridge">🌉 直达：综合之桥 (唯理论×经验论交汇)</button>
+          <button type="button" class="pi-act-btn" id="pi-quick-holo">🔷 思维工坊 · 全息操作台（全部交互模型）</button>
+          <button type="button" class="pi-act-btn" id="pi-quick-compare">⚖️ 观点对比：同一问题问诸家</button>
+          <button type="button" class="pi-act-btn" id="pi-quick-saved">📑 我的收藏</button>
         </div>
 
         <div class="pi-phil-grid">
@@ -1348,6 +2283,18 @@
         if (lm && lm.tp) teleport(lm.tp);
         toast('🔥 已进入柏拉图学院地下洞穴石窟 (y=38) · 按 E 操控火堆与洞壁影子');
       };
+      document.getElementById('pi-quick-story').onclick = () => { openStory(); };
+      document.getElementById('pi-quick-lib').onclick = () => { closeModal(); teleport({ mode: 'walk', p: [471.5, 42, 50.5], t: [471.5, 45, 42] }); };
+      document.getElementById('pi-quick-sphere').onclick = () => { closeModal(); teleport({ mode: 'walk', p: [474.5, 42, 66], t: [487.5, 50, 62.5] }); toast('🌐 按 X 把你自己的图片、GIF 或视频放到 Sphere 外壳上'); };
+      document.getElementById('pi-quick-root').onclick = () => { closeModal(); teleport({ mode: 'walk', p: [465.5, 42, 58.5], t: [455, 43.5, 58.5] }); };
+      document.getElementById('pi-quick-paper').onclick = () => { openPaper(); };
+      document.getElementById('pi-quick-fold2').onclick = () => { openFold('ideas'); };
+      document.getElementById('pi-quick-fold').onclick = () => { openFold(); };
+      document.getElementById('pi-quick-hb').onclick = () => { openHandbook(); };
+      document.getElementById('pi-quick-stick').onclick = () => { openStick(); };
+      document.getElementById('pi-quick-cone').onclick = () => { closeModal(); teleport({ mode: 'walk', p: [471.5, 42, 70], t: [471.5, 44, 56] }); };
+      document.getElementById('pi-quick-council').onclick = () => { closeModal(); openCouncilSetup(); };
+      document.getElementById('pi-quick-kantwalk').onclick = () => { closeModal(); setTime(15.5); openDialogue('kant'); if (ctx.startWalkTalk) ctx.startWalkTalk('kant'); toast('🚶 柯尼斯堡，下午三点半：康德出门了。走过椴树小径、河边和大教堂，他会五次停下来'); };
       document.getElementById('pi-quick-kant2f').onclick = () => {
         closeModal();
         setTime(22.0);
@@ -1361,6 +2308,15 @@
         if (lm && lm.tp) teleport(lm.tp);
         toast('🌉 综合之桥：跨越感性之溪，通往东北台地康德的柯尼斯堡住宅');
       };
+
+      document.getElementById('pi-quick-holo').onclick = () => {
+        closeModal();
+        const lm = world.landmarks.find((l) => l.id === 'workshop');
+        if (lm && lm.tp) teleport(lm.tp);
+        openHolo('workshop');
+      };
+      document.getElementById('pi-quick-compare').onclick = () => openCompareModal();
+      document.getElementById('pi-quick-saved').onclick = () => openSavedModal('talk');
 
       box.querySelectorAll('[data-tp-phil]').forEach((b) => {
         b.onclick = () => {
@@ -1403,19 +2359,703 @@
     }
 
     function activateNearest() {
+      if (nearestConsole) return openHolo(nearestConsole.id);
       if (nearestPortal) return openDialogue(nearestPortal.portal_id);
       return false;
     }
 
     updateJournalBadge();
 
+    /* ================= Task board (what do you want to learn today?) · study task · notebook ================= */
+    const STUDY_KEY = 'minest.philosophers.study.v1', NB_KEY = 'minest.philosophers.notebook.v1';
+    let study = null, notebook = [];
+    const nbMark = {}, nbFlags = { walk: false };
+    try { study = JSON.parse(localStorage.getItem(STUDY_KEY) || 'null'); } catch (e) { study = null; }
+    try { notebook = JSON.parse(localStorage.getItem(NB_KEY) || '[]') || []; } catch (e) { notebook = []; }
+    const saveStudy = () => { try { localStorage.setItem(STUDY_KEY, JSON.stringify(study)); } catch (e) {} renderStudy(); };
+    const saveNotebook = () => { try { localStorage.setItem(NB_KEY, JSON.stringify(notebook.slice(0, 200))); } catch (e) {} };
+    const modelsOf = (id) => { const PM = root.PIModels; return PM && PM.ROOMS && PM.ROOMS[id] ? PM.ROOMS[id].map((k) => PM.byKey[k]).filter(Boolean) : []; };
+    const doorOf = (p) => [p.x + 0.5, p.z + Math.floor(p.d / 2) + 3.5];
+
+    // ── recommendation: match the question against every hall's concepts, models, thought steps, stance… ──
+    let recIndex = null;
+    function buildRecIndex() {
+      recIndex = world.PHILOSOPHERS.map((p) => {
+        const w = root.PIWiki ? root.PIWiki.get(p.id) : null, pd = PHILOSOPHER_PERSPECTIVES[p.id] || {}, th = THOUGHT_MODELS[p.id] || {}, F = [];
+        ((w && w.concepts) || []).forEach((c) => { F.push({ w: 5, t: c.term + ' ' + (c.en || ''), why: '核心概念「' + c.term + '」：' + c.desc }); F.push({ w: 1, t: c.desc || '', why: '核心概念「' + c.term + '」：' + c.desc }); });
+        modelsOf(p.id).forEach((m) => F.push({ w: 5, t: m.title, why: '馆里有交互模型「' + m.title + '」', model: m.key }));
+        if (th.title) F.push({ w: 5, t: th.title, why: '思想模型「' + th.title + '」' });
+        (th.steps || []).forEach((st) => F.push({ w: 2, t: st, why: '思想模型的一步：' + st }));
+        F.push({ w: 5, t: p.portalName || '', why: '馆内思想实验：' + (p.portalName || '').replace(/\s*\(.*$/, '') });
+        F.push({ w: 4, t: p.name + ' ' + (p.en || ''), why: '你提到了' + p.name });
+        F.push({ w: 3, t: (pd.stance || '') + ' ' + ((w && w.school) || '') + ' ' + ((w && w.interests) || ''), why: '他的立场：' + String(pd.stance || '').replace(/\s*[（(][A-Za-z][^）)]*[）)]/g, '') });
+        F.push({ w: 1, t: ((w && w.summary) || '') + ' ' + (p.works || []).join(' '), why: (w && w.summary) || '' });
+        return { p, F: F.map((f) => Object.assign(f, { t: String(f.t).toLowerCase() })) };
+      });
+    }
+    // everyday words → the halls that have most to say about them (first = strongest)
+    const REC_THEMES = [
+      [/痛苦|苦难|受苦|焦虑|绝望|难过|抑郁|烦恼/, ['schopenhauer_kierkegaard', 'zeno', 'nietzsche'], '痛苦与如何面对它'],
+      [/市场|价格|贸易|经济|买卖|分工/, ['smith_ricardo', 'hayek_schumpeter', 'keynes_friedman'], '市场怎样运转'],
+      [/ai|人工智能|机器|算法|会思考|意识/, ['descartes', 'wittgenstein', 'simon_kahneman'], '心灵、思考与机器'],
+      [/知识|知道|认识|真理|确定|怀疑|相信/, ['descartes', 'hume', 'kant'], '我们能知道什么'],
+      [/自由|自主|选择权/, ['mill', 'heidegger_sartre', 'kant'], '自由'],
+      [/幸福|人生|活着|过好|美好生活|意义/, ['aristotle', 'socrates', 'heidegger_sartre'], '怎样的人生值得过'],
+      [/道德|善恶|应该|对错|良心|伦理/, ['kant', 'mill', 'aristotle'], '什么是对的'],
+      [/死亡|死|有限/, ['heidegger_sartre', 'zhuangzi', 'zeno'], '死亡'],
+      [/权力|规训|监视|控制/, ['foucault', 'nietzsche', 'hobbes_rousseau'], '权力'],
+      [/语言|意思|含义|词/, ['wittgenstein', 'frege', 'russell'], '语言与意义'],
+      [/科学|实验|理论|证明|证伪/, ['popper', 'kuhn', 'bacon'], '科学是什么'],
+      [/国家|政府|政治|法律|契约|民主/, ['hobbes_rousseau', 'locke', 'rawls'], '国家与正当性'],
+      [/公平|平等|贫富|分配|不平等|剥削/, ['rawls', 'marx', 'hobbes_rousseau'], '公平与分配'],
+      [/孤独|关系|朋友|人脉|社交|信任/, ['granovetter', 'simmel_mead', 'olson_putnam'], '人与人的联结'],
+      [/学习|教育|孩子|成长|教学/, ['piaget_vygotsky', 'confucius', 'pavlov_skinner'], '学习与成长'],
+      [/习惯|上瘾|奖励|行为/, ['pavlov_skinner', 'aristotle', 'simon_kahneman'], '习惯怎样形成'],
+      [/决定|决策|选择|犹豫|理性/, ['simon_kahneman', 'nash', 'heidegger_sartre'], '怎样做决定'],
+      [/记忆|遗忘|忘|背/, ['ebbinghaus', 'piaget_vygotsky', 'plato'], '记忆与遗忘'],
+      [/动机|需要|欲望|想要|自我实现/, ['maslow_festinger', 'schopenhauer_kierkegaard', 'spinoza'], '人为什么想要'],
+      [/合作|博弈|竞争|搭便车|集体/, ['nash', 'olson_putnam', 'hobbes_rousseau'], '合作与博弈'],
+      [/通胀|失业|货币|增长|危机/, ['keynes_friedman', 'hayek_schumpeter', 'marx'], '宏观经济'],
+      [/上帝|神|宗教|信仰/, ['spinoza', 'schopenhauer_kierkegaard', 'leibniz'], '神与信仰'],
+      [/因果|原因|必然|偶然/, ['hume', 'kant', 'aristotle'], '因果'],
+      [/自我|我是谁|身份|认同/, ['simmel_mead', 'descartes', 'heidegger_sartre'], '“我”是什么'],
+      [/变化|矛盾|对立|历史/, ['hegel', 'marx', 'laozi'], '变化与矛盾'],
+      [/自然|顺其自然|无为|放下/, ['laozi', 'zhuangzi', 'zeno'], '顺应自然'],
+      [/社会|群体|团结|规范/, ['durkheim_weber', 'simmel_mead', 'habermas'], '社会靠什么维系']
+    ];
+    function recommend(q) {
+      if (!recIndex) buildRecIndex();
+      const qn = String(q || '').toLowerCase().replace(/(是什么意思|是什么|什么是|什么叫|为什么会|为什么|怎么样|怎么办|怎么|怎样|如何|什么|请问|我想要|我想|想要|了解|知道|一下|关于|有关|到底|究竟|的|吗|呢|啊|吧|？|\?|，|,|。|！|\s)/g, '');
+      if (qn.length < 2) return [];
+      const grams = []; for (let i = 0; i < qn.length - 1; i++) grams.push(qn.slice(i, i + 2));
+      const cjk = /[\u4e00-\u9fff]/.test(qn), raw = String(q || '').toLowerCase(), themes = REC_THEMES.filter((th) => th[0].test(raw));
+      return recIndex.map((e) => {
+        let score = 0, best = null, bs = 0; const models = [];
+        e.F.forEach((f) => { let s = 0; if (f.t.indexOf(qn) >= 0) s += f.w * 6; let g = 0; grams.forEach((x) => { if (f.t.indexOf(x) >= 0) g++; }); if (cjk && g / grams.length >= 0.5) s += f.w * Math.min(g, 3) * (g / grams.length);
+          if (s > 0) { score += s; if (s > bs) { bs = s; best = f; } if (f.model && models.indexOf(f.model) < 0) models.push(f.model); } });
+        themes.forEach((th) => { const k = th[1].indexOf(e.p.id); if (k < 0) return; const sc = 34 - k * 8; score += sc; if (sc > bs) { bs = sc; best = { why: '关于「' + th[2] + '」，他是岛上最值得问的人之一。' + String((PHILOSOPHER_PERSPECTIVES[e.p.id] || {}).stance || '').replace(/\s*[（(][A-Za-z][^）)]*[）)]/g, '') }; } });
+        return { p: e.p, score, why: best ? best.why : '', models };
+      }).filter((r) => r.score >= 6).sort((a, b) => b.score - a.score).slice(0, 3);
+    }
+
+    // ── the study task ──
+    function setStudy(q, id) { const p = philById(id); if (!p) return; study = { q, philId: id, name: p.name, steps: { visit: false, holo: false, read: false, talk: false }, models: [], at: Date.now() }; saveStudy(); toast('📌 已接下任务：向「' + p.name + '」请教「' + q + '」'); }
+    function studyMark(step, id, extra) { if (!study || study.philId !== id) return; if (extra && study.models.indexOf(extra) < 0) study.models.push(extra); if (!study.steps[step]) { study.steps[step] = true; saveStudy(); } else if (extra) saveStudy(); }
+    let studyT = 0;
+    function studyTick() {
+      if (!study) return; const now = Date.now(); if (now - studyT < 300) return; studyT = now;
+      const p = philById(study.philId); if (!p) return;
+      if (!study.steps.visit && Math.hypot(player.pos.x - (p.x + 0.5), player.pos.z - (p.z + 0.5)) < Math.max(p.w, p.d) / 2 + 1) studyMark('visit', p.id);
+      const nav = $id('pi-study-nav'); if (!nav) return;
+      if (study.steps.visit || S.ui) { if (nav.textContent) nav.textContent = ''; return; }
+      const g = doorOf(p), dx = g[0] - player.pos.x, dz = g[1] - player.pos.z, a = Math.atan2(dx, dz) - Math.atan2(-Math.sin(player.yaw), -Math.cos(player.yaw));
+      const rel = Math.atan2(Math.sin(a), Math.cos(a));
+      nav.textContent = '↑↗→↘↓↙←↖'.charAt(((Math.round(-rel / (Math.PI / 4)) % 8) + 8) % 8) + ' ' + p.name + '的展馆 · ' + Math.round(Math.hypot(dx, dz)) + ' 米';
+    }
+    function studyGo(kind) {
+      if (!study) return; const p = philById(study.philId); if (!p) return; closeModal();
+      if (kind === 'visit') { const g = doorOf(p); ctx.teleport({ p: [g[0], 42, g[1] + 2.5], t: [g[0], 41.5, g[1] - 6], mode: 'walk' }); toast('🧭 到了。进去随便看看：墙上的生平、展柜、馆藏画，还有那台发蓝光的全息操作台'); }
+      if (kind === 'holo') openHolo(p.id);
+      if (kind === 'read') openShelf(p.id);
+      if (kind === 'stick') openStick(p.id);
+      if (kind === 'table') openDialogue(p.id);
+      if (kind === 'walk') { openDialogue(p.id); nbFlags.walk = true; if (ctx.startWalkTalk) ctx.startWalkTalk(p.id); }
+    }
+    function renderStudy() {
+      const box = $id('pi-quest-study'); if (!box) return;
+      if (!study) { box.innerHTML = ''; return; }
+      const s = study.steps, ck = (v, t, a) => `<div class="qs-i ${v ? 'on' : ''}" data-study="${a}">${v ? '☑' : '☐'} ${t}</div>`;
+      box.innerHTML = `<div class="qs-h">📌 学习任务</div><div class="qs-q">「${esc(study.q)}」→ ${esc(study.name)}</div>`
+        + ck(s.visit, '到他的展馆逛一逛', 'visit') + ck(s.holo, '看全息屏 / 玩一个模型', 'holo') + ck(s.read, '翻翻他的书（可选）', 'read') + ck(s.talk, '和他圆桌对谈或散步', 'table')
+        + `<div class="q-nav" id="pi-study-nav"></div><div class="q-row"><button data-study="walk">🚶 散步交谈</button><button data-study="drop">放弃</button></div>`;
+      if (!box.__b) { box.__b = true; box.addEventListener('click', (e) => { const a = e.target && e.target.getAttribute && e.target.getAttribute('data-study'); if (!a) return; e.stopPropagation(); if (a === 'drop') { study = null; saveStudy(); } else studyGo(a); }); }
+    }
+
+    function openTaskBoard(prefill) {
+      const EX = ['辩证法是什么', '什么是正义', '人为什么会痛苦', '怎样才算知道一件事', '市场是怎样运转的', '记忆为什么会遗忘', 'AI 会思考吗', '人是自由的吗'];
+      const box = showModal(`
+        <div class="pi-m-header"><div><span class="pi-m-badge">TASK BOARD</span><h2>📋 任务板 · 你今天想要了解什么？</h2>
+          <div class="pi-m-sub">写下一个问题或一个词，岛上会推荐最该去找的思想者。你可以先自己逛展馆、看全息屏，再坐下来对谈或边走边聊；聊完会自动记进笔记本。</div></div>
+          <button type="button" class="pi-m-close" id="pi-m-close-btn">✕</button></div>
+        <div style="display:flex;gap:8px;"><input id="pi-tb-q" class="pi-cmp-q" style="flex:1;min-height:0;height:44px;" maxlength="60" placeholder="例如：辩证法是什么" value="${esc(prefill || '')}"><button type="button" class="pi-act-btn gold" id="pi-tb-go">🔎 推荐</button></div>
+        <div class="pi-btn-row" style="margin-top:10px;">${EX.map((t) => `<button type="button" class="pi-act-btn" data-tb-ex="${esc(t)}">${esc(t)}</button>`).join('')}</div>
+        <div id="pi-tb-res" style="margin-top:14px;"></div>
+        <div class="pi-m-footer"><button type="button" class="pi-act-btn" id="pi-tb-book">📓 打开笔记本（${notebook.length} 条）</button>${study ? `<span class="pi-m-sub">当前任务：「${esc(study.q)}」→ ${esc(study.name)}</span>` : ''}</div>`);
+      if (!box) return;
+      const run = () => {
+        const q = ($id('pi-tb-q').value || '').trim(), res = $id('pi-tb-res'); if (!q) { res.innerHTML = ''; return; }
+        const recs = recommend(q), hb = hbSearch(q), hbHtml = hb.length ? '<div class="pi-tb-why" style="margin:4px 2px 12px;">🧰 思维手册里相关的：' + hb.slice(0, 5).map((m) => `<button type="button" class="pi-act-btn" style="padding:3px 9px;font-size:12px;" data-tb-hb="${esc(m.name)}">${esc(m.name)}</button>`).join(' ') + '</div>' : '';
+        if (!recs.length && hb.length) { res.innerHTML = hbHtml; return; }
+        if (!recs.length) { res.innerHTML = '<p class="pi-save-empty">没有找到直接对得上的展馆。换一个更具体的词试试（比如一个概念的名字），或者按 M 打开罗盘自己挑。</p>'; return; }
+        res.innerHTML = hbHtml + recs.map((r, i) => { const ms = modelsOf(r.p.id);
+          return `<div class="pi-tb-card ${i ? '' : 'top'}"><img src="assets/portraits/${r.p.id}.jpg" alt=""><div class="pi-tb-body">
+            <div class="pi-tb-name">${i ? '也可以找' : '推荐去找'} <b>${esc(r.p.name)}</b> <span>#${r.p.num || ''} · ${esc(r.p.district || '')}</span></div>
+            <div class="pi-tb-why">${esc(r.why.length > 110 ? r.why.slice(0, 110) + '…' : r.why)}</div>
+            ${ms.length ? `<div class="pi-tb-why">🔷 全息屏上可以玩：${ms.slice(0, 4).map((m) => esc(m.title)).join('、')}</div>` : ''}
+            <div class="pi-btn-row"><button type="button" class="pi-act-btn" data-tb-act="visit" data-tb-id="${r.p.id}">🧭 先自己去逛</button><button type="button" class="pi-act-btn" data-tb-act="holo" data-tb-id="${r.p.id}">🔷 看全息屏</button><button type="button" class="pi-act-btn" data-tb-act="read" data-tb-id="${r.p.id}">📚 读他的书</button>${STICK_IDS.has(r.p.id) ? `<button type="button" class="pi-act-btn" data-tb-act="stick" data-tb-id="${r.p.id}">🎬 火柴人动画</button>` : ''}<button type="button" class="pi-act-btn" data-tb-act="table" data-tb-id="${r.p.id}">🪑 圆桌对谈</button><button type="button" class="pi-act-btn gold" data-tb-act="walk" data-tb-id="${r.p.id}">🚶 散步交谈</button><button type="button" class="pi-act-btn" data-tb-act="pin" data-tb-id="${r.p.id}">📌 只接任务</button></div></div></div>`; }).join('');
+      };
+      $id('pi-m-close-btn').onclick = closeModal; $id('pi-tb-go').onclick = run; $id('pi-tb-book').onclick = openNotebook;
+      $id('pi-tb-q').addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') run(); });
+      box.querySelectorAll('[data-tb-ex]').forEach((b) => { b.onclick = () => { $id('pi-tb-q').value = b.getAttribute('data-tb-ex'); run(); }; });
+      $id('pi-tb-res').onclick = (e) => { const hbn = e.target.getAttribute && e.target.getAttribute('data-tb-hb'); if (hbn) { openHandbook(hbn); return; } const b = e.target.closest && e.target.closest('[data-tb-act]'); if (!b) return; const q = ($id('pi-tb-q').value || '').trim(), act = b.getAttribute('data-tb-act'); setStudy(q, b.getAttribute('data-tb-id')); if (act === 'pin') closeModal(); else studyGo(act); };
+      if (prefill) run(); else setTimeout(() => { const i = $id('pi-tb-q'); if (i) i.focus(); }, 60);
+      if (!$id('pi-tb-style')) { const st = document.createElement('style'); st.id = 'pi-tb-style'; st.textContent = `
+        .pi-tb-card { display:flex; gap:12px; padding:12px; margin-bottom:10px; border-radius:12px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04); }
+        .pi-tb-card.top { border-color:rgba(245,158,11,.7); background:rgba(245,158,11,.08); }
+        .pi-tb-card img { width:64px; height:78px; object-fit:cover; border-radius:8px; border:1.5px solid #d97706; flex:none; }
+        .pi-tb-body { flex:1; min-width:0; } .pi-tb-name { font-size:15px; color:#f8fafc; } .pi-tb-name b { color:#fcd34d; font-size:18px; } .pi-tb-name span { font-size:11.5px; color:#94a3b8; margin-left:6px; }
+        .pi-tb-why { font-size:13px; line-height:1.6; color:#cbd5e1; margin:5px 0; }
+        .pi-nb-item { padding:10px 12px; margin-bottom:8px; border-radius:10px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04); }
+        .pi-nb-head { display:flex; gap:8px; align-items:baseline; cursor:pointer; } .pi-nb-head b { color:#fcd34d; flex:1; } .pi-nb-head span { font-size:11.5px; color:#94a3b8; }
+        .pi-nb-body { display:none; margin-top:8px; font-size:13px; line-height:1.65; color:#e2e8f0; max-height:300px; overflow:auto; } .pi-nb-item.open .pi-nb-body { display:block; }
+        .pi-nb-body p { margin:4px 0; } .pi-nb-body i { color:#7dd3fc; font-style:normal; } .pi-nb-meta { font-size:11.5px; color:#94a3b8; margin:4px 0; }`; document.head.appendChild(st); }
+    }
+
+    // ── the notebook: every finished conversation is kept as data ──
+    function nbCaptureDialogue() {
+      const portal = activeDialoguePortal; if (!portal) return;
+      const pid = portal.philosopher_id, p = philById(pid), session = chatSessions[pid]; if (!p || !session) return;
+      const from = nbMark[pid] == null ? 0 : nbMark[pid], fresh = session.messages.slice(from); nbMark[pid] = session.messages.length;
+      const walked = nbFlags.walk || (S.talk && S.talk.mode === 'walk'); nbFlags.walk = false;
+      if (!fresh.some((m) => m.role === 'user')) return;
+      const msgs = fresh.map((m) => ({ role: m.role, who: m.role === 'user' ? '我' : p.name, text: m.text }));
+      const mine = study && study.philId === pid, now = Date.now(), last = notebook[0];
+      if (last && last.type === 'talk' && last.philId === pid && now - last.ts < 10 * 60 * 1000) { last.messages = last.messages.concat(msgs); last.ts = now; if (walked && last.modes.indexOf('散步') < 0) last.modes.push('散步'); }
+      else notebook.unshift({ id: now, ts: now, at: new Date(now).toISOString(), type: 'talk', philId: pid, thinker: p.name, question: mine ? study.q : (msgs.find((m) => m.role === 'user') || {}).text || '', modes: walked ? ['圆桌', '散步'] : ['圆桌'], models: mine ? study.models.slice() : [], steps: mine ? Object.assign({}, study.steps, { talk: true }) : null, messages: msgs });
+      saveNotebook();
+      if (mine) { study = null; saveStudy(); toast('✓ 学习任务完成 · 📓 这次对话已记入笔记本（按 N 查看）'); }
+      else toast('📓 这次对话已记入笔记本（按 N 查看）');
+    }
+    function nbCaptureCouncil() {
+      if (!CS.log.length) return; const now = Date.now();
+      notebook.unshift({ id: now, ts: now, at: new Date(now).toISOString(), type: 'council', thinker: CS.ids.map(cName).join('、'), ids: CS.ids.slice(), question: CS.topic, modes: ['圆桌会议'], models: [], steps: null,
+        messages: CS.log.map((l) => ({ role: l.id === '__you' ? 'user' : 'phil', who: cName(l.id), tag: l.tag, text: l.text })), board: CS.board.filter((n) => n.topic === CS.topic) });
+      saveNotebook();
+    }
+    function nbDownload(name, text, type) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }
+    function nbMarkdown() { return '# 哲学家小岛 · 笔记本\n\n' + notebook.map((n) => '## ' + (n.question || '（未命名）') + '\n\n- 时间：' + n.at.replace('T', ' ').slice(0, 16) + '\n- 对象：' + n.thinker + '\n- 方式：' + (n.modes || []).join('、') + (n.models && n.models.length ? '\n- 看过的模型：' + n.models.join('、') : '') + '\n\n' + n.messages.map((m) => '**' + m.who + '**：' + String(m.text).replace(/\n+/g, ' ')).join('\n\n') + (n.board && n.board.length ? '\n\n> 白板：' + n.board.map((b) => b.who + '：' + b.text).join('；') : '')).join('\n\n---\n\n') + '\n'; }
+    function openNotebook() {
+      const item = (n, i) => `<div class="pi-nb-item" data-nb="${i}"><div class="pi-nb-head"><b>${n.type === 'council' ? '🏛' : n.type === 'read' ? '📖' : n.type === 'cone' ? '⏳' : n.type === 'model' ? '🧰' : n.type === 'word' ? '🎞' : n.type === 'course' ? '🎓' : '💬'} ${esc(n.question || '（未命名）')}</b><span>${esc(n.thinker)} · ${n.messages.length} 条 · ${esc(n.at.slice(5, 16).replace('T', ' '))}</span></div>
+        <div class="pi-nb-body"><div class="pi-nb-meta">方式：${esc((n.modes || []).join('、'))}${n.progress ? ' · 读到第 ' + esc(n.progress) + ' 页' : ''}${n.source ? ' · 来源：' + esc(n.source) : ''}${n.steps ? ' · 任务：' + (n.steps.visit ? '已逛展馆' : '未逛展馆') + '，' + (n.steps.holo ? '已看全息屏' : '未看全息屏') : ''}${n.models && n.models.length ? ' · 模型：' + esc(n.models.join('、')) : ''}</div>
+          ${n.messages.map((m) => `<p><i>${esc(m.who)}${m.tag ? '（' + esc(m.tag) + '）' : ''}：</i>${esc(String(m.text).replace(/\*\*/g, ''))}</p>`).join('')}
+          <div class="pi-btn-row">${n.philId ? `<button type="button" class="pi-act-btn" data-nb-again="${n.philId}">🪑 再去找他聊</button>` : ''}<button type="button" class="pi-act-btn" data-nb-del="${i}">🗑 删除这一条</button></div></div></div>`;
+      const box = showModal(`
+        <div class="pi-m-header"><div><span class="pi-m-badge">NOTEBOOK</span><h2>📓 笔记本 · ${notebook.length} 条记录</h2>
+          <div class="pi-m-sub">每次对谈、散步和圆桌会议结束后自动记下。数据保存在这台设备的浏览器里，可以导出。</div></div>
+          <button type="button" class="pi-m-close" id="pi-m-close-btn">✕</button></div>
+        <div class="pi-btn-row" style="margin-bottom:10px;"><button type="button" class="pi-act-btn gold" id="pi-nb-json">⬇ 导出 JSON</button><button type="button" class="pi-act-btn" id="pi-nb-md">⬇ 导出 Markdown</button><button type="button" class="pi-act-btn" id="pi-nb-board">📋 任务板</button><button type="button" class="pi-act-btn" id="pi-nb-clear">清空</button></div>
+        <div id="pi-nb-list">${notebook.length ? notebook.map(item).join('') : '<p class="pi-save-empty">还是空的。去找一位思想者聊聊，结束后这里就会多一条。</p>'}</div>`);
+      if (!box) return;
+      $id('pi-m-close-btn').onclick = closeModal; $id('pi-nb-board').onclick = () => openTaskBoard();
+      $id('pi-nb-json').onclick = () => nbDownload('philosophers-island-notebook.json', JSON.stringify({ app: 'philosophers-island', version: 1, exportedAt: new Date().toISOString(), entries: notebook }, null, 2), 'application/json');
+      $id('pi-nb-md').onclick = () => nbDownload('philosophers-island-notebook.md', nbMarkdown(), 'text/markdown');
+      $id('pi-nb-clear').onclick = () => { if (!notebook.length || !window.confirm('清空笔记本里的全部 ' + notebook.length + ' 条记录？此操作不能撤销。')) return; notebook = []; saveNotebook(); openNotebook(); };
+      $id('pi-nb-list').onclick = (e) => { const t = e.target, d = t.getAttribute && t.getAttribute('data-nb-del'), ag = t.getAttribute && t.getAttribute('data-nb-again');
+        if (d != null) { notebook.splice(+d, 1); saveNotebook(); openNotebook(); return; } if (ag) { closeModal(); openDialogue(ag); return; }
+        const h = t.closest && t.closest('.pi-nb-head'); if (h) h.parentNode.classList.toggle('open'); };
+    }
+
+    /* ================= The bookshelf: find a thinker's books in his room and read them =================
+       Sources are open ones only: Open Library (catalogue), Internet Archive (scans and OCR text of public-domain
+       editions), Project Gutenberg (clean text, through serve.py's /api/pg) and Chinese Wikisource (the classics).
+       Works still in copyright are listed as a bibliography with a link out; they are not downloaded. */
+    const READ_KEY = 'minest.philosophers.reading.v1';
+    const LIB_AUTHORS = {
+      socrates: ['Plato', 'Xenophon'], plato: ['Plato'], aristotle: ['Aristotle'], zeno: ['Epictetus', 'Marcus Aurelius', 'Seneca'], confucius: ['Confucius', 'Mencius'], laozi: ['Laozi'], zhuangzi: ['Zhuangzi'],
+      descartes: ['René Descartes'], spinoza: ['Baruch Spinoza'], leibniz: ['Gottfried Wilhelm Leibniz'], locke: ['John Locke'], hume: ['David Hume'], hobbes_rousseau: ['Thomas Hobbes', 'Jean-Jacques Rousseau'],
+      kant: ['Immanuel Kant'], hegel: ['Georg Wilhelm Friedrich Hegel'], marx: ['Karl Marx'], schopenhauer_kierkegaard: ['Arthur Schopenhauer', 'Søren Kierkegaard'], nietzsche: ['Friedrich Nietzsche'],
+      wittgenstein: ['Ludwig Wittgenstein'], heidegger_sartre: ['Martin Heidegger', 'Jean-Paul Sartre'], bacon: ['Francis Bacon'], mill: ['John Stuart Mill'], frege: ['Gottlob Frege'], russell: ['Bertrand Russell'],
+      peirce_dewey: ['Charles S. Peirce', 'John Dewey'], popper: ['Karl Popper'], kuhn: ['Thomas S. Kuhn'], rawls: ['John Rawls'], foucault: ['Michel Foucault'], habermas: ['Jürgen Habermas'],
+      smith_ricardo: ['Adam Smith', 'David Ricardo'], keynes_friedman: ['John Maynard Keynes', 'Milton Friedman'], hayek_schumpeter: ['Friedrich A. von Hayek', 'Joseph A. Schumpeter'], nash: ['John F. Nash'],
+      simon_kahneman: ['Herbert A. Simon', 'Daniel Kahneman'], durkheim_weber: ['Émile Durkheim', 'Max Weber'], simmel_mead: ['Georg Simmel', 'George Herbert Mead'], granovetter: ['Mark Granovetter'],
+      olson_putnam: ['Mancur Olson', 'Robert D. Putnam'], pavlov_skinner: ['Ivan Petrovich Pavlov', 'B. F. Skinner'], piaget_vygotsky: ['Jean Piaget', 'L. S. Vygotsky'], ebbinghaus: ['Hermann Ebbinghaus'], maslow_festinger: ['Abraham H. Maslow', 'Leon Festinger']
+    };
+    // the Chinese classics, chapter by chapter, from zh.wikisource (shown in simplified characters)
+    const LIB_ZH = {
+      confucius: [{ title: '论语', by: '孔子及其弟子', pages: ['論語/全覽'] }, { title: '传习录', by: '王阳明', pages: ['傳習錄/卷上', '傳習錄/卷中', '傳習錄/卷下'] }],
+      laozi: [{ title: '道德经（王弼本）', by: '老子', pages: ['道德經 (王弼本)'] }],
+      zhuangzi: [{ title: '庄子 · 内篇', by: '庄子', pages: ['莊子/逍遙遊', '莊子/齊物論', '莊子/養生主', '莊子/人間世', '莊子/德充符', '莊子/大宗師', '莊子/應帝王'] }]
+    };
+    // authors whose works are still in copyright: bibliography only, never offered for reading (catalogue records for
+    // namesakes are sometimes marked "public", so the catalogue alone is not trusted here)
+    const LIB_COPYRIGHT = new Set(['Martin Heidegger', 'Jean-Paul Sartre', 'Karl Popper', 'Thomas S. Kuhn', 'John Rawls', 'Michel Foucault', 'Jürgen Habermas', 'Milton Friedman', 'Friedrich A. von Hayek', 'John F. Nash',
+      'Herbert A. Simon', 'Daniel Kahneman', 'Mark Granovetter', 'Mancur Olson', 'Robert D. Putnam', 'B. F. Skinner', 'Jean Piaget', 'Abraham H. Maslow', 'Leon Festinger']);
+    const libCache = {}; let reading = {};
+    try { reading = JSON.parse(localStorage.getItem(READ_KEY) || '{}') || {}; } catch (e) { reading = {}; }
+    const saveReading = () => { try { localStorage.setItem(READ_KEY, JSON.stringify(reading)); } catch (e) {} };
+    const fold = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const LANG = { eng: '英', ger: '德', fre: '法', chi: '中', grc: '古希腊', lat: '拉丁', jpn: '日', spa: '西', ita: '意', rus: '俄' };
+
+    async function libSearch(author) {
+      if (libCache[author]) return libCache[author];
+      const url = 'https://openlibrary.org/search.json?author=' + encodeURIComponent(author) + '&fields=key,title,first_publish_year,ia,ebook_access,id_project_gutenberg,language,author_name,cover_i,edition_count&limit=80&sort=editions';
+      const r = await fetch(url); if (!r.ok) throw new Error('目录服务暂时不可用（' + r.status + '）');
+      const d = await r.json(), tk = fold(author).split(/[\s.]+/).filter((x) => x.length > 1), last = tk[tk.length - 1], first = tk[0];
+      const docs = (d.docs || []).filter((b) => (b.author_name || []).some((n) => { const f = fold(n); return f.indexOf(last) >= 0 && (tk.length < 2 || f.indexOf(first) >= 0 || f.indexOf(first.charAt(0) + '.') >= 0); }));
+      const open = [], closed = [];
+      docs.forEach((b) => { const o = { title: b.title, year: b.first_publish_year, ia: (b.ia || []).slice(0, 3), pg: (b.id_project_gutenberg || []).slice(0, 3), langs: (b.language || []).filter((l) => LANG[l]).slice(0, 5), cover: b.cover_i, key: b.key, author };
+        if (!LIB_COPYRIGHT.has(author) && b.ebook_access === 'public' && (o.ia.length || o.pg.length)) open.push(o); else closed.push(o); });
+      return (libCache[author] = { open: open.slice(0, 24), closed: closed.slice(0, 12) });
+    }
+
+    // ── the hall's own bookshelf: books prepared ahead of time (library/books.js, covers and texts on disk) ──
+    const hallBooks = (id) => (root.PILIB && root.PILIB[id]) || [];
+    function openBook(philId, i) { const b = hallBooks(philId)[i]; if (!b) return false;
+      if (!b.file) { openShelf(philId, i); return true; }
+      openReader({ philId, title: b.zh ? b.zh + ' · ' + b.title : b.title, author: b.authorZh || b.author, key: 'lib:' + b.key, file: b.file, kind: b.kind, srcLabel: b.src, url: b.url, mode: 'text' }); return true; }
+    function openShelf(philId, focus) {
+      const p = philById(philId), books = hallBooks(philId); if (!p) return;
+      if (!books.length) { openShelfOnline(philId); return; }
+      if (!$id('pi-shelf-style')) { const st = document.createElement('style'); st.id = 'pi-shelf-style'; st.textContent = `
+        .pi-sh-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(132px,1fr)); gap:16px 14px; margin-top:14px; padding:16px 14px 6px; border-radius:12px; background:linear-gradient(#5a3d28,#4a3020); box-shadow:inset 0 0 0 2px #2f1e14, inset 0 -8px 0 #3a2618; }
+        .pi-sh-book { cursor:pointer; text-align:center; } .pi-sh-book img, .pi-sh-book .nc { width:118px; height:172px; object-fit:cover; border-radius:3px 6px 6px 3px; box-shadow:4px 5px 0 rgba(0,0,0,.35), inset 3px 0 0 rgba(255,255,255,.15); transition:transform .18s; background:#7a5a3a; }
+        .pi-sh-book .nc { display:inline-flex; align-items:center; justify-content:center; padding:10px; box-sizing:border-box; color:#fff3d6; font:700 17px/1.35 "Songti SC",serif; background:linear-gradient(135deg,#8c3b2e,#5a2a22); }
+        .pi-sh-book:hover img, .pi-sh-book:hover .nc, .pi-sh-book.focus img, .pi-sh-book.focus .nc { transform:translateY(-8px) rotate(-2deg); } .pi-sh-book b { display:block; margin-top:8px; font-size:13px; color:#fff3d6; line-height:1.35; } .pi-sh-book i { display:block; font-style:normal; font-size:11.5px; color:#d9c4a0; }
+        .pi-sh-book.biblio img { filter:saturate(.7); } .pi-sh-book u { display:inline-block; margin-top:3px; text-decoration:none; font-size:11px; padding:0 7px; border-radius:999px; background:rgba(0,0,0,.35); color:#ffd96b; } .pi-sh-book.biblio u { color:#cbd5e1; }`; document.head.appendChild(st); }
+      const nRead = books.filter((b) => b.file).length, cell = (b, i) => { const st = reading['lib:' + b.key]; return `<div class="pi-sh-book ${b.file ? '' : 'biblio'} ${focus === i ? 'focus' : ''}" data-sh="${i}">${b.cover ? `<img loading="lazy" src="${esc(b.cover)}" alt="">` : `<span class="nc">${esc(b.zh || b.title).slice(0, 22)}</span>`}<b>${esc(b.zh || b.title).slice(0, 30)}</b><i>${esc(b.authorZh || b.author)}${b.year ? ' · ' + b.year : ''}</i><u>${b.file ? (st ? '读到 ' + (st.page + 1) + ' / ' + st.pages : '点开就读') : '只有书目'}</u></div>`; };
+      const box = showModal(`
+        <div class="pi-m-header"><div><span class="pi-m-badge">BOOKSHELF</span><h2>📚 ${esc(p.name)}的书架</h2>
+          <div class="pi-m-sub">${nRead ? '点一本书的封面，直接翻开。' + nRead + ' 本的正文已经放在本地' : ''}${books.length - nRead ? (nRead ? '；' : '') + (books.length - nRead) + ' 本仍在版权期，只有封面和书目' : ''}。</div></div>
+          <button type="button" class="pi-m-close" id="pi-m-close-btn">✕</button></div>
+        <div class="pi-sh-grid" id="pi-sh-grid">${books.map(cell).join('')}</div>
+        <div class="pi-m-footer"><button type="button" class="pi-act-btn" id="pi-sh-more">🔎 在线目录里找更多 · 放入我自己的书</button><span class="pi-m-sub">封面来自 Open Library / Internet Archive；正文来自 Project Gutenberg、Internet Archive 和维基文库。</span></div>`);
+      if (!box) return;
+      $id('pi-m-close-btn').onclick = closeModal; $id('pi-sh-more').onclick = () => openShelfOnline(philId);
+      $id('pi-sh-grid').onclick = (e) => { const c = e.target.closest('[data-sh]'); if (!c) return; const i = +c.getAttribute('data-sh'), b = books[i]; if (b.file) openBook(philId, i); else { toast('《' + (b.zh || b.title) + '》仍在版权期，这里不放正文'); if (b.url) root.open(b.url, '_blank', 'noopener'); } };
+    }
+    function openShelfOnline(philId) {
+      const p = philById(philId); if (!p) return false;
+      const authors = LIB_AUTHORS[philId] || [], zh = LIB_ZH[philId] || [];
+      const box = showModal(`
+        <div class="pi-m-header"><div><span class="pi-m-badge">BOOKSHELF</span><h2>📚 ${esc(p.name)} 的书架</h2>
+          <div class="pi-m-sub">这里的书都来自开放来源：公版书的扫描本和文字版可以直接翻开读；仍在版权期的著作只列书目。</div></div>
+          <button type="button" class="pi-m-close" id="pi-m-close-btn">✕</button></div>
+        ${authors.length > 1 ? `<div class="pi-btn-row" id="pi-lib-tabs">${authors.map((a, i) => `<button type="button" class="pi-act-btn ${i ? '' : 'active'}" data-lib-a="${esc(a)}">${esc(a)}</button>`).join('')}</div>` : ''}
+        <div id="pi-lib-cont"></div><div id="pi-lib-my"></div><div id="pi-lib-zh"></div><div id="pi-lib-list"><p class="pi-save-empty">正在查目录…</p></div>
+        <div class="pi-m-footer"><span class="pi-m-sub">目录：Open Library · 扫描本与 OCR：Internet Archive · 文字版：Project Gutenberg · 中文原典：维基文库</span></div>`);
+      if (!box) return false;
+      libStyle(); studyMark('read', philId);
+      $id('pi-m-close-btn').onclick = closeModal;
+      const cont = Object.keys(reading).map((k) => reading[k]).filter((r) => r.philId === philId).sort((a, b) => b.ts - a.ts).slice(0, 3);
+      if (cont.length) $id('pi-lib-cont').innerHTML = '<div class="pi-lib-h">继续阅读</div>' + cont.map((r) => `<div class="pi-lib-row"><b>${esc(r.title)}</b><span>第 ${r.page + 1} / ${r.pages} 页</span><button type="button" class="pi-act-btn gold" data-lib-cont="${esc(r.key)}">📖 接着读</button></div>`).join('');
+      { const mine = myBooks.filter((b) => b.philId === philId), my = $id('pi-lib-my');
+        my.innerHTML = '<div class="pi-lib-h">我放入的书（生成互动课程）</div>' + mine.map((b) => `<div class="pi-lib-row"><b>${esc(b.title)}</b><span>${Math.round(b.text.length / 1000)} 千字</span><button type="button" class="pi-act-btn gold" data-lib-my="${b.key}">📖 翻开</button><button type="button" class="pi-act-btn" data-lib-mydel="${b.key}">移除</button></div>`).join('')
+          + '<div class="pi-lib-row"><b style="font-weight:400;color:#cbd5e1">把你自己的书放进来（.txt / .md，只存在这台设备的浏览器里），打开后点「🎓 互动课程」</b><label class="pi-act-btn gold" style="cursor:pointer">📂 放入一本书<input type="file" id="pi-lib-file" accept=".txt,.md,.markdown,text/plain" style="display:none"></label></div>';
+        $id('pi-lib-file').onchange = (e) => { const f = e.target.files && e.target.files[0]; if (f) addMyBook(philId, f); };
+        my.onclick = (e) => { const k = e.target.getAttribute('data-lib-my'), d = e.target.getAttribute('data-lib-mydel'); if (k) { const b = myBooks.find((x) => x.key === k); openReader({ philId, title: b.title, author: '我放入的书', key: b.key, local: b.key, mode: 'text' }); }
+          if (d) { myBooks = myBooks.filter((x) => x.key !== d); try { localStorage.setItem(MYBOOK_KEY, JSON.stringify(myBooks)); } catch (er) {} openShelfOnline(philId); } }; }
+      if (zh.length) $id('pi-lib-zh').innerHTML = '<div class="pi-lib-h">中文原典（维基文库）</div>' + zh.map((b, i) => `<div class="pi-lib-row"><b>《${esc(b.title)}》</b><span>${esc(b.by)}</span><button type="button" class="pi-act-btn gold" data-lib-zh="${i}">📖 翻开</button></div>`).join('');
+      const load = (author) => {
+        const list = $id('pi-lib-list'); if (!list) return; list.innerHTML = '<p class="pi-save-empty">正在查「' + esc(author) + '」的目录…</p>';
+        libSearch(author).then((res) => { if (!$id('pi-lib-list')) return;
+          const card = (b, i) => `<div class="pi-lib-card">${b.cover ? `<img loading="lazy" src="https://covers.openlibrary.org/b/id/${b.cover}-M.jpg" alt="">` : '<div class="pi-lib-nocover">📕</div>'}<div><div class="pi-lib-t">${esc(b.title)}</div><div class="pi-lib-m">${b.year ? '初版 ' + b.year + ' · ' : ''}${b.langs.map((l) => LANG[l]).join(' / ') || ''}</div>
+            <div class="pi-btn-row">${b.pg.map((g, k) => `<button type="button" class="pi-act-btn gold" data-lib-open="${i}" data-lib-pg="${g}">📄 文字版${b.pg.length > 1 ? ' ' + (k + 1) : ''}</button>`).join('')}${b.ia.map((a, k) => `<button type="button" class="pi-act-btn" data-lib-open="${i}" data-lib-ia="${esc(a)}">📖 扫描本${b.ia.length > 1 ? ' ' + (k + 1) : ''}</button>`).join('')}${!b.pg.length && b.ia.length ? `<button type="button" class="pi-act-btn" data-lib-open="${i}" data-lib-ocr="${esc(b.ia[0])}">📄 OCR 文字</button>` : ''}</div></div></div>`;
+          list.innerHTML = (res.open.length ? '<div class="pi-lib-h">可以直接阅读（公版，' + res.open.length + ' 种）</div><div class="pi-lib-grid">' + res.open.map(card).join('') + '</div>' : '<p class="pi-save-empty">' + (LIB_COPYRIGHT.has(author) ? '「' + esc(author) + '」的著作仍在版权期内，这里不提供正文。下面是书目，可以去图书馆或书店找。' : '没有找到「' + esc(author) + '」可以公开阅读的版本。') + '</p>')
+            + (res.closed.length ? '<div class="pi-lib-h">书目（仍在版权期或没有公开扫描本，只列出处）</div>' + res.closed.map((b) => `<div class="pi-lib-row"><b>${esc(b.title)}</b><span>${b.year || ''}</span><a class="pi-act-btn" target="_blank" rel="noopener" href="https://openlibrary.org${esc(b.key)}">在 Open Library 查看 ↗</a></div>`).join('') : '');
+          list.onclick = (e) => { const t = e.target.closest && e.target.closest('[data-lib-open]'); if (!t) return; const b = res.open[+t.getAttribute('data-lib-open')];
+            const pg = t.getAttribute('data-lib-pg'), ia = t.getAttribute('data-lib-ia'), ocr = t.getAttribute('data-lib-ocr');
+            openReader({ philId, title: b.title, author: b.author, key: pg ? 'pg' + pg : 'ia' + (ia || ocr) + (ocr ? ':ocr' : ''), pg, ia: ia || ocr, mode: ia ? 'scan' : 'text' }); };
+        }).catch((err) => { const l = $id('pi-lib-list'); if (l) l.innerHTML = '<p class="pi-save-empty">查不到目录：' + esc(err.message || err) + '。需要联网；稍后再试。</p>'; });
+      };
+      const tabs = $id('pi-lib-tabs'); if (tabs) tabs.onclick = (e) => { const a = e.target.getAttribute('data-lib-a'); if (!a) return; tabs.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b === e.target)); load(a); };
+      const zb = $id('pi-lib-zh'); zb.onclick = (e) => { const i = e.target.getAttribute('data-lib-zh'); if (i == null) return; const b = zh[+i]; openReader({ philId, title: b.title, author: b.by, key: 'ws' + b.pages[0], ws: b.pages, mode: 'text' }); };
+      $id('pi-lib-cont').onclick = (e) => { const k = e.target.getAttribute('data-lib-cont'); if (k && reading[k]) openReader(Object.assign({}, reading[k].src, { resume: true })); };
+      if (authors.length) load(authors[0]); else $id('pi-lib-list').innerHTML = '';
+      return true;
+    }
+    function libStyle() { if ($id('pi-lib-style')) return; const st = document.createElement('style'); st.id = 'pi-lib-style'; st.textContent = `
+      .pi-lib-h { margin:14px 0 8px; font-size:12.5px; letter-spacing:.12em; color:#fcd34d; }
+      .pi-lib-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:10px; }
+      .pi-lib-card { display:flex; gap:10px; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04); }
+      .pi-lib-card img, .pi-lib-nocover { width:54px; height:78px; object-fit:cover; border-radius:4px; flex:none; background:#3b2a1a; display:flex; align-items:center; justify-content:center; font-size:24px; }
+      .pi-lib-t { font-weight:700; color:#f8fafc; font-size:14px; line-height:1.35; } .pi-lib-m { font-size:11.5px; color:#94a3b8; margin:3px 0 6px; }
+      .pi-lib-card .pi-act-btn { padding:4px 9px; font-size:12px; }
+      .pi-lib-row { display:flex; align-items:center; gap:10px; padding:7px 2px; border-top:1px dashed rgba(255,255,255,.12); font-size:13.5px; } .pi-lib-row b { flex:1; color:#f1f5f9; } .pi-lib-row span { color:#94a3b8; font-size:12px; } .pi-lib-row a { text-decoration:none; font-size:12px; padding:4px 9px; }
+      #pi-reader { position:fixed; inset:0; z-index:60; display:none; flex-direction:column; background:rgba(12,10,8,.96); color:#2b2118; }
+      .pr-bar { display:flex; align-items:center; gap:8px; padding:9px 14px; color:#f5e9d0; background:#1c1611; border-bottom:1px solid #4a3a26; flex-wrap:wrap; }
+      .pr-bar b { flex:1; min-width:140px; font-family:"Songti SC","Noto Serif SC",Georgia,serif; font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .pr-bar span { font-size:12px; color:#bfae8e; }
+      .pr-btn { padding:5px 11px; border-radius:999px; border:1px solid rgba(245,233,208,.35); background:transparent; color:#f5e9d0; font-size:12.5px; cursor:pointer; } .pr-btn:hover, .pr-btn.on { background:#b45309; border-color:#f59e0b; }
+      .pr-body { flex:1; min-height:0; display:flex; justify-content:center; overflow:hidden; }
+      .pr-body iframe { flex:1; border:0; background:#111; }
+      .pr-page { width:min(760px,100%); overflow:auto; padding:34px 46px 40px; background:linear-gradient(90deg,#efe3c8,#f7eedb 12%,#f7eedb 88%,#efe3c8); font-family:"Songti SC","Noto Serif SC",Georgia,"Times New Roman",serif; font-size:17px; line-height:1.9; box-shadow:0 0 40px rgba(0,0,0,.6); user-select:text; -webkit-user-select:text; cursor:text; }
+      .pr-page p { margin:0 0 1em; text-align:justify; } .pr-page p.h { font-weight:700; text-align:center; margin:1.2em 0; font-size:1.08em; } .pr-page .pr-load { color:#7c6a4f; text-align:center; margin-top:30vh; }
+      .pr-foot { display:flex; align-items:center; justify-content:center; gap:10px; padding:8px; background:#1c1611; color:#bfae8e; font-size:12.5px; } .pr-foot input { width:64px; padding:3px 6px; border-radius:6px; border:1px solid #4a3a26; background:#2a2119; color:#f5e9d0; text-align:center; }
+      @media (max-width:640px) { .pr-page { padding:22px 18px; font-size:16px; } }`; document.head.appendChild(st); }
+
+    /* ───── an interactive course from any book in the reader (rule-based: outline → guide → cloze quiz → ask the thinker) ───── */
+    const MYBOOK_KEY = 'minest.philosophers.mybooks.v1'; let myBooks = [];
+    try { myBooks = JSON.parse(localStorage.getItem(MYBOOK_KEY) || '[]') || []; } catch (e) { myBooks = []; }
+    const EN_STOP = new Set('about above after again against always another because before being below between could every first found great having himself itself little might nature never other others ought ourselves rather really should since still their theirs themselves there therefore these thing things those though through under until upon whatever where whether which while whole whose within without would yours shall which'.split(' '));
+    const ZH_STOP = /[的了是在和有不也而与之其者所以为于则就都这那一个上下中人我你他它们说到要会能可]/;
+    function courseTerms(text, cjk, n) {
+      const f = {};
+      if (cjk) { const t = text.replace(/[^\u4e00-\u9fff]/g, ' '); for (let i = 0; i < t.length - 1; i++) { const g = t.slice(i, i + 2); if (g.indexOf(' ') >= 0 || ZH_STOP.test(g)) continue; f[g] = (f[g] || 0) + 1; } }
+      else (text.toLowerCase().match(/[a-z]{5,}/g) || []).forEach((w) => { if (!EN_STOP.has(w)) f[w] = (f[w] || 0) + 1; });
+      return Object.keys(f).filter((k) => f[k] >= 2).sort((a, b) => f[b] - f[a]).slice(0, n);
+    }
+    function buildCourse(paras) {
+      const cjk = /[\u4e00-\u9fff]/.test(paras.slice(0, 40).join('')), isHead = (p) => /^§ /.test(p) || (p.length < 60 && /^(chapter|book|part|section|preface|introduction|第.{1,6}[章节卷篇回]|[IVXL]{1,6}\.?$)/i.test(p.trim()));
+      let lessons = [], cur = null; const cap = cjk ? 2600 : 7000;
+      paras.forEach((p) => { if (isHead(p) && (!cur || cur.len > cap * 0.25)) { cur = { title: p.replace(/^§ /, '').slice(0, 40), ps: [], len: 0 }; lessons.push(cur); return; } if (!cur || cur.len > cap) { cur = { title: '', ps: [], len: 0 }; lessons.push(cur); } cur.ps.push(p); cur.len += p.length; });
+      lessons = lessons.filter((l) => l.len > (cjk ? 120 : 400));
+      while (lessons.length > 14) { const m = []; for (let i = 0; i < lessons.length; i += 2) { const a = lessons[i], b = lessons[i + 1]; m.push(b ? { title: a.title, ps: a.ps.concat(b.ps), len: a.len + b.len } : a); } lessons = m; }
+      const bookTerms = courseTerms(paras.join(' '), cjk, 40);
+      return lessons.map((l, i) => { const text = l.ps.filter((x) => !/^§ /.test(x)).join(' ').replace(/[〈〉]/g, ' '), kw = courseTerms(text, cjk, 6), sents = (text.match(cjk ? /[^。！？]{12,90}[。！？]/g : /[^.!?]{50,240}[.!?]/g) || []).map((x) => x.trim());
+        const key = sents.map((x) => [x, kw.reduce((a, k) => a + (x.toLowerCase().indexOf(k) >= 0 ? 1 : 0), 0)]).sort((a, b) => b[1] - a[1]).slice(0, 3).map((x) => x[0]);
+        const quiz = key.map((x, qi) => { const k = kw.find((w) => x.toLowerCase().indexOf(w) >= 0); if (!k) return null; const at = x.toLowerCase().indexOf(k), opts = [k].concat(bookTerms.filter((w) => w !== k && kw.indexOf(w) < 0).slice(qi * 3, qi * 3 + 3)); if (opts.length < 3) return null;
+          return { q: x.slice(0, at) + '＿＿＿' + x.slice(at + k.length), a: k, opts: opts.map((o, j) => [o, (j * 7 + i * 3 + qi) % 4]).sort((p, q) => p[1] - q[1]).map((o) => o[0]) }; }).filter(Boolean);
+        return { no: i + 1, title: l.title || (kw.slice(0, 2).join(cjk ? '与' : ' & ') || '第 ' + (i + 1) + ' 节'), first: l.ps[0] || '', kw, key, quiz, len: l.len }; });
+    }
+    function openCourse() {
+      const src = RD.src; if (!src || !RD.paras || !RD.paras.length) { toast('先打开一本书的文字版，再生成课程'); return; }
+      if (!RD.course) RD.course = buildCourse(RD.paras);
+      if (!RD.course.length) { toast('这本书的文字太少，生成不了课程'); return; }
+      const st = reading[src.key] || (reading[src.key] = { key: src.key, philId: src.philId, title: src.title, page: RD.page, pages: RD.pages.length, ts: Date.now(), src }); st.course = st.course || {};
+      RD.mode = 'course'; $id('pr-foot').style.display = 'none'; ['pr-small', 'pr-big', 'pr-clip'].forEach((i) => { $id(i).style.display = 'none'; });
+      $id('pr-src').textContent = '互动课程 · 由本地规则从原文抽取（不是 AI 讲解）'; $id('pr-text').classList.remove('on'); $id('pr-scan').classList.remove('on'); $id('pr-course').classList.add('on');
+      const p = philById(src.philId), draw = (li) => { const L = RD.course[li], done = st.course[L.no];
+        $id('pr-body').innerHTML = `<div class="pr-page" style="display:flex;gap:22px;width:min(980px,100%);font-size:15.5px;line-height:1.75;cursor:default">
+          <div style="flex:0 0 210px;border-right:1px solid #d8c9a8;padding-right:14px;overflow:auto">${RD.course.map((c, i) => `<div data-cl="${i}" style="padding:6px 8px;border-radius:8px;cursor:pointer;${i === li ? 'background:#e7d7b4;font-weight:700;' : ''}">${st.course[c.no] ? '✅' : '○'} 第 ${c.no} 课　${esc(c.title)}</div>`).join('')}
+            <div style="margin-top:10px;font-size:12.5px;color:#7c6a4f">完成 ${Object.keys(st.course).length} / ${RD.course.length} 课</div></div>
+          <div style="flex:1;min-width:0;overflow:auto"><h3 style="margin:0 0 6px">第 ${L.no} 课 · ${esc(L.title)}</h3>
+            <p style="color:#7c6a4f;font-size:13px">这一节约 ${L.len} 字。先看导读，读原文，再做小测。</p>
+            <p><b>关键词</b>　${L.kw.map((k) => `<span style="display:inline-block;margin:2px 4px;padding:1px 9px;border-radius:999px;background:#e7d7b4">${esc(k)}</span>`).join('') || '（这一节太短，没有抽出关键词）'}</p>
+            <p><b>先记住这几句</b></p>${L.key.map((x) => `<p style="margin:0 0 .6em;padding-left:12px;border-left:3px solid #b45309">${esc(x)}</p>`).join('') || '<p>（没有抽出重点句）</p>'}
+            <p><button class="pr-btn" style="color:#2b2118;border-color:#7c6a4f" data-ca="read">📖 读这一节的原文</button> ${p ? `<button class="pr-btn" style="color:#2b2118;border-color:#7c6a4f" data-ca="ask">💬 带着这一课去问${esc(p.name)}</button>` : ''}</p>
+            <p><b>小测</b>${L.quiz.length ? '（把原句里的空填上）' : '：这一节没有合适的填空题，读完直接点完成。'}</p>
+            ${L.quiz.map((q, qi) => `<div data-cq="${qi}" style="margin:0 0 12px"><div>${qi + 1}. ${esc(q.q)}</div><div style="margin-top:4px">${q.opts.map((o) => `<button class="pr-btn" style="color:#2b2118;border-color:#7c6a4f;margin:2px 4px 2px 0" data-co="${esc(o)}">${esc(o)}</button>`).join('')}</div></div>`).join('')}
+            <p><button class="pr-btn on" data-ca="done">${done ? '✅ 已完成，下一课 ▶' : '✓ 完成这一课'}</button> <span id="pr-cscore" style="color:#7c6a4f;font-size:13px"></span></p></div></div>`;
+        const body = $id('pr-body'), got = {};
+        body.onclick = (e) => { const t = e.target, cl = t.closest('[data-cl]'), ca = t.getAttribute('data-ca'), co = t.getAttribute('data-co');
+          if (cl) { draw(+cl.getAttribute('data-cl')); return; }
+          if (co != null) { const qd = t.closest('[data-cq]'), qi = +qd.getAttribute('data-cq'), ok = co === L.quiz[qi].a; if (got[qi] == null) got[qi] = ok; t.style.background = ok ? '#bfe6c4' : '#f3c0c0'; if (!ok) qd.querySelectorAll('[data-co]').forEach((b) => { if (b.getAttribute('data-co') === L.quiz[qi].a) b.style.background = '#bfe6c4'; }); $id('pr-cscore').textContent = '答对 ' + Object.keys(got).filter((x) => got[x]).length + ' / ' + L.quiz.length; return; }
+          if (ca === 'read') { const pre = L.first.slice(0, 24), pg = RD.pages.findIndex((pp) => pp.some((x) => x.indexOf(pre) >= 0)); body.onclick = null; readerMode('text'); readerGo(Math.max(0, pg)); return; }
+          if (ca === 'ask') { const q = '《' + src.title + '》里的「' + (L.kw[0] || L.title) + '」是什么意思？'; closeReaderQuiet(); closeModal(); openDialogue(src.philId); setTimeout(() => { const inp = $id('pi-rpg-input'); if (inp) { inp.value = q; inp.focus(); } }, 900); return; }
+          if (ca === 'done') { const right = Object.keys(got).filter((x) => got[x]).length; if (!st.course[L.no]) { st.course[L.no] = { score: right, of: L.quiz.length }; saveReading(); courseNote(src, L, right); toast('🎓 第 ' + L.no + ' 课完成' + (L.quiz.length ? '，答对 ' + right + ' / ' + L.quiz.length : '')); } draw(Math.min(RD.course.length - 1, li + 1)); } }; };
+      draw(Math.max(0, RD.course.findIndex((c) => !st.course[c.no])));
+    }
+    function courseNote(src, L, right) { const p = philById(src.philId), now = Date.now(), k = 'course:' + src.key; let n = notebook.find((x) => x.type === 'course' && x.bookKey === k);
+      if (!n) { n = { id: now, ts: now, at: new Date(now).toISOString(), type: 'course', bookKey: k, philId: src.philId, thinker: p ? p.name : (src.author || ''), question: '课程《' + src.title + '》', modes: ['互动课程'], models: [], steps: null, messages: [] }; } else notebook.splice(notebook.indexOf(n), 1);
+      n.ts = now; n.at = new Date(now).toISOString(); n.progress = Object.keys((reading[src.key] || {}).course || {}).length + ' / ' + RD.course.length + ' 课'; n.messages.push({ role: 'phil', who: '第 ' + L.no + ' 课 · ' + L.title, text: '关键词：' + L.kw.join('、') + (L.quiz.length ? '；小测 ' + right + ' / ' + L.quiz.length : '') + (L.key[0] ? '；重点句：' + L.key[0] : '') });
+      notebook.unshift(n); saveNotebook(); }
+    function closeReaderQuiet() { RD.open = false; const el = $id('pi-reader'); if (el) el.style.display = 'none'; $id('pr-body').innerHTML = ''; S.ui = false; }
+    function addMyBook(philId, file) { const fr = new FileReader(); fr.onload = () => { const text = String(fr.result || ''); if (text.length < 200) { toast('这个文件里的文字太少'); return; }
+        const b = { key: 'my' + Date.now(), philId, title: file.name.replace(/\.(txt|md|markdown)$/i, ''), text: text.slice(0, 1500000) }; myBooks = myBooks.filter((x) => x.title !== b.title || x.philId !== philId); myBooks.unshift(b);
+        try { localStorage.setItem(MYBOOK_KEY, JSON.stringify(myBooks.slice(0, 6))); } catch (e) { toast('书太大，浏览器存不下：这次能读，刷新后要重新放入'); }
+        openReader({ philId, title: b.title, author: '我放入的书', key: b.key, local: b.key, mode: 'text' }); }; fr.readAsText(file); }
+
+    // ── the reader ──
+    const RD = { open: false, src: null, pages: [], page: 0, excerpts: [], turned: 0, fs: 17 };
+    function readerEl() {
+      let el = $id('pi-reader'); if (el) return el; libStyle();
+      el = document.createElement('div'); el.id = 'pi-reader';
+      el.innerHTML = `<div class="pr-bar"><b id="pr-title"></b><span id="pr-src"></span><button class="pr-btn" id="pr-scan">📖 扫描本</button><button class="pr-btn" id="pr-text">📄 文字版</button><button class="pr-btn" id="pr-course">🎓 互动课程</button><button class="pr-btn" id="pr-creative">✨ 换个读法</button><button class="pr-btn" id="pr-small">A−</button><button class="pr-btn" id="pr-big">A+</button><button class="pr-btn" id="pr-clip">✂ 摘录选中的文字</button><button class="pr-btn" id="pr-close">✕ 合上书</button></div>
+        <div class="pr-body" id="pr-body"></div><div class="pr-foot" id="pr-foot"><button class="pr-btn" id="pr-prev">◀ 上一页</button><span>第 <input id="pr-n" inputmode="numeric"> / <i id="pr-total">1</i> 页</span><button class="pr-btn" id="pr-next">下一页 ▶</button><span id="pr-clipn"></span></div>`;
+      document.body.appendChild(el);
+      $id('pr-close').onclick = closeReader; $id('pr-prev').onclick = () => readerGo(RD.page - 1); $id('pr-next').onclick = () => readerGo(RD.page + 1);
+      $id('pr-n').addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') { readerGo((parseInt(e.target.value, 10) || 1) - 1); e.target.blur(); } });
+      $id('pr-small').onclick = () => { RD.fs = Math.max(13, RD.fs - 1); readerGo(RD.page); }; $id('pr-big').onclick = () => { RD.fs = Math.min(26, RD.fs + 1); readerGo(RD.page); };
+      $id('pr-scan').onclick = () => readerMode('scan'); $id('pr-text').onclick = () => readerMode('text');
+      $id('pr-creative').onclick = () => { const s = RD.src; if (!s || !s.file) { toast('这本书的正文不在本地书架里，暂时只有普通读法'); return; } openCreative({ file: s.file, title: s.title, author: s.author }, 1); };
+      $id('pr-course').onclick = () => { if (!RD.paras) { if (RD.mode !== 'text') readerMode('text'); toast('正在取文字，取到后再点一次「互动课程」'); return; } openCourse(); };
+      $id('pr-clip').onclick = () => { const t = String(window.getSelection ? window.getSelection() : '').replace(/\s+/g, ' ').trim(); if (t.length < 4) { toast('先在书页上拖选一段文字'); return; } RD.excerpts.push({ page: RD.page + 1, text: t.slice(0, 600) }); $id('pr-clipn').textContent = '已摘录 ' + RD.excerpts.length + ' 段'; toast('✂ 已摘录，合上书时记入笔记本'); };
+      window.addEventListener('keydown', (e) => { if (!RD.open || (e.target && e.target.tagName === 'INPUT')) return; if (e.code === 'ArrowRight' || e.code === 'PageDown' || e.code === 'Space') { e.preventDefault(); readerGo(RD.page + 1); } if (e.code === 'ArrowLeft' || e.code === 'PageUp') { e.preventDefault(); readerGo(RD.page - 1); } });
+      return el;
+    }
+    function paginate(paras) {
+      const cjk = /[\u4e00-\u9fff]/.test(paras.slice(0, 40).join('')), cap = cjk ? 620 : 1500, pages = []; let cur = [], n = 0;
+      paras.forEach((p) => { while (p.length > cap * 1.4) { const cut = p.slice(0, cap); if (n) { pages.push(cur); cur = []; n = 0; } pages.push([cut]); p = p.slice(cap); }
+        if (n + p.length > cap && n) { pages.push(cur); cur = []; n = 0; } cur.push(p); n += p.length; });
+      if (cur.length) pages.push(cur); return pages.length ? pages : [['（这本书没有可显示的文字）']];
+    }
+    function cleanPlain(t) {
+      t = String(t).replace(/\r/g, '');
+      const a = t.search(/\*\*\* ?START OF (THE|THIS) PROJECT GUTENBERG[^\n]*\n/), b = t.search(/\*\*\* ?END OF (THE|THIS) PROJECT GUTENBERG/);
+      if (a >= 0) t = t.slice(t.indexOf('\n', a) + 1, b > a ? b : undefined);
+      return t.split(/\n\s*\n+/).map((p) => p.replace(/[ \t]+/g, ' ').replace(/-\n(?=[a-z])/g, '').replace(/\s*\n\s*/g, ' ').trim()).filter((p) => p.length > 1 && !/^\d{1,4}$/.test(p));
+    }
+    async function loadText(src) {
+      if (src.file) { const r = await fetch(src.file); if (!r.ok) throw new Error('这本书的正文文件不在了，请重新运行 tools/build-library.py'); const t = await r.text(); return src.kind === 'ws' ? t.split('\n').filter((x) => x.trim()) : cleanPlain(t); }
+      if (src.local) { const b = myBooks.find((x) => x.key === src.local); if (!b) throw new Error('这本书不在浏览器里了，请重新放入'); return cleanPlain(b.text); }
+      if (src.ws) { const out = [];
+        for (const title of src.ws) { const r = await fetch('https://zh.wikisource.org/w/api.php?action=parse&prop=text&format=json&origin=*&redirects=1&variant=zh-hans&page=' + encodeURIComponent(title)); const d = await r.json(); if (!d.parse) continue;
+          const doc = new DOMParser().parseFromString(d.parse.text['*'], 'text/html'); doc.querySelectorAll('style,script,table,.mw-editsection,.noprint,sup.reference,.navbox,#toc,.toc').forEach((n) => n.remove());
+          out.push('§ ' + String(d.parse.title).replace(/^.*\//, '').replace(/\s*\(.*$/, '')); doc.querySelectorAll('p,dd,li,h2,h3,h4').forEach((n) => { const t = n.textContent.replace(/\s+/g, ' ').trim(); if (t.length > 1) out.push((/^H/.test(n.tagName) ? '§ ' : '') + t); }); }
+        if (!out.length) throw new Error('维基文库没有返回正文'); return out; }
+      if (src.pg) { const r = await fetch('api/pg?id=' + encodeURIComponent(src.pg)); if (r.ok) return cleanPlain(await r.text()); if (!src.ia) throw new Error('文字版暂时取不到（需要用 serve.py 启动本站，并且能联网）'); }
+      const r2 = await fetch('https://archive.org/download/' + encodeURIComponent(src.ia) + '/' + encodeURIComponent(src.ia) + '_djvu.txt'); if (!r2.ok) throw new Error('这个扫描本没有可用的文字层');
+      return cleanPlain(await r2.text());
+    }
+    function openReader(src) {
+      const el = readerEl(); closeModal();
+      RD.open = true; RD.src = src; RD.paras = null; RD.course = null; RD.pages = []; RD.excerpts = []; RD.turned = 0; RD.page = 0; S.ui = true;
+      if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
+      el.style.display = 'flex'; $id('pr-title').textContent = '《' + src.title + '》 ' + (src.author || ''); $id('pr-clipn').textContent = '';
+      $id('pr-scan').style.display = src.ia ? '' : 'none'; $id('pr-text').style.display = (src.pg || src.ws || src.ia) ? '' : 'none';
+      studyMark('read', src.philId, '读《' + src.title + '》');
+      readerMode(src.mode || 'text');
+    }
+    function readerMode(mode) {
+      const src = RD.src, body = $id('pr-body'); if (!src) return; if (mode === 'scan' && !src.ia) mode = 'text'; RD.mode = mode;
+      $id('pr-scan').classList.toggle('on', mode === 'scan'); $id('pr-text').classList.toggle('on', mode === 'text'); $id('pr-course').classList.remove('on'); $id('pr-body').onclick = null;
+      $id('pr-foot').style.display = mode === 'text' ? 'flex' : 'none'; ['pr-small', 'pr-big', 'pr-clip'].forEach((i) => { $id(i).style.display = mode === 'text' ? '' : 'none'; });
+      if (src.ia && !src.iaMeta) { src.iaMeta = '…'; fetch('https://archive.org/metadata/' + encodeURIComponent(src.ia) + '/metadata').then((r) => r.json()).then((d) => { const m = d.result || {}; src.iaMeta = [].concat(m.title || [])[0] + (m.year || m.date ? '（' + String(m.year || m.date).slice(0, 4) + '）' : ''); if (RD.open && RD.src === src && RD.mode !== 'text' || (RD.open && RD.src === src && !src.pg && !src.ws)) $id('pr-src').textContent = '这一本是：' + src.iaMeta + ' · Internet Archive'; }).catch(() => {}); }
+      if (mode === 'scan') { $id('pr-src').textContent = src.iaMeta && src.iaMeta !== '…' ? '这一本是：' + src.iaMeta + ' · Internet Archive' : 'Internet Archive 扫描本'; body.innerHTML = '<iframe allowfullscreen src="https://archive.org/embed/' + encodeURIComponent(src.ia) + '?ui=embed"></iframe>'; return; }
+      $id('pr-src').textContent = src.file ? (src.srcLabel || '本地书架') : src.local ? '我放入的书' : src.ws ? '维基文库' : src.pg ? 'Project Gutenberg 文字版' : 'Internet Archive OCR 文字（可能有识别错误）';
+      if (RD.pages.length) { readerGo(RD.page); return; }
+      body.innerHTML = '<div class="pr-page"><p class="pr-load">正在取书…</p></div>';
+      loadText(src).then((paras) => { if (!RD.open || RD.src !== src) return; RD.paras = paras; RD.course = null; RD.pages = paginate(paras); const sv = reading[src.key]; readerGo(sv && src.resume !== false ? Math.min(sv.page, RD.pages.length - 1) : 0, true); })
+        .catch((err) => { if (RD.open && RD.src === src) body.innerHTML = '<div class="pr-page"><p class="pr-load">' + esc(err.message || err) + '</p></div>'; });
+    }
+    function readerGo(n, quiet) {
+      if (!RD.pages.length) return; n = Math.max(0, Math.min(RD.pages.length - 1, n)); if (n !== RD.page && !quiet) RD.turned++; RD.page = n;
+      const body = $id('pr-body'); body.innerHTML = '<div class="pr-page" style="font-size:' + RD.fs + 'px">' + RD.pages[n].map((p) => /^§ /.test(p) ? '<p class="h">' + esc(p.slice(2)) + '</p>' : '<p>' + esc(p) + '</p>').join('') + '</div>';
+      $id('pr-n').value = n + 1; $id('pr-total').textContent = RD.pages.length;
+      const s = RD.src; reading[s.key] = { key: s.key, philId: s.philId, title: s.title, page: n, pages: RD.pages.length, ts: Date.now(), src: { philId: s.philId, title: s.title, author: s.author, key: s.key, pg: s.pg, ia: s.ia, ws: s.ws, local: s.local, file: s.file, kind: s.kind, srcLabel: s.srcLabel, mode: 'text' }, course: (reading[s.key] || {}).course }; saveReading();
+    }
+    function closeReader() {
+      if (!RD.open) return; RD.open = false; const el = $id('pi-reader'); if (el) el.style.display = 'none'; $id('pr-body').innerHTML = ''; S.ui = false;
+      const s = RD.src, p = philById(s.philId), now = Date.now();
+      if (RD.mode === 'course') RD.mode = 'text';
+      if (RD.turned > 0 || RD.excerpts.length || RD.mode === 'scan') {
+        const msgs = RD.excerpts.map((x) => ({ role: 'phil', who: '摘录 · 第 ' + x.page + ' 页', text: x.text }));
+        const old = notebook.find((n) => n.type === 'read' && n.bookKey === s.key);
+        if (old) { old.messages = old.messages.concat(msgs); old.ts = now; old.at = new Date(now).toISOString(); old.progress = RD.pages.length ? (RD.page + 1) + ' / ' + RD.pages.length : old.progress; notebook.splice(notebook.indexOf(old), 1); notebook.unshift(old); }
+        else notebook.unshift({ id: now, ts: now, at: new Date(now).toISOString(), type: 'read', bookKey: s.key, philId: s.philId, thinker: p ? p.name : (s.author || ''), question: '读《' + s.title + '》', modes: [RD.mode === 'scan' ? '翻阅扫描本' : '阅读'], models: [], steps: null, progress: RD.pages.length ? (RD.page + 1) + ' / ' + RD.pages.length : '', source: s.file ? (s.srcLabel || '本地书架') : s.local ? '我放入的书' : s.ws ? 'zh.wikisource.org' : s.pg ? 'Project Gutenberg #' + s.pg : 'archive.org/details/' + s.ia, messages: msgs });
+        saveNotebook(); toast('📓 阅读记录已记入笔记本' + (RD.excerpts.length ? '（含 ' + RD.excerpts.length + ' 段摘录）' : ''));
+      }
+      openShelf(s.philId);
+    }
+    const isReaderOpen = () => RD.open;
+    const hallAt = () => world.PHILOSOPHERS.find((p) => Math.abs(player.pos.x - (p.x + 0.5)) <= p.w / 2 + 1.5 && Math.abs(player.pos.z - (p.z + 0.5)) <= p.d / 2 + 1.5);
+    function openShelfHere() { const p = hallAt() || (activeDialoguePortal && philById(activeDialoguePortal.philosopher_id)); if (!p) { toast('📚 走进一座展馆再按 R，就能翻那位思想者的书架'); return; } openShelf(p.id); }
+    let hallNow = null;
+    function hallTick() { const p = hallAt(), id = p ? p.id : null; if (id === hallNow) return; hallNow = id; if (p && !S.ui && !S.talk) toast('📚 ' + p.name + '的展馆 · 按 R 翻他的书架，按 E 交谈'); }
+
+    /* ================= 思维手册: 100 everyday thinking models (pi-world/handbook.js) ================= */
+    const HB_KEY = 'minest.philosophers.handbook.v1'; let hbRead = {};
+    try { hbRead = JSON.parse(localStorage.getItem(HB_KEY) || '{}') || {}; } catch (e) { hbRead = {}; }
+    function hbSearch(q) { const HB = root.PIHandbook; if (!HB) return []; const s = String(q || '').toLowerCase().replace(/[？?，。\s]/g, ''); if (s.length < 2) return [];
+      const sc = HB.SCENES.filter((x) => { const t = x[0]; for (let i = 0; i < s.length - 1; i++) if (t.indexOf(s.slice(i, i + 2)) >= 0) return true; return false; }).flatMap((x) => x[1]).map(HB.byName);
+      const hit = HB.ALL.filter((m) => (m.name + m.en + m.what).toLowerCase().indexOf(s) >= 0 || (s.length >= 2 && s.indexOf(m.name.toLowerCase().slice(0, Math.min(4, m.name.length))) >= 0));
+      return Array.from(new Set(hit.concat(sc))).slice(0, 8); }
+    function openHandbook(focus) {
+      const HB = root.PIHandbook; if (!HB) return;
+      const done = Object.keys(hbRead).length;
+      const box = showModal(`
+        <div class="pi-m-header"><div><span class="pi-m-badge">FIELD GUIDE · 100 MODELS</span><h2>🧰 思维手册 · 100 个常用思维模型</h2>
+          <div class="pi-m-sub">八个主题。每个模型一句话、一个例子、一个马上能做的动作；很多条都能在岛上找到它的出处，点「去找他」。已读 <b id="pi-hb-n">${done}</b> / 100。</div></div>
+          <button type="button" class="pi-m-close" id="pi-m-close-btn">✕</button></div>
+        <input id="pi-hb-q" class="pi-cmp-q" style="min-height:0;height:42px;" placeholder="搜一个模型，或写下你卡在哪里：拖延、选择困难、记不住…">
+        <div class="pi-btn-row" style="margin-top:10px;">${HB.SCENES.map((s, i) => `<button type="button" class="pi-act-btn" data-hb-sc="${i}">${esc(s[0])}</button>`).join('')}</div>
+        <div class="pi-btn-row" style="margin-top:8px;" id="pi-hb-tabs">${HB.GROUPS.map((g, i) => `<button type="button" class="pi-act-btn" data-hb-g="${i}">${esc(g.name)} ${g.items.length}</button>`).join('')}</div>
+        <div id="pi-hb-list" style="margin-top:12px;"></div>
+        <div class="pi-m-footer"><span class="pi-m-sub">模型清单与分类参考 think.knowledgefxg.com；这里的说明是本岛自己写的。</span></div>`);
+      if (!box) return;
+      if (!$id('pi-hb-style')) { const st = document.createElement('style'); st.id = 'pi-hb-style'; st.textContent = `
+        .pi-hb-item { padding:9px 12px; margin-bottom:7px; border-radius:10px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04); cursor:pointer; }
+        .pi-hb-item.read { border-color:rgba(134,239,172,.45); } .pi-hb-item b { color:#fcd34d; } .pi-hb-item i { font-style:normal; color:#94a3b8; font-size:12px; margin-left:6px; } .pi-hb-item .w { color:#e2e8f0; font-size:13.5px; margin-top:2px; }
+        .pi-hb-more { display:none; margin-top:8px; font-size:13px; line-height:1.65; color:#cbd5e1; } .pi-hb-item.open .pi-hb-more { display:block; } .pi-hb-more u { text-decoration:none; color:#7dd3fc; }`; document.head.appendChild(st); }
+      const row = (m) => { const p = m.hall && philById(m.hall); return `<div class="pi-hb-item ${hbRead[m.no] ? 'read' : ''}" data-hb="${m.no}"><b>${String(m.no).padStart(2, '0')} ${esc(m.name)}</b><i>${esc(m.en)} · ${esc(m.groupName)}</i><div class="w">${esc(m.what)}</div>
+        <div class="pi-hb-more"><p><u>例子</u>　${esc(m.eg)}</p><p><u>现在就做</u>　${esc(m.how)}</p><div class="pi-btn-row">${p ? `<button type="button" class="pi-act-btn gold" data-hb-go="${p.id}" data-hb-name="${esc(m.name)}">🚶 去找${esc(p.name)}聊这个</button><button type="button" class="pi-act-btn" data-hb-holo="${p.id}">🔷 他馆里的全息屏</button>` : ''}${(root.ROOTMAP && root.ROOTMAP.models.some((g) => g.hb === m.name)) ? `<button type="button" class="pi-act-btn" data-hb-gif="${esc(m.name)}">🎞 看动图</button>` : ''}<button type="button" class="pi-act-btn" data-hb-pin="${m.no}">📓 记到笔记本</button></div></div></div>`; };
+      const list = $id('pi-hb-list'), show = (items, title) => { list.innerHTML = (title ? '<div class="pi-lib-h" style="margin:4px 0 8px;font-size:12.5px;letter-spacing:.1em;color:#fcd34d;">' + esc(title) + '</div>' : '') + (items.length ? items.map(row).join('') : '<p class="pi-save-empty">没有找到。换一个词，或点上面的场景和主题。</p>'); };
+      const group = (i) => { show(HB.GROUPS[i].items, HB.GROUPS[i].name + ' · ' + HB.GROUPS[i].sub); $id('pi-hb-tabs').querySelectorAll('button').forEach((b, k) => b.classList.toggle('active', k === i)); };
+      $id('pi-m-close-btn').onclick = closeModal;
+      $id('pi-hb-q').addEventListener('keydown', (e) => e.stopPropagation()); $id('pi-hb-q').addEventListener('input', (e) => { const r = hbSearch(e.target.value); if (e.target.value.trim().length >= 2) show(r, '搜索结果'); });
+      box.querySelectorAll('[data-hb-sc]').forEach((b) => { b.onclick = () => { const s = HB.SCENES[+b.getAttribute('data-hb-sc')]; show(s[1].map(HB.byName), '「' + s[0] + '」先看这几个'); }; });
+      $id('pi-hb-tabs').onclick = (e) => { const g = e.target.getAttribute('data-hb-g'); if (g != null) group(+g); };
+      list.onclick = (e) => { const t = e.target, go = t.getAttribute('data-hb-go'), ho = t.getAttribute('data-hb-holo'), pin = t.getAttribute('data-hb-pin');
+        if (t.getAttribute('data-hb-gif')) { openRootmap('models', t.getAttribute('data-hb-gif')); return; }
+        if (go) { setStudy(t.getAttribute('data-hb-name'), go); studyGo('table'); return; } if (ho) { closeModal(); openHolo(ho); return; }
+        if (pin) { const m = HB.ALL[+pin - 1], now = Date.now(); notebook.unshift({ id: now, ts: now, at: new Date(now).toISOString(), type: 'model', thinker: '思维手册', question: m.name + '（' + m.en + '）', modes: ['思维手册'], models: [], steps: null, messages: [{ role: 'phil', who: '是什么', text: m.what }, { role: 'phil', who: '例子', text: m.eg }, { role: 'phil', who: '现在就做', text: m.how }] }); saveNotebook(); toast('📓 已记到笔记本'); return; }
+        const it = t.closest('.pi-hb-item'); if (!it) return; it.classList.toggle('open'); const no = it.getAttribute('data-hb'); if (!hbRead[no]) { hbRead[no] = 1; it.classList.add('read'); try { localStorage.setItem(HB_KEY, JSON.stringify(hbRead)); } catch (er) {} $id('pi-hb-n').textContent = Object.keys(hbRead).length; } };
+      if (focus && HB.byName(focus)) { show([HB.byName(focus)], ''); const f = list.querySelector('.pi-hb-item'); if (f) f.click(); } else group(0);
+    }
+
+    /* ================= Round-table council: several philosophers brainstorm one question ================= */
+    const COUNCIL_KEY = 'minest.philosophers.council.v1';
+    const CS = { open: false, topic: '', ids: [], queue: [], idx: -1, log: [], board: [], round: 0, picks: new Set(['socrates', 'kant', 'nietzsche']), calls: {} };
+    try { CS.board = JSON.parse(localStorage.getItem(COUNCIL_KEY) || '[]') || []; } catch (e) { CS.board = []; }
+    const C_PRESETS = [
+      ['理性与经验', ['descartes', 'hume', 'kant'], '可靠的知识从哪里来？'],
+      ['正义之辩', ['plato', 'rawls', 'marx', 'hobbes_rousseau'], '什么样的社会才算正义？'],
+      ['市场之争', ['smith_ricardo', 'keynes_friedman', 'hayek_schumpeter', 'marx'], '市场能自己解决问题吗？'],
+      ['东方与西方', ['confucius', 'laozi', 'socrates', 'zeno'], '怎样才算过好这一生？'],
+      ['人与机器', ['descartes', 'wittgenstein', 'simon_kahneman', 'heidegger_sartre'], 'AI 会思考吗？我们该怎样和它相处？'],
+      ['自由与规训', ['mill', 'foucault', 'kant', 'pavlov_skinner'], '人是自由的吗？']
+    ];
+    const C_TOPICS = ['怎样做一个艰难的决定？', '什么是好的教育？', '面对不确定的未来，该怎么办？', '痛苦有没有意义？', '我们该不该相信多数人的意见？'];
+    const cName = (id) => (id === '__you' ? '主持人（你）' : ((philById(id) || {}).name || id));
+    const cPlain = (t) => String(t || '').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
+    const cBeats = (t, n) => { const b = splitBeats(t); return cPlain((b && b.length ? b.slice(0, n) : [t]).join('')); };
+    const cShort = (t, n) => { const x = cPlain(t).replace(/^【[^】]*】/, ''); return x.length > n ? x.slice(0, n) + '…' : x; };
+    const cStance = (id) => cPlain(((PHILOSOPHER_PERSPECTIVES[id] || {}).stance || '').replace(/\s*[（(][^）)]*[）)]\s*/g, ''));
+
+    function councilEl() {
+      let el = $id('pi-council'); if (el) return el;
+      const st = document.createElement('style'); st.textContent = `
+        #pi-council { position:fixed; inset:0; z-index:46; display:none; color:#f8fafc; pointer-events:none; font-family:inherit; }
+        #pi-council > * { pointer-events:auto; }
+        #pi-council::before { content:""; position:absolute; left:0; right:0; bottom:0; height:52%; background:linear-gradient(180deg,transparent,rgba(5,8,16,.9) 62%); pointer-events:none; }
+        #pi-council::after { content:""; position:absolute; left:0; right:0; top:0; height:120px; background:linear-gradient(0deg,transparent,rgba(5,8,16,.8)); pointer-events:none; }
+        .pc-top { position:absolute; z-index:2; left:18px; right:18px; top:12px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+        .pc-badge { font-size:11px; letter-spacing:.2em; color:#fcd34d; border:1px solid rgba(245,158,11,.5); border-radius:999px; padding:3px 10px; }
+        .pc-topic { font-family:"Songti SC","Noto Serif SC",serif; font-size:18px; font-weight:700; flex:1; min-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .pc-seats { display:flex; gap:6px; flex-wrap:wrap; }
+        .pc-seat { display:flex; align-items:center; gap:6px; padding:3px 10px 3px 3px; border-radius:999px; border:1.5px solid rgba(255,255,255,.22); background:rgba(12,18,32,.72); color:#e2e8f0; font-size:12.5px; cursor:pointer; transition:all .25s; }
+        .pc-seat img { width:26px; height:26px; border-radius:50%; object-fit:cover; }
+        .pc-seat.on { border-color:#f59e0b; background:rgba(245,158,11,.22); color:#fff; box-shadow:0 0 14px rgba(245,158,11,.45); }
+        .pc-x { width:34px; height:34px; border-radius:50%; border:1px solid rgba(255,255,255,.3); background:rgba(12,18,32,.72); color:#fff; cursor:pointer; font-size:14px; }
+        .pc-main { position:absolute; z-index:2; left:50%; transform:translateX(-50%); bottom:16px; width:min(860px, calc(100% - 32px)); }
+        .pc-who { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+        .pc-who img { width:44px; height:44px; border-radius:50%; object-fit:cover; border:2px solid #f59e0b; }
+        .pc-who b { font-size:16px; color:#fcd34d; } .pc-who span { font-size:11.5px; color:#94a3b8; margin-left:8px; letter-spacing:.08em; }
+        .pc-text { font-family:"Songti SC","Noto Serif SC",serif; font-size:20px; line-height:1.75; min-height:70px; text-shadow:0 2px 10px rgba(0,0,0,.8); animation:pcIn .5s ease both; }
+        @keyframes pcIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+        .pc-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; align-items:center; }
+        .pc-btn { padding:7px 13px; border-radius:999px; border:1px solid rgba(255,255,255,.26); background:rgba(15,23,42,.72); color:#e2e8f0; font-size:13px; cursor:pointer; }
+        .pc-btn:hover { border-color:#f59e0b; } .pc-btn.gold { background:linear-gradient(180deg,#f59e0b,#d97706); border-color:#fbbf24; color:#1c1917; font-weight:700; }
+        .pc-prog { margin-left:auto; font-size:11.5px; color:#94a3b8; }
+        .pc-ask { display:flex; gap:8px; margin-top:10px; } .pc-ask input { flex:1; padding:9px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.2); background:rgba(8,12,22,.75); color:#fff; font-size:14px; outline:none; }
+        .pc-board { position:absolute; z-index:2; right:16px; top:64px; width:270px; max-height:52%; overflow:auto; padding:10px 12px; border-radius:12px; background:rgba(250,246,232,.94); color:#292524; font-size:12.5px; line-height:1.55; box-shadow:0 10px 30px rgba(0,0,0,.5); display:none; }
+        .pc-board h4 { margin:0 0 6px; font-size:13px; letter-spacing:.1em; display:flex; justify-content:space-between; align-items:center; }
+        .pc-board h4 button, .pc-note button { border:0; background:transparent; color:#b45309; cursor:pointer; font-size:11.5px; }
+        .pc-note { padding:6px 0; border-top:1px dashed #d6d3d1; } .pc-note b { color:#92400e; }
+        @media (max-width:700px) { .pc-text { font-size:16.5px; } .pc-board { width:210px; } .pc-topic { font-size:15px; } }
+        body.pi-council #hud > :not(#toast), body.pi-council #touch, body.pi-council #pi-quest { opacity:0 !important; pointer-events:none !important; }
+        .pc-pick { display:flex; flex-wrap:wrap; gap:6px; max-height:210px; overflow:auto; }`;
+      document.head.appendChild(st);
+      el = document.createElement('div'); el.id = 'pi-council';
+      el.innerHTML = `<div class="pc-top"><span class="pc-badge">圆桌会议</span><div class="pc-topic" id="pc-topic"></div><div class="pc-seats" id="pc-seats"></div><button class="pc-btn" id="pc-board-btn">📌 白板 <b id="pc-board-n">0</b></button><button class="pc-x" id="pc-x" title="结束会议 (Esc)">✕</button></div>
+        <div class="pc-board" id="pc-board"></div>
+        <div class="pc-main"><div class="pc-who"><img id="pc-face" alt=""><div><b id="pc-name"></b><span id="pc-tag"></span></div></div><div class="pc-text" id="pc-text"></div>
+          <div class="pc-row"><button class="pc-btn gold" id="pc-next">继续 ▸</button><button class="pc-btn" id="pc-clash">⚔ 互相回应</button><button class="pc-btn" id="pc-ideas">💡 各出一个点子</button><button class="pc-btn" id="pc-synth">🧩 主持人小结</button><button class="pc-btn" id="pc-pin">📌 记到白板</button><span class="pc-prog" id="pc-prog"></span></div>
+          <div class="pc-ask"><input id="pc-q" placeholder="向全桌提一个新问题，回车发出…" maxlength="80"><button class="pc-btn" id="pc-send">提问</button></div></div>`;
+      document.body.appendChild(el);
+      const on2 = (id, fn) => { $id(id).addEventListener('click', (e) => { e.stopPropagation(); fn(); }); };
+      on2('pc-x', closeCouncil); on2('pc-next', councilNext); on2('pc-clash', () => councilRound('clash')); on2('pc-ideas', () => councilRound('ideas')); on2('pc-synth', () => councilRound('synth'));
+      on2('pc-pin', councilPin); on2('pc-board-btn', () => { const b = $id('pc-board'); b.style.display = b.style.display === 'block' ? 'none' : 'block'; renderBoard(); });
+      on2('pc-send', councilAsk); $id('pc-q').addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') councilAsk(); });
+      $id('pc-seats').addEventListener('click', (e) => { const b = e.target.closest('[data-pc-seat]'); if (b) councilCall(b.getAttribute('data-pc-seat')); });
+      $id('pc-board').addEventListener('click', (e) => { const a = e.target.getAttribute('data-pc'); if (a == null) return;
+        if (a === 'clear') CS.board = []; else if (a === 'copy') { const txt = CS.board.map((n) => '· ' + n.who + '：' + n.text + '（议题：' + n.topic + '）').join('\n'); if (navigator.clipboard) navigator.clipboard.writeText(txt).then(() => toast('已复制白板内容'), () => {}); } else CS.board.splice(+a, 1);
+        saveBoard(); renderBoard(); });
+      window.addEventListener('keydown', (e) => { if (!CS.open || (e.target && e.target.tagName === 'INPUT')) return; if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); councilNext(); } });
+      return el;
+    }
+    function saveBoard() { try { localStorage.setItem(COUNCIL_KEY, JSON.stringify(CS.board.slice(-40))); } catch (e) {} }
+    function renderBoard() { const b = $id('pc-board'); if (!b) return; $id('pc-board-n').textContent = CS.board.length;
+      b.innerHTML = '<h4>📌 头脑风暴白板 <span><button data-pc="copy">复制</button><button data-pc="clear">清空</button></span></h4>' + (CS.board.length ? CS.board.map((n, i) => `<div class="pc-note"><b>${esc(n.who)}</b>：${esc(n.text)} <button data-pc="${i}">✕</button></div>`).join('') : '<div class="pc-note">还没有内容。听到值得留下的话，点「📌 记到白板」。</div>'); }
+
+    function openCouncilSetup(prefill) {
+      if (CS.open) return;
+      if (prefill && philById(prefill)) CS.picks.add(prefill);
+      const draw = CS.draw = () => { const box = $id('pi-council-picks'); if (!box) return; box.innerHTML = REGISTRY.map((r) => `<button type="button" class="pi-act-btn ${CS.picks.has(r.philosopher_id) ? 'active' : ''}" data-cc-pick="${r.philosopher_id}">${esc(r.philosopher_name)}</button>`).join(''); $id('pi-council-n').textContent = CS.picks.size; };
+      const box = showModal(`
+        <div class="pi-m-header"><div><span class="pi-m-badge">ROUND TABLE · BRAINSTORM</span><h2>🏛 召开圆桌会议</h2>
+          <div class="pi-m-sub">出一个题目，请 2–5 位思想者到广场旁的大圆桌围坐。他们轮流发言、互相回应、各出点子；你是主持人，可以点名、追问，把好想法记到白板上。</div></div>
+          <button type="button" class="pi-m-close" id="pi-m-close-btn">✕</button></div>
+        <textarea id="pi-council-q" class="pi-cmp-q" rows="2" placeholder="例如：怎样做一个艰难的决定？">${esc(CS.topic)}</textarea>
+        <div class="pi-btn-row">${C_TOPICS.map((t) => `<button type="button" class="pi-act-btn" data-cc-topic="${esc(t)}">${esc(t)}</button>`).join('')}</div>
+        <div class="pi-m-sub" style="margin:12px 0 6px;">现成的组合：</div>
+        <div class="pi-btn-row">${C_PRESETS.map((p, i) => `<button type="button" class="pi-act-btn" data-cc-preset="${i}">${esc(p[0])}</button>`).join('')}</div>
+        <div class="pi-m-sub" style="margin:12px 0 6px;">与会者（已选 <b id="pi-council-n">0</b> / 5）：</div>
+        <div class="pc-pick" id="pi-council-picks"></div>
+        <div class="pi-btn-row" style="margin-top:12px;"><button type="button" class="pi-act-btn gold" id="pi-council-go">🏛 开会</button><span class="pi-m-sub">发言由本地脚本按各家学说生成，不是 AI，也不是哲学家原话。</span></div>`);
+      draw();
+      const cb = $id('pi-m-close-btn'); if (cb) cb.onclick = closeModal;
+      if (!box || box.__ccBound) return; box.__ccBound = true;
+      box.addEventListener('click', (e) => {
+        const t = e.target; if (!t || !t.getAttribute) return;
+        const pk = t.getAttribute('data-cc-pick'), tp = t.getAttribute('data-cc-topic'), ps = t.getAttribute('data-cc-preset');
+        if (pk) { if (CS.picks.has(pk)) CS.picks.delete(pk); else if (CS.picks.size < 5) CS.picks.add(pk); else toast('一桌最多五位'); CS.draw(); }
+        if (tp) $id('pi-council-q').value = tp;
+        if (ps != null) { const p = C_PRESETS[+ps]; CS.picks = new Set(p[1].filter((id) => philById(id))); $id('pi-council-q').value = p[2]; CS.draw(); }
+        if (t.id === 'pi-council-go') { const q = ($id('pi-council-q').value || '').trim(); if (CS.picks.size < 2) { toast('至少请两位'); return; } if (!q) { toast('先出一个题目'); return; } startCouncilSession(q, Array.from(CS.picks)); }
+      });
+    }
+    function startCouncilSession(topic, ids) {
+      closeModal(); if (isDialogueOpen()) closeDialogue();
+      CS.open = true; CS.topic = topic; CS.ids = ids; CS.queue = []; CS.idx = -1; CS.log = []; CS.round = 0; CS.calls = {};
+      const el = councilEl(); S.ui = true; document.body.classList.add('pi-council');
+      if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
+      $id('pc-topic').textContent = '议题：' + topic;
+      $id('pc-seats').innerHTML = ids.map((id) => `<button class="pc-seat" data-pc-seat="${id}" title="点名请他回应"><img src="assets/portraits/${id}.jpg" alt="">${esc(cName(id))}</button>`).join('');
+      renderBoard();
+      if (ctx.startCouncil) ctx.startCouncil(ids);
+      setTimeout(() => { if (!CS.open) return; el.style.display = 'block'; councilRound('open'); }, 700);
+    }
+    function closeCouncil() {
+      if (!CS.open) return; CS.open = false;
+      nbCaptureCouncil();
+      const el = $id('pi-council'); if (el) el.style.display = 'none';
+      document.body.classList.remove('pi-council'); S.ui = false;
+      if (ctx.setCouncilSpeaker) ctx.setCouncilSpeaker(null);
+      if (ctx.endTalk) ctx.endTalk();
+      if (CS.board.length) toast('📌 白板上的 ' + CS.board.length + ' 条已保存，下次开会还在');
+    }
+    const isCouncilOpen = () => CS.open;
+    function councilLines(kind, q) {
+      const ids = CS.ids, n = ids.length, topic = q || CS.topic, prevRound = CS.lastRound || [];
+      if (kind === 'open') return ids.map((id) => ({ id, tag: '陈述', text: cBeats(generateConversationalReply(philById(id), topic, null, { noHook: true }).text, 2) }));
+      if (kind === 'clash') return ids.map((id, i) => { const pid = ids[(i - 1 + n) % n], pl = prevRound.find((l) => l.id === pid) || { text: cStance(pid) }, v = PHILOSOPHER_VOICE[id] || {}, pd = PHILOSOPHER_PERSPECTIVES[id] || {};
+        return { id, tag: '回应 ' + cName(pid), text: cName(pid) + '刚才说“' + cShort(pl.text, 30) + '” ' + cPlain(v.counter || '我不完全同意。') + ' ' + cBeats(pd.rivals || pd.truth || '', 1) }; });
+      if (kind === 'ideas') return ids.map((id, i) => { const w = root.PIWiki ? root.PIWiki.get(id) : null, cs = (w && w.concepts) || [], c = cs.length ? cs[(CS.round + i) % cs.length] : null, v = PHILOSOPHER_VOICE[id] || {};
+        return { id, tag: '点子', text: c ? '💡 我出一个点子：从「' + c.term + '」入手。' + cPlain(c.desc) + ' 放到“' + cShort(topic, 22) + '”上，不妨先问一句：' + cPlain(v.hook || '你真正想要的是什么？') : '💡 ' + cPlain(v.hook || '') }; });
+      // the host's summary
+      const a = ids[0], b = ids[n - 1];
+      return [{ id: '__you', tag: '小结', text: '这一轮下来：' + ids.map((id) => cName(id) + '看重的是' + (cStance(id) || '他自己的那套学说')).join('；') + '。' },
+        { id: '__you', tag: '小结', text: '分歧最大的大概是' + cName(a) + '和' + cName(b) + '。白板上现在有 ' + CS.board.length + ' 条。接下来可以让他们「互相回应」，或者换一个更具体的问题再问一轮。' }];
+    }
+    function councilRound(kind, q) {
+      if (!CS.open) return;
+      if (q) { CS.topic = q; $id('pc-topic').textContent = '议题：' + q; }
+      const lines = councilLines(kind, q); if (kind !== 'synth') CS.lastRound = lines;
+      CS.round++; CS.queue = lines; CS.idx = -1; councilNext();
+    }
+    function councilCall(id) {
+      if (!CS.open) return; const pd = PHILOSOPHER_PERSPECTIVES[id] || {}, v = PHILOSOPHER_VOICE[id] || {}, k = CS.calls[id] = (CS.calls[id] || 0) + 1;
+      const src = [pd.life, pd.truth, pd.suffering, pd.ai][(k - 1) % 4] || pd.greeting || '';
+      CS.queue = [{ id, tag: '被点名', text: (k === 1 ? '既然点到我 —— ' : '再补充一点：') + cBeats(src, 2) + (v.hook ? ' ' + cPlain(v.hook) : '') }]; CS.idx = -1; councilNext();
+    }
+    function councilAsk() { const inp = $id('pc-q'), q = (inp.value || '').trim(); if (!q) return; inp.value = ''; inp.blur(); councilRound('open', q); }
+    function councilNext() {
+      if (!CS.open) return;
+      const face = $id('pc-face'), nm = $id('pc-name'), tg = $id('pc-tag'), tx = $id('pc-text');
+      const setText = (t) => { tx.style.animation = 'none'; void tx.offsetWidth; tx.style.animation = ''; tx.textContent = t; };
+      if (CS.idx >= CS.queue.length - 1) {
+        CS.cur = null; if (ctx.setCouncilSpeaker) ctx.setCouncilSpeaker(null);
+        face.style.visibility = 'hidden'; nm.textContent = '主持人（你）'; tg.textContent = '轮到你了';
+        setText('这一轮说完了。你可以让他们「互相回应」、「各出一个点子」，点上方的名字请某一位再说，或者在下面提一个新问题。');
+        $id('pc-prog').textContent = ''; document.querySelectorAll('.pc-seat').forEach((b) => b.classList.remove('on')); return;
+      }
+      const l = CS.queue[++CS.idx]; CS.cur = l; CS.log.push(l);
+      if (ctx.setCouncilSpeaker) ctx.setCouncilSpeaker(l.id);
+      face.style.visibility = l.id === '__you' ? 'hidden' : 'visible'; if (l.id !== '__you') face.src = 'assets/portraits/' + l.id + '.jpg';
+      nm.textContent = cName(l.id); tg.textContent = l.tag; setText(l.text);
+      $id('pc-prog').textContent = (CS.idx + 1) + ' / ' + CS.queue.length + ' · Space 继续';
+      document.querySelectorAll('.pc-seat').forEach((b) => b.classList.toggle('on', b.getAttribute('data-pc-seat') === l.id));
+    }
+    function councilPin() { const l = CS.cur; if (!l) { toast('等有人发言时再记'); return; } if (CS.board.some((n) => n.text === l.text)) { toast('这一条已经在白板上了'); return; } CS.board.push({ who: cName(l.id), text: l.text, topic: CS.topic }); saveBoard(); renderBoard(); toast('📌 已记到白板'); }
+
     return {
       checkProximity,
       activateNearest,
       openCompassModal,
       openDialogue,
+      visitAndTalk,
+      openCompareModal,
+      openSavedModal,
+      openHolo,
+      closeHolo,
+      isHoloOpen,
       closeDialogue,
       isDialogueOpen,
+      openCouncilSetup, closeCouncil, isCouncilOpen,
+      openBook, hallBooks, openLibrary, closeLibrary, isLibraryOpen, openCreative, openCatalogBook,
+      openHandbook, hbSearch, openStory, closeStory, isStoryOpen, openFold, closeFold, isFoldOpen, openPaper, closePaper, isPaperOpen, openRootmap, closeRootmap, isRootmapOpen, closeLightCone, isLightConeOpen,
+      openShelf, openShelfHere, closeReader, isReaderOpen, openLightCone, openStick, closeStick, isStickOpen,
+      openTaskBoard, openNotebook, renderStudy, recommend, getNotebook: () => notebook, getStudy: () => study,
       openPortal,
       closeModal,
       isModalOpen,

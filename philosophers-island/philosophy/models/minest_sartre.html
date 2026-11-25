@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 萨特存在主义选择 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .q0{padding:5px 10px;background:#fff7e0;border-bottom:1px solid #f0d08a;font-size:13px}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+#side .lim{padding:4px 10px 8px;font-size:11.5px;color:#667}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 36%)}#side{height:36%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>萨特 · 存在先于本质</b>
+  <button class="tab on" data-l="1">① 裁纸刀与人</button>
+  <button class="tab" data-l="2">② 学生的两难</button>
+  <button class="tab" data-l="3">③ 为所有人选择</button>
+  <button class="tab" data-l="4">④ 懦夫与自欺</button>
+  <button class="tab" data-l="5">⑤ 应用练习</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div>
+  <div class="q0"><b>核心问题：</b>如果人没有预先给定的本质，那么谁来决定我是什么——我能不能“不选择”？</div>
+  <div class="bd" id="sBody"></div>
+  <div class="lim"><b>适用边界：</b>画面中的“轮廓”“刻度”“人群复制”是教学比喻；萨特讲的是人的处境与责任，不是一套可计算的规则，演讲稿本身也只是他思想的通俗版本。</div>
+</div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ===== 保存与恢复 ===== */
+const MEM={};
+const store={get(k){try{const v=localStorage.getItem(k);return v==null?MEM[k]:JSON.parse(v);}catch(e){return MEM[k];}},set(k,v){MEM[k]=v;try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
+const KEY='minest_sartre_v1';
+let SAVE=store.get(KEY)||{lit:{},done:{},level:1,choices:[]};
+function persist(){store.set(KEY,SAVE);}
+
+/* ===== 原文：萨特《存在主义是一种人道主义》（1946 演讲），Philip Mairet 英译，marxists.org 版；中文为编译；该版本无段号，只标所在论述 ===== */
+const SRC='萨特《存在主义是一种人道主义》Mairet 英译';
+const MAP={
+1:[["工匠先有图纸，再造出裁纸刀","从技术的观点看世界，我们可以说：生产先于存在。","we can say that production precedes existence",'论“本质先于存在”的器物'],
+   ["拖图纸给“人”：放不上去","因此，没有人性，因为没有一个上帝来构想它。","Thus, there is no human nature, because there is no God to have a conception of it.",'论“存在先于本质”'],
+   ["人先出现：一个还没有轮廓的身影","人首先存在，遭遇自己，涌现于世界之中……","man first of all exists, encounters himself, surges up in the world",'论“存在先于本质”'],
+   ["拖着他去行动：每个行为画上一笔轮廓","人不过是他自己所造成的东西。","Man is nothing else but that which he makes of himself.",'存在主义第一原则']],
+2:[["两股拉力：母亲与“自由法国”","在去英国加入自由法国军队，与留在母亲身边帮她活下去之间作选择。","the choice between going to England to join the Free French Forces or of staying near his mother and helping her to live",'学生的例子'],
+   ["想先量一量“爱有多深”：刻度只随留下而增长","他对母亲感情的价值，恰恰是由他守在她身边这一事实决定的。","The value of his feeling for his mother was determined precisely by the fact that he was standing by her.",'学生的例子'],
+   ["感情不能当向导","感情是由人所做的行为形成的；因此我不能把它当作行动的向导。","feeling is formed by the deeds that one does; therefore I cannot consult it as a guide to action.",'学生的例子'],
+   ["把他拖向某位顾问：答案已被预先选定","选择一位顾问，本身就已经是通过这个选择投入了自己。","to choose an adviser is nevertheless to commit oneself by that choice.",'学生的例子'],
+   ["什么都不做：时间照样替你“选”了","我总能选择，但我必须知道：如果我不选择，那仍然是一种选择。","I can always choose, but I must know that if I do not choose, that is still a choice.",'答“怎么选都无所谓”的指责'],
+   ["他走到一端，并在那里停住","你是自由的，所以选择吧，也就是说，去发明。","You are free, therefore choose, that is to say, invent.",'萨特给学生的回答'],
+   ["没有任何借口可抓住","这就是我所说的：人被判定是自由的。","That is what I mean when I say that man is condemned to be free.",'论“被遗弃”']],
+3:[["拖一个选择到自己身上：人群随之改变","他为自己作选择时，也是为所有人作选择。","in choosing for himself he chooses for all men.",'论主观性的两种含义'],
+   ["按住“不是每个人都会这样做”：人群仍在复制","人总应当问自己：如果每个人都照我这样做，会怎样？","one ought always to ask oneself what would happen if everyone did as one is doing",'论焦虑']],
+4:[["把“天生懦弱”“激情”“遗传”挡在身前：它们碎了","任何躲在激情的借口后面、或编造某种决定论学说的人，都是自欺者。","any man who takes refuge behind the excuse of his passions, or by inventing some deterministic doctrine, is a self-deceiver.",'论自欺'],
+   ["只靠行为写下“懦夫 / 英雄”","懦夫使自己懦弱，英雄使自己英勇。","the coward makes himself cowardly, the hero makes himself heroic",'论懦夫与英雄'],
+   ["按住“我本可以去爱”：气泡始终是空的","除了爱的行为，没有别的爱。","there is no love apart from the deeds of love",'论“只有行动才是实在”'],
+   ["一生被收拢成一串行为","因此，他不过是他的行为的总和。","he is therefore nothing else but the sum of his actions",'论“只有行动才是实在”']],
+5:[["面对空白画布：没有预先规定的画","众所周知，没有一幅预先规定好、要他去画的画。","there is no pre-defined picture for him to make",'道德选择与艺术创作的类比'],
+   ["亲手画下去：价值在画成之时显现","生活在被活过之前什么也不是。","Life is nothing until it is lived",'答“价值不严肃”的指责']]};
+const TITLE={1:'① 裁纸刀与人 · 左：把图纸拖上工作台，按住锻造；右：拖着那个人去行动',2:'② 学生的两难 · 拖动学生走向母亲或港口；按住原地“先量一量感情”；把他拖到顾问身边',3:'③ 为所有人选择 · 把一个选择拖到自己身上；按住右下角“只是我自己的事”',4:'④ 懦夫与自欺 · 把借口拖到身前；拖动他去面对或退缩；按住“本可以”气泡',5:'⑤ 应用练习 · 在空白画布上按住拖动作画；之后拖动画家去面对新的两难'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr${SAVE.lit[l+'_'+i]?' on':''}" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——${SRC}，${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const k=l+'_'+i;const e=$('mr'+l+'_'+i);if(!e||e.classList.contains('on'))return;e.classList.add('on');SAVE.lit[k]=1;e.scrollIntoView({block:'nearest',behavior:'smooth'});
+  if(MAP[l].every((_,j)=>SAVE.lit[l+'_'+j])){SAVE.done[l]=1;tabs();}persist();}
+
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y,x0:x,y0:y,t0:T};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]?.move?.(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]?.up?.();});
+
+function person(x,y,r,col,alpha,outline){ctx.save();ctx.globalAlpha=alpha==null?1:alpha;ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y-r*2.1,r*.45,0,7);ctx.fill();
+  ctx.beginPath();ctx.moveTo(x-r*.55,y);ctx.quadraticCurveTo(x-r*.6,y-r*1.7,x,y-r*1.75);ctx.quadraticCurveTo(x+r*.6,y-r*1.7,x+r*.55,y);ctx.closePath();ctx.fill();
+  if(outline){ctx.strokeStyle=outline;ctx.lineWidth=2;ctx.stroke();}ctx.restore();}
+
+/* ================= 第 1 关 ================= */
+let A;
+function init1(){A={bp:{x:0.12,y:0.82,drag:false,on:false},forge:0,forging:false,knife:false,man:{x:0.62,y:0.78},drag:null,strokes:[],deeds:[{x:0.58,y:0.3,n:'学习'},{x:0.8,y:0.32,n:'劳动'},{x:0.92,y:0.6,n:'帮助他人'},{x:0.7,y:0.55,n:'抗争'}],visited:{},rejectT:0};}
+HD[1]={down(x,y){
+  if(Math.hypot(x-W*A.bp.x,y-H*A.bp.y)<40){A.drag='bp';return;}
+  if(A.bp.on&&x<W*0.48&&Math.abs(y-H*0.55)<H*0.2){A.forging=true;return;}
+  if(Math.hypot(x-W*A.man.x,y-(H*A.man.y-30))<45){A.drag='man';}},
+ move(x,y){if(A.drag==='bp'){A.bp.x=clamp(x/W,0.02,0.98);A.bp.y=clamp(y/H,0.1,0.95);}
+  if(A.drag==='man'){A.man.x=clamp(x/W,0.52,0.97);A.man.y=clamp(y/H,0.2,0.92);
+    A.deeds.forEach(d=>{if(Math.hypot(W*(A.man.x-d.x),H*(A.man.y-d.y))<40&&!A.visited[d.n]){A.visited[d.n]=1;A.strokes.push({n:d.n,t:0});toast(`他${d.n}了：轮廓多了一笔`);hit(1,2);if(A.strokes.length>=3)hit(1,3);}});}},
+ up(){if(A.drag==='bp'){const bx=W*A.bp.x,by=H*A.bp.y;
+    if(bx<W*0.48&&Math.abs(by-H*0.55)<H*0.2){A.bp.on=true;A.bp.x=0.24;A.bp.y=0.55;toast('图纸在先：裁纸刀的“是什么”已经定好');}
+    else if(bx>W*0.52&&Math.hypot(bx-W*A.man.x,by-(H*A.man.y-30))<80){A.rejectT=1.5;A.bp.x=0.12;A.bp.y=0.82;hit(1,1);toast('图纸放不上去：没有一个预先构想人的设计者');}}
+  A.drag=null;A.forging=false;}};
+function t1(dt){ctx.fillStyle='#ece6da';ctx.fillRect(0,0,W/2,H);ctx.fillStyle='#e3ebf2';ctx.fillRect(W/2,0,W/2,H);ctx.fillStyle='#bbb';ctx.fillRect(W/2-1,0,2,H);
+  txt('器物：本质先于存在',14,24,'rgba(0,0,0,.6)',15,'left',true);txt('人：存在先于本质',W/2+14,24,'rgba(0,0,0,.6)',15,'left',true);
+  // 工作台
+  ctx.fillStyle='#8b6b3d';ctx.fillRect(W*0.05,H*0.66,W*0.38,14);ctx.fillRect(W*0.08,H*0.66,10,H*0.25);ctx.fillRect(W*0.4,H*0.66,10,H*0.25);
+  // 图纸
+  const bx=W*A.bp.x,by=H*A.bp.y;ctx.fillStyle='#2f5f8f';ctx.fillRect(bx-38,by-26,76,52);ctx.strokeStyle='#cfe4ff';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(bx-26,by+8);ctx.lineTo(bx+22,by-12);ctx.lineTo(bx+28,by-6);ctx.lineTo(bx-20,by+14);ctx.closePath();ctx.stroke();txt('图纸',bx,by+22,'#cfe4ff',11);
+  // 锻造：刀按图纸轮廓逐步填满
+  if(A.forging)A.forge=Math.min(1,A.forge+dt*0.35);
+  const kx=W*0.24,ky=H*0.5;
+  if(A.bp.on){ctx.strokeStyle='rgba(47,95,143,.7)';ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(kx-W*0.12,ky+18);ctx.lineTo(kx+W*0.1,ky-14);ctx.lineTo(kx+W*0.12,ky-4);ctx.lineTo(kx-W*0.1,ky+28);ctx.closePath();ctx.stroke();ctx.setLineDash([]);
+    ctx.save();ctx.beginPath();ctx.moveTo(kx-W*0.12,ky+18);ctx.lineTo(kx+W*0.1,ky-14);ctx.lineTo(kx+W*0.12,ky-4);ctx.lineTo(kx-W*0.1,ky+28);ctx.closePath();ctx.clip();
+    ctx.fillStyle='#9aa4ad';ctx.fillRect(kx-W*0.13,ky-30,W*0.26*A.forge,70);ctx.restore();
+    if(A.forging){for(let i=0;i<3;i++){ctx.fillStyle='rgba(255,180,60,.9)';ctx.fillRect(kx-W*0.12+W*0.24*A.forge+(Math.random()-.5)*10,ky+(Math.random()-.5)*30,3,3);}}
+    if(A.forge>=1&&!A.knife){A.knife=true;hit(1,0);toast('裁纸刀造好了：它恰好就是图纸上规定的样子');}
+    txt(A.forge<1?'按住工作台：照图纸锻造':'裁纸刀：用途与形状都是预先定好的',W*0.24,H*0.62,'#5a3b1e',12);}
+  else txt('把左下角的图纸拖到工作台上',W*0.24,H*0.4,'#5a3b1e',13);
+  // 右：行为点
+  A.deeds.forEach(d=>{const x=W*d.x,y=H*d.y;ctx.fillStyle=A.visited[d.n]?'#f3a52b':'rgba(58,111,153,.25)';ctx.beginPath();ctx.arc(x,y,26,0,7);ctx.fill();txt(d.n,x,y+5,A.visited[d.n]?'#222':'#2c3e50',12);});
+  // 人：轮廓由行为逐步画出
+  const mx=W*A.man.x,my=H*A.man.y,r=H*0.06;const n=A.strokes.length;
+  person(mx,my,r,'rgba(60,70,90,'+(0.15+0.2*n)+')');
+  A.strokes.forEach((s,i)=>{s.t=Math.min(1,s.t+dt*1.5);ctx.save();ctx.strokeStyle=['#c0392b','#2f9e57','#3a6f99','#8a6ab0'][i%4];ctx.lineWidth=3;ctx.beginPath();
+    const a0=-Math.PI/2+i*Math.PI/2,a1=a0+Math.PI/2*s.t;ctx.ellipse(mx,my-r*1.2,r*0.9,r*1.5,0,a0,a1);ctx.stroke();ctx.restore();});
+  txt(n===0?'还没有任何本质：他“首先存在”':`他已经做了：${A.strokes.map(s=>s.n).join('、')}`,mx,my+22,'#2c3e50',12);
+  if(A.rejectT>0){A.rejectT-=dt;ctx.strokeStyle='#c0392b';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(mx-30,my-H*0.2);ctx.lineTo(mx+30,my-H*0.1);ctx.moveTo(mx+30,my-H*0.2);ctx.lineTo(mx-30,my-H*0.1);ctx.stroke();}
+  if(n===0)txt('也试试把图纸拖到他身上',W*0.75,H*0.96,'#556',12);}
+
+/* ================= 第 2 关：学生 ================= */
+let B;
+function init2(){B={x:0.5,drag:false,hold:false,holdT:0,love:0,idle:0,adv:null,advT:0,settled:0,end:null,noChoice:false,lastMove:T,kantTried:false};}
+const ADV=[{n:'抵抗派神父',x:0.36,y:0.2,a:'去英国'},{n:'合作派神父',x:0.64,y:0.2,a:'留下来'},{n:'萨特',x:0.5,y:0.14,a:'你是自由的，选择吧'}];
+HD[2]={down(x,y){const sx=W*B.x,sy=H*0.72;if(Math.hypot(x-sx,y-(sy-30))<50){B.drag=true;B.dx0=x;B.moved=false;return;}B.hold=true;},
+ move(x,y,dx){if(B.drag){if(Math.abs(x-B.dx0)>6)B.moved=true;B.x=clamp(x/W,0.08,0.92);B.y=clamp(y/H,0.1,0.85);B.lastMove=T;B.idle=0;
+   ADV.forEach(a=>{if(Math.hypot(W*(B.x-a.x),H*(B.y-a.y))<50&&B.adv!==a){B.adv=a;B.advT=2.5;hit(2,3);toast(`选了“${a.n}”做顾问——你早就知道他会说：${a.a}`);if(a.n==='萨特')hit(2,5);}});}},
+ up(){if(B.drag){B.drag=false;B.y=null;}B.hold=false;}};
+function t2(dt){const g=ctx.createLinearGradient(0,0,W,0);g.addColorStop(0,'#f2e3c6');g.addColorStop(0.5,'#e8e8e8');g.addColorStop(1,'#bcd7ec');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  const gy=H*0.72;ctx.fillStyle='#8a7a66';ctx.fillRect(0,gy,W,H-gy);
+  // 左：母亲的家
+  ctx.fillStyle='#b5834f';ctx.fillRect(W*0.03,gy-H*0.26,W*0.16,H*0.26);ctx.fillStyle='#8a5a2b';ctx.beginPath();ctx.moveTo(W*0.01,gy-H*0.26);ctx.lineTo(W*0.11,gy-H*0.38);ctx.lineTo(W*0.21,gy-H*0.26);ctx.fill();
+  ctx.fillStyle='#ffe9a8';ctx.fillRect(W*0.08,gy-H*0.18,W*0.04,H*0.06);person(W*0.15,gy,H*0.045,'#7a5a6a');txt('母亲',W*0.11,gy+18,'#3a2a1a',12);
+  // 右：港口与船
+  ctx.fillStyle='#3e86b8';ctx.fillRect(W*0.8,gy-6,W*0.2,H);ctx.fillStyle='#555';ctx.beginPath();ctx.moveTo(W*0.82,gy-8);ctx.lineTo(W*0.97,gy-8);ctx.lineTo(W*0.94,gy-30);ctx.lineTo(W*0.85,gy-30);ctx.fill();ctx.fillRect(W*0.89,gy-60,4,30);
+  ctx.fillStyle='#fff';ctx.fillRect(W*0.89,gy-60,22,14);ctx.fillStyle='#c0392b';ctx.fillRect(W*0.9,gy-58,6,10);txt('去英国 · 自由法国',W*0.9,gy+18,'#123',12);
+  // 两股拉力
+  const pullL=1-B.x,pullR=B.x;
+  if(!B.drag&&!B.end){B.idle+=dt;}
+  // 顾问
+  ADV.forEach(a=>{const x=W*a.x,y=H*a.y;ctx.fillStyle=B.adv===a?'#f3a52b':'rgba(255,255,255,.85)';ctx.beginPath();ctx.arc(x,y,24,0,7);ctx.fill();txt(a.n,x,y+40,'#334',11);person(x,y+16,10,'#445');});
+  if(B.adv&&B.advT>0){B.advT-=dt;txt(`“${B.adv.a}”`,W*B.adv.x,H*B.adv.y-30,'#a0620a',14,'center',true);}
+  // 学生
+  const sx=W*B.x,sy=B.y?H*B.y:gy;
+  // 拉力线
+  ctx.strokeStyle=`rgba(181,131,79,${0.3+0.6*pullL})`;ctx.lineWidth=2+4*pullL;ctx.beginPath();ctx.moveTo(sx-10,sy-H*0.05);ctx.lineTo(W*0.19,gy-H*0.12);ctx.stroke();
+  ctx.strokeStyle=`rgba(62,134,184,${0.3+0.6*pullR})`;ctx.lineWidth=2+4*pullR;ctx.beginPath();ctx.moveTo(sx+10,sy-H*0.05);ctx.lineTo(W*0.84,gy-H*0.08);ctx.stroke();
+  person(sx,sy,H*0.05,'#2c3e50');txt('学生',sx,sy+18,'#123',12);
+  if(T>1)hit(2,0);
+  // 按住原地：试图先测出感情的强度
+  if(B.hold&&!B.drag){B.holdT+=dt;ctx.fillStyle='rgba(255,255,255,.9)';ctx.fillRect(W*0.36,H*0.36,W*0.28,40);
+    const near=B.x<0.25;B.love=near?Math.min(1,B.love+dt*0.25):B.love;
+    ctx.fillStyle='#c0392b';ctx.fillRect(W*0.37,H*0.36+22,W*0.26*B.love,10);txt(near?'对母亲之爱：守在她身边，刻度在长':'对母亲之爱：刻度不动——你还没有为她做任何事',W*0.5,H*0.36+16,'#333',12);
+    if(!near&&B.holdT>1.5)hit(2,2);if(near&&B.love>0.4)hit(2,1);}
+  else{B.love=B.x<0.25?Math.min(1,B.love+dt*0.12):Math.max(0,B.love-dt*0.05);}
+  // 康德准则卡（拖不动，只是一张会裂开的卡）
+  // 不作为：时间替你选
+  if(!B.drag&&!B.end&&B.idle>6&&!B.noChoice){B.noChoice=true;hit(2,4);toast('你一直没动——这本身也是选择：他今天又留在了家里');}
+  if(B.idle>6){B.x=lerp(B.x,0.2,dt*0.15);}
+  // 停在一端
+  if(!B.drag&&(B.x<0.2||B.x>0.8)){B.settled+=dt;if(B.settled>2&&!B.end){B.end=B.x<0.2?'留下':'出发';SAVE.choices.push(B.end);persist();hit(2,5);hit(2,6);toast(B.end==='留下'?'他留下了：是这个行为，规定了他对母亲的爱':'他出发了：没有任何准则替他承担这个决定');}}else B.settled=0;
+  if(B.end){ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(W*0.3,H*0.04,W*0.4,30);txt(`他选择了：${B.end}——无可推诿`,W*0.5,H*0.04+20,'#ffe7b5',14,'center',true);}
+  else txt(B.idle>3?'……他在等。时间也在走':'拖动学生；或在空白处按住，试着先“量一量”感情',W*0.5,H*0.97,'#334',12);}
+
+/* ================= 第 3 关：为所有人选择 ================= */
+let C;
+const OPTS=[{n:'结婚生子',c:'#e8743b'},{n:'加入工会',c:'#3a6f99'},{n:'说谎自保',c:'#8a3a3a'}];
+function init3(){C={crowd:[],sel:null,drag:null,mine:null,excuse:false,excT:0};for(let i=0;i<60;i++)C.crowd.push({x:0.35+Math.random()*0.6,y:0.25+Math.random()*0.6,c:'#9aa',k:0});}
+HD[3]={down(x,y){if(x>W*0.78&&y>H*0.84){C.excuse=true;return;}OPTS.forEach((o,i)=>{if(Math.hypot(x-W*0.1,y-H*(0.25+i*0.18))<30)C.drag={o,x,y};});},
+ move(x,y){if(C.drag){C.drag.x=x;C.drag.y=y;}},
+ up(){if(C.drag){if(Math.hypot(C.drag.x-W*0.24,C.drag.y-H*0.6)<50){C.mine=C.drag.o;C.crowd.forEach(p=>p.k=0);hit(3,0);toast(`你选择了“${C.mine.n}”：这也是在说“人应当如此”`);}C.drag=null;}C.excuse=false;}};
+function t3(dt){ctx.fillStyle='#eef1f4';ctx.fillRect(0,0,W,H);
+  OPTS.forEach((o,i)=>{ctx.fillStyle=o.c;ctx.beginPath();ctx.arc(W*0.1,H*(0.25+i*0.18),24,0,7);ctx.fill();txt(o.n,W*0.1,H*(0.25+i*0.18)+40,'#334',12);});
+  person(W*0.24,H*0.68,H*0.06,C.mine?C.mine.c:'#445');txt('我',W*0.24,H*0.68+18,'#223',13,'center',true);
+  // 人群逐渐采纳“人的形象”
+  if(C.mine){const cx=W*0.24;C.crowd.forEach(p=>{const d=Math.hypot(W*p.x-cx,H*p.y-H*0.6);p.k=Math.min(1,p.k+dt*(0.6-d/(W*1.5)));});}
+  if(C.excuse){C.excT+=dt;if(C.excT>1.5)hit(3,1);}
+  C.crowd.forEach(p=>{const col=C.mine&&p.k>0.5?C.mine.c:'#9aa';person(W*p.x,H*p.y,9,col,0.5+0.5*(C.mine?p.k:0.4));});
+  if(C.drag){ctx.fillStyle=C.drag.o.c;ctx.beginPath();ctx.arc(C.drag.x,C.drag.y,22,0,7);ctx.fill();}
+  const adopted=C.mine?C.crowd.filter(p=>p.k>0.5).length:0;
+  txt(C.mine?`“人应当如此”的形象：${adopted}/60 人`:'把左侧一个选择拖到“我”身上',W*0.62,24,'#223',14,'center',true);
+  ctx.fillStyle=C.excuse?'#f3a52b':'rgba(255,255,255,.9)';ctx.fillRect(W*0.78,H*0.84,W*0.2,H*0.12);txt('按住：“这只是我自己的事”',W*0.88,H*0.91,'#222',12);
+  if(C.excuse)txt('……可是人群并没有因此停下',W*0.62,H*0.12,'#c0392b',13);}
+
+/* ================= 第 4 关：懦夫与自欺 ================= */
+let D;
+const EXC=['天生懦弱','激情冲昏了头','遗传','环境所迫'];
+function init4(){D={ex:EXC.map((n,i)=>({n,x:0.1,y:0.2+i*0.17,broken:0,drag:false})),dragE:null,man:0.55,dragM:false,deeds:[],label:'？',hold:false,bub:0,broke:0};}
+HD[4]={down(x,y){if(x>W*0.78&&y<H*0.4){D.hold=true;return;}D.ex.forEach(e=>{if(!e.broken&&Math.hypot(x-W*e.x,y-H*e.y)<40)D.dragE=e;});if(!D.dragE&&Math.abs(x-W*D.man)<40&&y>H*0.4)D.dragM=true;},
+ move(x,y,dx){if(D.dragE){D.dragE.x=clamp(x/W,0.02,0.98);D.dragE.y=clamp(y/H,0.05,0.95);}if(D.dragM){D.man=clamp(x/W,0.3,0.75);}},
+ up(){if(D.dragE){const e=D.dragE;if(Math.hypot(W*e.x-W*D.man,H*e.y-H*0.6)<70){e.broken=1;D.broke++;hit(4,0);toast(`“${e.n}”挡不住：躲在它后面，就是自欺`);}D.dragE=null;}
+  if(D.dragM){const a=D.man>0.62?'迎上去':D.man<0.42?'退缩':null;if(a){D.deeds.push(a);D.label=D.deeds.slice(-3).filter(z=>z==='退缩').length>=2?'懦夫':D.deeds.slice(-3).filter(z=>z==='迎上去').length>=2?'英雄':'……';
+    if(D.label!=='……'){hit(4,1);toast(`他现在是“${D.label}”——由刚才的行为写下，也随时可以改写`);}if(D.deeds.length>=5)hit(4,3);persist();}D.dragM=false;D.man=0.55;}
+  D.hold=false;}};
+function t4(dt){ctx.fillStyle='#e9e4ee';ctx.fillRect(0,0,W,H);
+  // 危险（右）与安全（左）
+  ctx.fillStyle='rgba(192,57,43,.15)';ctx.fillRect(W*0.62,H*0.4,W*0.16,H*0.5);txt('危险：迎上去',W*0.7,H*0.45,'#8a2a1a',12);
+  ctx.fillStyle='rgba(58,111,153,.12)';ctx.fillRect(W*0.28,H*0.4,W*0.14,H*0.5);txt('退缩',W*0.35,H*0.45,'#2a4a6a',12);
+  const mx=W*D.man,my=H*0.8;person(mx,my,H*0.07,'#2c3e50');
+  ctx.fillStyle='#fff';ctx.strokeStyle='#888';ctx.beginPath();ctx.roundRect(mx-40,my-H*0.25,80,26,8);ctx.fill();ctx.stroke();txt(D.label,mx,my-H*0.25+18,D.label==='懦夫'?'#3a6f99':D.label==='英雄'?'#c0392b':'#666',14,'center',true);
+  D.ex.forEach(e=>{if(e.broken){e.broken+=dt;if(e.broken<2){for(let i=0;i<6;i++){ctx.fillStyle=`rgba(120,120,140,${2-e.broken})`;ctx.fillRect(W*e.x+(Math.random()-.5)*e.broken*80,H*e.y+(Math.random()-.5)*e.broken*80,6,4);}}return;}
+    ctx.fillStyle='#b9b0c8';ctx.beginPath();ctx.roundRect(W*e.x-48,H*e.y-16,96,32,10);ctx.fill();txt('🛡 '+e.n,W*e.x,H*e.y+5,'#333',12);});
+  // 行为序列
+  txt('行为：'+(D.deeds.length?D.deeds.slice(-8).join(' → '):'（尚无）'),W*0.5,24,'#223',13);
+  // 本可以去爱
+  if(D.hold){D.bub=Math.min(1,D.bub+dt*0.5);if(D.bub>0.6)hit(4,2);}else D.bub=Math.max(0,D.bub-dt);
+  ctx.fillStyle='rgba(255,255,255,.9)';ctx.fillRect(W*0.8,H*0.06,W*0.18,H*0.3);txt('按住：“我本可以',W*0.89,H*0.12,'#333',12);txt('伟大地去爱”',W*0.89,H*0.17,'#333',12);
+  if(D.bub>0){ctx.strokeStyle='#c0392b';ctx.setLineDash([4,4]);ctx.lineWidth=2;ctx.beginPath();ctx.arc(W*0.89,H*0.28,18+D.bub*20,0,7);ctx.stroke();ctx.setLineDash([]);txt('空的',W*0.89,H*0.29,'#c0392b',12);}
+  txt('把借口拖到他身前；把他拖进“危险”或“退缩”区后松手',W*0.5,H*0.97,'#556',12);}
+
+/* ================= 第 5 关：应用练习 ================= */
+let E;
+function init5(){E={strokes:[],cur:null,ink:0,phase:0,px:0.5,dragP:false,settle:0,ended:null};}
+HD[5]={down(x,y){if(E.phase===0&&x>W*0.2&&x<W*0.8&&y>H*0.12&&y<H*0.82){E.cur=[[x,y]];E.strokes.push(E.cur);hit(5,0);return;}
+  if(E.phase===1&&Math.abs(x-W*E.px)<40)E.dragP=true;},
+ move(x,y){if(E.cur){E.cur.push([x,y]);E.ink+=1;if(E.ink>400&&E.phase===0){E.phase=1;hit(5,1);toast('画成了：它的价值只在画成之后才显现。现在，画家接到一个新的两难');}}if(E.dragP)E.px=clamp(x/W,0.08,0.92);},
+ up(){E.cur=null;E.dragP=false;}};
+function t5(dt){ctx.fillStyle='#f3efe6';ctx.fillRect(0,0,W,H);
+  if(E.phase===0){ctx.fillStyle='#fff';ctx.fillRect(W*0.2,H*0.12,W*0.6,H*0.7);ctx.strokeStyle='#c9b08a';ctx.lineWidth=8;ctx.strokeRect(W*0.2,H*0.12,W*0.6,H*0.7);
+    E.strokes.forEach((s,i)=>{ctx.strokeStyle=`hsl(${(i*57)%360},60%,45%)`;ctx.lineWidth=4;ctx.lineCap='round';ctx.beginPath();s.forEach((p,k)=>k?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.stroke();});
+    txt(E.strokes.length?`已落笔 ${E.strokes.length} 次 · 继续画`:'空白画布：没有任何参照图——按住拖动，开始画',W/2,H*0.08,'#334',14,'center',true);
+    if(E.strokes.length){ctx.fillStyle='rgba(0,0,0,.15)';ctx.fillRect(W*0.2,H*0.86,W*0.6,8);ctx.fillStyle='#f3a52b';ctx.fillRect(W*0.2,H*0.86,W*0.6*clamp(E.ink/400,0,1),8);}}
+  else{ // 新两难：画家：留下照顾病重的父亲 vs 去巴黎参加唯一一次展览
+    const gy=H*0.72;ctx.fillStyle='#8a7a66';ctx.fillRect(0,gy,W,H-gy);
+    ctx.fillStyle='#b5834f';ctx.fillRect(W*0.04,gy-H*0.24,W*0.14,H*0.24);txt('病重的父亲',W*0.11,gy+18,'#3a2a1a',12);
+    ctx.fillStyle='#c9b08a';ctx.fillRect(W*0.82,gy-H*0.3,W*0.14,H*0.3);txt('巴黎 · 唯一的展览',W*0.89,gy+18,'#3a2a1a',12);
+    // 画布作品缩略
+    ctx.save();ctx.translate(W*0.42,H*0.08);ctx.scale(0.25,0.25);ctx.translate(-W*0.2,-H*0.12);E.strokes.forEach((s,i)=>{ctx.strokeStyle=`hsl(${(i*57)%360},60%,45%)`;ctx.lineWidth=8;ctx.beginPath();s.forEach((p,k)=>k?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.stroke();});ctx.restore();
+    person(W*E.px,gy,H*0.05,'#2c3e50');txt('画家（拖动）',W*E.px,gy+18,'#123',12);
+    if(!E.dragP&&(E.px<0.2||E.px>0.8)){E.settle+=dt;if(E.settle>2&&!E.ended){E.ended=E.px<0.2?'留下照顾父亲':'去巴黎';SAVE.choices.push(E.ended);persist();SAVE.done[5]=1;tabs();toast(`他选择了：${E.ended}。和作画一样——没有预先存在的答案，是选择本身发明了它`);}}else E.settle=0;
+    txt(E.ended?`他选择了：${E.ended} · 你在本模型里做过的选择：${SAVE.choices.join('、')}`:'没有任何准则能替他决定。把他拖到一边，并在那里停住',W/2,H*0.97,'#334',12);}}
+
+/* ===== 调度 ===== */
+const INIT={1:init1,2:init2,3:init3,4:init4,5:init5},TICK={1:t1,2:t2,3:t3,4:t4,5:t5};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!SAVE.done[t.dataset.l]);});}
+function go(n){L=n;SAVE.level=n;persist();tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{INIT[L]();toast('已重置本关（已点亮的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(SAVE.level||1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

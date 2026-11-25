@@ -18,6 +18,7 @@ const send = (res, status, body) => {
 };
 
 export default async function handler(req, res) {
+  if (req.query && req.query.op === 'rv-world') return (await import('../_rv-world/handler.mjs')).default(req, res);   // RV World's open-data proxy (no AI, no token)
   if (req.method === 'OPTIONS') { res.statusCode = 204; Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v)); return res.end(); }
   if (req.method !== 'POST') return send(res, 405, { error: 'POST required' });
   const auth = await authorize(req, process.env.MINEST_AI_TOKEN);

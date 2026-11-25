@@ -9,7 +9,8 @@
  */
 (function (root) {
   'use strict';
-  const W = 384, D = 384, H = 84;
+  // W0 × D is the main island's own square; the grid is wider so the annex island (社会科学岛) fits to the east.
+  const W0 = 384, W = 608, D = 384, H = 84;
   const WATER_Y = 36.6;
 
   const T = {
@@ -467,6 +468,9 @@
       artTheme: 'vangogh_shoes_cafe'
     }
   ];
+  // District VII · 现代与当代 (halls 21+): data lives in expansion.js
+  const EXP = root.PIExpansion || (typeof require !== 'undefined' ? (function () { try { const e = require('./expansion.js'); require('./annex.js'); return e; } catch (e) { return null; } })() : null);
+  if (EXP) EXP.philosophers.forEach((p) => PHILOSOPHERS.push(p));
 
   // ==========================================================================
   // ROADSIDE WAYFINDING FINGERPOSTS (路标系统) AT ALL MAJOR JUNCTIONS
@@ -630,7 +634,7 @@
       wolds: true, philosopherPlaques: [], houseSigns: [], wayposts: [], waterwheels: [], caveStage: null,
       greekColumns: [], greekTemples: [], greekTholos: [], greekBraziers: [],
       orientalBuildings: [], orientalPaifang: [], lotusFlowers: [], eraLandmarks: [],
-      museumExhibits: []
+      museumExhibits: [], holoConsoles: []
     };
 
     function lamp(x, y, z, inside, str) { set(x, y, z, B.LAMP, C.gold); lamps.push([x + 0.5, y + 0.5, z + 0.5, !!inside, str || 1]); }
@@ -705,6 +709,7 @@
       else if (p.id === 'heidegger_sartre') targetH = 44;
       return { x: p.x, z: p.z, r: Math.max(p.w, p.d) * 0.85 + 6, h: targetH, p };
     });
+    if (EXP) EXP.pads.forEach((q) => PADS.push({ x: q[0], z: q[1], r: q[2] || 19, h: 40 }));
 
     const dStreamArr = new Float32Array(W * D);
     for (let z = 0; z < D; z++) {
@@ -717,6 +722,7 @@
         const nwClassical = smooth(175, 55, x) * smooth(185, 65, z) * 6;
         const neTerrace = smooth(195, 290, x) * smooth(195, 70, z) * 4;
         let h = 39.8 + (n1 - 0.45) * 4.0 + (n2 - 0.5) * 1.1 + northAlpine + nwClassical + neTerrace - coastDrop;
+        if (x > W0 - 6) { const sea = smooth(W0 - 6, W0 + 6, x); h = h * (1 - sea) + 31 * sea; }   // open sea east of the main island
 
         for (const pad of PADS) {
           const d = Math.hypot(x - pad.x, z - pad.z);
@@ -751,7 +757,7 @@
 
     // Dry-stone walls & golden wheat / rapeseed fields in the outer countryside (adds rich rural life!)
     for (let z = 24; z < D - 24; z++) {
-      for (let x = 24; x < W - 24; x++) {
+      for (let x = 24; x < W0 - 24; x++) {
         const i = zi(x, z), y = hm[i];
         if (y <= 38 || y >= 47 || dStreamArr[i] < 12) continue;
         const dAgora = Math.hypot(x - 192, z - 196);
@@ -829,6 +835,48 @@
     paveRoad(186, 106, 136, 66, 2, B.PATH, C.path, false);           // Heidegger -> Schopenhauer
     paveRoad(186, 106, 192, 48, 2, B.PATH, C.path, true);            // Heidegger -> Nietzsche Alpine Peak
     paveRoad(186, 106, 248, 68, 2, B.PATH, C.path, false);           // Heidegger -> Wittgenstein
+    if (EXP) EXP.roads.forEach((r, i) => paveRoad(r[0], r[1], r[2], r[3], 2, B.FLAGS, C.flag, r[4] !== undefined ? !!r[4] : i < 5));   // District VII & annex avenues
+    // The landing: the south road runs on to the shore and out along a plank pier, where the explorer's boat ties up
+    paveRoad(192, 330, 192, 350, 2, B.FLAGS, C.flag, true);
+    for (let z = 346; z <= 364; z++) for (let x = 190; x <= 194; x++) {
+      const i = zi(x, z); if (hm[i] >= 40) continue;
+      set(x, 39, z, B.PLANKS, C.oak); if ((z % 4 === 0) && (x === 190 || x === 194)) { for (let y = 30; y < 39; y++) set(x, y, z, B.OAK, C.oakD); set(x, 40, z, B.OAK, C.oakD); }
+      hm[i] = 40; pathM[i] = 1; occ[i] = 1;
+    }
+    lamp(189, 40, 349, false, 1.1); lamp(195, 40, 349, false, 1.1);
+
+    // Kant's afternoon walk (Philosophengang): a loop of path beside his house, with benches
+    { const KW = [[242, 138], [258, 143], [274, 143], [288, 141], [290, 130], [280, 125], [264, 124], [256, 134], [242, 138]];
+      for (let i = 0; i < KW.length - 1; i++) paveRoad(KW[i][0], KW[i][1], KW[i + 1][0], KW[i + 1][1], 1, B.PATH, C.gravel, i % 2 === 0);
+      [[266, 146], [286, 144], [286, 127], [262, 121]].forEach((q) => { if (inb(q[0], 45, q[1]) && hm[zi(q[0], q[1])] > WATER_Y + 1 && !occ[zi(q[0], q[1])]) chair(q[0], hm[zi(q[0], q[1])], q[1], 0, C.oak); });
+    }
+    // Stone causeway bridges out to the annex island: a deck one block above the sea-level ground, parapets and piers
+    if (EXP) EXP.bridges.forEach((b) => {
+      if (b.x != null) {          // a bridge running north–south
+        for (let z = b.z0; z <= b.z1; z++) for (let x = b.x - 3; x <= b.x + 3; x++) {
+          const i = zi(x, z), edge = Math.abs(x - b.x) === 3;
+          if (hm[i] >= 40 && !edge) { set(x, 39, z, B.FLAGS, C.flag); pathM[i] = 1; occ[i] = 1; continue; }
+          if (hm[i] >= 40) continue;
+          if (edge) { set(x, 39, z, B.LIMES, C.stoneL); if (z % 2 === 0) set(x, 40, z, B.LIMES, C.stoneL); hm[i] = Math.max(hm[i], 40); occ[i] = 1; continue; }
+          set(x, 39, z, B.FLAGS, C.flag); set(x, 38, z, B.LIMES, C.stoneL);
+          if ((z - b.z0) % 10 === 5) for (let y = 31; y < 38; y++) set(x, y, z, B.LIMES, C.stoneL);
+          hm[i] = 40; pathM[i] = 1; occ[i] = 1;
+        }
+        return;
+      }
+      const z0 = b.z - 2, z1 = b.z + 2;
+      for (let x = b.x0; x <= b.x1; x++) {
+        for (let z = z0 - 1; z <= z1 + 1; z++) {
+          const i = zi(x, z), edge = z < z0 || z > z1;
+          if (hm[i] >= 40 && !edge) { set(x, 39, z, B.FLAGS, C.flag); pathM[i] = 1; occ[i] = 1; continue; }
+          if (hm[i] >= 40) continue;
+          if (edge) { set(x, 39, z, B.LIMES, C.stoneL); if (x % 2 === 0) set(x, 40, z, B.LIMES, C.stoneL); hm[i] = Math.max(hm[i], 40); occ[i] = 1; continue; }
+          set(x, 39, z, B.FLAGS, C.flag); set(x, 38, z, B.LIMES, C.stoneL);
+          if ((x - b.x0) % 10 === 5) for (let y = 31; y < 38; y++) set(x, y, z, B.LIMES, C.stoneL);
+          hm[i] = 40; pathM[i] = 1; occ[i] = 1;
+        }
+      }
+    });
 
     // Build Three-Arch Stone Bridges across the Stream of Experience!
     function buildStoneBridge(bx0, bx1, bz0, bz1, deckY) {
@@ -867,6 +915,7 @@
     });
 
     // Register Roadside Wayfinding Fingerposts
+    if (EXP) EXP.wayposts.forEach((wp) => { if (WAYPOSTS.indexOf(wp) < 0) WAYPOSTS.push(wp); });
     WAYPOSTS.forEach((wp) => {
       const wy = hm[zi(wp.x, wp.z)];
       props.wayposts.push({ x: wp.x + 0.5, y: wy, z: wp.z + 0.5, title: wp.title, arms: wp.arms });
@@ -926,7 +975,9 @@
             if (!onX && !onZ) continue;
             const isCorner = onX && onZ;
             const isQuoin = isCorner && ((y - gy) % 2 === 0);
-            set(x, y, z, isQuoin ? B.BATH : wallId, isQuoin ? quoinC : wallC);
+            if (y === gy) set(x, y, z, B.LIME, C.stoneL);
+            else if (y === gy + wallH - 1) set(x, y, z, B.HOOD, C.stoneL);
+            else set(x, y, z, isQuoin ? B.BATH : wallId, isQuoin ? quoinC : wallC);
           }
         }
       }
@@ -1299,7 +1350,7 @@
             for (let y = gy; y <= gy + 22; y++) if (SOFT[get(x, y, z)]) set(x, y, z, B.AIR, 0);
             const inHall = x >= x0 && x <= x1 && z >= z0 && z <= z1;
             const inTerrace = x >= x0 - 2 && x <= x1 + 2 && z >= z0 - 2 && z <= z1 + 2;
-            set(x, gy - 1, z, inHall ? B.PARQ : inTerrace ? B.MARBLE : B.FLAGS, inHall ? C.oak : C.marble);
+            set(x, gy - 1, z, inHall ? B.PLANKS : inTerrace ? B.MARBLE : B.FLAGS, inHall ? C.oak : C.marble);
             hm[i] = gy;
             if (inHall) occ[i] = 1; else pathM[i] = 1;
           }
@@ -1340,7 +1391,6 @@
 
         if (p.id === 'confucius') {
           // 12-Bell Bronze Bianzhong Chime Rack inside Dacheng Hall
-          for (let x = p.x - 3; x <= p.x + 3; x++) set(x, gy + 1, z0 + 2, B.GOLD, C.bronze);
           // Register Double-Eaved Imperial Yellow Glazed-Tile Dacheng Palace Roof + 4-Pillar Lingxing Paifang Archway!
           props.orientalBuildings.push({
             x0, z0, x1, z1, gy, wallH: wallHeight, tiers: 2, tileStyle: 'gold',
@@ -1376,7 +1426,8 @@
           props.fish.push({ x: p.x - 3.0, y: gy - 0.3, z: z1 + 4, rx: 1.5, rz: 1.1, sp: 1.2, ph: 0 });
           props.fish.push({ x: p.x + 3.0, y: gy - 0.3, z: z1 + 4, rx: 1.3, rz: 1.1, sp: -1.1, ph: 2 });
         }
-        bench(p.x - 3, gy, p.z + 1, 0, C.oak);
+        clear(x0 + 1, gy, z0 + 1, x1 - 1, gy + wallHeight - 1, z1 - 1);
+        bench(x0 + 2, gy, z1 - 2, 0, C.oak);
         buildPortalPedestal(p.x, gy, p.z - 1, p);
       }
 
@@ -1404,9 +1455,7 @@
           set(x, gy + 6, z0, B.CASE, 0); set(x, gy + 7, z0, B.CASE, 0);
         }
         buildPortalPedestal(p.x, gy, p.z - 2, p);
-        set(p.x, gy + 5, p.z, B.GOLD, C.gold);
-        set(p.x, gy + 6, p.z, B.PORTAL, C.gold);
-        lamp(p.x, gy + 7, p.z, true, 1.6);
+        lamps.push([p.x + 0.5, gy + 7.6, p.z + 0.5, true, 1.6]);
         bench(p.x + 3, gy + 5, p.z, -Math.PI / 2, C.oakD);
         // 3D Hemispherical Brass & Verdigris Star Observatory Dome + Refracting Telescope on Roof!
         props.eraLandmarks.push({ kind: 'kant_observatory', x: p.x + 0.5, y: gy + 11.8, z: p.z + 0.5 });
@@ -1511,7 +1560,19 @@
         const isNordic = p.id === 'schopenhauer_kierkegaard';
         const isAlpineFort = p.id === 'nietzsche';
 
-        buildMasterResidence(p, x0, z0, x1, z1, gy, {
+        const LOOKS = {
+          tudor: { wallId: B.PLASTER, wallC: C.plaster, quoinC: C.oakD, roofC: [0.46, 0.32, 0.24], gt: 'plaster' },
+          georgian: { wallId: B.BRICK, wallC: C.dutchBrick, roofC: [0.30, 0.36, 0.46], gt: 'brick' },
+          german: { wallId: B.RUBBLE, wallC: C.cotswold, roofC: [0.25, 0.27, 0.30], slope: 1.3 },
+          cambridge: { wallId: B.BATH, wallC: C.honeyStone, roofC: [0.30, 0.42, 0.40] },
+          newengland: { wallId: B.PLASTER, wallC: C.plaster, roofC: [0.22, 0.30, 0.42], gt: 'plaster', slope: 1.2 },
+          vienna: { wallId: B.LIMES, wallC: C.stoneL, roofC: [0.20, 0.52, 0.45], slope: 0.9 },
+          campus: { wallId: B.LIMES, wallC: C.stoneL, roofC: [0.82, 0.36, 0.24], slope: 0.9 },
+          harvard: { wallId: B.BRICK, wallC: C.prussianBrick, roofC: [0.25, 0.27, 0.30], gt: 'brick' },
+          paris: { wallId: B.LIMES, wallC: C.stoneL, roofC: [0.20, 0.27, 0.42], slope: 1.18 },
+          frankfurt: { wallId: B.RUBBLE, wallC: C.cotswold, roofC: [0.22, 0.18, 0.16], slope: 0.95 }
+        };
+        buildMasterResidence(p, x0, z0, x1, z1, gy, p.expansion ? Object.assign({ quoinC: C.marble, slope: 1.05, wallH: 6, dormer: true, ov: 0.38, floorId: B.PLANKS, floorC: C.oak, creeper: 'ivy', gt: 'rubble' }, LOOKS[p.look] || {}) : {
           wallId: isFrenchBaroque ? B.LIMES : (isDutchGable || isIndustrial || isGeorgian) ? B.BRICK : isTudor ? B.PLASTER : B.RUBBLE,
           wallC: isFrenchBaroque ? C.stoneL : isDutchGable ? C.dutchBrick : isIndustrial ? C.prussianBrick : isTudor ? C.plaster : C.cotswold,
           quoinC: isTudor ? C.oakD : C.marble,
@@ -1567,6 +1628,20 @@
           props.eraLandmarks.push({ kind: 'nordic_stave', x: p.x + 0.5, y: gy + 10.2, z: p.z + 0.5, z0, z1 });
         } else if (isAlpineFort) {
           props.eraLandmarks.push({ kind: 'nietzsche_sun_wheel', x: p.x + 0.5, y: gy + 10.5, z: p.z + 0.5 });
+        } else if (p.annex) {
+          // Annex island: each hall has its own roof feature and a front-yard landmark (built in props.js)
+          if (p.id === 'keynes_friedman' || p.id === 'ebbinghaus') props.eraLandmarks.push({ kind: 'georgian_dome', x: p.x + 0.5, y: gy + 8.6, z: p.z + 0.5 });
+          else if (p.id === 'nash' || p.id === 'granovetter') props.eraLandmarks.push({ kind: 'marx_industrial_dome', x: p.x + 0.5, y: gy + 8.2, z: p.z + 0.5 });
+          else if (p.id === 'piaget_vygotsky') { for (let x = x0; x <= x1; x += 2) for (let y = gy + 2; y < gy + 6; y++) { set(x, y, z1, B.OAK, C.oakD); set(x, y, z0, B.OAK, C.oakD); } props.eraLandmarks.push({ kind: 'tudor_timbers', x0, z0, x1, z1, gy }); }
+          props.eraLandmarks.push({ kind: 'ax_' + p.id, x: p.x + 0.5, y: gy, z: z1 + 6.5, cz: p.z + 0.5, x0, x1, z1 });
+        } else if (p.expansion && !p.annex) {
+          // District VII: each hall has its own signature landmark in the front yard (built in props.js)
+          props.eraLandmarks.push({ kind: 'd7_' + p.id, x: p.x + 0.5, y: gy, z: z1 + 6.5, x0, x1, z1 });
+          // …and the building itself gets its own silhouette
+          if (p.id === 'bacon') { for (let x = x0; x <= x1; x += 2) for (let y = gy + 2; y < gy + 6; y++) { set(x, y, z1, B.OAK, C.oakD); set(x, y, z0, B.OAK, C.oakD); } props.eraLandmarks.push({ kind: 'tudor_timbers', x0, z0, x1, z1, gy }); }
+          else if (p.id === 'mill') props.eraLandmarks.push({ kind: 'georgian_dome', x: p.x + 0.5, y: gy + 8.6, z: p.z + 0.5 });
+          else if (p.id === 'kuhn') props.eraLandmarks.push({ kind: 'marx_industrial_dome', x: p.x + 0.5, y: gy + 8.2, z: p.z + 0.5 });
+          props.eraLandmarks.push({ kind: 'd7roof_' + p.id, x: p.x + 0.5, y: gy, z: p.z + 0.5, x0, x1, z0, z1 });
         } else if (p.id === 'heidegger_sartre') {
           set(p.x - 4, gy, z1 + 2, B.TABLE, C.oak); chair(p.x - 5, gy, z1 + 2, Math.PI / 2, C.crimson);
           set(p.x + 4, gy, z1 + 2, B.TABLE, C.oak); chair(p.x + 5, gy, z1 + 2, -Math.PI / 2, C.crimson);
@@ -1580,7 +1655,7 @@
       const isGreekTemple = p.id === 'aristotle' || p.id === 'zeno';
       const isTholos = p.id === 'socrates';
       const isEastern = p.style.startsWith('oriental');
-      const isModern = p.id === 'wittgenstein' || p.id === 'heidegger_sartre';
+      const isModern = p.id === 'wittgenstein' || p.id === 'heidegger_sartre' || !!p.expansion;
       props.museumExhibits.push({
         x: p.x + 0.5,
         y: gy,
@@ -1590,6 +1665,9 @@
         wX: isGreekTemple ? x0 + 4.06 : isTholos ? p.x - 4.2 : x0 + 1.06,
         eX: isGreekTemple ? x1 - 3.06 : isTholos ? p.x + 5.2 : x1 - 0.06,
         isSchoolOfAthens, isGreekTemple, isTholos, isEastern, isModern,
+        trim: ['descartes', 'spinoza', 'locke', 'hume', 'marx', 'schopenhauer_kierkegaard', 'nietzsche', 'heidegger_sartre'].indexOf(p.id) >= 0 || p.id === 'kant' || !!p.expansion,
+        trimH: p.id === 'kant' ? 4 : 6, eaveH: p.id === 'kant' ? 9 : 6,
+        hallH: p.id === 'laozi' ? 5 : 6,
         phil: p
       });
 
@@ -1619,6 +1697,7 @@
               ? { mode: 'walk', p: [p.x + 0.5, gy, z1 + 13.0], t: [p.x + 0.5, gy + 4.8, p.z] }
               : { mode: 'walk', p: [p.x + 0.5, gy, z1 + 11.5], t: [p.x + 0.5, gy + 4.0, p.z] }
       });
+      props.holoConsoles.push({ id: p.id, name: p.name, x: p.x + 0.5 + 3.4, y: gy + (isSchoolOfAthens ? 1 : 0), z: p.z + 0.5 - 2.4 });
       buildings.push({ id: p.id, x0, z0, x1, z1, y: gy, phil: p });
     });
 
@@ -1630,6 +1709,7 @@
         colH: 6, nFront: 6, nSide: 6, order, slope: 0.32,
         roofC: [0.85, 0.45, 0.32], hasStatue: true, deity, inscription: insc
       });
+      if (id === 'workshop') props.holoConsoles.push({ id: 'workshop', name: '思维工坊', x: bx + 0.5, y: gy, z: bz + 2.5, hub: true });
       landmarks.push({ id, name, en, x: bx, z: bz, top: gy + 8, r: 14, tp: { mode: 'walk', p: [bx + 0.5, gy, bz + 11.5], t: [bx + 0.5, gy + 3.0, bz] } });
     });
 
@@ -1668,8 +1748,9 @@
 
     // Weeping willows along the Stream of Experience
     for (let t = 0; t < 600; t++) {
-      const x = RI(30, W - 30), z = RI(30, D - 30), i = zi(x, z);
+      const x = RI(30, W0 - 30), z = RI(30, D - 30), i = zi(x, z);
       if (occ[i] || pathM[i] || dStreamArr[i] < 5.5 || dStreamArr[i] > 9.0) continue;
+      if (x >= 248 && x <= 308 && z >= 116 && z <= 158) continue;
       let nearP = false;
       for (const p of PHILOSOPHERS) {
         if (Math.hypot(x - p.x, z - p.z) < 22 || (Math.abs(x - p.x) < 12 && z >= p.z && z <= p.z + 30)) { nearP = true; break; }
@@ -1680,8 +1761,9 @@
 
     // District forests: Greek Cypresses (NW), Ginkgo & Bamboo (East), Alpine Firs (North), Oaks & Beeches
     for (let t = 0; t < 1100; t++) {
-      const x = RI(20, W - 20), z = RI(20, D - 20), i = zi(x, z);
+      const x = RI(20, W0 - 20), z = RI(20, D - 20), i = zi(x, z);
       if (occ[i] || pathM[i] || hm[i] <= WATER_Y + 1.5) continue;
+      if (x >= 248 && x <= 308 && z >= 116 && z <= 158) continue;      // Königsberg: Kant's walk keeps its own lime trees
       let tooClose = false;
       for (const p of PHILOSOPHERS) {
         if (Math.hypot(x - p.x, z - p.z) < 22 || (Math.abs(x - p.x) < 12 && z >= p.z && z <= p.z + 30)) { tooClose = true; break; }
@@ -1694,9 +1776,21 @@
       else broadleaf(x, z, C.leaf, rnd() < 0.4);
     }
 
+    // Annex island groves (plane trees & maples between the halls)
+    if (EXP) EXP.groves.forEach((g) => {
+      for (let t = 0; t < g.n * 6; t++) {
+        const x = RI(g.x0, g.x1), z = RI(g.z0, g.z1); if (!inb(x, 40, z)) continue; const i = zi(x, z);
+        if (occ[i] || pathM[i] || hm[i] <= WATER_Y + 1.5) continue;
+        let tooClose = false;
+        for (const p of PHILOSOPHERS) if (Math.hypot(x - p.x, z - p.z) < 17 || (Math.abs(x - p.x) < 10 && z >= p.z && z <= p.z + 18)) { tooClose = true; break; }
+        if (tooClose || rnd() > 0.17) continue;
+        broadleaf(x, z, rnd() < 0.5 ? C.leaf : C.ginkgo, rnd() < 0.3);
+      }
+    });
+
     // 6,000 Wildflower, Reed, Cow Parsley & Grass Tufts across the meadows!
     for (let t = 0; t < 24000 && props.tufts.length < 6200; t++) {
-      const x = RI(12, W - 12), z = RI(12, D - 12), i = zi(x, z), y = hm[i];
+      const x = RI(12, W0 - 12), z = RI(12, D - 12), i = zi(x, z), y = hm[i];
       if (pathM[i] || occ[i]) continue;
       const top = get(x, y - 1, z);
       if ((top !== B.GRASS && top !== B.MEADOW) || !isAir(x, y, z)) continue;
@@ -1746,7 +1840,7 @@
 
     return {
       W, D, H, BASE: 40, GY: 39, WATER_Y, blocks, cols, palette, pal, get, set, idx, inb, B, BI, T,
-      PHILOSOPHERS, WAYPOSTS, hm, walk, occ, land: null, topH, topB, topC, landmarks, lamps, flags, chimneys, doors, seats, pasture, buildings, props, checks,
+      PHILOSOPHERS, WAYPOSTS, hm, pathM, walk, occ, land: null, topH, topB, topC, landmarks, lamps, flags, chimneys, doors, seats, pasture, buildings, props, checks,
       spawn, tour, lake: { x: W / 2, z: D / 2, w: W, d: D }, moorings: []
     };
   }

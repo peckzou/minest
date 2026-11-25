@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 维特根斯坦语言游戏 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .q0{padding:4px 10px;font-size:12.5px;color:#2c3e50;background:#e7edf3;border-bottom:1px solid #d5d8de}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>维特根斯坦 · 语言游戏</b>
+  <button class="tab on" data-l="1">① 建筑者的游戏</button>
+  <button class="tab" data-l="2">② 同一个词</button>
+  <button class="tab" data-l="3">③ 家族相似</button>
+  <button class="tab" data-l="4">④ 应用练习</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="q0"><b>核心问题：</b>词语的意义是它所指的东西，还是它在活动中的用法？　<b>适用边界：</b>画面是教学类比；维特根斯坦并未提出“意义理论”，而是让我们去看用法。</div><div class="tt" id="sTitle"></div><div class="bd" id="sBody"></div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+/* ===== 原文：英文短句取自 Wikipedia 对 Anscombe 译本的引文（Philosophical Investigations / Language game / Family resemblance 词条），逐字核对；中文编译 ===== */
+const MAP={"1": [["拖词卡给 A：B 搬来对应的石头", "B 搬来他学会在这样一声呼喊下要搬的那块石头。", "B brings the stone which he has learnt to bring at such-and-such a call", "维特根斯坦《哲学研究》 §2"], ["四个词就够这里的全部工作", "把这设想为一种完整的原始语言。", "Conceive this as a complete primitive language", "维特根斯坦《哲学研究》 §2"], ["换一个没学过的词：B 不知所措", "（转述）这四个词的意义不是它们“指着”的石头，而是 B 学会的那套做法；B 没学过的词，在这个游戏里什么也不做。", "—", "维特根斯坦《哲学研究》 §2–6（转述）"]], "2": [["把“石板！”拖进四种活动", "由语言和语言所编织进去的那些活动构成的整体。", "consisting of language and the actions into which it is woven", "维特根斯坦《哲学研究》 §7"], ["同一个词，场景里的人做了完全不同的事", "说出语言是一种活动的一部分，或一种生活形式的一部分。", "the speaking of language is part of an activity, or a form of life", "维特根斯坦《哲学研究》 §23"], ["比较四个场景：词形相同，用法不同", "一个词的意义就是它在语言中的用法。", "the meaning of a word is its use in the language", "维特根斯坦《哲学研究》 §43"]], "3": [["把各种游戏拖到线上：纤维交织", "我们看到一张相似之处重叠交叉的复杂网络。", "we see a complicated network of similarities overlapping and criss-crossing", "维特根斯坦《哲学研究》 §66"], ["找一根贯穿始终的纤维：找不到", "我想不出比“家族相似”更好的说法来刻画这些相似之处。", "I can think of no better expression to characterize these similarities than", "维特根斯坦《哲学研究》 §67"], ["按住拉线：线没有断", "线的强度并不在于有某一根纤维贯穿全长，而在于许多纤维的重叠。", "the strength of the thread does not reside in the fact that some one fibre runs through its whole length … but in the overlapping of many fibres", "维特根斯坦《哲学研究》 §67"], ["把一个新游戏接到线头上", "概念的外延并不被一条边界封闭。", "the extension of the concept is not closed by a frontier", "维特根斯坦《哲学研究》 §68"]], "4": [["应用练习：把“水！”拖进不同的场景", "（编者说明）同一句“水！”可以是命令、对问题的回答，或别的交流，取决于正在进行的游戏。", "—", "编者说明（据《哲学研究》§23、§43 的思路）"], ["四个场景都对上：你按用法而非定义理解了它", "一个词的意义就是它在语言中的用法。", "the meaning of a word is its use in the language", "维特根斯坦《哲学研究》 §43"]]};
+const TITLE={"1": "① 建筑者的游戏 · 把词卡拖到建筑者 A 身上，看助手 B 做什么", "2": "② 同一个词，不同的游戏 · 把“石板！”拖进下方四个活动区", "3": "③ 家族相似 · 把游戏拖到线上；按住线的两端拉紧", "4": "④ 应用练习 · 把“水！”拖进四个场景，看它在每处是什么"};
+/* ===== 保存与恢复 ===== */
+let SAVE={lit:{},done:{}};
+try{const s=localStorage.getItem('minest_wittgenstein');if(s)SAVE=JSON.parse(s);}catch(e){}
+function persist(){try{localStorage.setItem('minest_wittgenstein',JSON.stringify(SAVE));}catch(e){}}
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr${SAVE.lit[l+'_'+i]?' on':''}" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」${r[2]!=='—'?`<div class="en">${r[2]}</div>`:''}<div class="ref">——${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const e=$('mr'+l+'_'+i);if(!e||e.classList.contains('on'))return;e.classList.add('on');SAVE.lit[l+'_'+i]=1;e.scrollIntoView({block:'nearest',behavior:'smooth'});
+  if(MAP[l].every((_,k)=>SAVE.lit[l+'_'+k])){SAVE.done[l]=1;tabs();}persist();}
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]?.move?.(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]?.up?.();});
+/* ===== 人物与石头 ===== */
+function person(x,y,s,col,walk,lab){const sw=Math.sin(T*8)*walk*s*.25;ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y-s*1.6,s*.32,0,7);ctx.fill();ctx.fillRect(x-s*.28,y-s*1.25,s*.56,s*.8);
+  ctx.strokeStyle=col;ctx.lineWidth=s*.16;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x-s*.12,y-s*.45);ctx.lineTo(x-s*.12+sw,y);ctx.moveTo(x+s*.12,y-s*.45);ctx.lineTo(x+s*.12-sw,y);ctx.stroke();if(lab)txt(lab,x,y+16,'#334',12);}
+const STONES={'方块':[1,1],'柱子':[.45,1.9],'石板':[2,.35],'横梁':[2.6,.5]};
+function stone(k,x,y,s,a){const [w,h]=STONES[k]||[1,1];ctx.globalAlpha=a==null?1:a;ctx.fillStyle='#a9a49a';ctx.fillRect(x-w*s/2,y-h*s,w*s,h*s);ctx.strokeStyle='#6f6a60';ctx.lineWidth=1.5;ctx.strokeRect(x-w*s/2,y-h*s,w*s,h*s);ctx.globalAlpha=1;}
+function bubble(x,y,t,a){ctx.globalAlpha=a;ctx.font='bold 16px sans-serif';const w=ctx.measureText(t).width+24;ctx.fillStyle='#fff';ctx.strokeStyle='#3a6f99';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(x-w/2,y-34,w,28,12);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(x-6,y-6);ctx.lineTo(x,y+4);ctx.lineTo(x+6,y-6);ctx.fill();txt(t,x,y-14,'#1f3a55',16,'center',true);ctx.globalAlpha=1;}
+function card(c,hl){ctx.fillStyle=hl?'#f3a52b':'#fffdf3';ctx.strokeStyle='#8a7a55';ctx.lineWidth=1.5;ctx.beginPath();ctx.roundRect(c.x-38,c.y-16,76,32,8);ctx.fill();ctx.stroke();txt(c.w,c.x,c.y+6,'#3a2e12',15,'center',true);}
+/* ================= 第 1 关 ================= */
+let A;
+function init1(){A={cards:['方块','柱子','石板','横梁','砖'].map((w,i)=>({w,x:0,y:0,hx:0,hy:0,i})),drag:null,call:null,callT:0,b:{x:0,s:'idle',carry:null,t:0},built:[],used:new Set(),unk:0};lay1();A.b.x=W*0.62;}
+function lay1(){A.cards.forEach((c,i)=>{c.hx=W*0.1+i*Math.min(96,W*0.16);c.hy=H*0.12;if(!c.dragging){c.x=c.hx;c.y=c.hy;}});}
+HD[1]={down(x,y){for(const c of A.cards)if(Math.abs(x-c.x)<40&&Math.abs(y-c.y)<18){A.drag=c;c.dragging=true;return;}},move(x,y){if(A.drag){A.drag.x=x;A.drag.y=y;}},
+ up(){const c=A.drag;A.drag=null;if(!c)return;c.dragging=false;const ax=W*0.22,ay=H*0.82;if(Math.hypot(c.x-ax,c.y-(ay-H*0.15))<H*0.25&&A.b.s==='idle'){A.call=c.w;A.callT=0;
+   if(STONES[c.w]){A.b.s='go';A.b.want=c.w;}else{A.b.s='confused';A.b.t=0;A.unk++;}}c.x=c.hx;c.y=c.hy;}};
+function t1(dt){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#cfe3f1');g.addColorStop(1,'#efe6d3');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  const gy=H*0.82;ctx.fillStyle='#c9b48a';ctx.fillRect(0,gy,W,H-gy);
+  const s=Math.min(W,H)*0.07,ax=W*0.22,px=W*0.86;
+  // 石料堆
+  Object.keys(STONES).forEach((k,i)=>{for(let j=0;j<3;j++)stone(k,px+(i-1.5)*s*1.1,gy-j*s*0.15-(i%2)*2,s*0.45);});txt('石料堆',px,gy+18,'#5a4a2a',12);
+  // 已建的墙
+  A.built.forEach((k,i)=>stone(k,ax+s*1.6+((i%4))*s*0.9,gy-Math.floor(i/4)*s*0.8,s*0.4));
+  // B 的行动
+  const b=A.b;const bx0=W*0.42;
+  if(b.s==='go'){b.x+= (px-s-b.x)*Math.min(1,dt*1.6);if(Math.abs(b.x-(px-s))<4){b.s='back';b.carry=b.want;}}
+  else if(b.s==='back'){b.x+=(bx0-b.x)*Math.min(1,dt*1.6);if(Math.abs(b.x-bx0)<4){A.built.push(b.carry);A.used.add(b.carry);b.carry=null;b.s='idle';hit(1,0);if(A.used.size>=4)hit(1,1);}}
+  else if(b.s==='confused'){b.t+=dt;if(b.t>2.2)b.s='idle';}
+  const walking=b.s==='go'||b.s==='back';
+  person(ax,gy,s,'#3a6f99',0,'建筑者 A');person(b.x,gy,s,'#a0522d',walking?1:0,'助手 B');
+  if(b.carry)stone(b.carry,b.x,gy-s*1.25,s*0.4);
+  if(b.s==='confused'){txt('？？',b.x,gy-s*2.3,'#c0392b',22,'center',true);if(A.unk===1&&b.t<0.1)toast('“砖”不在这个游戏里：B 不知道该做什么');hit(1,2);}
+  if(A.call){A.callT+=dt;bubble(ax+s*0.3,gy-s*2.1,A.call+'！',clamp(2-A.callT,0,1));}
+  ctx.strokeStyle='rgba(58,111,153,.35)';ctx.setLineDash([5,5]);ctx.beginPath();ctx.arc(ax,gy-H*0.15,H*0.2,0,7);ctx.stroke();ctx.setLineDash([]);
+  A.cards.forEach(c=>card(c,A.drag===c));
+  txt(A.built.length?`墙上已有 ${A.built.length} 块石头 · 用过的词：${[...A.used].join(' ')}`:'把上方的词卡拖到 A 身边（虚线圈）',W*0.5,H*0.24+8,'#223',13);}
+/* ================= 第 2 关 ================= */
+let B;
+const ZONES=[{k:'cmd',n:'工地：命令'},{k:'rep',n:'清点：报告'},{k:'ask',n:'询问：提问'},{k:'teach',n:'课堂：命名'}];
+function init2(){B={card:{x:0,y:0},drag:false,act:{},t:0};}
+const zr=i=>{const w=W/4;return{x:i*w,y:H*0.3,w,h:H*0.7};};
+HD[2]={down(x,y){if(Math.hypot(x-B.card.x,y-B.card.y)<44)B.drag=true;},move(x,y){if(B.drag){B.card.x=x;B.card.y=y;}},
+ up(){if(!B.drag)return;B.drag=false;const i=Math.floor(B.card.x/(W/4));if(B.card.y>H*0.3&&i>=0&&i<4){B.act[ZONES[i].k]=0.001;hit(2,0);if(Object.keys(B.act).length>=2)hit(2,1);if(Object.keys(B.act).length>=4)hit(2,2);}B.card.x=W/2;B.card.y=H*0.13;}};
+function t2(dt){ctx.fillStyle='#eef1f4';ctx.fillRect(0,0,W,H);if(!B.drag){B.card.x=W/2;B.card.y=H*0.13;}
+  const s=Math.min(W/4,H)*0.16;
+  ZONES.forEach((z,i)=>{const r=zr(i);ctx.fillStyle=['#e6eef6','#f1ece2','#eef3e6','#f3e9ef'][i];ctx.fillRect(r.x+3,r.y,r.w-6,r.h);txt(z.n,r.x+r.w/2,r.y+20,'#334',13,'center',true);
+    const a=B.act[z.k];const gy=r.y+r.h*0.85,cx=r.x+r.w/2;ctx.fillStyle='rgba(0,0,0,.08)';ctx.fillRect(r.x+3,gy,r.w-6,3);
+    if(a==null){person(cx-s,gy,s,'#99a',0);person(cx+s,gy,s,'#bba',0);txt('（等待）',cx,r.y+r.h*0.45,'#99a',12);return;}
+    B.act[z.k]=a+dt;const k=(a%4)/4;
+    if(z.k==='cmd'){person(cx-s*1.2,gy,s,'#3a6f99',0);const bx=cx-s*0.2+Math.sin(k*6.28)*s*1.2;person(bx,gy,s,'#a0522d',1);stone('石板',bx,gy-s*1.25,s*0.35);bubble(cx-s*1.2,gy-s*2.1,'石板！',k<0.4?1:0);txt('→ B 去搬一块石板',cx,r.y+50,'#1f3a55',12);}
+    if(z.k==='rep'){for(let j=0;j<3;j++)stone('石板',cx+s*0.6,gy-j*s*0.18,s*0.35);person(cx-s,gy,s,'#a0522d',0);bubble(cx-s,gy-s*2.1,'石板！',k<0.5?1:0);ctx.strokeStyle='#3a6f99';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx-s*0.6,gy-s);ctx.lineTo(cx+s*0.3,gy-s*0.3);ctx.stroke();txt('→ 报告：“那是石板”',cx,r.y+50,'#1f3a55',12);}
+    if(z.k==='ask'){person(cx-s,gy,s,'#3a6f99',0);person(cx+s,gy,s,'#a0522d',0);bubble(cx-s,gy-s*2.1,'石板？',k<0.5?1:0);if(k>0.5){txt(k>0.75?'点头':'…',cx+s,gy-s*2.3,'#1f3a55',14,'center',true);}txt('→ 等待回答',cx,r.y+50,'#1f3a55',12);}
+    if(z.k==='teach'){stone('石板',cx+s*0.8,gy,s*0.35);person(cx-s*0.6,gy,s,'#3a6f99',0);person(cx-s*1.5,gy,s*0.7,'#d08a4a',0);ctx.strokeStyle='#3a6f99';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(cx-s*0.4,gy-s*1.1);ctx.lineTo(cx+s*0.4,gy-s*0.6+Math.sin(T*3)*3);ctx.stroke();bubble(cx-s*0.6,gy-s*2.1,'石板。',1);if(k>0.5)bubble(cx-s*1.5,gy-s*1.6,'石板。',0.9);txt('→ 指着东西，孩子跟读',cx,r.y+50,'#1f3a55',12);}
+  });
+  card({x:B.card.x,y:B.card.y,w:'石板！'},B.drag);
+  txt(Object.keys(B.act).length<4?'把“石板！”拖进下面任一活动区':'同一个词形，在四种活动里做了四件不同的事',W/2,H*0.25,'#223',13);}
+/* ================= 第 3 关 ================= */
+let C;
+const FEAT={'竞争':'#c0392b','输赢':'#e67e22','技巧':'#2e86c1','运气':'#8e44ad','娱乐':'#27ae60','规则':'#7f8c8d','多人':'#16a085','球':'#d35400'};
+const GAMES=[{n:'棋',f:['竞争','输赢','技巧','规则','多人']},{n:'纸牌',f:['运气','技巧','规则','娱乐','输赢']},{n:'球赛',f:['竞争','技巧','球','多人','输赢']},{n:'独自接投',f:['球','娱乐','技巧']},{n:'转圈圈',f:['娱乐','多人']},{n:'掷骰',f:['运气','娱乐','规则']},{n:'接龙',f:['规则','多人','娱乐','技巧']}];
+function init3(){C={games:GAMES.map((g,i)=>({...g,x:0,y:0,on:false,slot:-1})),drag:null,placed:[],pull:0,hold:false,searched:0,extra:false};lay3();}
+function lay3(){C.games.forEach((g,i)=>{if(!g.on&&C.drag!==g){g.x=W*0.08+i*W*0.13;g.y=H*0.12;}});}
+HD[3]={down(x,y){for(const g of C.games)if(!g.on&&Math.abs(x-g.x)<40&&Math.abs(y-g.y)<18){C.drag=g;return;}if(y>H*0.35&&y<H*0.8)C.hold=true;},
+ move(x,y,dx){if(C.drag){C.drag.x=x;C.drag.y=y;}if(C.hold&&!C.drag){C.pull=clamp(C.pull+Math.abs(dx)/(W*0.6),0,1);}},
+ up(){const g=C.drag;C.drag=null;C.hold=false;if(!g)return;if(g.y>H*0.35&&g.y<H*0.85){g.on=true;g.slot=C.placed.length;C.placed.push(g);if(C.placed.length>=3)hit(3,0);if(C.placed.length>=5)hit(3,1);if(C.placed.length===GAMES.length){hit(3,3);}}else lay3();}};
+function t3(dt){ctx.fillStyle='#f5f1ea';ctx.fillRect(0,0,W,H);lay3();if(!C.hold)C.pull=Math.max(0,C.pull-dt*0.4);
+  const n=Math.max(1,C.placed.length),x0=W*0.08,x1=W*0.92,cy=H*0.58,seg=(x1-x0)/n;
+  // 线：每个特征一根纤维，只在拥有该特征的相邻游戏之间延伸
+  const sag=(1-C.pull)*18;let fi=0;
+  Object.entries(FEAT).forEach(([f,col])=>{const yo=(fi-3.5)*5*(1-C.pull*0.6);fi++;
+    C.placed.forEach((g,i)=>{if(!g.f.includes(f))return;const xa=x0+i*seg,xb=x0+(i+1)*seg;ctx.strokeStyle=col;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(xa-4,cy+yo+Math.sin(i+T)*sag*0.2);ctx.quadraticCurveTo((xa+xb)/2,cy+yo+sag+Math.sin(T*2+fi)*2,xb+4,cy+yo+Math.sin(i+1+T)*sag*0.2);ctx.stroke();});});
+  C.placed.forEach((g,i)=>{const x=x0+(i+0.5)*seg;ctx.fillStyle='#fffdf3';ctx.strokeStyle='#8a7a55';ctx.beginPath();ctx.roundRect(x-36,cy-70,72,28,8);ctx.fill();ctx.stroke();txt(g.n,x,cy-51,'#3a2e12',14,'center',true);
+    g.f.forEach((f,k)=>{ctx.fillStyle=FEAT[f];ctx.beginPath();ctx.arc(x-26+k*13,cy-30,5,0,7);ctx.fill();});});
+  // 贯穿全长的纤维？
+  if(C.placed.length>=3){const through=Object.keys(FEAT).filter(f=>C.placed.every(g=>g.f.includes(f)));C.searched+=dt;
+    txt(through.length?`暂时有一根纤维贯穿：${through.join('、')}（再加游戏试试）`:'没有任何一根纤维贯穿全长',W/2,cy+70,through.length?'#a0522d':'#1f5e2f',14,'center',true);}
+  // 手柄
+  [x0,x1].forEach(x=>{ctx.fillStyle='#5a4a2a';ctx.fillRect(x-8,cy-24,16,48);});
+  if(C.pull>0.7&&C.placed.length>=4){hit(3,2);txt('线绷紧了，没有断：靠的是纤维的重叠',W/2,cy+96,'#1f5e2f',14);}
+  // 线头：新游戏可以接上去
+  if(C.placed.length===GAMES.length&&!C.extra){C.extra=true;}
+  if(C.extra){ctx.strokeStyle='rgba(39,174,96,.6)';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(x1,cy);ctx.lineTo(x1+W*0.06,cy-10+Math.sin(T*2)*6);ctx.stroke();ctx.setLineDash([]);txt('线头敞开…',x1,cy+40,'#27ae60',12);}
+  C.games.forEach(g=>{if(!g.on)card({x:g.x,y:g.y,w:g.n},C.drag===g);});
+  txt(C.placed.length<GAMES.length?'把上方的游戏拖到中间的线上；在空白处按住左右拖动可以拉紧这根线':'所有游戏都接上了',W/2,H*0.25,'#223',13);}
+/* ================= 第 4 关：应用练习 ================= */
+let D;
+const SC=[{k:'thirst',n:'沙漠：口渴的旅人'},{k:'fire',n:'厨房：起火了'},{k:'quiz',n:'课堂：“H₂O 是什么？”'},{k:'baby',n:'家里：教孩子说话'}];
+function init4(){D={card:{x:0,y:0},drag:false,act:{}};}
+HD[4]={down(x,y){if(Math.hypot(x-D.card.x,y-D.card.y)<44)D.drag=true;},move(x,y){if(D.drag){D.card.x=x;D.card.y=y;}},
+ up(){if(!D.drag)return;D.drag=false;const i=Math.floor(D.card.x/(W/4));if(D.card.y>H*0.3&&i>=0&&i<4&&D.act[SC[i].k]==null){D.act[SC[i].k]=0.001;hit(4,0);if(Object.keys(D.act).length>=4){hit(4,1);toast('同一个“水！”：请求、警报、回答、命名');}}}};
+function t4(dt){ctx.fillStyle='#eef1f4';ctx.fillRect(0,0,W,H);if(!D.drag){D.card.x=W/2;D.card.y=H*0.13;}
+  const s=Math.min(W/4,H)*0.16;
+  SC.forEach((z,i)=>{const r=zr(i),cx=r.x+r.w/2,gy=r.y+r.h*0.85;ctx.fillStyle=['#f6ead2','#f7e1dc','#e6eef6','#eef3e6'][i];ctx.fillRect(r.x+3,r.y,r.w-6,r.h);txt(z.n,cx,r.y+20,'#334',13,'center',true);
+    const a=D.act[z.k];if(a==null){txt('（等待）',cx,r.y+r.h*0.45,'#99a',12);return;}D.act[z.k]=a+dt;const k=Math.min(1,a/2.5);
+    if(z.k==='thirst'){person(cx-s,gy,s,'#a0522d',0);bubble(cx-s,gy-s*2.1,'水！',1);const bx=lerp(cx+s*1.4,cx,k);person(bx,gy,s,'#3a6f99',k<1?1:0);ctx.fillStyle='#5aa8d8';ctx.fillRect(bx-6,gy-s*1.1,12,16);txt(k<1?'→ 有人递来水壶':'这是请求',cx,r.y+50,'#1f3a55',12);}
+    if(z.k==='fire'){for(let j=0;j<5;j++){const h=(18+Math.sin(T*10+j)*6)*(1-k*0.8);ctx.fillStyle='rgba(255,120,40,.9)';ctx.beginPath();ctx.moveTo(cx+s*0.6+j*6-14,gy);ctx.quadraticCurveTo(cx+s*0.6+j*6-10,gy-h*2,cx+s*0.6+j*6-6,gy);ctx.fill();}person(cx-s,gy,s,'#3a6f99',0);bubble(cx-s,gy-s*2.1,'水！',1);if(k>0.3){ctx.fillStyle='rgba(90,168,216,.7)';for(let j=0;j<8;j++)ctx.fillRect(cx+s*0.2+Math.random()*s,gy-s*1.5+Math.random()*s*1.4,3,6);}txt(k<1?'→ 大家冲去灭火':'这是警报',cx,r.y+50,'#1f3a55',12);}
+    if(z.k==='quiz'){person(cx+s,gy,s,'#3a6f99',0);person(cx-s,gy,s,'#a0522d',0);bubble(cx-s,gy-s*2.1,'水！',1);if(k>0.6)txt('✓',cx+s,gy-s*2.3,'#27ae60',22,'center',true);txt(k<1?'→ 老师判对':'这是回答',cx,r.y+50,'#1f3a55',12);}
+    if(z.k==='baby'){ctx.fillStyle='#5aa8d8';ctx.beginPath();ctx.ellipse(cx+s*0.9,gy-8,s*0.5,8,0,0,7);ctx.fill();person(cx-s*0.4,gy,s,'#3a6f99',0);person(cx-s*1.3,gy,s*0.7,'#d08a4a',0);bubble(cx-s*0.4,gy-s*2.1,'水。',1);if(k>0.5)bubble(cx-s*1.3,gy-s*1.6,'水。',0.9);txt(k<1?'→ 指着水，孩子跟读':'这是命名',cx,r.y+50,'#1f3a55',12);}
+  });
+  card({x:D.card.x,y:D.card.y,w:'水！'},D.drag);
+  txt(Object.keys(D.act).length<4?'应用练习：把“水！”拖进四个场景——它在每处是什么？':'它的意义，在每个场景里由人们怎么用它来决定',W/2,H*0.25,'#223',13);}
+/* ===== 调度 ===== */
+const INIT={1:init1,2:init2,3:init3,4:init4},TICK={1:t1,2:t2,3:t3,4:t4};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!SAVE.done[t.dataset.l]);});}
+function go(n){L=n;tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{INIT[L]();toast('已重置本关（已对应的原文保留）');};
+addEventListener('resize',()=>{if(L===1)lay1();});
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(1);tabs();requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

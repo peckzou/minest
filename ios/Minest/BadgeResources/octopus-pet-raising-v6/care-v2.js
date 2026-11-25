@@ -80,6 +80,8 @@
     '@keyframes oc2pulse{50%{transform:scale(1.07)}}',
     '.oc2-needs{position:fixed;left:10px;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:40;padding:7px 10px;border-radius:14px;background:rgba(10,30,45,.5);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:#eaf6ff;font:700 11px -apple-system,system-ui,sans-serif;display:grid;grid-template-columns:auto 1fr;gap:3px 6px;align-items:center;min-width:132px;pointer-events:none}',
     '.oc2-needs .lv{grid-column:1/3;display:flex;justify-content:space-between;gap:8px}',
+    '.oc2-needs .k{display:flex;align-items:center;gap:4px;white-space:nowrap}',
+    '.oc2-needs .k em{font-style:normal;opacity:.9}',
     '.oc2-bar{height:5px;border-radius:3px;background:rgba(255,255,255,.18);overflow:hidden}',
     '.oc2-bar i{display:block;height:100%;border-radius:3px;transition:width .6s}',
     '.oc2-thought{position:fixed;z-index:39;transform:translate(-50%,-100%);padding:6px 10px;border-radius:18px;background:rgba(255,255,255,.88);font:22px/1 system-ui;box-shadow:0 6px 18px rgba(0,0,0,.2);cursor:pointer;animation:oc2bob 2.4s ease-in-out infinite;transition:opacity .4s}',
@@ -133,11 +135,25 @@
     renderNeeds();
   }
   function bar(v, col) { return '<div class="oc2-bar"><i style="width:' + Math.round(clamp(v, 0, 100)) + '%;background:' + col + '"></i></div>'; }
+  // 46.8: built once, then only the values that changed are written (it used to rebuild the whole panel
+  // every second, so the bars' width transition never ran)
+  var needRefs = null;
   function renderNeeds() {
-    var lv = level(), p = (S.bond % 20) / 20 * 100;
-    needsEl.innerHTML = '<div class="lv"><span><i class="hrt">💜</i><b class="lvn">' + lv + '</b><span class="lvt"> Lv ' + lv + '</span></span><span class="pct" style="opacity:.7">' + Math.round(p) + '%</span></div>' +
-      '<span>🍤</span>' + bar(100 - S.hunger, '#ffb36b') + '<span>🎾</span>' + bar(S.fun, '#7ee0a8') +
-      '<span>🫧</span>' + bar(S.clean, '#8fd3ff') + '<span>⚡</span>' + bar(S.energy, '#ffe07a');
+    var lv = level(), p = Math.round((S.bond % 20) / 20 * 100);
+    if (!needRefs) {
+      needsEl.innerHTML = '<div class="lv"><span><i class="hrt">💜</i><b class="lvn"></b><span class="lvt"></span></span><span class="pct" style="opacity:.7"></span></div>' +
+        [['🍤', 'Food', '#ffb36b'], ['🎾', 'Fun', '#7ee0a8'], ['🫧', 'Clean', '#8fd3ff'], ['⚡', 'Energy', '#ffe07a']].map(function (r) {
+          return '<span class="k">' + r[0] + '<em>' + r[1] + '</em></span>' + bar(0, r[2]);
+        }).join('');
+      needRefs = { lvn: needsEl.querySelector('.lvn'), lvt: needsEl.querySelector('.lvt'), pct: needsEl.querySelector('.pct'), bars: needsEl.querySelectorAll('.oc2-bar i'), last: {} };
+    }
+    var last = needRefs.last;
+    if (last.lv !== lv) { last.lv = lv; needRefs.lvn.textContent = lv; needRefs.lvt.textContent = ' Lv ' + lv; }
+    if (last.p !== p) { last.p = p; needRefs.pct.textContent = p + '%'; needsEl.style.setProperty('--bond', p); }
+    [100 - S.hunger, S.fun, S.clean, S.energy].forEach(function (v, i) {
+      var w = Math.round(clamp(v, 0, 100));
+      if (last[i] !== w) { last[i] = w; needRefs.bars[i].style.width = w + '%'; }
+    });
   }
   function fx(text, x, y, opts) {
     opts = opts || {};
@@ -161,7 +177,7 @@
   }
 
   // ---- needs over time → thought bubble + mood ----------------------------------------------------
-  var lastMood = 0, lastNeed = '';
+  var lastMood = 0, lastNeed = '', thoughtShown = null;
   function needOf() {
     if (S.energy < 22) return ['sleep', '💤'];
     if (S.hunger > 68) return ['feed', '🍤'];
@@ -181,6 +197,7 @@
     var n = needOf();
     Object.keys(btns).forEach(function (k) { btns[k].classList.toggle('need', !!n && n[0] === k); });
     if (handle) handle.classList.toggle('need', !!n);
+    if (needsEl) needsEl.classList.toggle('need', !!n);
     var nk = n ? n[0] : '';
     if (nk && nk !== lastNeed) showDock(4000);      // a new need slides the dock out for a moment
     lastNeed = nk;
@@ -196,10 +213,12 @@
   (function placeThought() {
     requestAnimationFrame(placeThought);
     if (!thought) return;
-    var n = needOf(), c = octo(), show = !!n && !!c && !mode && !busy();
-    thought.style.opacity = show ? '1' : '0'; thought.style.pointerEvents = show ? 'auto' : 'none';
+    // 46.8: nothing is measured or written while there is no need to show
+    var n = needOf(), c = n && !mode && !busy() ? octo() : null, show = !!c;
+    if (show !== thoughtShown) { thoughtShown = show; thought.style.opacity = show ? '1' : '0'; thought.style.pointerEvents = show ? 'auto' : 'none'; }
     if (!show) return;
-    thought.dataset.need = n[0]; if (thought.textContent !== n[1]) thought.textContent = n[1];
+    if (thought.dataset.need !== n[0]) thought.dataset.need = n[0];
+    if (thought.textContent !== n[1]) thought.textContent = n[1];
     thought.style.left = (c.x + c.r * .75) + 'px'; thought.style.top = (c.y - c.r * .9) + 'px';
   })();
 

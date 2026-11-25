@@ -33,5 +33,40 @@
   K.register = function (ride) { root.TPParkAPI.getProps().rides[ride.id] = ride; };
   K.button = function (id, text, go) { var f = function () { var row = document.getElementById('mn-pav-btns'); if (!row || document.getElementById(id)) return; var b = document.createElement('button'); b.type = 'button'; b.id = id; b.textContent = text; b.style.cssText = 'padding:5px 12px;border-radius:999px;border:none;background:linear-gradient(135deg,#111827,#7f1d1d);color:#fde68a;font-weight:900;font-size:11.5px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.35)'; b.onclick = function (e) { e.stopPropagation(); go(); }; row.appendChild(b); }; f(); new MutationObserver(f).observe(document.body, { childList: true, subtree: true }); };
   K.ready = function (fn) { var go = function (api) { try { fn(api); } catch (e) { if (root.console) console.warn('[ride]', e); } }; if (root.TPParkAPI) go(root.TPParkAPI); else root.addEventListener('tp:park-ready', function (e) { go(e.detail || root.TPParkAPI); }); };
+  /* a figure of boxes: body, legs, arms on shoulder pivots, a head */
+  K.fig = function (g, x, y, z, ry, o) { o = o || {}; var T = K.T(), p = new T.Group(); p.position.set(x, y, z); p.rotation.y = ry || 0; g.add(p); var b = o.body || K.mat(0x555555), k = (o.h || 1.8) / 1.8, sk = o.skin || K.mat(0xe2b48c, 0.5), u = {};
+    K.box(p, 0.5 * k, 0.75 * k, 0.3 * k, b, 0, 1.15 * k, 0); [-0.13, 0.13].forEach(function (s) { K.box(p, 0.2 * k, 0.8 * k, 0.24 * k, o.legs || b, s * k, 0.4 * k, 0); });
+    [-1, 1].forEach(function (s) { var a = new T.Group(); a.position.set(s * 0.34 * k, 1.48 * k, 0); p.add(a); K.box(a, 0.15 * k, 0.7 * k, 0.18 * k, o.arms || b, 0, -0.33 * k, 0); K.add(a, new T.SphereGeometry(0.08 * k, 8, 6), sk, 0, -0.72 * k, 0); u[s < 0 ? 'armL' : 'armR'] = a; });
+    u.head = K.add(p, new T.SphereGeometry(0.19 * k, 14, 10), o.head || sk, 0, 1.72 * k, 0); u.k = k; p.userData = u; return p; };
+  /* a staged ride: scenes side by side in a show volume over the park, phases that each set the camera and play their
+   * part, a fade between scenes, a vehicle that goes with the camera; it joins the park's rides and the game's quests */
+  K.stage = function (API, o) {
+    var T = API.THREE, R = new T.Group(); R.position.set(o.x, o.oy, o.z); R.visible = false; API.scene.add(R);
+    var fov0 = API.camera ? API.camera.fov : 68, S = {}, st = { on: false, run: false, i: -1, t: 0, shake: 0, scene: null }, pose = { p: [0, 1.6, 4], t: [0, 1.5, 0], roll: 0 }, ev = {}, fade = null, PH = [], snd = [], gap = o.gap || 260, gy = API.groundY(o.x, o.z, 62), A;
+    function fadeTo(v, col) { if (!fade) { fade = document.createElement('div'); fade.style.cssText = 'position:fixed;inset:0;z-index:38;pointer-events:none;opacity:0;transition:opacity .45s'; document.body.appendChild(fade); } fade.style.background = col || '#000'; fade.style.opacity = v; }
+    function show(n) { Object.keys(S).forEach(function (k) { S[k].visible = k === n; }); st.scene = S[n]; }
+    function quiet() { snd.forEach(function (q) { try { q.stop(); } catch (e) {} }); snd = []; K.hush(); if (fade) fade.style.opacity = 0; }
+    function setPhase(i, now) { st.i = i; st.t = 0; var p = PH[i]; if (!p) return; if (st.scene !== S[p.sc]) { if (now || p.cut) show(p.sc); else { fadeTo(1); setTimeout(function () { if (st.i === i && st.on) { show(p.sc); fadeTo(0); } }, 460); } } }
+    A = { T: T, R: R, S: S, st: st, pose: pose, gy: gy, car: null, fadeTo: fadeTo, quiet: quiet,
+      w: function (p) { var ox = st.scene ? st.scene.userData.ox : 0; return [o.x + ox + p[0], o.oy + p[1], o.z + p[2]]; }, goto: function (i, t) { setPhase(i, true); st.t = t || 0; },
+      scene: function (name, i) { var g = new T.Group(); g.position.x = i * gap; g.userData.ox = i * gap; g.visible = false; R.add(g); S[name] = g; return g; },
+      once: function (k, f) { k = st.i + ':' + k; if (!ev[k]) { ev[k] = 1; f(); } }, keep: function (q) { snd.push(q); return q; }, L: function (a, b, k) { return a + (b - a) * K.sm(k); },
+      run: function (ph, done) { var builder = typeof ph === 'function' ? ph : null; PH = builder ? [] : ph;
+        var ride = { id: o.id, name: o.name, land: o.land, boardPos: { x: o.x, y: gy, z: o.z + 7 }, exitPos: { x: o.x, y: gy, z: o.z + 10, yaw: Math.PI },
+          start: function () { if (builder) { var bf = builder; builder = null; try { PH = bf() || []; } catch (e) { if (root.console) console.warn('[ride ' + o.id + '] build', e); PH = []; } } if (!st.on) { st.on = true; R.visible = true; ev = {}; st.scene = null; st.shake = 0; if (o.reset) o.reset(); if (A.resetHook) A.resetHook(); setPhase(0, true); } st.run = true; }, stop: function () { st.run = false; }, isRunning: function () { return st.run; },
+          onExit: function () { st.on = false; st.run = false; st.i = -1; R.visible = false; quiet(); if (o.fov && API.camera) { API.camera.fov = fov0; API.camera.updateProjectionMatrix(); } },
+          getHudInfo: function () { if (!PH.length) return o.name; var p = PH[Math.min(Math.max(st.i, 0), PH.length - 1)], base = p.n + ' · ' + (Math.max(st.i, 0) + 1) + '/' + PH.length; return o.hud ? o.hud(base) : base; },
+          getCameraPose: function () { var ox = st.scene ? st.scene.userData.ox : 0, sx = (Math.random() - 0.5) * st.shake * 0.3, sy = (Math.random() - 0.5) * st.shake * 0.3, c = A.car, eye = o.eye == null ? 1.3 : o.eye;
+            if (c) { c.visible = !!PH[st.i] && !!PH[st.i].car; c.position.set(ox + pose.p[0], pose.p[1], pose.p[2]); var ct = pose.h || pose.t; c.lookAt(R.position.x + ox + ct[0], R.position.y + ct[1], R.position.z + ct[2]); c.rotateY(Math.PI); c.rotateZ(-(pose.roll || 0)); c.translateY(-eye); if (o.back) c.translateZ(o.back); }
+            var cam = API.camera, fv = (PH[st.i] && PH[st.i].fov) || o.fov; if (cam && fv && Math.abs(cam.fov - fv) > 0.05) { cam.fov += (fv - cam.fov) * 0.08; cam.updateProjectionMatrix(); }
+            return { px: o.x + ox + pose.p[0] + sx, py: o.oy + pose.p[1] + sy, pz: o.z + pose.p[2], tx: o.x + ox + pose.t[0], ty: o.oy + pose.t[1], tz: o.z + pose.t[2], roll: pose.roll || 0 }; } };
+        if (o.steer) ride.steer = o.steer; if (o.fire) ride.fire = o.fire; K.register(ride);
+        var last = performance.now(); (function tick(now) { requestAnimationFrame(tick); var dt = Math.min(0.2, (now - last) / 1000); last = now; if (!st.on || !st.run || st.i < 0) return; st.shake = Math.max(0, st.shake - dt * 1.4); st.t += dt; var p = PH[st.i];   /* the show keeps to the clock even when frames are slow, so the music and the lines stay with the picture */ if (!p) return; pose.roll = 0;
+          try { p.f(st.t, dt); } catch (e) { if (root.console) console.warn('[ride ' + o.id + ']', e); }
+          if (st.t >= p.d) { if (st.i + 1 >= PH.length) { st.i = PH.length; if (API.exitRide) API.exitRide(); API.toast(done); } else setPhase(st.i + 1); } })(last);
+        var q = function (n) { if (o.noQuest) return; var G = root.TPGame; if (!G || !G.quests) { if (n < 80) setTimeout(function () { q(n + 1); }, 400); return; } G.quests.push({ id: 'q_' + o.id, icon: o.icon, name: o.quest, tip: o.tip, need: 'gate', ride: o.id }); if (G.render) G.render(); }; q(0);
+        (root.TPRides = root.TPRides || {})[o.id] = { state: st, phases: PH.length, goto: A.goto, pose: pose, w: A.w }; } };
+    return A;
+  };
   root.TPRideKit = K;
 })(window);

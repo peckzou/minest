@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 柏拉图理念论 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>柏拉图 · 理念论</b>
+  <button class="tab on" data-l="1">① 相等的木棍</button>
+  <button class="tab" data-l="2">② 回忆</button>
+  <button class="tab" data-l="3">③ 三张床</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="bd" id="sBody"></div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;const done={};
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ======== 原文：Jowett 英译《斐多》《理想国》；中文编译；Stephanus 页码 ======== */
+const PH='《斐多》',RP='《理想国》第十卷';
+const MAP={
+1:[["拿起两根木棍，比一比","我们不是看到了物质的相等，比如木棍和石头，从中得到了一个不同于它们的相等的观念吗？","Did we not see equalities of material things, such as pieces of wood and stones, and gather from them the idea of an equality which is different from them?",PH+" 74b"],
+   ["换个角度看：同样的木棍时等时不等","同样的木棍或石头，难道不是有时看起来相等，有时看起来不相等吗？","Do not the same pieces of wood or stone appear at one time equal, and at another time unequal?",PH+" 74b"],
+   ["相等本身从不显得不等","可是真正的相等会不相等吗？相等的理念会是不相等吗？","But are real equals ever unequal? or is the idea of equality ever inequality?",PH+" 74c"],
+   ["放大、打磨：永远差一点","它们和绝对的相等是同一意义上的相等吗？还是在某种程度上有所不及？","Are they equals in the same sense as absolute equality? or do they fall short of this in a measure?",PH+" 74d"]],
+2:[["你能判断“差一点”","当一个人看到某个对象，察觉它想要成为另一个东西却不及、达不到，他必定事先已经知道那个东西。","he who makes this observation must have had previous knowledge of that to which, as he says, the other, although similar, was inferior",PH+" 74d–e"],
+   ["所有可感的相等都在“追求”一个标准","一切可感事物都追求相等的理念，却又达不到它。","all sensible things aim at an idea of equality of which they fall short",PH+" 75b"],
+   ["这个标准不来自感官","那么在我们开始看、听或以任何方式感知之前，我们必定已经有了关于绝对相等的知识。","before we began to see or hear or perceive in any way, we must have had a knowledge of absolute equality",PH+" 75b"],
+   ["由此及彼：回忆","每当你从看到一个东西而想到另一个，无论相似还是不相似，那必定就是一种回忆。","whenever from seeing one thing you conceived another, whether like or unlike, there must surely have been an act of recollection",PH+" 74c–d"]],
+3:[["木匠造床：照着“床的理念”","木匠……制造的不是理念，也就是我们所说的床的本质，而只是一张特定的床。","he too makes, not the idea which, according to our view, is the essence of the bed, but only a particular bed",RP+" 597a"],
+   ["画家画床：只画到一面","你可以从不同角度看一张床，斜着、正着或从别的角度，床会显得不同，但实际上并无不同。","you may look at a bed from different points of view, obliquely or directly or from any other point of view, and the bed will appear different, but there is no difference in reality",RP+" 598a"],
+   ["绘画模仿的是现象","绘画艺术……是对事物本来面目的模仿，还是对其显现的模仿？……是对显现的模仿。","an imitation of things as they are, or as they appear—of appearance or of reality? Of appearance.",RP+" 598b"],
+   ["三张床","有三张床：一张存在于自然之中，是神造的；……另一张是木匠的作品；……画家的作品是第三张。","here are three beds: one existing in nature, which is made by God … There is another which is the work of the carpenter? Yes. And the work of the painter is a third?",RP+" 597b"],
+   ["试图造第二张“理念之床”","即使他只造了两张，在它们背后仍会出现第三张，二者都以它为理念，那才是理念之床。","even if He had made but two, a third would still appear behind them which both of them would have for their idea, and that would be the ideal bed",RP+" 597c"]]};
+const TITLE={1:'① 相等的木棍 · 拖动木棍并排对齐；拖动视角改变观看位置；按住放大镜检查',2:'② 回忆 · 拖动下方的木棍、石块、绳子去“对齐”上方那条线',3:'③ 三张床 · 木匠：按住锯刨床板；画家：拖动视角后按住作画；最后拖动“理念之床”试图复制'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——柏拉图${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const e=$('mr'+l+'_'+i);if(!e||e.classList.contains('on'))return;e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});
+  if(MAP[l].every((_,k)=>$('mr'+l+'_'+k).classList.contains('on'))){done[l]=1;tabs();}}
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]?.move?.(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]?.up?.();});
+
+/* ======== 木棍：带有微小缺陷的轮廓（随机节点） ======== */
+function makeStick(len,seed){let s=seed;const rnd=()=>{s=(s*9301+49297)%233280;return s/233280;};const n=60,top=[],bot=[];for(let i=0;i<=n;i++){top.push((rnd()-.5)*0.8+Math.sin(i*0.7+seed)*0.4);bot.push((rnd()-.5)*0.8+Math.cos(i*0.5+seed)*0.4);}
+  return{len,top,bot,knots:[rnd(),rnd(),rnd()].map(v=>v*0.9+0.05)};}
+function drawStick(st,x,y,scale,thick,col,zoom,zx){ // scale: px per unit
+  const L0=st.len*scale,n=st.top.length-1;ctx.fillStyle=col||'#b07b3c';ctx.beginPath();
+  for(let i=0;i<=n;i++){const px=x+L0*i/n,py=y-thick/2+st.top[i]*(zoom||1);i?ctx.lineTo(px,py):ctx.moveTo(px,py);}
+  for(let i=n;i>=0;i--){const px=x+L0*i/n,py=y+thick/2+st.bot[i]*(zoom||1);ctx.lineTo(px,py);}ctx.closePath();ctx.fill();
+  ctx.strokeStyle='rgba(60,35,10,.4)';ctx.lineWidth=1;for(let k=0;k<3;k++){ctx.beginPath();ctx.moveTo(x,y-thick/4+k*thick/4);ctx.lineTo(x+L0,y-thick/4+k*thick/4+Math.sin(k+st.len)*1.5);ctx.stroke();}
+  st.knots.forEach(k=>{ctx.fillStyle='rgba(80,45,15,.6)';ctx.beginPath();ctx.ellipse(x+L0*k,y,thick*0.18,thick*0.28,0,0,7);ctx.fill();});}
+
+/* ================= 第 1 关 ================= */
+let A;
+function init1(){A={s1:makeStick(1.0,3),s2:makeStick(1.0+0.0037,11),y1:0.4,y2:0.6,x1:0.18,x2:0.24,drag:null,view:0.5,zoom:0,zoomHold:false,aligned:false,zoomMax:1};}
+const U1=()=>Math.min(W*0.55,H*1.1);
+HD[1]={down(x,y){const u=U1();
+  if(y>H*0.88){A.drag='view';return;}
+  if(x>W*0.86&&y<H*0.3){A.zoomHold=true;return;}
+  if(Math.abs(y-H*A.y1)<22&&x>W*A.x1-10&&x<W*A.x1+u+10)A.drag='s1';else if(Math.abs(y-H*A.y2)<22&&x>W*A.x2-10&&x<W*A.x2+u+10)A.drag='s2';},
+ move(x,y,dx,dy){if(A.drag==='view'){A.view=clamp(x/W,0,1);hit(1,1);}else if(A.drag){const k=A.drag==='s1'?'1':'2';A['x'+k]=clamp(A['x'+k]+dx/W,0.02,0.4);A['y'+k]=clamp(A['y'+k]+dy/H,0.15,0.82);hit(1,0);}},
+ up(){A.drag=null;A.zoomHold=false;}};
+function t1(dt){const u=U1();ctx.fillStyle='#efe9df';ctx.fillRect(0,0,W,H);
+  // 桌面
+  ctx.fillStyle='#c9b08a';ctx.fillRect(0,H*0.1,W,H*0.78);
+  // 视角：透视造成的近大远小（模拟“时等时不等”）
+  const v=A.view-0.5;const pers1=1+v*0.12,pers2=1-v*0.12;
+  if(A.zoomHold)A.zoom=Math.min(A.zoomMax+=dt*0.6,A.zoom+dt*0.8);else A.zoom=Math.max(0,A.zoom-dt*2);
+  const zf=1+A.zoom*6;
+  ctx.save();
+  if(A.zoom>0.01){const cx=W*A.x1+u,cy=(H*A.y1+H*A.y2)/2;ctx.translate(cx,cy);ctx.scale(zf,zf);ctx.translate(-cx,-cy);}
+  drawStick(A.s1,W*A.x1,H*A.y1,u*pers1,18,'#b07b3c',1);
+  drawStick(A.s2,W*A.x2,H*A.y2,u*pers2,18,'#a86f33',1);
+  ctx.restore();
+  const aligned=Math.abs(A.x1-A.x2)<0.006&&Math.abs(A.y1-A.y2)<0.12;
+  const e1=W*A.x1+u*pers1,e2=W*A.x2+u*pers2,diff=e2-e1;
+  if(aligned){A.aligned=true;ctx.strokeStyle='rgba(58,111,153,.8)';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(W*A.x1,H*0.12);ctx.lineTo(W*A.x1,H*0.86);ctx.moveTo(e1,H*0.12);ctx.lineTo(e1,H*0.86);ctx.stroke();ctx.setLineDash([]);
+    const look=Math.abs(diff)<1.5&&A.zoom<0.2?'看起来：相等':diff>0?'看起来：下面那根长':'看起来：上面那根长';txt(look,W*0.5,H*0.08+24,'#223',16,'center',true);
+    if(Math.abs(v)>0.25&&Math.abs(diff)>3)hit(1,1);}
+  else txt('拖动两根木棍，让它们左端对齐、上下并排',W*0.5,H*0.08+24,'#223',14);
+  // 放大镜结果：永远差一点
+  if(A.zoom>0.6&&aligned){const real=(A.s2.len-A.s1.len)*1000;txt(`放大 ${zf.toFixed(0)}×：差 ${real.toFixed(1)} 毫米……边缘还有毛刺`,W*0.5,H*0.86,'#b00020',14,'center',true);hit(1,3);}
+  // 理念：右上角，永远完美、永远稳定
+  ctx.fillStyle='rgba(255,255,255,.9)';ctx.fillRect(W*0.86,H*0.12,W*0.13,H*0.18);txt('🔍 按住放大',W*0.925,H*0.22,'#3a6f99',12);
+  const ix=W*0.62,iy=H*0.18,iw=W*0.2;ctx.strokeStyle='#d9b54a';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(ix,iy);ctx.lineTo(ix+iw,iy);ctx.moveTo(ix,iy+16);ctx.lineTo(ix+iw,iy+16);ctx.stroke();
+  ctx.shadowColor='#ffd96b';ctx.shadowBlur=12;ctx.stroke();ctx.shadowBlur=0;txt('相等本身：无论怎么看都不显得不等',ix+iw/2,iy+36,'#8a6a10',12);
+  if(A.drag==='view'||A.zoom>0.3)hit(1,2);
+  // 视角条
+  ctx.fillStyle='rgba(0,0,0,.15)';ctx.fillRect(W*0.1,H*0.92,W*0.8,8);ctx.fillStyle='#3a6f99';ctx.beginPath();ctx.arc(W*0.1+W*0.8*A.view,H*0.92+4,10,0,7);ctx.fill();txt('观看位置（拖动）',W*0.5,H*0.985,'#334',12);}
+
+/* ================= 第 2 关：回忆 ================= */
+let B;
+const OBJS=[{n:'木棍',c:'#b07b3c',err:0.03},{n:'石块',c:'#8a8f96',err:0.05},{n:'绳子',c:'#c9a56a',err:0.08},{n:'粉笔线',c:'#eeeeee',err:0.015}];
+function init2(){B={items:OBJS.map((o,i)=>({...o,x:0.12+i*0.22,y:0.78,len:0.3*(1+(Math.random()-.5)*o.err*2),drag:false,tried:false,wob:Math.random()*6})),drag:null,tries:0,ghost:0};}
+HD[2]={down(x,y){B.items.forEach(it=>{if(Math.abs(x-W*(it.x+it.len/2))<W*it.len/2+10&&Math.abs(y-H*it.y)<20)B.drag=it;});},
+ move(x,y,dx,dy){if(B.drag){B.drag.x=clamp(B.drag.x+dx/W,0,0.7);B.drag.y=clamp(B.drag.y+dy/H,0.15,0.9);}},
+ up(){if(B.drag){const it=B.drag;if(Math.abs(it.y-0.36)<0.06){it.tried=true;B.tries++;hit(2,0);if(B.tries>=2)hit(2,1);if(B.tries>=3){hit(2,3);}if(B.tries>=4)hit(2,2);toast(`${it.n}：差 ${(Math.abs(it.len-0.3)/0.3*100).toFixed(1)}%。你怎么知道它“差”？`);}B.drag=null;}}};
+function t2(dt){ctx.fillStyle='#1e2433';ctx.fillRect(0,0,W,H);
+  // 上方：一条不在任何地方的“标准”，若隐若现（越多比较，越清楚）
+  B.ghost=lerp(B.ghost,clamp(B.tries/4,0.15,1),dt*1.5);
+  const sx=W*0.35,sw=W*0.3,sy=H*0.32;ctx.strokeStyle=`rgba(255,217,107,${B.ghost})`;ctx.lineWidth=3;ctx.shadowColor='#ffd96b';ctx.shadowBlur=14*B.ghost;ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx+sw,sy);ctx.moveTo(sx,sy+14);ctx.lineTo(sx+sw,sy+14);ctx.stroke();ctx.shadowBlur=0;
+  txt(B.tries<1?'这是什么？……一个你似乎早已知道的标准':'相等本身',W/2,sy-14,`rgba(255,231,181,${0.4+0.6*B.ghost})`,14);
+  // 对齐区
+  ctx.strokeStyle='rgba(255,255,255,.15)';ctx.setLineDash([5,5]);ctx.strokeRect(sx-20,H*0.36*H/H+0,sw+40,H*0.08);ctx.setLineDash([]);
+  // 物品
+  B.items.forEach(it=>{const y=H*it.y,x0=W*it.x,len=W*it.len;
+    if(it.n==='绳子'){ctx.strokeStyle=it.c;ctx.lineWidth=4;ctx.beginPath();for(let i=0;i<=20;i++){const xx=x0+len*i/20,yy=y+Math.sin(i*0.9+T*2+it.wob)*3;i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy);}ctx.stroke();}
+    else if(it.n==='石块'){ctx.fillStyle=it.c;ctx.beginPath();ctx.moveTo(x0,y-8);for(let i=1;i<=10;i++)ctx.lineTo(x0+len*i/10,y-8+Math.sin(i*2.1)*3);ctx.lineTo(x0+len,y+8);for(let i=10;i>=0;i--)ctx.lineTo(x0+len*i/10,y+8+Math.cos(i*1.7)*3);ctx.fill();}
+    else if(it.n==='粉笔线'){ctx.strokeStyle=it.c;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x0,y);for(let i=1;i<=30;i++)ctx.lineTo(x0+len*i/30,y+(Math.sin(i*3.7)*0.8));ctx.stroke();}
+    else{ctx.fillStyle=it.c;ctx.fillRect(x0,y-7,len,14);}
+    txt(it.n+(it.tried?' ✓':''),x0+len/2,y+26,'#cfd6e6',12);
+    if(Math.abs(it.y-0.36)<0.06){const d=(it.len-0.3)*W;ctx.strokeStyle='#ff6b6b';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(sx+sw,y-14);ctx.lineTo(sx+sw,y+14);ctx.stroke();txt(d>0?`超出 ${Math.abs(d).toFixed(1)}px`:`不足 ${Math.abs(d).toFixed(1)}px`,sx+sw+50,y+5,'#ff9b9b',12);}});
+  txt(B.tries<4?'把下方的东西拖到虚线框里，和上方的“标准”对齐':'没有一件可感之物是它；但你一直知道它是什么',W/2,H*0.97,'#ffe7b5',13);}
+
+/* ================= 第 3 关：三张床 ================= */
+let C;
+function init3(){C={carve:0,carving:false,view:0.5,painting:false,paint:0,viewAtPaint:null,dragIdeal:null,copies:0,ghosts:[]};}
+const RX=()=>({ix:W*0.17,cx:W*0.5,px:W*0.83,y:H*0.5});
+HD[3]={down(x,y){const r=RX();
+  if(Math.abs(x-r.cx)<W*0.14&&y>H*0.3&&y<H*0.8){C.carving=true;hit(3,0);return;}
+  if(Math.abs(x-r.px)<W*0.14&&y>H*0.82){C.dragView=true;return;}
+  if(Math.abs(x-r.px)<W*0.14&&y>H*0.3&&y<H*0.8){if(C.carve<1){toast('画家模仿的是木匠的床：先让木匠把床造好');return;}C.painting=true;if(C.viewAtPaint==null)C.viewAtPaint=C.view;return;}
+  if(Math.abs(x-r.ix)<W*0.12&&Math.abs(y-r.y)<H*0.2){C.dragIdeal={x,y};}},
+ move(x,y){if(C.dragView){C.view=clamp((x-(RX().px-W*0.13))/(W*0.26),0,1);hit(3,1);}if(C.dragIdeal){C.dragIdeal.x=x;C.dragIdeal.y=y;}},
+ up(){C.carving=false;C.painting=false;C.dragView=false;if(C.dragIdeal){const r=RX();if(Math.hypot(C.dragIdeal.x-r.ix,C.dragIdeal.y-r.y)>W*0.08){C.copies++;C.ghosts.push({x:C.dragIdeal.x,y:C.dragIdeal.y,a:1});hit(3,4);toast('复制出的两张床背后，又出现了它们共同的理念：仍然只有一个');}C.dragIdeal=null;}}};
+function bedPath(x,y,s,ang,qual){ // ang: 观看角度 -1..1；qual: 粗糙度
+  const j=()=>qual*(Math.random()-.5)*s*0.04;const sk=ang*0.35;
+  ctx.beginPath();ctx.moveTo(x-s*0.5+j(),y+j());ctx.lineTo(x+s*0.5+j(),y+j());ctx.lineTo(x+s*(0.5+sk)+j(),y-s*0.18+j());ctx.lineTo(x-s*(0.5-sk)+j(),y-s*0.18+j());ctx.closePath();
+  ctx.moveTo(x-s*0.5,y);ctx.lineTo(x-s*0.5,y+s*0.2);ctx.moveTo(x+s*0.5,y);ctx.lineTo(x+s*0.5,y+s*0.2);
+  ctx.moveTo(x-s*(0.5-sk),y-s*0.18);ctx.lineTo(x-s*(0.5-sk),y-s*0.45);ctx.lineTo(x-s*(0.5-sk)+s*0.04,y-s*0.45);}
+function t3(dt){const r=RX();ctx.fillStyle='#f3ede2';ctx.fillRect(0,0,W,H);
+  [[0,W/3,'#1c2236'],[W/3,W/3,'#e9dcc6'],[2*W/3,W/3,'#efe7f2']].forEach(([x,w,c])=>{ctx.fillStyle=c;ctx.fillRect(x,0,w,H);});
+  txt('理念之床',r.ix,26,'#ffe7b5',15,'center',true);txt('木匠的床',r.cx,26,'#5a3b1e',15,'center',true);txt('画家的床',r.px,26,'#5a3b5a',15,'center',true);
+  const s=Math.min(W*0.2,H*0.45);
+  // 理念之床：完美、恒定、发光、不随视角改变
+  ctx.save();ctx.strokeStyle='#ffd96b';ctx.lineWidth=3;ctx.shadowColor='#ffd96b';ctx.shadowBlur=18;bedPath(r.ix,r.y,s,0,0);ctx.stroke();ctx.restore();
+  txt('只有一张',r.ix,r.y+s*0.45,'rgba(255,231,181,.7)',12);
+  if(C.dragIdeal){ctx.save();ctx.globalAlpha=0.6;ctx.strokeStyle='#ffd96b';ctx.lineWidth=3;bedPath(C.dragIdeal.x,C.dragIdeal.y,s*0.7,0,0);ctx.stroke();ctx.restore();}
+  C.ghosts.forEach(g=>{g.a-=dt*0.35;ctx.save();ctx.globalAlpha=Math.max(0,g.a);ctx.strokeStyle='#ffd96b';ctx.lineWidth=2;bedPath(g.x,g.y,s*0.7,0,0);ctx.stroke();
+    const mx=(g.x+r.ix)/2,my=Math.min(g.y,r.y)-s*0.5;ctx.lineWidth=3;ctx.shadowColor='#fff';ctx.shadowBlur=20;bedPath(mx,my,s*0.6,0,0);ctx.stroke();ctx.restore();});
+  C.ghosts=C.ghosts.filter(g=>g.a>0);
+  if(C.copies===0)txt('试着把它拖出来复制一张',r.ix,H*0.92,'rgba(255,231,181,.8)',12);
+  // 木匠：按住刨削，床从木料中渐渐成形；它“看着”理念
+  if(C.carving)C.carve=Math.min(1,C.carve+dt*0.25);
+  ctx.strokeStyle='rgba(255,217,107,.35)';ctx.setLineDash([3,6]);ctx.beginPath();ctx.moveTo(r.ix+s*0.5,r.y-s*0.3);ctx.lineTo(r.cx-s*0.5,r.y-s*0.3);ctx.stroke();ctx.setLineDash([]);
+  if(C.carve<1){ctx.fillStyle='#a8743f';ctx.fillRect(r.cx-s*0.5,r.y-s*0.1,s*(1-C.carve*0.0),s*0.15*(1-C.carve)+4);}
+  ctx.save();ctx.globalAlpha=C.carve;ctx.strokeStyle='#7a4f27';ctx.lineWidth=5;bedPath(r.cx,r.y,s,0,0.6*(1-C.carve)+0.25);ctx.stroke();ctx.restore();
+  if(C.carving){for(let i=0;i<3;i++){ctx.fillStyle='rgba(200,160,100,.9)';ctx.fillRect(r.cx+(Math.random()-.5)*s,r.y+(Math.random()-.5)*s*0.3,3,2);}}
+  txt(C.carve<1?'按住：木匠照着理念制作一张床':'一张特定的床（总有些不平整）',r.cx,H*0.92,'#5a3b1e',12);
+  // 画家：只能画出一个角度的样子
+  const ang=(C.view-0.5)*2;
+  ctx.save();ctx.globalAlpha=0.35;ctx.strokeStyle='#7a4f27';ctx.lineWidth=4;bedPath(r.px,r.y-s*0.05,s*0.9,ang,0.2);ctx.stroke();ctx.restore();
+  if(C.painting){C.paint=Math.min(1,C.paint+dt*0.4);if(C.paint>0.5)hit(3,2);}
+  if(C.paint>0){ctx.fillStyle='#fff';ctx.fillRect(r.px-s*0.55,r.y-s*0.55,s*1.1,s*0.9);ctx.strokeStyle='#5a3b5a';ctx.lineWidth=6;ctx.strokeRect(r.px-s*0.55,r.y-s*0.55,s*1.1,s*0.9);
+    ctx.save();ctx.beginPath();ctx.rect(r.px-s*0.55,r.y-s*0.55,s*1.1*C.paint,s*0.9);ctx.clip();ctx.strokeStyle='#5a3b5a';ctx.lineWidth=3;bedPath(r.px,r.y-s*0.05,s*0.8,(C.viewAtPaint-0.5)*2,0.1);ctx.stroke();ctx.restore();
+    if(C.paint>=1&&Math.abs(C.view-C.viewAtPaint)>0.2){txt('换了角度，画上的床却不动：它只画下了一种“显现”',r.px,r.y+s*0.55,'#5a3b5a',12);}}
+  // 视角条
+  ctx.fillStyle='rgba(0,0,0,.15)';ctx.fillRect(r.px-W*0.13,H*0.86,W*0.26,8);ctx.fillStyle='#5a3b5a';ctx.beginPath();ctx.arc(r.px-W*0.13+W*0.26*C.view,H*0.86+4,9,0,7);ctx.fill();
+  txt(C.paint<1?'拖动下方滑杆换观看角度，再按住画布作画':'',r.px,H*0.96,'#5a3b5a',12);
+  if(C.carve>=1&&C.paint>=1){hit(3,3);ctx.strokeStyle='rgba(0,0,0,.4)';ctx.lineWidth=2;[[r.ix,r.cx],[r.cx,r.px]].forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(a+s*0.55,H*0.15);ctx.lineTo(b-s*0.55,H*0.15);ctx.stroke();});txt('一级模仿',(r.ix+r.cx)/2,H*0.13,'#334',11);txt('二级模仿',(r.cx+r.px)/2,H*0.13,'#334',11);}}
+
+/* ======== 调度 ======== */
+const INIT={1:init1,2:init2,3:init3},TICK={1:t1,2:t2,3:t3};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!done[t.dataset.l]);});}
+function go(n){L=n;tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{INIT[L]();toast('已重置（已对应的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

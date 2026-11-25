@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 自由意志与决定论 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>自由意志与决定论</b>
+  <button class="tab on" data-l="1">① 拉普拉斯妖</button>
+  <button class="tab" data-l="2">② 休谟：锁链与动机</button>
+  <button class="tab" data-l="3">③ 斯宾诺莎：遮住的原因</button>
+  <button class="tab" data-l="4">④ 三种解释并排</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="bd" id="sBody"></div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;const done={};
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+function btn(x,y,w,h,label,on){ctx.fillStyle=on?'#f3a52b':'rgba(255,255,255,.9)';ctx.fillRect(x,y,w,h);ctx.strokeStyle='rgba(0,0,0,.3)';ctx.strokeRect(x,y,w,h);txt(label,x+w/2,y+h/2+5,'#222',13);return{x,y,w,h};}
+const inB=(b,x,y)=>b&&x>b.x&&x<b.x+b.w&&y>b.y&&y<b.y+b.h;
+
+/* ======== 原文 ======== */
+const LP='拉普拉斯《概率的哲学随笔》第二章（Truscott & Emory 英译）',HU='休谟《人类理智研究》第八章',SP='斯宾诺莎《伦理学》（Elwes 英译）';
+const MAP={
+1:[["世界在运转：每一步都由上一步决定","我们应当把宇宙的现在状态看作它以前状态的结果，以及随后状态的原因。","We ought then to regard the present state of the universe as the effect of its anterior state and as the cause of the one which is to follow.",LP],
+   ["记录状态、倒回、重放：同样的“选择”","现在的事件与先前的事件由一条纽带连接，它基于一个明显的原则：没有产生它的原因，任何事物都不会发生。","Present events are connected with preceding ones by a tie based upon the evident principle that a thing cannot occur without a cause which produces it.",LP],
+   ["打开“妖的眼睛”：未来轨迹提前显现","假定有一个智者，在某一瞬间能理解使自然运动的一切力量和构成自然的一切存在者的各自位置……对它来说，没有什么是不确定的，未来和过去一样都呈现在它眼前。","Given for one instant an intelligence which could comprehend all the forces by which nature is animated and the respective situation of the beings who compose it … for it, nothing would be uncertain and the future, as the past, would be present to its eyes.",LP],
+   ["把一粒原子推动一丝：结局改变","即使是被认为无关紧要的行动……最自由的意志若没有一个决定性的动机，也不能产生它们。","the freest will is unable without a determinative motive to give them birth",LP],
+   ["“我本可以选另一条路”？","相反的意见是心灵的一种错觉：它看不到意志在无关紧要之事上作选择的隐蔽理由，便以为选择是自行决定、没有动机的。","The contrary opinion is an illusion of the mind, which, losing sight of the evasive reasons of the choice of the will in indifferent things, believes that choice is determined of itself and without motives.",LP]],
+2:[["拖动动机：同样的动机，同样的行动","同样的动机总是产生同样的行动。同样的事件来自同样的原因。","The same motives always produce the same actions. The same events follow from the same causes.",HU+" §65"],
+   ["没有锁链：他按意志走或停","所谓自由，我们只能指按照意志的决定去行动或不行动的能力。","By liberty, then, we can only mean a power of acting or not acting, according to the determinations of the will",HU+" §73"],
+   ["想停就停，想走就走","也就是说，如果我们选择静止，我们就可以静止；如果我们选择行动，我们也可以行动。","if we choose to remain at rest, we may; if we choose to move, we also may",HU+" §73"],
+   ["把锁链拖到他身上：意志仍在，自由没了","这种假设的自由，人们普遍承认，属于每一个不是被囚禁、被锁链锁住的人。","this hypothetical liberty is universally allowed to belong to every one who is not a prisoner and in chains",HU+" §73"]],
+3:[["他说：“是我自己想要的”","人们自以为自由，因为他们意识到自己的意愿和欲望，却在无知中从未想到那些使他们如此意愿和欲望的原因。","men think themselves free inasmuch as they are conscious of their volitions and desires, and never even dream, in their ignorance, of the causes which have disposed them so to wish and desire",SP+" 第一部分附录"],
+   ["擦开迷雾：原因一条条露出来","一切人生来都不知道事物的原因。","all men are born ignorant of the causes of things",SP+" 第一部分附录"],
+   ["原因越清楚，“自由感”越低","人们以为自己自由，是错误的；他们的意见由对自己行动的意识和对决定这些行动的原因的无知构成。","men are mistaken in thinking themselves free; their opinion is made up of consciousness of their own actions, and ignorance of the causes by which they are conditioned",SP+" 第二部分命题35附释"],
+   ["全部看清：自由感归零","因此，他们的自由观念不过是对自己行动之原因的无知。","Their idea of freedom, therefore, is simply their ignorance of any cause for their actions.",SP+" 第二部分命题35附释"]],
+4:[["同一个场景：一个人走向门口","同样的动机总是产生同样的行动。","The same motives always produce the same actions.",HU+" §65"],
+   ["拉普拉斯：每一步都可预知","对它来说，没有什么是不确定的。","for it, nothing would be uncertain",LP],
+   ["休谟：拖上锁链，判决随之改变","自由……属于每一个不是被囚禁、被锁链锁住的人。","universally allowed to belong to every one who is not a prisoner and in chains",HU+" §73"],
+   ["斯宾诺莎：擦开迷雾，判决随之改变","他们的自由观念不过是对自己行动之原因的无知。","Their idea of freedom, therefore, is simply their ignorance of any cause for their actions.",SP+" 第二部分命题35附释"]]};
+const TITLE={1:'① 拉普拉斯妖 · 按住画面让世界运转；记录状态后倒回重放；打开“妖的眼睛”；把一粒原子拖动一丝',2:'② 休谟 · 拖动左侧动机滑块；把锁链拖到人身上或拖走',3:'③ 斯宾诺莎 · 按住拖动，擦开遮住原因的迷雾',4:'④ 三种解释并排 · 拖锁链、擦迷雾、拖动机，看三位哲学家的判断实时变化'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const e=$('mr'+l+'_'+i);if(!e||e.classList.contains('on'))return;e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});
+  if(MAP[l].every((_,k)=>$('mr'+l+'_'+k).classList.contains('on'))){done[l]=1;tabs();}}
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]?.move?.(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]?.up?.();});
+function person(x,y,r,col,walk){ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y-r*2.1,r*.42,0,7);ctx.fill();ctx.beginPath();ctx.moveTo(x-r*.5,y-r*.2);ctx.quadraticCurveTo(x,y-r*1.8,x+r*.5,y-r*.2);ctx.fill();
+  const s=Math.sin(walk||0)*r*.35;ctx.strokeStyle=col;ctx.lineWidth=r*.22;ctx.beginPath();ctx.moveTo(x,y-r*.3);ctx.lineTo(x+s,y+r*.3);ctx.moveTo(x,y-r*.3);ctx.lineTo(x-s,y+r*.3);ctx.stroke();}
+
+/* ================= ① 拉普拉斯妖：确定性的原子世界 + 一个在岔路口“选择”的行动者 ================= */
+// 确定性模拟：固定步长，无随机数；状态可完整复制
+const N1=14;let A;
+function seedWorld(){const s=[];let q=7;const r=()=>{q=(q*16807)%2147483647;return q/2147483647;};
+  for(let i=0;i<N1;i++)s.push({x:0.1+r()*0.8,y:0.1+r()*0.55,vx:(r()-.5)*0.5,vy:(r()-.5)*0.5});
+  return{p:s,agent:{y:0.1,x:0.5,vx:0,path:[]},t:0,choice:null};}
+const cloneS=s=>JSON.parse(JSON.stringify(s));
+function stepWorld(s,dt){s.t+=dt;s.p.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;if(p.x<0.02||p.x>0.98){p.vx*=-1;p.x=clamp(p.x,0.02,0.98);}if(p.y<0.02||p.y>0.7){p.vy*=-1;p.y=clamp(p.y,0.02,0.7);}});
+  for(let i=0;i<N1;i++)for(let j=i+1;j<N1;j++){const a=s.p[i],b=s.p[j],dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy);if(d<0.035&&d>0){const nx=dx/d,ny=dy/d,rv=(a.vx-b.vx)*nx+(a.vy-b.vy)*ny;if(rv>0){a.vx-=rv*nx;a.vy-=rv*ny;b.vx+=rv*nx;b.vy+=rv*ny;}}}
+  // 行动者：沿中线下行，被附近原子“推动”横向偏移——它的“决定”就是这些推力之和
+  const ag=s.agent;ag.y+=dt*0.06;s.p.forEach(p=>{const dx=ag.x-p.x,dy=ag.y-p.y,d=Math.hypot(dx,dy);if(d<0.12)ag.vx+=dx/(d*d+0.01)*dt*0.0025;});
+  ag.vx*=0.995;ag.x=clamp(ag.x+ag.vx*dt,0.05,0.95);if(ag.path.length===0||s.t-ag.path[ag.path.length-1][2]>0.1)ag.path.push([ag.x,ag.y,s.t]);
+  if(ag.y>=0.72&&s.choice==null)s.choice=ag.x<0.5?'左':'右';return s;}
+function init1(){A={s:seedWorld(),rec:null,eye:false,run:false,replays:[],nudged:false,drag:null};}
+HD[1]={down(x,y){if(inB(A.bRec,x,y)){A.rec=cloneS(A.s);toast('已记录宇宙在此刻的完整状态');return;}
+  if(inB(A.bRew,x,y)){if(!A.rec){toast('先记录一个状态');return;}A.s=cloneS(A.rec);A.replays.push(null);hit(1,1);toast('倒回到记录的那一刻');return;}
+  if(inB(A.bEye,x,y)){A.eye=!A.eye;if(A.eye)hit(1,2);return;}
+  const sx=x/W,sy=y/(H*0.92);for(const p of A.s.p){if(Math.hypot(sx-p.x,(sy-p.y)*0.7)<0.03){A.drag={p,x0:x,y0:y};return;}}
+  A.run=true;},
+ move(x,y){if(A.drag){const p=A.drag.p;const dx=(x-A.drag.x0)/W,dy=(y-A.drag.y0)/(H*0.92);const m=Math.hypot(dx,dy);const k=Math.min(1,0.004/Math.max(m,1e-6));p.x=clamp(p.x+dx*k*0.5,0.02,0.98);p.y=clamp(p.y+dy*k*0.5,0.02,0.7);A.drag.x0=x;A.drag.y0=y;A.nudged=true;}},
+ up(){if(A.drag){if(A.nudged){toast('只移动了不到一根头发丝的距离……');}A.drag=null;}A.run=false;}};
+function predict(s,n){const c=cloneS(s);const out=[];for(let i=0;i<n;i++){stepWorld(c,1/60);if(i%6===0)out.push([c.agent.x,c.agent.y]);if(c.choice)break;}return{path:out,choice:c.choice};}
+function t1(dt){const S=A.s;const wh=H*0.92;
+  ctx.fillStyle='#14182a';ctx.fillRect(0,0,W,H);
+  if(A.run&&!S.choice){for(let i=0;i<2;i++)stepWorld(S,1/60);hit(1,0);}
+  // 岔路
+  ctx.fillStyle='rgba(255,255,255,.07)';ctx.fillRect(0,wh*0.72,W,wh*0.28);ctx.strokeStyle='rgba(255,255,255,.4)';ctx.setLineDash([6,6]);ctx.beginPath();ctx.moveTo(W/2,wh*0.72);ctx.lineTo(W/2,wh);ctx.stroke();ctx.setLineDash([]);
+  txt('← 左路',W*0.25,wh*0.86,'#9fb4d8',15,'center',true);txt('右路 →',W*0.75,wh*0.86,'#9fb4d8',15,'center',true);
+  // 原子
+  S.p.forEach(p=>{ctx.fillStyle=A.drag&&A.drag.p===p?'#f3a52b':'#7fb0d8';ctx.beginPath();ctx.arc(p.x*W,p.y*wh,6,0,7);ctx.fill();});
+  // 妖的眼睛：预言整条未来轨迹
+  if(A.eye&&!S.choice){const pr=predict(S,1200);ctx.strokeStyle='rgba(255,80,120,.8)';ctx.setLineDash([3,4]);ctx.lineWidth=2;ctx.beginPath();pr.path.forEach(([x,y],i)=>i?ctx.lineTo(x*W,y*wh):ctx.moveTo(x*W,y*wh));ctx.stroke();ctx.setLineDash([]);
+    txt(`妖的预言：他将走${pr.choice||'？'}路`,W*0.5,22,'#ff7799',15,'center',true);A.pred=pr.choice;}
+  // 行动者
+  const ag=S.agent;ctx.strokeStyle='rgba(243,165,43,.5)';ctx.lineWidth=2;ctx.beginPath();ag.path.forEach(([x,y],i)=>i?ctx.lineTo(x*W,y*wh):ctx.moveTo(x*W,y*wh));ctx.stroke();
+  person(ag.x*W,ag.y*wh+10,13,'#f3a52b',T*8*(A.run?1:0));
+  txt('“我在自由地选择往哪边走”',ag.x*W,ag.y*wh-26,'rgba(255,231,181,.85)',12);
+  // 选择结果 + 重放比较
+  if(S.choice){txt(`他走了${S.choice}路`,W/2,wh*0.66,'#ffd27a',18,'center',true);
+    if(A.replays.length&&A.replays[A.replays.length-1]===null){A.replays[A.replays.length-1]={c:S.choice,nudged:A.nudged};const R=A.replays.filter(Boolean);
+      const first=A.first;if(first&&!A.nudged&&S.choice===first)toast('重放：完全同样的状态，完全同样的“选择”');
+      if(first&&A.nudged&&S.choice!==first){hit(1,3);setTimeout(()=>hit(1,4),1500);toast('只推动了一粒原子一丝——他“选择”了另一条路');}
+      if(first&&A.nudged&&S.choice===first)toast('这次结局没变；再推得不同一点试试');}
+    if(!A.first&&A.rec)A.first=S.choice;}
+  // 控件
+  const y0=wh+4;A.bRec=btn(W*0.02,y0,W*0.18,H*0.07,'⏺ 记录状态',!!A.rec);A.bRew=btn(W*0.22,y0,W*0.18,H*0.07,'⏮ 倒回重放',false);A.bEye=btn(W*0.42,y0,W*0.2,H*0.07,'👁 妖的眼睛',A.eye);
+  txt(A.run?'世界运转中……':'按住空白处：让世界运转；拖动一粒原子：推它一丝',W*0.82,y0+H*0.045,'#cfd6e6',12);
+  txt(`回放次数：${A.replays.length}${A.first?` · 第一次结果：${A.first}路`:''}`,W*0.5,wh*0.7-30,'rgba(207,214,230,.7)',12);}
+
+/* ================= ② 休谟：动机的必然 vs 外在的约束 ================= */
+let B;
+function init2(){B={hunger:0.3,fear:0.2,chain:{x:0.12,y:0.82,on:false},drag:null,p:{x:0.45,v:0},runs:[],lastMot:null,moved:0,stuck:0};}
+const G2=()=>({mx:W*0.06,my0:H*0.16,mh:H*0.5,food:W*0.88,home:W*0.22,gy:H*0.78});
+HD[2]={down(x,y){const g=G2();if(Math.abs(x-g.mx)<30&&y>g.my0-10&&y<g.my0+g.mh+10){B.drag='h';return;}if(Math.abs(x-(g.mx+40))<30&&y>g.my0-10&&y<g.my0+g.mh+10){B.drag='f';return;}
+  const cx=B.chain.on?B.p.x*W:B.chain.x*W,cy=B.chain.on?g.gy-20:B.chain.y*H;if(Math.hypot(x-cx,y-cy)<40){B.drag='c';B.chain.on=false;}},
+ move(x,y){const g=G2();if(B.drag==='h'||B.drag==='f'){const v=clamp(1-(y-g.my0)/g.mh,0,1);if(B.drag==='h')B.hunger=v;else B.fear=v;}if(B.drag==='c'){B.chain.x=x/W;B.chain.y=y/H;}},
+ up(){const g=G2();if(B.drag==='c'){if(Math.hypot(B.chain.x*W-B.p.x*W,B.chain.y*H-(g.gy-20))<70){B.chain.on=true;B.chainPin=B.p.x;toast('锁住了。他的意志没有变');}}B.drag=null;}};
+function t2(dt){const g=G2();ctx.fillStyle='#eef1f4';ctx.fillRect(0,0,W,H);ctx.fillStyle='#c9bfa8';ctx.fillRect(0,g.gy,W,H-g.gy);
+  // 动机条
+  [['饥饿',B.hunger,'#e0602a',g.mx],['恐惧',B.fear,'#6b5aa8',g.mx+40]].forEach(([n,v,c,x])=>{ctx.fillStyle='#fff';ctx.fillRect(x-10,g.my0,20,g.mh);ctx.fillStyle=c;ctx.fillRect(x-10,g.my0+g.mh*(1-v),20,g.mh*v);ctx.strokeStyle='#888';ctx.strokeRect(x-10,g.my0,20,g.mh);txt(n,x,g.my0-8,c,13,'center',true);});
+  // 意志 = 动机的合力（必然地由动机决定）
+  const will=B.hunger-B.fear*1.1;const dir=Math.abs(will)<0.05?0:Math.sign(will);
+  // 外界
+  ctx.fillStyle='#d9a441';ctx.beginPath();ctx.arc(g.food,g.gy-22,20,0,7);ctx.fill();txt('面包',g.food,g.gy+18,'#5a3b1e',12);
+  ctx.fillStyle='#6b5aa8';ctx.fillRect(g.food-60,g.gy-70,14,70);txt('看门狗',g.food-53,g.gy-76,'#6b5aa8',11);
+  ctx.fillStyle='#8a7a66';ctx.fillRect(g.home-40,g.gy-80,70,80);txt('家',g.home-5,g.gy+18,'#5a3b1e',12);
+  // 人的运动：意志方向；锁链则不能动
+  const target=dir;const want=target*0.12;
+  if(B.chain.on){B.p.v=0;B.stuck+=dt*Math.abs(dir);if(B.stuck>1.2){hit(2,3);}}
+  else{B.p.v=lerp(B.p.v,want,dt*3);B.p.x=clamp(B.p.x+B.p.v*dt,0.25,0.82);if(Math.abs(B.p.v)>0.03){B.moved+=dt;hit(2,1);}if(dir===0&&B.moved>0.5)hit(2,2);}
+  if(Math.abs(B.p.v)>0.03&&B.moved>0.3&&!B.chain.on&&B.lastDir!==undefined&&B.lastDir!==dir&&dir!==0)hit(2,2);B.lastDir=dir;
+  // 必然性：记录 (动机→行动)，同样的动机组合总得到同样的行动
+  const key=`${Math.round(B.hunger*5)}-${Math.round(B.fear*5)}`;B.runs[key]=B.runs[key]||new Set();B.runs[key].add(dir);
+  const keys=Object.keys(B.runs);if(keys.length>=4)hit(2,0);
+  const px=B.p.x*W,py=g.gy;person(px,py,16,'#3a6f99',T*8*Math.min(1,Math.abs(B.p.v)*20));
+  // 锁链
+  const cx=B.chain.on?px:B.chain.x*W,cy=B.chain.on?py-12:B.chain.y*H;ctx.strokeStyle='#555';ctx.lineWidth=4;for(let i=0;i<5;i++){ctx.beginPath();ctx.ellipse(cx-20+i*10,cy,7,4,i%2?0:1.2,0,7);ctx.stroke();}
+  if(B.chain.on){ctx.beginPath();ctx.moveTo(cx+30,cy);ctx.lineTo(cx+90,g.gy);ctx.stroke();ctx.fillStyle='#555';ctx.fillRect(cx+86,g.gy-8,14,10);if(dir!==0){const s=Math.sin(T*20)*4;ctx.save();ctx.translate(s,0);person(px,py,16,'rgba(58,111,153,.35)',0);ctx.restore();}}
+  else txt('锁链（拖到人身上）',cx,cy+24,'#555',11);
+  const wtxt=dir>0?'他想去拿面包':dir<0?'他想回家':'他想留在原地';txt(wtxt,px,py-56,'#223',13,'center',true);
+  ctx.fillStyle='rgba(255,255,255,.92)';ctx.fillRect(W*0.62,H*0.06,W*0.36,H*0.24);
+  txt('必然性：动机 → 意志',W*0.8,H*0.11,'#334',13,'center',true);txt(`同样动机组合下的不同行动数：${Math.max(...Object.values(B.runs).map(s=>s.size))}（始终为 1）`,W*0.8,H*0.16,'#334',12);
+  const free=!B.chain.on;txt(`自由（按意志行动的能力）：${free?'有':'无'}`,W*0.8,H*0.22,free?'#1f7a3a':'#b00020',15,'center',true);
+  txt(B.chain.on&&dir!==0?'意志仍然想动——只是做不到':'',W*0.8,H*0.27,'#b00020',12);}
+
+/* ================= ③ 斯宾诺莎：迷雾后面的原因 ================= */
+let C;
+const CAUSES=[['饥饿','胃里空了'],['气味','面包店飘来香味'],['习惯','每天这个时间都吃'],['记忆','小时候常吃这种面包'],['广告','早上看到的海报'],['身体','血糖下降'],['朋友','昨天朋友推荐过'],['天气','冷天想吃热的']];
+let fogCv=null;
+function init3(){C={cleared:0,sayT:0};fogCv=document.createElement('canvas');fogCv.width=Math.max(1,Math.floor(W));fogCv.height=Math.max(1,Math.floor(H));const f=fogCv.getContext('2d');f.fillStyle='#9aa3ad';f.fillRect(0,0,W,H);
+  for(let i=0;i<400;i++){f.fillStyle=`rgba(${150+Math.random()*60|0},${160+Math.random()*50|0},${170+Math.random()*50|0},.5)`;f.beginPath();f.arc(Math.random()*W,Math.random()*H,10+Math.random()*30,0,7);f.fill();}
+  C.cpos=CAUSES.map((c,i)=>({c,x:W*(0.08+(i%4)*0.12),y:H*(0.2+Math.floor(i/4)*0.42),seen:false}));}
+const FOG=()=>({x:0,y:0,w:W*0.56,h:H});
+HD[3]={move(x,y,dx,dy,down){if(!down||!fogCv||x>W*0.56)return;const f=fogCv.getContext('2d');f.globalCompositeOperation='destination-out';f.beginPath();f.arc(x,y,34,0,7);f.fill();f.globalCompositeOperation='source-over';C.dirty=true;}};
+function fogRatio(){if(!C.dirty)return C.cleared;C.dirty=false;const f=fogCv.getContext('2d');const d=f.getImageData(0,0,Math.floor(W*0.56),fogCv.height).data;let c=0,n=0;for(let i=3;i<d.length;i+=4*97){n++;if(d[i]<40)c++;}C.cleared=c/n;return C.cleared;}
+function t3(dt){ctx.fillStyle='#f4efe6';ctx.fillRect(0,0,W,H);
+  // 原因网络
+  const ax=W*0.78,ay=H*0.62;C.cpos.forEach(p=>{ctx.strokeStyle='rgba(160,82,45,.6)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(p.x+40,p.y);ctx.quadraticCurveTo(W*0.6,(p.y+ay)/2,ax-20,ay-40);ctx.stroke();
+    ctx.fillStyle='#fff';ctx.strokeStyle='#a0522d';ctx.beginPath();ctx.roundRect(p.x-50,p.y-22,100,44,8);ctx.fill();ctx.stroke();txt(p.c[0],p.x,p.y-3,'#a0522d',14,'center',true);txt(p.c[1],p.x,p.y+14,'#555',10);});
+  if(fogCv)ctx.drawImage(fogCv,0,0,W,H,0,0,W,H);
+  const r=fogRatio();
+  // 判断哪些原因已经露出
+  if(fogCv){const f=fogCv.getContext('2d');C.cpos.forEach(p=>{if(!p.seen){const a=f.getImageData(Math.floor(p.x),Math.floor(p.y),1,1).data[3];if(a<40){p.seen=true;hit(3,1);toast(`一个原因：${p.c[1]}`);}}});}
+  const seen=C.cpos.filter(p=>p.seen).length;if(seen>=3)hit(3,2);if(seen===CAUSES.length)hit(3,3);
+  ctx.fillStyle='#bbb';ctx.fillRect(W*0.56,0,2,H);
+  person(ax,ay+40,20,'#3a6f99',0);ctx.fillStyle='#d9a441';ctx.beginPath();ctx.arc(ax+50,ay+20,14,0,7);ctx.fill();
+  C.sayT+=dt;if(C.sayT>1)hit(3,0);
+  const feel=1-seen/CAUSES.length;
+  ctx.fillStyle='#fff';ctx.strokeStyle='#3a6f99';ctx.beginPath();ctx.roundRect(ax-120,ay-130,240,50,14);ctx.fill();ctx.stroke();
+  txt(feel>0.6?'“我想吃面包，这完全是我自由的决定。”':feel>0.01?'“我想吃……可这些原因是哪来的？”':'“我想吃面包——它有它的全部原因。”',ax,ay-100,'#223',12);
+  ctx.fillStyle='#fff';ctx.fillRect(W*0.62,H*0.08,W*0.32,14);ctx.fillStyle='#f3a52b';ctx.fillRect(W*0.62,H*0.08,W*0.32*feel,14);ctx.strokeStyle='#888';ctx.strokeRect(W*0.62,H*0.08,W*0.32,14);
+  txt(`他的“自由感”：${Math.round(feel*100)}%   · 已看清的原因：${seen}/${CAUSES.length}`,W*0.78,H*0.06,'#334',12);
+  txt(seen<CAUSES.length?'← 按住在迷雾上来回擦':'',W*0.28,H*0.97,'#334',12);}
+
+/* ================= ④ 三种解释并排 ================= */
+let D;
+function init4(){D={x:0.1,chain:false,fog:1,mot:0.7,drag:null,t:0,logChain:false,logFog:false,logMot:0};}
+HD[4]={down(x,y){if(inB(D.bC,x,y)){D.chain=!D.chain;D.logChain=true;hit(4,2);return;}if(y>H*0.82&&x>W*0.3&&x<W*0.65){D.drag='fog';}if(y>H*0.82&&x>W*0.67){D.drag='mot';}},
+ move(x){if(D.drag==='fog'){D.fog=clamp(1-(x-W*0.3)/(W*0.35),0,1);if(D.fog<0.9){hit(4,3);}}if(D.drag==='mot'){D.mot=clamp((x-W*0.67)/(W*0.31),0,1);D.logMot++;if(D.logMot>20)hit(4,0);}},
+ up(){D.drag=null;}};
+function t4(dt){D.t+=dt;ctx.fillStyle='#e9edf2';ctx.fillRect(0,0,W,H);if(D.t>1)hit(4,1);
+  // 共同场景（上方）
+  const sy=H*0.32,dir=D.mot>0.3?1:0;if(!D.chain&&dir)D.x=Math.min(0.86,D.x+dt*0.05);if(D.x>=0.86)D.x=0.1;
+  ctx.fillStyle='#c9bfa8';ctx.fillRect(0,sy,W,8);ctx.fillStyle='#8a6b42';ctx.fillRect(W*0.9,sy-70,30,70);txt('门',W*0.9+15,sy+22,'#5a3b1e',12);
+  const px=D.x*W;person(px,sy,14,'#3a6f99',D.chain?0:T*8*dir);if(D.chain){ctx.strokeStyle='#555';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(px,sy-10);ctx.lineTo(px-70,sy);ctx.stroke();}
+  // 预测轨迹
+  ctx.strokeStyle='rgba(255,80,120,.6)';ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(px,sy-12);ctx.lineTo(D.chain||!dir?px:W*0.88,sy-12);ctx.stroke();ctx.setLineDash([]);
+  // 三栏判决
+  const cols=[['拉普拉斯','#b0305a'],['休谟','#3a6f99'],['斯宾诺莎','#a0522d']];const cw=W/3,cy=H*0.42,ch=H*0.36;
+  const verdict=[
+    ['他的每一步都已被先前状态决定',D.chain?'锁链也是原因之一：他将停在原地':'可预知：他将走到门口','自由？“错觉”'],
+    [dir?'意志：要去门口（由动机必然决定）':'意志：留在原地',D.chain?'外在约束阻止了他':'没有约束：能按意志行动',D.chain?'不自由':'自由'],
+    [`原因的可见度：${Math.round((1-D.fog)*100)}%`,D.fog>0.5?'他以为“是我自己决定的”':'他看见了决定他的原因',`自由感：${Math.round(D.fog*100)}%（= 对原因的无知）`]];
+  cols.forEach(([n,c],i)=>{const x=i*cw+8;ctx.fillStyle='#fff';ctx.fillRect(x,cy,cw-16,ch);ctx.fillStyle=c;ctx.fillRect(x,cy,cw-16,30);txt(n,x+(cw-16)/2,cy+21,'#fff',15,'center',true);
+    verdict[i].forEach((v,k)=>txt(v,x+(cw-16)/2,cy+60+k*30,k===2?c:'#334',k===2?15:12,'center',k===2));});
+  // 控件
+  D.bC=btn(W*0.02,H*0.84,W*0.26,H*0.1,D.chain?'🔗 已锁住（点击解开）':'🔗 点击上锁链',D.chain);
+  ctx.fillStyle='#fff';ctx.fillRect(W*0.3,H*0.86,W*0.35,10);ctx.fillStyle='#9aa3ad';ctx.fillRect(W*0.3,H*0.86,W*0.35*D.fog,10);txt('拖动：擦开原因的迷雾 →',W*0.475,H*0.84,'#334',12);
+  ctx.fillStyle='#fff';ctx.fillRect(W*0.67,H*0.86,W*0.31,10);ctx.fillStyle='#e0602a';ctx.fillRect(W*0.67,H*0.86,W*0.31*D.mot,10);txt('拖动：去门口的动机强度',W*0.825,H*0.84,'#334',12);}
+
+/* ======== 调度 ======== */
+const INIT={1:init1,2:init2,3:init3,4:init4},TICK={1:t1,2:t2,3:t3,4:t4};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!done[t.dataset.l]);});}
+function go(n){L=n;tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{INIT[L]();toast('已重置（已对应的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 王阳明知行合一 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .q{padding:4px 10px;font-size:12.5px;color:#2c3e50;border-bottom:1px dashed #ccd}
+#side .q b{color:#a0522d}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+#side .bd2{padding:2px 10px 8px;font-size:11.5px;color:#667}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .gw{font-size:12.5px;color:#5a3b1e}
+.mr .zh{font-size:12px;color:#334;margin-top:2px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px;margin-top:2px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>王阳明 · 知行合一</b>
+  <button class="tab on" data-l="1">① 好好色，恶恶臭</button>
+  <button class="tab" data-l="2">② 知而不行</button>
+  <button class="tab" data-l="3">③ 知孝与行孝</button>
+  <button class="tab" data-l="4">④ 良知</button>
+  <button class="tab" data-l="5">⑤ 应用练习</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div>
+  <div class="q"><b>核心问题：</b>“知道”和“去做”，是两件事，还是一件事的两面？</div>
+  <div class="bd" id="sBody"></div>
+  <div class="bd2"><b>适用边界：</b>画面里的“知条”“行条”只是教学比喻。王阳明并不是说知与行是两个可以测量的量；他说的是它们本来就是一个心体的发用，被“私欲隔断”才看似两件。</div>
+</div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+const KEY='minest_wangyangming_v1';
+let store={done:{},lit:{}};
+try{const s=localStorage.getItem(KEY);if(s)store=JSON.parse(s)||store;}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}}
+const done=store.done;
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ======== 原文：《傳習錄》卷上·徐愛錄（維基文庫）；Henke 英譯 1916（Instructions for Practical Life, Part I）；现代汉语为编译 ======== */
+const SRC='《传习录》卷上 · 徐爱录',EN='Henke 1916 英译，Book I, Part I';
+const MAP={
+1:[["看见花：喜欢在看见的同时发生","見好色，屬知；好好色，屬行。只見那好色時，已自好了；不是見了後，又立個心去好。","看见美色属于知，喜爱美色属于行；看见的那一刻已经喜爱了，并不是看见之后再另起一个心去喜爱。","Seeing beauty is a result of knowl- edge; loving the beautiful is a result of practice."],
+   ["闻到臭气：厌恶同时发生","聞惡臭，屬知；惡惡臭，屬行。只聞那惡臭時，已自惡了；不是聞了後，別立個心去惡。","闻到恶臭属于知，厌恶恶臭属于行；闻到时已经厌恶了，不是闻了之后再另立一个心去厌恶。","when one perceives the bad odor one already hates it. One does not determine to hate it after one has smelt it."],
+   ["想把“知”和“行”拖开：分不开","知行如何分得開？此便是知行的本體，不曾有私意隔斷的。","知与行怎么分得开？这就是知行的本来样子，没有被私意隔断。","How, then, can knowledge and practice be separated? This is their original nature before selfish aims have separated them."],
+   ["捂住鼻子：没闻到，也就谈不上厌恶","如鼻塞人雖見惡臭在前，鼻中不曾聞得，便亦不甚惡，亦只是不曾知臭。","鼻子堵住的人，虽然恶臭就在眼前，没闻到，也就不怎么厌恶，这只是还没“知”臭。","A man with his nostrils stuffed may see the malodorous object before him, but does not smell it."]],
+2:[["按住“知道”，不去做：知慢慢褪色","未有知而不行者；知而不行，只是未知。","没有知而不行的；知而不行，只是还没有真知。","No one who really has knowledge fails to practice it. Knowledge without practice should be in- terpreted as lack of knowledge."],
+   ["拖动“私欲”挡板插进中间：隔断","此已被私欲隔斷，不是知行的本體了。","这是已经被私欲隔断了，不是知行的本体。","This separation is due to selfish- ness and does not represent the original character of knowl- edge and practice."],
+   ["只想不做 / 只做不想：两种偏","有一種人，懵懵懂懂地任意去做……又有一種人，茫茫蕩蕩懸空去思索，全不肯著實躬行","有人糊里糊涂任意去做；又有人空空荡荡悬空思索，完全不肯踏实去做。","There is another class of people who vaguely and vainly philosophize but are unwilling to carry it out, in practice."],
+   ["一个动作里：知是始，行是成","知是行的主意，行是知的功夫；知是行之始，行是知之成。","知是行的主意，行是知的功夫；知是行的开始，行是知的完成。","Knowledge is the beginning of practice ; doing is the completion of knowing."]],
+3:[["只会“说孝”：知孝条不涨","不成只是曉得說些孝、弟的話，便可稱為知孝、弟？","难道只是懂得说些孝悌的话，就可以称为知孝知悌了吗？","Knowing how to converse about filial piety and respectfulness is not sufficient to warrant anybody's being described as under- standing them."],
+   ["真去奉茶、添衣：知孝随行孝而成","必是其人已曾行孝、行弟，方可稱他知孝、知弟。","必定是这个人已经行过孝悌，才可以称他知孝知悌。","No one should be described as understanding filial piety and respectful- ness, unless he has actually practiced filial piety toward his parents"],
+   ["知痛、知寒、知饥","又如知痛，必已自痛了，方知痛；知寒，必已自寒了；知飢，必已自飢了。","又如知痛，必是自己已经痛过才知痛；知寒，必已自己寒过；知饥，必已自己饿过。","A person certainly must have experi- enced pain before he can know what it is."],
+   ["演戏的孝子：仪节都对，心不在","即如今扮戲子，扮得許多溫清、奉養的儀節是當，亦可謂之至善矣。","（反问）如果只求仪节得当就算至善，那么如今的戏子扮演温清奉养的仪节都很得当，也可以称为至善了。","the actor of today who disguises him- self in much providing of warmth, coolness, honoring, and nourishing according to usage, may be classed as having the highest virtue."]],
+4:[["见孺子将入井：恻隐自然发出","見父，自然知孝；見兄，自然知弟；見孺子入井，自然知惻隱。此便是『良知』，不假外求。","见父亲自然知孝，见兄长自然知悌，见孩子将掉进井里自然知恻隐。这就是“良知”，不需向外求。","when it sees a child fall into a well it nat- urally knows what commiseration is. This is intuitive knowledge of good"],
+   ["拨开私意障碍：良知流行","勝私復理，即心之『良知』更無障礙，得以充塞……流行；便是致其知。","战胜私意、恢复天理，心的良知便不再有障碍，得以充满流行，这就是致知。","If the thing manifested emanates from the intuitive faculty, it is the more free from the obscuration of selfish purpose."],
+   ["心即理：不去外物上求","心即理也。天下又有心外之事、心外之理乎？","心就是理。天下难道还有心外的事、心外的理吗？","The mind itself is the embodiment of natural law."]],
+5:[["新情境里：知与行同时发生","若會得時，只說一個知，已自有行在；只說一個行，已自有知在。","如果领会了，只说一个知，行已经在其中；只说一个行，知已经在其中。","If when one knows how to attain the desired end, one speaks only of knowing, the doing is already naturally included; or if he speaks of acting, the knowing is already included."],
+   ["“先知后行”的人：终身不行","以為必先知了，然後能行……故遂終身不行，亦遂終身不知。","以为必须先知了然后才能行……所以终身不行，也终身不知。","Those who to the very end of life fail to practice also fail to understand."]]};
+const TITLE={1:'① 好好色，恶恶臭 · 把人拖到花旁或臭水沟旁；试着把“知”“行”两条拖开；按住捂鼻',2:'② 知而不行 · 按住“只知道”不松手；把“私欲”挡板拖进两人之间；拖动重心体验两种偏',3:'③ 知孝与行孝 · 按住“说孝”；拖茶杯、衣服给父亲；拖冰块、针、空碗',4:'④ 良知 · 孩子正爬向井口：立刻去拉；拖开遮在心上的乌云',5:'⑤ 应用练习 · 在新情境中让知与行在同一个动作里完成'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr${store.lit[l+'_'+i]?' on':''}" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx"><div class="gw">「${r[1]}」</div><div class="zh">${r[2]}</div><div class="en">${r[3]}</div><div class="ref">——王阳明${SRC}（中文原文）；${EN}</div></div></div>`).join('');}
+function hit(l,i){const k=l+'_'+i;const e=$('mr'+l+'_'+i);if(store.lit[k])return;store.lit[k]=1;if(e){e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});}
+  if(MAP[l].every((_,j)=>store.lit[l+'_'+j])){done[l]=1;tabs();}save();}
+
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y,x0:x,y0:y};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]?.move?.(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]?.up?.();});
+
+/* ======== 通用：人物与“知—行”双条 ======== */
+function person(x,y,s,col,o={}){ctx.save();ctx.translate(x,y);
+  ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=s*0.12;ctx.lineCap='round';
+  const lean=o.lean||0;ctx.rotate(lean);
+  ctx.beginPath();ctx.arc(0,-s*1.6,s*0.32,0,7);ctx.fill();
+  ctx.beginPath();ctx.moveTo(0,-s*1.25);ctx.lineTo(0,-s*0.45);ctx.stroke();
+  const a=o.arm||0;ctx.beginPath();ctx.moveTo(0,-s*1.1);ctx.lineTo(s*0.55*Math.cos(a),-s*1.1+s*0.55*Math.sin(a));ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,-s*1.1);ctx.lineTo(-s*0.4,-s*0.7);ctx.stroke();
+  const w=o.walk||0;ctx.beginPath();ctx.moveTo(0,-s*0.45);ctx.lineTo(s*0.3*Math.sin(w),0);ctx.moveTo(0,-s*0.45);ctx.lineTo(-s*0.3*Math.sin(w),0);ctx.stroke();
+  if(o.hand){ctx.fillStyle='#e8c9a0';ctx.beginPath();ctx.ellipse(s*0.05,-s*1.52,s*0.16,s*0.1,0,0,7);ctx.fill();}
+  if(o.face){ctx.fillStyle='#fff';ctx.font=`${s*0.42}px sans-serif`;ctx.textAlign='center';ctx.fillText(o.face,0,-s*1.48);}
+  ctx.restore();}
+/* 知行双条：一根可伸缩的“心体”，两端标“知”“行”。gap>0 表示被隔断 */
+function ksBar(cx,cy,w,kv,av,gap,label){const h=14;ctx.save();
+  ctx.fillStyle='rgba(255,255,255,.85)';ctx.fillRect(cx-w/2-8,cy-28,w+16,58);
+  txt(label||'心体：知 ↔ 行',cx,cy-14,'#445',11);
+  const g=gap||0;const lw=w/2-g/2,rw=w/2-g/2;
+  ctx.fillStyle='#e6e9ee';ctx.fillRect(cx-w/2,cy,lw,h);ctx.fillRect(cx+g/2,cy,rw,h);
+  ctx.fillStyle='#3a6f99';ctx.fillRect(cx-g/2-lw*kv,cy,lw*kv,h);
+  ctx.fillStyle='#d4612a';ctx.fillRect(cx+g/2,cy,rw*av,h);
+  if(g<2){ctx.strokeStyle='#f3a52b';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx,cy-3);ctx.lineTo(cx,cy+h+3);ctx.stroke();}
+  else{ctx.fillStyle='#555';ctx.fillRect(cx-g/2+2,cy-6,g-4,h+12);txt('私欲',cx,cy+h+22,'#a00',11);}
+  txt('知',cx-w/2-0,cy+h+14,'#3a6f99',12,'left',true);txt('行',cx+w/2,cy+h+14,'#d4612a',12,'right',true);ctx.restore();}
+
+/* ================= 第 1 关：好好色，恶恶臭 ================= */
+let A;
+function init1(){A={px:0.5,drag:false,know:0,act:0,flower:{x:0.18},ditch:{x:0.82},holdNose:false,tear:0,triedTear:0,tearHold:false,lastSide:null};}
+function g1(){return{gy:H*0.72,s:Math.min(W,H)*0.07};}
+HD[1]={down(x,y){const g=g1();const px=W*A.px;
+  if(Math.abs(x-px)<g.s*1.2&&y>g.gy-g.s*2.2&&y<g.gy+10){if(y<g.gy-g.s*1.3){A.holdNose=true;}else A.drag=true;return;}
+  if(y<H*0.24&&Math.abs(x-W/2)<W*0.25){A.tearHold=true;A.tx0=x;}},
+ move(x,y,dx){if(A.drag)A.px=clamp(A.px+dx/W,0.08,0.92);if(A.tearHold){A.tear=clamp(Math.abs(x-A.tx0)/(W*0.25),0,1);A.triedTear=Math.max(A.triedTear,A.tear);}},
+ up(){A.drag=false;A.holdNose=false;if(A.tearHold){if(A.triedTear>0.5){hit(1,2);toast('一松手，两端又合在一起：知行本是一个');}A.tearHold=false;}}};
+function t1(dt){const g=g1();
+  const sky=ctx.createLinearGradient(0,0,0,g.gy);sky.addColorStop(0,'#bfe0f2');sky.addColorStop(1,'#eef6ea');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#9fbf7a';ctx.fillRect(0,g.gy,W,H-g.gy);
+  // 花丛
+  const fx=W*A.flower.x;for(let i=0;i<7;i++){const xx=fx+(i-3)*16,yy=g.gy-10-Math.sin(i*2)*8;ctx.strokeStyle='#3f7a33';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(xx,g.gy);ctx.lineTo(xx,yy);ctx.stroke();
+    for(let p=0;p<5;p++){const a=p/5*6.28+T*0.5;ctx.fillStyle=i%2?'#ff7fa8':'#ffb3c7';ctx.beginPath();ctx.arc(xx+Math.cos(a)*6,yy+Math.sin(a)*6,4,0,7);ctx.fill();}ctx.fillStyle='#ffd24a';ctx.beginPath();ctx.arc(xx,yy,3,0,7);ctx.fill();}
+  txt('花',fx,g.gy+20,'#3f5a2a',13);
+  // 臭水沟
+  const dx0=W*A.ditch.x;ctx.fillStyle='#6b6a3a';ctx.beginPath();ctx.ellipse(dx0,g.gy+6,60,12,0,0,7);ctx.fill();
+  for(let i=0;i<5;i++){const k=((T*0.4+i/5)%1);ctx.strokeStyle=`rgba(120,140,60,${1-k})`;ctx.lineWidth=3;ctx.beginPath();const sx=dx0-30+i*15;ctx.moveTo(sx,g.gy-k*80);ctx.quadraticCurveTo(sx+10,g.gy-k*80-10,sx,g.gy-k*80-22);ctx.stroke();}
+  txt('臭水沟',dx0,g.gy+32,'#4a4a2a',13);
+  // 距离决定刺激
+  const px=W*A.px;const dF=Math.abs(px-fx)/W,dD=Math.abs(px-dx0)/W;
+  const nearF=clamp(1-dF/0.18,0,1),nearD=clamp(1-dD/0.18,0,1)*(A.holdNose?0.05:1);
+  // 知与行：同一刻同步上升（不允许“先知后行”）
+  const stim=Math.max(nearF,nearD);
+  A.know=lerp(A.know,stim,dt*4);A.act=lerp(A.act,stim,dt*4);
+  const side=nearF>nearD?'F':nearD>0.05?'D':null;
+  let lean=0,arm=-0.4,face='';
+  if(side==='F'&&nearF>0.2){lean=-0.18*nearF;arm=-2.4;face='☺';if(nearF>0.6)hit(1,0);}
+  if(side==='D'&&nearD>0.2){lean=0.25*nearD;arm=-0.2;face='✕';if(nearD>0.6)hit(1,1);}
+  if(A.holdNose&&clamp(1-dD/0.18,0,1)>0.5){face='·';if(!A._n){A._n=1;toast('鼻子堵着：恶臭就在眼前，却没闻到，也就不甚厌恶');}hit(1,3);}
+  person(px,g.gy,g.s,'#2f3d4f',{lean,arm,face,hand:A.holdNose,walk:A.drag?T*10:0});
+  if(side==='F'&&nearF>0.2){ctx.strokeStyle='rgba(255,127,168,.6)';ctx.lineWidth=2;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(px,g.gy-g.s*1.6);ctx.lineTo(fx,g.gy-20);ctx.stroke();ctx.setLineDash([]);}
+  // 知行条（顶部，可尝试撕开）
+  const gap=A.tearHold?A.tear*W*0.2:0;
+  ksBar(W/2,H*0.1,Math.min(W*0.5,420),A.know,A.act,gap,A.tearHold?'正在拖开……':'心体：知 ↔ 行（按住此条左右拖，试着把它们拖开）');
+  if(A.tearHold&&A.tear>0.3){txt('拖开了，可它们一起熄灭：分开的“知”不再是知，“行”也不再是行',W/2,H*0.1+60,'#a00',12);A.know*=0.9;A.act*=0.9;}
+  const hint=A.holdNose?'松手，闻一闻':'拖动人物走到花旁或臭水沟旁；按住人物头部可以捂鼻';
+  txt(hint,W/2,H-12,'#334',12);}
+
+/* ================= 第 2 关：知而不行 ================= */
+let B;
+function init2(){B={know:0,act:0,holdK:false,wall:null,wallX:0,drag:null,lean:0,mode:'',kT:0,wallIn:false,bias:0,wallOrig:{x:0.85,y:0.55},balanced:0};}
+HD[2]={down(x,y){const wx=W*B.wallOrig.x,wy=H*B.wallOrig.y;
+  if(!B.wallIn&&Math.abs(x-wx)<40&&Math.abs(y-wy)<60){B.drag='wall';return;}
+  if(B.wallIn&&Math.abs(x-W/2)<30&&y>H*0.3&&y<H*0.75){B.drag='wallOut';return;}
+  if(y>H*0.82){B.drag='bias';return;}
+  if(x<W/2)B.holdK=true;},
+ move(x,y,dx){if(B.drag==='wall'){B.wallOrig.x=x/W;B.wallOrig.y=y/H;}if(B.drag==='wallOut'){B.wallPull=(B.wallPull||0)+Math.abs(dx);}
+  if(B.drag==='bias'){B.bias=clamp((x-W/2)/(W*0.4),-1,1);}},
+ up(){if(B.drag==='wall'){if(Math.abs(B.wallOrig.x-0.5)<0.1){B.wallIn=true;hit(2,1);toast('私欲隔断：知与行成了两件');}else{B.wallOrig={x:0.85,y:0.55};}}
+  if(B.drag==='wallOut'&&(B.wallPull||0)>120){B.wallIn=false;B.wallOrig={x:0.85,y:0.55};B.wallPull=0;toast('拿掉了隔断');}
+  B.drag=null;B.holdK=false;}};
+function t2(dt){ctx.fillStyle='#f4efe6';ctx.fillRect(0,0,W,H);
+  const gy=H*0.72,s=Math.min(W,H)*0.07;ctx.fillStyle='#c9b48a';ctx.fillRect(0,gy,W,H-gy);
+  // 左：心中之知（灯）；右：身之行（脚步）
+  const bias=B.bias;
+  if(B.holdK){B.kT+=dt;}
+  // 只按住“知”：知会先冲高，但行被要求同步，若隔断存在或偏向知，行跟不上 → 知衰退
+  const want=B.holdK?1:0;
+  const kTarget=want*(1+Math.min(0,bias)*-0.0)*(bias>0.6?0.3:1);
+  const aTarget=B.wallIn?0:want*(bias<-0.6?0.25:1);
+  B.know=lerp(B.know,kTarget,dt*3);B.act=lerp(B.act,B.wallIn?0:aTarget,dt*3);
+  // 偏向“只做”：行条冲高但知条低 → 冥行妄作
+  if(bias>0.6&&B.holdK){B.act=lerp(B.act,1,dt*3);B.know=lerp(B.know,0.25,dt*3);}
+  // 隔断或偏向知：知在无行的情况下“褪色”
+  let decay=0;if(B.holdK&&(B.wallIn||bias<-0.6)){decay=clamp(B.kT-1.2,0,3)/3;B.know=lerp(B.know,1-decay*0.85,dt*3);if(decay>0.6){hit(2,0);}}
+  if(!B.holdK)B.kT=0;
+  if((bias<-0.6||bias>0.6)&&B.holdK&&B.kT>1)hit(2,2);
+  if(!B.wallIn&&Math.abs(bias)<0.2&&B.holdK&&B.know>0.85&&B.act>0.85){B.balanced+=dt;if(B.balanced>1.2)hit(2,3);}else B.balanced=0;
+  // 画心灯
+  const lx=W*0.28,ly=H*0.38;const glow=B.know;ctx.fillStyle=`rgba(255,214,90,${0.15+0.6*glow})`;ctx.beginPath();ctx.arc(lx,ly,30+glow*30,0,7);ctx.fill();
+  ctx.fillStyle=decay>0.3?`rgba(150,150,150,${0.6})`:'#ffd65a';ctx.beginPath();ctx.arc(lx,ly,18,0,7);ctx.fill();
+  txt(decay>0.6?'知而不行：这“知”已经暗了':'心中之知',lx,ly+64,decay>0.6?'#a00':'#5a3b1e',13);
+  // 画人与路：行
+  const walkerX=W*0.58+B.act*W*0.25;person(walkerX,gy,s,'#2f3d4f',{walk:T*10*B.act,arm:-0.3});
+  ctx.strokeStyle='#8a6b42';ctx.setLineDash([6,6]);ctx.beginPath();ctx.moveTo(W*0.55,gy+10);ctx.lineTo(W*0.92,gy+10);ctx.stroke();ctx.setLineDash([]);
+  txt('身之行',W*0.75,gy+34,'#5a3b1e',13);
+  // 光线：知—行相连
+  if(!B.wallIn&&B.know>0.2&&B.act>0.2){ctx.strokeStyle=`rgba(243,165,43,${Math.min(B.know,B.act)})`;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(lx+20,ly);ctx.quadraticCurveTo(W*0.45,ly-40,walkerX,gy-s*1.6);ctx.stroke();}
+  // 私欲挡板
+  const wx=B.wallIn?W*0.5:W*B.wallOrig.x,wy=B.wallIn?H*0.5:H*B.wallOrig.y;ctx.fillStyle='#4a4a4a';ctx.fillRect(wx-14,wy-H*0.22,28,H*0.44);ctx.save();ctx.translate(wx,wy);ctx.rotate(-Math.PI/2);txt('私 欲',0,5,'#fff',14,'center',true);ctx.restore();
+  if(B.wallIn)txt('左右来回拖动挡板，把它拿掉',W*0.5,H*0.08,'#a00',12);
+  // 偏向条
+  const by=H*0.9;ctx.fillStyle='#ddd';ctx.fillRect(W*0.1,by,W*0.8,8);ctx.fillStyle='#3a6f99';ctx.beginPath();ctx.arc(W/2+bias*W*0.4,by+4,11,0,7);ctx.fill();
+  txt('悬空思索',W*0.1,by-6,'#3a6f99',11,'left');txt('任意去做',W*0.9,by-6,'#d4612a',11,'right');txt('（拖动重心）',W/2,by+24,'#667',11);
+  if(bias<-0.6&&B.holdK)txt('茫茫荡荡悬空去思索：只是揣摸影响',W/2,H*0.16,'#3a6f99',13);
+  if(bias>0.6&&B.holdK)txt('懵懵懂懂任意去做：只是冥行妄作',W/2,H*0.16,'#d4612a',13);
+  ksBar(W/2,H*0.04+30,Math.min(W*0.4,360),B.know,B.act,B.wallIn?W*0.06:0);
+  txt(B.holdK?'':'按住左半边：心里“知道”。看看不去做时会怎样',W*0.28,H-12,'#334',12);}
+
+/* ================= 第 3 关：知孝与行孝 ================= */
+let C;
+function init3(){C={talk:0,talkHold:false,know:0,acts:[],items:[{n:'茶',x:0.1,y:0.25,ok:true},{n:'厚衣',x:0.1,y:0.45,ok:true},{n:'扇子',x:0.1,y:0.65,ok:true}],pain:[{n:'冰块',x:0.9,y:0.25,k:'寒'},{n:'针',x:0.9,y:0.45,k:'痛'},{n:'空碗',x:0.9,y:0.65,k:'饥'}],felt:{},drag:null,actor:0,actorHold:false,season:'冬'};}
+const DAD=()=>({x:W*0.5,y:H*0.62});
+HD[3]={down(x,y){for(const it of C.items){if(!it.used&&Math.hypot(x-W*it.x,y-H*it.y)<30){C.drag=it;return;}}
+  for(const p of C.pain){if(Math.hypot(x-W*p.x,y-H*p.y)<30){C.drag=p;return;}}
+  if(y>H*0.82&&x<W*0.35){C.talkHold=true;return;}
+  if(y>H*0.82&&x>W*0.65){C.actorHold=true;return;}},
+ move(x,y){if(C.drag){C.drag.x=x/W;C.drag.y=y/H;}},
+ up(){C.talkHold=false;C.actorHold=false;const d=C.drag;C.drag=null;if(!d)return;const D=DAD();
+  if(d.ok!==undefined){if(Math.hypot(W*d.x-D.x,H*d.y-(D.y-40))<70){const right=(C.season==='冬'&&d.n!=='扇子')||(C.season==='夏'&&d.n!=='厚衣');if(right){d.used=true;C.acts.push(d.n);C.know=Math.min(1,C.know+0.34);hit(3,1);toast(`行孝：${d.n}`);C.season=C.acts.length>=2?'夏':'冬';}else toast(`父亲此时${C.season==='冬'?'怕冷':'怕热'}，${d.n}不对：知孝，就是知道此刻该怎么做`);}
+    const o=C.items.indexOf(d);d.x=0.1;d.y=[0.25,0.45,0.65][o];}
+  else{const me={x:W*0.78,y:H*0.62};if(Math.hypot(W*d.x-me.x,H*d.y-(me.y-40))<70){C.felt[d.k]=1;toast(`亲身${d.k}过，才知${d.k}`);if(Object.keys(C.felt).length>=3)hit(3,2);}const o=C.pain.indexOf(d);d.x=0.9;d.y=[0.25,0.45,0.65][o];}}};
+function t3(dt){ctx.fillStyle=C.season==='冬'?'#e8eef4':'#f8efd8';ctx.fillRect(0,0,W,H);
+  const D=DAD(),s=Math.min(W,H)*0.07;ctx.fillStyle='#b9a07a';ctx.fillRect(0,D.y,W,H-D.y);
+  // 父亲（坐着）
+  ctx.fillStyle='#7a5a3a';ctx.fillRect(D.x-s*0.8,D.y-s*0.6,s*1.6,s*0.6);person(D.x,D.y-s*0.3,s*0.9,'#6b4f3a',{face:C.season==='冬'?'❄':'☀'});
+  txt(`父亲（${C.season}天）`,D.x,D.y+22,'#4a3520',13);
+  if(C.season==='冬'){for(let i=0;i<12;i++){ctx.fillStyle='rgba(255,255,255,.8)';ctx.fillRect((i*97+T*20)%W,(i*53+T*30)%(D.y),3,3);}}
+  // 只会“说孝”
+  if(C.talkHold){C.talk+=dt;if(C.talk>1.5)hit(3,0);}
+  const words=['孝顺','孝为先','百善孝为首','温清定省'];if(C.talkHold){for(let i=0;i<4;i++){const k=((T*0.5+i/4)%1);ctx.globalAlpha=1-k;txt(words[i],W*0.2+i*20,D.y-s*2-k*120,'#3a6f99',14);ctx.globalAlpha=1;}}
+  // 我
+  const me={x:W*0.78,y:D.y};person(me.x,me.y,s,'#2f3d4f',{arm:C.talkHold?-1.2:-0.4});txt('我',me.x,me.y+22,'#223',13);
+  // 物品
+  C.items.forEach(it=>{if(it.used)return;ctx.fillStyle='#fff';ctx.strokeStyle='#d4612a';ctx.lineWidth=2;ctx.beginPath();ctx.arc(W*it.x,H*it.y,24,0,7);ctx.fill();ctx.stroke();txt(it.n,W*it.x,H*it.y+5,'#d4612a',13,'center',true);});
+  C.pain.forEach(p=>{ctx.fillStyle='#fff';ctx.strokeStyle='#667';ctx.lineWidth=2;ctx.beginPath();ctx.arc(W*p.x,H*p.y,24,0,7);ctx.fill();ctx.stroke();txt(p.n,W*p.x,H*p.y+5,'#445',13,'center',true);if(C.felt[p.k])txt('✓'+p.k,W*p.x,H*p.y+40,'#1f5e2f',11);});
+  txt('拖给父亲',W*0.1,H*0.12,'#d4612a',12);txt('拖到“我”身上',W*0.9,H*0.12,'#445',12);
+  // 知孝条：只随行孝而涨；说话不涨
+  const kv=C.know;ksBar(W/2,H*0.1,Math.min(W*0.4,360),kv,kv,0,'知孝 ＝ 行孝（说多少都不涨）');
+  // 演戏孝子
+  if(C.actorHold){C.actor+=dt;if(C.actor>1.5)hit(3,3);}
+  if(C.actor>0&&C.actorHold){const ax=W*0.35,ay=D.y;person(ax,ay,s,'#9a6aa8',{arm:-2,face:'☻'});ctx.strokeStyle='#9a6aa8';ctx.setLineDash([3,4]);ctx.strokeRect(ax-s*1.2,ay-s*2.4,s*2.4,s*2.6);ctx.setLineDash([]);
+    txt('仪节都对……心不在父亲身上',ax,ay-s*2.6,'#9a6aa8',12);txt('知孝条：0',ax,ay+38,'#a00',12);}
+  // 底部两个按住区
+  ctx.fillStyle=C.talkHold?'#3a6f99':'rgba(255,255,255,.9)';ctx.fillRect(W*0.02,H*0.84,W*0.3,H*0.13);txt('按住：说孝',W*0.17,H*0.92,C.talkHold?'#fff':'#3a6f99',14,'center',true);
+  ctx.fillStyle=C.actorHold?'#9a6aa8':'rgba(255,255,255,.9)';ctx.fillRect(W*0.68,H*0.84,W*0.3,H*0.13);txt('按住：请戏子来扮演',W*0.83,H*0.92,C.actorHold?'#fff':'#9a6aa8',13,'center',true);}
+
+/* ================= 第 4 关：良知 ================= */
+let D4;
+function init4(){D4={child:0,saved:false,react:null,cloud:0.85,cloudX:0.5,dragC:false,clouds:[{x:0.38,y:0.3},{x:0.5,y:0.26},{x:0.62,y:0.3}],dragI:-1,me:0.25,pulling:false,fell:false,t:0};}
+HD[4]={down(x,y){D4.clouds.forEach((c,i)=>{if(Math.hypot(x-W*c.x,y-H*c.y)<44)D4.dragI=i;});if(D4.dragI<0){const cx=W*(0.55+D4.child*0.25);if(Math.abs(x-cx)<60&&y>H*0.5){D4.pulling=true;if(D4.react==null)D4.react=D4.t;}}},
+ move(x,y){if(D4.dragI>=0){const c=D4.clouds[D4.dragI];c.x=x/W;c.y=y/H;}},
+ up(){D4.dragI=-1;D4.pulling=false;}};
+function t4(dt){D4.t+=dt;const gy=H*0.72,s=Math.min(W,H)*0.07;
+  ctx.fillStyle='#e9efe2';ctx.fillRect(0,0,W,H);ctx.fillStyle='#a8b88a';ctx.fillRect(0,gy,W,H-gy);
+  // 井
+  const wx=W*0.85;ctx.fillStyle='#777';ctx.fillRect(wx-40,gy-30,80,30);ctx.fillStyle='#222';ctx.beginPath();ctx.ellipse(wx,gy-30,36,8,0,0,7);ctx.fill();txt('井',wx,gy+18,'#333',13);
+  // 孩子爬向井
+  if(!D4.saved&&!D4.fell){D4.child=Math.min(1,D4.child+dt*0.06*(D4.pulling?-6:1));if(D4.child<=0.02&&D4.pulling){D4.saved=true;hit(4,0);const rt=(D4.react||0);toast(rt<1.5?'一见即动：恻隐与援手是同一刻':'救下来了');}if(D4.child>=1){D4.fell=true;toast('来不及了……按“重置本关”再试');}}
+  const cx=W*(0.55+D4.child*0.25);ctx.fillStyle='#f0b27a';ctx.beginPath();ctx.arc(cx,gy-12,9,0,7);ctx.fill();ctx.fillStyle='#e07a5f';ctx.beginPath();ctx.ellipse(cx-12,gy-6,14,7,0,0,7);ctx.fill();
+  txt(D4.saved?'得救':'孺子将入井',cx,gy-28,D4.saved?'#1f5e2f':'#a00',12);
+  // 我：心与手
+  const mx=W*0.32,my=gy;person(mx+(D4.pulling?W*0.08:0),my,s,'#2f3d4f',{arm:D4.pulling?-0.1:-0.5,walk:D4.pulling?T*14:0,lean:D4.pulling?0.25:0});
+  if(D4.pulling){ctx.strokeStyle='#d4612a';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(mx+W*0.08+s*0.5,my-s*1.1);ctx.lineTo(cx,gy-12);ctx.stroke();}
+  // 心（被私意乌云遮住时，恻隐的光被挡）
+  const hx=mx,hy=H*0.3;const covered=D4.clouds.filter(c=>Math.hypot(W*c.x-hx-W*0.15,H*c.y-hy)<W*0.12).length;
+  const clear=1-covered/3;ctx.fillStyle=`rgba(255,120,120,${0.3+0.6*clear})`;ctx.beginPath();ctx.moveTo(hx+W*0.15,hy+18);ctx.bezierCurveTo(hx+W*0.15-40,hy-10,hx+W*0.15-14,hy-36,hx+W*0.15,hy-14);ctx.bezierCurveTo(hx+W*0.15+14,hy-36,hx+W*0.15+40,hy-10,hx+W*0.15,hy+18);ctx.fill();
+  txt('良知',hx+W*0.15,hy+40,'#a03030',13,'center',true);
+  if(clear>0.9){ctx.strokeStyle='rgba(255,120,120,.6)';ctx.lineWidth=2;for(let i=0;i<8;i++){const a=i/8*6.28+T;ctx.beginPath();ctx.moveTo(hx+W*0.15+Math.cos(a)*30,hy+Math.sin(a)*30);ctx.lineTo(hx+W*0.15+Math.cos(a)*48,hy+Math.sin(a)*48);ctx.stroke();}hit(4,1);}
+  ['名利','计较','怕麻烦'].forEach((n,i)=>{const c=D4.clouds[i];ctx.fillStyle='rgba(90,90,100,.85)';ctx.beginPath();ctx.ellipse(W*c.x,H*c.y,46,22,0,0,7);ctx.fill();txt(n,W*c.x,H*c.y+5,'#fff',13);});
+  if(D4.saved&&clear>0.9)hit(4,2);
+  // 被遮住时，人迟疑（拉动变慢）
+  if(D4.pulling&&clear<0.5){D4.child=Math.min(1,D4.child+dt*0.25);txt('私意遮着：手迟疑了',mx,H*0.52,'#555',12);}
+  txt(D4.saved?(clear>0.9?'良知流行：见即知，知即行':'把乌云拖离“良知”'):'按住孩子，把他拉回来；乌云遮住良知时，手会迟疑',W/2,H-12,'#334',12);}
+
+/* ================= 第 5 关：应用练习 ================= */
+let E5;
+const CASES=[{n:'路人摔倒',ask:'扶起',x:0.3},{n:'朋友失信',ask:'直言',x:0.5},{n:'自己说谎',ask:'改正',x:0.7}];
+function init5(){E5={i:0,hold:0,holding:false,plan:0,planHold:false,results:[]};}
+HD[5]={down(x,y){if(y>H*0.82&&x<W*0.35){E5.planHold=true;return;}E5.holding=true;},up(){E5.holding=false;E5.planHold=false;}};
+function t5(dt){ctx.fillStyle='#f2f0ea';ctx.fillRect(0,0,W,H);const c=CASES[E5.i%3],s=Math.min(W,H)*0.07,gy=H*0.7;
+  ctx.fillStyle='#d8cdb5';ctx.fillRect(0,gy,W,H-gy);txt(`情境 ${E5.i%3+1}/3：${c.n}`,W/2,30,'#223',16,'center',true);
+  // 先“计划好了再做”：计划条越涨，行动窗口越缩
+  if(E5.planHold){E5.plan=Math.min(1,E5.plan+dt*0.35);}
+  const win=Math.max(0,1-E5.plan);
+  if(E5.holding&&win>0.05){E5.hold+=dt*1.2;}
+  const k=clamp(E5.hold/1.5,0,1);
+  person(W*0.4+k*W*0.15,gy,s,'#2f3d4f',{arm:-1+k,walk:E5.holding?T*10:0});
+  const tx=W*0.65;ctx.fillStyle='#9a7a5a';ctx.beginPath();ctx.arc(tx,gy-14,14,0,7);ctx.fill();txt(c.n,tx,gy+22,'#5a3b1e',12);
+  ksBar(W/2,H*0.14,Math.min(W*0.4,360),k,k,0,`知 ＝ 行：${c.ask}`);
+  if(E5.plan>0.7){txt('一直想“等我完全想清楚再做”……情境已经过去了',W/2,H*0.4,'#a00',13);hit(5,1);}
+  if(k>=1){E5.results.push(c.n);E5.hold=0;E5.plan=0;E5.i++;toast(`${c.n}：${c.ask}——知在其中，行在其中`);if(E5.results.length>=3)hit(5,0);}
+  ctx.fillStyle=E5.planHold?'#3a6f99':'rgba(255,255,255,.9)';ctx.fillRect(W*0.02,H*0.84,W*0.3,H*0.13);txt('按住：先完全想清楚',W*0.17,H*0.92,E5.planHold?'#fff':'#3a6f99',13,'center',true);
+  txt(`按住画面其他地方：去${c.ask}（已完成 ${E5.results.length}/3）`,W*0.66,H*0.92,'#334',12);}
+
+/* ======== 调度 ======== */
+const INIT={1:init1,2:init2,3:init3,4:init4,5:init5},TICK={1:t1,2:t2,3:t3,4:t4,5:t5};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!done[t.dataset.l]);});}
+function go(n){L=n;tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();store.L=L;save();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{INIT[L]();toast('已重置（已对应的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(store.L||1);tabs();requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

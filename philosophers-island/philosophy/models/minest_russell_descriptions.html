@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 罗素摹状词理论 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .q0{padding:4px 10px;font-size:12.5px;color:#2c3e50;background:#fff7e0;border-bottom:1px solid #eadfb8}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+#side .lim{padding:4px 10px 8px;font-size:11.5px;color:#667}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 36%)}#side{height:36%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>罗素 · 摹状词理论</b>
+  <button class="tab on" data-l="1">① 拆解台</button>
+  <button class="tab" data-l="2">② 世界里的国王</button>
+  <button class="tab" data-l="3">③ 秃还是不秃</button>
+  <button class="tab" data-l="4">④ 司各特与《威弗利》</button>
+  <button class="tab" data-l="5">⑤ 应用练习</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="q0">核心问题：一个什么都不指的短语，怎么还能出现在有真假的句子里？</div><div class="bd" id="sBody"></div><div class="lim">适用边界：拆解台、积木和“世界面板”只是教学图示，罗素的分析是对命题逻辑形式的改写；画面中的 ∃x(Kx)、∀y(Ky→y=x)、Bx 是后来通行的记法，原文用的是“C(x) is always true / not always false”的说法。</div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+function rr(x,y,w,h,r,fill,stroke,lw){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw||2;ctx.stroke();}}
+const KEY='minest_russell_v1';let MEM={};
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||{};}catch(e){return MEM;}}
+function save(o){MEM=o;try{localStorage.setItem(KEY,JSON.stringify(o));}catch(e){}}
+let ST=load();ST.lit=ST.lit||{};ST.done=ST.done||{};
+const R='罗素《论指谓》（1905）';
+const MAP={
+1:[["把“当今法国国王”拖上拆解台","我所说的“指谓短语”，是指这样的短语：一个人、某个人、任何人……","By a 'denoting phrase' I mean a phrase such as any one of the following: a man, some man, any man","开篇"],
+   ["按住拆开：短语本身碎成三块","指谓短语本身从来没有任何意义，但它出现于其言语表达中的每个命题都有意义。","denoting phrases never have any meaning in themselves, but that every proposition in whose verbal expression they occur has a meaning","理论陈述"],
+   ["第二块：唯一性","“这个”（the）在严格使用时，包含唯一性。","Now the, when it is strictly used, involves uniqueness","论“the”"],
+   ["拆完后：完整命题里已没有这个短语","短语本身没有意义，因为在它出现的任何命题中，完整表达出来的命题并不包含这个短语，它已被拆散了。","The phrase per se has no meaning, because in any proposition in which it occurs the proposition, fully expressed, does not contain the phrase, which has been broken up.","解决部分"]],
+2:[["世界里没有国王：命题为假","因此，例如每一个形如“C(当今法国国王)”的命题都是假的。","Thus e.g. every proposition of the form 'C(the present King of France)' is false.","理论陈述"],
+   ["假，而不是无意义","它并非无意义，因为它显然是假的。","it is not nonsense, since it is plainly false","对弗雷格的批评"],
+   ["放进两个国王：唯一性不成立，同样为假","如果性质 F 不属于任何项，或属于若干项，那么“C 有性质 φ”对 φ 的一切值都是假的。","If now the property F belongs to no terms, or to several, it follows that 'C has property phi' is false for all values of phi.","主次出现"],
+   ["恰好一个秃头国王：三块全亮，命题为真","“C 有性质 φ”意思是“有且仅有一个项具有性质 F，而那一个具有性质 φ”。","'C has property phi' means 'one and only one term has the property F, and that one has the property phi'","主次出现"],
+   ["召出迈农式“不存在的对象”：矛盾爆裂","主要的反对理由在于，这类对象，如其所承认的，容易违反矛盾律。","the chief objection is that such objects, admittedly, are apt to infringe the law of contradiction","论迈农"]],
+3:[["排中律：两句必有一真？","依照排中律，“A 是 B”或“A 不是 B”必有一真。","By the law of the excluded middle, either 'A is B' or 'A is not B' must be true.","第二个难题"],
+   ["清点秃子与不秃者：两边都找不到他","如果我们把秃的东西列一张单子，再把不秃的东西列一张单子，在两张单子里都找不到当今法国国王。","if we enumerated the things that are bald, and then the things that are not bald, we should not find the present King of France in either list","第二个难题"],
+   ["把“不”拖到里面（主要出现）：假","“存在一个现在是法国国王而且不秃的实体”——这时它是假的。","'There is an entity which is now King of France and is not bald'","主次出现"],
+   ["把“不”拖到外面（次要出现）：真","“说存在一个现在是法国国王而且秃的实体，这是假的”——这时它是真的。","'It is false that there is an entity which is now King of France and is bald'","主次出现"],
+   ["两种读法都试过：假发消失","“法国国王不是秃子”，若为主要出现则假，若为次要出现则真。……这样我们就避免了法国国王戴假发的结论。","'the King of France is not bald' is false if the occurrence of 'the King of France' is primary, and true if it is secondary … Thus we escape the conclusion that the King of France has a wig.","主次出现"]],
+4:[["乔治四世想知道……","乔治四世想知道司各特是否是《威弗利》的作者；而事实上司各特就是《威弗利》的作者。","Now George IV wished to know whether Scott was the author of Waverley; and in fact Scott was the author of Waverley.","第一个难题"],
+   ["在气泡里直接替换：荒谬","因此我们可以用司各特替换《威弗利》的作者，从而证明乔治四世想知道司各特是否是司各特。","Hence we may substitute Scott for the author of 'Waverley', and thereby prove that George IV wished to know whether Scott was Scott.","第一个难题"],
+   ["拆开后：没有可替换的那一块","这个命题……并不包含任何可供我们用“司各特”去替换的成分“《威弗利》的作者”。","does not contain any constituent 'the author of Waverley' for which we could substitute 'Scott'","解决部分"],
+   ["把摹状词移出或移入气泡：主要与次要出现","在后一种情形中，“《威弗利》的作者”是主要出现；在前一种中，是次要出现。","In the latter, 'the author of Waverley' has a primary occurrence; in the former, a secondary.","主次出现"],
+   ["气泡外替换成立：远远看见时的提问","比如乔治四世远远看见司各特，问“那是司各特吗？”，这句话就是真的。","This would be true, for example, if George IV had seen scott at a distance, and had asked 'Is that Scott?'.","主次出现"]],
+5:[["拆解“圆的方是圆的”，在世界里找不到","……这是一个假命题，而不是像迈农所主张的那样是真命题。","which is a false proposition, not, as Meinong maintains, a true one","非存在物"],
+   ["“除 2 以外的偶素数”：同样不指称任何东西","所有这些都是不指称任何东西的指谓短语。","All these are denoting phrases which do not denote anything.","非存在物"],
+   ["本体论证明：拆开后缺的那块","作为证明，它失败了，因为缺少对前提“有且仅有一个最完满的实体 x”的证明。","As a proof, this fails for want of a proof of the premiss 'there is one and only one entity x which is most perfect'.","非存在物"]]};
+const TITLE={1:'① 拆解台 · 把短语拖上台面，按住把它拆开',2:'② 世界里的国王 · 往“法国”里拖入或拖出国王，点一下国王摘下或戴上头发',3:'③ 秃还是不秃 · 按住清点两张名单；把“不”拖到括号里面或外面',4:'④ 司各特与《威弗利》 · 拖“司各特”去替换；把摹状词拖出或拖进思想气泡；按住拆开',5:'⑤ 应用练习 · 把新的短语拖上台面拆解，再按住在世界里找它'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr${ST.lit[l+'_'+i]?' on':''}" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——${R}，${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const k=l+'_'+i;if(ST.lit[k])return;ST.lit[k]=1;const e=$('mr'+l+'_'+i);if(e){e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});}
+  if(MAP[l].every((_,j)=>ST.lit[l+'_'+j])){ST.done[l]=1;tabs();}save(ST);}
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y,t:T};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]?.move?.(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{const p=PT;PT=null;HD[L]?.up?.(p);});
+const PIECE=[{s:'∃x(Kx)',c:'#3a6f99',zh:'存在：至少有一个当今法国国王'},{s:'∀y(Ky→y=x)',c:'#a0522d',zh:'唯一：至多一个'},{s:'Bx',c:'#2f8a4a',zh:'谓述：那一个是秃的'}];
+function bg(c1,c2){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,c1);g.addColorStop(1,c2);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);}
+function bench(x,y,w,h,label){rr(x,y,w,h,10,'#cdbfa6','#8b7a5c',3);for(let i=0;i<6;i++){ctx.fillStyle='rgba(0,0,0,.06)';ctx.fillRect(x+10+i*w/6,y+6,w/12,h-12);}txt(label||'拆解台',x+w/2,y+h+18,'#5a4a33',12);}
+function card(x,y,t,c,alpha,shake){ctx.save();ctx.globalAlpha=alpha==null?1:alpha;ctx.font='bold 17px sans-serif';const w=ctx.measureText(t).width+28;const ox=shake?(Math.random()-.5)*shake:0;
+  rr(x-w/2+ox,y-20,w,40,10,c||'#fff','#33475b',2);txt(t,x+ox,y+6,'#1f2b38',17,'center',true);ctx.restore();return w;}
+function piece(x,y,p,lit,sz){const s=sz||1;ctx.font=`bold ${Math.round(16*s)}px monospace`;const w=ctx.measureText(p.s).width+22*s;
+  rr(x-w/2,y-18*s,w,36*s,8,lit===true?p.c:lit===false?'#e9e9ec':'#fff',lit===false?'#c0392b':p.c,lit===false?3:2);
+  ctx.fillStyle=lit===true?'#fff':lit===false?'#c0392b':p.c;ctx.textAlign='center';ctx.fillText(p.s,x,y+6*s);return w;}
+function lamp(x,y,v,label){const on=v===true,off=v===false;ctx.fillStyle=on?'#7dffb0':off?'#ff6b6b':'#bbb';ctx.beginPath();ctx.arc(x,y,16,0,7);ctx.fill();
+  if(on){ctx.shadowColor='#7dffb0';ctx.shadowBlur=18;ctx.fill();ctx.shadowBlur=0;}txt(on?'真':off?'假':'?',x,y+5,'#123',14,'center',true);if(label)txt(label,x,y+34,'#334',12);}
+
+/* ===== 第 1 关 ===== */
+let A;
+function init1(){A={px:0,py:0,on:false,drag:false,split:0,hold:false};}
+const g1=()=>({bx:W*0.2,by:H*0.55,bw:W*0.6,bh:H*0.2,sx:W*0.5,sy:H*0.2});
+HD[1]={down(x,y){const g=g1();
+  if(!A.on&&Math.abs(x-g.sx)<130&&Math.abs(y-g.sy)<26){A.drag=true;A.px=x;A.py=y;hit(1,0);return;}
+  if(A.on&&A.split<1&&y>g.by-60&&y<g.by+g.bh)A.hold=true;},
+ move(x,y){if(A.drag){A.px=x;A.py=y;}},
+ up(){const g=g1();if(A.drag){A.drag=false;if(A.px>g.bx&&A.px<g.bx+g.bw&&A.py>g.by-60&&A.py<g.by+g.bh){A.on=true;toast('短语放上了拆解台。按住台面，把它拆开');}}A.hold=false;}};
+function t1(dt){const g=g1();bg('#eef1f5','#d8dee6');bench(g.bx,g.by,g.bw,g.bh);
+  if(A.hold&&A.split<1){A.split=Math.min(1,A.split+dt*0.45);if(A.split>0.25)hit(1,1);if(A.split>0.6)hit(1,2);if(A.split>=1){hit(1,3);toast('拆完了：剩下的三块里，已经没有“当今法国国王”这个短语');}}
+  else if(!A.hold&&A.split<1)A.split=Math.max(0,A.split-dt*0.6);
+  const k=A.split,cy=g.by-24;
+  if(!A.on){card(A.drag?A.px:g.sx,A.drag?A.py:g.sy,'当今法国国王是秃子');if(!A.drag)txt('按住这张卡片，拖到下方拆解台上',g.sx,g.sy+44,'#556',13);}
+  else if(k<1){card(W/2,cy,'当今法国国王是秃子',null,1-k*0.9,A.hold?k*6:0);
+    if(k>0.05){ctx.strokeStyle=`rgba(192,57,43,${k})`;ctx.lineWidth=2;for(let i=0;i<3;i++){const sx=W/2-70+i*60;ctx.beginPath();ctx.moveTo(sx,cy-20);ctx.lineTo(sx+8,cy-4);ctx.lineTo(sx-4,cy+6);ctx.lineTo(sx+6,cy+20);ctx.stroke();}}
+    PIECE.forEach((p,i)=>{const tx=g.bx+g.bw*(0.18+i*0.32),ty=g.by+g.bh*0.5;ctx.globalAlpha=clamp(k*1.4-i*0.2,0,1);piece(lerp(W/2,tx,k),lerp(cy,ty,k),p);ctx.globalAlpha=1;});
+    txt(A.hold?'拆解中……':'按住台面把它拆开（中途松手会合回去）',W/2,g.by+g.bh+40,'#a0522d',13);}
+  else{PIECE.forEach((p,i)=>{const tx=g.bx+g.bw*(0.18+i*0.32),ty=g.by+g.bh*0.5;piece(tx,ty,p);txt(p.zh,tx,ty+40,'#334',12);});
+    ctx.setLineDash([5,4]);rr(W/2-130,cy-22,260,40,10,null,'#bbb',1.5);ctx.setLineDash([]);txt('（这里原来是“当今法国国王”）',W/2,cy+4,'#999',12);
+    txt('完整命题：有且仅有一个 x 是当今法国国王，而 x 是秃的',W/2,H*0.1,'#1f2b38',15,'center',true);}}
+
+/* ===== 第 2 关 ===== */
+let B;
+function init2(){B={kings:[],drag:null,meinong:0,mhold:false,seen:{},t0:T};}
+const g2=()=>({fx:W*0.38,fy:H*0.08,fw:W*0.34,fh:H*0.55});
+const inF=k=>{const g=g2();return k.x*W>g.fx&&k.x*W<g.fx+g.fw&&k.y*H>g.fy&&k.y*H<g.fy+g.fh;};
+HD[2]={down(x,y){for(const k of B.kings){if(Math.hypot(x-k.x*W,y-(k.y*H-6))<30){B.drag=k;return;}}
+  if(x<W*0.34&&y>H*0.68){const k={x:x/W,y:y/H,bald:true};B.kings.push(k);B.drag=k;return;}
+  if(x>W*0.78&&y>H*0.68)B.mhold=true;},
+ move(x,y){if(B.drag){B.drag.x=clamp(x/W,0.02,0.98);B.drag.y=clamp(y/H,0.08,0.95);B.drag.moved=true;}},
+ up(p){if(B.drag){const k=B.drag;B.drag=null;
+   if(!k.moved&&inF(k)){k.bald=!k.bald;toast(k.bald?'他秃了':'他长出了头发');}
+   else if(!inF(k))B.kings=B.kings.filter(z=>z!==k);k.moved=false;}
+  B.mhold=false;}};
+function king(x,y,bald){ctx.fillStyle='#6b4e7c';ctx.beginPath();ctx.arc(x,y-14,13,0,7);ctx.fill();ctx.fillRect(x-12,y,24,26);
+  ctx.fillStyle='#e0b020';ctx.beginPath();ctx.moveTo(x-12,y-26);ctx.lineTo(x-12,y-38);ctx.lineTo(x-4,y-31);ctx.lineTo(x,y-40);ctx.lineTo(x+4,y-31);ctx.lineTo(x+12,y-38);ctx.lineTo(x+12,y-26);ctx.fill();
+  if(!bald){ctx.fillStyle='#3b2a1c';ctx.beginPath();ctx.arc(x,y-20,13,Math.PI,0);ctx.fill();}txt(bald?'秃':'有发',x,y+42,'#334',11);}
+function t2(dt){const g=g2();bg('#f3efe6','#e3dccd');
+  rr(g.fx,g.fy,g.fw,g.fh,18,'#fbf7ee','#3a6f99',3);txt('现在的法国',g.fx+g.fw/2,g.fy+22,'#3a6f99',14,'center',true);
+  rr(W*0.03,H*0.68,W*0.31,H*0.28,12,'rgba(255,255,255,.6)','#bbb',1.5);txt('按住这里拖出一个国王',W*0.185,H*0.73,'#556',12);txt('（拖出法国即移除）',W*0.185,H*0.78,'#888',11);
+  B.kings.forEach(k=>king(k.x*W,k.y*H,k.bald));
+  const F=B.kings.filter(k=>inF(k)&&k!==B.drag);
+  if(F.length)txt('（点一下法国里的国王：摘下或戴回头发）',g.fx+g.fw/2,g.fy+g.fh-12,'#888',11);
+  const n=F.length,ex=n>=1,un=n<=1,bd=n===1&&F[0].bald;
+  const px=W*0.87;[[PIECE[0],ex],[PIECE[1],un],[PIECE[2],n===1?bd:null]].forEach(([p,v],i)=>piece(px,H*0.1+i*52,p,v===null?undefined:v,0.8));
+  lamp(px,H*0.1+3*52+6,ex&&un&&bd,'当今法国国王是秃子');
+  const key=n===0?'0':n>1?'n':bd?'1b':'1h';
+  if(T-B.t0>0.8&&!B.seen[key]){B.seen[key]=1;if(key==='0')hit(2,0);if(key==='n'){hit(2,2);toast('两个以上：唯一性那块熄灭，命题依然为假');}if(key==='1b'){hit(2,3);toast('有且仅有一个，而且秃：命题为真');}}
+  if(key==='0'&&B.seen['1b'])hit(2,1);
+  txt(n===0?'没有国王：“存在”熄灭——命题是假的，不是无意义的':n>1?`${n} 个国王：唯一性不成立`:bd?'恰好一个，而且秃':'恰好一个，但他有头发：谓述那块熄灭',g.fx+g.fw/2,g.fy+g.fh+24,'#1f2b38',13,'center',true);
+  rr(W*0.78,H*0.7,W*0.19,H*0.26,12,B.mhold?'#f3d0d0':'rgba(255,255,255,.75)','#c0392b',2);txt('按住：召出迈农式',W*0.875,H*0.8,'#a02020',12);txt('“不存在的国王”',W*0.875,H*0.85,'#a02020',12);
+  if(B.mhold)B.meinong=Math.min(1,B.meinong+dt*0.5);else B.meinong=Math.max(0,B.meinong-dt*0.8);
+  if(B.meinong>0.02){const m=B.meinong,x=g.fx+g.fw/2,y=g.fy+g.fh*0.55;ctx.globalAlpha=m;ctx.setLineDash([4,4]);ctx.strokeStyle='#c0392b';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,40+m*10,0,7);ctx.stroke();ctx.setLineDash([]);
+    txt('它存在',x-70+(Math.random()-.5)*6*m,y-56,'#c0392b',14,'center',true);txt('它又不存在',x+70+(Math.random()-.5)*6*m,y-56,'#c0392b',14,'center',true);ctx.globalAlpha=1;
+    if(m>0.95){hit(2,4);for(let i=0;i<12;i++){ctx.strokeStyle='rgba(192,57,43,.7)';ctx.beginPath();const a=Math.random()*6.28;ctx.moveTo(x,y);ctx.lineTo(x+Math.cos(a)*90,y+Math.sin(a)*90);ctx.stroke();}txt('违反矛盾律',x,y+6,'#c0392b',15,'center',true);}}}
+
+/* ===== 第 3 关 ===== */
+let C;
+const PEOPLE=['苏格拉底|秃','凯撒|秃','拿破仑|','罗素|','乔治四世|','司各特|','一张桌子|','月亮|'];
+function init3(){C={scan:0,hold:false,nx:0.12,ny:0.9,drag:false,mode:null,P:false,S:false,wig:1};}
+const g3=()=>({y:H*0.74,outL:W*0.05,outR:W*0.13,inL:W*0.55,inR:W*0.64});
+HD[3]={down(x,y){if(Math.hypot(x-W*C.nx,y-H*C.ny)<36){C.drag=true;return;}if(y<H*0.6)C.hold=true;},
+ move(x,y){if(C.drag){C.nx=clamp(x/W,0.03,0.97);C.ny=clamp(y/H,0.05,0.97);}},
+ up(){C.hold=false;if(!C.drag)return;C.drag=false;const f=g3(),x=C.nx*W,y=C.ny*H;
+   if(Math.abs(y-f.y)<40&&x>f.inL&&x<f.inR){C.mode='primary';C.P=true;hit(3,2);}
+   else if(Math.abs(y-f.y)<40&&x>f.outL&&x<f.outR){C.mode='secondary';C.S=true;hit(3,3);}else C.mode=null;
+   if(C.P&&C.S)hit(3,4);}};
+function t3(dt){bg('#eef1f5','#dfe5ec');if(T>0.6)hit(3,0);
+  if(C.hold)C.scan=Math.min(1,C.scan+dt*0.35);
+  const lx=W*0.22,rx=W*0.6,ty=H*0.06,lw=W*0.3,lh=H*0.42;
+  rr(lx-lw/2,ty,lw,lh,10,'#fff','#8a8f96',2);rr(rx-lw/2,ty,lw,lh,10,'#fff','#8a8f96',2);txt('秃的东西',lx,ty+20,'#334',14,'center',true);txt('不秃的东西',rx,ty+20,'#334',14,'center',true);
+  const n=Math.floor(C.scan*PEOPLE.length);let a=0,b=0;
+  PEOPLE.forEach((p,i)=>{if(i>=n)return;const [nm,bd]=p.split('|');if(bd){txt(nm,lx,ty+48+a*20,'#223',13);a++;}else{txt(nm,rx,ty+48+b*20,'#223',13);b++;}});
+  if(C.scan>=1){txt('当今法国国王：两张单子里都没有',W*0.41,ty+lh+22,'#c0392b',14,'center',true);hit(3,1);}
+  else txt(C.hold?'清点中……':'按住上半部分，逐个清点',W*0.41,ty+lh+22,'#556',13);
+  C.wig=lerp(C.wig,(C.P&&C.S)?0:1,dt*2);
+  if(C.wig>0.05){const x=W*0.88,y=H*0.26;ctx.globalAlpha=C.wig;ctx.fillStyle='#6b4e7c';ctx.beginPath();ctx.arc(x,y,16,0,7);ctx.fill();ctx.fillStyle='#d9c27a';ctx.beginPath();ctx.ellipse(x,y-10,22,12,0,Math.PI,0);ctx.fill();txt('黑格尔派：他戴着假发',x,y+36,'#6b4e7c',11);ctx.globalAlpha=1;}
+  const f=g3();txt('“当今法国国王不秃”有两种读法：把红色的“不”拖进一个空位',W*0.5,f.y-44,'#1f2b38',13,'center',true);
+  rr(f.outL,f.y-20,f.outR-f.outL,40,8,'rgba(160,82,45,.12)','#a0522d',2);txt('外',(f.outL+f.outR)/2,f.y+34,'#a0522d',11);
+  txt('[ 有且仅有一个 x 是当今法国国王，且',f.outR+8,f.y+6,'#223',14,'left');
+  rr(f.inL,f.y-20,f.inR-f.inL,40,8,'rgba(58,111,153,.12)','#3a6f99',2);txt('内',(f.inL+f.inR)/2,f.y+34,'#3a6f99',11);
+  txt('x 是秃的 ]',f.inR+8,f.y+6,'#223',14,'left');
+  rr(W*C.nx-28,H*C.ny-18,56,36,18,'#c0392b');txt('不',W*C.nx,H*C.ny+6,'#fff',16,'center',true);
+  if(C.mode){const v=C.mode==='secondary';lamp(W*0.92,f.y,v,v?'次要出现':'主要出现');
+    txt(v?'读作：“存在一个秃的当今法国国王”是假的 → 真':'读作：存在一个当今法国国王，他不秃 → 假',W*0.45,f.y+60,v?'#1f6e3a':'#a02020',13,'center',true);}}
+
+/* ===== 第 4 关 ===== */
+let D;
+function init4(){D={sx:0.1,sy:0.88,drag:null,sub:false,desc:'in',split:0,hold:false,ask:false,dp:null};}
+const g4=()=>({bx:W*0.3,by:H*0.08,bw:W*0.55,bh:H*0.34,gx:W*0.14,gy:H*0.5,slotX:W*0.66,slotY:H*0.27,outX:W*0.52,outY:H*0.58});
+HD[4]={down(x,y){const g=g4();
+  if(Math.hypot(x-W*D.sx,y-H*D.sy)<44){D.drag='sc';return;}
+  const dx=D.desc==='in'?g.slotX:g.outX,dy=D.desc==='in'?g.slotY:g.outY;
+  if(D.split<1&&Math.abs(x-dx)<95&&Math.abs(y-dy)<24){D.drag='desc';D.dp={x,y};return;}
+  if(x>W*0.82&&y>H*0.72)D.hold=true;},
+ move(x,y){if(D.drag==='sc'){D.sx=clamp(x/W,0.03,0.97);D.sy=clamp(y/H,0.05,0.97);}if(D.drag==='desc')D.dp={x,y};},
+ up(){const g=g4();
+  if(D.drag==='sc'){const x=D.sx*W,y=D.sy*H;
+    if(D.desc==='in'&&Math.abs(x-g.slotX)<100&&Math.abs(y-g.slotY)<34){if(D.split>=1){hit(4,2);toast('拆开以后，气泡里没有“《威弗利》的作者”这一块可替换了');}else{D.sub=true;hit(4,1);toast('替换成功？乔治四世想知道“司各特是否是司各特”……');}}
+    else if(D.desc==='out'&&Math.hypot(x-g.outX,y-g.outY)<100){D.ask=true;hit(4,4);toast('替换成立：关于实际写了书的那个人，他想知道是不是司各特');}
+    D.sx=0.1;D.sy=0.88;}
+  if(D.drag==='desc'&&D.dp){const p=D.dp;const inside=p.x>g.bx&&p.x<g.bx+g.bw&&p.y>g.by&&p.y<g.by+g.bh;const was=D.desc;D.desc=inside?'in':'out';
+    if(was!==D.desc){D.sub=false;D.ask=false;hit(4,3);toast(inside?'摹状词回到气泡里：次要出现':'摹状词移到气泡外：主要出现');}}
+  D.drag=null;D.dp=null;D.hold=false;}};
+function t4(dt){const g=g4();bg('#f6f1e6','#e6dccb');if(T>0.6)hit(4,0);
+  if(D.hold&&D.desc==='in'&&D.split<1)D.split=Math.min(1,D.split+dt*0.5);
+  ctx.fillStyle='#6b4e7c';ctx.beginPath();ctx.arc(g.gx,g.gy-40,22,0,7);ctx.fill();ctx.fillRect(g.gx-24,g.gy-18,48,60);ctx.fillStyle='#e0b020';ctx.fillRect(g.gx-18,g.gy-70,36,10);txt('乔治四世',g.gx,g.gy+60,'#334',13,'center',true);
+  rr(g.bx,g.by,g.bw,g.bh,30,'#fff','#8a7aa8',3);ctx.fillStyle='#fff';ctx.strokeStyle='#8a7aa8';ctx.lineWidth=2;[[g.bx-16,g.by+g.bh+6,10],[g.bx-34,g.by+g.bh+24,6]].forEach(([x,y,r])=>{ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.stroke();});
+  txt('他想知道：',g.bx+20,g.by+28,'#6b4e7c',13,'left');
+  if(D.desc==='in'){
+    if(D.split<1){txt('司各特是否是',g.bx+20,g.slotY+6,'#223',16,'left');
+      if(D.sub){card(g.slotX,g.slotY,'司各特','#ffe3e3');txt('“司各特是否是司各特？”——他对同一律感兴趣？荒谬',g.bx+g.bw/2,g.by+g.bh-18,'#c0392b',13,'center',true);}
+      else if(D.drag!=='desc')card(g.slotX,g.slotY,'《威弗利》的作者',null,1,D.hold?D.split*5:0);}
+    else{txt('有且仅有一个人写了《威弗利》，',g.bx+20,g.slotY-6,'#223',15,'left');txt('而司各特就是那个人？',g.bx+20,g.slotY+18,'#223',15,'left');
+      ctx.setLineDash([5,4]);rr(g.slotX+30,g.slotY+30,150,34,10,null,'#bbb',1.5);ctx.setLineDash([]);txt('（没有可替换的块）',g.slotX+105,g.slotY+52,'#999',11);}}
+  else{txt('……那个人是否是司各特',g.bx+20,g.slotY+6,'#223',16,'left');
+    txt('有且仅有一个人写了《威弗利》；关于他：',g.outX,g.outY-34,'#a0522d',13,'center',true);
+    if(D.ask){card(g.outX,g.outY,'司各特 ＝ 那个人','#e3f5e8');txt('“那是司各特吗？”——远远看见时的提问，可以为真',g.outX,g.outY+40,'#1f6e3a',13,'center',true);}
+    else if(D.drag!=='desc')card(g.outX,g.outY,'《威弗利》的作者');}
+  if(D.drag==='desc'&&D.dp)card(D.dp.x,D.dp.y,'《威弗利》的作者','#fff8e0');
+  if(!(D.desc==='in'&&D.sub)&&!(D.desc==='out'&&D.ask))card(D.sx*W,D.sy*H,'司各特','#e8f0fa');
+  rr(W*0.83,H*0.74,W*0.15,H*0.22,12,D.hold?'#e0d6f0':'rgba(255,255,255,.75)','#6b4e7c',2);txt('按住：拆开',W*0.905,H*0.84,'#6b4e7c',12);txt('气泡里的命题',W*0.905,H*0.89,'#6b4e7c',12);
+  txt('事实：司各特就是《威弗利》的作者',W*0.5,H*0.97,'#556',12);
+  txt(D.desc==='in'?'拖“司各特”进气泡替换；或把“《威弗利》的作者”拖到气泡外':'把“司各特”拖到气泡外的那一块上',W*0.56,H*0.7,'#334',12);}
+
+/* ===== 第 5 关：应用练习 ===== */
+let E;
+const CASES=[{n:'圆的方是圆的',pz:['∃x(圆x∧方x)','∀y(…→y=x)','圆x'],need:'既圆又方的东西',items:['圆的盘','方的桌','圆的球','方的砖','圆的钟']},
+ {n:'除2以外的偶素数是奇数',pz:['∃x(偶x∧素x∧x≠2)','∀y(…→y=x)','奇x'],need:'除 2 以外的偶素数',items:['2','3','4','5','6','7','11']},
+ {n:'最完满的存在者存在',pz:['∃x(最完满x)','∀y(…→y=x)','x存在'],need:'有且仅有一个最完满者的证明',items:['定义','“存在是一种完满”','……前提在哪？']}];
+const CK=[0,1,2];
+function init5(){E={drag:null,on:null,split:0,hold:false,search:0,srch:false,found:ST.found5||{}};}
+HD[5]={down(x,y){for(let i=0;i<3;i++){const cx=W*(0.2+i*0.3),cy=H*0.09;if(E.on!==i&&Math.abs(x-cx)<W*0.14&&Math.abs(y-cy)<24){E.drag={i,x,y};return;}}
+  if(E.on!==null&&E.split<1&&y>H*0.24&&y<H*0.62)E.hold=true;if(E.on!==null&&E.split>=1&&y>H*0.64)E.srch=true;},
+ move(x,y){if(E.drag){E.drag.x=x;E.drag.y=y;}},
+ up(){if(E.drag){if(E.drag.y>H*0.24&&E.drag.y<H*0.62){E.on=E.drag.i;E.split=0;E.search=0;}E.drag=null;}E.hold=false;E.srch=false;}};
+function t5(dt){bg('#eef1f5','#d8dee6');
+  CASES.forEach((c,i)=>{if(E.on===i||(E.drag&&E.drag.i===i))return;card(W*(0.2+i*0.3),H*0.09,c.n,E.found[i]?'#e3f5e8':'#fff');});
+  bench(W*0.15,H*0.32,W*0.7,H*0.22,'拆解台（拖上来，按住拆开）');
+  if(E.drag)card(E.drag.x,E.drag.y,CASES[E.drag.i].n,'#fff8e0');
+  if(E.on===null){txt('从上方选一个短语拖到拆解台上',W/2,H*0.62,'#556',13);return;}
+  const c=CASES[E.on];if(E.hold&&E.split<1)E.split=Math.min(1,E.split+dt*0.5);
+  if(E.split<1)card(W/2,H*0.29,c.n,null,1-E.split*0.9,E.hold?E.split*5:0);
+  c.pz.forEach((s,j)=>{const tx=W*(0.28+j*0.22),ty=H*0.43;ctx.globalAlpha=clamp(E.split*1.4-j*0.2,0,1);piece(lerp(W/2,tx,E.split),lerp(H*0.29,ty,E.split),{s,c:['#3a6f99','#a0522d','#2f8a4a'][j]},(E.search>=1&&j===0)?false:undefined,0.8);ctx.globalAlpha=1;});
+  if(E.split<1){txt(E.hold?'拆解中……':'按住拆解台',W/2,H*0.62,'#a0522d',13);return;}
+  if(E.srch)E.search=Math.min(1,E.search+dt*0.35);
+  const gy=H*0.66,gw=W*0.8;rr(W*0.1,gy,gw,H*0.3,12,'rgba(255,255,255,.75)','#8a8f96',1.5);txt(`在世界里寻找：${c.need}（按住这里搜索）`,W/2,gy+20,'#334',13);
+  c.items.forEach((it,k)=>{const x=W*0.13+k*gw/c.items.length,y=gy+H*0.15;const seen=E.search*c.items.length>k;ctx.globalAlpha=seen?1:0.25;txt(it,x+18,y,'#223',13,'left');if(seen)txt('✗',x+4,y,'#c0392b',14,'left',true);ctx.globalAlpha=1;});
+  if(E.search>=1){if(!E.found[E.on]){E.found[E.on]=1;ST.found5=E.found;save(ST);hit(5,E.on);toast(E.on===2?'第一块没有被证明：证明失败':'第一块熄灭：命题为假');}
+    txt(E.on===2?'“有且仅有一个最完满者”这一块没有证明——论证缺了前提':'“存在”那块熄灭：命题为假，而不是像迈农说的那样为真',W/2,gy+H*0.26,'#c0392b',14,'center',true);}
+  txt(`已完成 ${Object.keys(E.found).length}/3`,W*0.93,22,'#334',12);}
+
+/* ===== 调度 ===== */
+const INIT={1:init1,2:init2,3:init3,4:init4,5:init5},TICK={1:t1,2:t2,3:t3,4:t4,5:t5};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!ST.done[t.dataset.l]);});}
+function go(n){L=n;ST.level=n;save(ST);tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{if(L===5){ST.found5={};save(ST);}INIT[L]();toast('已重置本关（已点亮的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(ST.level&&TICK[ST.level]?ST.level:1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

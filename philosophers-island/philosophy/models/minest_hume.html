@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 休谟因果关系 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>休谟 · 因果关系</b>
+  <button class="tab on" data-l="1">① 在经验之前</button>
+  <button class="tab" data-l="2">② 寻找必然联系</button>
+  <button class="tab" data-l="3">③ 第 1 次与第 N 次</button>
+  <button class="tab" data-l="4">④ 第 1001 次</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="bd" id="sBody"></div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;const done={};
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+const MAP={"1": [["A 滚向 B：按住让时间流逝，对象全新", "若一个对象对他完全是新的，即使以最精确的方式检查其可感性质，他也不能发现它的任何原因或结果。", "if that object be entirely new to him, he will not be able, by the most accurate examination of its sensible qualities, to discover any of its causes or effects.", "§23"], ["在接触瞬间拖动 B 的去向：静止、弹回、飞走、穿过", "难道两个球不能都保持绝对静止吗？难道第一个球不能直线返回，或从第二个球上朝任何方向跳开吗？", "May not both these balls remain at absolute rest? May not the first ball return in a straight line, or leap off from the second in any line or direction?", "§25"], ["每一种拖出的结局都照样上演，毫无矛盾", "所有这些假设都是一致的、可设想的。那么我们为什么要偏爱其中一个呢？", "All these suppositions are consistent and conceivable. Why then should we give the preference to one…?", "§25"], ["试过 4 个不同方向：结果无法从原因推出", "总之，每个结果都是与其原因不同的事件。因此它不可能在原因中被发现。", "every effect is a distinct event from its cause. It could not, therefore, be discovered in the cause", "§25"]], "2": [["拖动放大镜扫过碰撞：收集外部感官的印象", "一个台球的冲击伴随着第二个球的运动。这就是呈现于外部感官的全部。", "The impulse of one billiard-ball is attended with motion in the second. This is the whole that appears to the outward senses.", "§50"], ["把放大镜推进接触点：“必然联系”的槽位始终为空", "我们在任何单一事例中都无法发现任何能力或必然联系，即任何把结果与原因结合在一起的性质。", "we are never able, in a single instance, to discover any power or necessary connexion; any quality, which binds the effect to the cause", "§50"], ["按住探查越久越深：仍只有先后", "一个事件跟随另一个，但我们永远观察不到它们之间的任何纽带。", "One event follows another; but we never can observe any tie between them.", "§58"], ["探查时间累积：会合而非联结", "它们似乎是会合的，但从来不是联结的。", "They seem conjoined, but never connected.", "§58"]], "3": [["按住重复碰撞：左右两边对象逐帧相同", "在若干事例中，并没有任何与每一个单一事例不同的东西，它们被假定为完全相似。", "there is nothing in a number of instances, different from every single instance, which is supposed to be exactly similar", "§59"], ["心灵的期待残影越来越早地跑在 B 前面", "只是在相似事例重复之后，心灵被习惯带着，在一个事件出现时去期待它通常的伴随物。", "except only, that after a repetition of similar instances, the mind is carried by habit, upon the appearance of one event, to expect its usual attendant", "§59"], ["第 1 次一侧：心灵没有任何期待", "一个人第一次看到两个台球相撞而传递运动时，他不能断言一个事件与另一个是联结的，只能说是会合的。", "The first time a man saw … the shock of two billiard balls, he could not pronounce that the one event was connected: but only that it was conjoined", "§59"], ["把残影投射线拖到对象上：力线只是心灵转移过去的", "由于我们感到观念之间有一种习惯性的联系，我们就把这种感觉转移到对象上。", "as we feel a customary connexion between the ideas, we transfer that feeling to the objects", "§60 注"], ["重复多次后：习惯性转移就是必然观念的来源", "想象从一个对象到其通常伴随物的这种习惯性转移，就是我们形成能力或必然联系观念的那个情感或印象。", "this customary transition of the imagination from one object to its usual attendant, is the sentiment or impression from which we form the idea of power or necessary connexion.", "§59"]], "4": [["拖“逻辑”桥跨过缺口：桥断裂", "每一件实际事情的反面仍然是可能的，因为它决不会包含矛盾。", "The contrary of every matter of fact is still possible; because it can never imply a contradiction", "§21"], ["拖“过去如此”桥：缺一段中间桥墩，塌落", "“我发现这样一个对象总伴随着这样一个结果”与“我预见外表相似的其他对象将伴随相似的结果”，这两个命题远不相同。", "These two propositions are far from being the same, I have found that such an object has always been attended with such an effect, and I foresee, that other objects, which are, in appearance, similar, will be attended with similar effects.", "§29"], ["拖“自然齐一”桥：桥绕回自身，成了一个圈", "用或然的论证来证明这个假设，显然是在兜圈子，把正在争论的问题当作已经成立的。", "must be evidently going in a circle, and taking that for granted, which is the very point in question.", "§30"], ["三座桥都失败后，按住：习惯把你送过去", "习惯是人生的伟大指导。唯有这一原则使我们的经验对我们有用。", "Custom, then, is the great guide of human life. It is that principle alone which renders our experience useful to us", "§36"], ["过去后：两个因果定义", "① 一个对象跟随另一个对象，凡与前者相似的对象都被与后者相似的对象跟随。② 一个对象跟随另一个对象，前者的出现总把思想带到后者。", "an object, followed by another, and where all the objects similar to the first are followed by objects similar to the second … an object followed by another, and whose appearance always conveys the thought to that other.", "§60"]]};
+const TITLE={1:'① 在经验之前 · 按住让 A 滚动；在接触瞬间拖动 B，决定它的去向',2:'② 寻找必然联系 · 拖动放大镜扫过碰撞，把它推进接触点并按住',3:'③ 第 1 次与第 N 次 · 按住重复碰撞；把右侧心灵的投射线拖到对象上',4:'④ 第 1001 次 · 把三座“理由”桥拖过缺口；都失败后按住'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——休谟《人类理智研究》${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const e=$('mr'+l+'_'+i);if(!e||e.classList.contains('on'))return;e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});
+  if(MAP[l].every((_,k)=>$('mr'+l+'_'+k).classList.contains('on'))){done[l]=1;tabs();}}
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]?.move?.(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]?.up?.();});
+
+/* 场景 */
+function table(x0,w,gy){const g=ctx.createLinearGradient(0,0,0,gy);g.addColorStop(0,'#1d5f3a');g.addColorStop(1,'#2f8a52');ctx.fillStyle=g;ctx.fillRect(x0,0,w,H);
+  ctx.fillStyle='#5a3b1e';ctx.fillRect(x0,gy,w,H-gy);ctx.strokeStyle='rgba(255,255,255,.08)';for(let i=0;i<8;i++){ctx.beginPath();ctx.moveTo(x0+i*w/8,0);ctx.lineTo(x0+i*w/8,gy);ctx.stroke();}}
+function ball(x,y,r,c1,c2,nm,a){ctx.globalAlpha=a==null?1:a;ctx.fillStyle='rgba(0,0,0,.25)';ctx.beginPath();ctx.ellipse(x,y+r*0.9,r*.9,r*.25,0,0,7);ctx.fill();
+  const g=ctx.createRadialGradient(x-r*.35,y-r*.35,r*.1,x,y,r);g.addColorStop(0,c1);g.addColorStop(1,c2);ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();
+  ctx.fillStyle='#fff';ctx.font=`bold ${r*.7}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(nm,x,y);ctx.textBaseline='alphabetic';ctx.globalAlpha=1;}
+const A_=(x,y,a)=>ball(x,y,R(),'#ffb27c','#d4612a','A',a),B_=(x,y,a)=>ball(x,y,R(),'#9cc6ff','#2a6ad6','B',a);
+const R=()=>Math.min(W,H)*0.05;
+
+/* ===== ① 在经验之前 ===== */
+let A;
+function init1(){A={ax:0.15,bx:0.55,by:0.55,hold:false,phase:'roll',vx:0,vy:0,avx:0,dirs:[],drag:null,t:0};}
+HD[1]={down(x,y){if(A.phase==='contact'&&Math.hypot(x-W*A.bx,y-H*A.by)<R()*2.5){A.drag={x,y};return;}if(A.phase==='play'&&A.t>1.5){init1();}A.hold=true;},
+ move(x,y){if(A.drag){A.drag.x=x;A.drag.y=y;}},
+ up(){A.hold=false;if(A.drag){const dx=A.drag.x-W*A.bx,dy=A.drag.y-H*A.by,d=Math.hypot(dx,dy);
+   let k;if(d<R()*0.8){k='rest';A.vx=0;A.vy=0;}else{A.vx=dx/W*1.2;A.vy=dy/H*1.2;const ang=Math.atan2(dy,dx);k=Math.abs(ang)<0.5?'right':Math.abs(ang)>2.6?'back':ang<0?'up':'down';}
+   const pass=d>R()*0.8&&dx<-R()*1.5;if(pass){k='pass';}A.pass=pass;A.avx=pass?0.25:0;
+   if(!A.dirs.includes(k))A.dirs.push(k);A.phase='play';A.t=0;A.drag=null;hit(1,1);setTimeout(()=>hit(1,2),1200);if(A.dirs.length>=4)hit(1,3);
+   toast({rest:'B 静止不动',right:'B 被推走',back:'B 冲向 A',up:'B 向上飞走',down:'B 向下跳开',pass:'A 穿过 B'}[k]+'：照样可以设想');}}};
+function t1(dt){table(0,W,H*0.82);const r=R(),y=H*A.by,contact=A.bx-2*r/W;
+  if(A.phase==='roll'){if(A.hold){A.ax=Math.min(contact,A.ax+dt*0.12);hit(1,0);}if(A.ax>=contact-1e-4){A.phase='contact';toast('接触了。接下来 B 会怎样？拖动 B 告诉我');}}
+  if(A.phase==='play'){A.t+=dt;A.bx=clamp(A.bx+A.vx*dt,0.05,0.95);A.by=clamp(A.by+A.vy*dt,0.1,0.78);if(A.pass)A.ax=Math.min(0.95,A.ax+A.avx*dt);}
+  const passing=A.pass&&Math.abs(A.ax-A.bx)<2*r/W;
+  B_(W*A.bx,H*A.by);A_(W*A.ax,y,passing?0.6:1);
+  if(A.drag){ctx.strokeStyle='#ffd27a';ctx.lineWidth=3;ctx.setLineDash([6,5]);ctx.beginPath();ctx.moveTo(W*A.bx,H*A.by);ctx.lineTo(A.drag.x,A.drag.y);ctx.stroke();ctx.setLineDash([]);B_(A.drag.x,A.drag.y,0.4);}
+  if(A.phase==='contact'&&!A.drag){ctx.strokeStyle='rgba(255,210,122,.7)';ctx.beginPath();ctx.arc(W*A.bx,y,r*1.8+Math.sin(T*4)*4,0,7);ctx.stroke();}
+  txt(A.phase==='roll'?(A.hold?'A 在滚动……':'按住画面，让 A 滚向 B（你第一次看见这种东西）'):A.phase==='contact'?'按住 B，拖向任意方向（原地松手 = 静止）':A.t>1.5?`✓ 可以设想 · 无矛盾 — 已试 ${A.dirs.length} 种。点画面再来`:'',W/2,30,'#ffe9b0',15,'center',true);}
+
+/* ===== ② 寻找必然联系 ===== */
+let B;
+function init2(){B={f:0,play:true,mx:0.5,my:0.4,drag:false,probe:0,got:new Set(),deep:0};}
+HD[2]={down(x,y){if(Math.hypot(x-W*B.mx,y-H*B.my)<70)B.drag=true;},move(x,y){if(B.drag){B.mx=clamp(x/W,0.05,0.95);B.my=clamp(y/H,0.1,0.9);}},up(){B.drag=false;}};
+function pos2(f){const r=R(),xb=W*0.55,c=xb-2*r;return f<0.5?[lerp(W*0.15,c,f/0.5),xb]:[c,xb+(f-0.5)/0.5*W*0.3];}
+function t2(dt){table(0,W,H*0.82);const r=R(),y=H*0.55;
+  const nearC=B.drag&&Math.abs(B.f-0.5)<0.12;B.f=(B.f+dt*(nearC?0.03:0.22))%1.1;const f=Math.min(1,B.f);
+  const [ax,bx]=pos2(f);A_(ax,y);B_(bx,y);
+  // 放大镜
+  const mx=W*B.mx,my=H*B.my,mr=Math.min(W,H)*0.17;
+  ctx.save();ctx.beginPath();ctx.arc(mx,my,mr,0,7);ctx.clip();ctx.fillStyle='#2f8a52';ctx.fillRect(mx-mr,my-mr,mr*2,mr*2);ctx.translate(mx,my);ctx.scale(3,3);ctx.translate(-mx,-my);A_(ax,y);B_(bx,y);ctx.restore();
+  ctx.strokeStyle='#fff';ctx.lineWidth=5;ctx.beginPath();ctx.arc(mx,my,mr,0,7);ctx.stroke();ctx.lineWidth=10;ctx.beginPath();ctx.moveTo(mx+mr*0.7,my+mr*0.7);ctx.lineTo(mx+mr*1.2,my+mr*1.2);ctx.stroke();
+  // 镜下看到什么
+  const seeA=Math.hypot(mx-ax,my-y)<mr,seeB=Math.hypot(mx-bx,my-y)<mr,cx=pos2(0.5)[0]+r,atC=Math.hypot(mx-cx,my-y)<mr*0.6;
+  const add=k=>{if(!B.got.has(k)){B.got.add(k);toast({a:'印象：A 的运动',t:'印象：两球接触',b:'印象：B 的运动',o:'印象：先后次序'}[k]);}};
+  if(B.drag){if(seeA&&f<0.5)add('a');if(atC&&Math.abs(f-0.5)<0.05)add('t');if(seeB&&f>0.55)add('b');if(B.got.has('a')&&B.got.has('b'))add('o');if(B.got.size>=3)hit(2,0);
+    if(atC){B.probe+=dt;hit(2,1);if(B.probe>3)hit(2,2);if(B.probe>8)hit(2,3);}}
+  // 印象清单
+  const items=[['a','A 在运动'],['t','两球接触'],['b','B 在运动'],['o','先后次序'],['n','必然联系']];
+  ctx.fillStyle='rgba(255,255,255,.9)';ctx.fillRect(12,12,190,items.length*24+16);
+  items.forEach(([k,n],i)=>{const ok=B.got.has(k);txt((ok?'✓ ':k==='n'?'∅ ':'· ')+n,22,34+i*24,k==='n'?'#b00020':ok?'#1a7a35':'#888',14,'left',ok);});
+  if(B.probe>0){const p=Math.min(1,B.probe/8);ctx.fillStyle='#ddd';ctx.fillRect(110,34+4*24-12,80,8);ctx.fillStyle='#b00020';ctx.fillRect(110,34+4*24-12,80*p,8);}
+  txt(atC&&B.drag?(B.probe<3?'推进接触点……只有两个表面相接':'看了这么久：一个运动跟着另一个，没有纽带'):'按住放大镜，跟着碰撞扫描；把它推进接触点',W/2,H*0.93,'#ffe9b0',14);}
+
+/* ===== ③ 第 1 次与第 N 次 ===== */
+let C;
+function init3(){C={f:0,n:1,hold:false,proj:null,projDone:false};}
+HD[3]={down(x,y){const st=C.n>=3;if(st&&x>W*0.5&&Math.hypot(x-W*0.88,y-H*0.18)<50){C.proj={x,y};return;}C.hold=true;},move(x,y){if(C.proj){C.proj.x=x;C.proj.y=y;}},
+ up(){C.hold=false;if(C.proj){if(C.proj.y>H*0.4&&C.proj.x>W*0.5){C.projDone=true;hit(3,3);toast('力线落在对象上了——可它是从心灵那边拖过去的');}C.proj=null;}}};
+const strength=n=>1-1/Math.sqrt(n);
+function t3(dt){const half=W/2,r=R(),y=H*0.58;
+  if(C.hold){C.f+=dt*0.45;if(C.f>=1){C.f=0;C.n++;if(C.n>=2)hit(3,0);if(C.n>=4)hit(3,1);if(C.n>=12)hit(3,4);}}
+  [[0,1],[half,C.n]].forEach(([x0,n])=>{table(x0,half,H*0.82);const xb=x0+half*0.6,c=xb-2*r;const f=C.f;const ax=f<0.5?lerp(x0+half*0.12,c,f/0.5):c,bx=f<0.5?xb:xb+(f-0.5)/0.5*half*0.3;
+    const s=x0>0?strength(n):0;
+    if(s>0&&f>0.05){const lead=f<0.5?f/0.5*(0.5+s):1;const gx=xb+Math.min(1,Math.max(0,lead-0.5))*half*0.3*(1+s);B_(gx+ (f<0.5?s*20:0),y,0.15+0.4*s);txt('心灵的期待',gx,y-r*1.6,'rgba(220,200,255,.9)',11);}
+    A_(ax,y);B_(bx,y);
+    txt(x0>0?`第 ${n} 次`:'第 1 次',x0+16,26,'#fff',15,'left',true);
+    if(x0===0&&f>0.05&&f<0.5){txt('……接下来会怎样？',x0+half*0.3,H*0.25,'#fff',14);hit(3,2);}
+    if(x0>0&&f>0.05&&f<0.5&&s>0)txt('B 一定会被推走！',x0+half*0.3,H*0.25,`rgba(220,200,255,${0.3+0.7*s})`,14);
+    if(x0>0&&C.projDone&&f<0.55){ctx.strokeStyle='rgba(180,140,255,.8)';ctx.lineWidth=4;ctx.setLineDash([3,6]);ctx.beginPath();ctx.moveTo(ax+r,y);ctx.lineTo(bx-r,y);ctx.stroke();ctx.setLineDash([]);txt('“力”',(ax+bx)/2,y-r-8,'#c9a7ff',12);}});
+  ctx.fillStyle='#111';ctx.fillRect(half-3,0,6,H);
+  // 心灵（右上）
+  const s=strength(C.n),mx=W*0.88,my=H*0.18;if(C.n>=3){ctx.fillStyle=`rgba(160,110,230,${0.3+0.6*s})`;ctx.beginPath();ctx.arc(mx,my,30+12*s,0,7);ctx.fill();txt('心灵',mx,my+5,'#fff',13,'center',true);
+    if(!C.projDone)txt('拖我到对象上',mx,my+52,'#e8dcff',11);}
+  if(C.proj){ctx.strokeStyle='#c9a7ff';ctx.lineWidth=3;ctx.setLineDash([4,5]);ctx.beginPath();ctx.moveTo(mx,my);ctx.lineTo(C.proj.x,C.proj.y);ctx.stroke();ctx.setLineDash([]);}
+  ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(W*0.3,H*0.86,W*0.4,30);txt(`两边对象的差异：0 处 · 习惯强度 ${Math.round(s*100)}%`,W/2,H*0.86+20,'#fff',13);
+  txt(C.hold?'':'按住画面：重复碰撞',W/2,H*0.97,'#ffe9b0',13);}
+
+/* ===== ④ 第 1001 次 ===== */
+let D;
+const BR=[{k:'logic',n:'逻辑必然'},{k:'past',n:'过去如此'},{k:'unif',n:'自然齐一'}];
+function init4(){D={drag:null,fail:{},anim:null,hold:0,holding:false,across:false};}
+const gap=()=>({x1:W*0.36,x2:W*0.64,y:H*0.5});
+HD[4]={down(x,y){if(Object.keys(D.fail).length>=3&&!D.across){D.holding=true;return;}BR.forEach((b,i)=>{if(!D.fail[b.k]&&Math.hypot(x-W*0.12,y-H*(0.25+i*0.18))<50)D.drag={b,x,y};});},
+ move(x,y){if(D.drag){D.drag.x=x;D.drag.y=y;}},
+ up(){D.holding=false;if(D.drag){const g=gap(),d=D.drag;if(d.x>g.x1-40&&d.x<g.x2+40&&Math.abs(d.y-g.y)<80){D.anim={k:d.b.k,t:0};}D.drag=null;}}};
+function drawBridge(k,t,g){const L=g.x2-g.x1;ctx.lineWidth=10;ctx.strokeStyle='#c9a06a';
+  if(k==='logic'){const crack=clamp((t-0.8)*2,0,1);ctx.beginPath();ctx.moveTo(g.x1,g.y);ctx.lineTo(g.x1+L*0.5-6*crack,g.y+crack*60);ctx.stroke();ctx.beginPath();ctx.moveTo(g.x1+L*0.5+6*crack,g.y+crack*80);ctx.lineTo(g.x2,g.y);ctx.stroke();
+    if(t>0.8)txt('反面并不矛盾：B 也可以不动',(g.x1+g.x2)/2,g.y-30,'#ff9b9b',13);}
+  else if(k==='past'){const fall=clamp((t-0.8)*1.5,0,1);ctx.beginPath();ctx.moveTo(g.x1,g.y);ctx.lineTo(g.x1+L*0.4,g.y);ctx.stroke();ctx.beginPath();ctx.moveTo(g.x1+L*0.6,g.y+fall*120);ctx.lineTo(g.x2,g.y+fall*120);ctx.stroke();
+    ctx.strokeStyle='rgba(255,255,255,.4)';ctx.setLineDash([4,4]);ctx.strokeRect(g.x1+L*0.4,g.y-10,L*0.2,20);ctx.setLineDash([]);if(t>0.8)txt('缺一个中间桥墩：“未来将与过去相似”',(g.x1+g.x2)/2,g.y-30,'#ff9b9b',13);}
+  else{const a=clamp(t,0,1.8);ctx.beginPath();ctx.arc(g.x1+L*0.35,g.y-40,40,Math.PI*0.5,Math.PI*0.5+a*3.5);ctx.stroke();
+    if(t>1){txt('用“齐一”证明“齐一”：兜圈子',(g.x1+g.x2)/2,g.y-100,'#ff9b9b',13);}}}
+function t4(dt){table(0,W,H*0.82);const g=gap(),r=R();
+  ctx.fillStyle='#0b1a12';ctx.fillRect(g.x1,0,g.x2-g.x1,H*0.82);
+  A_(g.x1-r*3,g.y);B_(g.x1-r*0.9,g.y);txt('第 1001 次：接触前一刻',g.x1-r*2,g.y-r*2,'#fff',13);
+  ctx.strokeStyle='rgba(255,255,255,.3)';ctx.setLineDash([6,6]);ctx.beginPath();ctx.arc(g.x2+r*3,g.y,r,0,7);ctx.stroke();ctx.setLineDash([]);txt('B 被推走？',g.x2+r*3,g.y-r*2,'#ddd',13);
+  BR.forEach((b,i)=>{const x=W*0.12,y=H*(0.25+i*0.18);ctx.globalAlpha=D.fail[b.k]?0.3:1;ctx.fillStyle='#c9a06a';ctx.fillRect(x-50,y-14,100,28);txt(b.n+(D.fail[b.k]?' ✗':''),x,y+5,'#222',13,'center',true);ctx.globalAlpha=1;});
+  if(D.drag){ctx.fillStyle='rgba(201,160,106,.8)';ctx.fillRect(D.drag.x-60,D.drag.y-10,120,20);txt(D.drag.b.n,D.drag.x,D.drag.y+5,'#222',12);}
+  if(D.anim){D.anim.t+=dt;drawBridge(D.anim.k,D.anim.t,g);if(D.anim.t>2.2){D.fail[D.anim.k]=1;hit(4,{logic:0,past:1,unif:2}[D.anim.k]);D.anim=null;}}
+  const nf=Object.keys(D.fail).length;
+  if(nf>=3){if(D.holding)D.hold=Math.min(1,D.hold+dt*0.35);
+    const k=D.hold;ctx.strokeStyle=`rgba(180,140,255,${0.3+0.7*k})`;ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(g.x1,g.y+40);ctx.quadraticCurveTo((g.x1+g.x2)/2,g.y+40-80*k,lerp(g.x1,g.x2,k),g.y+40);ctx.stroke();
+    if(k>0)B_(lerp(g.x1-r*0.9,g.x2+r*3,k),g.y,0.6);
+    if(k>=1&&!D.across){D.across=true;hit(4,3);setTimeout(()=>hit(4,4),1800);}
+    txt(D.across?'不是理性，而是习惯，把你带到了对岸':'理性的桥都塌了。按住画面：让习惯带你过去',W/2,H*0.93,'#e8dcff',14);}
+  else txt('把左边的“理由”拖到中间的缺口上，为“B 会被推走”搭桥',W/2,H*0.93,'#ffe9b0',14);}
+
+const INIT={1:init1,2:init2,3:init3,4:init4},TICK={1:t1,2:t2,3:t3,4:t4};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!done[t.dataset.l]);});}
+function go(n){L=n;tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{INIT[L]();toast('已重置（已对应的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

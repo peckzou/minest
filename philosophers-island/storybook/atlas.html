@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>思想之河 · 立体书</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: radial-gradient(ellipse at 50% 40%, #2f5a4a 0%, #1d3f35 55%, #12281f 100%); font: 15px/1.6 "Songti SC", "Noto Serif SC", Georgia, serif; color: #f4ead2; user-select: none; }
+  canvas { position: absolute; inset: 0; display: block; }
+  .top { position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 12px; padding: 14px 18px; z-index: 3; }
+  .top h1 { flex: 1; margin: 0; font-size: 21px; letter-spacing: .14em; } .top h1 small { font-size: 12.5px; letter-spacing: .06em; margin-left: 10px; opacity: .7; font-weight: 400; }
+  button { font: inherit; font-size: 13.5px; padding: 6px 14px; border-radius: 999px; border: 1px solid rgba(244,234,210,.5); background: rgba(18,40,31,.7); color: #f4ead2; cursor: pointer; } button:hover, button.on { background: #e9b949; color: #1d3f35; border-color: #e9b949; }
+  #bar { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 3; display: flex; gap: 6px; align-items: center; padding: 8px 12px; border-radius: 14px; background: rgba(12,28,22,.72); border: 1px solid rgba(244,234,210,.25); max-width: 96vw; flex-wrap: nowrap; justify-content: center; } #bar button { white-space: nowrap; padding: 4px 11px; font-size: 12.5px; } #bar span { font-size: 11px; letter-spacing: .2em; opacity: .65; margin-right: 6px; }
+  #card { position: absolute; z-index: 4; left: 50%; top: 46%; width: min(420px, 88vw); padding: 20px 22px 18px; border-radius: 8px; background: #fffaf0; color: #3b2f2a; border: 2px solid #6b4f3a; box-shadow: 8px 10px 0 rgba(0,0,0,.3); transform-origin: 50% 100%; transform: translate(-50%, -50%) perspective(900px) rotateX(86deg); opacity: 0; pointer-events: none; transition: transform .45s cubic-bezier(.2,1.2,.4,1), opacity .2s; }
+  #card.on { transform: translate(-50%, -50%) perspective(900px) rotateX(0); opacity: 1; pointer-events: auto; } #card .y { font-size: 12.5px; letter-spacing: .12em; color: #a0522d; } #card h2 { margin: 2px 0 8px; font-size: 24px; } #card p { margin: 0 0 12px; font-size: 14.5px; line-height: 1.75; } #card .r { display: flex; gap: 8px; flex-wrap: wrap; } #card button { background: #fffaf0; color: #3b2f2a; border-color: #6b4f3a; } #card button:hover { background: #ffe9b0; }
+</style>
+</head>
+<body>
+<div class="top"><h1>思想之河<small>一本摊开的立体书 · 每翻一页走过一个时代</small></h1><button id="old">长卷版</button><button id="close">✕ 回到小岛</button></div>
+<div id="bar"><span>TIME</span><button id="pl">◀</button><span id="eras" style="display:flex;gap:6px;opacity:1;letter-spacing:0;font-size:13.5px;margin:0"></span><button id="pr">▶</button></div>
+<div id="card"><div class="y"></div><h2></h2><p></p><div class="r"><button id="go">🚶 去他的展馆</button><button id="cx">合上</button></div></div>
+<script src="../vendor/three.min.js"></script>
+<script>
+/* A pop-up atlas: an open book lying on a table; on each spread a layered paper-cut scene stands up — sun, clouds, trees,
+   bunting, a boat on the river, birds, and one little house per thinker. Turning the page folds the scene flat, flips a
+   leaf over the spine and lets the next era stand up. Data comes from the island ({story:1, op:'people'}). */
+(function () {
+  var T = THREE, EMBED = parent !== window, PW = 5, PD = 6.6, people = [], spreads = [], cur = 0, phase = 'up', pt = 0, next = 0, sel = null, mx = 0, my = 0;
+  var FALL = [['socrates', '苏格拉底', -470], ['plato', '柏拉图', -427], ['confucius', '孔子', -551], ['laozi', '老子', -571], ['descartes', '笛卡尔', 1596], ['hume', '休谟', 1711], ['kant', '康德', 1724], ['hegel', '黑格尔', 1770], ['nietzsche', '尼采', 1844], ['wittgenstein', '维特根斯坦', 1889], ['rawls', '罗尔斯', 1921]].map(function (a) { return { id: a[0], name: a[1], year: a[2], note: '' }; });
+  var ERAS = [['轴心时代', -9999, -200, ['#f7dcae', '#f3e7c6'], '#9cc7a0'], ['理性的世纪', -200, 1700, ['#bfe3ef', '#eef4dc'], '#a9cf93'], ['启蒙时代', 1700, 1800, ['#f9e2a6', '#f6efd2'], '#b9d48a'], ['十九世纪', 1800, 1880, ['#f4b98c', '#f3dcc0'], '#c4c07e'], ['二十世纪 · 上', 1880, 1905, ['#c9b4e0', '#e9d8e6'], '#9fb89a'], ['二十世纪 · 下', 1905, 9999, ['#33416e', '#6b6f9c'], '#6f8f8a']];
+  var EAST = { confucius: 1, laozi: 1, zhuangzi: 1 };
+  var renderer = new T.WebGLRenderer({ antialias: true, alpha: true }); renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1)); document.body.insertBefore(renderer.domElement, document.body.firstChild);
+  var scene = new T.Scene(), cam = new T.PerspectiveCamera(34, 1, 0.1, 100), root = new T.Group(); scene.add(root);
+  function resize() { renderer.setSize(innerWidth, innerHeight); cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); } addEventListener('resize', resize); resize();
+  function rng(seed) { var s = seed * 9301 + 49297; return function () { s = (s * 9301 + 49297) % 233280; return s / 233280; }; }
+  function cv(w, h) { var c = document.createElement('canvas'); c.width = w; c.height = h; return [c, c.getContext('2d')]; }
+  function tex(c) { var t = new T.CanvasTexture(c); t.anisotropy = 8; return t; }
+  function outline(x, lw) { x.lineWidth = lw || 5; x.strokeStyle = '#3d2f28'; x.lineJoin = 'round'; x.stroke(); }
+  // the painted spread: land, a winding river, a path, the era's name
+  function spreadTex(e, i) { var q = cv(2048, 1352), c = q[0], x = q[1], r = rng(i + 5), k; x.fillStyle = e[4]; x.fillRect(0, 0, 2048, 1352);
+    for (k = 0; k < 70; k++) { x.fillStyle = 'rgba(' + (r() > .5 ? '255,255,235' : '60,90,60') + ',' + (0.05 + r() * 0.08) + ')'; x.beginPath(); x.ellipse(r() * 2048, r() * 1352, 40 + r() * 160, 20 + r() * 80, r() * 3, 0, 7); x.fill(); }
+    x.strokeStyle = i === 5 ? '#3f6f9a' : '#7fc4dc'; x.lineWidth = 150; x.lineCap = 'round'; x.beginPath(); x.moveTo(-40, 1000); x.bezierCurveTo(500, 860, 760, 1180, 1100, 1040); x.bezierCurveTo(1500, 880, 1700, 1120, 2100, 960); x.stroke();
+    x.strokeStyle = 'rgba(255,255,255,.6)'; x.lineWidth = 5; for (k = 0; k < 40; k++) { var px = r() * 2048, py = 960 + Math.sin(px / 260) * 70 + (r() - .5) * 90; x.beginPath(); x.moveTo(px, py); x.quadraticCurveTo(px + 18, py - 10, px + 40, py); x.stroke(); }
+    x.strokeStyle = '#f3e3b8'; x.lineWidth = 46; x.setLineDash([2, 70]); x.beginPath(); x.moveTo(60, 1250); x.bezierCurveTo(600, 1160, 1400, 1330, 2000, 1230); x.stroke(); x.setLineDash([]);
+    x.fillStyle = 'rgba(40,30,24,.8)'; x.font = '700 78px "Kaiti SC","STKaiti","Songti SC",serif'; x.fillText(e[0], 90, 130); x.font = '34px Georgia, serif'; x.fillStyle = 'rgba(40,30,24,.55)'; x.fillText('SPREAD ' + (i + 1), 96, 184);
+    x.fillStyle = 'rgba(0,0,0,.16)'; var g = x.createLinearGradient(964, 0, 1084, 0); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(.5, 'rgba(0,0,0,.28)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(964, 0, 120, 1352);
+    return [0, 1024].map(function (sx) { var d = cv(1024, 1352); d[1].drawImage(c, sx, 0, 1024, 1352, 0, 0, 1024, 1352); return tex(d[0]); }); }
+  var PALH = [['#f4d9b0', '#c96f4a'], ['#e9d5c3', '#8c5a6b'], ['#f7e3a6', '#5d7f8c'], ['#e3ead0', '#b0563f'], ['#f2d0c2', '#56708a'], ['#e6dcf2', '#7a5c94']];
+  function houseTex(p, i) { var q = cv(300, 360), x = q[1], c = PALH[i % 6], rect = function (a, b, w, h, f) { x.beginPath(); x.rect(a, b, w, h); x.fillStyle = f; x.fill(); outline(x); }, poly = function (pts, f) { x.beginPath(); pts.forEach(function (p, k) { if (k) x.lineTo(p[0], p[1]); else x.moveTo(p[0], p[1]); }); x.closePath(); x.fillStyle = f; x.fill(); outline(x); };
+    if (EAST[p.id]) { rect(70, 150, 160, 130, '#f3e2c6'); x.beginPath(); x.moveTo(30, 152); x.quadraticCurveTo(90, 120, 150, 60); x.quadraticCurveTo(210, 120, 270, 152); x.quadraticCurveTo(150, 132, 30, 152); x.fillStyle = '#b0563f'; x.fill(); outline(x); rect(92, 170, 16, 110, '#b0563f'); rect(192, 170, 16, 110, '#b0563f'); rect(132, 200, 36, 80, '#6b4f3a'); }
+    else if (p.year < 0) { rect(50, 258, 200, 22, '#efe6d6'); poly([[44, 130], [150, 62], [256, 130]], '#f7efe0'); rect(48, 128, 204, 16, '#efe6d6'); [70, 108, 146, 184, 222].forEach(function (a) { rect(a - 9, 144, 18, 114, '#fbf6ea'); }); }
+    else if (p.year < 1800) { rect(70, 140, 160, 140, c[0]); poly([[50, 144], [150, 56], [250, 144]], c[1]); rect(190, 66, 22, 50, c[1]); rect(132, 206, 36, 74, '#6b4f3a'); rect(88, 166, 30, 30, '#fff6c9'); rect(182, 166, 30, 30, '#fff6c9'); }
+    else { rect(78, 60, 144, 220, c[0]); rect(66, 46, 168, 18, c[1]); for (var a = 0; a < 3; a++) for (var b = 0; b < 2; b++) rect(100 + b * 62, 84 + a * 56, 34, 36, p.year > 1905 && (a + b) % 2 ? '#ffe48a' : '#fff6c9'); rect(134, 232, 32, 48, '#6b4f3a'); }
+    x.beginPath(); x.rect(30, 290, 240, 52); x.fillStyle = '#fffaf0'; x.fill(); outline(x, 4); x.fillStyle = '#3b2f2a'; x.textAlign = 'center'; x.font = '700 ' + (p.name.length > 6 ? 28 : 34) + 'px "Songti SC", serif'; x.fillText(p.name.slice(0, 8), 150, 328); return tex(q[0]); }
+  function decoTex(kind, i) { var q = cv(256, 384), x = q[1], r = rng(i + kind.length * 13), k;
+    if (kind === 'sun' || kind === 'moon') { x.fillStyle = '#7a5a44'; x.fillRect(122, 150, 12, 234); if (kind === 'sun') for (k = 0; k < 12; k++) { var a = k / 12 * 6.283; x.strokeStyle = '#e2882f'; x.lineWidth = 9; x.lineCap = 'round'; x.beginPath(); x.moveTo(128 + Math.cos(a) * 82, 110 + Math.sin(a) * 82); x.lineTo(128 + Math.cos(a) * 108, 110 + Math.sin(a) * 108); x.stroke(); } x.beginPath(); x.arc(128, 110, 68, 0, 7); x.fillStyle = kind === 'sun' ? '#f6b23c' : '#fff3c4'; x.fill(); outline(x); }
+    else if (kind === 'cloud') { x.fillStyle = '#7a5a44'; x.fillRect(122, 150, 10, 234); x.beginPath(); x.ellipse(128, 110, 110, 44, 0, 0, 7); x.ellipse(170, 86, 60, 40, 0, 0, 7); x.ellipse(84, 92, 54, 34, 0, 0, 7); x.fillStyle = '#fffdf6'; x.fill(); }
+    else if (kind === 'pine') { x.fillStyle = '#6b4f3a'; x.fillRect(116, 250, 24, 134); for (k = 0; k < 4; k++) { x.beginPath(); x.moveTo(128, 20 + k * 62); x.lineTo(128 + 78 + k * 12, 150 + k * 62); x.lineTo(128 - 78 - k * 12, 150 + k * 62); x.closePath(); x.fillStyle = k % 2 ? '#2f6a4f' : '#3d7c5c'; x.fill(); outline(x, 4); } }
+    else if (kind === 'tree') { x.fillStyle = '#6b4f3a'; x.fillRect(116, 220, 24, 164); [[128, 130, 96], [70, 190, 56], [186, 184, 60]].forEach(function (c) { x.beginPath(); x.arc(c[0], c[1], c[2], 0, 7); x.fillStyle = ['#e9a13b', '#8fbf6a', '#f08a6a'][i % 3]; x.fill(); outline(x, 4); }); }
+    else if (kind === 'boat') { x.beginPath(); x.moveTo(30, 300); x.quadraticCurveTo(60, 370, 128, 370); x.quadraticCurveTo(196, 370, 226, 300); x.closePath(); x.fillStyle = '#c96f4a'; x.fill(); outline(x); x.fillStyle = '#6b4f3a'; x.fillRect(123, 110, 10, 190); x.beginPath(); x.moveTo(136, 118); x.quadraticCurveTo(230, 190, 136, 280); x.closePath(); x.fillStyle = '#fffaf0'; x.fill(); outline(x); x.beginPath(); x.moveTo(120, 140); x.quadraticCurveTo(50, 200, 120, 270); x.closePath(); x.fillStyle = '#ffe9b0'; x.fill(); outline(x); }
+    else if (kind === 'you') { x.strokeStyle = '#3b4252'; x.lineWidth = 22; x.lineCap = 'round'; x.beginPath(); x.moveTo(120, 280); x.lineTo(98, 372); x.moveTo(136, 280); x.lineTo(160, 372); x.stroke(); x.beginPath(); x.rect(88, 170, 80, 120); x.fillStyle = '#2f6fb3'; x.fill(); outline(x); x.beginPath(); x.arc(128, 124, 48, 0, 7); x.fillStyle = '#f0c8a0'; x.fill(); outline(x); x.beginPath(); x.arc(128, 108, 50, Math.PI, 0); x.fillStyle = '#4a3524'; x.fill(); x.beginPath(); x.moveTo(84, 180); x.lineTo(50, 250); x.lineTo(90, 250); x.closePath(); x.fillStyle = '#c96f4a'; x.fill(); outline(x, 4); }
+    else if (kind === 'bird') { x.strokeStyle = '#2b2622'; x.lineWidth = 16; x.lineCap = 'round'; x.beginPath(); x.moveTo(30, 200); x.quadraticCurveTo(80, 120, 128, 200); x.quadraticCurveTo(176, 120, 226, 200); x.stroke(); }
+    return tex(q[0]); }
+  function buntingTex() { var q = cv(512, 128), x = q[1], k; x.strokeStyle = '#3d2f28'; x.lineWidth = 4; x.beginPath(); x.moveTo(0, 14); x.quadraticCurveTo(256, 70, 512, 14); x.stroke(); for (k = 0; k < 10; k++) { var px = 26 + k * 51, py = 18 + Math.sin(k / 9 * Math.PI) * 26; x.beginPath(); x.moveTo(px - 20, py); x.lineTo(px + 20, py); x.lineTo(px, py + 50); x.closePath(); x.fillStyle = ['#e2674a', '#f6b23c', '#4f9fb8', '#8fbf6a'][k % 4]; x.fill(); outline(x, 3); } return tex(q[0]); }
+  // the book
+  var paperMat = new T.MeshBasicMaterial({ color: 0xf3ead6 }), pageL = new T.Mesh(new T.PlaneGeometry(PW, PD), new T.MeshBasicMaterial()), pageR = new T.Mesh(new T.PlaneGeometry(PW, PD), new T.MeshBasicMaterial());
+  [pageL, pageR].forEach(function (m, k) { m.rotation.x = -Math.PI / 2; m.position.set(k ? PW / 2 : -PW / 2, 0, 0); root.add(m); var slab = new T.Mesh(new T.BoxGeometry(PW, 0.34, PD), [paperMat, paperMat, new T.MeshBasicMaterial({ color: 0xe9dfc8 }), new T.MeshBasicMaterial({ color: 0x7a2f2a }), paperMat, paperMat]); slab.position.set(k ? PW / 2 : -PW / 2, -0.18, 0); root.add(slab); for (var j = 0; j < 5; j++) { var ln = new T.Mesh(new T.PlaneGeometry(PW, 0.012), new T.MeshBasicMaterial({ color: 0xcbbf9f })); ln.position.set(k ? PW / 2 : -PW / 2, -0.06 - j * 0.06, PD / 2 + 0.001); root.add(ln); } });
+  var cover = new T.Mesh(new T.BoxGeometry(PW * 2 + 0.5, 0.08, PD + 0.4), new T.MeshBasicMaterial({ color: 0x6e2a26 })); cover.position.y = -0.39; root.add(cover);
+  var shadow = new T.Mesh(new T.PlaneGeometry(PW * 2 + 2.4, PD + 2.2), new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28 })); shadow.rotation.x = -Math.PI / 2; shadow.position.set(0.3, -0.44, 0.3); root.add(shadow);
+  var leafPivot = new T.Group(); root.add(leafPivot); var leafGeo = new T.PlaneGeometry(PW, PD); leafGeo.rotateX(-Math.PI / 2); leafGeo.translate(PW / 2, 0, 0);
+  var leafF = new T.Mesh(leafGeo, new T.MeshBasicMaterial({ side: T.FrontSide })), leafB = new T.Mesh(leafGeo, new T.MeshBasicMaterial({ side: T.BackSide })); leafPivot.add(leafF); leafPivot.add(leafB); leafPivot.visible = false; leafPivot.position.y = 0.01;
+  var pops = new T.Group(); root.add(pops); var items = [];
+  function stand(t, w, h, x, z, opt) { var g = new T.PlaneGeometry(w, h); g.translate(0, h / 2, 0); var m = new T.Mesh(g, new T.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.1, side: T.DoubleSide })), pv = new T.Group(); pv.position.set(x, 0.012, z); pv.add(m); pops.add(pv); var it = Object.assign({ pv: pv, m: m, x: x, z: z, d: items.length * 0.035 }, opt || {}); items.push(it); m.userData.it = it; return it; }
+  function buildSpread(i) { while (pops.children.length) pops.remove(pops.children[0]); items = []; var sp = spreads[i], e = sp.era, r = rng(i + 20), k;
+    pageL.material.map = sp.tex[0]; pageR.material.map = sp.tex[1]; pageL.material.needsUpdate = pageR.material.needsUpdate = true;
+    stand(decoTex(i === 5 ? 'moon' : 'sun', i), 1.5, 2.25, i % 2 ? 3.6 : -3.6, -2.9); for (k = 0; k < 3; k++) stand(decoTex('cloud', k), 1.5, 2.2 + r() * 0.8, -4 + r() * 8, -2.6 + r() * 0.5);
+    for (k = 0; k < 9; k++) stand(decoTex(k % 3 ? 'pine' : 'tree', i + k), 0.75, 1.15 + r() * 0.5, (k % 2 ? 1 : -1) * (0.5 + r() * 4.3), -3.0 + r() * 1.2);
+    var b = stand(buntingTex(), 3.2, 0.8, 0, -1.75); b.m.position.y = 1.25; stand(decoTex('pine', 77), 0.3, 2.1, -1.6, -1.75); stand(decoTex('pine', 78), 0.3, 2.1, 1.6, -1.75);
+    var n = sp.people.length, cols = Math.min(7, Math.ceil(n / (n > 10 ? 3 : n > 5 ? 2 : 1))), rows = Math.ceil(n / cols), hs = Math.min(1.25, 7.4 / cols);
+    sp.people.forEach(function (p, j) { var row = Math.floor(j / cols), col = j % cols, cnt = Math.min(cols, n - row * cols), px = (col - (cnt - 1) / 2) * (9.2 / Math.max(cnt, 3)), pz = -1.35 + row * (rows > 2 ? 1.15 : 1.35) + (col % 2) * 0.22; if (Math.abs(px) < 0.34) px += px < 0 ? -0.34 : 0.34; stand(houseTex(p, j), hs, hs * 1.2, px, pz, { person: p }); });
+    sp.boat = stand(decoTex('boat', 0), 0.9, 1.35, -3, 1.62, { boat: true }); sp.you = stand(decoTex('you', 0), 0.6, 0.9, -4, 2.85, { you: true });
+    for (k = 0; k < 4; k++) stand(decoTex('bird', k), 0.36, 0.54, -2 + k * 0.6, -0.6, { bird: k }); }
+  function setUp(u) { items.forEach(function (it) { var q = Math.max(0, Math.min(1, (u - it.d) / 0.45)), e = 1 - Math.pow(1 - q, 3), over = q < 1 ? Math.sin(q * Math.PI) * 0.12 : 0; it.pv.rotation.x = -(1 - e) * Math.PI / 2 - over; it.pv.visible = q > 0.01; }); }
+  function turn(to) { if (phase !== 'up' || to === cur || to < 0 || to >= spreads.length) return; show(null); next = to; phase = 'down'; pt = 0; }
+  var last = performance.now();
+  function frame(now) { requestAnimationFrame(frame); var dt = Math.min(0.05, (now - last) / 1000), t = now / 1000; last = now;
+    if (phase === 'down') { pt += dt / 0.4; setUp((1 - pt) * 1.6); if (pt >= 1) { phase = 'flip'; pt = 0; var fw = next > cur; leafPivot.visible = true; leafF.material.map = fw ? spreads[cur].tex[1] : spreads[next].tex[1]; leafB.material.map = null; leafB.material.color.set(0xf3ead6); leafF.material.needsUpdate = leafB.material.needsUpdate = true; if (fw) { pageR.material.map = spreads[next].tex[1]; } else { pageL.material.map = spreads[next].tex[0]; } pageL.material.needsUpdate = pageR.material.needsUpdate = true; pops.visible = false; } }
+    else if (phase === 'flip') { pt += dt / 0.85; var u = Math.min(1, pt), e = u * u * (3 - 2 * u), fw2 = next > cur; leafPivot.rotation.z = (fw2 ? e : 1 - e) * Math.PI; leafPivot.position.y = 0.02 + Math.sin(e * Math.PI) * 0.05; if (pt >= 1) { leafPivot.visible = false; cur = next; buildSpread(cur); pops.visible = true; setUp(0); phase = 'rise'; pt = 0; eras(); } }
+    else if (phase === 'rise') { pt += dt / 1.3; setUp(pt * 1.6); if (pt >= 1) { phase = 'up'; setUp(9); } }
+    items.forEach(function (it) { if (phase !== 'up' && phase !== 'rise') return; if (it.boat) { it.pv.position.x = -3.6 + ((t * 0.35) % 1) * 7.2; it.pv.position.z = 1.5 + Math.sin(it.pv.position.x * 1.1) * 0.18; it.m.rotation.z = Math.sin(t * 2) * 0.06; it.m.position.y = Math.sin(t * 2.4) * 0.03; }
+      else if (it.you) { it.pv.position.x = -4.2 + ((t * 0.09) % 1) * 8.4; it.m.rotation.z = Math.sin(t * 7) * 0.07; it.m.position.y = Math.abs(Math.sin(t * 7)) * 0.05; }
+      else if (it.bird != null) { var a = t * 0.5 + it.bird * 0.5; it.pv.position.set(Math.cos(a) * (2.6 + it.bird * 0.3), 0.012, -0.9 + Math.sin(a * 2) * 0.5); it.m.position.y = 2.3 + Math.sin(t * 1.3 + it.bird) * 0.25; it.m.scale.y = 0.55 + 0.45 * Math.abs(Math.sin(t * 9 + it.bird)); }
+      else if (!it.person) it.m.rotation.z = Math.sin(t * 1.2 + it.x * 3) * 0.025; else it.m.scale.setScalar(sel === it.person ? 1.12 : 1); });
+    var far = cam.aspect < 1.1 ? 17.5 : 12.2; cam.position.set(mx * 2.2, far * 0.72 - my * 1.0, far * 0.86); cam.lookAt(0, 0.2, 0.7); renderer.render(scene, cam); }
+  function era(y) { for (var i = 0; i < ERAS.length; i++) if (y >= ERAS[i][1] && y < ERAS[i][2]) return i; return ERAS.length - 1; }
+  function eras() { var box = document.getElementById('eras'); box.innerHTML = ''; spreads.forEach(function (s, i) { var b = document.createElement('button'); b.textContent = s.era[0]; if (i === cur) b.className = 'on'; b.onclick = function () { turn(i); }; box.appendChild(b); }); }
+  function init(focus) { people.sort(function (a, b) { return a.year - b.year; }); spreads = ERAS.map(function (e, i) { return { era: e, people: people.filter(function (p) { return era(p.year) === i; }) }; }).filter(function (s) { return s.people.length; }); spreads.forEach(function (s, i) { s.tex = spreadTex(s.era, ERAS.indexOf(s.era)); });
+    cur = 0; if (focus) spreads.forEach(function (s, i) { if (s.people.some(function (p) { return p.id === focus; })) cur = i; }); buildSpread(cur); setUp(0); phase = 'rise'; pt = 0; eras(); }
+  var card = document.getElementById('card');
+  function show(p) { sel = p; if (!p) { card.classList.remove('on'); return; } card.querySelector('.y').textContent = spreads[cur].era[0] + ' · ' + (p.year < 0 ? '公元前 ' + (-p.year) : p.year) + ' 年生'; card.querySelector('h2').textContent = p.name; card.querySelector('p').textContent = p.note || '书页上立着的一位思想者。'; document.getElementById('go').style.display = EMBED ? '' : 'none'; card.classList.add('on'); }
+  var ray = new T.Raycaster(), down = null;
+  renderer.domElement.addEventListener('pointerdown', function (e) { down = [e.clientX, e.clientY]; });
+  addEventListener('pointermove', function (e) { mx = e.clientX / innerWidth - 0.5; my = e.clientY / innerHeight - 0.5; });
+  addEventListener('pointerup', function (e) { if (!down) return; var dx = e.clientX - down[0]; if (Math.abs(dx) > 70) { turn(cur + (dx < 0 ? 1 : -1)); down = null; return; } down = null; if (e.target !== renderer.domElement) return; ray.setFromCamera(new T.Vector2(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), cam); var hit = ray.intersectObjects(items.filter(function (it) { return it.person; }).map(function (it) { return it.m; }))[0]; show(hit ? hit.object.userData.it.person : null); });
+  addEventListener('keydown', function (e) { if (e.key === 'ArrowRight') turn(cur + 1); if (e.key === 'ArrowLeft') turn(cur - 1); if (e.key === 'Escape') { if (sel) show(null); else document.getElementById('close').click(); } });
+  document.getElementById('pl').onclick = function () { turn(cur - 1); }; document.getElementById('pr').onclick = function () { turn(cur + 1); }; document.getElementById('cx').onclick = function () { show(null); };
+  document.getElementById('go').onclick = function () { if (sel) parent.postMessage({ story: 1, op: 'goto', id: sel.id }, location.origin); };
+  document.getElementById('close').onclick = function () { if (EMBED) parent.postMessage({ story: 1, op: 'close' }, location.origin); else history.back(); };
+  document.getElementById('old').onclick = function () { location.href = 'index.html'; };
+  addEventListener('message', function (e) { var m = e.data; if (m && m.story === 1 && e.source === parent && m.op === 'people' && m.people && m.people.length) { people = m.people; init(m.focus); } });
+  people = FALL; init(); requestAnimationFrame(frame);
+  if (EMBED) parent.postMessage({ story: 1, op: 'ready' }, location.origin);
+  window.__atlas = { turn: turn, show: show, get cur() { return cur; }, get spreads() { return spreads; }, get phase() { return phase; } };
+})();
+</script>
+</body>
+</html>

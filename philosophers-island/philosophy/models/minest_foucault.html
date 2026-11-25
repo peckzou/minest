@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 福柯 · 权力与规训</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .q{padding:4px 10px 0;font-size:12.5px;color:#123}
+#side .q b{color:#a0522d}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+#side .lim{padding:2px 10px 8px;font-size:11.5px;color:#667}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>福柯 · 权力与规训</b>
+  <button class="tab on" data-l="1">① 圆形监狱</button>
+  <button class="tab" data-l="2">② 空塔</button>
+  <button class="tab" data-l="3">③ 规范化判断</button>
+  <button class="tab" data-l="4">④ 应用练习</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div>
+  <div class="q"><b>核心问题：</b>为什么一个人可能被看见，就足以让他自己管住自己？</div>
+  <div class="bd" id="sBody"></div>
+  <div class="lim"><b>适用边界：</b>画面里的“守规矩程度”“被看到的概率”是教学用的简化量。边沁的圆形监狱是一份建筑设计；福柯用它说明一种遍布学校、工厂、医院的权力机制，并不是说现代社会就是一座真实的监狱。</div>
+</div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ======== 保存与恢复 ======== */
+const KEY='minest_foucault_v1';let SAVE={lit:{},done:{}};
+const mem={};
+function load(){try{const s=localStorage.getItem(KEY);if(s)SAVE=JSON.parse(s);}catch(e){if(mem[KEY])SAVE=mem[KEY];}}
+function store(){try{localStorage.setItem(KEY,JSON.stringify(SAVE));}catch(e){mem[KEY]=JSON.parse(JSON.stringify(SAVE));}}
+load();
+
+/* ======== 原文 ======== */
+const BT='边沁《圆形监狱，或监视之屋》（1791）',SEP='据 Gutting & Oksala《斯坦福哲学百科》“Michel Foucault”词条';
+const MAP={
+1:[["拖动目光扫过各个囚室","被监视者越经常地处在监视者的眼下，这个机构的目的就实现得越完美。","the more constantly the persons to be inspected are under the eyes of the persons who should inspect them, the more perfectly will the purpose of the establishment have been attained",BT+" 第一封信"],
+   ["按住塔楼放下百叶窗","监视室的窗户装有百叶窗，高到囚犯无论用什么办法，目光都够不着。","To the windows of the lodge there are blinds, as high up as the eyes of the prisoners in their cells can, by any means they can employ, be made to reach.",BT+" 第二封信"],
+   ["百叶窗放下后：看见而不被看见","它的要点在于监视者位置居中，再加上那些人所熟知、最有效的看见而不被看见的装置。","the centrality of the inspector's situation, combined with the wellknown and most effectual contrivances for seeing without being seen",BT+" 第五封信"],
+   ["拖一个囚犯去找邻居：被隔墙挡住","对看守而言，他们是众多的人，却不是一群；对他们自己而言，他们是孤独、隔绝的个人。","to the keeper, a multitude, though not a crowd; to themselves, they are solitary and sequestered individuals.",BT+" 第八封信"]],
+2:[["按住塔楼让看守离开：塔空了","次好的办法是：他每时每刻都有理由相信自己被看着，又无法确认并非如此，于是他就以为自己被看着。","at every instant, seeing reason to believe as much, and not being able to satisfy himself to the contrary, he should conceive himself to be so",BT+" 第一封信"],
+   ["空塔里，囚犯依然守规矩","由于囚犯从不知道自己是否正被观察，他们必须表现得仿佛始终被看着。","Since inmates never know whether they are being observed, they must behave as if they are always seen and observed.",SEP+" §3.4（转述性概括）"],
+   ["守规矩靠的是“可能被看”，不是锁链","控制更多是靠被控制者内部的自我监控的可能性，而不是靠实际的监督或沉重的物理约束。","control is achieved more by the possibility of internal monitoring of those controlled than by actual supervision or heavy physical constraints",SEP+" §3.4（转述性概括）"],
+   ["囚犯试探小过失；你拖动目光去抓","试探先从轻微的违规开始，随成功程度逐步加大，他不会学不到宽松监视与严格监视的区别。","Experiment, venturing first upon slight trangressions, and so on, in proportion to success, upon more and more considerable ones, will not fail to teach him the difference between a loose inspection and a strict one.",BT+" 第五封信"],
+   ["塔空了很久，秩序仍在：看似无所不在","监视者表面上的无所不在，加上他实际到场的极大便利。","the apparent omnipresence of the inspector (if divines will allow me the expression,) combined with the extreme facility of his real presence.",BT+" 第六封信"]],
+3:[["拖动“常态线”","通过施加精确而细致的规范来进行的规训，即“规范化”，与旧式的司法惩罚截然不同。","Discipline through imposing precise and detailed norms, \u201cnormalization,\u201d is quite different from the older system of judicial punishment",SEP+" §3.4"],
+   ["先把一个人拖上刑台，再按住矫正所有人","惩罚得更少，也许；但肯定惩罚得更好。","to punish less, perhaps; but certainly to punish better",SEP+" 转引《规训与惩罚》英译本 p.82"],
+   ["按住档案柜：考试，每人一张档案","考试把个人变成一个“个案”。","The examination turns the individual into a \u201ccase\u201d",SEP+" §3.4"],
+   ["档案越积越多：知识与权力一体","力量的部署与真理的确立。","the deployment of force and the establishment of truth",SEP+" 转引《规训与惩罚》英译本 p.184"],
+   ["三种技术都用过","层级监视、规范化判断与考试。","hierarchical observation, normalizing judgment, and the examination",SEP+" §3.4"]],
+4:[["新建筑：把监视点拖进学校","无论用于什么目的……永久监狱、待审监狱、教养院、劳动院、工场、疯人院、医院，还是学校。","whether it be applied to the purposes of perpetual prisons in the room of death, or prisons for confinement before trial, or penitentiary-houses, or houses of correction, or work-houses, or manufactories, or mad-houses, or hospitals, or schools.",BT+" 第一封信"],
+   ["找到一个点，覆盖 90% 以上座位","一种获得心灵支配心灵之权力的新方式，其数量迄今前所未有。","A new mode of obtaining power of mind over mind, in a quantity hitherto without example",BT+" 序言"],
+   ["把“访客”拖进监视室：看守也被看","下级看守、仆役及各类下属，在总看守面前同样处于不可抗拒的控制之下。","the under keepers or inspectors, the servants and subordinates of every kind, will be under the same irresistible controul with respect to the head keeper or inspector",BT+" 第六封信"],
+   ["持续覆盖：学生的身体自己坐直","规训技术生产出“驯顺的身体”。","disciplinary techniques produce \u201cdocile bodies\u201d",SEP+" §3.4"]]};
+const TITLE={1:'① 圆形监狱 · 拖动目光扫过囚室；按住中央塔楼 1 秒放下或拉起百叶窗；拖一个囚犯去找邻居',2:'② 空塔 · 按住塔楼让看守离开或回来；看囚犯在空塔下的变化；拖动目光抓住试探者',3:'③ 规范化判断 · 上下拖动常态线；按住一个人矫正他；把一个人拖到左边刑台；按住右侧档案柜考试',4:'④ 应用练习 · 在新学校里拖动监视点；按住它放下百叶窗；把门外的“访客”拖进监视点'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr${SAVE.lit[l+'_'+i]?' on':''}" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const k=l+'_'+i;const e=$('mr'+k);if(SAVE.lit[k]){return;}SAVE.lit[k]=1;if(e){e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});}
+  if(MAP[l].every((_,j)=>SAVE.lit[l+'_'+j])){SAVE.done[l]=1;tabs();}store();}
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y,t0:T};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]?.move?.(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{HD[L]?.up?.();PT=null;});
+
+/* ================= 圆形监狱（第 1、2 关共用） ================= */
+const NC=12;let P;
+function initPrison(){P={gaze:0,dragGaze:false,blinds:false,occupied:true,holdT:0,holding:false,cells:[],dragP:null,emptyT:0,caught:0,sweep:new Set(),obeyHist:[]};
+  for(let i=0;i<NC;i++)P.cells.push({ox:0,oy:0,belief:1,behave:1,tryT:2+Math.random()*4,trans:0,flash:0,ph:Math.random()*6});}
+function geo(){const cx=W/2,cy=H*0.52,R=Math.min(W,H)*0.44;return{cx,cy,r0:R*0.2,r1:R*0.5,r2:R,R};}
+function cellAng(i){return (i+0.5)/NC*Math.PI*2;}
+function inGaze(i){if(!P.occupied)return false;let d=Math.abs(((cellAng(i)-P.gaze)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI);return d<Math.PI/NC*1.3;}
+function prisonDown(x,y){const g=geo();const dc=Math.hypot(x-g.cx,y-g.cy);
+  if(dc<g.r0){P.holding=true;P.holdT=0;return;}
+  for(let i=0;i<NC;i++){const a=cellAng(i),r=(g.r1+g.r2)/2;const px=g.cx+Math.cos(a)*r+P.cells[i].ox,py=g.cy+Math.sin(a)*r+P.cells[i].oy;if(Math.hypot(x-px,y-py)<18){P.dragP=i;return;}}
+  P.dragGaze=true;P.gaze=Math.atan2(y-g.cy,x-g.cx);}
+function prisonMove(x,y){const g=geo();
+  if(P.dragGaze){const a=Math.atan2(y-g.cy,x-g.cx);P.gaze=a;for(let i=0;i<NC;i++)if(inGaze(i))P.sweep.add(i);if(P.sweep.size>=8&&L===1)hit(1,0);}
+  if(P.dragP!=null){const i=P.dragP,a=cellAng(i),r=(g.r1+g.r2)/2;let ox=x-(g.cx+Math.cos(a)*r),oy=y-(g.cy+Math.sin(a)*r);
+    // 限制在本囚室扇形内：切向位移被隔墙挡住
+    const tx=-Math.sin(a),ty=Math.cos(a);const along=ox*tx+oy*ty,rad=ox*Math.cos(a)+oy*Math.sin(a);const lim=r*Math.PI/NC*0.7;
+    if(Math.abs(along)>lim){P.cells[i].bump=1;if(L===1)hit(1,3);}
+    const al=clamp(along,-lim,lim),rd=clamp(rad,-(g.r2-g.r1)*0.35,(g.r2-g.r1)*0.35);P.cells[i].ox=tx*al+Math.cos(a)*rd;P.cells[i].oy=ty*al+Math.sin(a)*rd;}}
+function prisonUp(){P.dragGaze=false;P.holding=false;P.dragP=null;}
+function prisonTick(dt,lvl){const g=geo();
+  // 按住塔楼：第 1 关切换百叶窗；第 2 关看守离开/回来
+  if(P.holding){P.holdT+=dt;if(P.holdT>1){P.holdT=-99;
+    if(lvl===1){P.blinds=!P.blinds;toast(P.blinds?'百叶窗放下：囚犯再也看不见看守在看哪里':'百叶窗拉起：囚犯能看见目光的方向');if(P.blinds){hit(1,1);}}
+    else{P.occupied=!P.occupied;toast(P.occupied?'看守回到塔里':'看守离开了。塔是空的——但囚犯看不见');if(!P.occupied)hit(2,0);}}}
+  if(lvl===2)P.blinds=true;
+  if(!P.occupied){P.emptyT+=dt;}else P.emptyT=0;
+  let obey=0,watched=0;
+  P.cells.forEach((c,i)=>{const seen=inGaze(i);if(seen)watched++;
+    if(P.blinds){ // 看不见目光：只能“相信”
+      c.tryT-=dt;if(c.tryT<=0){c.tryT=2.5+Math.random()*4;c.trans=0.35+(1-c.belief)*0.65;
+        if(seen){c.belief=1;c.flash=1;P.caught++;if(lvl===2&&P.caught>=3)hit(2,3);}else{c.belief=Math.max(0.05,c.belief-0.12*(lvl===2?1:0.6));}}
+      c.belief=Math.min(1,c.belief+dt*0.004);}
+    else{c.belief=seen?1:0.15;}
+    c.trans=Math.max(0,c.trans-dt*0.8);
+    const target=c.belief>0.5?1-c.trans*0.5:clamp(c.belief*1.4,0,1)-c.trans*0.3;
+    c.behave=lerp(c.behave,clamp(target,0,1),dt*2);obey+=c.behave;
+    c.flash=Math.max(0,c.flash-dt);c.bump=Math.max(0,(c.bump||0)-dt*2);});
+  obey/=NC;
+  if(lvl===1&&P.blinds&&obey>0.8&&P.occupied){P.okT=(P.okT||0)+dt;if(P.okT>2)hit(1,2);}
+  if(lvl===2&&!P.occupied){if(P.emptyT>3&&obey>0.75)hit(2,1);if(P.emptyT>5&&obey>0.7)hit(2,2);if(P.emptyT>10&&obey>0.6)hit(2,4);}
+  drawPrison(g,obey,watched);
+  return obey;}
+function drawPrison(g,obey,watched){
+  ctx.fillStyle='#1b2028';ctx.fillRect(0,0,W,H);
+  // 外环与囚室
+  for(let i=0;i<NC;i++){const a0=i/NC*Math.PI*2,a1=(i+1)/NC*Math.PI*2,c=P.cells[i],seen=inGaze(i);
+    ctx.beginPath();ctx.arc(g.cx,g.cy,g.r2,a0,a1);ctx.arc(g.cx,g.cy,g.r1,a1,a0,true);ctx.closePath();
+    ctx.fillStyle=seen?'rgba(255,230,150,.55)':'#2b3340';ctx.fill();ctx.strokeStyle='#5b6676';ctx.lineWidth=3;ctx.stroke();
+    // 窗户（外圈透光）
+    ctx.strokeStyle='rgba(200,220,255,.5)';ctx.lineWidth=4;ctx.beginPath();ctx.arc(g.cx,g.cy,g.r2-2,a0+0.08,a1-0.08);ctx.stroke();
+    // 栅栏
+    ctx.strokeStyle='#8a94a3';ctx.lineWidth=1;for(let k=1;k<6;k++){const aa=a0+(a1-a0)*k/6;ctx.beginPath();ctx.moveTo(g.cx+Math.cos(aa)*g.r1,g.cy+Math.sin(aa)*g.r1);ctx.lineTo(g.cx+Math.cos(aa)*(g.r1+8),g.cy+Math.sin(aa)*(g.r1+8));ctx.stroke();}
+    // 囚犯
+    const a=cellAng(i),r=(g.r1+g.r2)/2,wob=(1-c.behave)*6;
+    const px=g.cx+Math.cos(a)*r+c.ox+Math.sin(T*3+c.ph)*wob,py=g.cy+Math.sin(a)*r+c.oy+Math.cos(T*2.6+c.ph)*wob;
+    const col=c.behave>0.75?'#7dc4ff':c.behave>0.45?'#f3c46b':'#ff6b6b';
+    ctx.fillStyle=col;ctx.beginPath();ctx.arc(px,py,9,0,7);ctx.fill();ctx.fillStyle='#1b2028';ctx.fillRect(px-2,py-2,4,4);
+    if(c.trans>0.2){txt('!',px+12,py-8,'#ff8a8a',14,'center',true);}
+    if(c.flash>0){ctx.strokeStyle=`rgba(255,240,150,${c.flash})`;ctx.lineWidth=3;ctx.beginPath();ctx.arc(px,py,16,0,7);ctx.stroke();}
+    if(c.bump>0){ctx.strokeStyle=`rgba(255,120,120,${c.bump})`;ctx.lineWidth=4;const ab=a+(c.ox*-Math.sin(a)+c.oy*Math.cos(a)>0?Math.PI/NC:-Math.PI/NC);ctx.beginPath();ctx.moveTo(g.cx+Math.cos(ab)*g.r1,g.cy+Math.sin(ab)*g.r1);ctx.lineTo(g.cx+Math.cos(ab)*g.r2,g.cy+Math.sin(ab)*g.r2);ctx.stroke();}}
+  // 目光
+  if(P.occupied){const sp=Math.PI/NC*1.3;const gg=ctx.createRadialGradient(g.cx,g.cy,g.r0,g.cx,g.cy,g.r2);gg.addColorStop(0,'rgba(255,240,170,.35)');gg.addColorStop(1,'rgba(255,240,170,0)');
+    ctx.fillStyle=gg;ctx.beginPath();ctx.moveTo(g.cx,g.cy);ctx.arc(g.cx,g.cy,g.r2,P.gaze-sp,P.gaze+sp);ctx.closePath();ctx.fill();}
+  // 中央塔楼
+  ctx.fillStyle=P.blinds?'#0f1217':'#384252';ctx.beginPath();ctx.arc(g.cx,g.cy,g.r0,0,7);ctx.fill();ctx.strokeStyle='#a8b3c3';ctx.lineWidth=3;ctx.stroke();
+  if(P.blinds){ctx.strokeStyle='#5b6676';ctx.lineWidth=2;for(let k=-3;k<=3;k++){ctx.beginPath();ctx.moveTo(g.cx-g.r0*0.8,g.cy+k*g.r0*0.22);ctx.lineTo(g.cx+g.r0*0.8,g.cy+k*g.r0*0.22);ctx.stroke();}}
+  else if(P.occupied){ctx.fillStyle='#f3e0c0';ctx.beginPath();ctx.arc(g.cx+Math.cos(P.gaze)*g.r0*0.35,g.cy+Math.sin(P.gaze)*g.r0*0.35,g.r0*0.25,0,7);ctx.fill();}
+  txt(P.occupied?(P.blinds?'塔（看不进去）':'看守'):'空塔',g.cx,g.cy+g.r0+16,'#cfd6e6',12);
+  if(P.holding&&P.holdT>0){ctx.strokeStyle='#f3a52b';ctx.lineWidth=4;ctx.beginPath();ctx.arc(g.cx,g.cy,g.r0+6,-Math.PI/2,-Math.PI/2+P.holdT*Math.PI*2);ctx.stroke();}
+  // 读数
+  ctx.fillStyle='rgba(0,0,0,.45)';ctx.fillRect(10,10,200,58);
+  txt(`实际被看着：${watched} / ${NC}`,20,30,'#ffe7b5',13,'left');txt(`守规矩：${Math.round(obey*100)}%`,20,50,obey>0.7?'#7dffb0':'#ff9b9b',13,'left');
+  txt(P.blinds?'百叶窗：放下':'百叶窗：拉起',20,64,'#9fb0c3',11,'left');
+  // 守规矩历史曲线
+  P.obeyHist.push(obey);if(P.obeyHist.length>300)P.obeyHist.shift();
+  const gx=W-210,gy=12,gw=196,gh=52;ctx.fillStyle='rgba(0,0,0,.45)';ctx.fillRect(gx,gy,gw,gh);ctx.strokeStyle='#7dffb0';ctx.lineWidth=1.5;ctx.beginPath();
+  P.obeyHist.forEach((v,k)=>{const X=gx+k/300*gw,Y=gy+gh-v*gh;k?ctx.lineTo(X,Y):ctx.moveTo(X,Y);});ctx.stroke();txt('守规矩（随时间）',gx+gw/2,gy+gh+13,'#9fb0c3',11);}
+HD[1]={down:prisonDown,move:prisonMove,up:prisonUp};HD[2]={down:prisonDown,move:prisonMove,up:prisonUp};
+function t1(dt){prisonTick(dt,1);}
+function t2(dt){prisonTick(dt,2);if(!P.occupied&&P.emptyT>0.5){txt(`塔已空 ${P.emptyT.toFixed(0)} 秒`,W/2,H-12,'#ffe7b5',13);}}
+
+/* ================= 第 3 关：规范化判断 ================= */
+let Q;
+function init3(){Q={ppl:[],norm:0.6,dragNorm:false,hold:null,corrT:0,scaffold:null,scafUsed:false,exam:false,examT:0,files:[],normMoved:0,corrected:0};
+  for(let i=0;i<10;i++)Q.ppl.push({v:0.25+Math.random()*0.65,x:0,y:0,file:false,mark:0,drag:false,dx:0,dy:0});}
+function g3(){return{x0:W*0.2,x1:W*0.78,yb:H*0.85,yt:H*0.15,sx:W*0.08,fx:W*0.9};}
+function px3(i,g){return lerp(g.x0,g.x1,(i+0.5)/10);}
+function vy(v,g){return lerp(g.yb,g.yt,v);}
+HD[3]={down(x,y){const g=g3();
+  if(Math.abs(y-vy(Q.norm,g))<12&&x>g.x0-20&&x<g.x1+20){Q.dragNorm=true;return;}
+  if(x>g.fx-50){Q.exam=true;return;}
+  for(let i=0;i<10;i++){const p=Q.ppl[i],X=px3(i,g),Y=vy(p.v,g);if(Math.hypot(x-X,y-Y)<18){Q.hold={i,x,y,x0:x};return;}}},
+ move(x,y){const g=g3();if(Q.dragNorm){Q.norm=clamp((g.yb-y)/(g.yb-g.yt),0.1,0.95);Q.normMoved+=1;if(Q.normMoved>20)hit(3,0);}
+  if(Q.hold){Q.hold.x=x;Q.hold.y=y;}},
+ up(){const g=g3();if(Q.hold){const h=Q.hold;if(h.x<g.x0-30&&Math.abs(h.x-h.x0)>40){Q.scaffold={i:h.i,t:0};Q.scafUsed=true;toast('公开的刑罚：轰动一时，却只落在一个人身上');}Q.hold=null;}Q.dragNorm=false;Q.exam=false;}};
+function t3(dt){const g=g3();ctx.fillStyle='#efe9df';ctx.fillRect(0,0,W,H);
+  // 刑台
+  ctx.fillStyle='#6b3a2a';ctx.fillRect(g.sx-40,g.yb-60,80,60);ctx.fillRect(g.sx-4,g.yb-140,8,80);ctx.fillRect(g.sx-30,g.yb-140,60,6);txt('刑台（旧式惩罚）',g.sx,g.yb+16,'#6b3a2a',12);
+  // 档案柜
+  ctx.fillStyle='#4f6b86';ctx.fillRect(g.fx-40,g.yb-150,80,150);for(let k=0;k<4;k++){ctx.fillStyle='#6f8aa6';ctx.fillRect(g.fx-34,g.yb-144+k*36,68,30);}txt('档案（按住：考试）',g.fx,g.yb+16,'#4f6b86',12);
+  txt(`档案：${Q.files.length} 份`,g.fx,g.yb-160,'#223',12);
+  // 坐标
+  ctx.strokeStyle='#bbb';ctx.beginPath();ctx.moveTo(g.x0-20,g.yb);ctx.lineTo(g.x1+20,g.yb);ctx.stroke();
+  txt('规范要求的程度（坐姿 / 成绩 / 出勤……）',W*0.49,g.yt-12,'#556',12);
+  // 常态线
+  const ny=vy(Q.norm,g);ctx.strokeStyle='#3a6f99';ctx.lineWidth=3;ctx.setLineDash([8,5]);ctx.beginPath();ctx.moveTo(g.x0-20,ny);ctx.lineTo(g.x1+20,ny);ctx.stroke();ctx.setLineDash([]);
+  txt('常态线（拖动）',g.x1+24,ny+4,'#3a6f99',12,'left');
+  // 矫正：按住某人，他被拉向常态，其他“不正常者”也随之被注视
+  let abn=0;
+  Q.ppl.forEach((p,i)=>{if(Q.hold&&Q.hold.i===i&&Math.abs(Q.hold.x-Q.hold.x0)<40){p.v=lerp(p.v,Q.norm+0.02,dt*1.2);Q.corrT+=dt;}
+    if(Q.scaffold&&Q.scaffold.i===i){}
+    const X=px3(i,g),Y=vy(p.v,g),below=p.v<Q.norm-0.03;if(below)abn++;
+    ctx.strokeStyle=below?'rgba(198,40,40,.5)':'rgba(58,111,153,.35)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X,g.yb);ctx.lineTo(X,Y);ctx.stroke();
+    let dx=X,dy=Y;if(Q.hold&&Q.hold.i===i&&Math.abs(Q.hold.x-Q.hold.x0)>=40){dx=Q.hold.x;dy=Q.hold.y;}
+    ctx.fillStyle=below?'#c0392b':'#3a6f99';ctx.beginPath();ctx.arc(dx,dy,11,0,7);ctx.fill();
+    if(below)txt('不正常',X,Y-16,'#c0392b',11);if(p.file)txt('📁',X+14,Y-10,'#223',11);});
+  if(Q.corrT>0.5){Q.corrected=Q.corrT;}
+  if(Q.scafUsed&&Q.corrT>4)hit(3,1);
+  if(Q.scaffold){Q.scaffold.t+=dt;const k=Q.scaffold.t;ctx.fillStyle=`rgba(255,120,60,${Math.max(0,0.8-k*0.3)})`;ctx.beginPath();ctx.arc(g.sx,g.yb-150,30+k*20,0,7);ctx.fill();if(k>3)Q.scaffold=null;}
+  // 考试：按住，档案逐个飞入
+  if(Q.exam){Q.examT+=dt;if(Q.examT>0.4){Q.examT=0;const idx=Q.files.length%10;Q.ppl[idx].file=true;Q.files.push({i:idx,v:Q.ppl[idx].v,t:0});hit(3,2);if(Q.files.length>=10)hit(3,3);}}
+  Q.files.slice(-6).forEach(f=>{f.t+=dt;if(f.t<1){const X=lerp(px3(f.i,g),g.fx,f.t),Y=lerp(vy(f.v,g),g.yb-80,f.t);ctx.fillStyle='#fff';ctx.strokeStyle='#4f6b86';ctx.fillRect(X-9,Y-11,18,22);ctx.strokeRect(X-9,Y-11,18,22);}});
+  if(Q.normMoved>20&&Q.files.length>0&&SAVE.lit['1_0'])hit(3,4);
+  if(Q.normMoved>20&&Q.files.length>0&&Q.corrT>1)hit(3,4);
+  txt(`被判为“不正常”：${abn} 人（拖动常态线，人数随之改变）`,W*0.49,H-10,'#223',13);}
+
+/* ================= 第 4 关：应用练习 · 学校 ================= */
+let S;
+function init4(){S={pt:{x:0.2,y:0.8},drag:false,blinds:false,holdT:0,hold:false,visitor:{x:0.95,y:0.9},dragV:false,watched:false,covT:0,desks:[],walls:[]};
+  for(let r=0;r<4;r++)for(let c=0;c<6;c++)S.desks.push({x:0.22+c*0.11,y:0.2+r*0.17,sit:0});
+  S.walls=[[0.38,0.12,0.38,0.42],[0.6,0.55,0.6,0.85],[0.15,0.5,0.3,0.5]];}
+const P4=p=>[W*p.x,H*p.y];
+function segInt(ax,ay,bx,by,cx,cy,dx,dy){const d=(bx-ax)*(dy-cy)-(by-ay)*(dx-cx);if(Math.abs(d)<1e-9)return false;const u=((cx-ax)*(dy-cy)-(cy-ay)*(dx-cx))/d,v=((cx-ax)*(by-ay)-(cy-ay)*(bx-ax))/d;return u>0&&u<1&&v>0&&v<1;}
+HD[4]={down(x,y){const [px,py]=P4(S.pt);if(Math.hypot(x-px,y-py)<22){S.drag=true;S.hold=true;S.holdT=0;S.downX=x;S.downY=y;return;}
+  const [vx,vy2]=P4(S.visitor);if(Math.hypot(x-vx,y-vy2)<22){S.dragV=true;}},
+ move(x,y){if(S.drag&&Math.hypot(x-S.downX,y-S.downY)>6){S.hold=false;S.pt.x=clamp(x/W,0.08,0.92);S.pt.y=clamp(y/H,0.08,0.95);hit(4,0);}
+  if(S.dragV){S.visitor.x=clamp(x/W,0.02,0.98);S.visitor.y=clamp(y/H,0.05,0.97);}},
+ up(){S.drag=false;S.hold=false;if(S.dragV){S.dragV=false;const [px,py]=P4(S.pt),[vx,vy2]=P4(S.visitor);if(Math.hypot(px-vx,py-vy2)<40){S.watched=true;hit(4,2);toast('访客走进监视点：看守自己也处在被看之中');}}}};
+function t4(dt){ctx.fillStyle='#e9e4d8';ctx.fillRect(0,0,W,H);ctx.strokeStyle='#5a4a3a';ctx.lineWidth=6;ctx.strokeRect(W*0.06,H*0.06,W*0.88,H*0.9);
+  ctx.fillStyle='#e9e4d8';ctx.fillRect(W*0.9,H*0.82,W*0.06,H*0.12);txt('门',W*0.93,H*0.8,'#5a4a3a',12);
+  if(S.hold){S.holdT+=dt;if(S.holdT>1){S.holdT=-99;S.blinds=!S.blinds;toast(S.blinds?'监视点装上百叶窗：学生看不见老师在看谁':'百叶窗拉起');}}
+  const [px,py]=P4(S.pt);
+  ctx.strokeStyle='#5a4a3a';ctx.lineWidth=8;S.walls.forEach(w=>{ctx.beginPath();ctx.moveTo(W*w[0],H*w[1]);ctx.lineTo(W*w[2],H*w[3]);ctx.stroke();});
+  let vis=0;
+  S.desks.forEach(d=>{const dx=W*d.x,dy=H*d.y;const blocked=S.walls.some(w=>segInt(px,py,dx,dy,W*w[0],H*w[1],W*w[2],H*w[3]));const seen=!blocked;if(seen)vis++;
+    if(seen){ctx.strokeStyle='rgba(255,210,100,.25)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(dx,dy);ctx.stroke();}
+    const belief=seen?(S.blinds?1:0.8):0.1;d.sit=lerp(d.sit,belief*(S.covT>3?1:0.8),dt*1.5);
+    ctx.fillStyle='#b89a6a';ctx.fillRect(dx-16,dy+4,32,10);
+    const lean=(1-d.sit)*0.7*Math.sin(T*2+d.x*10);ctx.save();ctx.translate(dx,dy);ctx.rotate(lean);ctx.fillStyle=seen?'#3a6f99':'#c0392b';ctx.beginPath();ctx.arc(0,-14,7,0,7);ctx.fill();ctx.fillRect(-6,-7,12,13);ctx.restore();});
+  const cov=vis/S.desks.length;
+  if(cov>=0.9&&S.blinds){S.covT+=dt;if(S.covT>2)hit(4,1);if(S.covT>6)hit(4,3);}else S.covT=Math.max(0,S.covT-dt);
+  ctx.fillStyle=S.blinds?'#1b2028':'#f3a52b';ctx.beginPath();ctx.arc(px,py,16,0,7);ctx.fill();ctx.strokeStyle='#5a4a3a';ctx.lineWidth=2;ctx.stroke();
+  if(S.hold&&S.holdT>0){ctx.strokeStyle='#f3a52b';ctx.lineWidth=4;ctx.beginPath();ctx.arc(px,py,22,-Math.PI/2,-Math.PI/2+S.holdT*Math.PI*2);ctx.stroke();}
+  txt(S.blinds?'监视点（百叶窗）':'监视点',px,py+30,'#223',12);
+  const [vx,vy2]=P4(S.visitor);ctx.fillStyle=S.watched?'#7dffb0':'#6b4e7c';ctx.beginPath();ctx.arc(vx,vy2,11,0,7);ctx.fill();txt('访客（公众）',vx,vy2-16,'#6b4e7c',11);
+  ctx.fillStyle='rgba(255,255,255,.85)';ctx.fillRect(W*0.07,H*0.07,230,44);
+  txt(`可见座位：${vis} / ${S.desks.length}（${Math.round(cov*100)}%）`,W*0.07+10,H*0.07+19,cov>=0.9?'#1f5e2f':'#b00020',13,'left');
+  txt(cov>=0.9?(S.blinds?`保持 ${S.covT.toFixed(1)} s`:'按住监视点 1 秒装上百叶窗'):'墙挡住了视线：换个位置',W*0.07+10,H*0.07+37,'#556',12,'left');}
+
+/* ======== 调度 ======== */
+const INIT={1:initPrison,2:()=>{initPrison();P.blinds=true;},3:init3,4:init4},TICK={1:t1,2:t2,3:t3,4:t4};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!SAVE.done[t.dataset.l]);});}
+function go(n){L=n;tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();SAVE.level=L;store();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{INIT[L]();toast('已重置本关（已点亮的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(SAVE.level||1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

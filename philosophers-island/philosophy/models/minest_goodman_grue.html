@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 古德曼新归纳之谜 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .core{padding:4px 10px;font-size:12.5px;color:#2c3e50;background:#e6edf3;border-bottom:1px solid #d5d8de}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+#side .bound{padding:4px 10px 8px;font-size:11.5px;color:#667}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>古德曼 · 新归纳之谜</b>
+  <button class="tab on" data-l="1">① 绿与绿蓝</button>
+  <button class="tab" data-l="2">② 时刻 t</button>
+  <button class="tab" data-l="3">③ 语言的对称</button>
+  <button class="tab" data-l="4">④ 根深蒂固</button>
+  <button class="tab" data-l="5">⑤ 应用练习</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div>
+  <div class="core"><b>核心问题：</b>同样的证据支持“所有绿宝石都是绿的”，也同样支持“所有绿宝石都是绿蓝的”。我们凭什么只拿“绿”去预测未来？</div>
+  <div class="bd" id="sBody"></div>
+  <div class="bound"><b>适用边界：</b>“绿蓝”（grue）出自古德曼《事实、虚构与预测》第三章；本模型中的矿井、时间轴、语言转盘、天平都是教学比喻。时刻 t 与“根深蒂固程度”的数值是演示假设，不是古德曼给出的量。古德曼原书受版权保护，除一条定义外，引文均为斯坦福哲学百科《Nelson Goodman》词条（2024 年修订）的概述句，标“词条概述”。</div>
+</div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ===== 原文对应（斯坦福哲学百科 Cohnitz & Rossberg《Nelson Goodman》2024 修订版；中文为编译） ===== */
+const SEP='据 SEP《Nelson Goodman》';
+const MAP={
+1:[["按住矿井：在 t 之前一颗颗检验绿宝石","（词条概述）“绿蓝”这个谓词适用于：在未来某一时刻 t 之前被检验且是绿的东西，或者未经这样检验而是蓝的东西。","This predicate applies to all things examined before some future time",SEP+" §5.3（词条概述）"],
+   ["两本笔记一样厚：两条假说被同等确证","（词条概述）这些“绿蓝证据”合在一起确证“所有绿宝石都是绿蓝的”，其程度与“绿证据”确证“所有绿宝石都是绿的”完全相同。","they confirm this hypothesis to the exact same degree as the green-evidence statements confirmed the hypothesis that all emeralds are green",SEP+" §5.3（词条概述）"]],
+2:[["拖动“现在”逼近 t：两种预测分岔","（词条概述）我们得到两个互不相容的预测，它们被过去的证据确证到同样的程度。","We have two mutually incompatible predictions, both confirmed to the same degree by the past evidence.",SEP+" §5.3（词条概述）"],
+   ["把 t 拖到别处：又多出一个谓词","（词条概述）我们显然可以定义无穷多个类似“绿蓝”的谓词，它们都会导出新的、同样互不相容的预测。","We could obviously define infinitely many grue-like predicates that would all lead to new, similarly incompatible predictions.",SEP+" §5.3（词条概述）"],
+   ["拖动“现在”越过 t：只有一个预测还站得住","（词条概述）对于有效的归纳推理，谓词的选择是要紧的。","For valid inductive inferences the choice of predicates matters.",SEP+" §5.3（词条概述）"]],
+3:[["转动语言转盘：以绿蓝、蓝绿为基本谓词","（词条概述）两种语言在全部语义和句法性质上都是对称的。","Both languages are symmetrical in all their semantic and syntactical properties.",SEP+" §5.3（词条概述）"],
+   ["再转回来：“含时刻 t”的总是对面那一对","（词条概述）因此，谓词是否“含位置”，在语言上等价的变换之下并不是不变的。","So the positionality of predicates is not invariant with respect to linguistically equivalent transformations.",SEP+" §5.3（词条概述）"]],
+4:[["看天平：两条假说记录相同，却向“绿”倾斜","（词条概述）“绿”这类谓词胜过“绿蓝”这类谓词，因为前者根深蒂固得多。","predicates like “green” are favored over predicates like “grue”, because the former are much better entrenched",SEP+" §5.4（词条概述）"],
+   ["按住“绿蓝”使劲投射：仍被压过","（词条概述）如果两条假说的经验记录相同，使用更根深蒂固谓词的那条就压过其他假说。","If two hypotheses are the same with respect to their empirical track-record, then the hypothesis that uses the better entrenched predicates overrides the alternatives.",SEP+" §5.4（词条概述）"],
+   ["把假说拖进“可投射”托盘","一个假说是可投射的，当且仅当它得到支持、未被违反、未被穷尽，并且所有与它冲突的假说都被压过。","A hypothesis is projectible iff it is supported, unviolated, and unexhausted, and all hypotheses conflicting with it are overridden.","古德曼《事实、虚构与预测》（FFF, 108），"+SEP+" §5.4 转引"]],
+5:[["新情境：自己造一个“蓝绿”式谓词并检验蓝宝石","（词条概述）有些谓词（像“绿”）可以用来归纳；另一些（像“绿蓝”）必须排除，归纳才说得通。","Some predicates … can be used for this; other predicates … must be excluded, if induction is supposed to make any sense.",SEP+" §5.3（词条概述）"],
+   ["按根深蒂固程度选出要投射的假说","（词条概述）休谟的解决也许不完整，但基本上是正确的。","Hume’s solution might be incomplete, but it is basically correct.",SEP+" §5.2（词条概述）"]]};
+const TITLE={1:'① 绿与绿蓝 · 按住左侧矿井，在时刻 t 之前一颗颗检验绿宝石；看右边两本笔记',2:'② 时刻 t · 拖动“现在”滑块逼近并越过 t；拖动橙色 t 标记换到别的时刻',3:'③ 语言的对称 · 拖动转盘旋转，换一套基本谓词',4:'④ 根深蒂固 · 看天平；按住“绿蓝”一侧投射；把假说卡拖进“可投射”托盘',5:'⑤ 应用练习 · 蓝宝石：拖动 t 造出“蓝绿”谓词，按住检验，再把你要投射的假说拖进托盘'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——${r[3]}</div></div></div>`).join('');}
+const DONE={},LIT={};
+function hit(l,i){if(LIT[l+'_'+i])return;LIT[l+'_'+i]=1;save();const e=$('mr'+l+'_'+i);if(e){e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});}
+  if(MAP[l].every((_,k)=>LIT[l+'_'+k])){DONE[l]=1;tabs();save();}}
+
+/* ===== 保存与恢复 ===== */
+const KEY='minest_goodman_v1';let MEM=null;
+const S={n1:0,now:0.2,t:0.6,tSet:[],passed:false,ang:0,flips:0,base:0,entG:0.9,entQ:0.04,trayOK:false,n5:0,t5:0.55,made5:false,done5:false};
+function save(){const d=JSON.stringify({S,DONE,LIT,L});try{localStorage.setItem(KEY,d);}catch(e){MEM=d;}}
+function load(){let d=null;try{d=localStorage.getItem(KEY);}catch(e){d=MEM;}if(!d)return;try{const o=JSON.parse(d);Object.assign(S,o.S||{});Object.assign(DONE,o.DONE||{});Object.assign(LIT,o.LIT||{});if(o.L)L=o.L;}catch(e){}}
+load();
+
+/* ===== 输入 ===== */
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y,dx:0,dy:0};cv.setPointerCapture(e.pointerId);HD[L]&&HD[L].down&&HD[L].down(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]&&HD[L].move&&HD[L].move(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]&&HD[L].up&&HD[L].up();save();});
+
+/* ===== 绘制工具 ===== */
+const GREEN='#2fa35a',BLUE='#2f6fd6';
+function gem(x,y,r,col,glow){ctx.save();ctx.translate(x,y);ctx.beginPath();for(let i=0;i<6;i++){const a=i/6*6.283+0.52;i?ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r):ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r);}ctx.closePath();
+  if(glow){ctx.shadowColor=col;ctx.shadowBlur=14;}ctx.fillStyle=col;ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-r*.5,-r*.2);ctx.lineTo(0,-r*.7);ctx.lineTo(r*.5,-r*.2);ctx.strokeStyle='rgba(255,255,255,.4)';ctx.stroke();ctx.restore();}
+function bar(x,y,w,v,col,label){ctx.fillStyle='#e3e7ec';ctx.fillRect(x,y,w,12);ctx.fillStyle=col;ctx.fillRect(x,y,w*clamp(v,0,1),12);ctx.strokeStyle='#9aa';ctx.strokeRect(x,y,w,12);txt(label,x,y-4,'#334',12,'left');}
+function timeline(y,now,tt,opts){const x0=W*0.08,x1=W*0.92;ctx.strokeStyle='#8a97a6';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x1,y);ctx.stroke();
+  const tx=lerp(x0,x1,tt),nx=lerp(x0,x1,now);
+  ctx.fillStyle='rgba(47,163,90,.12)';ctx.fillRect(x0,y-14,tx-x0,28);ctx.fillStyle='rgba(47,111,214,.10)';ctx.fillRect(tx,y-14,x1-tx,28);
+  ctx.fillStyle='#f3a52b';ctx.beginPath();ctx.moveTo(tx,y-20);ctx.lineTo(tx-9,y-34);ctx.lineTo(tx+9,y-34);ctx.fill();txt('t',tx,y-38,'#a0620a',14,'center',true);
+  ctx.fillStyle='#1f2b38';ctx.beginPath();ctx.arc(nx,y,10,0,7);ctx.fill();txt('现在',nx,y+28,'#1f2b38',12);
+  if(opts&&opts.labels){txt('t 之前：已检验',lerp(x0,tx,.5),y+48,'#2f6f44',11);txt('t 之后：尚未检验',lerp(tx,x1,.5),y+48,'#2f4f8f',11);}
+  return{x0,x1,tx,nx};}
+
+/* ================= ① 绿与绿蓝 ================= */
+let A1;
+function init1(){A1={hold:false,acc:0,fly:[]};}
+HD[1]={down(x){if(x<W*0.42)A1.hold=true;},up(){A1.hold=false;}};
+function t1(dt){ctx.fillStyle='#f5f2ea';ctx.fillRect(0,0,W,H);
+  // 矿井
+  const mx=W*0.2,my=H*0.62;ctx.fillStyle='#5b4632';ctx.beginPath();ctx.moveTo(mx-W*0.14,my+H*0.25);ctx.lineTo(mx-W*0.08,my-H*0.12);ctx.lineTo(mx+W*0.08,my-H*0.12);ctx.lineTo(mx+W*0.14,my+H*0.25);ctx.fill();
+  ctx.fillStyle='#2a1f15';ctx.beginPath();ctx.ellipse(mx,my-H*0.12,W*0.08,H*0.04,0,0,7);ctx.fill();
+  txt(A1.hold?'检验中……':'按住这里：从矿井取出绿宝石检验',mx,my+H*0.31,'#5b4632',13);
+  txt('全部检验发生在时刻 t 之前',mx,H*0.08,'#a0620a',13,'center',true);
+  if(A1.hold){A1.acc+=dt*(1.2+S.n1*0.05);if(A1.acc>1){A1.acc=0;S.n1++;A1.fly.push({k:0,i:S.n1});if(S.n1>=3)hit(1,0);if(S.n1>=12)hit(1,1);}}
+  // 笔记
+  const nx=W*0.48,nw=W*0.24,ny=H*0.1,nh=H*0.62;
+  [['笔记 A：“绿”',GREEN,'是绿的'],['笔记 B：“绿蓝”','#3a8a8a','是绿蓝的']].forEach(([ti,c,w],j)=>{const x=nx+j*(nw+W*0.02);
+    ctx.fillStyle='#fffdf5';ctx.fillRect(x,ny,nw,nh);ctx.strokeStyle='#c9c0aa';ctx.strokeRect(x,ny,nw,nh);txt(ti,x+nw/2,ny-6,c,13,'center',true);
+    const rows=Math.min(S.n1,Math.floor(nh/18)-1);for(let i=0;i<rows;i++){const id=S.n1-rows+i+1;txt(`#${id} 于 t 前检验 · ${w}`,x+8,ny+18+i*18,'#333',11.5,'left');}});
+  A1.fly.forEach(f=>{f.k+=dt*1.4;const x=lerp(mx,nx+nw,f.k),y=lerp(my-H*0.12,ny+nh*0.4,f.k)-Math.sin(f.k*3.14)*H*0.2;gem(x,y,12,GREEN,true);});A1.fly=A1.fly.filter(f=>f.k<1);
+  // 确证条
+  const c=1-1/(1+S.n1*0.12);bar(nx,ny+nh+28,nw,c,GREEN,'“所有绿宝石都是绿的”被确证');bar(nx+nw+W*0.02,ny+nh+28,nw,c,'#3a8a8a','“所有绿宝石都是绿蓝的”被确证');
+  if(S.n1>=12)txt('两条假说的证据一条不差：每一句“是绿的”，都等价于一句“是绿蓝的”',W*0.62,H*0.97,'#1f2b38',13);
+  else txt(`已检验 ${S.n1} 颗`,W*0.62,H*0.97,'#556',13);}
+
+/* ================= ② 时刻 t ================= */
+let A2;
+function init2(){A2={drag:null,reveal:0};if(S.now>=S.t)S.now=S.t-0.25;}
+HD[2]={down(x,y){const g=timeline(H*0.22,S.now,S.t);if(Math.abs(x-g.tx)<22&&y<H*0.22-8)A2.drag='t';else if(Math.abs(x-g.nx)<26)A2.drag='now';else if(Math.abs(y-H*0.22)<30)A2.drag='now';},
+ move(x){if(!A2.drag)return;const x0=W*0.08,x1=W*0.92,v=clamp((x-x0)/(x1-x0),0.02,0.98);
+  if(A2.drag==='now')S.now=v;else{if(S.now<S.t||true){S.t=clamp(v,0.15,0.95);const key=Math.round(S.t*20);if(!S.tSet.includes(key))S.tSet.push(key);if(S.tSet.length>=3)hit(2,1);}}},
+ up(){A2.drag=null;}};
+function t2(dt){ctx.fillStyle='#f5f2ea';ctx.fillRect(0,0,W,H);const g=timeline(H*0.22,S.now,S.t,{labels:true});
+  const before=S.now<S.t,close=before&&S.t-S.now<0.12;
+  if(close)hit(2,0);
+  if(!before){A2.reveal=Math.min(1,A2.reveal+dt);if(A2.reveal>0.6){S.passed=true;hit(2,2);}}else A2.reveal=Math.max(0,A2.reveal-dt*2);
+  // 下一颗：t 之后首次检验的绿宝石
+  const cx=W*0.5,cy=H*0.66;
+  ctx.fillStyle='#e8e2d4';ctx.fillRect(cx-W*0.38,cy-H*0.22,W*0.76,H*0.42);txt('下一颗：t 之后才第一次被检验的绿宝石',cx,cy-H*0.24,'#334',13,'center',true);
+  // 两种预测
+  const split=before?clamp(1-(S.t-S.now)/0.35,0,1):1;
+  const ly=cy-H*0.02;
+  [['依“绿”的预测：它是绿的',GREEN,-1],['依“绿蓝”的预测：它是绿蓝的，即蓝的',BLUE,1]].forEach(([s,c,d])=>{const x=cx+d*W*0.17*split;ctx.globalAlpha=0.35+0.65*split;gem(x,ly,26,c,split>0.8);ctx.globalAlpha=1;txt(s,x,ly+48,c,12.5,'center',true);});
+  if(split<0.2)txt('离 t 还远：两种预测看起来重合在一起',cx,ly-44,'#667',12);
+  else if(before)txt('两种预测分岔了：过去的证据同等地支持二者',cx,ly-44,'#b00020',13,'center',true);
+  if(A2.reveal>0.05){ctx.globalAlpha=A2.reveal;ctx.fillStyle='rgba(255,255,255,.9)';ctx.fillRect(cx-W*0.1,cy+H*0.1,W*0.2,H*0.1);gem(cx-W*0.05,cy+H*0.15,14,GREEN,true);txt('实际：绿的',cx+W*0.03,cy+H*0.16,GREEN,13,'center',true);ctx.globalAlpha=1;
+    txt('“绿蓝”的预测落空了——但这只有越过 t 之后才知道',cx,H*0.97,'#1f2b38',13);}
+  else txt(`已试过 ${S.tSet.length} 个不同的 t：每个 t 都定义出一个新的“绿蓝”`,cx,H*0.97,'#556',12.5);}
+
+/* ================= ③ 语言的对称 ================= */
+let A3;
+function init3(){A3={drag:false,last:null};}
+HD[3]={down(x,y){const cx=W*0.3,cy=H*0.52,R=Math.min(W,H)*0.3;if(Math.hypot(x-cx,y-cy)<R*1.15){A3.drag=true;A3.last=Math.atan2(y-cy,x-cx);}},
+ move(x,y){if(!A3.drag)return;const cx=W*0.3,cy=H*0.52,a=Math.atan2(y-cy,x-cx);let d=a-A3.last;if(d>Math.PI)d-=6.283;if(d<-Math.PI)d+=6.283;S.ang+=d;A3.last=a;
+  const b=(Math.round(S.ang/Math.PI)%2+2)%2;if(b!==S.base){S.base=b;S.flips++;if(S.flips>=1)hit(3,0);if(S.flips>=2)hit(3,1);toast(b?'现在的基本谓词：绿蓝、蓝绿':'现在的基本谓词：绿、蓝');}},
+ up(){A3.drag=false;}};
+function t3(dt){ctx.fillStyle='#eef1f5';ctx.fillRect(0,0,W,H);const cx=W*0.3,cy=H*0.52,R=Math.min(W,H)*0.3;
+  if(!A3.drag){const target=Math.round(S.ang/Math.PI)*Math.PI;S.ang=lerp(S.ang,target,dt*4);}
+  ctx.save();ctx.translate(cx,cy);ctx.rotate(S.ang);
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(0,0,R,0,7);ctx.fill();ctx.strokeStyle='#9aa7b6';ctx.lineWidth=3;ctx.stroke();
+  [['绿',GREEN,-0.5],['蓝',BLUE,0.5]].forEach(([s,c,a])=>{ctx.save();ctx.rotate(a-Math.PI/2);ctx.translate(0,-R*0.68);ctx.fillStyle=c;ctx.beginPath();ctx.arc(0,0,R*0.2,0,7);ctx.fill();ctx.rotate(-(a-Math.PI/2)-S.ang);txt(s,0,6,'#fff',18,'center',true);ctx.restore();});
+  [['绿蓝','#3a8a8a',-0.5],['蓝绿','#6a5ab0',0.5]].forEach(([s,c,a])=>{ctx.save();ctx.rotate(a+Math.PI/2);ctx.translate(0,-R*0.68);ctx.fillStyle=c;ctx.beginPath();ctx.arc(0,0,R*0.2,0,7);ctx.fill();ctx.rotate(-(a+Math.PI/2)-S.ang);txt(s,0,6,'#fff',16,'center',true);ctx.restore();});
+  ctx.restore();
+  ctx.fillStyle='#1f2b38';ctx.beginPath();ctx.moveTo(cx,cy-R-6);ctx.lineTo(cx-12,cy-R-26);ctx.lineTo(cx+12,cy-R-26);ctx.fill();txt('基本谓词（顶部一对）',cx,cy-R-32,'#1f2b38',12);
+  // 定义板
+  const px=W*0.58,pw=W*0.38,py=H*0.12;const base=S.base?['绿蓝','蓝绿']:['绿','蓝'],other=S.base?['绿','蓝']:['绿蓝','蓝绿'];
+  ctx.fillStyle='#fff';ctx.fillRect(px,py,pw,H*0.72);ctx.strokeStyle='#c9d1da';ctx.strokeRect(px,py,pw,H*0.72);
+  txt(`基本谓词：${base[0]}、${base[1]}（无需定义）`,px+12,py+28,'#1f2b38',14,'left',true);
+  txt('用它们来定义另一对：',px+12,py+60,'#556',13,'left');
+  const defs=[`${other[0]}  =  在 t 前检验且${base[0]}，`,`         或未在 t 前检验且${base[1]}`,`${other[1]}  =  在 t 前检验且${base[1]}，`,`         或未在 t 前检验且${base[0]}`];
+  defs.forEach((d,i)=>{txt(d,px+12,py+92+i*26,'#223',13.5,'left');});
+  ctx.fillStyle='rgba(243,165,43,.25)';ctx.fillRect(px+8,py+186,pw-16,46);txt(`“含时刻 t”的是：${other[0]}、${other[1]}`,px+pw/2,py+214,'#a0620a',14,'center',true);
+  txt(S.flips<1?'拖动左侧转盘转半圈':S.flips<2?'再转回来看看':'无论以哪一对为基本，对面那一对都“含 t”：形式上分不出谁更自然',W*0.5,H*0.97,'#1f2b38',13);}
+
+/* ================= ④ 根深蒂固 ================= */
+let A4;
+function init4(){A4={holdQ:false,drag:null,dx:0,dy:0,tilt:0,watch:0,holdT:0,hist:[]};for(let i=0;i<40;i++)A4.hist.push({x:Math.random(),y:Math.random(),g:Math.random()<0.97});}
+const C4=()=>({sx:W*0.5,sy:H*0.36,cards:[{id:'g',x:W*0.18,y:H*0.82,lab:'所有绿宝石都是绿的'},{id:'q',x:W*0.4,y:H*0.82,lab:'所有绿宝石都是绿蓝的'}],tray:{x:W*0.78,y:H*0.82,w:W*0.18,h:H*0.14},qx:W*0.9,qy:H*0.3});
+HD[4]={down(x,y){const c=C4();if(Math.hypot(x-c.qx,y-c.qy)<50){A4.holdQ=true;return;}
+  c.cards.forEach(k=>{if(Math.abs(x-k.x)<W*0.1&&Math.abs(y-k.y)<22)A4.drag={id:k.id,x,y};});},
+ move(x,y){if(A4.drag){A4.drag.x=x;A4.drag.y=y;}},
+ up(){A4.holdQ=false;if(A4.drag){const c=C4(),t=c.tray;if(Math.abs(A4.drag.x-t.x)<t.w/2&&Math.abs(A4.drag.y-t.y)<t.h/2){
+    if(A4.drag.id==='g'){S.trayOK=true;hit(4,2);toast('得到支持、未被违反、未被穷尽，且对手被压过：可投射');}else toast('被弹回：与它冲突的“绿”假说根深蒂固得多，它被压过了');}A4.drag=null;}}};
+function t4(dt){ctx.fillStyle='#f3f0ea';ctx.fillRect(0,0,W,H);const c=C4();
+  // 历史：过去的投射记录
+  ctx.fillStyle='rgba(0,0,0,.04)';ctx.fillRect(W*0.02,H*0.04,W*0.2,H*0.6);txt('过去被投射过的假说',W*0.12,H*0.03+10,'#556',11);
+  A4.hist.forEach(h=>{const x=W*0.03+h.x*W*0.18,y=H*0.07+h.y*H*0.55;ctx.fillStyle=h.g?GREEN:'#3a8a8a';ctx.fillRect(x,y,10,6);});
+  if(A4.holdQ){A4.holdT+=dt;S.entQ=Math.min(0.3,S.entQ+dt*0.01);if(Math.random()<dt*3)A4.hist.push({x:Math.random(),y:Math.random(),g:false});if(A4.holdT>3)hit(4,1);}
+  S.entG=Math.min(0.98,S.entG+dt*0.002);
+  // 天平
+  const diff=S.entG-S.entQ;A4.tilt=lerp(A4.tilt,clamp(diff,-1,1)*0.32,dt*2);A4.watch+=dt;if(A4.watch>2)hit(4,0);
+  const sx=c.sx,sy=c.sy,arm=W*0.17;ctx.fillStyle='#6b5a44';ctx.fillRect(sx-5,sy,10,H*0.24);ctx.fillRect(sx-40,sy+H*0.24,80,8);
+  ctx.save();ctx.translate(sx,sy);ctx.rotate(A4.tilt);ctx.fillStyle='#8a7a60';ctx.fillRect(-arm,-4,arm*2,8);
+  [[-arm,'“绿”假说',GREEN],[arm,'“绿蓝”假说','#3a8a8a']].forEach(([px,l,col])=>{ctx.save();ctx.translate(px,0);ctx.rotate(-A4.tilt);ctx.strokeStyle='#8a7a60';ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-30,50);ctx.moveTo(0,0);ctx.lineTo(30,50);ctx.stroke();
+    ctx.fillStyle='#d9cdb5';ctx.fillRect(-40,50,80,8);gem(0,36,14,col);txt(l,0,80,col,12,'center',true);ctx.restore();});
+  ctx.restore();
+  txt('经验记录：两边完全相同（检验过的每一颗都既绿又绿蓝）',sx,H*0.08,'#334',12.5);
+  bar(W*0.62,H*0.58,W*0.16,S.entG,GREEN,'“绿”的根深蒂固程度');bar(W*0.62,H*0.68,W*0.16,S.entQ,'#3a8a8a','“绿蓝”的根深蒂固程度');
+  // 按住区
+  ctx.fillStyle=A4.holdQ?'#3a8a8a':'rgba(58,138,138,.18)';ctx.beginPath();ctx.arc(c.qx,c.qy,46,0,7);ctx.fill();txt('按住：',c.qx,c.qy-4,A4.holdQ?'#fff':'#235',12,'center',true);txt('投射“绿蓝”',c.qx,c.qy+14,A4.holdQ?'#fff':'#235',12,'center',true);
+  // 托盘与卡片
+  const t=c.tray;ctx.strokeStyle=S.trayOK?GREEN:'#99a';ctx.setLineDash([6,5]);ctx.strokeRect(t.x-t.w/2,t.y-t.h/2,t.w,t.h);ctx.setLineDash([]);txt(S.trayOK?'可投射 ✓':'可投射',t.x,t.y+5,S.trayOK?GREEN:'#667',14,'center',true);
+  c.cards.forEach(k=>{let x=k.x,y=k.y;if(A4.drag&&A4.drag.id===k.id){x=A4.drag.x;y=A4.drag.y;}if(k.id==='g'&&S.trayOK){x=t.x;y=t.y-t.h/2-18;}
+    ctx.fillStyle='#fff';ctx.strokeStyle=k.id==='g'?GREEN:'#3a8a8a';ctx.lineWidth=2;ctx.fillRect(x-W*0.1,y-16,W*0.2,32);ctx.strokeRect(x-W*0.1,y-16,W*0.2,32);txt(k.lab,x,y+5,'#223',12.5);});
+  txt(A4.holdQ?'现在多投射几次“绿蓝”，补不上它长久的空白历史':'天平偏向“绿”：不是因为它的证据更多，而是因为它在过去被投射得多得多',W*0.5,H*0.97,'#1f2b38',12.5);}
+
+/* ================= ⑤ 应用练习：蓝宝石 ================= */
+let A5;
+function init5(){A5={drag:null,hold:false,acc:0,card:null};}
+const C5=()=>({tl:H*0.16,mine:{x:W*0.16,y:H*0.6},cards:[{id:'b',x:W*0.42,y:H*0.86,lab:'所有蓝宝石都是蓝的'},{id:'q',x:W*0.66,y:H*0.86,lab:'所有蓝宝石都是蓝绿的'}],tray:{x:W*0.88,y:H*0.6,w:W*0.18,h:H*0.16}});
+HD[5]={down(x,y){const c=C5(),x0=W*0.08,x1=W*0.92,tx=lerp(x0,x1,S.t5);
+  if(Math.abs(y-c.tl)<34&&Math.abs(x-tx)<26){A5.drag='t';return;}
+  if(Math.hypot(x-c.mine.x,y-c.mine.y)<W*0.12){if(!S.made5){toast('先拖动上方的 t，定义出你自己的“蓝绿”');return;}A5.hold=true;return;}
+  c.cards.forEach(k=>{if(Math.abs(x-k.x)<W*0.11&&Math.abs(y-k.y)<22)A5.card={id:k.id,x,y};});},
+ move(x,y){if(A5.drag==='t'){S.t5=clamp((x-W*0.08)/(W*0.84),0.25,0.95);S.made5=true;}if(A5.card){A5.card.x=x;A5.card.y=y;}},
+ up(){A5.drag=null;A5.hold=false;if(A5.card){const t=C5().tray;if(Math.abs(A5.card.x-t.x)<t.w/2&&Math.abs(A5.card.y-t.y)<t.h/2){
+     if(S.n5<6)toast('证据还不够：先按住矿井多检验几颗');else if(A5.card.id==='b'){S.done5=true;hit(5,1);toast('依据根深蒂固程度投射“蓝”：这正是我们实际的归纳做法');}else toast('“蓝绿”从没被投射过：它被根深蒂固的“蓝”压过');}A5.card=null;}}};
+function t5(dt){ctx.fillStyle='#eef2f8';ctx.fillRect(0,0,W,H);const c=C5(),x0=W*0.08,x1=W*0.92,tx=lerp(x0,x1,S.t5);
+  ctx.strokeStyle='#8a97a6';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x0,c.tl);ctx.lineTo(x1,c.tl);ctx.stroke();ctx.fillStyle='rgba(47,111,214,.12)';ctx.fillRect(x0,c.tl-12,tx-x0,24);ctx.fillStyle='rgba(47,163,90,.10)';ctx.fillRect(tx,c.tl-12,x1-tx,24);
+  ctx.fillStyle='#f3a52b';ctx.beginPath();ctx.moveTo(tx,c.tl-16);ctx.lineTo(tx-9,c.tl-30);ctx.lineTo(tx+9,c.tl-30);ctx.fill();txt('t（拖动）',tx,c.tl-34,'#a0620a',12,'center',true);
+  txt(S.made5?`你的谓词“蓝绿”：在这个 t 之前检验且蓝，或之后才检验且绿`:'拖动 t：定义一个属于你的“蓝绿”',W*0.5,c.tl+34,'#334',13);
+  // 矿
+  ctx.fillStyle='#46506a';ctx.beginPath();ctx.arc(c.mine.x,c.mine.y,W*0.1,0,7);ctx.fill();txt(A5.hold?'检验中……':'按住：检验蓝宝石',c.mine.x,c.mine.y+5,'#fff',13,'center',true);
+  if(A5.hold){A5.acc+=dt*1.6;if(A5.acc>1){A5.acc=0;S.n5++;if(S.n5>=6)hit(5,0);}}
+  const k=1-1/(1+S.n5*0.15);bar(W*0.32,H*0.42,W*0.22,k,BLUE,`“蓝”假说被确证（${S.n5} 颗）`);bar(W*0.58,H*0.42,W*0.22,k,'#6a5ab0',`“蓝绿”假说被确证（${S.n5} 颗）`);
+  bar(W*0.32,H*0.58,W*0.22,0.92,BLUE,'“蓝”的根深蒂固程度');bar(W*0.58,H*0.58,W*0.22,0.03,'#6a5ab0','“蓝绿”的根深蒂固程度');
+  const t=c.tray;ctx.strokeStyle=S.done5?GREEN:'#99a';ctx.setLineDash([6,5]);ctx.strokeRect(t.x-t.w/2,t.y-t.h/2,t.w,t.h);ctx.setLineDash([]);txt(S.done5?'要投射的假说 ✓':'要投射的假说',t.x,t.y+5,S.done5?GREEN:'#667',13,'center',true);
+  c.cards.forEach(kk=>{let x=kk.x,y=kk.y;if(A5.card&&A5.card.id===kk.id){x=A5.card.x;y=A5.card.y;}if(kk.id==='b'&&S.done5){x=t.x;y=t.y-t.h/2-18;}
+    ctx.fillStyle='#fff';ctx.strokeStyle=kk.id==='b'?BLUE:'#6a5ab0';ctx.lineWidth=2;ctx.fillRect(x-W*0.11,y-16,W*0.22,32);ctx.strokeRect(x-W*0.11,y-16,W*0.22,32);txt(kk.lab,x,y+5,'#223',12.5);});
+  txt(S.done5?'理由不在证据里，而在我们投射谓词的历史中——古德曼在这一点上接续了休谟':'证据对两条假说一视同仁；把你要投射的那条拖进右侧托盘',W*0.5,H*0.985,'#1f2b38',12.5);}
+
+/* ===== 调度 ===== */
+const INIT={1:init1,2:init2,3:init3,4:init4,5:init5},TICK={1:t1,2:t2,3:t3,4:t4,5:t5};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!DONE[t.dataset.l]);});}
+function go(n){L=n;tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);Object.keys(LIT).forEach(k=>{const e=$('mr'+k);if(e)e.classList.add('on');});INIT[L]();save();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{if(L===1)S.n1=0;if(L===2){S.now=0.2;S.t=0.6;S.tSet=[];S.passed=false;}if(L===3){S.ang=0;S.base=0;S.flips=0;}if(L===4){S.entG=0.9;S.entQ=0.04;S.trayOK=false;}if(L===5){S.n5=0;S.t5=0.55;S.made5=false;S.done5=false;}INIT[L]();save();toast('已重置（已点亮的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(L);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

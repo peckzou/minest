@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 柏拉图灵魂三分说 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .q0{padding:4px 10px;font-size:12.5px;color:#123;background:#fff7e0;border-bottom:1px solid #eedca8}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+#side .lim{padding:4px 10px 8px;font-size:11.5px;color:#667}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>柏拉图 · 灵魂三分</b>
+  <button class="tab on" data-l="1">① 口渴的灵魂</button>
+  <button class="tab" data-l="2">② 勒翁提俄斯</button>
+  <button class="tab" data-l="3">③ 灵魂马车</button>
+  <button class="tab" data-l="4">④ 应用练习</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="q0"><b>核心问题：</b>当我想要又不想要同一件东西时，灵魂里究竟有几个“我”？</div><div class="bd" id="sBody"></div><div class="lim"><b>适用边界：</b>拉力、马匹与仪表只是教学比喻；柏拉图的三分是对灵魂“部分/原则”的论证，并不是三股可测量的物理力。</div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+const store={get(k,d){try{const v=localStorage.getItem('minest_soul_'+k);return v?JSON.parse(v):d;}catch(e){return (store.m||{})[k]??d;}},set(k,v){try{localStorage.setItem('minest_soul_'+k,JSON.stringify(v));}catch(e){store.m=store.m||{};store.m[k]=v;}}};
+const done=store.get('done',{}),lit=store.get('lit',{});
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ===== 原文：Jowett 英译《理想国》第四卷（Gutenberg #1497）、《斐德罗》（Gutenberg #1636）；中文编译。Stephanus 页码未在该文本中核对，只标卷/段落主题 ===== */
+const RP='《理想国》第四卷',PD='《斐德罗》';
+const MAP={
+1:[["按住“喝”，同时拖住“别喝”：两股相反的拉力","同一事物不能在同一部分、就同一对象、同时以相反方式作用或被作用。","The same thing clearly cannot act or be acted upon in the same part or in relation to the same thing at the same time, in contrary ways",RP+"（矛盾原则）"],
+   ["两股拉力同时存在：于是灵魂有两个原则","我们可以称人借以推理的那部分为灵魂的理性原则；……借以爱、饥、渴的那部分，可称为非理性的或欲望的部分。","the one with which a man reasons, we may call the rational principle of the soul, the other, with which he loves and hungers and thirsts",RP+"（理性与欲望）"],
+   ["欲望部分：快乐与满足的同盟","……可称为非理性的或欲望的部分，种种快乐与满足的同盟。","may be termed the irrational or appetitive, the ally of sundry pleasures and satisfactions",RP+"（理性与欲望）"]],
+2:[["勒翁提俄斯看见刑场的尸体","阿格莱翁之子勒翁提俄斯……看见刑场上躺着几具尸体。","Leontius, the son of Aglaion, coming up one day from the Piraeus, under the north wall on the outside, observed some dead bodies lying on the ground at the place of execution",RP+"（勒翁提俄斯的故事）"],
+   ["想看又厌恶：捂住眼睛抵抗","他想去看，又对它们感到恐惧与厌恶；有一阵子他挣扎着，捂住了眼睛。","He felt a desire to see them, and also a dread and abhorrence of them; for a time he struggled and covered his eyes",RP+"（勒翁提俄斯的故事）"],
+   ["欲望终于占上风：他冲过去","但最后欲望占了上风；他强行睁开眼睛，跑到尸体旁说：看吧，你们这两个坏东西，把这美景看个够吧。","but at length the desire got the better of him; and forcing them open, he ran up to the dead bodies, saying, Look, ye wretches, take your fill of the fair sight",RP+"（勒翁提俄斯的故事）"],
+   ["愤怒出现：它与欲望交战","这个故事的寓意是：愤怒有时与欲望交战，仿佛它们是两种不同的东西。","anger at times goes to war with desire, as though they were two distinct things",RP+"（勒翁提俄斯的故事）"],
+   ["激情站在理性一边","在灵魂的冲突中，激情是站在理性原则一边的。","for in the conflict of the soul spirit is arrayed on the side of the rational principle",RP+"（激情是第三部分）"]],
+3:[["灵魂像一辆双马马车","让这个形象是复合的——一对有翼的马和一个御者。","let the figure be composite--a pair of winged horses and a charioteer",PD+"（灵魂马车之喻）"],
+   ["一匹良马，一匹劣马","其中一匹高贵、品种优良，另一匹低劣、品种低劣；驾驭它们必然非常麻烦。","one of them is noble and of noble breed, and the other is ignoble and of ignoble breed; and the driving of them of necessity gives a great deal of trouble to him",PD+"（灵魂马车之喻）"],
+   ["白马只需言语引导","它不需要鞭子，只凭言语和告诫就能被引导。","he needs no touch of the whip, but is guided by word and admonition only",PD+"（两匹马）"],
+   ["黑马难驯：咬住嚼子猛拉","它低下头，竖起尾巴，用牙咬住嚼子，无耻地猛拉。","he stoops his head and puts up his tail, and takes the bit in his teeth and pulls shamelessly",PD+"（御者与黑马）"],
+   ["御者反复收紧缰绳：劣马终被驯服","这样发生几次之后，那恶马不再放肆，被驯服而谦卑，服从御者的意志。","when this has happened several times and the villain has ceased from his wanton way, he is tamed and humbled, and follows the will of the charioteer",PD+"（御者与黑马）"],
+   ["失控坠落：羽翼脱落","不完美的灵魂失去羽翼，在飞行中下坠，最后落在坚实的地面上。","the imperfect soul, losing her wings and drooping in her flight at last settles on the solid ground",PD+"（灵魂的坠落）"]],
+4:[["新情境：三部分各安其位","正义的人不允许他内部的各个部分互相干涉，或其中任何一部分去做别的部分的事。","the just man does not permit the several elements within him to interfere with one another, or any of them to do the work of others",RP+"（灵魂中的正义）"],
+   ["调成和谐：高、低、中音","当他把自身中的三个原则结合起来，它们可以比作音阶中的高音、低音和中音……","when he has bound together the three principles within him, which may be compared to the higher, lower, and middle notes of the scale",RP+"（灵魂中的正义）"],
+   ["激情不肯平息，直到理性召回","他高贵的激情不会平息……直到他听到牧人的声音，即理性，叫他的狗不要再叫。","until he hears the voice of the shepherd, that is, reason, bidding his dog bark no more",RP+"（激情是理性的同盟）"]]};
+const TITLE={1:'① 口渴的灵魂 · 按住画面让“想喝”升起；同时拖动“理性”的手往回拉',2:'② 勒翁提俄斯 · 欲望把他拉向尸体；按住“捂眼”抵抗，再拖动“激情”加入战斗',3:'③ 灵魂马车 · 拖动缰绳左右驾驭两匹马；按住收紧缰绳，驯服黑马、向上飞升',4:'④ 应用练习 · 宴会情境：拖动三股力量，让灵魂达到和谐并保持'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr${lit[l+'_'+i]?' on':''}" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——柏拉图${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const e=$('mr'+l+'_'+i);if(!e||e.classList.contains('on'))return;e.classList.add('on');lit[l+'_'+i]=1;store.set('lit',lit);e.scrollIntoView({block:'nearest',behavior:'smooth'});
+  if(MAP[l].every((_,k)=>$('mr'+l+'_'+k).classList.contains('on'))){done[l]=1;store.set('done',done);tabs();}}
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]?.move?.(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]?.up?.();});
+function person(x,y,s,col,lean){ctx.save();ctx.translate(x,y);ctx.rotate(lean||0);ctx.fillStyle=col||'#3a4a5a';ctx.beginPath();ctx.arc(0,-s*2.1,s*.42,0,7);ctx.fill();ctx.beginPath();ctx.moveTo(-s*.5,0);ctx.quadraticCurveTo(0,-s*1.9,s*.5,0);ctx.fill();ctx.restore();}
+function bar(x,y,w,v,col,t){ctx.fillStyle='rgba(255,255,255,.9)';ctx.fillRect(x,y,w,9);ctx.fillStyle=col;ctx.fillRect(x,y,w*clamp(v,0,1),9);ctx.strokeStyle='#777';ctx.strokeRect(x,y,w,9);txt(t,x+w/2,y-4,'#223',12);}
+
+/* ================= 第 1 关：口渴的灵魂 ================= */
+let A;
+function init1(){A={thirst:store.get('a_thirst',0),hold:false,reason:0,drag:false,rx:0,both:0,cup:0};}
+HD[1]={down(x,y){const cx=W*0.5;if(Math.hypot(x-(cx-W*0.18+A.rx),y-H*0.45)<50){A.drag=true;}else A.hold=true;},
+ move(x,y,dx){if(A.drag){A.rx=clamp(A.rx+dx,-W*0.12,W*0.1);}},up(){A.hold=false;A.drag=false;}};
+function t1(dt){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#f4e9d6');g.addColorStop(1,'#d9c7a6');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  if(A.hold)A.thirst=Math.min(1,A.thirst+dt*0.35);else A.thirst=Math.max(0,A.thirst-dt*0.08);
+  A.reason=clamp(-A.rx/(W*0.12),0,1);
+  const cx=W*0.5,cy=H*0.62,s=H*0.09;
+  // 杯子（被欲望拉近，被理性推开）
+  const net=A.thirst-A.reason;A.cup=lerp(A.cup,clamp(net,-1,1),dt*3);
+  const cupX=cx+W*0.2-A.cup*W*0.14;
+  ctx.fillStyle='#9ec7e6';ctx.fillRect(cupX-16,cy-s*1.9,32,40);ctx.strokeStyle='#557';ctx.strokeRect(cupX-16,cy-s*1.9,32,40);txt('水',cupX,cy-s*1.9+26,'#123',13);
+  person(cx,cy,s,'#4a3a2a',A.cup*0.15);
+  // 欲望之手（红）与理性之手（蓝）
+  const pull=A.thirst;ctx.strokeStyle=`rgba(200,50,40,${0.3+0.7*pull})`;ctx.lineWidth=3+pull*6;ctx.beginPath();ctx.moveTo(cx+s*0.4,cy-s*1.4);ctx.lineTo(cupX-16,cy-s*1.6);ctx.stroke();
+  txt('“喝！”',cx+W*0.1,cy-s*2.4,`rgba(200,50,40,${0.4+0.6*pull})`,15,'center',true);
+  const rhx=cx-W*0.18+A.rx;ctx.strokeStyle=`rgba(40,90,170,${0.3+0.7*A.reason})`;ctx.lineWidth=3+A.reason*6;ctx.beginPath();ctx.moveTo(cx-s*0.4,cy-s*1.4);ctx.lineTo(rhx,H*0.45);ctx.stroke();
+  ctx.fillStyle='#3a6f99';ctx.beginPath();ctx.arc(rhx,H*0.45,22,0,7);ctx.fill();txt('理性',rhx,H*0.45+5,'#fff',12,'center',true);
+  txt('“别喝。”',cx-W*0.12,cy-s*2.4,`rgba(40,90,170,${0.4+0.6*A.reason})`,15,'center',true);
+  bar(W*0.06,30,W*0.22,A.thirst,'#c8322b','欲望：想喝');bar(W*0.72,30,W*0.22,A.reason,'#3a6f99','理性：不要喝');
+  if(A.thirst>0.5&&A.reason>0.5){A.both+=dt;ctx.strokeStyle='rgba(243,165,43,.9)';ctx.lineWidth=3;ctx.setLineDash([5,5]);ctx.beginPath();ctx.arc(cx,cy-s*1.2,s*1.4,0,7);ctx.stroke();ctx.setLineDash([]);
+    txt('同一个人、同一时刻、对同一杯水：既被推向它，又被拉离它',W/2,H*0.12,'#7a4a00',14,'center',true);
+    if(A.both>0.6)hit(1,0);if(A.both>2)hit(1,1);if(A.both>3.5)hit(1,2);}
+  else{A.both=Math.max(0,A.both-dt*0.5);txt(A.thirst<0.5?'按住画面：口渴越来越强':'现在拖动左边蓝色的“理性”往回拉，同时不要松开另一只手',W/2,H*0.12,'#334',13);}
+  if(A.thirst>0.95&&A.reason<0.2){txt('他喝了。',cupX,cy-s*2.6,'#c8322b',13);}
+  store.set('a_thirst',A.thirst);}
+
+/* ================= 第 2 关：勒翁提俄斯 ================= */
+let B;
+function init2(){B={x:0.22,cover:false,coverT:0,desire:0.3,spirit:0,spiritDrag:false,sx:0.08,sy:0.3,ran:false,t:0};}
+HD[2]={down(x,y){if(Math.hypot(x-W*B.sx,y-H*B.sy)<36){B.spiritDrag=true;return;}B.cover=true;},
+ move(x,y){if(B.spiritDrag){B.sx=clamp(x/W,0.02,0.95);B.sy=clamp(y/H,0.1,0.9);}},up(){B.cover=false;B.spiritDrag=false;}};
+function t2(dt){B.t+=dt;ctx.fillStyle='#c9bfa8';ctx.fillRect(0,0,W,H);ctx.fillStyle='#8a7d63';ctx.fillRect(0,H*0.78,W,H*0.22);
+  // 北墙
+  ctx.fillStyle='#a69a80';ctx.fillRect(0,H*0.2,W,H*0.12);txt('北墙（城外）',W*0.5,H*0.2+20,'#4a4030',12);
+  // 刑场尸体
+  const bx=W*0.8;for(let i=0;i<3;i++){ctx.fillStyle='#5a4a3a';ctx.beginPath();ctx.ellipse(bx+i*28-28,H*0.76,26,7,0.1*i,0,7);ctx.fill();}txt('刑场',bx,H*0.86,'#3a2a1a',12);
+  if(B.t>0.5)hit(2,0);
+  // 欲望随时间增长；捂眼使其增长减慢但不会消失
+  B.desire=clamp(B.desire+dt*(B.cover?0.03:0.12),0,1);
+  // 激情：拖到勒翁提俄斯身边才起作用
+  const lx=W*B.x,ly=H*0.76,s=H*0.08;const dist=Math.hypot(W*B.sx-lx,H*B.sy-(ly-s*1.5));const spiritOn=dist<W*0.1;
+  B.spirit=lerp(B.spirit,spiritOn?1:0,dt*2);
+  if(B.cover){B.coverT+=dt;if(B.coverT>1)hit(2,1);}
+  // 运动：欲望把他拉向尸体，捂眼让他停下
+  const pull=B.desire*(B.cover?0.15:1);B.x=clamp(B.x+dt*0.05*pull,0.1,0.72);
+  if(B.x>=0.72&&!B.ran){B.ran=true;hit(2,2);toast('“看吧，你们这两个坏东西，把这美景看个够吧！”');}
+  person(lx,ly,s,'#4a3a2a',pull*0.2);
+  if(B.cover){ctx.fillStyle='#4a3a2a';ctx.fillRect(lx-s*0.5,ly-s*2.3,s,s*0.3);}
+  // 欲望拉线
+  ctx.strokeStyle=`rgba(200,50,40,${0.3+0.6*B.desire})`;ctx.lineWidth=2+B.desire*5;ctx.beginPath();ctx.moveTo(lx+s*0.3,ly-s*1.4);ctx.quadraticCurveTo((lx+bx)/2,ly-s*3,bx-20,H*0.74);ctx.stroke();
+  // 激情：一团火
+  const fx=W*B.sx,fy=H*B.sy,r=18+B.spirit*10;ctx.fillStyle=`rgba(243,${120-60*B.spirit},40,.9)`;ctx.beginPath();ctx.moveTo(fx-r*0.7,fy+r*0.6);ctx.quadraticCurveTo(fx,fy-r*1.8-Math.sin(T*10)*4,fx+r*0.7,fy+r*0.6);ctx.fill();txt('激情',fx,fy+r+14,'#7a3a00',12,'center',true);
+  if(B.spirit>0.5){ctx.strokeStyle='rgba(243,120,40,.8)';ctx.lineWidth=3;for(let i=0;i<4;i++){ctx.beginPath();ctx.moveTo(lx+s*0.5,ly-s*1.6+i*6);ctx.lineTo(lx+s*1.4+Math.random()*10,ly-s*1.8+i*8);ctx.stroke();}
+    txt('他对自己发怒：“你们这两个坏东西！”',W*0.5,H*0.12,'#a0400a',15,'center',true);
+    if(B.ran||B.desire>0.6){hit(2,3);if(B.cover)hit(2,4);}
+    B.desire=Math.max(0,B.desire-dt*0.05*(B.cover?2:0.6));}
+  bar(W*0.04,H*0.06,W*0.2,B.desire,'#c8322b','欲望：想看');bar(W*0.76,H*0.06,W*0.2,B.spirit,'#f3a52b','激情：愤怒');
+  if(!(B.spirit>0.5))txt(B.cover?'捂着眼睛……欲望仍在增长':!B.ran?'按住画面：捂住眼睛抵抗。把左上角的“激情”拖到他身边':'把“激情”拖到他身边',W*0.5,H*0.12,'#334',13);
+  if(B.spirit>0.5&&B.cover)txt('激情与理性站在一边，对抗欲望',W*0.5,H*0.17,'#3a6f99',13);}
+
+/* ================= 第 3 关：灵魂马车 ================= */
+let C;
+function init3(){C={alt:0.45,steer:0,tight:false,tame:store.get('c_tame',0),jerks:0,wing:1,lastPull:0,fall:false,wild:0};}
+HD[3]={down(){C.tight=true;},move(x,y,dx){C.steer=clamp(C.steer+dx/(W*0.25),-1,1);hit(3,0);},up(){C.tight=false;}};
+function t3(dt){const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#1c2a52');sky.addColorStop(1,'#a9c6e6');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+  // 上方：真理之原；下方：大地
+  ctx.fillStyle='rgba(255,240,170,.35)';ctx.fillRect(0,0,W,H*0.12);txt('真理之原',W*0.5,H*0.08,'#fff4c8',14,'center',true);
+  ctx.fillStyle='#4a6a3a';ctx.fillRect(0,H*0.92,W,H*0.08);
+  if(T>0.5)hit(3,0);
+  // 黑马周期性地猛拉向下（未驯服时更强）
+  C.wild=Math.max(0,C.wild-dt);if(Math.random()<dt*(0.9*(1-C.tame)+0.08)){C.wild=1;hit(3,3);}
+  const wildPull=C.wild*(1-C.tame)*0.6;
+  // 白马向上，听从“言语”：只要方向偏向白马一侧（左）就向上
+  const whiteLift=0.18+0.25*clamp(-C.steer,0,1);
+  // 收紧缰绳：在黑马猛拉时收紧能抵消并逐渐驯服
+  if(C.tight){if(C.wild>0.3){C.tame=Math.min(1,C.tame+dt*0.08);C.jerks+=dt;if(C.tame>0.5)hit(3,4);}}
+  const rein=C.tight?0.25:0;
+  const v=whiteLift-wildPull*(1-rein*2)-0.12*clamp(C.steer,0,1);
+  C.alt=clamp(C.alt+v*dt*0.6,0,1);
+  if(C.alt<0.05&&!C.fall){C.fall=true;hit(3,5);toast('失去羽翼，落到大地上');}
+  if(C.alt>0.12)C.fall=false;
+  C.wing=lerp(C.wing,C.alt<0.15?0.2:1,dt);
+  if(C.steer<-0.5)hit(3,2);
+  if(T>3)hit(3,1);
+  const cx=W*0.5,cy=lerp(H*0.86,H*0.16,C.alt);
+  // 两匹马
+  const shake=C.wild*(1-C.tame)*6;
+  [[cx-60,'#f4f4f0','白马',-1],[cx+60,'#2a2a2a','黑马',1]].forEach(([x,col,n,side])=>{const yy=cy-40+(side>0?C.wild*(1-C.tame)*22:0)+(side>0?(Math.random()-.5)*shake:0);
+    ctx.fillStyle=col;ctx.beginPath();ctx.ellipse(x,yy,40,18,side>0&&C.wild>0.3?0.35:-0.1,0,7);ctx.fill();ctx.beginPath();ctx.ellipse(x+side*-0+30,yy-18,12,20,0.5,0,7);ctx.fill();
+    // 翼
+    ctx.fillStyle=`rgba(255,255,255,${0.6*C.wing})`;const fl=Math.sin(T*8+side)*12;ctx.beginPath();ctx.moveTo(x-10,yy-8);ctx.quadraticCurveTo(x-30,yy-50-fl,x+20,yy-30);ctx.fill();
+    txt(n,x,yy+34,'#fff',12,'center',true);});
+  // 马车与御者
+  ctx.fillStyle='#8b5a2b';ctx.fillRect(cx-28,cy+8,56,24);person(cx,cy+12,14,'#3a6f99',C.steer*0.2);
+  ctx.strokeStyle=C.tight?'#f3a52b':'rgba(255,255,255,.6)';ctx.lineWidth=C.tight?3:1.5;ctx.beginPath();ctx.moveTo(cx-4,cy-10);ctx.lineTo(cx-60,cy-44);ctx.moveTo(cx+4,cy-10);ctx.lineTo(cx+60,cy-44+C.wild*(1-C.tame)*22);ctx.stroke();
+  bar(W*0.04,H*0.18,W*0.18,C.tame,'#3a6f99','黑马被驯服');bar(W*0.78,H*0.18,W*0.18,C.alt,'#f3a52b','高度');
+  txt(C.alt>0.9?'灵魂飞近真理之原':C.wild>0.5&&C.tame<0.5?'黑马咬住嚼子猛拉！按住收紧缰绳':'左右拖动驾驭；向白马一侧偏可上升；黑马猛拉时按住收紧缰绳',W*0.5,H*0.97,'#fff',13);
+  store.set('c_tame',C.tame);}
+
+/* ================= 第 4 关：应用练习 · 宴会 ================= */
+let D;
+const PARTS=[{k:'r',n:'理性',c:'#3a6f99',note:'高音'},{k:'s',n:'激情',c:'#f3a52b',note:'中音'},{k:'a',n:'欲望',c:'#c8322b',note:'低音'}];
+function init4(){D={pos:store.get('d_pos',{r:0.3,s:0.5,a:0.8}),drag:null,harm:0,held:0,wine:0,tempt:0,insult:0,events:[]};}
+HD[4]={down(x,y){PARTS.forEach(p=>{const py=H*(0.15+D.pos[p.k]*0.65);if(Math.hypot(x-colX(p.k),y-py)<34)D.drag=p.k;});},
+ move(x,y){if(D.drag){D.pos[D.drag]=clamp((y/H-0.15)/0.65,0,1);store.set('d_pos',D.pos);}},up(){D.drag=null;}};
+const colX=k=>({r:W*0.2,s:W*0.42,a:W*0.64})[k];
+function t4(dt){ctx.fillStyle='#2b2233';ctx.fillRect(0,0,W,H);
+  // 宴会场景事件：酒、诱惑、侮辱不断出现，分别推动某一部分
+  if(Math.random()<dt*0.7){const ev=['再来一杯！','有人冒犯了你','美味佳肴'][Math.floor(Math.random()*3)];D.events.push({t:ev,x:W*0.88,y:H*(0.2+Math.random()*0.6),a:1});
+    if(ev==='再来一杯！'||ev==='美味佳肴')D.pos.a=clamp(D.pos.a-0.12,0,1);else D.pos.s=clamp(D.pos.s-0.12,0,1);}
+  D.events.forEach(e=>{e.x-=dt*60;e.a-=dt*0.25;ctx.globalAlpha=Math.max(0,e.a);txt(e.t,e.x,e.y,'#ffd9a0',13);ctx.globalAlpha=1;});D.events=D.events.filter(e=>e.a>0);
+  // 和谐条件：理性在上（统治），激情在中（辅佐），欲望在下（服从），且间距适当
+  const r=D.pos.r,s=D.pos.s,a=D.pos.a;
+  const order=r<s&&s<a,spacing=1-Math.abs((s-r)-(a-s))*2;
+  const harmony=order?clamp(spacing*(1-r*0.8),0,1):0;
+  D.harm=lerp(D.harm,harmony,dt*2);
+  if(D.harm>0.7){D.held+=dt;if(D.held>0.8)hit(4,0);if(D.held>2)hit(4,1);}else D.held=0;
+  if(order&&s<0.5&&D.harm>0.5)hit(4,2);
+  // 三条琴弦
+  PARTS.forEach(p=>{const x=colX(p.k),y=H*(0.15+D.pos[p.k]*0.65);ctx.strokeStyle='rgba(255,255,255,.15)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,H*0.15);ctx.lineTo(x,H*0.8);ctx.stroke();
+    ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(x,y,26,0,7);ctx.fill();txt(p.n,x,y+5,'#fff',13,'center',true);txt(p.note,x,H*0.86,'#cfd6e6',12);});
+  // 和谐可视化：三音和弦波形
+  const wx=W*0.72,ww=W*0.24,wy=H*0.5;ctx.strokeStyle=`hsla(${120*D.harm},70%,60%,1)`;ctx.lineWidth=2;ctx.beginPath();
+  for(let i=0;i<=ww;i+=3){const t=i/ww*6.28*3;const v=Math.sin(t*(1+r))+Math.sin(t*(1+s)*1.5)+Math.sin(t*(1+a)*2)*(1-D.harm)+ (D.harm)*Math.sin(t*2);const yy=wy+v*14;i?ctx.lineTo(wx+i,yy):ctx.moveTo(wx+i,yy);}ctx.stroke();
+  txt(D.harm>0.7?'和谐：各司其职':order?'次序对了，再调匀间距':'次序错乱：欲望或激情在统治',wx+ww/2,wy+50,D.harm>0.7?'#7dffb0':'#ffb0b0',13,'center',true);
+  txt('宴会上，酒、佳肴、冒犯不断推动你。拖动三颗球：理性在上，激情居中，欲望在下，并保持住',W*0.5,24,'#ffe7b5',13);}
+
+/* ======== 调度 ======== */
+const INIT={1:init1,2:init2,3:init3,4:init4},TICK={1:t1,2:t2,3:t3,4:t4};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!done[t.dataset.l]);});}
+function go(n){L=n;store.set('level',n);tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{['a_thirst','c_tame','d_pos'].forEach(k=>store.set(k,null));INIT[L]();if(L===1)A.thirst=0;if(L===3)C.tame=0;if(L===4)D.pos={r:0.3,s:0.5,a:0.8};toast('已重置（已对应的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(store.get('level',1)||1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>
