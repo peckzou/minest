@@ -33,6 +33,19 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
 #ov table{margin:26px auto 0;font-size:13px;opacity:.85;border-spacing:14px 3px;text-align:left}
 #ov td:first-child{text-align:right;color:#9ef}
 #ov em{font-style:normal;font-size:12px;opacity:.6;margin-top:22px}
+/* touch: two joysticks and a few buttons (phones, iPad, iPhone Duo) */
+#tc{position:fixed;inset:0;pointer-events:none;display:none;z-index:5;-webkit-user-select:none;user-select:none}
+html.touch #tc.on{display:block}html.touch #keys{display:none}
+.stk{position:absolute;bottom:calc(26px + env(safe-area-inset-bottom));width:132px;height:132px;border-radius:50%;background:rgba(2,30,45,.32);border:1.5px solid rgba(160,240,255,.35);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);pointer-events:auto;touch-action:none}
+.stk i{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:radial-gradient(circle at 40% 35%,rgba(220,255,255,.85),rgba(110,220,240,.55));box-shadow:0 2px 12px rgba(0,180,220,.5);will-change:transform}
+.stk b{position:absolute;left:0;right:0;top:-22px;text-align:center;font-size:11px;font-weight:500;opacity:.7;letter-spacing:1px}
+#stkL{left:calc(26px + env(safe-area-inset-left))}#stkR{right:calc(26px + env(safe-area-inset-right))}
+#tbtn{position:absolute;right:calc(26px + env(safe-area-inset-right));bottom:calc(186px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(2,52px);gap:10px;pointer-events:auto}
+#tbtn button{width:52px;height:52px;border-radius:16px;border:1px solid rgba(160,240,255,.3);background:rgba(2,30,45,.42);color:#dff;font:600 20px/1 system-ui;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);touch-action:none;padding:0}
+#tbtn button.on{background:rgba(110,220,240,.45);color:#023}
+#tpause{position:absolute;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%);pointer-events:auto;border:1px solid rgba(160,240,255,.3);background:rgba(2,30,45,.42);color:#dff;border-radius:18px;padding:6px 16px;font:500 13px system-ui}
+html.touch #ov table.k{display:none}#ov table.t{display:none}html.touch #ov table.t{display:table}
+@media (max-width:560px){.stk{width:112px;height:112px}.stk i{width:48px;height:48px;margin:-24px 0 0 -24px}#tbtn{bottom:calc(160px + env(safe-area-inset-bottom));grid-template-columns:repeat(2,46px)}#tbtn button{width:46px;height:46px;font-size:18px}#stat{transform:scale(.85);transform-origin:0 0}#ov h1{font-size:40px}}
 #err{position:fixed;left:0;top:0;right:0;background:#600;color:#fff;font:12px monospace;white-space:pre-wrap;padding:6px;display:none;z-index:9}
 </style>
 </head>
@@ -45,11 +58,18 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
   <div id="keys" class="panel">WASD 游动 · 鼠标 环视 · 空格/E 上浮 · Q 下潜 · Shift 加速 · F 潜水灯 · M 静音 · Tab 图鉴 · Esc 暂停</div>
   <div id="toast" class="panel"><h3></h3><i></i><p></p></div>
 </div>
+<div id="tc"><div id="stkL" class="stk"><b>游动</b><i></i></div><div id="stkR" class="stk"><b>环视</b><i></i></div><div id="tbtn"><button id="tUp" aria-label="上浮">▲</button><button id="tTorch" aria-label="潜水灯">🔦</button><button id="tDown" aria-label="下潜">▼</button><button id="tLog" aria-label="潜水图鉴">📖</button></div><button id="tpause">⏸ 暂停</button></div>
 <div id="ov">
   <h1>大堡礁</h1>
   <h2>GREAT BARRIER REEF · 潜水模拟</h2>
   <button id="go">开始下潜</button>
-  <table>
+  <table class="t">
+    <tr><td>左摇杆</td><td>游动 / 平移（推到底加速）</td></tr>
+    <tr><td>右摇杆</td><td>环视</td></tr>
+    <tr><td>▲ · ▼</td><td>上浮 · 下潜</td></tr>
+    <tr><td>🔦 · 📖</td><td>潜水灯 · 潜水图鉴（靠近生物即可记录）</td></tr>
+  </table>
+  <table class="k">
     <tr><td>W A S D</td><td>朝视线方向游动 / 平移</td></tr>
     <tr><td>鼠标</td><td>环视</td></tr>
     <tr><td>空格 / E · Q</td><td>上浮 · 下潜</td></tr>
@@ -573,13 +593,38 @@ addEventListener('keydown',e=>{keys[e.code]=1;if(e.code=='Tab'||e.code=='Space')
 addEventListener('keyup',e=>keys[e.code]=0);
 addEventListener('blur',()=>{for(const k in keys)keys[k]=0});
 
+/* ---------- touch: two joysticks (left swims, right looks) and buttons ---------- */
+const TOUCH=('ontouchstart' in window)||matchMedia('(pointer:coarse)').matches;
+const tin={mx:0,my:0,lx:0,ly:0,u:0};
+if(TOUCH){document.documentElement.classList.add('touch');
+  const stick=(el,set)=>{const knob=el.querySelector('i');let id=null,cx=0,cy=0,R=1;
+    const move=e=>{let dx=e.clientX-cx,dy=e.clientY-cy;const d=Math.hypot(dx,dy);if(d>R){dx*=R/d;dy*=R/d}knob.style.transform='translate('+dx+'px,'+dy+'px)';set(dx/R,dy/R)};
+    const end=e=>{if(e.pointerId!==id)return;id=null;knob.style.transform='';set(0,0)};
+    el.addEventListener('pointerdown',e=>{if(id!==null)return;e.preventDefault();id=e.pointerId;try{el.setPointerCapture(id)}catch(x){}const r=el.getBoundingClientRect();cx=r.left+r.width/2;cy=r.top+r.height/2;R=r.width*.38;move(e)});
+    el.addEventListener('pointermove',e=>{if(e.pointerId===id){e.preventDefault();move(e)}});
+    el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);el.addEventListener('lostpointercapture',end)};
+  stick($('stkL'),(x,y)=>{tin.mx=x;tin.my=y});
+  stick($('stkR'),(x,y)=>{tin.lx=x;tin.ly=y});
+  const hold=(el,v)=>{const on=e=>{e.preventDefault();tin.u=v;el.classList.add('on')},off=()=>{if(tin.u===v)tin.u=0;el.classList.remove('on')};
+    el.addEventListener('pointerdown',on);el.addEventListener('pointerup',off);el.addEventListener('pointercancel',off);el.addEventListener('pointerleave',off)};
+  hold($('tUp'),1);hold($('tDown'),-1);
+  $('tTorch').addEventListener('click',()=>{torch=1-torch;$('tTorch').classList.toggle('on',!!torch)});
+  $('tLog').addEventListener('click',()=>{logOpen=!logOpen;$('log').style.display=logOpen?'block':'none';$('tLog').classList.toggle('on',logOpen)});
+  $('tpause').addEventListener('click',()=>{pause()});
+  ['touchstart','touchmove'].forEach(t=>$('tc').addEventListener(t,e=>{if(e.target.closest('.stk,#tbtn'))e.preventDefault()},{passive:false}));
+  document.addEventListener('gesturestart',e=>e.preventDefault());
+  const s0=start,p0=pause;start=function(){s0();$('tc').classList.add('on')};pause=function(){p0();$('tc').classList.remove('on');tin.mx=tin.my=tin.lx=tin.ly=tin.u=0};
+  $('go').onclick=start;
+}
+
 /* ---------- simulation ---------- */
 let breathT=0,exhaling=0,whaleT=12,discT=0;
 function simulate(dt,T){
   const cp=Math.cos(cam.pitch),fx=Math.sin(cam.yaw)*cp,fy=Math.sin(cam.pitch),fz=-Math.cos(cam.yaw)*cp,rx=Math.cos(cam.yaw),rz=Math.sin(cam.yaw);
   if(running){diveT+=dt;
-    const f=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0),s=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0),u=(keys.Space||keys.KeyE?1:0)-(keys.KeyQ||keys.KeyC?1:0);
-    const acc=(keys.ShiftLeft||keys.ShiftRight?13:6.5);
+    const f=clamp((keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)-tin.my,-1,1),s=clamp((keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+tin.mx,-1,1),u=clamp((keys.Space||keys.KeyE?1:0)-(keys.KeyQ||keys.KeyC?1:0)+tin.u,-1,1);
+    const acc=(keys.ShiftLeft||keys.ShiftRight||Math.hypot(tin.mx,tin.my)>.96?13:6.5);
+    if(tin.lx||tin.ly){const lx=tin.lx*Math.abs(tin.lx),ly=tin.ly*Math.abs(tin.ly);cam.yaw+=lx*1.5*dt;cam.pitch=clamp(cam.pitch-ly*1.1*dt,-1.45,1.45)}
     cam.vx+=(fx*f+rx*s)*acc*dt;cam.vy+=(fy*f+u*.8)*acc*dt;cam.vz+=(fz*f+rz*s)*acc*dt;
   }else if(!diveT&&!Q.has('cam'))cam.yaw=home.yaw+Math.sin(T*.11)*.28;
   const dr=Math.exp(-dt*2.2);cam.vx*=dr;cam.vy*=dr;cam.vz*=dr;
