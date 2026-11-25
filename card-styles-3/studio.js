@@ -256,6 +256,7 @@
   }
   function shuffle() {
     var b = $('#cs-shuf'); b.classList.remove('v2-roll'); void b.offsetWidth; b.classList.add('v2-roll');
+    b.classList.add('on'); clearTimeout(b._lit); b._lit = setTimeout(function () { b.classList.remove('on'); }, 2200);   /* lit when pressed */
     if (!colourful(cur)) { toast('「' + byId[cur].zh + '」是固定配色，不随颜色变化'); return; }
     var p; do { p = Math.floor(Math.random() * PALETTES.length); } while (p === tuneOf(cur).p);
     setPalFor(p); toast('已给「' + byId[cur].zh + '」换了一种颜色 · 再点换下一种');

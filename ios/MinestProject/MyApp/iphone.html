@@ -183980,6 +183980,7 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
      The 3D Cover view itself is 1.0's own Cover Flow again; watchCover above is kept, unused. Student mode keeps 1.0's switcher. */
   function cards() {
     open('cards-2/index.html', '动态卡片', function (d) {
+      if (d && d.cardStyles) { cardStyles(cards); return; }   /* its style key: 3.0, then back to 动态卡片 */
       var v = d && d.view; if (!v) return;
       try { var M = window.MinestImageViews; if (M && M.requestMode) M.requestMode(v); else if (window.__setViewMode) window.__setViewMode(v); } catch (e) {}
     });
@@ -184001,13 +184002,14 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
      ahead of this script by patch_v2_routes.py). 1.0 falls back to its default for a material it did not know at its
      start, so the pick is also kept under minest.cardStyle.v3 and put back here. Student mode keeps 1.0's own panel. */
   var CS_KEEP = 'minest.cardStyle.v3';
+  function cardStyles(then) { open('card-styles-3/index.html', '卡片风格 3.0', then ? function () { setTimeout(then, 60); } : null); }
   function hookCS() {
     var C = window.MinestCardStyles; if (!C || !C.set) return !document.getElementById('cs-btn') && tries > 20; if (C.__v3) return true; C.__v3 = true;
     var set1 = C.set;
     C.set = function (id) { var r = set1.apply(C, arguments); try { localStorage.setItem(CS_KEEP, C.get()); } catch (e) {} return r; };
     try { var k = localStorage.getItem(CS_KEEP); if (k && k !== C.get() && C.styles.some(function (s) { return s.id === k; })) set1.call(C, k); } catch (e) {}
     C.open1 = C.open;
-    C.open = function () { if (student() || ov) return C.open1.apply(C, arguments); open('card-styles-3/index.html', '卡片风格 3.0'); };
+    C.open = function () { if (student() || ov) return C.open1.apply(C, arguments); cardStyles(); };
     var b = document.getElementById('cs-btn'); if (b) b.onclick = function (e) { if (e) e.stopPropagation(); C.open(); };
     return true;
   }
@@ -184020,7 +184022,7 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
   var tries = 0, t = setInterval(function () { var d = hookDyn(), e = hookEC6(), c = hookCards(), y = hookCS(); if ((d && e && c && y) || ++tries > 120) clearInterval(t); }, 500);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
-  window.MinestV2Routes = { open: open, close: function () { close(); }, isOpen: function () { return !!ov; }, dyn: dyn, cards: cards, version: '1.3' };
+  window.MinestV2Routes = { open: open, close: function () { close(); }, isOpen: function () { return !!ov; }, dyn: dyn, cards: cards, cardStyles: function () { cardStyles(); }, version: '1.4' };
 })();
 </script><!-- mn-v2-routes:end -->
 </body>

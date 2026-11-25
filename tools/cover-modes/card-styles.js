@@ -544,6 +544,7 @@
     /* 随机换色: a one-off (not a switch) — the die spins and says what happened (2026-11-20, the user: no feedback) */
     modal.querySelector('#cs-shuf').onclick = function () {
       shuffleColors(); var b = this, n = 0, t0 = performance.now(); csShuf = (csShuf || 0) + 1;
+      b.classList.add('on'); clearTimeout(b._lit); b._lit = setTimeout(function () { b.classList.remove('on'); }, 2200);   /* lit while the new colours are announced */
       (function spin() { var k = Math.min(1, (performance.now() - t0) / 520), e = 1 - Math.pow(1 - k, 3); b.firstChild.style.transform = 'rotate(' + (e * 360).toFixed(1) + 'deg) scale(' + (1 + Math.sin(k * Math.PI) * 0.18).toFixed(3) + ')'; if (k < 1) requestAnimationFrame(spin); else b.firstChild.style.transform = ''; })();
       setTimeout(function () { b.firstChild.style.transform = ''; }, 700);
       note('🎲 已换一组新颜色（第 ' + csShuf + ' 组）· 再点一次换下一组');

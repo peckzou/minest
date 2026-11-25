@@ -202951,6 +202951,7 @@ html[data-cfx="wave"] .theme-white .cfx-foil { mix-blend-mode: normal; backgroun
     /* 随机换色: a one-off (not a switch) — the die spins and says what happened (2026-11-20, the user: no feedback) */
     modal.querySelector('#cs-shuf').onclick = function () {
       shuffleColors(); var b = this, n = 0, t0 = performance.now(); csShuf = (csShuf || 0) + 1;
+      b.classList.add('on'); clearTimeout(b._lit); b._lit = setTimeout(function () { b.classList.remove('on'); }, 2200);   /* lit while the new colours are announced */
       (function spin() { var k = Math.min(1, (performance.now() - t0) / 520), e = 1 - Math.pow(1 - k, 3); b.firstChild.style.transform = 'rotate(' + (e * 360).toFixed(1) + 'deg) scale(' + (1 + Math.sin(k * Math.PI) * 0.18).toFixed(3) + ')'; if (k < 1) requestAnimationFrame(spin); else b.firstChild.style.transform = ''; })();
       setTimeout(function () { b.firstChild.style.transform = ''; }, 700);
       note('🎲 已换一组新颜色（第 ' + csShuf + ' 组）· 再点一次换下一组');
@@ -203696,6 +203697,7 @@ html[data-cfx="wave"] .theme-white .cfx-foil { mix-blend-mode: normal; backgroun
      The 3D Cover view itself is 1.0's own Cover Flow again; watchCover above is kept, unused. Student mode keeps 1.0's switcher. */
   function cards() {
     open('cards-2/index.html', '动态卡片', function (d) {
+      if (d && d.cardStyles) { cardStyles(cards); return; }   /* its style key: 3.0, then back to 动态卡片 */
       var v = d && d.view; if (!v) return;
       try { var M = window.MinestImageViews; if (M && M.requestMode) M.requestMode(v); else if (window.__setViewMode) window.__setViewMode(v); } catch (e) {}
     });
@@ -203717,13 +203719,14 @@ html[data-cfx="wave"] .theme-white .cfx-foil { mix-blend-mode: normal; backgroun
      ahead of this script by patch_v2_routes.py). 1.0 falls back to its default for a material it did not know at its
      start, so the pick is also kept under minest.cardStyle.v3 and put back here. Student mode keeps 1.0's own panel. */
   var CS_KEEP = 'minest.cardStyle.v3';
+  function cardStyles(then) { open('card-styles-3/index.html', '卡片风格 3.0', then ? function () { setTimeout(then, 60); } : null); }
   function hookCS() {
     var C = window.MinestCardStyles; if (!C || !C.set) return !document.getElementById('cs-btn') && tries > 20; if (C.__v3) return true; C.__v3 = true;
     var set1 = C.set;
     C.set = function (id) { var r = set1.apply(C, arguments); try { localStorage.setItem(CS_KEEP, C.get()); } catch (e) {} return r; };
     try { var k = localStorage.getItem(CS_KEEP); if (k && k !== C.get() && C.styles.some(function (s) { return s.id === k; })) set1.call(C, k); } catch (e) {}
     C.open1 = C.open;
-    C.open = function () { if (student() || ov) return C.open1.apply(C, arguments); open('card-styles-3/index.html', '卡片风格 3.0'); };
+    C.open = function () { if (student() || ov) return C.open1.apply(C, arguments); cardStyles(); };
     var b = document.getElementById('cs-btn'); if (b) b.onclick = function (e) { if (e) e.stopPropagation(); C.open(); };
     return true;
   }
@@ -203736,7 +203739,7 @@ html[data-cfx="wave"] .theme-white .cfx-foil { mix-blend-mode: normal; backgroun
   var tries = 0, t = setInterval(function () { var d = hookDyn(), e = hookEC6(), c = hookCards(), y = hookCS(); if ((d && e && c && y) || ++tries > 120) clearInterval(t); }, 500);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
-  window.MinestV2Routes = { open: open, close: function () { close(); }, isOpen: function () { return !!ov; }, dyn: dyn, cards: cards, version: '1.3' };
+  window.MinestV2Routes = { open: open, close: function () { close(); }, isOpen: function () { return !!ov; }, dyn: dyn, cards: cards, cardStyles: function () { cardStyles(); }, version: '1.4' };
 })();
 </script><!-- mn-v2-routes:end -->
 </body>

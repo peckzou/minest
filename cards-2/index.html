@@ -22,9 +22,10 @@
 <div id="v2-empty" hidden><b>这里还没有卡片</b><small>换一个看板或列表试试</small></div>
 <nav id="v2-deck" aria-label="动态卡片模式"><div id="v2-modes" role="tablist"></div><button id="v2-tour" type="button" title="巡演：自动轮播每一种模式 (T)"><i></i><span>巡演</span></button></nav>
 <div id="v2-ghosts" aria-hidden="true"></div>
-<script>/* 2.0 remembers its own mode, speed, card shape and card style, apart from Minest's (same origin, same keys in the 1.0 scripts) */
+<script>/* 2.0 remembers its own mode, speed and card shape, apart from Minest's (same origin, same keys in the 1.0 scripts);
+   the card style is Minest's own, shared with 卡片风格 3.0 */
 (function () { var P = Storage.prototype, g = P.getItem, s = P.setItem, r = P.removeItem;
-  function k2(k) { return /^minest\.(cover|cardStyle)/.test(k) ? 'minest.cards2.' + String(k).slice(7) : k; }
+  function k2(k) { return /^minest\.cover/.test(k) ? 'minest.cards2.' + String(k).slice(7) : k; }
   P.getItem = function (k) { return g.call(this, k2(k)); }; P.setItem = function (k, v) { return s.call(this, k2(k), v); }; P.removeItem = function (k) { return r.call(this, k2(k)); }; })();</script>
 <script>window.__cmStandalone = 1;   /* the 1.0 engine draws 3D 封面 itself here, as on the students' page */</script>
 <script src="../v2-bridge/bridge.js"></script>
@@ -33,6 +34,16 @@
 <script src="../philosophers-island/ec6/study/board.js"></script>
 <script src="v2-data.js"></script>
 <script src="../tools/cover-modes/card-styles.js"></script>
+<script src="../card-styles-3/materials.js"></script>
+<script>/* 卡片风格 3.0 here too: its eight materials, the style as 3.0 kept it, and the style key opens 3.0 —
+   inside Minest by asking Minest (it opens 3.0, then brings this page back), on its own by going there */
+(function () {
+  var C = window.MinestCardStyles; if (!C) return;
+  try { var k = localStorage.getItem('minest.cardStyle.v3'); if (k && k !== C.get() && C.styles.some(function (s) { return s.id === k; })) C.set(k); } catch (e) {}
+  C.open1 = C.open;
+  C.open = function () { var B = window.MinestV2Bridge; if (B && B.live && B.live() && B.close({ cardStyles: 1 })) return; location.href = '../card-styles-3/index.html'; };
+})();
+</script>
 <script src="../tools/cover-modes/rolodex.js?v=1"></script>
 <script src="../tools/cover-modes/cover-modes.js"></script>
 <script src="../tools/cover-modes/explode.js"></script>
