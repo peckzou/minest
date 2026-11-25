@@ -282,7 +282,13 @@
       ['观众礼仪', 'Audience etiquette', '安静看、适时鼓掌、看完说说喜欢哪里。', '台下的人都朝着同一个方向。', '演出结束后，你会让学生给同伴什么样的反馈？']]]
   ];
 
-  root.PIEC6 = { exams: EXAMS, comps: comps, timeline: TIMELINE, stations: STATIONS, famous: FAMOUS, terms: TERMS, fold: FOLD,
+  /* the same timeline for the coil light cone (lightcone/index.html?set=ec6), which draws eight lanes */
+  var TX = ['克洛维斯人在得州', '皮内达绘制得州海岸', '卡韦萨·德·巴卡流落得州', '伊斯莱塔传教站', '圣安东尼奥建城', '奥斯汀殖民', '得州独立', '得州加入美国', 'Juneteenth', '得州现行宪法', '纺锤顶油田'];
+  var LIFE = ['亚里士多德给动物分类', '胡克命名"细胞"', '林奈分类系统', '达尔文《物种起源》', '孟德尔的豌豆', 'DNA 双螺旋'], SKY = ['哥白尼日心说', '伽利略的望远镜', '魏格纳大陆漂移', '阿波罗 11 号登月', '冥王星成为矮行星'];
+  var COIL = { name: 'EC-6 学科史', start: -40000, lanes: [['901 英语阅读', '#6fb7ff'], ['902 数学', '#ffb454'], ['903 得州史', '#ff7a6b'], ['903 美国与世界 · 政府', '#ff9f8f'], ['904 物理科学', '#7ee08a'], ['904 生命科学', '#4cc38a'], ['904 地球与太空', '#8fe3c9'], ['905 艺术 · 健康 · 体育', '#d08cff']],
+    ev: TIMELINE.map(function (t) { var lane = t[2] === 0 ? 0 : t[2] === 1 ? 1 : t[2] === 2 ? (TX.indexOf(t[1]) >= 0 ? 2 : 3) : t[2] === 3 ? (LIFE.indexOf(t[1]) >= 0 ? 5 : SKY.indexOf(t[1]) >= 0 ? 6 : 4) : 7; return [t[0], t[1], lane, t[3]]; }) };
+
+  root.PIEC6 = { exams: EXAMS, comps: comps, timeline: TIMELINE, coil: COIL, stations: STATIONS, famous: FAMOUS, terms: TERMS, fold: FOLD,
     seczh: EXAMS.map(function (e) { return [e.en.toLowerCase().split(/[ ,]/)[0], e.zh]; }),
     get: function (id) { return comps.filter(function (c) { return c.id === id; })[0] || null; } };
 })(window);

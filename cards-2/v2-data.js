@@ -15,11 +15,15 @@
   function mem(v) { try { if (v === undefined) return JSON.parse(localStorage.getItem(MINE) || 'null'); localStorage.setItem(MINE, JSON.stringify(v)); } catch (e) { return null; } }
   /* what the boards say, with long values (embedded pictures) cut short: the two copies Minest keeps are told apart by it */
   function told(list) { try { return JSON.stringify(list, function (k, v) { return typeof v === 'string' && v.length > 240 ? v.length + ':' + v.slice(0, 80) + v.slice(-80) : v; }); } catch (e) { return String(Math.random()); } }
+  /* the EC-6 glossary deck (philosophers-island/ec6/glossary.js) is always the first board, and the one 2.0 opens on
+     until you pick another (the pick is remembered) */
+  var EC6 = null; try { EC6 = window.PIEC6 && window.PIEC6.glossaryBoard ? window.PIEC6.glossaryBoard() : null; } catch (e) { EC6 = null; }
   function use(list, sample) {
+    if (EC6) list = [EC6].concat(list.filter(function (b) { return b.id !== EC6.id; }));
     var t = told(list); if (t !== last) { last = t; rev++; }
-    boards = list; isSample = !!sample;
+    boards = list; isSample = !!sample && !EC6;
     var m = mem() || {}, act = ''; try { act = localStorage.getItem(LS_ACTIVE) || ''; } catch (e) {}
-    cur = boards.filter(function (b) { return b.id === m.b; })[0] || boards.filter(function (b) { return b.id === act; })[0] || boards[0] || null;
+    cur = boards.filter(function (b) { return b.id === m.b; })[0] || (EC6 ? boards[0] : null) || boards.filter(function (b) { return b.id === act; })[0] || boards[0] || null;
     listId = cur && cur.id === m.b && (cur.columns || []).some(function (c) { return c.id === m.l; }) ? m.l : '';
     window.dispatchEvent(new CustomEvent('cards2:data'));
   }
@@ -86,7 +90,7 @@
   if (BR && BR.embedded && !/[?&]sample\b/.test(location.search)) {
     BR.hello().then(function (r) {
       var v = r && clean(r.boards);
-      if (v && v.length) { if (r.active) mem({ b: r.active, l: '' }); use(v, false); finish(); } else load();
+      if (v && v.length) { if (r.active && !EC6) mem({ b: r.active, l: '' }); use(v, false); finish(); } else load();
     });
     return;
   }

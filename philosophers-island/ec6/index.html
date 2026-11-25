@@ -51,7 +51,7 @@
   <div class="modes"><span class="lab">全部模式</span>
     <button class="key gold" data-open="holo:stars">🔷 全息操作台 · 知识星图</button>
     <button class="key" data-open="holo:obsidian">🕸 Obsidian 图谱</button>
-    <button class="key" data-open="holo:cone">⏳ 光锥 · EC-6 学科史</button>
+    <button class="key" data-open="cone">⏳ 光锥 · EC-6 学科史</button>
     <button class="key" data-open="read:1">📖 十种读法</button>
     <button class="key" data-open="paper">🗺 纸艺小岛</button>
     <button class="key" data-open="fold">📕 折叠书</button>
@@ -71,7 +71,7 @@
 (function () {
   'use strict';
   var E = window.PIEC6, EMBED = parent !== window, $ = function (id) { return document.getElementById(id); };
-  var MODE_OF = { read: 'read:1', paper: 'paper', cone: 'holo:cone', sphere: 'sphere', fold: 'fold' };
+  var MODE_OF = { read: 'read:1', paper: 'paper', cone: 'cone', sphere: 'sphere', fold: 'fold' };
   var ICON = { read: '📖', paper: '🗺', cone: '⏳', sphere: '🌐', fold: '📕' };
   var WHY = { read: '阅读本身就是这一科：十种读法把考纲变成可以读、可以问、可以考的书', paper: '几何、测量与坐标：整门数学是一座按坐标轴铺开的纸岛', cone: '历史、政府与经济都在时间里：五门学科的大事排在一个光锥上', sphere: '地球与太空、力与能量：科学的考点贴满一整个球幕', fold: '视觉艺术、音乐、健康、体育、戏剧，正好是一本立体书的五个纸房间' };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -115,9 +115,10 @@
     else if (kind === 'read') url = '../library/read.html?file=ec6/framework.txt&title=' + encodeURIComponent('TExES Core Subjects EC-6 (391)') + '&zh=' + encodeURIComponent('EC-6 考纲学习文本') + '&author=' + encodeURIComponent('EC-6 学习馆') + '&mode=' + (p[1] || 1);
     else if (kind === 'paper') url = '../papercraft/index.html';
     else if (kind === 'fold') url = '../popup/index.html?book=ec6';
+    else if (kind === 'cone') url = '../lightcone/index.html?set=ec6';
     else if (kind === 'sphere') url = 'sphere.html' + (sub >= 0 ? '?sub=' + sub : '');
     frame.src = url; $('mode').classList.add('on');
-    $('modeX').style.display = kind === 'read' || kind === 'sphere' ? 'none' : '';
+    $('modeX').style.display = kind === 'read' || kind === 'sphere' || kind === 'cone' ? 'none' : '';
   }
   function closeMode() { $('mode').classList.remove('on'); frame.src = 'about:blank'; cur = null; }
   $('modeX').onclick = closeMode;
@@ -178,6 +179,7 @@
       else if (m.op === 'close') closeMode();
       else if (m.op === 'goto') { closeMode(); sheet(m.id); }
     } else if (m.fold === 1) { if (m.op === 'close') closeMode(); }
+    else if (m.cone2 === 1) { if (m.op === 'close') closeMode(); else if (m.op === 'seen' && m.title) post({ op: 'seen', mode: 'cone', text: m.year + ' · ' + m.title }); }
     else if (m.read2 === 1) { if (m.op === 'close') closeMode(); else if (m.op === 'note') post({ op: 'note', title: m.title, text: m.text }); }
     else if (m.ec6 === 1) { if (m.op === 'close') closeMode(); else if (m.op === 'seen') post(m); }
   });
