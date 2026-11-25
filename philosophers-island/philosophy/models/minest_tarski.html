@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 塔尔斯基真理理论 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .q0{padding:4px 10px;font-size:12.5px;color:#1f2b38;background:#fff7e0;border-bottom:1px solid #f0d08a}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+#side .bound{padding:4px 10px 8px;font-size:11.5px;color:#667}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>塔尔斯基 · 真理理论</b>
+  <button class="tab on" data-l="1">① T 模式</button>
+  <button class="tab" data-l="2">② 两层语言</button>
+  <button class="tab" data-l="3">③ 说谎者</button>
+  <button class="tab" data-l="4">④ 层级阶梯</button>
+  <button class="tab" data-l="5">⑤ 应用练习</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="q0">核心问题：说“一个句子是真的”，究竟是什么意思？怎样定义“真”才不会自相矛盾？</div><div class="bd" id="sBody"></div><div class="bound">适用边界：画面中的“盒子”“导线”“指示灯”只是教学比喻。塔尔斯基的定义针对的是严格形式化的语言，并且要用满足关系对无穷多个句子做递归定义；本模型只演示 T 模式与语言分层的思路，不是完整的形式定义。</div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ======== 保存与恢复 ======== */
+const MEM={};const store={get(k){try{const v=localStorage.getItem(k);return v==null?MEM[k]:v;}catch(e){return MEM[k];}},set(k,v){MEM[k]=v;try{localStorage.setItem(k,v);}catch(e){}}};
+const KEY='minest_tarski_v1';let SAVE={lit:{},done:{},level:1,world:{}};
+try{const s=store.get(KEY);if(s)SAVE=Object.assign(SAVE,JSON.parse(s));}catch(e){}
+const persist=()=>store.set(KEY,JSON.stringify(SAVE));
+
+/* ======== 原文 ========
+   H = 讲义 Austin Heath, "The Semantic Conception of Truth and the Foundations of Semantics"（课堂讲义，逐字转引 Tarski 1944，页码为讲义所标，未经本模型核对）
+   S = Hodges, "Tarski's Truth Definitions", Stanford Encyclopedia of Philosophy（2022 修订）  */
+const RH='塔尔斯基《真理的语义概念与语义学基础》1944，据课堂讲义转引',RS='Hodges《塔尔斯基的真理定义》，斯坦福哲学百科（词条概述）';
+const MAP={
+1:[["把“雪是白的”拖上元语言层，接到世界","“雪是白的”这个句子是真的，当且仅当雪是白的。","The sentence 'snow is white' is true if, and only if, snow is white",RH+"（讲义标 p.343）"],
+   ["拖动世界里的雪：灯随世界而亮灭","说是者为非、非者为是，即为假；说是者为是、非者为非，即为真。","To say of what is that it is not, or of what is not that it is, is false",RH+"（塔尔斯基引亚里士多德）"],
+   ["定义既要合乎实质，又要形式正确","主要问题是给出一个令人满意的定义，即一个实质上恰当、形式上正确的定义。","a definition which is materially adequate and formally correct",RH+"（讲义标 p.341）"]],
+2:[["左边“提及”句子，右边“使用”句子","（T）X 是真的，当且仅当 p。","(T) X is true if, and only if, p",RH+"（讲义标 p.343–344）"],
+   ["把多个句子逐一拖上去，各生成一条 T 句","我们必须能这样使用“真”这个词：一切形如（T）的等值式都可以被断言。","use the term 'true' in such a way that all equivalences of the form (T) can be asserted",RH+"（讲义标 p.344）"],
+   ["定义写在另一种语言：元语言","定义应当在另一种语言中给出，那种语言被称为元语言。","the definition should be given in another language known as the metalanguage",RS+" §1.1"],
+   ["元语言里有对象语言的一份“副本”","元语言应当包含对象语言的一份副本。","The metalanguage should contain a copy of the object language",RS+" §1.1"]],
+3:[["把“这句话不是真的”塞进对象语言","说谎者悖论：“这句话不是真的。”","This sentence is not true",RH+"（讲义列出的说谎者句）"],
+   ["“真”也在同一层：灯开始闪烁","悖论的前提之一：构造它的语言是语义封闭的。","The language of the antinomy is semantically closed",RH+"（讲义列出的三个假设之一）"],
+   ["语义封闭：语言里既有句子、句子的名字，又有“真”","……除了它的表达式之外，还包含这些表达式的名字，以及诸如“真”这样指涉本语言句子的语义词。","contains, in addition to its expressions, also the names of these expressions, as well as semantic terms such as the term 'true'",RH+"（讲义标 p.348）"],
+   ["把“真”拖出对象语言：闪烁停止","塔尔斯基的结论是：一种语言的真理定义，必须在一个本质上更强的元语言中给出。","Tarski’s own conclusion was that a truth definition for a language … has to be given in a metalanguage which is essentially stronger than",RS+" §1.3"]],
+4:[["把元语言再拖上一层：真₁、真₂","元语言“本质上更丰富”的条件是：它含有比对象语言更高逻辑类型的变元。","contain variables of a higher logical type than those of the object-language",RH+"（讲义转引）"],
+   ["每一层只谈论下一层的“真”","塔尔斯基自己把这个实质恰当性标准称为“T 约定”。","Tarski’s own name for this criterion of material adequacy was Convention T.",RS+" §1.3"]],
+5:[["为新句子找到合适的层级","这个定义并不是要给一个熟悉的词指定新意思，而是要把握一个老概念的实际意义。","it aims to catch hold of the actual meaning of an old notion",RH+"（讲义转引）"],
+   ["拆开互相指涉的一对句子，闪烁全部熄灭","（同③）真理定义必须在本质上更强的元语言中给出。","has to be given in a metalanguage which is essentially stronger than",RS+" §1.3"]]};
+const TITLE={1:'① T 模式 · 把下方盒子里的“雪是白的”拖上元语言层，再按住世界里的雪改变它的颜色',2:'② 两层语言 · 把对象语言里的句子一个个拖上去；按住画面让世界变化',3:'③ 说谎者 · 把“这句话不是真的”拖进对象语言；再把“真”字从对象语言里拖出去',4:'④ 层级阶梯 · 按住画面顶部向上拉出新的一层；把“真₁”“真₂”放到各自的层',5:'⑤ 应用练习 · 把四个新句子放进合适的层，让所有指示灯稳定'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const e=$('mr'+l+'_'+i);SAVE.lit[l+'_'+i]=1;persist();if(!e||e.classList.contains('on'))return;e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});
+  if(MAP[l].every((_,k)=>SAVE.lit[l+'_'+k])){SAVE.done[l]=1;persist();tabs();}}
+function relight(l){MAP[l].forEach((_,k)=>{if(SAVE.lit[l+'_'+k]){const e=$('mr'+l+'_'+k);if(e)e.classList.add('on');}});}
+
+/* ======== 输入 ======== */
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y,x0:x,y0:y};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]?.move?.(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]?.up?.();});
+
+/* ======== 通用绘制 ======== */
+function layer(y0,y1,label,col,dash){ctx.fillStyle=col;ctx.fillRect(10,y0,W*0.58,y1-y0);ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=1.5;if(dash)ctx.setLineDash([6,5]);ctx.strokeRect(10,y0,W*0.58,y1-y0);ctx.setLineDash([]);txt(label,18,y0+18,'rgba(255,255,255,.8)',12,'left',true);}
+function card(c){const w=c.w||Math.max(90,c.t.length*15+24),h=30;c.w=w;const q=c.up?'“'+c.t+'”':c.t;
+  ctx.fillStyle=c.bad?'#ffe0e0':c.up?'#fff7e0':'#ffffff';ctx.strokeStyle=c.bad?'#c62828':'#7a8a9a';ctx.lineWidth=c.drag?3:1.5;ctx.beginPath();ctx.roundRect(c.x-w/2,c.y-h/2,w,h,8);ctx.fill();ctx.stroke();txt(q,c.x,c.y+5,'#1f2b38',14,'center',true);}
+function lamp(x,y,on,flick){const v=flick?(Math.sin(T*28)>0?1:0):on?1:0;const g=ctx.createRadialGradient(x,y,2,x,y,26);g.addColorStop(0,v?'rgba(255,230,120,1)':'rgba(80,80,90,1)');g.addColorStop(1,v?'rgba(255,230,120,0)':'rgba(80,80,90,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,26,0,7);ctx.fill();ctx.fillStyle=v?'#ffe27a':'#555a66';ctx.beginPath();ctx.arc(x,y,11,0,7);ctx.fill();ctx.strokeStyle='#222';ctx.lineWidth=1;ctx.stroke();txt(flick?'真？假？':on?'真':'假',x,y+28,flick?'#ff8a8a':on?'#ffe27a':'#aab',12,'center',true);}
+function wire(x1,y1,x2,y2,col){ctx.strokeStyle=col||'rgba(255,226,122,.75)';ctx.lineWidth=2;ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(x1,y1);ctx.bezierCurveTo((x1+x2)/2,y1,(x1+x2)/2,y2,x2,y2);ctx.stroke();ctx.setLineDash([]);}
+const Y=()=>({metaTop:H*0.06,metaBot:H*0.44,objTop:H*0.54,objBot:H*0.94});
+
+/* ======== 世界面板（右侧） ======== */
+let WD;function freshWorld(){WD={snow:1,grass:1,rain:0,sky:1};}
+function worldPanel(){const x0=W*0.62,w=W*0.36,y0=H*0.06,h=H*0.88;
+  const sky=ctx.createLinearGradient(0,y0,0,y0+h);sky.addColorStop(0,WD.rain>0.5?'#6b7a88':'#8fc6ee');sky.addColorStop(1,'#e8f2f8');ctx.fillStyle=sky;ctx.fillRect(x0,y0,w,h);
+  txt('世界（对象，不是语言）',x0+w/2,y0+18,'#123',12,'center',true);
+  const s=WD.snow;ctx.fillStyle=`rgb(${Math.round(lerp(90,250,s))},${Math.round(lerp(80,250,s))},${Math.round(lerp(70,255,s))})`;ctx.beginPath();ctx.moveTo(x0,y0+h*0.62);ctx.lineTo(x0+w*0.25,y0+h*0.3);ctx.lineTo(x0+w*0.5,y0+h*0.55);ctx.lineTo(x0+w*0.7,y0+h*0.35);ctx.lineTo(x0+w,y0+h*0.6);ctx.lineTo(x0+w,y0+h*0.66);ctx.lineTo(x0,y0+h*0.66);ctx.fill();
+  txt('雪（按住拖动改变颜色）',x0+w*0.3,y0+h*0.28,'#123',11);
+  ctx.fillStyle=WD.grass>0.5?'#5aa04a':'#b8a35a';ctx.fillRect(x0,y0+h*0.66,w,h*0.34);txt(WD.grass>0.5?'草：绿':'草：枯黄',x0+w*0.8,y0+h*0.8,'#fff',11);
+  if(WD.rain>0.05){ctx.strokeStyle=`rgba(200,220,255,${WD.rain})`;ctx.lineWidth=1.2;for(let i=0;i<40;i++){const rx=x0+((i*53+T*120)%w),ry=y0+((i*97+T*400)%h);ctx.beginPath();ctx.moveTo(rx,ry);ctx.lineTo(rx-3,ry+9);ctx.stroke();}}
+  return{x0,y0,w,h};}
+function worldDrag(x,y,dx,dy){const p={x0:W*0.62,w:W*0.36,y0:H*0.06,h:H*0.88};if(x<p.x0)return false;
+  if(y<p.y0+p.h*0.66){WD.snow=clamp(WD.snow+dy/(H*0.4),0,1);}else{WD.grass=clamp(WD.grass-dx/(W*0.2),0,1);}return true;}
+
+/* ================= 第 1 关 ================= */
+let A;
+function init1(){freshWorld();if(SAVE.world.snow!=null)WD.snow=SAVE.world.snow;A={c:{t:'雪是白的',x:W*0.3,y:H*0.74,up:false},drag:false,flips:0,last:null};}
+HD[1]={down(x,y){const c=A.c;if(Math.abs(x-c.x)<(c.w||110)/2&&Math.abs(y-c.y)<18)A.drag=true;else A.world=true;},
+ move(x,y,dx,dy){if(A.drag){A.c.x=clamp(x,60,W*0.56);A.c.y=clamp(y,H*0.1,H*0.9);}else if(A.world)worldDrag(x,y,dx,dy);},
+ up(){A.drag=false;A.world=false;const g=Y();if(A.c.y<g.metaBot&&!A.c.up){A.c.up=true;A.c.y=(g.metaTop+g.metaBot)/2;A.c.x=W*0.13;hit(1,0);toast('元语言提及了这个句子（加上引号），并把它接到世界上');}
+  if(A.c.y>g.objTop&&A.c.up){A.c.up=false;}SAVE.world.snow=WD.snow;persist();}};
+function t1(dt){const g=Y();ctx.fillStyle='#16202b';ctx.fillRect(0,0,W,H);
+  layer(g.metaTop,g.metaBot,'元语言：谈论句子的语言','#2b3d55',false);layer(g.objTop,g.objBot,'对象语言：被谈论的句子','#2b4536',false);
+  const wp=worldPanel();const tr=WD.snow>0.75;
+  if(A.c.up){const c=A.c;card(c);txt('是真的，当且仅当',c.x+c.w/2+70,c.y+5,'#ffe7b5',13);
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.roundRect(c.x+c.w/2+140,c.y-15,96,30,8);ctx.fill();txt('雪是白的',c.x+c.w/2+188,c.y+5,'#1f2b38',14,'center',true);
+    wire(c.x+c.w/2+236,c.y,wp.x0+wp.w*0.3,wp.y0+wp.h*0.45);lamp(W*0.54,(g.metaTop+g.metaBot)/2,tr,false);
+    if(A.last!=null&&A.last!==tr){A.flips++;if(A.flips>=2)hit(1,1);if(A.flips>=4)hit(1,2);}A.last=tr;
+    txt('引号里的句子被“提及”；右边的句子被“使用”，直接说世界',W*0.3,g.metaBot-10,'rgba(255,231,181,.75)',11);}
+  else{card(A.c);txt('把这张卡拖上元语言层',W*0.3,g.objTop-14,'rgba(255,231,181,.8)',13);}
+  txt(`雪的白度：${Math.round(WD.snow*100)}%`,wp.x0+wp.w/2,wp.y0+wp.h-10,'#fff',12);}
+
+/* ================= 第 2 关 ================= */
+let B;
+const S2=[{t:'雪是白的',k:'snow'},{t:'草是绿的',k:'grass'},{t:'天在下雨',k:'rain'}];
+function init2(){freshWorld();B={cs:S2.map((s,i)=>({...s,x:W*(0.12+i*0.17),y:H*0.74,up:false})),drag:null,hold:false,ht:0,moved:{}};}
+const truthOf=k=>k==='snow'?WD.snow>0.75:k==='grass'?WD.grass>0.5:WD.rain>0.5;
+HD[2]={down(x,y){for(const c of B.cs){if(Math.abs(x-c.x)<(c.w||110)/2&&Math.abs(y-c.y)<18){B.drag=c;return;}}if(x>W*0.62)B.world=true;else B.hold=true;},
+ move(x,y,dx,dy){if(B.drag){B.drag.x=clamp(x,60,W*0.56);B.drag.y=clamp(y,H*0.1,H*0.9);}else if(B.world){worldDrag(x,y,dx,dy);B.moved.w=1;}},
+ up(){const g=Y();if(B.drag){const c=B.drag;if(c.y<g.metaBot&&!c.up){c.up=true;const n=B.cs.filter(z=>z.up).length;c.x=W*0.11;c.y=g.metaTop+30+(n-1)*((g.metaBot-g.metaTop-40)/3);hit(2,0);if(n>=2)hit(2,2);if(n>=3)hit(2,1);}B.drag=null;}B.world=false;B.hold=false;}};
+function t2(dt){const g=Y();ctx.fillStyle='#16202b';ctx.fillRect(0,0,W,H);
+  if(B.hold){WD.rain=clamp(WD.rain+dt*0.6,0,1);}else WD.rain=clamp(WD.rain-dt*0.25,0,1);
+  layer(g.metaTop,g.metaBot,'元语言：含有对象语言的副本，以及“真”','#2b3d55',false);layer(g.objTop,g.objBot,'对象语言：只有关于世界的句子，没有“真”','#2b4536',false);
+  const wp=worldPanel();let anyFlip=false;
+  B.cs.forEach(c=>{if(!c.up){card(c);return;}card(c);const tx=c.x+c.w/2;txt('是真的，当且仅当',tx+64,c.y+5,'#ffe7b5',12);
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.roundRect(tx+122,c.y-14,92,28,8);ctx.fill();txt(c.t,tx+168,c.y+5,'#1f2b38',13,'center',true);
+    const tg={snow:[0.3,0.45],grass:[0.6,0.85],rain:[0.7,0.2]}[c.k];wire(tx+214,c.y,wp.x0+wp.w*tg[0],wp.y0+wp.h*tg[1]);
+    const v=truthOf(c.k);lamp(W*0.55,c.y,v,false);if(c.prev!=null&&c.prev!==v)anyFlip=true;c.prev=v;});
+  if(anyFlip&&B.cs.some(c=>c.up))hit(2,3);
+  txt(B.cs.every(c=>c.up)?'三条 T 句各自跟随世界亮灭。按住左侧空白处让天下雨，拖动雪或草':'把下方的句子逐个拖上元语言层',W*0.3,g.objTop-14,'rgba(255,231,181,.8)',12);}
+
+/* ================= 第 3 关：说谎者 ================= */
+let C;
+function init3(){C={liar:{t:'这句话不是真的',x:W*0.12,y:H*0.2,up:false},truthTok:{x:W*0.4,y:H*0.74,inObj:true},drag:null,inObj:false,flickT:0,resolved:false};}
+HD[3]={down(x,y){const l=C.liar,tk=C.truthTok;if(Math.abs(x-l.x)<(l.w||170)/2&&Math.abs(y-l.y)<18)C.drag='liar';else if(Math.hypot(x-tk.x,y-tk.y)<26)C.drag='tok';},
+ move(x,y){if(C.drag==='liar'){C.liar.x=clamp(x,80,W*0.5);C.liar.y=clamp(y,H*0.1,H*0.9);}else if(C.drag==='tok'){C.truthTok.x=clamp(x,30,W*0.56);C.truthTok.y=clamp(y,H*0.1,H*0.9);}},
+ up(){const g=Y();if(C.drag==='liar'){C.inObj=C.liar.y>g.objTop;if(C.inObj){hit(3,0);if(C.truthTok.inObj)hit(3,1);}}
+  if(C.drag==='tok'){const was=C.truthTok.inObj;C.truthTok.inObj=C.truthTok.y>g.objTop;if(C.truthTok.inObj){C.truthTok.y=g.objBot-30;}else{C.truthTok.y=g.metaTop+40;}
+    if(was&&!C.truthTok.inObj&&C.flickT>1.5){hit(3,3);toast('对象语言里不再有“真”：说谎者句子造不出来了');}}C.drag=null;}};
+function t3(dt){const g=Y();ctx.fillStyle='#16202b';ctx.fillRect(0,0,W,H);
+  const closed=C.truthTok.inObj;
+  layer(g.metaTop,g.metaBot,'元语言','#2b3d55',false);layer(g.objTop,g.objBot,closed?'对象语言（语义封闭：里面也有“真”）':'对象语言（不含“真”）',closed?'#4a3636':'#2b4536',closed);
+  const tk=C.truthTok;ctx.fillStyle=closed?'#ffb0b0':'#ffe27a';ctx.beginPath();ctx.arc(tk.x,tk.y,22,0,7);ctx.fill();txt('真',tk.x,tk.y+6,'#222',17,'center',true);txt('（可拖动）',tk.x,tk.y+38,'rgba(255,255,255,.6)',10);
+  const l=C.liar;const paradox=C.inObj&&closed;
+  l.bad=paradox;card(l);
+  if(C.inObj&&!closed){txt('没有“真”可用：这句话在对象语言里根本说不出来',l.x,l.y-24,'#7dffb0',12);}
+  if(paradox){C.flickT+=dt;hit(3,1);if(C.flickT>2)hit(3,2);
+    const ax=l.x+l.w/2+20,ay=l.y;ctx.strokeStyle=`rgba(255,120,120,${0.5+0.5*Math.sin(T*20)})`;ctx.lineWidth=3;ctx.beginPath();ctx.arc(ax+40,ay,30,Math.PI*0.9,Math.PI*0.9+((T*6)%6.28));ctx.stroke();
+    txt('若它真 → 它说的成立 → 它不真',ax+120,ay-10,'#ffb0b0',12,'left');txt('若它不真 → 它说的正是事实 → 它真',ax+120,ay+10,'#ffb0b0',12,'left');
+    lamp(W*0.55,l.y,false,true);txt('把“真”从对象语言里拖到上面的元语言',W*0.3,g.objTop-14,'#ffe7b5',13);}
+  else if(!C.inObj){txt('把“这句话不是真的”拖进下方的对象语言',W*0.3,g.objTop-14,'rgba(255,231,181,.8)',13);}
+  const wp=worldPanel();}
+
+/* ================= 第 4 关：层级阶梯 ================= */
+let D;
+function init4(){D={levels:2,pull:0,hold:false,tok:[{t:'真₁',x:W*0.2,y:H*0.8,lv:-1},{t:'真₂',x:W*0.4,y:H*0.8,lv:-1}],drag:null};}
+function lvRect(i){const n=D.levels,top=H*0.06,bot=H*0.94,h=(bot-top)/n;const y1=bot-i*h;return{y0:y1-h+4,y1:y1-4};}
+HD[4]={down(x,y){for(const t of D.tok){if(Math.hypot(x-t.x,y-t.y)<24){D.drag=t;return;}}if(y<H*0.14&&x<W*0.58)D.hold=true;},
+ move(x,y){if(D.drag){D.drag.x=clamp(x,30,W*0.56);D.drag.y=clamp(y,H*0.06,H*0.94);}},
+ up(){if(D.drag){const t=D.drag;for(let i=0;i<D.levels;i++){const r=lvRect(i);if(t.y>r.y0&&t.y<r.y1){t.lv=i;}}
+   const ok=D.tok[0].lv===1&&D.tok[1].lv===2;if(ok){hit(4,1);toast('真₁ 谈论第 0 层的句子，真₂ 谈论第 1 层的句子');}else if(t.lv===0)toast('最底层是对象语言，里面不能有它自己的“真”');D.drag=null;}D.hold=false;}};
+function t4(dt){ctx.fillStyle='#16202b';ctx.fillRect(0,0,W,H);
+  if(D.hold&&D.levels<4){D.pull+=dt;if(D.pull>1.2){D.levels++;D.pull=0;if(D.levels>=3)hit(4,0);toast('新的一层：它的“真”只适用于下面那一层');}}else if(!D.hold)D.pull=Math.max(0,D.pull-dt);
+  const names=['第 0 层 · 对象语言','第 1 层 · 元语言（含 真₁）','第 2 层 · 元元语言（含 真₂）','第 3 层 · ……'];
+  for(let i=0;i<D.levels;i++){const r=lvRect(i);ctx.fillStyle=['#2b4536','#2b3d55','#3d2b55','#55402b'][i];ctx.fillRect(10,r.y0,W*0.58,r.y1-r.y0);txt(names[i],18,r.y0+18,'rgba(255,255,255,.85)',12,'left',true);
+    if(i===0){ctx.fillStyle='#fff';ctx.beginPath();ctx.roundRect(W*0.25,r.y0+(r.y1-r.y0)/2-14,96,28,8);ctx.fill();txt('雪是白的',W*0.25+48,r.y0+(r.y1-r.y0)/2+5,'#1f2b38',13,'center',true);}}
+  // 各层指向下一层的箭头
+  for(let i=1;i<D.levels;i++){const a=lvRect(i),b=lvRect(i-1);ctx.strokeStyle='rgba(255,226,122,.5)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(W*0.5,a.y1-6);ctx.lineTo(W*0.5,b.y0+6);ctx.stroke();ctx.fillStyle='rgba(255,226,122,.7)';ctx.beginPath();ctx.moveTo(W*0.5,b.y0+6);ctx.lineTo(W*0.5-6,b.y0-4);ctx.lineTo(W*0.5+6,b.y0-4);ctx.fill();}
+  D.tok.forEach(t=>{const bad=t.lv===0;ctx.fillStyle=bad?'#ffb0b0':'#ffe27a';ctx.beginPath();ctx.arc(t.x,t.y,22,0,7);ctx.fill();txt(t.t,t.x,t.y+6,'#222',15,'center',true);});
+  if(D.levels>=3){const r1=lvRect(1),r2=lvRect(2);txt('“‘雪是白的’是真₁的”是真₂的，当且仅当“雪是白的”是真₁的',W*0.3,r2.y0+(r2.y1-r2.y0)/2+30,'rgba(255,231,181,.8)',11);}
+  ctx.fillStyle=D.hold?'#f3a52b':'rgba(255,255,255,.12)';ctx.fillRect(10,4,W*0.58*Math.min(1,D.pull/1.2),6);
+  txt(D.levels<3?'按住画面最上方，向上拉出新的一层':'把 真₁、真₂ 拖到各自所属的层',W*0.3,H*0.04+12,'rgba(255,231,181,.8)',12);
+  const wp=worldPanel();}
+
+/* ================= 第 5 关：应用练习 ================= */
+let E;
+const S5=[{t:'雪是白的',ref:null,need:0},{t:'“雪是白的”是真的',ref:'snow',need:1},{t:'下一句是真的',ref:'pairB',need:-1,pair:true},{t:'上一句是假的',ref:'pairA',need:-1,pair:true}];
+function init5(){freshWorld();E={levels:3,cs:S5.map((s,i)=>({...s,x:W*(0.1+i*0.12),y:H*0.92-((i%2)*18),lv:-1})),drag:null,stable:0};}
+function lv5(i){const top=H*0.06,bot=H*0.94,h=(bot-top)/3;const y1=bot-i*h;return{y0:y1-h+4,y1:y1-4};}
+HD[5]={down(x,y){for(const c of E.cs){if(Math.abs(x-c.x)<(c.w||120)/2&&Math.abs(y-c.y)<16){E.drag=c;return;}}worldDrag(x,y,0,0);},
+ move(x,y,dx,dy){if(E.drag){E.drag.x=clamp(x,70,W*0.52);E.drag.y=clamp(y,H*0.06,H*0.96);}else worldDrag(x,y,dx,dy);},
+ up(){if(E.drag){const c=E.drag;c.lv=-1;for(let i=0;i<3;i++){const r=lv5(i);if(c.y>r.y0&&c.y<r.y1)c.lv=i;}E.drag=null;}}};
+function evalPair(){const a=E.cs[2],b=E.cs[3];if(a.lv<0||b.lv<0)return'none';return a.lv===b.lv?'loop':'ok';}
+function t5(dt){ctx.fillStyle='#16202b';ctx.fillRect(0,0,W,H);
+  const names=['第 0 层 · 对象语言','第 1 层 · 元语言','第 2 层 · 元元语言'];
+  for(let i=0;i<3;i++){const r=lv5(i);ctx.fillStyle=['#2b4536','#2b3d55','#3d2b55'][i];ctx.fillRect(10,r.y0,W*0.58,r.y1-r.y0);txt(names[i],18,r.y0+18,'rgba(255,255,255,.85)',12,'left',true);}
+  const wp=worldPanel();const pair=evalPair();let allOk=true;
+  E.cs.forEach((c,i)=>{c.bad=false;let state='wait';
+    if(c.lv>=0){if(i===0){state=c.lv===0?'ok':'mis';}
+      else if(i===1){state=c.lv>=1?'ok':'mis';}
+      else{state=pair==='loop'?'loop':pair==='ok'?'ok':'wait';}}
+    if(state!=='ok')allOk=false;c.bad=state==='mis'||state==='loop';card(c);
+    const lx=W*0.6-14;if(c.lv>=0){const tv=i===0?WD.snow>0.75:i===1?WD.snow>0.75:true;lamp(Math.min(lx,c.x+c.w/2+30),c.y,tv,state==='loop');}
+    if(state==='mis')txt(i===0?'它不含“真”，放进对象语言即可':'它谈论另一个句子的真：要放在更高一层',c.x,c.y-20,'#ffb0b0',11);});
+  if(pair==='loop')txt('两句放在同一层，又互相谈论对方的真：灯在闪',W*0.3,H*0.04+12,'#ffb0b0',12);
+  if(allOk){E.stable+=dt;if(E.stable>1.5){hit(5,0);hit(5,1);}}else E.stable=0;
+  txt(allOk?(E.stable>1.5?'所有指示灯都稳定了':'保持住……'):'把四个句子拖到合适的层；拖动右侧的雪看灯是否跟随世界',W*0.3,H*0.985,'rgba(255,231,181,.85)',12);}
+
+/* ======== 调度 ======== */
+const INIT={1:init1,2:init2,3:init3,4:init4,5:init5},TICK={1:t1,2:t2,3:t3,4:t4,5:t5};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!SAVE.done[t.dataset.l]);});}
+function go(n){L=n;SAVE.level=n;persist();tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);relight(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{if(L===1){SAVE.world={};persist();}INIT[L]();toast('已重置（已对应的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(SAVE.level||1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

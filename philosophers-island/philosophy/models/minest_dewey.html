@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 杜威探究理论 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .q0{background:#26394d;color:#ffe7b5;padding:4px 10px;font-size:13px}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+#side .bound{padding:4px 10px 8px;font-size:11.5px;color:#667}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>杜威 · 探究</b>
+  <button class="tab on" data-l="1">① 感到困难</button>
+  <button class="tab" data-l="2">② 确定问题</button>
+  <button class="tab" data-l="3">③ 提出设想</button>
+  <button class="tab" data-l="4">④ 推演</button>
+  <button class="tab" data-l="5">⑤ 实验</button>
+  <button class="tab" data-l="6">⑥ 应用练习</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="q0">核心问题：一个令人困惑的情境，怎样一步步变成一个确定的结论？</div><div class="bd" id="sBody"></div><div class="bound">适用边界：气泡与旗杆是杜威书中学生的实例；把五步画成关卡只是教学安排——杜威本人强调各步可以融合，次序和用力程度要视情境而定（第六章末节）。</div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+const store={get(k,d){try{const v=localStorage.getItem('minest_dewey_'+k);return v?JSON.parse(v):d;}catch(e){return (store.m&&store.m[k])||d;}},
+ set(k,v){try{localStorage.setItem('minest_dewey_'+k,JSON.stringify(v));}catch(e){store.m=store.m||{};store.m[k]=v;}}};
+const done=store.get('done',{}),lit=store.get('lit',{});
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ======== 原文：杜威《我们如何思维》（How We Think, 1910, D. C. Heath）第六章「一个完整思维活动的分析」，Wikisource 扫描本；中文编译 ======== */
+const C6='《我们如何思维》第六章';
+const MAP={
+1:[["按住观察：杯口外冒出气泡，又跑进去","在热肥皂水里洗玻璃杯，把杯口朝下放在盘子上，杯口外侧出现了气泡，然后又跑到里面去了。为什么？","In washing tumblers in hot soapsuds and placing them mouth downward on a plate, bubbles appeared on the outside of the mouth of the tumblers and then went inside. Why?",C6+" · 实例三"],
+   ["一种说不清的不安在累积","一种说不清的不安和震动可能先出现，后来才引向明确的努力，去弄清到底出了什么问题。","an undefined uneasiness and shock may come first, leading only later to definite attempt to find out what is the matter",C6+" · 1. 困难的发生"],
+   ["五个步骤","每个实例都或多或少清楚地显示出五个在逻辑上不同的步骤：(1) 感到困难；(2) 确定困难所在并加以界定；(3) 提出可能的解决办法……","five logically distinct steps: (i) a felt difficulty; (ii) its location and definition; (iii) suggestion of possible solution",C6+" · 反思的五个步骤"]],
+2:[["拖动放大镜去查看：气泡从哪里来？","需要有意识地进行观察，以弄清究竟是什么麻烦，或者把问题的具体性质弄清楚。","there are necessary observations deliberately calculated to bring to light just what is the trouble, or to make clear the specific character of the problem",C6+" · 2. 困难的界定"],
+   ["过早抓住答案：被挡回","如果他让对这种病的设想过早地占据头脑，成为接受下来的结论，他的科学思维就在这个程度上被截断了。","if he permits the suggestion of this special disease to take possession prematurely of his mind, to become an accepted conclusion, his scientific thinking is by that much cut short",C6+" · 医生的例子"],
+   ["悬置判断，问题渐渐清晰","批判性思维的本质是悬置判断；而这种悬置的本质，是在着手解决之前先探究、确定问题的性质。","The essence of critical thinking is suspended judgment; and the essence of this suspense is inquiry to determine the nature of the problem before proceeding to attempts at its solution",C6+" · 2. 困难的界定"],
+   ["问题定下来了：要找中间环节","问题就是把表面的反常归结为既定规律的实例。","The problem is to reduce the apparent anomalies to instances of well-established laws.",C6+" · (c) 解释意外事件"]],
+3:[["按住凝视：设想从情境中冒出来","设想是推论的核心；它是从眼前的东西走向不在眼前的东西。","Suggestion is the very heart of inference; it involves going from what is present to something absent.",C6+" · 3. 设想的出现"],
+   ["设想是一种跳跃","既然推论超出了实际呈现的东西，它就包含一种跳跃，其是否恰当无法事先绝对保证。","it involves a leap, a jump, the propriety of which cannot be absolutely warranted in advance",C6+" · 3. 设想的出现"],
+   ["多留几个对手设想","培养多种可供选择的设想，是良好思维的一个重要因素。","cultivation of a variety of alternative suggestions is an important factor in good thinking",C6+" · 3. 设想的出现"],
+   ["设想只是“观念”，还不是结论","被设想的结论，只要没有被接受、只是暂时被考虑，就构成一个观念。它的同义词是假定、猜想、猜测、假设。","The suggested conclusion so far as it is not accepted but only tentatively entertained constitutes an idea.",C6+" · 3. 设想的出现"]],
+4:[["把设想拖上推演轨道，展开它的后果","展开任何观念对某个问题的意涵的过程，叫作推理。","The process of developing the bearings—or, as they are more technically termed, the implications—of any idea with respect to any problem, is termed reasoning.",C6+" · 4. 观念的理性加工"],
+   ["“空气被加热”推出：一定有冷空气进去过","如果热空气是原因，那么在把杯子从肥皂水移到盘子上时，一定有冷空气进去了。","If heated air was the cause, cold air must have entered in transferring the tumblers from the suds to the plate.",C6+" · 实例三"],
+   ["推演到底：有的设想变得荒谬","乍看似乎合理的猜想，在追溯出它们的全部后果后，常常被发现不合适甚至荒谬。","Conjectures that seem plausible at first sight are often found unfit or even absurd when their full consequences are traced out.",C6+" · 4. 观念的理性加工"],
+   ["推演补上中间环节","通过推理发展一个观念，至少有助于提供中间环节，把表面上不一致的两端联结成一个一贯的整体。","The development of an idea through reasoning helps at least to supply the intervening or intermediate terms",C6+" · 4. 观念的理性加工"]],
+5:[["摇晃一些杯子，另一些杯口朝下取出","有些我摇晃，以确保把冷空气关进去；有些我杯口朝下取出，防止冷空气进入。","Some I shake so as to make sure of entrapping cold air in them. Some I take out holding mouth downward in order to prevent cold air from entering.",C6+" · 实例三"],
+   ["结果：只有摇晃过的冒泡","前一类每一只外面都出现了气泡，后一类一只也没有。","Bubbles appear on the outside of every one of the former and on none of the latter.",C6+" · 实例三"],
+   ["把冰杯放上去：气泡倒转","我在气泡还在外面形成时，把一杯冰放在杯子上。它们很快就倒转了。","I test by placing a cup of ice on the tumbler while the bubbles are still forming outside. They soon reverse.",C6+" · 实例三"],
+   ["有意安排条件来检验","实验，就是按照一个观念或假设的要求，有意安排条件，看理论上指示的结果是否真的出现。","conditions are deliberately arranged in accord with the requirements of an idea or hypothesis to see if the results theoretically indicated by the idea actually occur",C6+" · 5. 观念的确证"],
+   ["结论成立——直到出现相反事实","这种确证强到足以导出结论——至少在出现相反事实、需要修正之前。","the confirmation is so strong as to induce a conclusion—at least until contrary facts shall indicate the advisability of its revision",C6+" · 5. 观念的确证"]],
+6:[["渡船上那根横伸的白杆","在我每天渡河的那条渡船上层甲板上，几乎水平地伸出一根长长的白杆，顶端有一个镀金的球。","Projecting nearly horizontally from the upper deck of the ferryboat on which I daily cross the river, is a long white pole, bearing a gilded ball at its tip.",C6+" · 实例二"],
+   ["“旗杆”撞上相反的事实","困难在于：一个被暂时接受的信念——这根杆是旗杆——与某些其他事实不相容。","the difficulty experienced is the incompatibility of a suggested and (temporarily) accepted belief that the pole is a flagpole, with certain other facts",C6+" · (b) 确定对象的性质"],
+   ["绕到驾驶室看：它比驾驶室低","我发现这根杆比驾驶室低，舵手很容易看见它。","I discovered that the pole was lower than the pilot house, so that the steersman could easily see it.",C6+" · 实例二"],
+   ["接受“方向标”","这个假设比其他假设可能得多，于是我接受了它。","This hypothesis was so much more probable than the others that I accepted it.",C6+" · 实例二"],
+   ["训练有素的头脑","训练有素的头脑，是能够判断这些步骤在某一特定情境中需要推进到什么程度的头脑。","the mind able to judge how far each of these steps needs to be carried in any particular situation",C6+" · 末节"]]};
+const TITLE={1:'① 感到困难 · 按住画面，观察洗好的杯子',2:'② 确定问题 · 拖动放大镜去查看；别急着抓答案',3:'③ 提出设想 · 按住气泡凝视，让设想冒出来，多留几个',4:'④ 推演 · 把设想拖到推演轨道上，按住展开它的后果',5:'⑤ 实验 · 把杯子拖出肥皂水：上下摇晃 / 杯口朝下直拖；再把冰杯拖到杯上',6:'⑥ 应用练习 · 拖动视角绕船查看，把设想标签拖到白杆上'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr${lit[l+'_'+i]?' on':''}" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——杜威${r[3]}</div></div></div>`).join('');}
+function hit(l,i){if(lit[l+'_'+i])return;lit[l+'_'+i]=1;store.set('lit',lit);const e=$('mr'+l+'_'+i);if(e){e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});}
+  if(MAP[l].every((_,k)=>lit[l+'_'+k])){done[l]=1;store.set('done',done);tabs();}}
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y,x0:x,y0:y,t0:T};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]?.move?.(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{HD[L]?.up?.();PT=null;});
+
+/* ======== 共享：厨房、盘子、玻璃杯、气泡 ======== */
+function kitchen(){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#e9eef2');g.addColorStop(1,'#cfd8df');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#b9a07c';ctx.fillRect(0,H*0.72,W,H*0.28);ctx.fillStyle='#a88d68';ctx.fillRect(0,H*0.72,W,5);}
+function plate(x,y,w){ctx.fillStyle='#f6f6f6';ctx.beginPath();ctx.ellipse(x,y,w,w*0.18,0,0,7);ctx.fill();ctx.strokeStyle='#bbb';ctx.stroke();
+  ctx.fillStyle='rgba(200,225,240,.7)';ctx.beginPath();ctx.ellipse(x,y-2,w*0.82,w*0.12,0,0,7);ctx.fill();}
+function tumbler(x,y,w,h,warm){ // 杯口朝下：开口在下方 y
+  ctx.save();ctx.fillStyle=`rgba(${200+55*warm},${230-30*warm},${245-60*warm},.35)`;ctx.strokeStyle='rgba(90,120,140,.8)';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(x-w/2,y);ctx.lineTo(x-w*0.42,y-h);ctx.lineTo(x+w*0.42,y-h);ctx.lineTo(x+w/2,y);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,.5)';ctx.fillRect(x-w*0.32,y-h*0.9,4,h*0.75);ctx.restore();}
+function bubble(x,y,r,a){ctx.strokeStyle=`rgba(120,150,170,${a})`;ctx.fillStyle=`rgba(255,255,255,${a*0.4})`;ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.stroke();
+  ctx.fillStyle=`rgba(255,255,255,${a})`;ctx.beginPath();ctx.arc(x-r*0.35,y-r*0.35,r*0.25,0,7);ctx.fill();}
+/* 气泡系统：phase 0 外侧生成；之后向内迁移（杯子冷却） */
+function bubbleSys(){return{b:[],t:0};}
+function stepBubbles(S,x,y,w,dt,mode){ // mode: 'out'(外冒) 'in'(内吸) 'none'
+  S.t+=dt;if(mode!=='none'&&Math.random()<dt*8)S.b.push({a:Math.random()*Math.PI,side:Math.random()<0.5?-1:1,r:3+Math.random()*5,life:0,dir:mode});
+  S.b.forEach(b=>{b.life+=dt;});S.b=S.b.filter(b=>b.life<3.5).slice(-40);
+  S.b.forEach(b=>{let off=b.dir==='out'?w*0.55+Math.min(1,b.life)*10:w*0.55-Math.min(1,b.life)*w*0.4;const bx=x+b.side*off*Math.abs(Math.cos(b.a*0.3)),by=y-4-Math.sin(b.a)*3;bubble(bx,by,b.r,Math.min(1,3.5-b.life));});}
+
+/* ================= 第 1 关：感到困难 ================= */
+let A;
+function init1(){A={hold:0,uneasy:0,phase:0,B:bubbleSys(),cool:0,watch:0,t0:T};}
+HD[1]={down(){A.holding=true;},up(){A.holding=false;}};
+function t1(dt){kitchen();const px=W*0.5,py=H*0.66,tw=Math.min(W*0.12,90),th=tw*1.3;
+  if(A.holding){A.watch+=dt;A.cool=Math.min(1,A.cool+dt*0.12);}
+  plate(px,py,tw*1.6);tumbler(px,py,tw,th,1-A.cool);
+  const mode=!A.holding?'none':A.cool<0.45?'out':'in';
+  stepBubbles(A.B,px,py,tw,dt,mode);
+  if(A.watch>0.5)hit(1,0);
+  // 不安：随反常累积
+  if(A.holding&&A.cool>0.45)A.uneasy=Math.min(1,A.uneasy+dt*0.3);
+  if(A.uneasy>0.5)hit(1,1);if(A.uneasy>=1)hit(1,2);
+  // 不安的视觉：画面边缘波动的雾
+  if(A.uneasy>0){ctx.strokeStyle=`rgba(160,80,140,${A.uneasy*0.5})`;ctx.lineWidth=3;for(let i=0;i<3;i++){ctx.beginPath();for(let x=0;x<=W;x+=12)ctx.lineTo(x,14+i*8+Math.sin(x*0.03+T*3+i)*4*A.uneasy);ctx.stroke();}
+    txt(A.uneasy<0.5?'……有点怪':A.uneasy<1?'它们为什么先往外、又往里？':'困难被感到了：这里有一个问题',W/2,H*0.2,'#6a3a6a',15,'center',true);}
+  // 不安计
+  ctx.fillStyle='#fff';ctx.fillRect(W*0.06,H*0.1,W*0.18,10);ctx.fillStyle='#a05aa0';ctx.fillRect(W*0.06,H*0.1,W*0.18*A.uneasy,10);txt('不安',W*0.15,H*0.1-4,'#445',12);
+  txt(A.holding?(A.cool<0.45?'气泡在杯口外面冒出来……':'……现在它们往里跑了'):'按住画面，看着刚从热肥皂水里拿出的杯子',W/2,H*0.94,'#223',13);}
+
+/* ================= 第 2 关：确定问题 ================= */
+let B;
+const SPOTS=[{k:'out',x:0.38,y:0.66,t:'杯口外侧：气泡从里往外推出',f:'有东西从杯里出来——是空气'},{k:'plate',x:0.62,y:0.69,t:'盘上肥皂水：封住了杯口',f:'空气只能裹在气泡里出来'},{k:'nothing',x:0.5,y:0.42,t:'杯里：没有任何东西进去',f:'没有别的物质把空气挤出来'},{k:'time',x:0.82,y:0.35,t:'时间：几秒后气泡反向',f:'先胀后缩'}];
+function init2(){B={mag:{x:0.2,y:0.3},drag:false,found:{},grab:null,suspend:0,clarity:0};}
+HD[2]={down(x,y){if(Math.hypot(x-W*B.mag.x,y-H*B.mag.y)<50){B.drag='mag';return;}if(x>W*0.78&&y>H*0.78){B.drag='ans';B.grab={x,y};}},
+ move(x,y){if(B.drag==='mag'){B.mag.x=clamp(x/W,0.05,0.95);B.mag.y=clamp(y/H,0.1,0.9);}if(B.drag==='ans'&&B.grab){B.grab.x=x;B.grab.y=y;}},
+ up(){if(B.drag==='ans'&&B.grab){if(Object.keys(B.found).length<SPOTS.length){hit(2,1);toast('还没弄清问题，就把“答案”塞进来了——思维被截断');}else toast('问题已经清楚了：去下一关提出设想');B.grab=null;}B.drag=false;}};
+function t2(dt){kitchen();const px=W*0.5,py=H*0.66,tw=Math.min(W*0.12,90),th=tw*1.3;plate(px,py,tw*1.6);tumbler(px,py,tw,th,0.6);
+  if(!B.S)B.S=bubbleSys();stepBubbles(B.S,px,py,tw,dt,(T%6)<3.5?'out':'in');
+  const mx=W*B.mag.x,my=H*B.mag.y;
+  SPOTS.forEach(s=>{const sx=W*s.x,sy=H*s.y;const d=Math.hypot(mx-sx,my-sy);
+    if(d<40&&B.drag==='mag'){s.dw=(s.dw||0)+dt;if(s.dw>1&&!B.found[s.k]){B.found[s.k]=1;hit(2,0);toast(s.f);}}
+    ctx.fillStyle=B.found[s.k]?'rgba(58,111,153,.9)':'rgba(58,111,153,.15)';ctx.beginPath();ctx.arc(sx,sy,6,0,7);ctx.fill();
+    if(B.found[s.k])txt(s.t,sx,sy-12,'#1f3a55',11);});
+  // 放大镜
+  ctx.strokeStyle='#3a6f99';ctx.lineWidth=4;ctx.beginPath();ctx.arc(mx,my,34,0,7);ctx.stroke();ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(mx+24,my+24);ctx.lineTo(mx+46,my+46);ctx.stroke();
+  // 悬置判断计：在没有抓答案的前提下累积
+  const n=Object.keys(B.found).length;B.clarity=lerp(B.clarity,n/SPOTS.length,dt*3);
+  if(n>=2&&!B.grab)B.suspend=Math.min(1,B.suspend+dt*0.2);
+  if(B.suspend>0.6)hit(2,2);if(n===SPOTS.length)hit(2,3);
+  // 问题陈述逐渐清晰
+  const words=['气泡','……为什么','空气从杯里出来又进去','空气先膨胀后收缩：原因是什么？'];txt('问题：'+words[Math.min(3,n)],W/2,H*0.14,`rgba(30,50,70,${0.4+0.6*B.clarity})`,15,'center',true);
+  ctx.fillStyle='#fff';ctx.fillRect(W*0.06,H*0.22,W*0.16,9);ctx.fillStyle='#3a6f99';ctx.fillRect(W*0.06,H*0.22,W*0.16*B.suspend,9);txt('悬置判断',W*0.14,H*0.22-4,'#445',12);
+  // 诱人的“答案”按钮区
+  ctx.fillStyle='rgba(243,165,43,.9)';ctx.fillRect(W*0.8,H*0.8,W*0.18,H*0.14);txt('现成答案：“是肥皂的作用”',W*0.89,H*0.88,'#222',12,'center',true);
+  if(B.grab){ctx.fillStyle='rgba(243,165,43,.7)';ctx.fillRect(B.grab.x-60,B.grab.y-14,120,28);txt('肥皂的作用！',B.grab.x,B.grab.y+5,'#222',12);}
+  txt('拖动放大镜在四个点上停留，弄清“到底是什么麻烦”',W/2,H*0.97,'#223',12);}
+
+/* ================= 第 3 关：提出设想 ================= */
+let C;
+const SUG=[{n:'空气被加热了',ok:1},{n:'外面的气压变了',ok:0},{n:'肥皂水在“呼吸”',ok:0},{n:'杯子在收缩',ok:0},{n:'水汽在蒸发',ok:0}];
+function init3(){C={hold:0,ideas:[],next:0};}
+HD[3]={down(x,y){C.holding=true;for(const i of C.ideas){if(Math.hypot(x-i.x,y-i.y)<50){i.keep=!i.keep;toast(i.keep?`留着“${i.n}”作为一个待检验的观念`:`放开“${i.n}”`);if(C.ideas.filter(j=>j.keep).length>=3)hit(3,2);if(i.keep)hit(3,3);C.holding=false;return;}}},up(){C.holding=false;}};
+function t3(dt){kitchen();const px=W*0.5,py=H*0.66,tw=Math.min(W*0.12,90),th=tw*1.3;plate(px,py,tw*1.6);tumbler(px,py,tw,th,0.6);
+  if(!C.S)C.S=bubbleSys();stepBubbles(C.S,px,py,tw,dt,(T%6)<3.5?'out':'in');
+  if(C.holding){C.hold+=dt;if(C.hold>0.5)hit(3,0);
+    if(C.hold>1.2+C.next*1.4&&C.next<SUG.length){const s=SUG[C.next++];C.ideas.push({...s,x:px,y:py-th,tx:W*(0.12+0.19*(C.next-1)),ty:H*(0.18+((C.next%2)*0.12)),born:T,keep:false});if(C.next===1)hit(3,1);}}
+  // “跳跃”：从眼前到不在眼前
+  C.ideas.forEach(i=>{const k=clamp((T-i.born)/1.2,0,1);const x=lerp(i.x,i.tx,k),y=lerp(i.y,i.ty,k)-Math.sin(k*Math.PI)*60;i.cx=x;i.cy=y;
+    if(k<1){ctx.strokeStyle='rgba(160,90,160,.4)';ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(px,py-th);ctx.quadraticCurveTo((px+i.tx)/2,Math.min(py,i.ty)-120,x,y);ctx.stroke();ctx.setLineDash([]);}
+    i.x=k>=1?i.tx:i.x;i.y=k>=1?i.ty:i.y;
+    const fade=i.keep?1:Math.max(0.25,1-(T-i.born-4)*0.15);
+    ctx.globalAlpha=fade;ctx.fillStyle=i.keep?'#fff3d6':'rgba(255,255,255,.85)';ctx.strokeStyle=i.keep?'#f3a52b':'#a05aa0';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(x-62,y-16,124,32,14);ctx.fill();ctx.stroke();
+    txt(i.n,x,y+5,'#4a2a60',12,'center',i.keep);ctx.globalAlpha=1;});
+  const kept=C.ideas.filter(i=>i.keep).length;
+  txt(C.next===0?'按住气泡凝视：心灵从眼前的气泡跳到不在眼前的东西':kept<3?`点设想把它留下（已留 ${kept}；不留的会慢慢淡去）`:'有几个对手设想并存：判断还悬着',W/2,H*0.97,'#223',13);
+  store.set('ideas',C.ideas.filter(i=>i.keep).map(i=>i.n));}
+
+/* ================= 第 4 关：推演 ================= */
+let D;
+const CHAINS={'空气被加热了':['空气受热膨胀','→ 那么杯里的空气原本是冷的','→ 冷空气是在从肥皂水移到盘子时进去的','→ 杯子随后冷却，空气收缩，气泡往里跑','（一个连贯的整体）'],
+ '外面的气压变了':['气压变化会使空气膨胀','→ 那么整个厨房的气压在几秒内变了又变','→ 其他杯子、桌上的水面都该一起动','→ 只有刚洗的杯子冒泡？说不通','（荒谬）'],
+ '肥皂水在“呼吸”':['肥皂水自己吸气、呼气','→ 那么冷水里放了肥皂也会这样','→ 可只有热水里拿出的杯子会这样','（不合适）'],
+ '杯子在收缩':['玻璃收缩把空气挤出','→ 收缩应当只挤出、不吸入','→ 可气泡后来往里跑','（不合适）'],
+ '水汽在蒸发':['水汽冒出','→ 水汽会散到空气里，不会再钻回杯口','（不合适）']};
+function init4(){D={cards:(store.get('ideas',[])||[]).concat([]),drag:null,on:null,step:0,hold:false,fails:0,goodDone:false};
+  if(D.cards.length<2)D.cards=['空气被加热了','外面的气压变了','肥皂水在“呼吸”'];
+  if(!D.cards.includes('空气被加热了'))D.cards.unshift('空气被加热了');
+  D.cards=[...new Set(D.cards)].slice(0,4).map((n,i)=>({n,x:W*0.08,y:H*(0.15+i*0.17),hx:W*0.08,hy:H*(0.15+i*0.17)}));}
+HD[4]={down(x,y){for(const c of D.cards){if(x>c.x-10&&x<c.x+140&&Math.abs(y-c.y)<18){D.drag=c;return;}}if(D.on)D.hold=true;},
+ move(x,y){if(D.drag){D.drag.x=x-60;D.drag.y=y;}},
+ up(){D.hold=false;if(D.drag){const c=D.drag;D.drag=null;if(c.x>W*0.28&&c.y>H*0.35&&c.y<H*0.65){D.on=c.n;D.step=0;hit(4,0);}c.x=c.hx;c.y=c.hy;}}};
+function t4(dt){ctx.fillStyle='#22303d';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(255,255,255,.05)';ctx.fillRect(W*0.28,H*0.35,W*0.68,H*0.3);txt('推演轨道：把一个设想拖到这里，再按住展开它的后果',W*0.62,H*0.33,'#cfd6e6',12);
+  D.cards.forEach(c=>{ctx.fillStyle=D.on===c.n?'#f3a52b':'#fff3d6';ctx.beginPath();ctx.roundRect(c.x,c.y-15,140,30,12);ctx.fill();txt(c.n,c.x+70,c.y+5,'#3a2a00',12,'center',true);});
+  if(D.on){const ch=CHAINS[D.on]||['（这个设想还没有可推出的后果）'];if(D.hold)D.step=Math.min(ch.length,D.step+dt*0.7);
+    const n=Math.floor(D.step);for(let i=0;i<Math.min(n,ch.length);i++){const x=W*0.3+i*(W*0.66/ch.length),y=H*0.5+Math.sin(i)*10;const last=i===ch.length-1;
+      const col=last?(D.on==='空气被加热了'?'#7dffb0':'#ff8a8a'):'#e8ecf4';ctx.fillStyle='rgba(255,255,255,.08)';ctx.beginPath();ctx.roundRect(x,y-22,W*0.66/ch.length-8,44,8);ctx.fill();
+      ctx.fillStyle=col;ctx.font='12px sans-serif';ctx.textAlign='left';const words=ch[i];let line='',yy=y-4;for(const chr of words){if(ctx.measureText(line+chr).width>W*0.66/ch.length-18){ctx.fillText(line,x+5,yy);line='';yy+=15;}line+=chr;}ctx.fillText(line,x+5,yy);}
+    if(n>=ch.length&&!D['done_'+D.on]){D['done_'+D.on]=1;if(D.on==='空气被加热了'){hit(4,1);hit(4,3);D.goodDone=true;toast('推演补上了中间环节：冷空气进去 → 受热膨胀 → 冷却收缩');}else{D.fails++;hit(4,2);toast(`“${D.on}”推到底，站不住`);}}}
+  txt(!D.on?'把左边的设想拖到轨道上':D.hold?'展开后果……':'按住轨道，继续推演',W*0.62,H*0.8,'#ffe7b5',13);}
+
+/* ================= 第 5 关：实验 ================= */
+let E5;
+function init5(){E5={tubs:[],drag:null,shakeAmt:0,ice:{x:0.9,y:0.25,on:null},iceDrag:false,res:{shake:0,down:0}};
+  for(let i=0;i<4;i++)E5.tubs.push({x:0.14+i*0.06,y:0.62,state:'suds',kind:null,warm:1,B:bubbleSys(),cool:0,shake:0,path:0,vy:0});}
+HD[5]={down(x,y){if(Math.hypot(x-W*E5.ice.x,y-H*E5.ice.y)<40){E5.iceDrag=true;return;}for(const t of E5.tubs){if(t.state==='suds'&&Math.abs(x-W*t.x)<30&&Math.abs(y-H*t.y)<40){E5.drag=t;t.shake=0;t.vy=0;return;}}},
+ move(x,y,dx,dy){if(E5.iceDrag){E5.ice.x=clamp(x/W,0.05,0.95);E5.ice.y=clamp(y/H,0.1,0.85);return;}
+  const t=E5.drag;if(!t)return;t.x=clamp(x/W,0.05,0.95);t.y=clamp(y/H,0.2,0.75);t.vy+=Math.abs(dy);t.shake+=Math.abs(dy)>Math.abs(dx)*1.5&&Math.abs(dy)>6?Math.abs(dy):0;},
+ up(){if(E5.iceDrag){E5.iceDrag=false;const tg=E5.tubs.find(t=>t.state==='plate'&&t.kind==='shake'&&Math.abs(W*t.x-W*E5.ice.x)<50&&Math.abs(H*0.66-H*E5.ice.y)<120);
+    if(tg&&tg.cool<0.45){E5.ice.on=tg;tg.iced=T;hit(5,2);toast('冰杯放上去：气泡很快倒转往里跑');}else if(tg)toast('气泡已经在往里跑了：要在它们还往外冒时放');}
+  const t=E5.drag;if(!t)return;E5.drag=null;
+  if(t.x>0.4){t.state='plate';t.x=clamp(t.x,0.45,0.9);const slot=E5.tubs.filter(o=>o.state==='plate').length;t.x=0.42+slot*0.12;t.y=0.66;
+    t.kind=t.shake>220?'shake':'down';hit(5,0);
+    toast(t.kind==='shake'?'这只摇晃过：冷空气被关进去了':'这只杯口朝下平稳拖出：冷空气进不去');}
+  else{t.x=0.14+E5.tubs.indexOf(t)*0.06;t.y=0.62;}}};
+function t5(dt){kitchen();
+  // 肥皂水盆
+  ctx.fillStyle='#9fc3d6';ctx.beginPath();ctx.ellipse(W*0.23,H*0.66,W*0.16,H*0.06,0,0,7);ctx.fill();for(let i=0;i<14;i++){bubble(W*0.1+((i*37)%100)/100*W*0.26,H*0.64+Math.sin(T*2+i)*3,3+(i%3),0.7);}
+  txt('热肥皂水',W*0.23,H*0.78,'#335',12);
+  for(let i=0;i<4;i++)plate(W*(0.54+i*0.12),H*0.67,Math.min(W*0.05,40));
+  E5.tubs.forEach(t=>{const x=W*t.x,y=H*t.y,tw=Math.min(W*0.06,50),th=tw*1.3;
+    if(t.state==='plate'){if(t.iced)t.cool=Math.min(1,t.cool+dt*0.6);else t.cool=Math.min(1,t.cool+dt*0.05);
+      const mode=t.kind==='shake'?(t.cool<0.45?'out':'in'):'none';stepBubbles(t.B,x,H*0.66,tw,dt,mode);
+      txt(t.kind==='shake'?'摇晃过':'杯口朝下',x,H*0.73,'#335',11);}
+    tumbler(x,t.state==='plate'?H*0.66:y,tw,th,t.state==='suds'?1:1-t.cool);
+    if(E5.drag===t&&t.shake>40){txt(`摇晃 ${Math.round(t.shake)}`,x,y-th-8,'#a05a00',11);}});
+  const placed=E5.tubs.filter(t=>t.state==='plate');const ks=placed.filter(t=>t.kind==='shake').length,kd=placed.filter(t=>t.kind==='down').length;
+  if(ks>=1&&kd>=1){hit(5,1);hit(5,3);}
+  if(lit['5_2']&&ks>=1&&kd>=1)hit(5,4);
+  // 冰杯
+  const ix=W*E5.ice.x,iy=H*E5.ice.y;ctx.fillStyle='#dff3ff';ctx.fillRect(ix-22,iy-30,44,40);ctx.strokeStyle='#7aaecb';ctx.strokeRect(ix-22,iy-30,44,40);for(let i=0;i<4;i++){ctx.fillStyle='#fff';ctx.fillRect(ix-16+i*9,iy-22+(i%2)*10,8,8);}txt('冰杯',ix,iy+24,'#335',11);
+  // 结果表
+  ctx.fillStyle='rgba(255,255,255,.85)';ctx.fillRect(W*0.54,H*0.08,W*0.42,H*0.2);txt('记录',W*0.75,H*0.08+16,'#223',12,'center',true);
+  txt(`摇晃过的杯子：${ks} 只 · 外面冒泡：${placed.filter(t=>t.kind==='shake'&&t.B.b.length>0).length}`,W*0.56,H*0.08+38,'#223',12,'left');
+  txt(`杯口朝下的杯子：${kd} 只 · 外面冒泡：0`,W*0.56,H*0.08+58,'#223',12,'left');
+  txt(ks+kd===0?'把杯子拖出肥皂水放到盘上：拖的时候上下用力摇晃，或者平稳直拖':!lit['5_2']?'把冰杯拖到一只还在往外冒泡的杯子上':'假设经得住检验——直到出现相反的事实',W/2,H*0.97,'#223',12);}
+
+/* ================= 第 6 关：应用练习：渡船上的白杆 ================= */
+let F;
+const TAGS=[{n:'旗杆',bad:'它几乎水平，也没有滑轮和绳'},{n:'装饰',bad:'所有渡船甚至拖船都有同样的杆'},{n:'无线电天线',bad:'天线该装在最高处、驾驶室顶上'},{n:'方向标',bad:null}];
+function init6(){F={view:0,vd:false,tags:TAGS.map((t,i)=>({...t,x:W*(0.08+i*0.12),y:H*0.12,hx:W*(0.08+i*0.12),hy:H*0.12,tried:false,state:0})),drag:null,on:null,sawPilot:false,tried:0};}
+HD[6]={down(x,y){for(const t of F.tags){if(Math.abs(x-t.x)<50&&Math.abs(y-t.y)<16){F.drag=t;return;}}if(y>H*0.86){F.vd=true;}},
+ move(x,y){if(F.drag){F.drag.x=x;F.drag.y=y;}if(F.vd){F.view=clamp(x/W,0,1);}},
+ up(){F.vd=false;const t=F.drag;F.drag=null;if(!t)return;
+  const px=W*0.55,py=H*0.42;if(Math.hypot(t.x-px,t.y-py)<120){F.on=t;t.tried=true;F.tried++;
+    if(t.bad){t.state=-1;toast(`“${t.n}”与事实不符：${t.bad}`);hit(6,1);}else{if(!F.sawPilot){toast('还没有绕到驾驶室去看：先拖动底部视角，找找支持它的事实');t.state=0;}else{t.state=1;hit(6,3);if(F.tried>=3)hit(6,4);toast('方向标：所有细节都对上了');}}}
+  t.x=t.hx;t.y=t.hy;}};
+function t6(dt){const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#bfe0f2');sky.addColorStop(1,'#e8f3f8');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#4f86a8';ctx.fillRect(0,H*0.68,W,H*0.32);for(let x=0;x<W;x+=24){ctx.strokeStyle='rgba(255,255,255,.4)';ctx.beginPath();ctx.moveTo(x,H*0.7+Math.sin(x*0.05+T*2)*3);ctx.lineTo(x+12,H*0.7+Math.sin(x*0.05+T*2+1)*3);ctx.stroke();}
+  if(T>0.5)hit(6,0);
+  // 船：视角 0=侧面，1=从驾驶室后看
+  const v=F.view,bx=W*0.5,by=H*0.62,L0=W*0.6;
+  ctx.fillStyle='#e9e4d8';ctx.fillRect(bx-L0/2,by,L0,H*0.07);ctx.fillStyle='#8b4d3a';ctx.fillRect(bx-L0/2,by+H*0.07,L0,8);
+  ctx.fillStyle='#f4f0e6';ctx.fillRect(bx-L0*0.35,by-H*0.12,L0*0.5,H*0.12);
+  // 驾驶室（前部）
+  const phx=bx+L0*0.12,phy=by-H*0.25;ctx.fillStyle='#ddd5c4';ctx.fillRect(phx,phy,L0*0.12,H*0.13);ctx.fillStyle='#7ab6d8';ctx.fillRect(phx+6,phy+6,L0*0.12-12,H*0.05);txt('驾驶室',phx+L0*0.06,phy-6,'#335',11);
+  // 白杆：从上甲板几乎水平伸向前方
+  const p0x=bx+L0*0.2,p0y=by-H*0.1,p1x=bx+L0*0.55,p1y=by-H*0.13;ctx.strokeStyle='#fff';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(p0x,p0y);ctx.lineTo(p1x,p1y);ctx.stroke();ctx.strokeStyle='#ccc';ctx.lineWidth=1;ctx.stroke();
+  ctx.fillStyle='#e0b020';ctx.beginPath();ctx.arc(p1x,p1y,8,0,7);ctx.fill();
+  // 另外两根竖旗杆
+  ctx.strokeStyle='#eee';ctx.lineWidth=3;[[bx-L0*0.4,by-H*0.28],[bx-L0*0.1,by-H*0.3]].forEach(([x,y])=>{ctx.beginPath();ctx.moveTo(x,by);ctx.lineTo(x,y);ctx.stroke();});
+  // 视角效果：从驾驶室看过去
+  if(v>0.7){F.sawPilot=true;hit(6,2);ctx.fillStyle='rgba(20,30,40,.35)';ctx.fillRect(0,0,W,H);ctx.strokeStyle='#ffd27a';ctx.setLineDash([6,5]);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(phx+L0*0.06,phy+H*0.03);ctx.lineTo(p1x,p1y);ctx.lineTo(W,p1y-((phy+H*0.03)-p1y)*0.6);ctx.stroke();ctx.setLineDash([]);
+    txt('从舵手的位置看：杆比驾驶室低，杆尖像伸到船头前方很远',W/2,H*0.2,'#fff',14,'center',true);}
+  // 标签
+  F.tags.forEach(t=>{ctx.fillStyle=t.state===1?'#7dffb0':t.state===-1?'#ff9b9b':'#fff3d6';ctx.beginPath();ctx.roundRect(t.x-48,t.y-15,96,30,12);ctx.fill();txt(t.n,t.x,t.y+5,'#222',12,'center',true);});
+  if(F.on){txt(`正在检验：“${F.on.n}”`,W*0.55,H*0.34,'#123',13);}
+  // 视角条
+  ctx.fillStyle='rgba(0,0,0,.15)';ctx.fillRect(W*0.2,H*0.9,W*0.6,8);ctx.fillStyle='#3a6f99';ctx.beginPath();ctx.arc(W*0.2+W*0.6*F.view,H*0.9+4,10,0,7);ctx.fill();txt('视角：侧面 ← 拖动 → 驾驶室',W/2,H*0.97,'#223',12);}
+
+/* ======== 调度 ======== */
+const INIT={1:init1,2:init2,3:init3,4:init4,5:init5,6:init6},TICK={1:t1,2:t2,3:t3,4:t4,5:t5,6:t6};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!done[t.dataset.l]);});}
+function go(n){L=n;store.set('level',n);tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{INIT[L]();toast('已重置本关（已对应的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(store.get('level',1));requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

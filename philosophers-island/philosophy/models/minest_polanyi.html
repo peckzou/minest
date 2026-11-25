@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 波兰尼默会知识 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .q0{padding:4px 10px;font-size:12.5px;color:#123;background:#fff7e0;border-bottom:1px solid #f0d08a}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+#side .lim{padding:4px 10px 8px;font-size:11.5px;color:#667}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>波兰尼 · 默会知识</b>
+  <button class="tab on" data-l="1">① 骑车</button>
+  <button class="tab" data-l="2">② 认脸</button>
+  <button class="tab" data-l="3">③ 探针</button>
+  <button class="tab" data-l="4">④ 应用练习：学徒</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="q0"><b>核心问题：</b>我们会做、会认的东西，为什么说不出来？说出来的规则，能代替会做吗？</div><div class="bd" id="sBody"></div><div class="lim"><b>适用边界：</b>自行车、人脸、探针、学徒都是教学类比，用来体会“附带觉知 / 焦点觉知”的结构；画面中的平衡物理与匹配算法是演示假设，不是波兰尼的理论本身。原文为短引；标“词条概述”的是维基百科对波兰尼观点的概述，不是他的原话。</div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+const memS={};
+const store={get(k,d){try{const v=localStorage.getItem('minest_polanyi_'+k);return v!==null?JSON.parse(v):(memS[k]!==undefined?memS[k]:d);}catch(e){return memS[k]!==undefined?memS[k]:d;}},set(k,v){memS[k]=v;try{localStorage.setItem('minest_polanyi_'+k,JSON.stringify(v));}catch(e){}}};
+let done=store.get('done',{}),lit=store.get('lit',{});
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ===== 原文（短引）：波兰尼《默会的维度》(1966)、《个人知识》(1958)，经维基百科 / 维基语录转引 ===== */
+const WT='维基百科“Tacit knowledge”词条',WP='维基百科“Michael Polanyi”词条',WQ='维基语录“Michael Polanyi”';
+const MAP={
+1:[["按住左右微拖，让车保持平衡","我们知道的比我们能说出的更多。","we can know more than we can tell","《默会的维度》(1966)，据"+WT+"转引（该词条注为 p. 4）"],
+   ["按住“只读规则”：照条文转把，车倒了","（词条概述）波兰尼认为，陈述性知识也许是习得技能所需，但成为行家之后，运用技能并不需要它。","Polanyi believed that while declarative knowledge may be needed for acquiring skills, it is unnecessary for using those skills once the novice becomes an expert.",WT+"（词条概述，非原话）"],
+   ["累计骑稳 15 秒：会骑，却说不清怎么骑","（词条概述）能骑自行车或演奏乐器，却不能完整说明它是怎样做到的。","being able to ride a bicycle or play a musical instrument without being able to fully explain the details of how it happens",WP+"（词条概述，非原话）"]],
+2:[["从人群里抓出那张脸：很快","（词条概述）一个人认得某张脸，能在一千张、甚至一百万张脸中认出它。","one knows a person's face, and can recognize it among a thousand, indeed a million",WT+"（词条概述；例出自《默会的维度》，该词条注为 p. 4）"],
+   ["只用说得出的特征拼脸：拼不像","（词条概述）看见一张脸时，人并不意识到自己关于眼、鼻、口各个特征的知识，而是把脸作为整体来看、来认。","they are not conscious about their knowledge of the individual features (eye, nose, mouth), but rather see and recognize the face as a whole",WT+"（词条概述，非原话）"],
+   ["说不出“怎么认出的”","（词条概述）人们通常说不出自己是怎样认出那张脸的，所以其中大部分无法诉诸言语。","people usually cannot tell how they recognize that face, so most of this cannot be put into words",WT+"（词条概述，非原话）"]],
+3:[["拖动探针触到东西：手心先受力","（词条概述）我们通过把附带觉知整合进焦点觉知来经验世界。","we experience the world by integrating our subsidiary awareness into a focal awareness",WP+"（词条概述，非原话）"],
+   ["探久了：注意力移到针尖，暗处的形状出现","（词条概述）每一种意识都有附带觉知与焦点觉知。","Every consciousness has a subsidiary and a focal awareness",WP+"（词条概述，非原话）"],
+   ["按住“盯着手心”：针尖的世界又模糊了","（词条概述）我们相信的比能知道的更多，知道的比能说出的更多。","we believe more than we can know, and know more than we can say",WP+"（词条概述，非原话）"]],
+4:[["跟着师傅的节奏拖动","照着榜样学习，就是服从权威。","To learn by example is to submit to authority.","《个人知识》(1958) pp. 53–54，据"+WQ+"转引"],
+   ["按住“只看规则卡”：节奏总对不上","……科学研究那门说不清的技艺，却还没有渗入其中许多地方。","the unspecifiable art of scientific research has not yet penetrated to many of these","《个人知识》p. 53，据"+WQ+"转引"],
+   ["跟练到同步：连师傅没说出的也学会了","学徒不自觉地学到了这门技艺的规则，包括那些连师傅本人也没有明确知道的规则。","the apprentice unconsciously picks up the rules of the art, including those which are not explicitly known to the master himself","《个人知识》pp. 53–54，据"+WQ+"转引"]]};
+const TITLE={1:'① 骑车 · 按住画面左右微拖保持平衡；按住右上“只读规则”试照条文骑',2:'② 认脸 · 把目标脸从人群拖进右上框；再只用特征零件拼出它',3:'③ 探针 · 在黑暗里按住拖动探针；看手心的受力与针尖的发现',4:'④ 应用练习 · 在右边跟着师傅的节奏来回拖；对比只看规则卡'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr${lit[l+'_'+i]?' on':''}" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——${r[3]}</div></div></div>`).join('');}
+function hit(l,i){if(lit[l+'_'+i])return;lit[l+'_'+i]=1;store.set('lit',lit);const e=$('mr'+l+'_'+i);if(e){e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});}
+  if(MAP[l].every((_,k)=>lit[l+'_'+k])){done[l]=1;store.set('done',done);tabs();}}
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y};cv.setPointerCapture(e.pointerId);HD[L]&&HD[L].down&&HD[L].down(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]&&HD[L].move&&HD[L].move(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]&&HD[L].up&&HD[L].up();});
+
+/* ================= 第 1 关：骑车 ================= */
+let B;
+function init1(){const s=store.get('s1',null);B={lean:0.05,vel:0,steer:0,x:0,fallen:0,rule:false,riding:0,best:s?s.best:0,total:s?s.total:0,falls:s?s.falls:0,hist:[]};}
+const RB=()=>({x:W-214,y:12,w:200,h:46});
+HD[1]={down(x,y){const r=RB();if(x>r.x&&x<r.x+r.w&&y>r.y&&y<r.y+r.h){B.rule=true;B.hist=[];return;}if(B.fallen>0.9)restart1();},
+ move(x,y,dx,dy,down){if(down&&!B.rule)B.steer=clamp(B.steer+dx/(W*0.25),-1,1);},
+ up(){B.rule=false;}};
+function restart1(){B.lean=(Math.random()-.5)*0.1;B.vel=0;B.steer=0;B.fallen=0;B.riding=0;}
+function t1(dt){
+  if(B.fallen<0.01){
+    let u=B.steer;
+    if(B.rule){B.hist.push(B.lean);const lag=B.hist.length>24?B.hist[B.hist.length-24]:0;u=clamp(lag*3.2,-1,1);if(B.hist.length>200)B.hist.shift();}
+    else B.steer*=Math.pow(0.15,dt);
+    const gust=(Math.sin(T*1.7)+Math.sin(T*3.1+1))*0.06+(Math.random()-.5)*0.3;
+    B.vel+=(Math.sin(B.lean)*3.2-u*2.6+gust)*dt;B.vel*=Math.pow(0.6,dt);B.lean+=B.vel*dt;
+    B.riding+=dt;B.x+=dt*120;
+    if(!B.rule){B.total+=dt;B.best=Math.max(B.best,B.riding);if(B.riding>5)hit(1,0);if(B.total>15)hit(1,2);}
+    if(Math.abs(B.lean)>0.75){B.fallen=0.02;B.falls++;if(B.rule){hit(1,1);toast('照着条文转把：每一句都对，车还是倒了');}else toast('倒了。按一下画面重来');store.set('s1',{best:B.best,total:B.total,falls:B.falls});}
+  }else{B.fallen=Math.min(1,B.fallen+dt*2);}
+  const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#bfe0f4');g.addColorStop(1,'#eef5e6');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  const gy=H*0.78;ctx.fillStyle='#8a9a6a';ctx.fillRect(0,gy,W,H-gy);ctx.fillStyle='#a9a39a';ctx.fillRect(0,gy-6,W,10);
+  ctx.strokeStyle='rgba(255,255,255,.8)';ctx.lineWidth=3;ctx.setLineDash([24,20]);ctx.lineDashOffset=B.x%44;ctx.beginPath();ctx.moveTo(0,gy-1);ctx.lineTo(W,gy-1);ctx.stroke();ctx.setLineDash([]);ctx.lineDashOffset=0;
+  for(let i=0;i<6;i++){const tx=((i*260-B.x*0.4)%(W+260)+W+260)%(W+260)-130;ctx.fillStyle='#6e9a5a';ctx.beginPath();ctx.arc(tx,gy-70,28,0,7);ctx.fill();ctx.fillStyle='#6b4a2a';ctx.fillRect(tx-4,gy-46,8,40);}
+  const cx=W*0.42,s=Math.min(W,H)*0.2;const ang=B.fallen>0?Math.sign(B.lean||1)*lerp(0.75,1.45,B.fallen):B.lean;
+  ctx.save();ctx.translate(cx,gy-4);ctx.rotate(ang);
+  ctx.strokeStyle='#222';ctx.lineWidth=6;ctx.beginPath();ctx.ellipse(0,-s*0.32,s*0.06,s*0.32,0,0,7);ctx.stroke();
+  ctx.fillStyle='#c0392b';ctx.fillRect(-s*0.03,-s*0.95,s*0.06,s*0.6);
+  ctx.save();ctx.translate(0,-s*0.98);ctx.rotate((B.rule?0:B.steer)*0.5);ctx.strokeStyle='#333';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-s*0.32,0);ctx.lineTo(s*0.32,0);ctx.stroke();ctx.restore();
+  ctx.fillStyle='#2c5a85';ctx.beginPath();ctx.ellipse(0,-s*1.25,s*0.17,s*0.28,0,0,7);ctx.fill();ctx.fillStyle='#f0d2b0';ctx.beginPath();ctx.arc(0,-s*1.62,s*0.12,0,7);ctx.fill();
+  ctx.restore();
+  const mx=W*0.75,my=H*0.42,mr=Math.min(W,H)*0.14;ctx.strokeStyle='#557';ctx.lineWidth=2;ctx.beginPath();ctx.arc(mx,my,mr,Math.PI,0);ctx.stroke();
+  ctx.fillStyle='rgba(192,57,43,.18)';ctx.beginPath();ctx.moveTo(mx,my);ctx.arc(mx,my,mr,Math.PI,Math.PI+0.82);ctx.fill();ctx.beginPath();ctx.moveTo(mx,my);ctx.arc(mx,my,mr,-0.82,0);ctx.fill();
+  ctx.strokeStyle='#c0392b';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(mx,my);ctx.lineTo(mx+Math.sin(ang)*mr,my-Math.cos(ang)*mr);ctx.stroke();txt('倾角',mx,my+18,'#334',12);
+  const r=RB();ctx.fillStyle=B.rule?'#f3a52b':'rgba(255,255,255,.92)';ctx.fillRect(r.x,r.y,r.w,r.h);ctx.strokeStyle='#999';ctx.strokeRect(r.x,r.y,r.w,r.h);
+  txt('按住：只读规则骑车',r.x+r.w/2,r.y+18,'#222',13,'center',true);txt('“向倒的一侧转把，幅度与倾角成正比”',r.x+r.w/2,r.y+36,'#555',10.5);
+  txt(`这次 ${B.riding.toFixed(1)} s · 最长 ${B.best.toFixed(1)} s · 累计 ${B.total.toFixed(0)} s · 摔倒 ${B.falls} 次`,16,22,'#223',13,'left');
+  txt(B.fallen>0.9?'倒了。按一下画面重来':B.rule?'正在照条文执行……':'按住画面左右微微拖动，把车扶稳',W*0.42,H*0.14,'#223',14);}
+
+/* ================= 第 2 关：认脸 ================= */
+let F;
+function mkFace(seed){let s=seed*9301+49297;const r=()=>{s=(s*9301+49297)%233280;return s/233280;};
+  return{fw:0.8+r()*0.35,fh:0.95+r()*0.3,ey:0.38+r()*0.1,es:0.18+r()*0.1,er:0.05+r()*0.04,nl:0.12+r()*0.1,mw:0.22+r()*0.18,my:0.72+r()*0.08,brow:(r()-.5)*0.4,hair:Math.floor(r()*4),skin:['#f1d2b6','#e3b38f','#c98e66','#a26f4f'][Math.floor(r()*4)]};}
+function drawFace(f,x,y,R,alpha){ctx.globalAlpha=alpha==null?1:alpha;ctx.fillStyle=f.skin;ctx.beginPath();ctx.ellipse(x,y,R*f.fw*0.5,R*f.fh*0.6,0,0,7);ctx.fill();
+  ctx.fillStyle=['#2b1d12','#6b4a2a','#c9a46a','#333'][f.hair];ctx.beginPath();ctx.ellipse(x,y-R*f.fh*0.42,R*f.fw*0.52,R*0.28,0,Math.PI,0);ctx.fill();
+  const ey=y-R*0.6+R*f.ey,ex=R*f.es;ctx.fillStyle='#222';[-1,1].forEach(k=>{ctx.beginPath();ctx.arc(x+k*ex,ey,R*f.er,0,7);ctx.fill();ctx.strokeStyle='#222';ctx.lineWidth=Math.max(1,R*0.03);ctx.beginPath();ctx.moveTo(x+k*ex-R*0.08,ey-R*0.1+k*f.brow*R*0.05);ctx.lineTo(x+k*ex+R*0.08,ey-R*0.1-k*f.brow*R*0.05);ctx.stroke();});
+  ctx.strokeStyle='rgba(0,0,0,.5)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x,ey+R*0.03);ctx.lineTo(x-R*0.03,ey+R*f.nl+R*0.05);ctx.lineTo(x+R*0.02,ey+R*f.nl+R*0.06);ctx.stroke();
+  ctx.strokeStyle='#8a3a2a';ctx.lineWidth=Math.max(1.2,R*0.035);ctx.beginPath();ctx.arc(x,y-R*0.6+R*f.my-R*0.06,R*f.mw*0.5,0.2,Math.PI-0.2);ctx.stroke();ctx.globalAlpha=1;}
+function init2(){const sv=store.get('s2',null);const faces=[];for(let i=0;i<40;i++)faces.push({f:mkFace(i+3),x:Math.random(),y:Math.random(),vx:(Math.random()-.5)*0.05,vy:(Math.random()-.5)*0.05,target:false});
+  const ti=Math.floor(Math.random()*40);faces[ti].target=true;
+  F={faces,ti,drag:null,found:false,foundT:null,t0:T,partsDone:false,tries:sv?sv.tries:0,best:sv?sv.best:null,
+     parts:[{k:'eyes',x:0.08,y:0.88},{k:'nose',x:0.2,y:0.88},{k:'mouth',x:0.32,y:0.88},{k:'hair',x:0.44,y:0.88}].map(p=>({...p,placed:false}))};}
+const box2=()=>({x:W*0.79,y:H*0.06,w:W*0.18,h:H*0.38}),blank2=()=>({x:W*0.86,y:H*0.72,r:Math.min(W,H)*0.12});
+HD[2]={down(x,y){if(!F.found){for(const p of F.faces){const px=W*0.03+p.x*W*0.7,py=H*0.06+p.y*H*0.82;if(Math.hypot(x-px,y-py)<26){F.drag=p;return;}}}
+  else{for(const q of F.parts){if(!q.placed&&Math.hypot(x-W*q.x,y-H*q.y)<30){F.drag=q;return;}}}},
+ move(x,y){if(!F.drag)return;if(F.drag.f){F.drag.x=(x-W*0.03)/(W*0.7);F.drag.y=clamp((y-H*0.06)/(H*0.82),0,1);}else{F.drag.x=x/W;F.drag.y=y/H;}},
+ up(){const d=F.drag;F.drag=null;if(!d)return;const b=box2();
+  if(d.f){const px=W*0.03+d.x*W*0.7,py=H*0.06+d.y*H*0.82;if(px>b.x-30&&py<b.y+b.h+30){if(d.target){F.found=true;F.foundT=T-F.t0;F.tries++;F.best=F.best==null?F.foundT:Math.min(F.best,F.foundT);store.set('s2',{tries:F.tries,best:F.best});hit(2,0);toast(`认出来了，用了 ${F.foundT.toFixed(1)} 秒`);}else toast('不是这张');}d.x=clamp(d.x,0,1);}
+  else{const bl=blank2();if(Math.hypot(W*d.x-bl.x,H*d.y-bl.y)<bl.r*1.3){d.placed=true;if(F.parts.every(q=>q.placed)){F.partsDone=true;hit(2,1);setTimeout(()=>hit(2,2),1600);}}}}};
+function t2(dt){ctx.fillStyle='#e9e4dc';ctx.fillRect(0,0,W,H);const b=box2();
+  F.faces.forEach(p=>{if(F.drag===p)return;p.x+=p.vx*dt;p.y+=p.vy*dt;if(p.x<0||p.x>1)p.vx*=-1;if(p.y<0||p.y>1)p.vy*=-1;p.x=clamp(p.x,0,1);p.y=clamp(p.y,0,1);});
+  F.faces.forEach(p=>{if(F.found&&p.target)return;const px=W*0.03+p.x*W*0.7,py=H*0.06+p.y*H*0.82;drawFace(p.f,px,py,Math.min(W,H)*0.07,F.found?0.25:1);});
+  ctx.fillStyle='#fff';ctx.fillRect(b.x,b.y,b.w,b.h);ctx.strokeStyle='#3a6f99';ctx.lineWidth=2;ctx.strokeRect(b.x,b.y,b.w,b.h);
+  if(!F.found||!F.partsDone){drawFace(F.faces[F.ti].f,b.x+b.w/2,b.y+b.h*0.5,Math.min(b.w,b.h)*0.7);}
+  txt(F.found?'✓ 已认出':'找到这个人，拖进来',b.x+b.w/2,b.y+b.h-6,'#3a6f99',12);
+  if(!F.found)txt(`已找 ${(T-F.t0).toFixed(1)} s`+(F.best!=null?` · 最快 ${F.best.toFixed(1)} s`:''),W*0.38,22,'#223',13);
+  else{const bl=blank2();ctx.fillStyle='#f1d2b6';ctx.beginPath();ctx.ellipse(bl.x,bl.y,bl.r*0.45,bl.r*0.58,0,0,7);ctx.fill();ctx.strokeStyle='#999';ctx.setLineDash([4,4]);ctx.stroke();ctx.setLineDash([]);
+    const P={eyes:()=>{ctx.fillStyle='#222';[-1,1].forEach(k=>{ctx.beginPath();ctx.arc(bl.x+k*bl.r*0.2,bl.y-bl.r*0.12,bl.r*0.05,0,7);ctx.fill();});},
+     nose:()=>{ctx.strokeStyle='#555';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(bl.x,bl.y-bl.r*0.08);ctx.lineTo(bl.x-bl.r*0.03,bl.y+bl.r*0.1);ctx.stroke();},
+     mouth:()=>{ctx.strokeStyle='#8a3a2a';ctx.lineWidth=2;ctx.beginPath();ctx.arc(bl.x,bl.y+bl.r*0.16,bl.r*0.14,0.2,Math.PI-0.2);ctx.stroke();},
+     hair:()=>{ctx.fillStyle='#6b4a2a';ctx.beginPath();ctx.ellipse(bl.x,bl.y-bl.r*0.42,bl.r*0.47,bl.r*0.22,0,Math.PI,0);ctx.fill();}};
+    F.parts.forEach(q=>{if(q.placed)P[q.k]();});
+    const NM={eyes:'两只眼睛',nose:'一个鼻子',mouth:'一张嘴',hair:'头发'};
+    F.parts.forEach(q=>{if(q.placed)return;const x=W*q.x,y=H*q.y;ctx.fillStyle='#fff';ctx.strokeStyle='#888';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(x-36,y-16,72,32,8);ctx.fill();ctx.stroke();txt(NM[q.k],x,y+5,'#222',12);});
+    txt('只用说得出的特征',bl.x,bl.y-bl.r*0.78,'#334',12);
+    if(F.partsDone){txt('拼出来的是“一张脸”，却不是“他”',bl.x,bl.y+bl.r*0.8,'#c0392b',13,'center',true);txt('你是怎么认出他的？说不出来',W*0.38,22,'#c0392b',14,'center',true);}
+    else txt('现在不看他，只用说得出的特征：把零件拖到右下空白脸上',W*0.38,22,'#223',13);}}
+
+/* ================= 第 3 关：探针 ================= */
+let P3;
+function init3(){const sv=store.get('s3',null);P3={tip:{x:0.5,y:0.5},skill:sv?sv.skill:0,map:[],lookHand:false,touched:0};}
+const shapeAt=(u,v)=>{const a=Math.hypot(u-0.42,v-0.45)<0.12,b=u>0.58&&u<0.74&&v>0.32&&v<0.6,c=Math.abs(v-0.72)<0.03&&u>0.3&&u<0.7;return a||b||c;};
+HD[3]={down(x,y){if(x>W*0.82&&y>H*0.78){P3.lookHand=true;return;}},move(x,y,dx,dy,down){if(down&&!P3.lookHand){P3.tip.x=clamp(x/W,0.08,0.92);P3.tip.y=clamp(y/H,0.08,0.82);}},up(){P3.lookHand=false;}};
+function t3(dt){ctx.fillStyle='#0f1218';ctx.fillRect(0,0,W,H);
+  const tx=W*P3.tip.x,ty=H*P3.tip.y,hx=W*0.5,hy=H*0.98;
+  const touch=shapeAt(P3.tip.x,P3.tip.y);
+  if(PT&&!P3.lookHand){P3.skill=Math.min(1,P3.skill+dt*0.04);if(touch){P3.touched+=dt;P3.map.push({x:P3.tip.x,y:P3.tip.y});if(P3.map.length>900)P3.map.shift();hit(3,0);}}
+  if(P3.lookHand)P3.skill=Math.max(0,P3.skill-dt*0.5);
+  const ft=P3.skill;if(Math.random()<0.05)store.set('s3',{skill:ft});
+  P3.map.forEach(m=>{ctx.fillStyle=`rgba(255,220,140,${0.08+0.5*ft})`;ctx.beginPath();ctx.arc(W*m.x,H*m.y,3+4*ft,0,7);ctx.fill();});
+  if(ft>0.6&&P3.touched>4){hit(3,1);if(!P3.lookHand)txt('针尖“摸”到了：一个圆、一块方、一道横梁',W*0.5,24,'#ffe7b5',14,'center',true);}
+  if(P3.lookHand&&lit['3_1']){hit(3,2);txt('盯着手心的压感：针尖的世界又模糊了',W*0.5,24,'#ff9b9b',14,'center',true);}
+  ctx.strokeStyle='#c9a46a';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(hx,hy);ctx.lineTo(tx,ty);ctx.stroke();
+  ctx.fillStyle=touch?'#ffd27a':'#888';ctx.beginPath();ctx.arc(tx,ty,touch?7:4,0,7);ctx.fill();
+  ctx.fillStyle='#f0d2b0';ctx.beginPath();ctx.ellipse(hx,hy,40,24,0,0,7);ctx.fill();
+  const hb=1-ft*0.85,pbx=W*0.04,pby=H*0.62;ctx.globalAlpha=0.25+0.75*hb;ctx.fillStyle='rgba(255,255,255,.1)';ctx.fillRect(pbx,pby,150,70);
+  txt('手心的压感',pbx+75,pby+18,'#fff',13,'center',true);ctx.fillStyle='#e74c3c';ctx.fillRect(pbx+12,pby+30,126*(touch?1:0.15),12);ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.strokeRect(pbx+12,pby+30,126,12);txt(touch?'压！':'……',pbx+75,pby+62,'#fff',12);ctx.globalAlpha=1;
+  ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(W*0.3,H*0.88,W*0.4,10);ctx.fillStyle='#7dffb0';ctx.fillRect(W*0.3,H*0.88,W*0.4*ft,10);txt('注意力：手心 ←→ 针尖',W*0.5,H*0.86,'#cfd6e6',12);
+  ctx.fillStyle=P3.lookHand?'#f3a52b':'rgba(255,255,255,.85)';ctx.fillRect(W*0.83,H*0.79,W*0.15,H*0.13);txt('按住：盯着手心',W*0.905,H*0.86,'#222',12,'center',true);
+  if(!PT&&P3.map.length===0)txt('按住画面拖动探针，在黑暗里探',W*0.5,24,'#cfd6e6',14);}
+
+/* ================= 第 4 关：学徒 ================= */
+let A4;
+function init4(){const sv=store.get('s4',null);A4={u:0.5,trail:[],match:sv?sv.match:0,ruleOnly:false,ruleT:0,syncT:0,t:0,score:[]};}
+const RB4=()=>({x:W*0.03,y:H*0.78,w:W*0.22,h:H*0.16});
+HD[4]={down(x,y){const r=RB4();if(x>r.x&&x<r.x+r.w&&y>r.y&&y<r.y+r.h){A4.ruleOnly=true;return;}},move(x,y,dx,dy,down){if(down&&!A4.ruleOnly)A4.u=clamp((x-W*0.55)/(W*0.38),0,1);},up(){A4.ruleOnly=false;}};
+function master(t){const p=(t*0.55)%1;return p<0.45?lerp(0.15,0.85,Math.sin(p/0.45*Math.PI/2)):p<0.6?0.85-0.12*Math.sin((p-0.45)/0.15*Math.PI):lerp(0.85,0.15,(p-0.6)/0.4);}
+function t4(dt){A4.t+=dt;ctx.fillStyle='#f3ece0';ctx.fillRect(0,0,W,H);
+  const m=master(A4.t),ph=(A4.t*0.55)%1,twist=ph>0.45&&ph<0.6;
+  const mx=W*0.25,my=H*0.48;ctx.fillStyle='#e8d5b0';ctx.beginPath();ctx.ellipse(mx,my+30,W*0.12,30,0,0,7);ctx.fill();
+  const hxm=lerp(mx-W*0.1,mx+W*0.1,m);ctx.fillStyle='#d8b08a';ctx.beginPath();ctx.ellipse(hxm,my+10,22,14,twist?0.8:0,0,7);ctx.fill();txt('师傅',mx,my-60,'#5a3b1e',15,'center',true);
+  const ax=W*0.74;ctx.fillStyle='#e8d5b0';ctx.beginPath();ctx.ellipse(ax,my+30,W*0.12,30,0,0,7);ctx.fill();
+  let u=A4.u;if(A4.ruleOnly){A4.ruleT+=dt;u=ph<0.5?lerp(0.15,0.85,ph/0.5):lerp(0.85,0.15,(ph-0.5)/0.5);A4.u=u;}
+  const hxa=lerp(ax-W*0.1,ax+W*0.1,u);ctx.fillStyle='#c79a72';ctx.beginPath();ctx.ellipse(hxa,my+10,22,14,0,0,7);ctx.fill();txt('你（学徒）',ax,my-60,'#3a6f99',15,'center',true);
+  const err=Math.abs(u-m);if(PT||A4.ruleOnly){A4.score.push(err);if(A4.score.length>180)A4.score.shift();}
+  const avg=A4.score.length?A4.score.reduce((a,b)=>a+b,0)/A4.score.length:0.5,sync=clamp(1-avg/0.25,0,1);
+  if(PT&&!A4.ruleOnly){if(A4.score.length>60)hit(4,0);if(sync>0.8)A4.syncT+=dt;else A4.syncT=Math.max(0,A4.syncT-dt*0.5);if(A4.syncT>3)hit(4,2);A4.match=Math.max(A4.match,sync);if(Math.random()<0.05)store.set('s4',{match:A4.match});}
+  if(A4.ruleOnly&&A4.ruleT>4)hit(4,1);
+  A4.trail.push([m,u]);if(A4.trail.length>240)A4.trail.shift();const gx=W*0.3,gy=H*0.08,gw=W*0.4,gh=H*0.16;ctx.fillStyle='rgba(255,255,255,.85)';ctx.fillRect(gx,gy,gw,gh);
+  [[0,'#a0522d'],[1,'#3a6f99']].forEach(([k,c])=>{ctx.strokeStyle=c;ctx.lineWidth=2;ctx.beginPath();A4.trail.forEach((p,i)=>{const X=gx+gw*i/240,Y=gy+gh*(1-p[k]);i?ctx.lineTo(X,Y):ctx.moveTo(X,Y);});ctx.stroke();});
+  txt('棕：师傅  蓝：你',gx+gw/2,gy+gh+14,'#334',11);
+  ctx.fillStyle='#ddd';ctx.fillRect(W*0.62,H*0.68,W*0.3,10);ctx.fillStyle=sync>0.8?'#2f9e57':'#f3a52b';ctx.fillRect(W*0.62,H*0.68,W*0.3*sync,10);txt(`同步度 ${Math.round(sync*100)}% · 最好 ${Math.round(A4.match*100)}%`,W*0.77,H*0.66,'#223',12);
+  const r=RB4();ctx.fillStyle=A4.ruleOnly?'#f3a52b':'#fff';ctx.fillRect(r.x,r.y,r.w,r.h);ctx.strokeStyle='#999';ctx.lineWidth=1;ctx.strokeRect(r.x,r.y,r.w,r.h);
+  txt('按住：只看规则卡',r.x+r.w/2,r.y+20,'#222',13,'center',true);txt('“把面拉长，再推回来。”',r.x+r.w/2,r.y+40,'#555',11);
+  if(A4.syncT>3)txt('你也学会了那一下“拧”——规则卡上没写，师傅也没说',W*0.5,H*0.95,'#1f5e2f',14,'center',true);
+  else if(A4.ruleOnly)txt('照规则卡做：每一步都“对”，节奏却总差一点',W*0.5,H*0.95,'#c0392b',14,'center',true);
+  else if(!PT)txt('在右边按住左右拖动，跟上师傅的手',W*0.5,H*0.95,'#223',13);}
+
+/* ===== 调度 ===== */
+const INIT={1:init1,2:init2,3:init3,4:init4},TICK={1:t1,2:t2,3:t3,4:t4};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!done[t.dataset.l]);});}
+function go(n){L=n;store.set('L',L);tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{delete memS['s'+L];try{localStorage.removeItem('minest_polanyi_s'+L);}catch(e){}INIT[L]();toast('本关已重置（已点亮的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(store.get('L',1));requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

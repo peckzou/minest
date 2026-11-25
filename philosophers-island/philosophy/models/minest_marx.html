@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 马克思历史唯物主义 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .q0{padding:4px 10px;font-size:12.5px;color:#2c3e50;background:#fff7e0;border-bottom:1px solid #f0d08a}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+#side .edge{padding:4px 10px 8px;font-size:11.5px;color:#667}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>马克思 · 历史唯物主义</b>
+  <button class="tab on" data-l="1">① 基础与上层建筑</button>
+  <button class="tab" data-l="2">② 桎梏</button>
+  <button class="tab" data-l="3">③ 变革</button>
+  <button class="tab" data-l="4">④ 应用练习</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="q0">核心问题：社会的法律、政治与观念，是由什么承载、又为何会整体改变？</div><div class="bd" id="sBody"></div><div class="edge">适用边界：楼房、框架、压力条只是教学比喻；马克思在序言中给出的是“总的结论”的提纲，不是可量化的力学模型，也不预设精确的时间表。</div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+const SKEY='minest_marx_v1';let MEM={};
+function load(){try{return JSON.parse(localStorage.getItem(SKEY)||'{}');}catch(e){return MEM;}}
+function save(o){MEM=o;try{localStorage.setItem(SKEY,JSON.stringify(o));}catch(e){}}
+let ST=load();ST.lit=ST.lit||{};ST.done=ST.done||{};
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ===== 原文：马克思《〈政治经济学批判〉序言》（1859），marxists.org 英译（Progress Publishers 1977）；中文为编译 ===== */
+const R='马克思《〈政治经济学批判〉序言》（1859）';
+const MAP={
+1:[["一群人进入生产：关系自动生成","人们在自己生活的社会生产中发生一定的、必然的、不以他们的意志为转移的关系，即生产关系……","men inevitably enter into definite relations, which are independent of their will, namely relations of production",R],
+   ["楼房建在“经济结构”之上","这些生产关系的总和构成社会的经济结构，即有法律的和政治的上层建筑竖立其上的现实基础。","The totality of these relations of production constitutes the economic structure of society, the real foundation, on which arises a legal and political superstructure",R],
+   ["把上层建筑的一层拖离基础：它掉落","物质生活的生产方式制约着整个社会生活、政治生活和精神生活的过程。","The mode of production of material life conditions the general process of social, political and intellectual life.",R],
+   ["拖动“观念”去推基础：推不动；推基础，观念随之改变","不是人们的意识决定人们的存在，相反，是人们的社会存在决定人们的意识。","It is not the consciousness of men that determines their existence, but their social existence that determines their consciousness.",R]],
+2:[["按住发展生产力：机器长大，撑向框架","社会的物质生产力发展到一定阶段，便同现存生产关系……发生矛盾。","At a certain stage of development, the material productive forces of society come into conflict with the existing relations of production",R],
+   ["框架即财产关系","这只是生产关系的法律用语……同它们一直在其中运动的财产关系发生矛盾。","this merely expresses the same thing in legal terms – with the property relations within the framework of which they have operated hitherto",R],
+   ["框架由“脚手架”变为“锁链”","这些关系便由生产力的发展形式变成生产力的桎梏。","From forms of development of the productive forces these relations turn into their fetters.",R],
+   ["压力达到临界：框架开裂","那时社会革命的时代就到来了。","Then begins an era of social revolution.",R]],
+3:[["基础换新：上层建筑一层层随之改变","随着经济基础的变更，全部庞大的上层建筑也或慢或快地发生变革。","The changes in the economic foundation lead sooner or later to the transformation of the whole immense superstructure.",R],
+   ["上层楼层滞后、各有快慢","……法律的、政治的、宗教的、艺术的或哲学的，简言之，意识形态的形式，人们借以意识到这个冲突并力求把它克服。","the legal, political, religious, artistic or philosophic – in short, ideological forms in which men become conscious of this conflict and fight it out",R],
+   ["拖动“自我评价”标签：时代不能按它的自我意识判断","我们判断一个人不能以他对自己的看法为根据，同样，我们判断这样一个变革时代也不能以它的意识为根据。","Just as one does not judge an individual by what he thinks about himself, so one cannot judge such a period of transformation by its consciousness",R],
+   ["生产力未充分发展就去拆框架：拆不动","无论哪一个社会形态，在它所能容纳的全部生产力发挥出来以前，是决不会灭亡的。","No social order is ever destroyed before all the productive forces for which it is sufficient have been developed",R]],
+4:[["新情境：先按住发展条件，再尝试换关系","新的更高的生产关系，在它的物质存在条件在旧社会的胎胞里成熟以前，是决不会出现的。","new superior relations of production never replace older ones before the material conditions for their existence have matured within the framework of the old society",R],
+   ["问题出现时，解决条件已在形成","人类始终只提出自己能够解决的任务……任务本身，只有在解决它的物质条件已经存在或者至少是在形成过程中的时候，才会产生。","Mankind thus inevitably sets itself only such tasks as it is able to solve",R],
+   ["依次经历几个时代的楼房","大体说来，亚细亚的、古代的、封建的和现代资产阶级的生产方式可以看做是经济的社会形态演进的几个时代。","the Asiatic, ancient, … feudal and modern bourgeois modes of production may be designated as epochs marking progress in the economic development of society",R]]};
+const TITLE={1:'① 基础与上层建筑 · 按住让工人劳动；拖动楼层或“观念”试试',2:'② 桎梏 · 按住发展生产力，观察它与框架的冲突',3:'③ 变革 · 拖动开裂的框架换成新框架；拖动“自我评价”标签',4:'④ 应用练习 · 新社会：何时能、何时不能完成变革'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr${ST.lit[l+'_'+i]?' on':''}" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const e=$('mr'+l+'_'+i);if(!e||e.classList.contains('on'))return;e.classList.add('on');ST.lit[l+'_'+i]=1;e.scrollIntoView({block:'nearest',behavior:'smooth'});
+  if(MAP[l].every((_,k)=>ST.lit[l+'_'+k])){ST.done[l]=1;tabs();}save(ST);}
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]?.move?.(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]?.up?.();});
+
+/* ===== 通用绘制：地面、基础、框架、楼层、工人、机器 ===== */
+const FLOORS=['法律','政治','宗教','艺术','哲学'];
+const FCOL=['#c9d6e3','#b9c9da','#d9cbb3','#e2c7cf','#cfd9c4'];
+function ground(){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#e8eef3');g.addColorStop(1,'#cfd8df');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);ctx.fillStyle='#8a7a66';ctx.fillRect(0,H*0.9,W,H*0.1);}
+function geo(){const bw=Math.min(W*0.5,520),cx=W*0.45;return{cx,bw,by:H*0.9,bh:H*0.2,fh:H*0.085};}
+function worker(x,y,s,ph){ctx.fillStyle='#3a4a5a';ctx.beginPath();ctx.arc(x,y-s*1.6,s*.32,0,7);ctx.fill();ctx.fillRect(x-s*.25,y-s*1.3,s*.5,s*.9);
+  const a=Math.sin(ph)*0.6;ctx.strokeStyle='#3a4a5a';ctx.lineWidth=s*.14;ctx.beginPath();ctx.moveTo(x,y-s*1.1);ctx.lineTo(x+Math.cos(a)*s*.8,y-s*1.1+Math.sin(a)*s*.6);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x-s*.1,y-s*.4);ctx.lineTo(x-s*.25,y);ctx.moveTo(x+s*.1,y-s*.4);ctx.lineTo(x+s*.25,y);ctx.stroke();}
+function machine(x,y,size,col){ // 齿轮：生产力
+  const r=size;ctx.save();ctx.translate(x,y);ctx.rotate(T*0.8);ctx.fillStyle=col||'#7a8a9a';ctx.beginPath();
+  for(let i=0;i<12;i++){const a=i/12*6.283,a2=a+0.26;ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);ctx.lineTo(Math.cos(a)*r*1.18,Math.sin(a)*r*1.18);ctx.lineTo(Math.cos(a2)*r*1.18,Math.sin(a2)*r*1.18);ctx.lineTo(Math.cos(a2)*r,Math.sin(a2)*r);}
+  ctx.closePath();ctx.fill();ctx.fillStyle='#e8eef3';ctx.beginPath();ctx.arc(0,0,r*0.35,0,7);ctx.fill();ctx.restore();}
+function floor(x,y,w,h,label,col,tilt,alpha,style){ctx.save();ctx.globalAlpha=alpha==null?1:alpha;ctx.translate(x+w/2,y+h/2);ctx.rotate(tilt||0);
+  ctx.fillStyle=col;ctx.fillRect(-w/2,-h/2,w,h);ctx.strokeStyle='rgba(0,0,0,.3)';ctx.strokeRect(-w/2,-h/2,w,h);
+  for(let i=1;i<6;i++){ctx.fillStyle='rgba(255,255,255,.55)';ctx.fillRect(-w/2+i*w/6-6,-h/4,12,h/2);}
+  txt(label+(style?' · '+style:''),0,5,'#223',13,'center',true);ctx.restore();}
+
+/* ================= 第 1 关 ================= */
+let A;
+function init1(){A={work:0,hold:false,rel:0,floors:FLOORS.map((n,i)=>({n,dy:0,vy:0,dx:0,fall:false,attached:true})),drag:null,ideaX:0,idea:{x:0.85,y:0.25},ideaDrag:false,basePush:0,shift:0,t0:T};}
+HD[1]={down(x,y){const g=geo();
+  if(Math.hypot(x-W*A.idea.x,y-H*A.idea.y)<40){A.ideaDrag=true;return;}
+  for(let i=A.floors.length-1;i>=0;i--){const f=A.floors[i];const fy=g.by-g.bh-(i+1)*g.fh+f.dy;if(f.attached&&x>g.cx-g.bw*0.42+f.dx&&x<g.cx+g.bw*0.42+f.dx&&y>fy&&y<fy+g.fh){A.drag={i,x0:x,y0:y};return;}}
+  if(y>g.by-g.bh&&y<g.by&&Math.abs(x-g.cx)<g.bw/2){A.baseDrag=true;return;}
+  A.hold=true;},
+ move(x,y,dx,dy){const g=geo();
+  if(A.drag){const f=A.floors[A.drag.i];f.dx+=dx;f.dy+=dy;}
+  if(A.ideaDrag){A.idea.x=clamp(x/W,0.05,0.95);A.idea.y=clamp(y/H,0.08,0.85);
+    if(y>g.by-g.bh&&Math.abs(x-g.cx)<g.bw/2){A.basePush+=Math.hypot(dx,dy);if(A.basePush>200&&!A._p){A._p=1;toast('“观念”推不动经济基础');}}}
+  if(A.baseDrag&&Math.abs(dx)>0){A.shift=clamp(A.shift+dx/(W*0.4),-1,1);if(Math.abs(A.shift)>0.5&&A._p){hit(1,3);}}},
+ up(){const g=geo();if(A.drag){const f=A.floors[A.drag.i];if(Math.hypot(f.dx,f.dy)>g.fh*1.2){f.attached=false;f.fall=true;f.vy=0;
+      // 其上的楼层也随之失去支撑
+      A.floors.forEach((o,k)=>{if(k>A.drag.i&&o.attached){o.attached=false;o.fall=true;o.vy=0;}});hit(1,2);toast('离开了现实基础，上层建筑立不住');}
+    else{f.dx=0;f.dy=0;}A.drag=null;}
+  A.hold=false;A.ideaDrag=false;A.baseDrag=false;}};
+function t1(dt){ground();const g=geo();
+  if(T-A.t0>1)hit(1,0);
+  if(A.hold){A.work=Math.min(1,A.work+dt*0.25);}
+  A.rel=lerp(A.rel,A.work,dt*1.2);if(A.rel>0.6)hit(1,1);
+  // 工人：按住时劳动，劳动中自动结成关系线
+  const n=6;for(let i=0;i<n;i++){const x=g.cx-g.bw*0.4+i*g.bw*0.16,y=g.by;worker(x,y,H*0.05,T*(A.hold?8:1.5)+i);}
+  // 关系线
+  ctx.strokeStyle=`rgba(160,82,45,${0.2+0.7*A.rel})`;ctx.lineWidth=2;for(let i=0;i<n-1;i++){const x=g.cx-g.bw*0.4+i*g.bw*0.16;ctx.beginPath();ctx.moveTo(x,g.by-H*0.08);ctx.quadraticCurveTo(x+g.bw*0.08,g.by-H*0.12-6*Math.sin(T+i),x+g.bw*0.16,g.by-H*0.08);ctx.stroke();}
+  // 基础（经济结构）
+  const bx=g.cx-g.bw/2+A.shift*g.bw*0.1;ctx.fillStyle=`rgba(160,82,45,${0.25+0.6*A.rel})`;ctx.fillRect(bx,g.by-g.bh,g.bw,g.bh*0.35);
+  txt('经济结构（生产关系的总和）＝现实基础',g.cx,g.by-g.bh+g.bh*0.22,'#fff',13,'center',true);
+  // 楼层：形式随基础变化（风格随 shift）
+  const styleName=A.shift>0.5?'新式':A.shift<-0.5?'旧式':'';
+  A.floors.forEach((f,i)=>{let fy=g.by-g.bh-(i+1)*g.fh+f.dy;if(A.rel<0.6&&!f.fall){f._a=clamp((A.rel-i*0.1)*3,0,1);}else f._a=1;
+    if(f.fall){f.vy+=900*dt;f.dy+=f.vy*dt;fy=g.by-g.bh-(i+1)*g.fh+f.dy;if(fy>H){f.dy=H;}}
+    if(fy<H)floor(g.cx-g.bw*0.42+f.dx+(f.attached?A.shift*g.bw*0.1:0),fy,g.bw*0.84,g.fh-4,f.n,FCOL[i],f.fall?f.dy*0.002:0,f._a,f.attached?styleName:'');});
+  // 观念标签
+  const ix=W*A.idea.x,iy=H*A.idea.y;ctx.fillStyle='#e8dcff';ctx.strokeStyle='#8a6ab0';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(ix-46,iy-18,92,36,14);ctx.fill();ctx.stroke();txt('意识 / 观念',ix,iy+5,'#4a2a80',13,'center',true);
+  txt(A.work<0.6?'按住空白处：人们开始共同劳动':'拖开一层楼；拖“意识”去推基础；再左右拖动基础本身',W/2,22,'#223',13);
+  if(Math.abs(A.shift)>0.5)txt('基础一动，上面各层的“样式”随之改变',g.cx,H*0.08,'#a0522d',13);}
+
+/* ================= 第 2 关：桎梏 ================= */
+let B;
+function init2(){B={force:0.15,hold:false,press:0,crack:0,broken:false};}
+HD[2]={down(){B.hold=true;},up(){B.hold=false;}};
+function t2(dt){ground();const g=geo();
+  if(B.hold&&!B.broken)B.force=Math.min(1.2,B.force+dt*0.12);
+  const frameR=0.55; // 框架所能容纳
+  B.press=Math.max(0,B.force-frameR*0.6);
+  if(B.force>0.3)hit(2,0);if(B.force>0.45)hit(2,1);
+  const fetter=B.force>frameR;if(fetter){hit(2,2);B.crack=Math.min(1,B.crack+dt*0.12*(B.hold?1.5:0.6));}
+  if(B.crack>=1&&!B.broken){B.broken=true;hit(2,3);toast('框架开裂：社会革命的时代到来');}
+  // 机器（生产力）
+  const mx=g.cx,my=g.by-g.bh*0.9,mr=lerp(g.bh*0.25,g.bh*1.3,clamp(B.force/1.2,0,1));
+  machine(mx-mr*0.9,my-mr*0.2,mr*0.55,'#6f8296');machine(mx+mr*0.6,my-mr*0.5,mr*0.45,'#7f92a6');machine(mx,my-mr*1.1,mr*0.35,'#8fa2b6');
+  // 框架（生产关系 / 财产关系）
+  const fw=g.bw*0.9,fh=g.bh*2.2,fx=g.cx-fw/2,fyy=g.by-fh;const bulge=clamp((B.force-frameR)*60,0,40);
+  ctx.strokeStyle=fetter?'#c0392b':'#a0522d';ctx.lineWidth=fetter?6:5;
+  ctx.beginPath();ctx.moveTo(fx,g.by);ctx.lineTo(fx-bulge*0.3,fyy+fh/2);ctx.lineTo(fx,fyy);ctx.lineTo(fx+fw,fyy);ctx.lineTo(fx+fw+bulge*0.3,fyy+fh/2);ctx.lineTo(fx+fw,g.by);ctx.stroke();
+  if(!fetter){ctx.strokeStyle='rgba(160,82,45,.4)';ctx.lineWidth=2;for(let i=1;i<4;i++){ctx.beginPath();ctx.moveTo(fx,fyy+fh*i/4);ctx.lineTo(fx+fw,fyy+fh*i/4);ctx.stroke();}txt('生产关系：此时是“发展形式”（脚手架）',g.cx,fyy-10,'#a0522d',13);}
+  else{for(let i=0;i<6;i++){const x=fx+fw*i/5;ctx.fillStyle='#555';ctx.beginPath();ctx.arc(x,fyy+fh*0.5+Math.sin(T*6+i)*2,6,0,7);ctx.fill();}txt('同一副框架，变成了“桎梏”（锁链）',g.cx,fyy-10,'#c0392b',13,'center',true);}
+  if(B.crack>0){ctx.strokeStyle='#222';ctx.lineWidth=2;ctx.beginPath();let x=fx+fw*0.5,y=fyy;ctx.moveTo(x,y);for(let i=0;i<8*B.crack;i++){x+=(Math.random()-.5)*18;y+=fh*0.06;ctx.lineTo(x,y);}ctx.stroke();}
+  // 上层建筑（简化）
+  FLOORS.forEach((n,i)=>floor(g.cx-g.bw*0.4,fyy-(i+1)*g.fh*0.75-14,g.bw*0.8,g.fh*0.7,n,FCOL[i],B.broken?Math.sin(T*3+i)*0.03:0,1));
+  // 压力条
+  ctx.fillStyle='#fff';ctx.fillRect(W*0.82,H*0.15,20,H*0.6);ctx.fillStyle=fetter?'#c0392b':'#3a6f99';const pv=clamp(B.force/1.2,0,1);ctx.fillRect(W*0.82,H*0.15+H*0.6*(1-pv),20,H*0.6*pv);
+  ctx.strokeStyle='#c0392b';ctx.beginPath();ctx.moveTo(W*0.81,H*0.15+H*0.6*(1-frameR/1.2));ctx.lineTo(W*0.84,H*0.15+H*0.6*(1-frameR/1.2));ctx.stroke();
+  txt('生产力',W*0.83,H*0.15-8,'#223',12);txt('框架容量',W*0.87,H*0.15+H*0.6*(1-frameR/1.2)+4,'#c0392b',11,'left');
+  txt(B.broken?'进入第 3 关：换掉框架，看上层建筑怎样变化':B.hold?'生产力在增长……':'按住画面：发展生产力（工具、技术、劳动者的技能）',W/2,22,'#223',13);}
+
+/* ================= 第 3 关：变革 ================= */
+let C;
+function init3(){C={newF:{x:0.88,y:0.2},drag:false,placed:false,floorsK:FLOORS.map(()=>0),label:{x:0.12,y:0.2},ldrag:false,early:false,forceReady:true,tryEarly:0};}
+HD[3]={down(x,y){if(Math.hypot(x-W*C.label.x,y-H*C.label.y)<50){C.ldrag=true;return;}if(!C.placed&&Math.hypot(x-W*C.newF.x,y-H*C.newF.y)<50)C.drag=true;},
+ move(x,y){if(C.drag){C.newF.x=clamp(x/W,0.05,0.95);C.newF.y=clamp(y/H,0.05,0.95);}if(C.ldrag){C.label.x=clamp(x/W,0.05,0.95);C.label.y=clamp(y/H,0.05,0.95);}},
+ up(){const g=geo();if(C.drag){C.drag=false;if(Math.abs(W*C.newF.x-g.cx)<g.bw*0.4&&H*C.newF.y>g.by-g.bh*2.4){C.placed=true;C.t=0;toast('新的生产关系就位');}}
+  if(C.ldrag){C.ldrag=false;const g2=geo();if(Math.abs(W*C.label.x-g2.cx)<g2.bw*0.5&&H*C.label.y<g2.by-g2.bh){hit(3,2);toast('“我们是永恒的秩序！”——自我评价贴不进判断里，它也需要由物质生活的矛盾来说明');C.label={x:0.12,y:0.2};}}}};
+function t3(dt){ground();const g=geo();const fw=g.bw*0.9,fh=g.bh*2.2,fx=g.cx-fw/2,fyy=g.by-fh;
+  machine(g.cx-g.bh*0.9,g.by-g.bh*1.2,g.bh*0.7,'#6f8296');machine(g.cx+g.bh*0.7,g.by-g.bh*1.5,g.bh*0.55,'#7f92a6');
+  if(!C.placed){ctx.strokeStyle='#c0392b';ctx.lineWidth=6;ctx.strokeRect(fx,fyy,fw,fh);ctx.strokeStyle='#222';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(fx+fw*0.5,fyy);for(let i=1;i<9;i++)ctx.lineTo(fx+fw*0.5+(i%2?10:-10),fyy+fh*i/8);ctx.stroke();}
+  else{C.t+=dt;ctx.strokeStyle='#2f9e57';ctx.lineWidth=5;ctx.strokeRect(fx-fw*0.05,fyy-fh*0.1,fw*1.1,fh*1.1);txt('新的生产关系（再次成为“发展形式”）',g.cx,g.by+18,'#1f5e2f',12);hit(3,0);}
+  // 上层建筑：各层以不同速度变换（滞后）
+  const rates=[0.35,0.28,0.12,0.2,0.16];
+  FLOORS.forEach((n,i)=>{if(C.placed)C.floorsK[i]=Math.min(1,C.floorsK[i]+dt*rates[i]*(1-i*0.08));const k=C.floorsK[i];
+    const col=k>=1?'#bfe3c8':FCOL[i];floor(g.cx-g.bw*0.4,fyy-fh*0.1-(i+1)*g.fh*0.75-14,g.bw*0.8,g.fh*0.7,n,col,(k>0&&k<1)?Math.sin(T*5+i)*0.03:0,1,k>=1?'已变革':k>0?'变革中 '+Math.round(k*100)+'%':'');});
+  if(C.floorsK.some(k=>k>0.3)&&C.floorsK.some(k=>k<0.7))hit(3,1);
+  // 自我评价标签
+  const lx=W*C.label.x,ly=H*C.label.y;ctx.fillStyle='#fff3d6';ctx.strokeStyle='#c8700a';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(lx-70,ly-18,140,36,12);ctx.fill();ctx.stroke();txt('“我们是永恒的秩序”',lx,ly+5,'#7a4a00',12,'center',true);
+  // 新框架
+  if(!C.placed){const nx=W*C.newF.x,ny=H*C.newF.y;ctx.strokeStyle='#2f9e57';ctx.lineWidth=4;ctx.strokeRect(nx-40,ny-28,80,56);txt('新的生产关系',nx,ny+46,'#1f5e2f',12);}
+  // “过早拆除”演示在第 4 关；这里按“生产力已充分”放行
+  if(!ST.lit['3_3']&&C.placed&&C.t>0.5){/* 第 4 张卡在应用练习中真正检验 */}
+  txt(!C.placed?'把右上的新框架拖到开裂的旧框架上；把左上的“自我评价”拖到楼上试试':C.floorsK.every(k=>k>=1)?'整个上层建筑都已改变——但不是同时':'上层建筑或快或慢地随之改变……',W/2,22,'#223',13);}
+
+/* ================= 第 4 关：应用练习 ================= */
+const ERAS=['古代','封建','现代资产阶级'];
+let D;
+function init4(){D={era:0,force:0.1,hold:false,newF:{x:0.88,y:0.22},drag:false,fail:0,success:0,need:[0.55,0.75,0.95],shake:0,task:false};}
+HD[4]={down(x,y){if(Math.hypot(x-W*D.newF.x,y-H*D.newF.y)<50){D.drag=true;return;}D.hold=true;},
+ move(x,y){if(D.drag){D.newF.x=clamp(x/W,0.05,0.95);D.newF.y=clamp(y/H,0.05,0.95);}},
+ up(){const g=geo();D.hold=false;if(D.drag){D.drag=false;const onBase=Math.abs(W*D.newF.x-g.cx)<g.bw*0.45&&H*D.newF.y>g.by-g.bh*2.6;
+   if(onBase){if(D.force<D.need[D.era]){D.fail++;D.shake=1;if(!ST.lit['3_3']){ST.lit['3_3']=1;if(MAP[3].every((_,k)=>ST.lit['3_'+k]))ST.done[3]=1;save(ST);tabs();}hit(4,0);toast('物质条件还没有在旧社会内部成熟：旧框架拆不动，新关系立不住（第 3 关第 4 张原文已点亮）');}
+     else{D.success++;toast(`变革完成：进入“${ERAS[Math.min(2,D.era+1)]}”时代`);if(D.era<2)D.era++;else hit(4,2);D.force=0.1;if(D.success>=2)hit(4,2);}}
+   D.newF={x:0.88,y:0.22};}}};
+function t4(dt){ground();const g=geo();
+  if(D.hold)D.force=Math.min(1,D.force+dt*0.15);
+  const need=D.need[D.era];const near=D.force>need*0.85;if(near){D.task=true;hit(4,1);}
+  D.shake*=0.92;const sh=(Math.random()-.5)*12*D.shake;
+  // 时代条
+  ERAS.forEach((e,i)=>{const x=W*0.15+i*W*0.2;ctx.fillStyle=i===D.era?'#f3a52b':i<D.era?'#bfe3c8':'#fff';ctx.fillRect(x-60,10,120,26);txt(e,x,28,'#222',13,'center',i===D.era);});
+  // 生产力
+  machine(g.cx-g.bh*0.8,g.by-g.bh*0.9,g.bh*(0.25+0.6*D.force),'#6f8296');
+  // 旧框架
+  const fw=g.bw*0.9,fh=g.bh*2.2,fx=g.cx-fw/2+sh,fyy=g.by-fh;ctx.strokeStyle=D.force>=need?'#c0392b':'#a0522d';ctx.lineWidth=5;ctx.strokeRect(fx,fyy,fw,fh);
+  // “任务”气泡：问题在条件形成时出现
+  if(near){ctx.fillStyle='rgba(255,247,224,.95)';ctx.strokeStyle='#c8700a';ctx.beginPath();ctx.roundRect(g.cx-120,fyy-60,240,40,12);ctx.fill();ctx.stroke();txt('新的任务出现了：改变生产关系',g.cx,fyy-35,'#7a4a00',13,'center',true);}
+  FLOORS.forEach((n,i)=>floor(g.cx-g.bw*0.4+sh,fyy-(i+1)*g.fh*0.6-70,g.bw*0.8,g.fh*0.55,n,FCOL[i],0,1));
+  // 条件条
+  ctx.fillStyle='#fff';ctx.fillRect(W*0.82,H*0.2,20,H*0.55);ctx.fillStyle=D.force>=need?'#2f9e57':'#3a6f99';ctx.fillRect(W*0.82,H*0.2+H*0.55*(1-D.force),20,H*0.55*D.force);
+  const ny=H*0.2+H*0.55*(1-need);ctx.strokeStyle='#2f9e57';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(W*0.80,ny);ctx.lineTo(W*0.85,ny);ctx.stroke();txt('物质条件成熟线',W*0.86,ny+4,'#1f5e2f',11,'left');
+  // 新框架
+  const nx=W*D.newF.x,nyy=H*D.newF.y;ctx.strokeStyle='#2f9e57';ctx.lineWidth=4;ctx.strokeRect(nx-40,nyy-28,80,56);txt('新的生产关系',nx,nyy+46,'#1f5e2f',12);
+  txt(`失败 ${D.fail} 次 · 成功 ${D.success} 次`,W*0.15,H*0.95-10,'#334',12,'left');
+  txt(D.era===2&&D.success>=2?'完成：每一次都只有在条件成熟时才成功':'按住发展物质条件；任何时候都可以把新框架拖上去试试——过早会被弹回',W/2,52,'#223',13);}
+
+/* ======== 调度 ======== */
+const INIT={1:init1,2:init2,3:init3,4:init4},TICK={1:t1,2:t2,3:t3,4:t4};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!ST.done[t.dataset.l]);});}
+function go(n){L=n;ST.level=n;save(ST);tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{INIT[L]();toast('已重置本关（已点亮的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(ST.level&&TICK[ST.level]?ST.level:1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

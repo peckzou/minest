@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 功利主义伦理天平 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .q0{padding:5px 10px 0;font-size:12.5px;color:#1f2b38}
+#side .q0 b{color:#a0620a}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+#side .lim{padding:2px 10px 8px;font-size:11.5px;color:#667}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>功利主义 · 伦理天平</b>
+  <button class="tab on" data-l="1">① 两位主人</button>
+  <button class="tab" data-l="2">② 快乐的计算</button>
+  <button class="tab" data-l="3">③ 共同体之和</button>
+  <button class="tab" data-l="4">④ 质与量</button>
+  <button class="tab" data-l="5">⑤ 应用练习</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="q0" id="sQ"></div><div class="bd" id="sBody"></div><div class="lim" id="sLim"></div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;const done={};
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ======== 保存与恢复 ======== */
+const MEM={};
+function saveState(k,v){MEM[k]=v;try{localStorage.setItem('minest_util_'+k,JSON.stringify(v));}catch(e){}}
+function loadState(k){try{const s=localStorage.getItem('minest_util_'+k);if(s)return JSON.parse(s);}catch(e){}return MEM[k];}
+
+/* ======== 原文：边沁《道德与立法原理导论》（Clarendon 1907 年重印 1823 版，Econlib）；密尔《功利主义》（Gutenberg #11224）；中文编译 ======== */
+const BN='边沁《道德与立法原理导论》',MI='密尔《功利主义》';
+const MAP={
+1:[["拖动行动：天平只认快乐与痛苦","自然把人类置于两位至高的主人——痛苦和快乐——的统治之下。","Nature has placed mankind under the governance of two sovereign masters, pain and pleasure.",BN+" 第一章 §1"],
+   ["天平按“倾向”判定行动","功利原理是这样一条原理：它按照一个行动看来具有的增进或减少利益相关方幸福的倾向，来赞成或反对每一个行动。","that principle which approves or disapproves of every action whatsoever, according to the tendency it appears to have to augment or diminish the happiness",BN+" 第一章 §2"],
+   ["试图推开天平：仍然受它支配","我们为摆脱这种隶属所作的每一种努力，都只会证明和确认它。","every effort we can make to throw off our subjection, will serve but to demonstrate and confirm it",BN+" 第一章 §1"],
+   ["无法“证明”它：链条总要有起点","用来证明其他一切的东西，本身不能被证明：证明之链必须在某处开始。","that which is used to prove every thing else, cannot itself be proved: a chain of proofs must have their commencement somewhere",BN+" 第一章 §11"]],
+2:[["按住拉高一个快乐的强度与持续","对一个人而言，一个快乐或痛苦本身的价值，依下列四种情况而大小不同：强度、持续时间、确定性或不确定性、邻近或遥远。","the value of a pleasure or pain considered by itself, will be greater or less, according to the four following circumstances",BN+" 第四章 §2"],
+   ["拖远时间、调低确定性：价值下降","1. 其强度。2. 其持续时间。3. 其确定性或不确定性。4. 其邻近或遥远。","Its intensity. 2. Its duration. 3. Its certainty or uncertainty. 4. Its propinquity or remoteness.",BN+" 第四章 §2"],
+   ["快乐引出后续：丰度与纯度","丰度，即它被同类感受所跟随的机会……纯度，即它不被相反种类的感受所跟随的机会。","Its fecundity, or the chance it has of being followed by sensations of the same kind",BN+" 第四章 §3"],
+   ["一个“不纯”的快乐：后面跟着痛苦","纯度，或它不被相反种类感受所跟随的机会：对快乐而言即痛苦。","Its purity, or the chance it has of not being followed by sensations of the opposite kind",BN+" 第四章 §3"],
+   ["记忆诗：七个维度","强烈、长久、确定、迅速、多产、纯粹——这些标记存在于快乐与痛苦之中。","Intense, long, certain, speedy, fruitful, pure",BN+" 第四章 注"]],
+3:[["拖动资源分给人群：总和实时变化","共同体的利益是什么？——组成它的各个成员的利益之总和。","The interest of the community then is, what?—the sum of the interests of the several members who compose it.",BN+" 第一章 §4"],
+   ["共同体只是一个虚构的团体","共同体是一个虚构的团体，由被认为是其成员的个人组成。","The community is a fictitious body, composed of the individual persons who are considered as constituting as it were its members.",BN+" 第一章 §4"],
+   ["拖动“范围”：影响的人越多，权重越大","第七，其范围；即它所扩及的人数；换言之，受其影响的人数。","Its extent; that is, the number of persons to whom it extends",BN+" 第四章 §4"],
+   ["逐人求和，再求总余额","取其余额：若在快乐一边，就给出该行动对整个共同体的总体良好倾向。","Take the balance which if on the side of pleasure, will give the general good tendency of the act",BN+" 第四章 §5"],
+   ["你自己也只算一人：不偏不倚","在他自己的幸福与他人的幸福之间，功利主义要求他像一个无私而仁慈的旁观者那样严格公正。","utilitarianism requires him to be as strictly impartial as a disinterested and benevolent spectator",MI+" 第二章"]]};
+MAP[4]=[["只比数量：猪的满足也许更大","说快乐的估价只取决于数量，那是荒谬的。","the estimation of pleasures should be supposed to depend on quantity alone",MI+" 第二章"],
+   ["拖动“品质”：某些快乐更值得欲求","承认某些种类的快乐比另一些更值得欲求、更有价值，与功利原理完全相容。","some kinds of pleasure are more desirable and more valuable than others",MI+" 第二章"],
+   ["请体验过两者的“评判者”来称","两种快乐中，若所有或几乎所有体验过两者的人都明确偏好其中一种……那就是更值得欲求的快乐。","Of two pleasures, if there be one to which all or almost all who have experience of both give a decided preference",MI+" 第二章"],
+   ["不满足的苏格拉底","做一个不满足的人胜过做一头满足的猪；做不满足的苏格拉底胜过做满足的傻瓜。","It is better to be a human being dissatisfied than a pig satisfied; better to be Socrates dissatisfied than a fool satisfied.",MI+" 第二章"],
+   ["只有知道两边的人才能比较","如果傻瓜或猪有不同的意见，那是因为他们只知道问题的自己那一边。","they only know their own side of the question. The other party to the comparison knows both sides.",MI+" 第二章"]];
+MAP[5]=[["牺牲一个人，换多数人的小快乐","功利主义只是拒绝承认牺牲本身是一种善。","It only refuses to admit that the sacrifice is itself a good.",MI+" 第二章"],
+   ["总和上升，一人跌入深渊","不增加、也不倾向于增加幸福总量的牺牲，它视为浪费。","A sacrifice which does not increase, or tend to increase, the sum total of happiness, it considers as wasted.",MI+" 第二章"],
+   ["“他人的权利”：合法的期待","只要确认在使他们受益时，他没有侵犯任何其他人的权利——即合法的、被认可的期待。","he is not violating the rights—that is, the legitimate and authorized expectations—of any one else",MI+" 第二章"],
+   ["用次级规则代替逐次计算","我们无论采用什么作为道德的根本原则，都需要次级原则来应用它。","Whatever we adopt as the fundamental principle of morality, we require subordinate principles to apply it by",MI+" 第二章"]];
+const TITLE={1:'① 两位主人 · 把行动拖上天平；试着把天平推开',2:'② 快乐的计算 · 把快乐/痛苦拖到盘里，按住各维度旋钮调节',3:'③ 共同体之和 · 拖动资源分给人群；拖动“我”混入人群',4:'④ 质与量 · 按住给猪和苏格拉底“喂”快乐；拖动评判者在两边体验',5:'⑤ 应用练习 · 新情境：拖动一个人上祭台，按住让多数人享受；拖动“权利”护栏'};
+const QS={1:'行动的对错，是否只取决于它带来的快乐与痛苦？',2:'快乐与痛苦能否被测量和比较？',3:'共同体的幸福是不是成员幸福之和？',4:'快乐只有多少之分，还是也有高低之分？',5:'当总和最大化要求牺牲一个人时，功利主义怎么办？'};
+const LIM='适用边界：画面中的数值与“刻度”是教学类比。边沁本人说这个计算过程不必在每次判断前严格执行（第四章 §6），密尔也认为快乐“并不同质”，不能简单相加。';
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const e=$('mr'+l+'_'+i);if(!e||e.classList.contains('on'))return;e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});
+  const lit=loadState('lit')||{};lit[l+'_'+i]=1;saveState('lit',lit);
+  if(MAP[l].every((_,k)=>$('mr'+l+'_'+k).classList.contains('on'))){done[l]=1;saveState('done',done);tabs();}}
+
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y,t0:T};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]?.move?.(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]?.up?.();});
+
+/* ======== 天平（共用绘制，带惯性） ======== */
+function beam(cx,cy,w,ang,colL,colR){ctx.save();ctx.translate(cx,cy);
+  ctx.fillStyle='#5a4a3a';ctx.beginPath();ctx.moveTo(-14,H*0.36);ctx.lineTo(14,H*0.36);ctx.lineTo(4,0);ctx.lineTo(-4,0);ctx.fill();
+  ctx.rotate(ang);ctx.fillStyle='#8a7350';ctx.fillRect(-w/2,-4,w,8);ctx.fillStyle='#d9b54a';ctx.beginPath();ctx.arc(0,0,8,0,7);ctx.fill();
+  const pans=[];[-1,1].forEach(s=>{const px=s*w/2,py=0;ctx.strokeStyle='#8a7350';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px-w*0.12,py+H*0.12);ctx.moveTo(px,py);ctx.lineTo(px+w*0.12,py+H*0.12);ctx.stroke();});
+  ctx.restore();
+  return[-1,1].map(s=>{const px=cx+Math.cos(ang)*s*w/2,py=cy+Math.sin(ang)*s*w/2;const y=py+H*0.12;
+    ctx.fillStyle=s<0?(colL||'#cfe3c8'):(colR||'#f1cfc8');ctx.beginPath();ctx.ellipse(px,y,w*0.14,10,0,0,7);ctx.fill();ctx.strokeStyle='#8a7350';ctx.stroke();return{x:px,y};});}
+
+/* ================= 第 1 关：两位主人 ================= */
+const ACTS=[{n:'救溺水者',p:9,q:1},{n:'说谎骗钱',p:4,q:8},{n:'种一棵树',p:5,q:1},{n:'嘲笑别人',p:2,q:6},{n:'守口如瓶',p:3,q:2},{n:'施舍乞丐',p:6,q:2}];
+let A;
+function init1(){A={items:ACTS.map((a,i)=>({...a,x:0.08+(i%2)*0.12,y:0.18+Math.floor(i/2)*0.24,on:false})),drag:null,ang:0,va:0,cur:null,push:0,pushes:0,proof:0,proofHold:false};}
+HD[1]={down(x,y){if(x>W*0.82&&y>H*0.72){A.proofHold=true;return;}
+  if(A.cur&&Math.abs(x-W*0.55)<W*0.25&&y<H*0.35&&y>H*0.1){A.pushing=true;return;}
+  for(const it of A.items){if(Math.hypot(x-W*it.x,y-H*it.y)<38){A.drag=it;return;}}},
+ move(x,y,dx,dy){if(A.drag){A.drag.x=clamp(A.drag.x+dx/W,0.02,0.95);A.drag.y=clamp(A.drag.y+dy/H,0.05,0.95);}
+  if(A.pushing){A.va+=dy*0.002;A.push+=Math.abs(dy);if(A.push>300&&!A._pt){A._pt=1;hit(1,2);toast('你越用力推它，它越证明自己在支配：你推它，是因为推它让你“舒服”一点');}}},
+ up(){A.pushing=false;A.proofHold=false;if(A.drag){const it=A.drag;A.drag=null;if(Math.hypot(W*it.x-W*0.55,H*it.y-H*0.55)<W*0.2){A.cur=it;it.x=0.55;it.y=0.25;hit(1,0);setTimeout(()=>hit(1,1),1500);}}}};
+function t1(dt){ctx.fillStyle='#efe9df';ctx.fillRect(0,0,W,H);
+  const cx=W*0.55,cy=H*0.42;const tgt=A.cur?clamp((A.cur.q-A.cur.p)*0.05,-0.4,0.4):0;
+  A.va+=(tgt-A.ang)*dt*6;A.va*=0.92;A.ang+=A.va*dt*4;
+  const pans=beam(cx,cy,W*0.42,A.ang);
+  // 两位主人
+  txt('快乐',pans[0].x,pans[0].y+32,'#3f8a35',15,'center',true);txt('痛苦',pans[1].x,pans[1].y+32,'#b03a2e',15,'center',true);
+  if(A.cur){const k=A.cur;for(let i=0;i<k.p;i++){ctx.fillStyle='#7cc46a';ctx.beginPath();ctx.arc(pans[0].x-30+(i%5)*14,pans[0].y-8-Math.floor(i/5)*12,6,0,7);ctx.fill();}
+    for(let i=0;i<k.q;i++){ctx.fillStyle='#e07a6a';ctx.beginPath();ctx.arc(pans[1].x-30+(i%5)*14,pans[1].y-8-Math.floor(i/5)*12,6,0,7);ctx.fill();}
+    txt(`“${k.n}”的倾向：${k.p>k.q?'增进幸福 → 应当做':k.p<k.q?'减少幸福 → 不应当做':'持平'}`,cx,H*0.12,'#223',16,'center',true);}
+  else txt('把左侧的一个行动拖到天平中央',cx,H*0.12,'#556',14);
+  A.items.forEach(it=>{if(it===A.cur)return;const x=W*it.x,y=H*it.y;ctx.fillStyle='#fff';ctx.strokeStyle='#8a7350';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(x-48,y-18,96,36,10);ctx.fill();ctx.stroke();txt(it.n,x,y+5,'#223',13);});
+  if(A.cur)txt('上下用力拖动横梁，试着把天平推开',cx,H*0.92,'#a0620a',12);
+  // 证明之链
+  if(A.proofHold){A.proof=Math.min(1,A.proof+dt*0.35);}else A.proof=Math.max(0,A.proof-dt*0.5);
+  const bx=W*0.82,by=H*0.72,bw=W*0.16,bh=H*0.24;ctx.fillStyle=A.proofHold?'#f3a52b':'rgba(255,255,255,.9)';ctx.fillRect(bx,by,bw,bh);txt('按住：证明它',bx+bw/2,by+bh/2,'#222',13,'center',true);
+  const n=Math.floor(A.proof*8);for(let i=0;i<n;i++){ctx.strokeStyle='#8a7350';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(bx-20-i*18,by+bh/2,10,6,0,0,7);ctx.stroke();}
+  if(A.proof>=1&&!A._pf){A._pf=1;hit(1,3);toast('链条一路往回延伸，最前面那一环没有任何东西撑着');}
+  if(A.proof>0.9){ctx.strokeStyle='#b03a2e';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(bx-20-8*18,by+bh/2-20);ctx.lineTo(bx-20-8*18,by+bh/2+20);ctx.stroke();ctx.setLineDash([]);txt('？',bx-20-8*18-14,by+bh/2+5,'#b03a2e',16,'center',true);}}
+
+/* ================= 第 2 关：快乐的计算 ================= */
+const DIM=[['强度','intensity'],['持续','duration'],['确定','certainty'],['邻近','propinquity'],['丰度','fecundity'],['纯度','purity']];
+let B;
+function init2(){const s=loadState('l2');B=s||{orbs:[{n:'一顿美餐',side:0,d:[0.6,0.3,0.9,0.9,0.2,0.5],placed:false},{n:'学会弹琴',side:0,d:[0.5,0.8,0.6,0.2,0.9,0.9],placed:false},{n:'宿醉',side:1,d:[0.6,0.4,0.7,0.6,0.3,0.6],placed:false},{n:'彩票头奖',side:0,d:[0.9,0.6,0.05,0.3,0.4,0.6],placed:false}],sel:0,knob:null,drag:null,touched:{}};
+  B.orbs.forEach((o,i)=>{o.x=0.08;o.y=0.2+i*0.2;});B.drag=null;B.knob=null;B.ang=0;B.va=0;B.trail=[];}
+function val(o){const d=o.d;return d[0]*(0.3+d[1])*d[2]*(0.3+0.7*d[3])*10;}
+function gKnob(i){const kx=W*0.62+(i%3)*W*0.12,ky=H*0.62+Math.floor(i/3)*H*0.2;return[kx,ky];}
+HD[2]={down(x,y){for(let i=0;i<6;i++){const [kx,ky]=gKnob(i);if(Math.hypot(x-kx,y-ky)<30){B.knob=i;return;}}
+  B.orbs.forEach((o,i)=>{if(Math.hypot(x-W*o.x,y-H*o.y)<34){B.drag=o;B.sel=i;}});},
+ move(x,y,dx,dy){if(B.knob!=null){const o=B.orbs[B.sel];o.d[B.knob]=clamp(o.d[B.knob]-dy/(H*0.4),0.02,1);B.touched[B.knob]=1;
+   if(B.knob<2)hit(2,0);if(B.knob===2||B.knob===3)hit(2,1);if(B.knob===4)hit(2,2);if(B.knob===5)hit(2,3);if(Object.keys(B.touched).length>=6)hit(2,4);saveState('l2',B);}
+  if(B.drag){B.drag.x=clamp(B.drag.x+dx/W,0.02,0.55);B.drag.y=clamp(B.drag.y+dy/H,0.05,0.6);}},
+ up(){B.knob=null;if(B.drag){const o=B.drag;B.drag=null;o.placed=o.y<0.55&&o.x>0.15;saveState('l2',B);}}};
+function t2(dt){ctx.fillStyle='#f4efe6';ctx.fillRect(0,0,W,H);
+  let L0=0,R0=0;B.orbs.forEach(o=>{if(!o.placed)return;const v=val(o);if(o.side===0)L0+=v;else R0+=v;
+    // 丰度：同类后续；纯度低：带出相反感受
+    const f=o.d[4],p=o.d[5];if(Math.random()<dt*f*2)B.trail.push({side:o.side,t:0,x:W*o.x,y:H*o.y});if(Math.random()<dt*(1-p)*2)B.trail.push({side:1-o.side,t:0,x:W*o.x,y:H*o.y});});
+  B.trail.forEach(t=>{t.t+=dt;if(t.side===0)L0+=0.3;else R0+=0.3;});B.trail=B.trail.filter(t=>t.t<2.5);
+  const cx=W*0.33,cy=H*0.3;const tgt=clamp((R0-L0)*0.03,-0.45,0.45);B.va+=(tgt-B.ang)*dt*6;B.va*=0.9;B.ang+=B.va*dt*4;
+  const pans=beam(cx,cy,W*0.4,B.ang);
+  txt(`快乐 ${L0.toFixed(1)}`,pans[0].x,pans[0].y+30,'#3f8a35',13,'center',true);txt(`痛苦 ${R0.toFixed(1)}`,pans[1].x,pans[1].y+30,'#b03a2e',13,'center',true);
+  B.trail.forEach(t=>{const tx=pans[t.side].x,ty=pans[t.side].y-10;const k=Math.min(1,t.t);ctx.fillStyle=t.side===0?'rgba(124,196,106,.8)':'rgba(224,122,106,.8)';ctx.beginPath();ctx.arc(lerp(t.x,tx,k),lerp(t.y,ty,k),4,0,7);ctx.fill();});
+  B.orbs.forEach((o,i)=>{const x=W*o.x,y=H*o.y,r=14+val(o)*2.2;ctx.fillStyle=o.side===0?'#7cc46a':'#e07a6a';ctx.globalAlpha=0.4+0.6*o.d[2];ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.globalAlpha=1;
+    if(i===B.sel){ctx.strokeStyle='#f3a52b';ctx.lineWidth=3;ctx.stroke();}
+    txt(o.n,x,y+r+14,'#223',12);txt(val(o).toFixed(1),x,y+4,'#fff',12,'center',true);});
+  // 旋钮
+  txt(`调节：${B.orbs[B.sel].n}（点击左侧选中）`,W*0.74,H*0.52,'#223',13,'center',true);
+  DIM.forEach((d,i)=>{const [kx,ky]=gKnob(i);const v=B.orbs[B.sel].d[i];ctx.fillStyle='#ddd';ctx.beginPath();ctx.arc(kx,ky,26,0,7);ctx.fill();
+    ctx.strokeStyle='#3a6f99';ctx.lineWidth=6;ctx.beginPath();ctx.arc(kx,ky,22,Math.PI*0.75,Math.PI*0.75+Math.PI*1.5*v);ctx.stroke();txt(d[0],kx,ky+4,'#223',12,'center',true);txt(Math.round(v*100)+'%',kx,ky+42,'#556',11);});
+  txt('把快乐（绿）/痛苦（红）拖到上方天平区；在旋钮上按住上下拖动',W*0.5,H*0.97,'#556',12);}
+
+/* ================= 第 3 关：共同体之和 ================= */
+let C;
+function init3(){const s=loadState('l3');C=s||{ppl:Array.from({length:12},(_,i)=>({u:0,base:Math.random()*0.4,x:0.12+(i%6)*0.13,y:0.32+Math.floor(i/6)*0.3,me:i===0})),pool:20,extent:1,parts:[]};C.parts=[];C.drag=null;C.ext=null;}
+function sumU(){return C.ppl.reduce((a,p)=>a+u(p),0);}
+function u(p){return p.base+Math.log(1+p.u)*1.2;}
+HD[3]={down(x,y){if(Math.hypot(x-W*0.9,y-H*0.15)<44&&C.pool>0){C.drag={x,y};return;}
+  if(y>H*0.86&&x>W*0.2&&x<W*0.8){C.ext=true;return;}
+  C.ppl.forEach(p=>{if(p.me&&Math.hypot(x-W*p.x,y-H*p.y)<26)C.dragMe=p;});},
+ move(x,y){if(C.drag){C.drag.x=x;C.drag.y=y;}if(C.ext){C.extent=clamp((x-W*0.2)/(W*0.6),0,1)*11+1;hit(3,2);}if(C.dragMe){C.dragMe.x=clamp(x/W,0.05,0.8);C.dragMe.y=clamp(y/H,0.2,0.8);}},
+ up(){if(C.drag){const d=C.drag;C.drag=null;let best=null,bd=1e9;C.ppl.forEach(p=>{const dd=Math.hypot(d.x-W*p.x,d.y-H*p.y);if(dd<bd){bd=dd;best=p;}});
+    if(best&&bd<60){const n=Math.round(C.extent);const near=C.ppl.slice().sort((a,b)=>Math.hypot(W*a.x-W*best.x,H*a.y-H*best.y)-Math.hypot(W*b.x-W*best.x,H*b.y-H*best.y)).slice(0,n);
+      near.forEach(p=>{p.u+=1/n*n*0.5;C.parts.push({x:W*0.9,y:H*0.15,tx:W*p.x,ty:H*p.y,t:0});});C.pool--;hit(3,0);if(C.pool<17)hit(3,1);if(C.pool<14)hit(3,3);saveState('l3',C);}}
+  C.ext=false;if(C.dragMe){C.dragMe=null;hit(3,4);toast('“我”混进人群：在总和里，我和任何一个人一样只算一份');}}};
+function t3(dt){ctx.fillStyle='#eef3f6';ctx.fillRect(0,0,W,H);
+  // 资源池
+  ctx.fillStyle='#d9b54a';ctx.beginPath();ctx.arc(W*0.9,H*0.15,30+C.pool*0.6,0,7);ctx.fill();txt(`资源 ${C.pool}`,W*0.9,H*0.15+5,'#3a2a00',13,'center',true);txt('拖出分给人',W*0.9,H*0.15+50,'#556',11);
+  if(C.drag){ctx.fillStyle='rgba(217,181,74,.8)';ctx.beginPath();ctx.arc(C.drag.x,C.drag.y,14,0,7);ctx.fill();}
+  C.parts.forEach(p=>{p.t+=dt*1.5;const k=Math.min(1,p.t);ctx.fillStyle='rgba(217,181,74,.9)';ctx.beginPath();ctx.arc(lerp(p.x,p.tx,k),lerp(p.y,p.ty,k)-Math.sin(k*3.14)*40,5,0,7);ctx.fill();});C.parts=C.parts.filter(p=>p.t<1);
+  C.ppl.forEach(p=>{const x=W*p.x,y=H*p.y,hu=u(p);const r=16;ctx.fillStyle=p.me?'#3a6f99':'#8a7350';ctx.beginPath();ctx.arc(x,y-r*1.6,r*0.6,0,7);ctx.fill();ctx.fillRect(x-r*0.5,y-r,r,r*1.2);
+    ctx.fillStyle='#ddd';ctx.fillRect(x-20,y+14,40,6);ctx.fillStyle='#3f8a35';ctx.fillRect(x-20,y+14,40*clamp(hu/4,0,1),6);if(p.me)txt('我',x,y-r*2.5,'#3a6f99',12,'center',true);});
+  // 总和柱
+  const S=sumU();ctx.fillStyle='#fff';ctx.fillRect(W*0.86,H*0.35,W*0.08,H*0.45);ctx.fillStyle='#3f8a35';const hh=H*0.45*clamp(S/40,0,1);ctx.fillRect(W*0.86,H*0.8-hh,W*0.08,hh);
+  txt('共同体',W*0.9,H*0.33,'#223',12,'center',true);txt('= Σ 个人',W*0.9,H*0.84,'#223',12);txt(S.toFixed(1),W*0.9,H*0.8-hh-6,'#1f5e2f',13,'center',true);
+  // 范围条
+  ctx.fillStyle='rgba(0,0,0,.12)';ctx.fillRect(W*0.2,H*0.9,W*0.6,8);ctx.fillStyle='#3a6f99';ctx.beginPath();ctx.arc(W*0.2+W*0.6*(C.extent-1)/11,H*0.9+4,10,0,7);ctx.fill();
+  txt(`范围：每份惠及 ${Math.round(C.extent)} 人（拖动）`,W*0.5,H*0.97,'#334',12);}
+
+/* ================= 第 4 关：质与量 ================= */
+let D;
+function init4(){D={pig:0,soc:0,feedP:false,feedS:false,qual:0,qualDrag:false,judge:{x:0.5,y:0.75,seenP:0,seenS:0},jdrag:false,verdict:0};}
+HD[4]={down(x,y){if(Math.hypot(x-W*D.judge.x,y-H*D.judge.y)<30){D.jdrag=true;return;}
+  if(y>H*0.88){D.qualDrag=true;return;}
+  if(x<W*0.45)D.feedP=true;else if(x>W*0.55)D.feedS=true;},
+ move(x,y){if(D.jdrag){D.judge.x=clamp(x/W,0.05,0.95);D.judge.y=clamp(y/H,0.3,0.85);}if(D.qualDrag){D.qual=clamp((x-W*0.2)/(W*0.6),0,1);if(D.qual>0.3)hit(4,1);}},
+ up(){D.feedP=D.feedS=false;D.jdrag=false;D.qualDrag=false;}};
+function t4(dt){ctx.fillStyle='#f3efe8';ctx.fillRect(0,0,W,H);ctx.fillStyle='#bbb';ctx.fillRect(W/2-1,0,2,H*0.86);
+  if(D.feedP)D.pig=Math.min(1,D.pig+dt*0.5);if(D.feedS)D.soc=Math.min(1,D.soc+dt*0.18);
+  if(D.pig>0.6&&D.soc<0.5)hit(4,0);
+  // 猪：低处满足，很快满格
+  const px=W*0.25,py=H*0.55;ctx.fillStyle='#f0b8b0';ctx.beginPath();ctx.ellipse(px,py,60,38,0,0,7);ctx.fill();ctx.beginPath();ctx.arc(px+55,py-10,24,0,7);ctx.fill();ctx.fillStyle='#d98c84';ctx.beginPath();ctx.ellipse(px+72,py-6,10,8,0,0,7);ctx.fill();
+  // 苏格拉底
+  const sx=W*0.75,sy=H*0.55;ctx.fillStyle='#e8d5b5';ctx.beginPath();ctx.arc(sx,sy-60,22,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.fillRect(sx-24,sy-38,48,70);ctx.fillStyle='#bbb';ctx.beginPath();ctx.arc(sx,sy-46,16,0,Math.PI);ctx.fill();
+  // 满足度条（数量）
+  const bar=(x,v,c,t)=>{ctx.fillStyle='#ddd';ctx.fillRect(x-60,H*0.12,120,12);ctx.fillStyle=c;ctx.fillRect(x-60,H*0.12,120*v,12);txt(t,x,H*0.1,'#334',12);};
+  bar(px,D.pig,'#e07a6a','满足（数量）');bar(sx,D.soc,'#3a6f99','满足（数量）');
+  // 品质维度：越拖越显出高处的快乐
+  if(D.qual>0.05){ctx.globalAlpha=D.qual;['思想','友谊','美','道德感'].forEach((t,i)=>{const a=-1.2+i*0.8;ctx.fillStyle='#ffd27a';ctx.beginPath();ctx.arc(sx+Math.cos(a)*90,sy-80+Math.sin(a)*40,16,0,7);ctx.fill();txt(t,sx+Math.cos(a)*90,sy-80+Math.sin(a)*40+4,'#5a3b00',11);});ctx.globalAlpha=1;
+    ctx.fillStyle=`rgba(255,210,122,${D.qual*0.7})`;ctx.fillRect(sx-60,H*0.17,120*D.soc*(1+D.qual),6);txt('品质加权',sx,H*0.17+18,'#a0620a',11);}
+  txt(D.feedP?'猪吃饱了……':'按住左半边：给猪喂快乐',px,H*0.8,'#556',12);txt(D.feedS?'苏格拉底仍不满足……':'按住右半边：给苏格拉底喂快乐',sx,H*0.8,'#556',12);
+  if(D.soc>0.4&&D.soc<1)txt('他知道还有更多他得不到的',sx,H*0.3,'#3a6f99',12);
+  // 评判者
+  const j=D.judge,jx=W*j.x,jy=H*j.y;if(D.jdrag){if(j.x<0.45)j.seenP+=dt;if(j.x>0.55)j.seenS+=dt;}
+  ctx.fillStyle='#4a2a80';ctx.beginPath();ctx.arc(jx,jy-14,10,0,7);ctx.fill();ctx.fillRect(jx-8,jy-4,16,20);txt('评判者',jx,jy+30,'#4a2a80',11);
+  meterSmall(jx-30,jy+36,j.seenP,'猪的那边');meterSmall(jx-30,jy+48,j.seenS,'人的那边');
+  if(j.seenP>1.5&&j.seenS>1.5){hit(4,2);D.verdict=Math.min(1,D.verdict+dt*0.5);if(D.verdict>0.5)hit(4,3);if(D.verdict>0.95)hit(4,4);
+    ctx.globalAlpha=D.verdict;txt('评判者：我宁愿做不满足的苏格拉底',W/2,H*0.25,'#4a2a80',16,'center',true);ctx.globalAlpha=1;}
+  else if(j.seenP>0.3||j.seenS>0.3)txt('评判者要在两边都待够，才知道“两边”',W/2,H*0.25,'#4a2a80',13);
+  ctx.fillStyle='rgba(0,0,0,.12)';ctx.fillRect(W*0.2,H*0.92,W*0.6,8);ctx.fillStyle='#a0620a';ctx.beginPath();ctx.arc(W*0.2+W*0.6*D.qual,H*0.92+4,10,0,7);ctx.fill();txt('品质维度（拖动）',W*0.5,H*0.99,'#334',11);}
+function meterSmall(x,y,v,t){ctx.fillStyle='#ddd';ctx.fillRect(x,y,60,6);ctx.fillStyle='#4a2a80';ctx.fillRect(x,y,60*clamp(v/1.5,0,1),6);txt(t,x+92,y+7,'#556',10,'left');}
+
+/* ================= 第 5 关：应用练习 ================= */
+let E5;
+function init5(){E5={victim:null,drag:null,hold:false,feast:0,fence:0,fenceDrag:false,ppl:Array.from({length:10},(_,i)=>({x:0.1+i*0.08,y:0.72,h:0.5,orig:true}))};}
+HD[5]={down(x,y){if(y<H*0.2&&x>W*0.3&&x<W*0.7){E5.fenceDrag=true;return;}
+  for(const p of E5.ppl){if(Math.hypot(x-W*p.x,y-H*p.y)<24&&!E5.victim){E5.drag=p;return;}}
+  if(E5.victim)E5.hold=true;},
+ move(x,y){if(E5.drag){E5.drag.x=x/W;E5.drag.y=y/H;}if(E5.fenceDrag){E5.fence=clamp((x-W*0.3)/(W*0.4),0,1);if(E5.fence>0.8)hit(5,2);}},
+ up(){E5.hold=false;E5.fenceDrag=false;if(E5.drag){const p=E5.drag;E5.drag=null;if(Math.hypot(W*p.x-W*0.85,H*p.y-H*0.4)<70){E5.victim=p;p.x=0.85;p.y=0.42;hit(5,0);}else{p.x=0.1+E5.ppl.indexOf(p)*0.08;p.y=0.72;}}}};
+function t5(dt){ctx.fillStyle='#ecebf2';ctx.fillRect(0,0,W,H);
+  // 祭台
+  ctx.fillStyle='#8a7d6a';ctx.fillRect(W*0.78,H*0.48,W*0.14,H*0.06);txt('祭台',W*0.85,H*0.6,'#556',12);
+  const blocked=E5.fence>0.8;
+  if(E5.hold&&E5.victim&&!blocked){E5.feast=Math.min(1,E5.feast+dt*0.25);}
+  if(E5.hold&&blocked&&!E5._bt){E5._bt=1;toast('权利护栏挡住了：多数人的小快乐不能拿一个人的生命去换');}
+  const gain=E5.feast*0.8,loss=E5.victim?E5.feast*6:0;
+  E5.ppl.forEach(p=>{if(p===E5.victim)p.h=Math.max(0,0.5-E5.feast*0.5);else p.h=0.5+gain*0.35;});
+  const total=E5.ppl.reduce((a,p)=>a+(p===E5.victim?-loss*0.3:p.h*2),0);
+  if(E5.feast>0.4){hit(5,1);}
+  E5.ppl.forEach(p=>{const x=W*p.x,y=H*p.y;const v=p===E5.victim;ctx.fillStyle=v?'#b03a2e':'#3a6f99';ctx.beginPath();ctx.arc(x,y-24,9,0,7);ctx.fill();ctx.fillRect(x-7,y-15,14,22);
+    ctx.fillStyle='#ddd';ctx.fillRect(x-14,y+12,28,5);ctx.fillStyle=v?'#b03a2e':'#3f8a35';ctx.fillRect(x-14,y+12,28*clamp(p.h,0,1),5);});
+  // 两张表：总和 vs 分布
+  const gx=W*0.06,gy=H*0.1;ctx.fillStyle='#fff';ctx.fillRect(gx,gy,W*0.28,H*0.42);txt('总和',gx+W*0.07,gy+18,'#223',12,'center',true);txt('分布',gx+W*0.21,gy+18,'#223',12,'center',true);
+  const th=clamp(total/15,0,1)*H*0.32;ctx.fillStyle='#3f8a35';ctx.fillRect(gx+W*0.04,gy+H*0.4-th,W*0.06,th);txt(total.toFixed(1),gx+W*0.07,gy+H*0.4-th-4,'#1f5e2f',12);
+  E5.ppl.forEach((p,i)=>{const bh=clamp(p.h,0,1)*H*0.32;ctx.fillStyle=p===E5.victim?'#b03a2e':'#7cc46a';ctx.fillRect(gx+W*0.15+i*W*0.011,gy+H*0.4-bh,W*0.009,bh);});
+  // 护栏
+  ctx.fillStyle='rgba(0,0,0,.1)';ctx.fillRect(W*0.3,H*0.08,W*0.4,8);ctx.fillStyle='#4a2a80';ctx.beginPath();ctx.arc(W*0.3+W*0.4*E5.fence,H*0.08+4,10,0,7);ctx.fill();txt('权利护栏（拖动）',W*0.5,H*0.05+2,'#4a2a80',12);
+  if(blocked){ctx.strokeStyle='#4a2a80';ctx.lineWidth=4;for(let i=0;i<6;i++){ctx.beginPath();ctx.moveTo(W*0.74+i*6,H*0.3);ctx.lineTo(W*0.74+i*6,H*0.56);ctx.stroke();}}
+  if(blocked&&E5.feast>0.4){hit(5,3);txt('次级规则（权利）在这里拦住了逐次计算',W*0.5,H*0.92,'#4a2a80',13,'center',true);}
+  else txt(!E5.victim?'把一个人拖到右边祭台上':E5.feast<1?'按住：让其余九人享受这次“牺牲”':'总和也许没怎么涨，可那一个人已跌到底',W*0.5,H*0.92,'#223',13);}
+
+/* ======== 调度 ======== */
+const INIT={1:init1,2:init2,3:init3,4:init4,5:init5},TICK={1:t1,2:t2,3:t3,4:t4,5:t5};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!done[t.dataset.l]);});}
+function go(n){L=n;tabs();$('sTitle').textContent=TITLE[L];$('sQ').innerHTML='<b>核心问题：</b>'+QS[L];$('sLim').textContent=LIM;$('sBody').innerHTML=mapHTML(L);
+  const lit=loadState('lit')||{};MAP[L].forEach((_,i)=>{if(lit[L+'_'+i])$('mr'+L+'_'+i).classList.add('on');});INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{saveState('l'+L,null);INIT[L]();toast('已重置本关（已对应的原文保留）');};
+Object.assign(done,loadState('done')||{});tabs();
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

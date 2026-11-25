@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>环球巨幕</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: radial-gradient(ellipse at 50% 110%, #2a1a4a 0%, #0a0818 55%, #030208 100%); color: #ece6ff; font: 14px/1.5 "PingFang SC", system-ui, sans-serif; user-select: none; }
+  #stage { position: absolute; inset: 0; perspective: 1500px; cursor: grab; } #stage.in { perspective: 620px; }
+  #ball { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-style: preserve-3d; will-change: transform; }
+  .t { position: absolute; left: 0; top: 0; background: #1a1438; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden; cursor: pointer; }
+  .t img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; } .t::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle, transparent 42%, rgba(0,0,0,.55) 46%) 0 0 / 4px 4px; pointer-events: none; opacity: .55; }
+  .t.dim { opacity: .18; } .t:hover { box-shadow: 0 0 0 2px #ffd96b, 0 0 24px #ffd96b; }
+  #glow { position: absolute; left: 50%; top: 50%; width: 1100px; height: 1100px; margin: -550px 0 0 -550px; border-radius: 50%; background: radial-gradient(circle, rgba(140,110,255,.35), rgba(140,110,255,0) 62%); pointer-events: none; }
+  #base { position: absolute; left: 50%; bottom: -60px; width: 900px; height: 160px; margin-left: -450px; border-radius: 50%; background: radial-gradient(ellipse, rgba(181,140,255,.45), transparent 70%); pointer-events: none; }
+  .top { position: absolute; left: 16px; right: 16px; top: 12px; display: flex; gap: 8px; align-items: center; z-index: 5; flex-wrap: wrap; } .top h1 { margin: 0 10px 0 0; font-size: 18px; letter-spacing: .1em; } .top span { flex: 1; }
+  button { font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 999px; border: 1px solid rgba(201,167,255,.5); background: rgba(16,12,40,.7); color: #ece6ff; cursor: pointer; } button:hover, button.on { background: #b58cff; color: #14121f; }
+  #roots { position: absolute; left: 16px; right: 16px; bottom: 12px; display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; z-index: 5; } #roots button { padding: 2px 9px; font-size: 12px; }
+  #big { position: absolute; inset: 0; z-index: 8; display: none; align-items: center; justify-content: center; background: rgba(3,2,8,.78); } #big.on { display: flex; } #big div { text-align: center; } #big img { width: min(760px, 86vw); border-radius: 12px; box-shadow: 0 0 80px rgba(181,140,255,.7); display: block; } #big b { display: block; font: 700 40px Georgia, serif; margin-top: 14px; } #big i { font-style: normal; color: #ffd96b; font-size: 18px; }
+  .t::after { display: none; } #stage.in { perspective: 460px; }
+  #seats { display: none; position: absolute; left: 0; right: 0; bottom: 0; height: 26%; z-index: 3; pointer-events: none; background: radial-gradient(circle at 50% 60%, #05040a 0 8px, transparent 9px) 0 0 / 30px 26px, linear-gradient(transparent, rgba(6,5,14,.8) 40%, #05040a); } body.inside #seats { display: block; } body.inside #roots { opacity: .35; } body.inside .top { opacity: .6; }
+  .t video { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+  body.clean .top, body.clean #roots, body.clean #seats { display: none !important; } #tip { position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%); z-index: 9; background: rgba(0,0,0,.75); padding: 6px 16px; border-radius: 999px; font-size: 13px; display: none; }
+</style>
+</head>
+<body>
+<div id="glow"></div><div id="base"></div>
+<div id="stage"><div id="ball"></div></div><div id="seats"></div>
+<div class="top"><h1>🌐 环球巨幕</h1><button id="mode">🚶 走进球内</button><button id="spin" class="on">⟳ 自转</button><button id="imp">📂 导入素材</button><button id="one">▣ 一幅铺满</button><button id="reset" style="display:none">↺ 恢复词根</button><button id="full">⛶ 全屏</button><button id="hide">👁 隐藏界面</button><input type="file" id="file" accept="image/*,video/*" multiple style="display:none"><span></span><button id="back">🎞 词根馆</button><button id="close">✕ 回到小岛</button></div>
+<div id="roots"></div>
+<div id="tip"></div><div id="big"><div><img alt=""><b></b><i></i></div></div>
+<script src="data.js"></script>
+<script>
+/* A ball of screens, after the Sphere in Las Vegas: every tile is a little television playing one GIF. The tiles are real
+   <img> elements placed on a sphere with CSS 3D transforms, so the GIFs animate natively; only the tiles facing the
+   viewer carry a src, the rest are unloaded, which keeps memory in check. */
+(function () {
+  var D = window.ROOTMAP, EMBED = parent !== window, words = []; D.roots.forEach(function (r, ri) { r.words.forEach(function (w) { words.push({ w: w[1], zh: w[2], f: 'gifs/' + w[4], r: ri }); }); });
+  var ball = document.getElementById('ball'), stage = document.getElementById('stage'), R = 500, NEQ = 20, TW = 2 * Math.PI * R / NEQ, TH = TW * 9 / 16, step = TH / R, tiles = [], k = 0;
+  for (var row = -8; row <= 8; row++) { var lat = row * step, n = Math.max(6, Math.round(NEQ * Math.cos(lat))); for (var c = 0; c < n; c++) { var lon = (c + (row % 2 ? 0.5 : 0)) / n * Math.PI * 2, wd = words[k % words.length], d = document.createElement('div'), im = document.createElement('img'); k++;
+      d.className = 't'; d.style.width = (TW + 1.5) + 'px'; d.style.height = (TH + 1.5) + 'px'; d.style.marginLeft = (-TW / 2) + 'px'; d.style.marginTop = (-TH / 2) + 'px'; d.appendChild(im); ball.appendChild(d); tiles.push({ d: d, im: im, lon: lon, lat: lat, wd: wd, on: false }); (function (wd) { d.onclick = function () { if (moved || custom) return; show(wd); }; })(wd); } }
+  var ry = 0, rx = -0.12, vy = 0.0022, zoom = 1, inside = false, spin = true, drag = null, moved = false, focus = -1;
+  function place() { tiles.forEach(function (t) { t.d.style.transform = 'rotateY(' + t.lon + 'rad) rotateX(' + (-t.lat) + 'rad) translateZ(' + R + 'px)' + (inside ? ' rotateY(180deg)' : ''); }); }
+  var custom = null, single = false, tipT = 0;
+  function tip(t) { var e = document.getElementById('tip'); e.textContent = t; e.style.display = 'block'; clearTimeout(tipT); tipT = setTimeout(function () { e.style.display = 'none'; }, 2600); }
+  function media(t) { var m = single ? custom[0] : custom[t.i % custom.length]; if (t.cur === m.url) return; t.cur = m.url; if (t.vid) { t.vid.pause(); t.vid.remove(); t.vid = null; } if (m.video) { t.im.style.display = 'none'; var v = document.createElement('video'); v.src = m.url; v.muted = true; v.loop = true; v.playsInline = true; v.autoplay = true; t.d.appendChild(v); t.vid = v; v.play().catch(function () {}); } else { t.im.style.display = ''; t.im.src = m.url; } if (single) { var u = ((t.lon / (Math.PI * 2)) % 1 + 1) % 1, vv = 0.5 - t.lat / 2.9, el2 = t.vid || t.im; el2.style.objectFit = 'fill'; el2.style.width = (NEQ * 100) + '%'; el2.style.height = '1700%'; el2.style.marginLeft = (-u * NEQ * 100) + '%'; el2.style.marginTop = (-Math.max(0, Math.min(16, vv * 17 - 0.5)) * TH) + 'px'; } else { [t.im, t.vid].forEach(function (e2) { if (e2) { e2.style.width = e2.style.height = '100%'; e2.style.margin = '0'; e2.style.objectFit = 'cover'; } }); } }
+  function clear(t) { t.cur = null; if (t.vid) { t.vid.pause(); t.vid.remove(); t.vid = null; } t.im.style.display = ''; t.im.style.width = t.im.style.height = '100%'; t.im.style.margin = '0'; t.im.style.objectFit = 'cover'; t.im.removeAttribute('src'); t.on = false; }
+  function load() { if (custom) { var c2 = 0; tiles.forEach(function (t) { var z = Math.cos(t.lon + ry) * Math.cos(t.lat), want = inside ? z < -0.25 : z > 0.25; if (want) { media(t); t.on = true; c2++; } else if (t.on && custom[0].video) { clear(t); } }); return c2; } var cnt = 0; tiles.forEach(function (t) { var z = Math.cos(t.lon + ry) * Math.cos(t.lat), want = inside ? z < -0.3 : z > 0.3; if (want && !t.on) { t.im.src = t.wd.f; t.on = true; } else if (!want && t.on) { t.im.removeAttribute('src'); t.on = false; } if (t.on) cnt++; }); return cnt; }
+  var lastLoad = 0;
+  function frame(now) { requestAnimationFrame(frame); if (spin && !drag) ry += vy; var s = Math.min(innerWidth, innerHeight) / 1250 * zoom; ball.style.transform = (inside ? 'translateZ(460px) ' : 'scale(' + s + ') ') + 'rotateX(' + rx + 'rad) rotateY(' + ry + 'rad)'; if (now - lastLoad > 350) { lastLoad = now; load(); } }
+  stage.onpointerdown = function (e) { drag = [e.clientX, e.clientY]; moved = false; }; addEventListener('pointermove', function (e) { if (!drag) return; var dx = e.clientX - drag[0], dy = e.clientY - drag[1]; if (Math.abs(dx) + Math.abs(dy) > 4) moved = true; ry += dx * 0.005 * (inside ? -1 : 1); rx = Math.max(-0.9, Math.min(0.9, rx - dy * 0.004 * (inside ? -1 : 1))); drag = [e.clientX, e.clientY]; }); addEventListener('pointerup', function () { drag = null; setTimeout(function () { moved = false; }, 0); });
+  stage.onwheel = function (e) { e.preventDefault(); zoom = Math.max(0.6, Math.min(2.4, zoom * (1 - e.deltaY * 0.001))); };
+  var big = document.getElementById('big'); function show(wd) { big.querySelector('img').src = wd.f; big.querySelector('b').textContent = wd.w; big.querySelector('i').textContent = wd.zh + ' · 词根 ' + D.roots[wd.r].root + '（' + D.roots[wd.r].zh + '）'; big.classList.add('on'); try { var u = new SpeechSynthesisUtterance(wd.w); u.lang = 'en-US'; speechSynthesis.speak(u); } catch (e) {} } big.onclick = function () { big.classList.remove('on'); };
+  document.getElementById('mode').onclick = function () { inside = !inside; stage.classList.toggle('in', inside); document.body.classList.toggle('inside', inside); rx = inside ? -0.3 : -0.12; this.textContent = inside ? '🌐 回到球外' : '🚶 走进球内'; document.getElementById('glow').style.display = document.getElementById('base').style.display = inside ? 'none' : ''; tiles.forEach(function (t) { t.d.style.backfaceVisibility = t.d.style.webkitBackfaceVisibility = 'hidden'; }); place(); load(); };
+  document.getElementById('spin').onclick = function () { spin = !spin; this.classList.toggle('on', spin); };
+  var rb = document.getElementById('roots'); [['全部', -1]].concat(D.roots.map(function (r, i) { return [r.root, i]; })).forEach(function (q) { var b = document.createElement('button'); b.textContent = q[0]; b.onclick = function () { focus = q[1]; [].forEach.call(rb.children, function (x) { x.classList.toggle('on', x === b); }); tiles.forEach(function (t) { t.d.classList.toggle('dim', focus >= 0 && t.wd.r !== focus); }); if (focus >= 0) { var t0 = tiles.filter(function (t) { return t.wd.r === focus; })[0]; if (t0) ry = (inside ? Math.PI : 0) - t0.lon; } }; rb.appendChild(b); });
+  document.getElementById('back').onclick = function () { location.href = 'index.html'; };
+  document.getElementById('close').onclick = function () { if (EMBED) parent.postMessage({ rootmap: 1, op: 'close' }, location.origin); else history.back(); };
+  addEventListener('keydown', function (e) { if (e.key === 'Escape') { if (document.body.classList.contains('clean')) { document.body.classList.remove('clean'); return; } if (big.classList.contains('on')) big.classList.remove('on'); else document.getElementById('close').click(); } });
+  tiles.forEach(function (t, i) { t.i = i; });
+  document.getElementById('imp').onclick = function () { document.getElementById('file').click(); };
+  document.getElementById('file').onchange = function () { var fs = [].slice.call(this.files || []); if (!fs.length) return; tiles.forEach(clear); custom = fs.map(function (f) { return { url: URL.createObjectURL(f), video: /^video\//.test(f.type), name: f.name }; }); single = custom.length === 1; document.getElementById('one').classList.toggle('on', single); document.getElementById('reset').style.display = ''; rb.style.visibility = 'hidden'; load(); tip('已导入 ' + custom.length + ' 个素材' + (single ? '，一幅铺满整个球幕' : '，轮流铺在各块屏上') + '。只在本次有效，不上传'); this.value = ''; };
+  document.getElementById('one').onclick = function () { if (!custom) { tip('先点「导入素材」放进图片、GIF 或视频'); return; } single = !single; this.classList.toggle('on', single); tiles.forEach(clear); load(); };
+  document.getElementById('reset').onclick = function () { tiles.forEach(clear); custom = null; single = false; this.style.display = 'none'; document.getElementById('one').classList.remove('on'); rb.style.visibility = ''; load(); };
+  function fullOn() { var e = EMBED ? null : document.documentElement; try { if (document.fullscreenElement) document.exitFullscreen(); else (document.documentElement.requestFullscreen || function () {}).call(document.documentElement); } catch (er) {} }
+  document.getElementById('full').onclick = fullOn;
+  function hideUI(on) { document.body.classList.toggle('clean', on); if (on) tip('界面已隐藏 · 按 H 或 Esc 恢复，F 全屏'); }
+  document.getElementById('hide').onclick = function () { hideUI(true); };
+  addEventListener('keydown', function (e) { if (e.key === 'h' || e.key === 'H') hideUI(!document.body.classList.contains('clean')); if (e.key === 'f' || e.key === 'F') fullOn(); }, true);
+  window.__imp = function (files) { var dt = new DataTransfer(); files.forEach(function (f) { dt.items.add(f); }); var inp = document.getElementById('file'); inp.files = dt.files; inp.onchange(); };
+  place(); requestAnimationFrame(frame); document.getElementById('mode').click(); window.__sphere = { n: tiles.length, loaded: load, toggle: function () { document.getElementById('mode').click(); } };
+})();
+</script>
+</body>
+</html>

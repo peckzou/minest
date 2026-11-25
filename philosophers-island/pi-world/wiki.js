@@ -468,6 +468,8 @@
     }
   };
 
+  if (root.PIExpansion) Object.assign(DATA, root.PIExpansion.wiki);
+
   function get(id) {
     const d = DATA[id] || DATA.socrates;
     return Object.assign({

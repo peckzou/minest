@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 康德道德法则 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>康德 · 道德法则</b>
+  <button class="tab on" data-l="1">① 普遍化准则</button>
+  <button class="tab" data-l="2">② 虚假承诺</button>
+  <button class="tab" data-l="3">③ 人是目的</button>
+  <button class="tab" data-l="4">④ 善良意志</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="bd" id="sBody"></div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;const done={};
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ===== 原文：Abbott 英译 Fundamental Principles of the Metaphysic of Morals（Gutenberg #5682）；中文编译 ===== */
+const G='《道德形而上学的奠基》';
+const MAP={
+1:[["拖出一条准则放到中央","只按照你同时能够意愿它成为普遍法则的那个准则去行动。","Act only on that maxim whereby thou canst at the same time will that it should become a universal law.",G+" 第二章"],
+   ["按住：让准则传遍所有人","要这样行动，就好像你行动的准则会通过你的意志成为普遍的自然法则。","Act as if the maxim of thy action were to become by thy will a universal law of nature.",G+" 第二章"],
+   ["“出于自爱缩短生命”：世界无法存续","一个以‘本应推动生命改善的那种情感’来毁灭生命为法则的自然系统，会自相矛盾。","a system of nature of which it should be a law to destroy life by means of the very feeling whose special nature it is to impel to the improvement of life would contradict itself",G+" 第二章"],
+   ["“荒废才能”：世界能存续，但不能意愿","他不可能意愿这成为普遍的自然法则……作为理性存在者，他必然意愿他的能力得到发展。","he cannot possibly will that this should be a universal law of nature",G+" 第二章"],
+   ["“从不帮助他人”：意志自相矛盾","意愿这一点的意志会自相矛盾，因为可能出现许多情况，他需要别人的爱与同情。","For a will which resolved this would contradict itself, inasmuch as many cases might occur in which one would have need of the love and sympathy of others",G+" 第二章"],
+   ["两种失败：不可设想 / 不可意愿","有些行动的准则甚至不能无矛盾地被设想为普遍的自然法则……另一些……仍不可能意愿其准则上升为自然法则的普遍性。","Some actions are of such a character that their maxim cannot without contradiction be even conceived as a universal law of nature",G+" 第二章"]],
+2:[["他急需钱，知道还不了","另一个人迫于困境需要借钱。他知道自己还不了，但也明白，若不坚定地承诺按期偿还，就没有人会借给他。","Another finds himself forced by necessity to borrow money. He knows that he will not be able to repay it",G+" 第二章"],
+   ["“如果我的准则成为普遍法则会怎样？”","我把自爱的建议转变为普遍法则，问道：‘如果我的准则是普遍法则，会怎样？’","How would it be if my maxim were a universal law?",G+" 第二章"],
+   ["信任崩溃：承诺本身变得不可能","承诺本身就会变得不可能，连人们借承诺所要达到的目的也不可能。","the promise itself would become impossible, as well as the end that one might have in view in it",G+" 第二章"],
+   ["没人再相信，只会嘲笑","因为没有人会认为有什么东西被承诺给他，而只会把这一切说法当作空洞的托词加以嘲笑。","no one would consider that anything was promised to him, but would ridicule all such statements as vain pretences",G+" 第二章"]],
+3:[["每个人都有自己的目的","你要这样行动：无论是你自己人格中的人性，还是任何他人人格中的人性，你在任何时候都同时当作目的，绝不仅仅当作手段。","So act as to treat humanity, whether in thine own person or in that of any other, in every case as an end withal, never as means only.",G+" 第二章"],
+   ["拖动他人当工具：他的目的熄灭","打算对他人作虚假承诺的人会立刻看到，他是把别人仅仅当作手段来使用。","he would be using another man merely as a mean, without the latter containing at the same time the end in himself",G+" 第二章"],
+   ["被利用者无法同意","因为我想用这种承诺来达到我自己目的的那个人，不可能赞同我对待他的方式。","he whom I propose by such a promise to use for my own purposes cannot possibly assent to my mode of acting towards him",G+" 第二章"],
+   ["人不是物","但人不是物，也就是说，不是可以仅仅当作手段使用的东西，而必须在他的一切行动中始终被看作目的本身。","But a man is not a thing, that is to say, something which can be used merely as means",G+" 第二章"],
+   ["帮助他人实现他的目的","如果每个人不尽其所能地去促进他人的目的，那这只是消极地、而非积极地与作为目的本身的人性相一致。","if every one does not also endeavour, as far as in him lies, to forward the ends of others",G+" 第二章"]],
+4:[["善良意志：唯一无条件的善","在世界之中，甚至在世界之外，除了善良意志，不可能设想任何东西能无条件地被称为善。","Nothing can possibly be conceived in the world, or even out of it, which can be called good, without qualification, except a good will.",G+" 第一章"],
+   ["按住尽全力：调动一切手段","（不是单纯的愿望，而是调动我们力所能及的一切手段）","not, to be sure, a mere wish, but the summoning of all means in our power",G+" 第一章"],
+   ["拖入命运的阻碍：结果失败","即使由于命运的特别不济……这个意志完全缺乏实现其目的的能力，即使它尽了最大努力仍一事无成……","if with its greatest efforts it should yet achieve nothing",G+" 第一章"],
+   ["它仍像宝石一样闪耀","它也仍会像一颗宝石那样，凭自身的光芒闪耀，作为某种在自身中就具有全部价值的东西。","like a jewel, it would still shine by its own light, as a thing which has its whole value in itself",G+" 第一章"],
+   ["有用或无果，不增不减","它的有用或无果，既不能给这价值增加什么，也不能减少什么。","Its usefulness or fruitlessness can neither add nor take away anything from this value.",G+" 第一章"]]};
+const TITLE={1:'① 普遍化准则 · 从左侧拖一条准则到中央，再按住画面让它传遍世界',2:'② 虚假承诺 · 按住“撒谎”让虚假承诺扩散；随时松手观察信任',3:'③ 人是目的 · 拖拽他人当工具使用；或把你的力量拖向他的目的',4:'④ 善良意志 · 按住推动石头上山；把阻碍拖进路上'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——康德${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const e=$('mr'+l+'_'+i);if(!e||e.classList.contains('on'))return;e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});
+  if(MAP[l].every((_,k)=>$('mr'+l+'_'+k).classList.contains('on'))){done[l]=1;tabs();}}
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]?.move?.(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]?.up?.();});
+function person(x,y,r,col,alpha){ctx.globalAlpha=alpha==null?1:alpha;ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y-r*1.6,r*.5,0,7);ctx.fill();ctx.beginPath();ctx.moveTo(x-r*.6,y);ctx.quadraticCurveTo(x,y-r*1.6,x+r*.6,y);ctx.fill();ctx.globalAlpha=1;}
+
+/* ================= 第 1 关：普遍化 ================= */
+const MAX=[{k:'life',n:'痛苦多于快乐时，出于自爱结束生命',type:'conc'},{k:'talent',n:'舒适就好，荒废自己的才能',type:'will'},{k:'help',n:'只顾自己，从不帮助他人',type:'will'},{k:'kind',n:'在别人困难时尽力帮助',type:'ok'}];
+let A;
+function init1(){A={sel:null,drag:null,dx:0,dy:0,spread:0,hold:false,pop:[],stage:0,cards:MAX.map((m,i)=>({...m,x:0.03,y:0.1+i*0.2}))};
+  for(let i=0;i<70;i++)A.pop.push({x:0.36+Math.random()*0.6,y:0.12+Math.random()*0.78,inf:false,st:1,need:Math.random()<0.25,ph:Math.random()*6});}
+HD[1]={down(x,y){for(const c of A.cards){if(x>W*c.x&&x<W*c.x+W*0.28&&y>H*c.y&&y<H*c.y+H*0.14){A.drag=c;A.dx=x-W*c.x;A.dy=y-H*c.y;return;}}if(A.sel&&x>W*0.33)A.hold=true;},
+ move(x,y){if(A.drag){A.drag.x=(x-A.dx)/W;A.drag.y=(y-A.dy)/H;}},
+ up(){A.hold=false;if(A.drag){const c=A.drag;A.drag=null;if(W*c.x+W*0.14>W*0.4){A.sel=c;A.spread=0;A.pop.forEach(p=>{p.inf=false;p.st=1;});hit(1,0);toast('准则：“'+c.n+'”。现在按住画面，让所有人都按它行动');}const i=MAX.findIndex(m=>m.k===c.k);c.x=0.03;c.y=0.1+i*0.2;}}};
+function t1(dt){ctx.fillStyle='#1f2533';ctx.fillRect(0,0,W,H);ctx.fillStyle='#2b3346';ctx.fillRect(W*0.33,0,W*0.67,H);
+  txt('准则（拖动）',W*0.17,22,'#cfd6e6',13,'center',true);
+  A.cards.forEach(c=>{const on=A.sel&&A.sel.k===c.k;ctx.fillStyle=on?'#f3a52b':'#fffdf5';ctx.fillRect(W*c.x,H*c.y,W*0.28,H*0.14);ctx.strokeStyle='#888';ctx.strokeRect(W*c.x,H*c.y,W*0.28,H*0.14);
+    ctx.font='13px sans-serif';ctx.fillStyle='#222';ctx.textAlign='left';const words=c.n;const mid=Math.ceil(words.length/2);ctx.fillText('“'+words.slice(0,mid),W*c.x+8,H*c.y+H*0.06);ctx.fillText(words.slice(mid)+'”',W*c.x+8,H*c.y+H*0.11);});
+  const s=A.sel;
+  if(A.hold&&s){A.spread=Math.min(1,A.spread+dt*0.25);hit(1,1);}
+  const n=Math.floor(A.spread*A.pop.length);A.pop.forEach((p,i)=>{p.inf=i<n;});
+  let alive=0,suffer=0;
+  A.pop.forEach(p=>{const x=W*p.x,y=H*p.y+Math.sin(T*2+p.ph)*2;
+    if(s&&p.inf){if(s.k==='life'){p.st=Math.max(0,p.st-dt*0.5*(p.need?1:0.4));}
+      if(s.k==='talent'){p.st=Math.max(0.35,p.st-dt*0.15);}
+      if(s.k==='help'&&p.need){p.st=Math.max(0.1,p.st-dt*0.3);}}
+    if(p.st>0.05)alive++;if(p.st<0.6)suffer++;
+    const col=s&&s.k==='kind'&&p.inf?'#7dffb0':p.st>0.7?'#8fc9ff':p.st>0.3?'#c9a76a':'#555';person(x,y,9,col,0.25+0.75*p.st);
+    if(s&&s.k==='help'&&p.inf&&p.need&&p.st<0.6){ctx.strokeStyle='rgba(255,120,120,.7)';ctx.beginPath();ctx.arc(x,y-14,14+Math.sin(T*5)*2,0,7);ctx.stroke();}
+    if(s&&s.k==='kind'&&p.inf&&p.need){ctx.strokeStyle='rgba(125,255,176,.6)';ctx.beginPath();ctx.arc(x,y-14,14,0,7);ctx.stroke();}});
+  // 判定
+  if(s&&A.spread>=1){
+    if(s.k==='life'&&alive<A.pop.length*0.5){txt('作为自然法则，它在毁灭它本应维持的生命：这个世界无法存在',W*0.66,H*0.06,'#ff8a8a',14,'center',true);hit(1,2);hit(1,5);}
+    if(s.k==='talent'){txt('世界仍能存续……但一个理性存在者能意愿自己的能力都被荒废吗？',W*0.66,H*0.06,'#ffd27a',14,'center',true);hit(1,3);hit(1,5);}
+    if(s.k==='help'){txt('世界照样运转——可轮到你需要帮助时呢？你的意志自相矛盾',W*0.66,H*0.06,'#ffd27a',14,'center',true);hit(1,4);hit(1,5);}
+    if(s.k==='kind')txt('这条准则可以无矛盾地被设想、被意愿为普遍法则',W*0.66,H*0.06,'#7dffb0',14,'center',true);}
+  else if(s)txt(A.hold?`传播中……${Math.round(A.spread*100)}%`:'按住右侧画面：让每个人都按这条准则行动',W*0.66,H*0.06,'#e8ecf4',13);
+  else txt('把一条准则拖进右侧世界',W*0.66,H*0.06,'#e8ecf4',13);
+  if(s){ctx.fillStyle='rgba(0,0,0,.4)';ctx.fillRect(W*0.36,H*0.94,W*0.6,8);ctx.fillStyle='#f3a52b';ctx.fillRect(W*0.36,H*0.94,W*0.6*A.spread,8);}}
+
+/* ================= 第 2 关：虚假承诺 ================= */
+let B;
+function init2(){B={liars:0,hold:false,trust:1,loans:[],t:0,denied:0,laugh:[],asked:false};}
+HD[2]={down(x,y){if(x<W*0.25&&y>H*0.7)B.hold=true;else if(x>W*0.3){B.asked=true;hit(2,1);}},up(){B.hold=false;}};
+function t2(dt){ctx.fillStyle='#22283a';ctx.fillRect(0,0,W,H);B.t+=dt;if(B.t>1)hit(2,0);
+  if(B.hold)B.liars=Math.min(1,B.liars+dt*0.18);
+  // 信任随违约率调整（滞后）
+  B.trust=lerp(B.trust,1-B.liars,dt*0.8);
+  // 借贷流：左边借款人走向右边放贷人，放贷人依信任决定是否借
+  if(Math.random()<dt*2.5){const lie=Math.random()<B.liars;B.loans.push({x:0.32,y:0.25+Math.random()*0.5,lie,st:'go',t:0});}
+  const lx=W*0.82;
+  B.loans.forEach(l=>{l.t+=dt;if(l.st==='go'){l.x+=dt*0.22;if(W*l.x>lx-40){l.st=Math.random()<B.trust?'lent':'denied';if(l.st==='denied'){B.denied++;if(B.trust<0.3)B.laugh.push({x:lx,y:H*l.y,t:1.5});}}}
+    else if(l.st==='lent'){l.x-=dt*0.18;if(l.lie)l.broken=true;}else l.x-=dt*0.3;
+    const x=W*l.x,y=H*l.y;person(x,y,10,l.lie?'#d98a5a':'#8fc9ff');
+    if(l.st==='go'){ctx.fillStyle='#fffdf5';ctx.fillRect(x+8,y-30,40,16);txt('我保证还',x+28,y-18,'#333',10);}
+    if(l.st==='lent'){txt('¥',x+14,y-20,'#f3d36b',16,'center',true);if(l.lie&&l.t%2<1)txt('✗不还',x,y+18,'#ff8a8a',10);}
+    if(l.st==='denied')txt('✗',x+14,y-20,'#ff8a8a',16,'center',true);});
+  B.loans=B.loans.filter(l=>l.x>0.25&&l.x<0.95);
+  // 放贷人
+  person(lx,H*0.5,18,'#c79bff');txt('放贷的人',lx,H*0.5+26,'#e8dcff',12);
+  B.laugh.forEach(q=>{q.t-=dt;txt('“又是空话！”',q.x,q.y-40-(1.5-q.t)*20,`rgba(255,180,180,${q.t/1.5})`,13);});B.laugh=B.laugh.filter(q=>q.t>0);
+  // 信任表
+  const mx=W*0.92,y0=H*0.1,y1=H*0.85;ctx.fillStyle='rgba(255,255,255,.15)';ctx.fillRect(mx,y0,16,y1-y0);ctx.fillStyle=B.trust>0.5?'#7dffb0':B.trust>0.2?'#f3d36b':'#ff6b6b';ctx.fillRect(mx,y1-(y1-y0)*B.trust,16,(y1-y0)*B.trust);txt('信任',mx+8,y0-6,'#e8ecf4',12);
+  if(B.trust<0.25){hit(2,2);txt('没人再相信承诺：连撒谎者也借不到钱了。承诺本身消失了',W*0.55,H*0.08,'#ff8a8a',14,'center',true);}
+  if(B.trust<0.15&&B.laugh.length)hit(2,3);
+  // 控件
+  ctx.fillStyle=B.hold?'#f3a52b':'rgba(255,255,255,.9)';ctx.fillRect(W*0.02,H*0.74,W*0.22,H*0.2);txt('按住：让虚假承诺',W*0.13,H*0.82,'#222',13,'center',true);txt('成为人人遵守的法则',W*0.13,H*0.88,'#222',12);
+  txt(`撒谎者比例 ${Math.round(B.liars*100)}%`,W*0.13,H*0.7,'#ffd27a',13);
+  person(W*0.12,H*0.4,20,'#d98a5a');txt('急需钱的人',W*0.12,H*0.4+28,'#e8ecf4',12);
+  if(!B.asked)txt('点一下右侧：问问“如果我的准则成为普遍法则会怎样？”',W*0.6,H*0.95,'#cfd6e6',12);}
+
+/* ================= 第 3 关：人是目的 ================= */
+let C;
+function init3(){C={ppl:[],drag:null,mode:null,used:0,helped:0,t:0};
+  const goals=['画画','读书','种花','远行','学医','作曲'];
+  for(let i=0;i<6;i++)C.ppl.push({x:0.2+(i%3)*0.27,y:0.38+Math.floor(i/3)*0.36,goal:goals[i],flame:1,prog:0.2,pull:0,assent:1,tool:false});}
+const YOU=()=>({x:W*0.06,y:H*0.5});
+HD[3]={down(x,y){const yu=YOU();
+  for(const p of C.ppl){if(Math.hypot(x-W*p.x,y-H*p.y+15)<30){C.drag={p,mode:'use',x,y};return;}
+    const gx=W*p.x+40,gy=H*p.y-60;if(Math.hypot(x-gx,y-gy)<28){C.drag={p,mode:'help',x,y};return;}}},
+ move(x,y,dx,dy){const d=C.drag;if(!d)return;d.x=x;d.y=y;const p=d.p;
+   if(d.mode==='use'){p.tool=true;p.x=clamp(x/W,0.1,0.95);p.y=clamp(y/H,0.2,0.95);p.pull+=Math.hypot(dx,dy)/W;p.flame=Math.max(0,p.flame-Math.hypot(dx,dy)/(W*0.6));p.assent=Math.max(0,p.assent-Math.hypot(dx,dy)/(W*0.4));C.used++;hit(3,1);if(p.assent<0.4)hit(3,2);if(p.flame<0.15)hit(3,3);}
+   else{p.prog=Math.min(1,p.prog+Math.hypot(dx,dy)/(W*1.5));if(p.prog>0.5)hit(3,4);}},
+ up(){if(C.drag&&C.drag.mode==='use')C.drag.p.tool=false;C.drag=null;}};
+function t3(dt){ctx.fillStyle='#eef1f5';ctx.fillRect(0,0,W,H);C.t+=dt;if(C.t>1)hit(3,0);
+  const yu=YOU();person(yu.x+30,yu.y+30,18,'#3a6f99');txt('你',yu.x+30,yu.y+56,'#223',13,'center',true);
+  C.ppl.forEach(p=>{const x=W*p.x,y=H*p.y;if(!p.tool){p.flame=Math.min(1,p.flame+dt*0.05);p.assent=Math.min(1,p.assent+dt*0.04);}
+    // 他自己的目的：火焰 + 进度
+    const gx=x+40,gy=y-60;ctx.fillStyle=`rgba(243,165,43,${0.2+0.8*p.flame})`;const fh=18+12*p.flame+Math.sin(T*8+x)*3;ctx.beginPath();ctx.moveTo(gx-10,gy+10);ctx.quadraticCurveTo(gx,gy-fh,gx+10,gy+10);ctx.fill();
+    txt(p.goal,gx,gy+26,p.flame>0.2?'#a0620a':'#999',12);
+    ctx.fillStyle='#ddd';ctx.fillRect(gx-24,gy+30,48,5);ctx.fillStyle='#1f9e57';ctx.fillRect(gx-24,gy+30,48*p.prog,5);
+    person(x,y,14,p.tool?'#8a8f96':'#c97b4a');
+    if(p.tool){ctx.strokeStyle='#555';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(yu.x+30,yu.y);ctx.lineTo(x,y-30);ctx.stroke();for(let k=0;k<3;k++){ctx.beginPath();ctx.moveTo(x-10+k*10,y-30);ctx.lineTo(x-10+k*10,y-50);ctx.stroke();}
+      txt('被当作工具',x,y+22,'#b00020',12,'center',true);}
+    if(p.assent<0.6)txt(`同意：${Math.round(p.assent*100)}%`,x,y+38,'#b00020',11);
+    if(C.drag&&C.drag.p===p&&C.drag.mode==='help'){ctx.strokeStyle='#1f9e57';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(yu.x+30,yu.y);ctx.lineTo(gx,gy);ctx.stroke();ctx.setLineDash([]);}});
+  txt('拖动一个人：把他当工具使唤；拖动他头上的火焰：帮他实现他自己的目的',W*0.5,24,'#223',13);}
+
+/* ================= 第 4 关：善良意志 ================= */
+let D;
+function init4(){D={pos:0,hold:false,effort:0,obs:[],fail:false,dragO:null,shine:0,t:0,pool:[{x:0.85,y:0.12,n:'暴雨'},{x:0.85,y:0.28,n:'落石'},{x:0.85,y:0.44,n:'厄运'}]};}
+const slope=k=>({x:W*lerp(0.08,0.7,k),y:H*lerp(0.85,0.25,k)});
+HD[4]={down(x,y){for(const o of D.pool){if(Math.hypot(x-W*o.x,y-H*o.y)<30){D.dragO={o,x,y};return;}}D.hold=true;},
+ move(x,y){if(D.dragO){D.dragO.x=x;D.dragO.y=y;}},
+ up(){D.hold=false;if(D.dragO){const {o,x,y}=D.dragO;D.dragO=null;if(x<W*0.75){D.obs.push({k:clamp((x/W-0.08)/0.62,0.1,0.95),n:o.n,t:0});hit(4,2);toast(o.n+'：命运挡在了路上');}}}};
+function t4(dt){D.t+=dt;if(D.t>1)hit(4,0);
+  const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#2a3350');sky.addColorStop(1,'#59647e');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+  const a=slope(0),b=slope(1);ctx.fillStyle='#4a4436';ctx.beginPath();ctx.moveTo(a.x-40,H);ctx.lineTo(a.x-40,a.y+10);ctx.lineTo(b.x,b.y+10);ctx.lineTo(b.x+60,b.y+10);ctx.lineTo(b.x+60,H);ctx.fill();
+  txt('目标',b.x+30,b.y-10,'#ffd27a',13,'center',true);
+  if(D.hold){D.effort=Math.min(1,D.effort+dt*0.8);hit(4,1);}else D.effort=Math.max(0,D.effort-dt*0.6);
+  const block=D.obs.find(o=>Math.abs(o.k-D.pos)<0.05&&o.k>D.pos-0.01);
+  if(D.hold&&!block)D.pos=Math.min(1,D.pos+dt*0.06*D.effort);
+  if(block&&D.hold){D.pos=Math.max(0,D.pos-dt*0.02);D.fail=true;}
+  D.obs.forEach(o=>{o.t+=dt;const p=slope(o.k);ctx.fillStyle=o.n==='暴雨'?'rgba(120,160,220,.8)':o.n==='落石'?'#6b6255':'#3a1d2a';
+    if(o.n==='暴雨'){for(let i=0;i<20;i++){const rx=p.x-30+(i*13)%60,ry=p.y-80+((T*200+i*37)%80);ctx.fillRect(rx,ry,2,8);}}
+    ctx.beginPath();ctx.arc(p.x,p.y-12,16,0,7);ctx.fill();txt(o.n,p.x,p.y+18,'#fff',11);});
+  const sp=slope(D.pos);const rock={x:sp.x+26,y:sp.y-18};ctx.fillStyle='#8a8478';ctx.beginPath();ctx.arc(rock.x,rock.y,20,0,7);ctx.fill();
+  person(sp.x-6,sp.y,14,'#c97b4a');
+  // 宝石：亮度只取决于努力（意志），不取决于位置/结果
+  if(D.effort>0.05)D.shine=Math.max(D.shine,D.effort);const gx=W*0.2,gy=H*0.2;
+  const gl=ctx.createRadialGradient(gx,gy,4,gx,gy,70*D.shine+10);gl.addColorStop(0,`rgba(140,220,255,${0.8*D.shine})`);gl.addColorStop(1,'rgba(140,220,255,0)');ctx.fillStyle=gl;ctx.fillRect(0,0,W*0.45,H*0.5);
+  ctx.fillStyle=`rgba(170,235,255,${0.3+0.7*D.shine})`;ctx.beginPath();ctx.moveTo(gx,gy-22);ctx.lineTo(gx+18,gy);ctx.lineTo(gx,gy+22);ctx.lineTo(gx-18,gy);ctx.closePath();ctx.fill();
+  txt('善良意志',gx,gy+42,'#cfeaff',13,'center',true);
+  // 结果表 vs 价值表
+  meter(W*0.04,H*0.9,W*0.2,D.pos,'#f3d36b','结果：完成度');meter(W*0.28,H*0.9,W*0.2,D.shine,'#8fdcff','价值：意志本身');
+  if(D.fail&&D.shine>0.6){hit(4,3);txt('石头没推上去——宝石却依然闪耀',W*0.55,H*0.1,'#cfeaff',15,'center',true);}
+  if(D.pos>0.95&&D.shine>0.6)txt('推上去了——宝石没有因此更亮',W*0.55,H*0.1,'#cfeaff',15,'center',true);
+  if((D.fail||D.pos>0.95)&&D.shine>0.6&&D.obs.length)hit(4,4);
+  if(!D.hold&&D.effort<0.05)txt('按住画面：尽全力推石头上山；把右上角的“命运”拖到路上',W*0.5,24,'#e8ecf4',13);
+  D.pool.forEach(o=>{let x=W*o.x,y=H*o.y;if(D.dragO&&D.dragO.o===o){x=D.dragO.x;y=D.dragO.y;}ctx.fillStyle='rgba(255,255,255,.12)';ctx.beginPath();ctx.arc(x,y,24,0,7);ctx.fill();txt(o.n,x,y+5,'#fff',13,'center',true);});}
+function meter(x,y,w,v,col,t){ctx.fillStyle='rgba(255,255,255,.85)';ctx.fillRect(x,y,w,9);ctx.fillStyle=col;ctx.fillRect(x,y,w*clamp(v,0,1),9);ctx.strokeStyle='#777';ctx.strokeRect(x,y,w,9);txt(t,x+w/2,y-4,'#e8ecf4',12);}
+
+/* ======== 调度 ======== */
+const INIT={1:init1,2:init2,3:init3,4:init4},TICK={1:t1,2:t2,3:t3,4:t4};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!done[t.dataset.l]);});}
+function go(n){L=n;tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{INIT[L]();toast('已重置（已对应的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

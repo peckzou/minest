@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>词根馆 · 动图</title>
+<style>
+  html, body { margin: 0; min-height: 100%; background: #14121f; color: #ece6ff; font: 15px/1.6 "PingFang SC", "Noto Sans SC", system-ui, sans-serif; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 16px 18px 40px; }
+  .top { display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 5; background: #14121f; padding: 8px 0; flex-wrap: wrap; }
+  .top h1 { flex: 1; margin: 0; font-size: 20px; min-width: 200px; } .top h1 small { font-size: 12.5px; color: #9f95c4; font-weight: 400; margin-left: 8px; }
+  button { font: inherit; font-size: 13.5px; padding: 6px 14px; border-radius: 999px; border: 1px solid #5b4f8a; background: #221d38; color: #ece6ff; cursor: pointer; } button:hover, button.on { background: #b58cff; color: #14121f; border-color: #b58cff; }
+  input { font: inherit; padding: 6px 12px; border-radius: 999px; border: 1px solid #5b4f8a; background: #1b1730; color: #fff; width: 170px; }
+  #roots { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 14px; } #roots button { padding: 3px 11px; font-size: 13px; } #roots button i { font-style: normal; opacity: .65; margin-left: 5px; font-size: 12px; }
+  h2 { margin: 22px 0 10px; font-size: 18px; } h2 b { color: #ffd96b; font-family: Georgia, serif; font-size: 24px; margin-right: 8px; } h2 small { color: #9f95c4; font-weight: 400; font-size: 13px; margin-left: 8px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+  .cell { background: #1e1a33; border: 1px solid #3a3160; border-radius: 12px; overflow: hidden; cursor: pointer; } .cell:hover { border-color: #b58cff; }
+  .cell img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: #0d0b16; } .cell.sq img { aspect-ratio: 4 / 3; object-fit: contain; }
+  .cell div { padding: 7px 11px 9px; } .cell b { font-size: 16px; font-family: Georgia, serif; } .cell span { color: #c9bfee; font-size: 13.5px; margin-left: 8px; } .cell i { display: block; font-style: normal; font-size: 11.5px; color: #8f85b4; }
+  .cell.done { border-color: #5fbf8a; }
+  #big { position: fixed; inset: 0; z-index: 9; background: rgba(8,6,16,.9); display: none; align-items: center; justify-content: center; padding: 20px; } #big.on { display: flex; }
+  #big .box { max-width: 860px; width: 100%; background: #1e1a33; border: 1px solid #5b4f8a; border-radius: 16px; overflow: hidden; } #big img { display: block; width: 100%; max-height: 62vh; object-fit: contain; background: #0d0b16; }
+  #big .t { padding: 14px 18px 16px; } #big h3 { margin: 0 0 4px; font-size: 24px; font-family: Georgia, "Songti SC", serif; } #big h3 span { font-size: 16px; color: #ffd96b; margin-left: 10px; } #big p { margin: 4px 0 10px; color: #c9bfee; font-size: 14px; } #big .r { display: flex; gap: 8px; flex-wrap: wrap; } #big a { color: #8fd0ff; }
+  .note { color: #8f85b4; font-size: 12.5px; margin-top: 26px; line-height: 1.7; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>🎞 词根馆<small id="sub"></small></h1><button id="t-words" class="on">词根地图 · 191 词</button><button id="t-models">思维模型动图</button><input id="q" placeholder="搜单词或中文"><button id="sphere" onclick="location.href='sphere.html'">🌐 环球巨幕</button><button id="quiz">🎯 看图猜词</button><button id="close">✕ 回到小岛</button></div>
+  <div id="roots"></div><div id="list"></div>
+  <p class="note" id="note"></p>
+</div>
+<div id="big"><div class="box"><img alt=""><div class="t"><h3></h3><p></p><div class="r"></div></div></div></div>
+<script src="data.js"></script>
+<script>
+(function () {
+  var D = window.ROOTMAP, EMBED = parent !== window, tab = 'words', root = -1, KEY = 'minest.philosophers.rootmap.v1', seen = {}, quiz = null;
+  try { seen = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) {}
+  var $ = function (i) { return document.getElementById(i); }, list = $('list'), big = $('big');
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function sub() { $('sub').textContent = tab === 'words' ? '25 个词根 · 看过 ' + Object.keys(seen).length + ' / 191' : D.models.length + ' 张，每张讲一个思想'; }
+  function cellW(w, r) { var c = el('div', 'cell' + (seen[w[0]] ? ' done' : '')), im = el('img'); im.loading = 'lazy'; im.src = 'gifs/' + w[4]; im.alt = w[1]; c.appendChild(im); var d = el('div'); d.appendChild(el('b', '', w[1])); d.appendChild(el('span', '', w[2])); d.appendChild(el('i', '', r.root + ' · ' + r.zh + ' · 视频 ' + w[3])); c.appendChild(d); c.onclick = function () { openW(w, r); }; return c; }
+  function drawWords() { var q = $('q').value.trim().toLowerCase(); list.innerHTML = ''; D.roots.forEach(function (r, i) { if (root >= 0 && root !== i && !q) return; var ws = r.words.filter(function (w) { return !q || w[1].toLowerCase().indexOf(q) >= 0 || w[2].indexOf(q) >= 0 || r.root.indexOf(q) >= 0; }); if (!ws.length) return; var h = el('h2'); h.appendChild(el('b', '', r.root)); h.appendChild(document.createTextNode(r.zh)); h.appendChild(el('small', '', ws.length + ' 个词')); list.appendChild(h); var g = el('div', 'grid'); ws.forEach(function (w) { g.appendChild(cellW(w, r)); }); list.appendChild(g); });
+    if (!list.children.length) list.appendChild(el('p', 'note', '没有找到。')); }
+  function drawRoots() { var box = $('roots'); box.innerHTML = ''; if (tab !== 'words') return; var all = el('button', root < 0 ? 'on' : '', '全部'); all.onclick = function () { root = -1; draw(); }; box.appendChild(all); D.roots.forEach(function (r, i) { var b = el('button', root === i ? 'on' : '', r.root); b.appendChild(el('i', '', r.zh)); b.onclick = function () { root = i; $('q').value = ''; draw(); scrollTo(0, 0); }; box.appendChild(b); }); }
+  function drawModels() { list.innerHTML = ''; var g = el('div', 'grid'); D.models.forEach(function (m) { var c = el('div', 'cell sq'), im = el('img'); im.loading = 'lazy'; im.src = m.local || m.url; im.alt = m.name; im.referrerPolicy = 'no-referrer'; c.appendChild(im); var d = el('div'); d.appendChild(el('b', '', m.name)); d.appendChild(el('i', '', m.en + ' · ' + m.credit)); c.appendChild(d); c.onclick = function () { openM(m); }; g.appendChild(c); }); list.appendChild(g); }
+  function draw() { $('t-words').className = tab === 'words' ? 'on' : ''; $('t-models').className = tab === 'models' ? 'on' : ''; $('q').style.display = $('quiz').style.display = tab === 'words' ? '' : 'none'; drawRoots(); if (tab === 'words') drawWords(); else drawModels(); sub();
+    $('note').textContent = tab === 'words' ? '词汇动图切自 B 站视频《花了73.2小时，我把191个英语单词画成了一张地图｜词根地图：动作篇》（Hermes的知识库，BV1zXsp6aEmp），每张 4 秒。版权归原作者，这里只作个人学习用。' : '动图清单来自 collection.md（2026-11-24 核实）。Wikimedia Commons 的 5 张已存到本地；其余几张从原网站直接加载，需要联网，原站撤图后会显示不出来。'; }
+  function btn(box, label, fn) { var b = el('button', '', label); b.onclick = fn; box.appendChild(b); }
+  function openBig(src, title, zh, text, acts) { quiz = null; big.querySelector('img').src = src; var h = big.querySelector('h3'); h.textContent = title; if (zh) h.appendChild(el('span', '', zh)); big.querySelector('p').textContent = text; var r = big.querySelector('.r'); r.innerHTML = ''; acts(r); btn(r, '合上', closeBig); big.classList.add('on'); }
+  function closeBig() { big.classList.remove('on'); big.querySelector('img').src = ''; quiz = null; }
+  function flat() { var a = []; D.roots.forEach(function (r) { r.words.forEach(function (w) { a.push([w, r]); }); }); return a; }
+  function openW(w, r) { seen[w[0]] = 1; try { localStorage.setItem(KEY, JSON.stringify(seen)); } catch (e) {} sub(); var all = flat(), i = all.findIndex(function (q) { return q[0] === w; });
+    openBig('gifs/' + w[4], w[1], w[2], '词根 ' + r.root + '（' + r.zh + '）· 同根词：' + r.words.map(function (x) { return x[1]; }).join('、'), function (box) { btn(box, '◀ 上一个', function () { var p = all[(i + all.length - 1) % all.length]; openW(p[0], p[1]); }); btn(box, '下一个 ▶', function () { var n = all[(i + 1) % all.length]; openW(n[0], n[1]); }); btn(box, '🔊 读一遍', function () { try { var u = new SpeechSynthesisUtterance(w[1]); u.lang = 'en-US'; speechSynthesis.speak(u); } catch (e) {} }); if (EMBED) btn(box, '📓 记到笔记本', function () { parent.postMessage({ rootmap: 1, op: 'note', title: w[1] + ' · ' + w[2], text: '词根 ' + r.root + '（' + r.zh + '）；同根词：' + r.words.map(function (x) { return x[1] + ' ' + x[2]; }).join('，') }, location.origin); }); }); }
+  function openM(m) { openBig(m.local || m.url, m.name, m.en, m.note + '　来源：' + m.credit, function (box) { var a = el('a', '', '来源页 ↗'); a.href = m.page; a.target = '_blank'; a.rel = 'noopener'; a.style.alignSelf = 'center'; box.appendChild(a); if (EMBED && m.hall) btn(box, '🚶 去相关的展馆', function () { parent.postMessage({ rootmap: 1, op: 'goto', id: m.hall, name: m.name }, location.origin); }); if (EMBED && m.hb) btn(box, '🧰 手册里的「' + m.hb + '」', function () { parent.postMessage({ rootmap: 1, op: 'hb', name: m.hb }, location.origin); }); }); }
+  function startQuiz() { var all = flat(), pick = all[Math.floor(Math.random() * all.length)], w = pick[0], opts = [w[1]]; while (opts.length < 4) { var o = all[Math.floor(Math.random() * all.length)][0][1]; if (opts.indexOf(o) < 0) opts.push(o); } opts.sort(function () { return Math.random() - .5; });
+    openBig('gifs/' + w[4], '这是哪个词？', '', '提示：意思是「' + w[2] + '」', function (box) { opts.forEach(function (o) { btn(box, o, function (e) { var ok = o === w[1]; e.target.style.background = ok ? '#5fbf8a' : '#d9576b'; e.target.style.color = '#fff'; if (ok) setTimeout(startQuiz, 700); }); }); btn(box, '看答案', function () { openW(w, pick[1]); }); }); quiz = 1; }
+  $('t-words').onclick = function () { tab = 'words'; draw(); }; $('t-models').onclick = function () { tab = 'models'; draw(); }; $('q').oninput = drawWords; $('quiz').onclick = startQuiz;
+  big.onclick = function (e) { if (e.target === big) closeBig(); };
+  $('close').onclick = function () { if (EMBED) parent.postMessage({ rootmap: 1, op: 'close' }, location.origin); else history.back(); };
+  addEventListener('keydown', function (e) { if (e.key === 'Escape') { if (big.classList.contains('on')) closeBig(); else $('close').click(); } });
+  var qs = new URLSearchParams(location.search); if (qs.get('tab') === 'models') { tab = 'models'; }
+  draw(); if (qs.get('model')) { var mm = D.models.filter(function (m) { return m.hb === qs.get('model') || m.name === qs.get('model'); })[0]; if (mm) openM(mm); }
+  window.__rootmap = { openW: openW, openM: openM, D: D, quiz: startQuiz, setTab: function (t) { tab = t; draw(); } };
+})();
+</script>
+</body>
+</html>

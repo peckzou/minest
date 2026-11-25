@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 皮尔士溯因推理 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .q0{padding:4px 10px;font-size:12.5px;color:#334;background:#fff7e0;border-bottom:1px solid #eedb9a}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+#side .bnd{padding:2px 10px 8px;font-size:11.5px;color:#777}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>皮尔士 · 溯因推理</b>
+  <button class="tab on" data-l="1">① 豆子袋</button>
+  <button class="tab" data-l="2">② 三种推理</button>
+  <button class="tab" data-l="3">③ 侦探：惊奇之事</button>
+  <button class="tab" data-l="4">④ 应用练习：海边化石</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="q0"><b>核心问题：</b>面对一个令人惊奇的事实，我们怎样“猜出”能解释它的东西？这种猜测与演绎、归纳有何不同，可靠到什么程度？</div><div class="bd" id="sBody"></div><div class="bnd"><b>适用边界：</b>豆子、侦探和化石只是教学类比；皮尔士 1878 年称之为“假设”（hypothesis），后期才系统称为溯因（abduction），本页不涉及其后期理论的细节。</div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+const done={};
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+/* 保存与恢复 */
+const KEY='minest_peirce_v1';let MEM={};
+function load(){try{const s=localStorage.getItem(KEY);if(s)return JSON.parse(s);}catch(e){}return MEM;}
+function save(o){MEM=o;try{localStorage.setItem(KEY,JSON.stringify(o));}catch(e){}}
+let STORE=load();STORE.lit=STORE.lit||{};STORE.done=STORE.done||{};Object.assign(done,STORE.done);
+
+/* ===== 原文：Peirce, "Illustrations of the Logic of Science VI: Deduction, Induction, and Hypothesis", Popular Science Monthly 13 (Aug. 1878)，Wikisource ===== */
+const SRC='皮尔士《演绎、归纳与假设》（1878，《大众科学月刊》第13卷）';
+const MAP={
+1:[["袋中豆全白：随手抓一颗","如果从一袋我们知道其中 2/3 是白色的豆子里随机取出一颗，推断这颗豆子很可能是白的，这是一个演绎推理。","If, from a bag of beans of which we know that [2/3] are white, we take one at random, it is a deductive inference that this bean is probably white",SRC],
+   ["不知比例：抓一把来估计全袋","如果不知道袋中白豆的比例，我们随机抓一把，发现其中 2/3 是白的，便推断袋中约 2/3 是白的，我们就是在逆着演绎的顺序划船。","we are rowing up the current of deductive sequence, and are concluding a rule from the observation of a result in a certain case",SRC],
+   ["桌上一把白豆：它来自哪个袋子？","我走进一个房间，发现许多袋子装着不同种类的豆子。桌上有一把白豆；找了一会儿，我发现其中一个袋子只装白豆。","On the table there is a handful of white beans; and, after some searching, I find one of the bags contains white beans only",SRC],
+   ["把手中的豆子拖向那个袋子","我立即推断，作为一种可能性或一个合理的猜测，这把豆子是从那个袋子里拿出来的。这种推理叫作做出一个假设。","I at once infer as a probability, or as a fair guess, that this handful was taken out of that bag. This sort of inference is called making an hypothesis.",SRC]],
+2:[["拖动“规则·情形·结果”三张卡排列","演绎：规则——这个袋子里的豆子都是白的；情形——这些豆子来自这个袋子；结果——这些豆子是白的。","Deduction. | Rule.—All the beans from this bag are white. | Case.—These beans are from this bag. | Result.—These beans are white.",SRC],
+   ["把“规则”放到最后：归纳","归纳是从若干具有某性质的情形出发作概括，推断整个类也具有该性质。","Induction is where we generalize from a number of cases of which something is true, and infer that the same thing is true of a whole class",SRC],
+   ["把“情形”放到最后：假设","这是由规则和结果推出情形的推理。","It is the inference of a case from a rule and result.",SRC],
+   ["三种排列都试过","我们因此把一切推理分类如下：演绎的或分析的；综合的——归纳、假设。","We, accordingly, classify all inference as follows: Inference. Deductive or Analytic. Synthetic. Induction. Hypothesis.",SRC]],
+3:[["惊奇之事出现在案板中央","假设是：我们发现某个非常奇特的情况，如果假定它是某条一般规则的一个情形，它就能得到解释，于是我们采纳这个假定。","Hypothesis is where we find some very curious circumstance, which would be explained by the supposition that it was a case of a certain general rule, and thereupon adopt that supposition.",SRC],
+   ["拖线索连向一个假设","我曾在土耳其某省的一个港口登岸……遇到一个骑马的人，四名骑手为他举着华盖。……我推断这就是总督。这是一个假设。","As the governor of the province was the only personage I could think of who would be so greatly honored, I inferred that this was he. This was an hypothesis.",SRC],
+   ["新证据不断到来：按住给假设加注","一般说来，假设是一种弱的论证。它往往只把我们的判断轻微地推向结论……我们只是猜测它可能如此。","As a general rule, hypothesis is a weak kind of argument.",SRC],
+   ["先提出假设，再看预测","假设应当在作出检验它真假的观察之前，就被明确地作为一个问题提出来。","The hypothesis should be distinctly put as a question, before making the observations which are to test its truth.",SRC],
+   ["失败与成功都要记下","预测的失败和成功都必须如实记录。","The failures as well as the successes of the predictions must be honestly noted.",SRC]],
+4:[["应用：内陆发现鱼形化石","发现了化石，比如说在离海很远的内陆有类似鱼的遗骸。为了解释这一现象，我们假定海水曾经漫过这片陆地。这是另一个假设。","Fossils are found; say, remains like those of fishes, but far in the interior of the country. To explain the phenomenon, we suppose the sea once washed over this land. This is another hypothesis.",SRC],
+   ["应用：无数文献提到拿破仑","我们虽然没见过此人，却无法解释我们所见的这一切文献和纪念物，除非假定他确实存在过。又是假设。","we can not explain what we have seen, namely, all these documents and monuments, without supposing that he really existed. Hypothesis again.",SRC],
+   ["假设化繁为简","假设用一个单一的概念，取代了附着于一个主体上的一团复杂的谓词。","Hypothesis substitutes, for a complicated tangle of predicates attached to one subject, a single conception.",SRC]]};
+const TITLE={1:'① 豆子袋 · 拖动、摇晃、伸手抓豆；把一把豆拖回你猜的袋子',2:'② 三种推理 · 拖动三张卡片改变顺序，豆子随之演出推理',3:'③ 侦探 · 把线索拖向假设；证据持续到来，按住假设加注或拖走它',4:'④ 应用练习 · 为两件惊奇之事拖出最能“理所当然地”解释它们的假设'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr${STORE.lit[l+'_'+i]?' on':''}" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const e=$('mr'+l+'_'+i);if(!e||e.classList.contains('on'))return;e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});STORE.lit[l+'_'+i]=1;
+  if(MAP[l].every((_,k)=>$('mr'+l+'_'+k).classList.contains('on'))){done[l]=1;STORE.done=done;tabs();}save(STORE);}
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]?.move?.(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]?.up?.();});
+function bean(x,y,c,r){ctx.fillStyle=c;ctx.beginPath();ctx.ellipse(x,y,(r||6),(r||6)*0.72,0.5,0,7);ctx.fill();ctx.strokeStyle='rgba(0,0,0,.25)';ctx.lineWidth=1;ctx.stroke();}
+function bagDraw(x,y,w,h,label,hi,sh){ctx.save();ctx.translate(x+sh,y);ctx.fillStyle=hi?'#c9a46a':'#b08a55';ctx.beginPath();ctx.moveTo(-w/2,-h/2);ctx.quadraticCurveTo(-w*0.62,h/2,0,h/2);ctx.quadraticCurveTo(w*0.62,h/2,w/2,-h/2);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#7a5a2e';ctx.fillRect(-w*0.3,-h/2-6,w*0.6,8);ctx.restore();txt(label,x,y+h/2+16,'#4a3a22',12);}
+
+/* ================= 第 1 关：豆子袋 ================= */
+let A;
+function mkBag(white,n){const b=[];for(let i=0;i<n;i++)b.push(Math.random()<white?'w':'b');return b;}
+function init1(){A={mode:0,bagW:mkBag(1,40),bagM:mkBag(2/3,60),bags:[{beans:mkBag(1,40),lab:'甲袋'},{beans:mkBag(0.3,40),lab:'乙袋'},{beans:mkBag(0,40),lab:'丙袋'}],hand:[],handFrom:null,grab:false,grabT:0,shake:0,dragHand:null,guessDone:false,searched:new Set(),handOnTable:null,tableT:0};}
+function g1(){return{bx:W*0.18,by:H*0.42,bw:W*0.18,bh:H*0.42,mx:W*0.5,tableY:H*0.82};}
+HD[1]={down(x,y){const g=g1();
+  if(A.mode===0||A.mode===1){if(Math.abs(x-g.bx)<g.bw/2&&Math.abs(y-g.by)<g.bh/2){A.grab=true;A.grabT=0;}else if(x>W*0.82&&y<H*0.2){A.mode=(A.mode+1)%3;A.hand=[];if(A.mode===2){A.handOnTable=Array(9).fill('w');toast('你走进一个房间：桌上有一把白豆');hit(1,2);}}}
+  else{ if(A.handOnTable&&Math.hypot(x-g.mx,y-g.tableY)<70){A.dragHand={x,y};return;}
+    A.bags.forEach((b,i)=>{const bx=W*(0.22+i*0.28);if(Math.abs(x-bx)<W*0.09&&Math.abs(y-H*0.36)<H*0.2){A.peek=i;A.searched.add(i);}});
+    if(x>W*0.82&&y<H*0.2){A.mode=0;A.handOnTable=null;}}},
+ move(x,y,dx){if(A.grab){A.shake+=Math.abs(dx)*0.02;}if(A.dragHand){A.dragHand.x=x;A.dragHand.y=y;}},
+ up(){const g=g1();
+  if(A.grab){A.grab=false;const src=A.mode===0?A.bagW:A.bagM;const n=clamp(Math.round(1+A.grabT*6),1,20);A.hand=[];for(let i=0;i<n;i++)A.hand.push(src[Math.floor(Math.random()*src.length)]);A.handFrom=A.mode;
+    if(A.mode===0){hit(1,0);toast(n===1?'抓出一颗：袋中全白，它当然是白的（演绎）':`抓出 ${n} 颗，全是白的（演绎：规则 + 情形 → 结果）`);}
+    else{const w=A.hand.filter(b=>b==='w').length;hit(1,1);toast(`抓了 ${n} 颗，白的占 ${Math.round(w/n*100)}%：由此推断全袋（归纳）。抓得越多越接近 ${Math.round(2/3*100)}%`);}}
+  if(A.dragHand){let best=-1;A.bags.forEach((b,i)=>{const bx=W*(0.22+i*0.28);if(Math.hypot(A.dragHand.x-bx,A.dragHand.y-H*0.36)<W*0.1)best=i;});
+    if(best>=0){const pure=A.bags[best].beans.every(b=>b==='w');if(pure&&A.searched.has(best)){A.guessDone=best;hit(1,3);toast('“这把豆子是从甲袋拿出来的”——一个合理的猜测');}else if(pure){toast('先伸手看一看各袋里装的是什么（点击袋子）');}else{A.guessDone=-1;toast('这个袋子不全是白豆：放回桌上再想想');}}
+    A.dragHand=null;}
+  A.peek=null;}};
+function t1(dt){const g=g1();ctx.fillStyle='#efe7d6';ctx.fillRect(0,0,W,H);ctx.fillStyle='#d8c7a3';ctx.fillRect(0,g.tableY-16,W,H);
+  const modes=['演绎：已知全袋是白豆','归纳：不知比例，抓一把来看','假设：桌上一把白豆从何而来？'];
+  ctx.fillStyle='rgba(255,255,255,.9)';ctx.fillRect(W*0.82,10,W*0.16,H*0.1);txt('换情境 ⟳',W*0.9,10+H*0.06,'#3a6f99',13,'center',true);
+  txt(modes[A.mode],W*0.42,26,'#2c3e50',16,'center',true);
+  if(A.mode<2){if(A.grab){A.grabT+=dt;}A.shake*=0.92;const sh=Math.sin(T*30)*Math.min(8,A.shake);
+    bagDraw(g.bx,g.by,g.bw,g.bh,A.mode===0?'全是白豆（已知）':'比例未知',A.grab,sh);
+    const src=A.mode===0?A.bagW:A.bagM;src.slice(0,18).forEach((b,i)=>bean(g.bx-g.bw*0.3+(i%6)*g.bw*0.12+sh,g.by-g.bh*0.3+Math.floor(i/6)*12,b==='w'?'#f6f3ea':'#5a3a2a',5));
+    if(A.grab){const n=clamp(Math.round(1+A.grabT*6),1,20);txt(`按住越久，抓得越多：${n} 颗`,g.bx,g.by-g.bh/2-14,'#a0522d',13);}
+    else if(!A.hand.length)txt('按住袋子伸手抓豆（可左右摇晃），松手放到桌上',g.bx,g.by-g.bh/2-14,'#555',12);
+    A.hand.forEach((b,i)=>bean(g.mx-90+(i%10)*20,g.tableY+8+Math.floor(i/10)*18,b==='w'?'#f6f3ea':'#5a3a2a',8));
+    if(A.hand.length){const w=A.hand.filter(b=>b==='w').length;txt(`手中：白 ${w} / ${A.hand.length}`,g.mx,g.tableY-26,'#2c3e50',14);
+      if(A.mode===1){const bx=W*0.78,bw=W*0.12;ctx.fillStyle='#fff';ctx.fillRect(bx,H*0.3,bw,H*0.3);const k=w/A.hand.length;ctx.fillStyle='#f3a52b';ctx.fillRect(bx,H*0.6-H*0.3*k,bw,H*0.3*k);ctx.strokeStyle='#3a6f99';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(bx-6,H*0.6-H*0.3*(2/3));ctx.lineTo(bx+bw+6,H*0.6-H*0.3*(2/3));ctx.stroke();ctx.setLineDash([]);
+        txt('推断全袋白豆比例',bx+bw/2,H*0.28,'#334',12);txt(`${Math.round(k*100)}%`,bx+bw/2,H*0.66,'#a0522d',14,'center',true);txt('（虚线为真实比例，抓前不可见）',bx+bw/2,H*0.7,'#888',10);}}}
+  else{A.bags.forEach((b,i)=>{const bx=W*(0.22+i*0.28),by=H*0.36,pk=A.peek===i;bagDraw(bx,by,W*0.16,H*0.34,b.lab+(A.searched.has(i)?(b.beans.every(z=>z==='w')?'：只装白豆':'：混杂'):'（点击查看）'),pk||A.guessDone===i,0);
+      if(A.searched.has(i)||pk)b.beans.slice(0,15).forEach((z,k)=>bean(bx-W*0.05+(k%5)*W*0.025,by-H*0.08+Math.floor(k/5)*12,z==='w'?'#f6f3ea':'#5a3a2a',5));});
+    const hx=A.dragHand?A.dragHand.x:g.mx,hy=A.dragHand?A.dragHand.y:g.tableY+10;if(A.handOnTable)A.handOnTable.forEach((b,i)=>bean(hx-40+(i%5)*20,hy+Math.floor(i/5)*16,'#f6f3ea',8));
+    txt(A.guessDone===false||A.guessDone===-1?'点击袋子查看；再把桌上那把白豆拖向你认为它来自的袋子':'假设：这把豆子来自甲袋（规则 + 结果 → 情形）',W/2,H*0.97,'#2c3e50',13);
+    if(A.guessDone!==false&&A.guessDone>=0){const bx=W*0.22;ctx.strokeStyle='#f3a52b';ctx.lineWidth=3;ctx.setLineDash([6,5]);ctx.beginPath();ctx.moveTo(g.mx,g.tableY);ctx.quadraticCurveTo((g.mx+bx)/2,H*0.6,bx,H*0.52);ctx.stroke();ctx.setLineDash([]);txt('只是“可能”：别的房间也可能有白豆',(g.mx+bx)/2,H*0.66,'#a0522d',12);}}}
+
+/* ================= 第 2 关：三种推理 ================= */
+let B;
+const CARDS={R:{t:'规则',s:'这袋豆子都是白的',c:'#3a6f99'},C:{t:'情形',s:'这些豆子来自这个袋子',c:'#a0522d'},S:{t:'结果',s:'这些豆子是白的',c:'#2f8a57'}};
+function init2(){B={order:['R','C','S'],drag:null,dx:0,anim:0,seen:new Set(),lastKey:''};}
+function slotX(i){return W*(0.2+i*0.3);}
+HD[2]={down(x,y){if(y>H*0.08&&y<H*0.36){const i=Math.floor((x-W*0.05)/(W*0.3));if(i>=0&&i<3){B.drag={i,x};}}},
+ move(x){if(B.drag)B.drag.x=x;},
+ up(){if(!B.drag)return;const j=clamp(Math.floor((B.drag.x-W*0.05)/(W*0.3)),0,2);const o=B.order;const k=o.splice(B.drag.i,1)[0];o.splice(j,0,k);B.drag=null;B.anim=0;}};
+function kind(o){const last=o[2];return last==='S'?'演绎':last==='R'?'归纳':'假设';}
+function t2(dt){ctx.fillStyle='#eef1f5';ctx.fillRect(0,0,W,H);
+  B.order.forEach((k,i)=>{const c=CARDS[k];let x=slotX(i);if(B.drag&&B.drag.i===i)x=B.drag.x;const y=H*0.22;ctx.fillStyle=c.c;ctx.beginPath();ctx.roundRect(x-W*0.12,y-H*0.11,W*0.24,H*0.22,10);ctx.fill();
+    txt(i<2?'前提':'结论',x,y-H*0.13,'#667',11);txt(c.t,x,y-6,'#fff',16,'center',true);txt(c.s,x,y+18,'#fff',12);if(i<2)txt('→',slotX(i)+W*0.15,y+6,'#99a',20);});
+  const kd=kind(B.order);const key=B.order.join('');if(key!==B.lastKey){B.lastKey=key;B.anim=0;B.seen.add(kd);
+    hit(2,kd==='演绎'?0:kd==='归纳'?1:2);if(B.seen.size===3)hit(2,3);}
+  B.anim=Math.min(1,B.anim+dt*0.35);const a=B.anim;txt(kd,W/2,H*0.44,kd==='演绎'?'#3a6f99':kd==='归纳'?'#2f8a57':'#a0522d',22,'center',true);
+  // 动画演出
+  const bx=W*0.25,by=H*0.72,tx=W*0.72;bagDraw(bx,by,W*0.13,H*0.24,'袋子',false,0);
+  if(kd==='演绎'){for(let i=0;i<8;i++){const k=clamp(a*1.6-i*0.08,0,1);bean(lerp(bx,tx-40+(i%4)*24,k),lerp(by-H*0.08,by+Math.floor(i/4)*20,k)-Math.sin(k*3.14)*40,'#f6f3ea',8);}
+    if(a>0.8)txt('必然：只要规则与情形为真，结果一定为真',W/2,H*0.97,'#3a6f99',13);}
+  else if(kd==='归纳'){for(let i=0;i<8;i++)bean(tx-40+(i%4)*24,by+Math.floor(i/4)*20,'#f6f3ea',8);
+    const k=clamp(a*1.3,0,1);ctx.globalAlpha=k;txt('全袋都是白的？',bx,by-H*0.18,'#2f8a57',15,'center',true);ctx.globalAlpha=1;
+    ctx.strokeStyle='rgba(47,138,87,.7)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(tx-50,by);ctx.lineTo(lerp(tx-50,bx+W*0.07,k),lerp(by,by-H*0.05,k));ctx.stroke();
+    if(a>0.8)txt('从手中样本概括到全类：可能出错，样本越大越稳',W/2,H*0.97,'#2f8a57',13);}
+  else{for(let i=0;i<8;i++)bean(tx-40+(i%4)*24,by+Math.floor(i/4)*20,'#f6f3ea',8);
+    const k=clamp(a*1.3,0,1);ctx.strokeStyle='rgba(160,82,45,.8)';ctx.lineWidth=3;ctx.setLineDash([6,5]);ctx.beginPath();ctx.moveTo(tx-50,by+10);ctx.quadraticCurveTo(W*0.48,H*0.56,lerp(tx-50,bx+W*0.06,k),lerp(by+10,by-H*0.02,k));ctx.stroke();ctx.setLineDash([]);
+    if(a>0.8)txt('从规则与结果猜情形：“它们大概来自这个袋子”',W/2,H*0.97,'#a0522d',13);}
+  if(B.seen.size<3)txt(`拖动上方卡片改变顺序（已试 ${B.seen.size}/3 种）`,W/2,H*0.53,'#556',12);}
+
+/* ================= 第 3 关：侦探 ================= */
+let C;
+const HYP=[{id:'g',t:'他是本省总督',pred:['衙门方向','卫兵敬礼']},{id:'m',t:'他是外国使节',pred:['挂异国旗','说外语']},{id:'w',t:'这是一场婚礼',pred:['有乐队','有新娘']},{id:'f',t:'他在演戏',pred:['有摄影机','观众鼓掌']}];
+const EVID=[{t:'队伍走向衙门方向',sup:'g'},{t:'卫兵向他敬礼',sup:'g'},{t:'没有乐队',neg:'w'},{t:'周围没有观众',neg:'f'},{t:'他说本地方言',neg:'m'},{t:'税吏跟在后面',sup:'g'}];
+function init3(){C={hyps:HYP.map((h,i)=>({...h,x:W*(0.14+i*0.24),y:H*0.62,w:0,alive:true,linked:false,pressed:false,pre:false,hitN:0,missN:0})),clue:{x:W*0.5,y:H*0.18,drag:false,ox:0,oy:0},
+  arrivals:[],evI:0,evT:2.5,hold:null,dragH:null,logged:{ok:0,bad:0},asked:false};}
+HD[3]={down(x,y){const c=C.clue;if(Math.hypot(x-c.x,y-c.y)<46){c.drag=true;return;}
+  for(const h of C.hyps){if(h.alive&&Math.abs(x-h.x)<W*0.1&&Math.abs(y-h.y)<34){C.hold=h;C.holdT=0;C.dragH={h,x0:x,y0:y};return;}}
+  for(const e of C.arrivals){if(!e.used&&Math.hypot(x-e.x,y-e.y)<50){C.dragE=e;return;}}},
+ move(x,y){if(C.clue.drag){C.clue.x=x;C.clue.y=y;}if(C.dragE){C.dragE.x=x;C.dragE.y=y;}if(C.dragH){const h=C.dragH.h;if(Math.hypot(x-C.dragH.x0,y-C.dragH.y0)>20){C.hold=null;h.y=y;h.x=x;}}},
+ up(){const c=C.clue;if(c.drag){c.drag=false;for(const h of C.hyps){if(h.alive&&Math.hypot(c.x-h.x,c.y-h.y)<70){h.linked=true;hit(3,1);toast(`若“${h.t}”为真，华盖与骑手就理所当然了`);if(!C.asked&&C.hyps.filter(z=>z.linked).length>=1){}}}c.x=W*0.5;c.y=H*0.18;}
+  if(C.dragH){const h=C.dragH.h;if(h.y>H*0.9){h.alive=false;toast(`放弃假设：“${h.t}”`);}else{h.y=H*0.62;h.x=W*(0.14+HYP.findIndex(z=>z.id===h.id)*0.24);}C.dragH=null;}
+  if(C.dragE){const e=C.dragE;for(const h of C.hyps){if(h.alive&&Math.hypot(e.x-h.x,e.y-h.y)<70){e.used=true;
+     if(!h.pre){toast('先在证据到来前按住这个假设，把它“作为问题提出”（写下预测）');e.used=false;break;}
+     const ok=e.sup===h.id,bad=e.neg===h.id;if(ok){h.w=Math.min(1,h.w+0.3);h.hitN++;C.logged.ok++;}else if(bad){h.w=Math.max(0,h.w-0.5);h.missN++;C.logged.bad++;toast(`“${e.t}”与“${h.t}”的预测不符：记下这次失败`);}else{h.w=Math.max(0,h.w-0.05);}
+     if(C.logged.ok+C.logged.bad>=3&&C.logged.bad>=1)hit(3,4);break;}}if(!e.used){e.x=e.hx;e.y=e.hy;}C.dragE=null;}
+  C.hold=null;}};
+function t3(dt){ctx.fillStyle='#2b2f3a';ctx.fillRect(0,0,W,H);ctx.fillStyle='#3a3f4c';ctx.fillRect(W*0.02,H*0.04,W*0.96,H*0.92);
+  if(T>0.5)hit(3,0);
+  // 惊奇之事：骑马人+华盖（动画）
+  const c=C.clue;const cx=c.x,cy=c.y,bob=Math.sin(T*4)*2;
+  ctx.fillStyle='#f3e2b5';ctx.beginPath();ctx.roundRect(cx-60,cy-40,120,80,10);ctx.fill();
+  ctx.fillStyle='#c9302c';ctx.fillRect(cx-30,cy-30+bob,60,6);ctx.strokeStyle='#5a3b1e';ctx.lineWidth=2;[-26,-9,9,26].forEach(d=>{ctx.beginPath();ctx.moveTo(cx+d,cy-24+bob);ctx.lineTo(cx+d,cy+10);ctx.stroke();});
+  ctx.fillStyle='#5a3b1e';ctx.beginPath();ctx.ellipse(cx,cy+16,16,8,0,0,7);ctx.fill();ctx.beginPath();ctx.arc(cx,cy-4+bob,6,0,7);ctx.fill();
+  txt('惊奇之事：一人骑马，四名骑手为他举华盖',cx,cy+56,'#ffe7b5',12);
+  // 证据到来
+  C.evT-=dt;if(C.evT<=0&&C.evI<EVID.length){const e={...EVID[C.evI],x:W*(0.12+(C.evI%3)*0.12),y:H*0.36,used:false};e.hx=e.x;e.hy=e.y;C.arrivals.push(e);C.evI++;C.evT=3.5;if(C.evI===2)hit(3,2);}
+  C.arrivals.forEach(e=>{if(e.used)return;ctx.fillStyle='#fffaf0';ctx.beginPath();ctx.roundRect(e.x-62,e.y-16,124,32,8);ctx.fill();txt('📰 '+e.t,e.x,e.y+5,'#333',11);});
+  // 假设
+  C.hyps.forEach(h=>{if(!h.alive)return;if(C.hold===h){C.holdT+=dt;if(C.holdT>1&&!h.pre){h.pre=true;hit(3,3);toast(`已写下预测：若“${h.t}”，应会看到“${h.pred.join('”“')}”`);}}
+    const k=h.w;ctx.fillStyle=`rgba(${Math.round(lerp(90,243,k))},${Math.round(lerp(100,165,k))},${Math.round(lerp(120,43,k))},.95)`;ctx.beginPath();ctx.roundRect(h.x-W*0.1,h.y-30,W*0.2,60,10);ctx.fill();
+    txt(h.t,h.x,h.y-6,'#fff',14,'center',true);txt(h.pre?`预测：${h.pred.join('、')}`:'按住 1 秒：写下预测',h.x,h.y+14,'#eef',10.5);
+    ctx.fillStyle='rgba(0,0,0,.3)';ctx.fillRect(h.x-W*0.09,h.y+34,W*0.18,6);ctx.fillStyle='#7dffb0';ctx.fillRect(h.x-W*0.09,h.y+34,W*0.18*k,6);txt(`✓${h.hitN} ✗${h.missN}`,h.x,h.y+54,'#cfd6e6',11);
+    if(h.linked){ctx.strokeStyle='rgba(243,165,43,.6)';ctx.lineWidth=2;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(W*0.5,H*0.18+40);ctx.lineTo(h.x,h.y-30);ctx.stroke();ctx.setLineDash([]);}
+    if(C.hold===h&&!h.pre){ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(h.x+W*0.1-12,h.y-18,8,-1.57,-1.57+6.28*Math.min(1,C.holdT));ctx.stroke();}});
+  ctx.fillStyle='rgba(192,57,43,.25)';ctx.fillRect(W*0.02,H*0.9,W*0.96,H*0.06);txt('拖到这里：放弃假设',W/2,H*0.94,'#ffb0b0',12);
+  txt('拖惊奇之事连向假设 · 按住假设写下预测 · 把到来的证据拖到假设上',W/2,H*0.08+6,'#ffe7b5',12);}
+
+/* ================= 第 4 关：应用练习 ================= */
+let D;
+const CASES=[{fact:'内陆山中发现鱼形化石',ok:'海水曾漫过这片陆地',opts:['海水曾漫过这片陆地','有人搬来鱼骨','石头自己长成鱼形','鸟把鱼叼来山上'],gain:[1,0.35,0.1,0.3],idx:0},
+ {fact:'无数文献与纪念碑提到拿破仑',ok:'拿破仑确实存在过',opts:['拿破仑确实存在过','众人合谋伪造','只是同名的不同人'],gain:[1,0.2,0.4],idx:1}];
+function init4(){D={ci:0,tangle:[],hyp:null,drag:null,merge:0,fit:[0,0],sol:[false,false]};mkTangle();}
+function mkTangle(){D.tangle=[];const n=12;for(let i=0;i<n;i++)D.tangle.push({a:Math.random()*6.28,r:60+Math.random()*70,sp:(Math.random()-.5)*1.2});D.merge=0;D.hyp=null;}
+HD[4]={down(x,y){const cs=CASES[D.ci];cs.opts.forEach((o,i)=>{const ox=W*(0.12+i*(0.76/(cs.opts.length-1||1))),oy=H*0.86;if(Math.abs(x-ox)<W*0.1&&Math.abs(y-oy)<20)D.drag={i,x,y};});
+  if(x>W*0.84&&y<H*0.14){D.ci=(D.ci+1)%2;mkTangle();}},
+ move(x,y){if(D.drag){D.drag.x=x;D.drag.y=y;}},
+ up(){if(D.drag){const cs=CASES[D.ci];if(Math.hypot(D.drag.x-W*0.45,D.drag.y-H*0.42)<120){D.hyp=D.drag.i;}D.drag=null;}}};
+function t4(dt){const cs=CASES[D.ci];ctx.fillStyle='#e8eef0';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(255,255,255,.9)';ctx.fillRect(W*0.84,8,W*0.14,H*0.1);txt('换一件事 ⟳',W*0.91,8+H*0.06,'#3a6f99',13,'center',true);
+  txt('惊奇之事：'+cs.fact,W*0.42,26,'#2c3e50',16,'center',true);
+  const cx=W*0.45,cy=H*0.42;const g=D.hyp==null?0:cs.gain[D.hyp];D.merge=lerp(D.merge,g,dt*1.2);
+  // 一团复杂的谓词：杂乱线条；假设越好，越收拢成一个概念
+  const preds=D.ci===0?['鱼形','在山中','是石头','有鳞纹','成层分布','远离海','数量多']:['文献多','碑铭多','彼此一致','多国记载','有画像','有法典'];
+  D.tangle.forEach((p,i)=>{p.a+=p.sp*dt*(1-D.merge);const r=lerp(p.r,20,D.merge);const x=cx+Math.cos(p.a)*r,y=cy+Math.sin(p.a*1.3)*r*0.7;
+    ctx.strokeStyle=`rgba(80,90,110,${0.5-0.3*D.merge})`;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(x,y);ctx.stroke();
+    if(i<preds.length){txt(preds[i],x,y,`rgba(40,50,70,${1-0.6*D.merge})`,12);}});
+  if(D.hyp!=null){ctx.fillStyle=`rgba(243,165,43,${0.3+0.6*D.merge})`;ctx.beginPath();ctx.arc(cx,cy,24+D.merge*30,0,7);ctx.fill();txt(cs.opts[D.hyp],cx,cy+5,'#222',13,'center',true);
+    const sc=Math.round(D.merge*100);ctx.fillStyle='#fff';ctx.fillRect(W*0.78,H*0.25,W*0.16,12);ctx.fillStyle='#2f8a57';ctx.fillRect(W*0.78,H*0.25,W*0.16*D.merge,12);txt(`解释收拢度 ${sc}%`,W*0.86,H*0.23,'#334',12);
+    if(D.merge>0.92&&cs.gain[D.hyp]===1&&!D.sol[D.ci]){D.sol[D.ci]=true;hit(4,D.ci);if(D.sol.every(Boolean))setTimeout(()=>hit(4,2),900);toast('一个概念把一团杂乱的事实收拢了：'+cs.opts[D.hyp]);}
+    if(D.merge<0.6&&D.merge>0.05)txt('这个假设解释不了全部事实：有些线还散着',cx,cy+H*0.28,'#a0522d',12);}
+  else txt('把下方的一个假设拖进中央，看它能否让这团事实“理所当然”',cx,cy+H*0.28,'#556',12);
+  cs.opts.forEach((o,i)=>{let ox=W*(0.12+i*(0.76/(cs.opts.length-1||1))),oy=H*0.86;if(D.drag&&D.drag.i===i){ox=D.drag.x;oy=D.drag.y;}ctx.fillStyle=D.hyp===i?'#f3a52b':'#fff';ctx.beginPath();ctx.roundRect(ox-W*0.1,oy-18,W*0.2,36,8);ctx.fill();ctx.strokeStyle='#99a';ctx.stroke();txt(o,ox,oy+5,'#222',12.5);});}
+
+/* ======== 调度 ======== */
+const INIT={1:init1,2:init2,3:init3,4:init4},TICK={1:t1,2:t2,3:t3,4:t4};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!done[t.dataset.l]);});}
+function go(n){L=n;STORE.level=n;save(STORE);tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{INIT[L]();toast('已重置本关（已对应的原文与进度已保存）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(STORE.level||1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

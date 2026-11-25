@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 庄子齐物论 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#core{padding:4px 10px;font-size:12.5px;color:#2c3e50;background:#fff7e0;border-bottom:1px solid #eadfb8}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+#bound{padding:4px 10px 8px;font-size:11.5px;color:#667}
+.mr{display:grid;grid-template-columns:30% 70%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .zh{font-size:13.5px;color:#222;font-family:"Songti SC","STSong",serif}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ex{color:#445;font-size:12px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>庄子 · 齐物论</b>
+  <button class="tab on" data-l="1">① 彼与是</button>
+  <button class="tab" data-l="2">② 朝三暮四</button>
+  <button class="tab" data-l="3">③ 庄周梦蝶</button>
+  <button class="tab" data-l="4">④ 应用练习：正处</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div>
+  <div id="core"><b>核心问题：</b>“是”与“非”、“此”与“彼”，是不是取决于你站在哪里？</div>
+  <div class="bd" id="sBody"></div>
+  <div id="bound"><b>适用边界：</b>视点、栗子、蝴蝶都只是教学比喻。庄子并不是说一切区分都不存在（“周與胡蝶，則必有分矣”），而是说是非随立场而生，要“照之于天”。英文取自 Giles 1889 年译本，他把“彼／是”译作 objective / subjective，这是译者的处理。</div>
+</div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px "PingFang SC",sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ======== 保存与恢复 ======== */
+const SK='minest_zhuangzi_v1';let MEM={};
+function loadSt(){try{const s=localStorage.getItem(SK);return s?JSON.parse(s):MEM;}catch(e){return MEM;}}
+function saveSt(){MEM=ST;try{localStorage.setItem(SK,JSON.stringify(ST));}catch(e){}}
+let ST=loadSt();ST.lit=ST.lit||{};ST.done=ST.done||{};ST.lv=ST.lv||1;ST.morn=(ST.morn==null)?3:ST.morn;ST.wakes=ST.wakes||0;
+
+/* ======== 原文：《庄子·齐物论》（维基文库本）；英文 Giles 1889 译本 Ch. II “The Identity of Contraries” ======== */
+const REF='——《庄子·齐物论》／Giles 英译（1889）第二章';
+const MAP={
+1:[["拖动视点：离开一方，就看不见它的是非","\u7269\u65e0\u975e\u5f7c\uff0c\u7269\u65e0\u975e\u662f\uff0c\u81ea\u5f7c\u5247\u4e0d\u898b\uff0c\u81ea\u77e5\u5247\u77e5\u4e4b","There is nothing which is not objective: there is nothing which is not subjective.","任何事物都可以是“彼”，也都可以是“此”。站在对方那里看不见，站在自己这里才看得见。"],
+   ["越过中线：“此”与“彼”当场互换","\u5f7c\u51fa\u65bc\u662f\uff0c\u662f\u4ea6\u56e0\u5f7c","The objective emanates from the subjective; the subjective is consequent upon the objective.","“彼”出自“此”，“此”也依赖“彼”，两者相对而生。"],
+   ["停在两人之间：两边各有一套是非","\u662f\u4ea6\u5f7c\u4e5f\uff0c\u5f7c\u4ea6\u662f\u4e5f\u3002\u5f7c\u4ea6\u4e00\u662f\u975e\uff0c\u6b64\u4ea6\u4e00\u662f\u975e","What is positive under the one will be negative under the other.","此也是彼，彼也是此。那边有一套是非，这边也有一套是非。"],
+   ["进入环中并停留：应对无穷","\u5f7c\u662f\u83ab\u5f97\u5176\u5076\uff0c\u8b02\u4e4b\u9053\u6a1e\u3002\u6a1e\u59cb\u5f97\u5176\u74b0\u4e2d\uff0c\u4ee5\u61c9\u65e0\u7aae","When subjective and objective are both without their correlates, that is the very axis of Tao.","彼与此不再互相对立，叫作“道枢”。枢纽处在圆环正中，就能应对无穷的变化。"]],
+2:[["拖动栗子：在“朝”“暮”两碗间挪动","\u72d9\u516c\u8ce6\u82a7\u66f0\uff1a\u300e\u671d\u4e09","each monkey was to have three in the morning and four at night","养猴人给猴子分橡子，说：早上三颗，晚上四颗。"],
+   ["早上只有三颗：群猴发怒","\u8846\u72d9\u7686\u6012","But at this the monkeys were very angry","猴子们都发怒了。"],
+   ["早上变成四颗：群猴高兴","\u8846\u72d9\u7686\u6085","with which arrangement they were all well pleased","改成早上四颗、晚上三颗，猴子们都高兴了。"],
+   ["两种分法都试过：合计始终是七","\u540d\u5be6\u672a\u8667\uff0c\u800c\u559c\u6012\u7232\u7528","The actual number of the chestnuts remained the same","名义和实际都没有减少，喜怒却随之不同。"],
+   ["来回计较同一件事：这就是“朝三”","\u52de\u795e\u660e\u7232\u4e00\uff0c\u800c\u4e0d\u77e5\u5176\u540c\u4e5f\uff0c\u8b02\u4e4b\u671d\u4e09","this is called Three in the Morning","费尽心思在一边上较劲，却不知道两边本来相同，这就叫“朝三”。"],
+   ["按住养猴人：顺着猴子，不改实质","\u662f\u4ee5\u8056\u4eba\u548c\u4e4b\u4ee5\u662f\u975e\uff0c\u800c\u4f11\u4e4e\u5929\u5747","This is called following two courses at once.","所以圣人调和是非，安于自然的均衡。原文接着称之为“两行”（此处转述）。"]],
+3:[["按住：庄周入睡，化为蝴蝶","\u6614\u8005\u838a\u5468\u5922\u7232\u80e1\u8776\uff0c\u6829\u6829\u7136\u80e1\u8776\u4e5f","dreamt I was a butterfly, fluttering hither and thither","从前庄周梦见自己变成蝴蝶，翩翩飞舞，真是一只蝴蝶。"],
+   ["梦中拖着蝴蝶飞：忘了自己是庄周","\u81ea\u55bb\u9069\u5fd7\u8207\uff0c\u4e0d\u77e5\u5468\u4e5f","and was unconscious of my individuality as a man","自在得意，不知道自己是庄周。"],
+   ["一直睡着：梦里并不知道是梦","\u65b9\u5176\u5922\u4e5f\uff0c\u4e0d\u77e5\u5176\u5922\u4e5f","While they dream, they do not know that they dream.","正在做梦的时候，并不知道自己在做梦。"],
+   ["松手：忽然醒来","\u4fc4\u7136\u89ba\uff0c\u5247\u8627\u8627\u7136\u5468\u4e5f","Suddenly, I awaked, and there I lay, myself again.","忽然醒来，惊觉自己分明是庄周。"],
+   ["再睡再醒：分不清谁梦见谁","\u4e0d\u77e5\u5468\u4e4b\u5922\u7232\u80e1\u8776\u8207\uff1f\u80e1\u8776\u4e4b\u5922\u7232\u5468\u8207\uff1f","Now I do not know whether I was then a man dreaming I was a butterfly, or whether I am now a butterfly dreaming I am a man.","不知道是庄周梦见变成蝴蝶，还是蝴蝶梦见变成庄周。"],
+   ["醒着把蝴蝶拖向庄周：合不成一体","\u5468\u8207\u80e1\u8776\uff0c\u5247\u5fc5\u6709\u5206\u77e3\uff0c\u6b64\u4e4b\u8b02\u7269\u5316","Between a man and a butterfly there is necessarily a barrier.","庄周与蝴蝶一定有分别，这就叫“物化”，即万物的转化。"]],
+4:[["把人放进湿地：腰疾","\u5247\u8170\u75be\u504f\u6b7b\uff0c\u9c0c\u7136\u4e4e\u54c9","If a man sleeps in a damp place, he gets lumbago and dies. But how about an eel?","人睡在潮湿的地方会得腰病、半身不遂，泥鳅也会这样吗？"],
+   ["把人放上树：战栗","\u6728\u8655\uff0c\u5247\u60f4\u6144\u6042\u61fc\uff0c\u7328\u7334\u7136\u4e4e\u54c9","living up in a tree is precarious and trying to the nerves","人住在树上会战栗恐惧，猿猴也会这样吗？"],
+   ["换谁坐上裁判席，“正处”就跟着换","\u4e09\u8005\u5b70\u77e5\u6b63\u8655","Of the man, the eel, and the monkey, whose habitat is the right one, absolutely?","人、泥鳅、猿猴，三者谁知道真正合适的住处？"],
+   ["请旁人来裁决：他早已站在一边","\u4f7f\u540c\u4e4e\u82e5\u8005\u6b63\u4e4b\uff0c\u65e3\u8207\u82e5\u540c\u77e3\uff0c\u60e1\u80fd\u6b63\u4e4b","If I employ some one who takes your view, he will side with you.","请和你意见相同的人来评判，他既然与你相同了，又怎能评判？"]]};
+const TITLE={1:'① 彼与是 · 拖动“视点”在两人之间移动，再拖进中心的“环中”停留',2:'② 朝三暮四 · 按住碗里的栗子拖到另一只碗；按住养猴人',3:'③ 庄周梦蝶 · 按住画面入睡，拖着蝴蝶飞，松手醒来；醒着时把蝴蝶拖向庄周',4:'④ 应用练习：正处 · 把人、泥鳅、猿拖进不同的住处；把谁拖上裁判席'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr${ST.lit[l+'_'+i]?' on':''}" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx"><div class="zh">「${r[1]}」</div><div class="en">${r[2]}</div><div class="ex">${r[3]}</div><div class="ref">${REF}</div></div></div>`).join('');}
+function hit(l,i){const k=l+'_'+i;const e=$('mr'+l+'_'+i);if(ST.lit[k]){return;}ST.lit[k]=1;if(e&&l===L){e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});}
+  if(MAP[l].every((_,j)=>ST.lit[l+'_'+j])){ST.done[l]=1;tabs();toast('本关原文已全部对应');}saveSt();}
+
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y};cv.setPointerCapture(e.pointerId);HD[L]&&HD[L].down&&HD[L].down(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]&&HD[L].move&&HD[L].move(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]&&HD[L].up&&HD[L].up();});
+addEventListener('pointercancel',()=>{PT=null;HD[L]&&HD[L].up&&HD[L].up();});
+
+function inkBg(c1,c2){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,c1);g.addColorStop(1,c2);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(60,70,60,.07)';for(let i=0;i<5;i++){ctx.beginPath();ctx.ellipse(W*(0.15+i*0.2),H*0.92,W*0.18,H*0.12,0,0,7);ctx.fill();}}
+function person(x,y,s,col,lab){ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y-s*1.6,s*0.32,0,7);ctx.fill();ctx.beginPath();ctx.moveTo(x-s*0.5,y);ctx.quadraticCurveTo(x,y-s*1.5,x+s*0.5,y);ctx.closePath();ctx.fill();if(lab)txt(lab,x,y+18,'#334',13);}
+
+/* ================= 第 1 关：彼与是 ================= */
+let A1;
+function init1(){A1={px:0.3,py:0.75,drag:false,moved:0,near:null,center:0,swaps:0};}
+function g1(){const R=Math.min(W*0.32,H*0.38);return{cx:W/2,cy:H*0.5,R,ax:W/2-R,bx:W/2+R,ry:H*0.5};}
+HD[1]={down(x,y){const g=g1();if(Math.hypot(x-W*A1.px,y-H*A1.py)<50)A1.drag=true;},
+ move(x,y,dx,dy){if(!A1.drag)return;A1.px=clamp(x/W,0.03,0.97);A1.py=clamp(y/H,0.08,0.95);A1.moved+=Math.hypot(dx,dy);if(A1.moved>60)hit(1,0);},
+ up(){A1.drag=false;}};
+function t1(dt){const g=g1();inkBg('#f3efe4','#e3dccb');
+  // 圆环
+  ctx.strokeStyle='rgba(80,70,50,.35)';ctx.lineWidth=2;ctx.setLineDash([6,6]);ctx.beginPath();ctx.arc(g.cx,g.cy,g.R,0,7);ctx.stroke();ctx.setLineDash([]);
+  const cr=g.R*0.2;ctx.fillStyle='rgba(243,165,43,.10)';ctx.beginPath();ctx.arc(g.cx,g.cy,cr,0,7);ctx.fill();ctx.strokeStyle='rgba(243,165,43,.7)';ctx.beginPath();ctx.arc(g.cx,g.cy,cr,0,7);ctx.stroke();txt('环中',g.cx,g.cy+cr+16,'#a0620a',12);
+  const px=W*A1.px,py=H*A1.py;const dA=Math.hypot(px-g.ax,py-g.ry),dB=Math.hypot(px-g.bx,py-g.ry),dC=Math.hypot(px-g.cx,py-g.cy);
+  const inC=dC<cr;
+  if(inC&&!A1.drag){A1.center+=dt;}else if(inC&&A1.drag){A1.center+=dt*0.6;}else A1.center=Math.max(0,A1.center-dt*2);
+  if(A1.center>1.6)hit(1,3);
+  const near=dA<dB?'A':'B';if(!inC){if(A1.near&&A1.near!==near){A1.swaps++;hit(1,1);}A1.near=near;}
+  const mid=!inC&&Math.abs(dA-dB)<g.R*0.18&&A1.moved>60;if(mid){A1.midT=(A1.midT||0)+dt;if(A1.midT>1)hit(1,2);}else A1.midT=0;
+  const k=clamp(A1.center/1.6,0,1);
+  // 两个人与各自的是非
+  [['A',g.ax,'#3a6f99',dA],['B',g.bx,'#a0522d',dB]].forEach(([n,x,col,d])=>{
+    const isNear=!inC&&n===near;const vis=inC?0.75:mid?0.9:isNear?1:0.18;
+    person(x,g.ry,Math.min(W,H)*0.07,col);
+    const lab=inC?'':isNear?'此（是）':'彼';ctx.globalAlpha=1-k*0.8;txt(lab,x,g.ry+26,isNear?'#c0392b':'#667',15,'center',true);ctx.globalAlpha=1;
+    // 是非气泡：远的一方看不清
+    ctx.save();ctx.globalAlpha=vis;if(!isNear&&!inC&&!mid)ctx.filter='blur(3px)';
+    const bx=x,by=g.ry-Math.min(W,H)*0.19;ctx.fillStyle='#fff';ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(bx-78,by-34,156,40,12);ctx.fill();ctx.stroke();
+    txt(n==='A'?'我是，你非':'我是，你非',bx,by-18,col,13,'center',true);txt(n==='A'?'（A 的是非）':'（B 的是非）',bx,by-2,'#778',11);ctx.restore();});
+  // 视线
+  if(!inC){const tx=near==='A'?g.ax:g.bx;ctx.strokeStyle='rgba(192,57,43,.45)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(tx,g.ry-30);ctx.stroke();}
+  else{for(let i=0;i<24;i++){const a=i/24*6.283+T*0.4;ctx.strokeStyle=`rgba(243,165,43,${0.15+0.5*k})`;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px+Math.cos(a)*g.R*1.4*k,py+Math.sin(a)*g.R*1.4*k);ctx.stroke();}}
+  // 视点（眼）
+  ctx.fillStyle='#fff';ctx.strokeStyle='#222';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(px,py,18,11,0,0,7);ctx.fill();ctx.stroke();ctx.fillStyle='#222';ctx.beginPath();ctx.arc(px,py,5,0,7);ctx.fill();
+  txt('你的视点',px,py+28,'#222',12);
+  const msg=inC?(k<1?'停在环中……':'道枢：不站在任何一边，也就能应对每一边'):mid?'停在中间：两边的是非一样清楚，也一样只是一家之言':`你站在 ${near} 这边：它是“此”，对面是“彼”`;
+  txt(msg,W/2,26,'#3a2a10',14,'center',true);
+  if(A1.moved<20)txt('按住“你的视点”拖动',W/2,H-14,'#556',13);}
+
+/* ================= 第 2 关：朝三暮四 ================= */
+let A2;
+function init2(){A2={hold:null,hx:0,hy:0,keeper:0,angryT:0,happyT:0,seen3:false,seen4:false,flips:0,last:ST.morn,moods:[]};for(let i=0;i<7;i++)A2.moods.push(0.5);}
+function g2(){return{bm:{x:W*0.42,y:H*0.78},be:{x:W*0.66,y:H*0.78},kx:W*0.14,ky:H*0.8,r:Math.min(W*0.09,H*0.13)};}
+HD[2]={down(x,y){const g=g2();if(Math.hypot(x-g.kx,y-g.ky+30)<55){A2.keeperHold=true;return;}
+  if(Math.hypot(x-g.bm.x,y-g.bm.y)<g.r&&ST.morn>0)A2.hold='m';else if(Math.hypot(x-g.be.x,y-g.be.y)<g.r&&ST.morn<7)A2.hold='e';A2.hx=x;A2.hy=y;},
+ move(x,y){A2.hx=x;A2.hy=y;},
+ up(){const g=g2();A2.keeperHold=false;if(!A2.hold)return;const to=Math.hypot(A2.hx-g.bm.x,A2.hy-g.bm.y)<g.r*1.3?'m':Math.hypot(A2.hx-g.be.x,A2.hy-g.be.y)<g.r*1.3?'e':null;
+  if(to&&to!==A2.hold){ST.morn+=to==='m'?1:-1;hit(2,0);if((A2.last===3&&ST.morn===4)||(A2.last===4&&ST.morn===3)){A2.flips++;if(A2.flips>=3)hit(2,4);}A2.last=ST.morn;saveSt();}A2.hold=null;}};
+function t2(dt){const g=g2();inkBg('#eef2e6','#dfe6cf');const morn=ST.morn,eve=7-morn;
+  // 树与地
+  ctx.fillStyle='#8a7a5a';ctx.fillRect(0,H*0.88,W,H*0.12);
+  const happy=morn>=4;
+  if(morn===3){A2.angryT+=dt;if(A2.angryT>1){hit(2,1);A2.seen3=true;}}else A2.angryT=0;
+  if(morn===4){A2.happyT+=dt;if(A2.happyT>1){hit(2,2);A2.seen4=true;}}else A2.happyT=0;
+  if(A2.seen3&&A2.seen4)hit(2,3);
+  // 养猴人
+  const kg=A2.keeperHold?1:0;A2.keeper=lerp(A2.keeper,kg,dt*3);
+  if(A2.keeperHold&&happy){A2.kT=(A2.kT||0)+dt;if(A2.kT>2)hit(2,5);}else A2.kT=0;
+  if(A2.keeper>0.05){const gg=ctx.createRadialGradient(g.kx,g.ky-40,5,g.kx,g.ky-40,120);gg.addColorStop(0,`rgba(243,200,90,${0.4*A2.keeper})`);gg.addColorStop(1,'rgba(243,200,90,0)');ctx.fillStyle=gg;ctx.fillRect(0,0,W*0.4,H);}
+  person(g.kx,g.ky,Math.min(W,H)*0.08,'#5a4a3a','养猴人（狙公）');
+  // 猴子
+  for(let i=0;i<7;i++){const tg=happy?1:0;A2.moods[i]=lerp(A2.moods[i],tg,dt*(1.5+i*0.2));const m=A2.moods[i];
+    const mx=W*0.3+i*W*0.075,base=H*0.5;const jump=m<0.5?Math.abs(Math.sin(T*9+i))*30*(1-m):Math.abs(Math.sin(T*2+i))*6;const my=base-jump;
+    const s=Math.min(W,H)*0.035;const col=`rgb(${Math.round(lerp(200,150,m))},${Math.round(lerp(90,110,m))},${Math.round(lerp(60,70,m))})`;
+    ctx.fillStyle=col;ctx.beginPath();ctx.ellipse(mx,my,s*0.9,s*1.1,0,0,7);ctx.fill();ctx.beginPath();ctx.arc(mx,my-s*1.4,s*0.7,0,7);ctx.fill();
+    ctx.fillStyle='#f2d3b0';ctx.beginPath();ctx.arc(mx,my-s*1.3,s*0.45,0,7);ctx.fill();
+    ctx.strokeStyle=col;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(mx+s*0.8,my+s*0.6);ctx.quadraticCurveTo(mx+s*2,my,mx+s*1.4,my-s);ctx.stroke();
+    ctx.fillStyle='#222';ctx.beginPath();ctx.arc(mx-s*0.18,my-s*1.38,2,0,7);ctx.arc(mx+s*0.18,my-s*1.38,2,0,7);ctx.fill();
+    ctx.strokeStyle='#222';ctx.lineWidth=1.5;ctx.beginPath();if(m>0.5)ctx.arc(mx,my-s*1.25,s*0.2,0.2,2.9);else ctx.arc(mx,my-s*1.05,s*0.2,3.5,5.9);ctx.stroke();
+    if(m<0.35&&i%2===0)txt('吱！',mx,my-s*2.4,'#c0392b',13,'center',true);if(m>0.8&&i%3===0)txt('♪',mx,my-s*2.4,'#2f8a3a',14);}
+  // 碗
+  [['朝',g.bm,morn],['暮',g.be,eve]].forEach(([n,b,c])=>{ctx.fillStyle='#6b4a2a';ctx.beginPath();ctx.ellipse(b.x,b.y,g.r,g.r*0.45,0,0,Math.PI);ctx.fill();ctx.fillStyle='#8a6340';ctx.beginPath();ctx.ellipse(b.x,b.y,g.r,g.r*0.18,0,0,7);ctx.fill();
+    for(let j=0;j<c;j++){const ax=b.x-g.r*0.6+(j%4)*g.r*0.4,ay=b.y-6-Math.floor(j/4)*12;ctx.fillStyle='#7a3e1e';ctx.beginPath();ctx.ellipse(ax,ay,8,7,0,0,7);ctx.fill();ctx.fillStyle='#c79a52';ctx.fillRect(ax-5,ay-7,10,3);}
+    txt(`${n}：${c} 颗`,b.x,b.y+g.r*0.62,'#3a2a10',15,'center',true);});
+  if(A2.hold){ctx.fillStyle='#7a3e1e';ctx.beginPath();ctx.ellipse(A2.hx,A2.hy,9,8,0,0,7);ctx.fill();}
+  txt('合计：7 颗（不变）',W*0.54,H*0.98,'#556',12);
+  txt(happy?'朝四暮三：群猴皆悦':morn===3?'朝三暮四：群猴皆怒':morn<3?'早上更少了：群猴更怒':'早上更多了：群猴大喜',W/2,26,'#3a2a10',15,'center',true);
+  if(!ST.lit['2_0'])txt('按住“朝”碗里的栗子，拖到“暮”碗（或反过来）',W/2,46,'#556',12);}
+
+/* ================= 第 3 关：庄周梦蝶 ================= */
+let A3;
+function init3(){A3={sleep:0,holding:false,bx:0.62,by:0.4,fly:0,asleepT:0,wasAsleep:false,dragB:false,push:0,trail:[]};}
+function g3(){return{zx:W*0.32,zy:H*0.82,s:Math.min(W,H)*0.09};}
+HD[3]={down(x,y){const g=g3();if(A3.sleep<0.2&&ST.wakes>=2&&Math.hypot(x-W*A3.bx,y-H*A3.by)<40){A3.dragB=true;return;}A3.holding=true;},
+ move(x,y,dx,dy){if(A3.dragB){A3.bx=clamp(x/W,0.05,0.95);A3.by=clamp(y/H,0.08,0.9);return;}
+  if(A3.holding&&A3.sleep>0.6){A3.bx=lerp(A3.bx,x/W,0.35);A3.by=lerp(A3.by,y/H,0.35);A3.fly+=Math.hypot(dx,dy);if(A3.fly>400)hit(3,1);}},
+ up(){A3.holding=false;A3.dragB=false;}};
+function t3(dt){const g=g3();
+  if(A3.holding&&!A3.dragB)A3.sleep=Math.min(1,A3.sleep+dt*0.9);else A3.sleep=Math.max(0,A3.sleep-dt*3.5);
+  const s=A3.sleep;
+  if(s>0.6){if(!A3.wasAsleep){A3.wasAsleep=true;hit(3,0);}A3.asleepT+=dt;if(A3.asleepT>3)hit(3,2);}
+  if(A3.wasAsleep&&s<0.15){A3.wasAsleep=false;A3.asleepT=0;ST.wakes++;saveSt();hit(3,3);A3.flash=1;if(ST.wakes>=2)hit(3,4);toast(ST.wakes>=2?'是周梦为胡蝶？还是胡蝶梦为周？':'俄然觉：蘧蘧然周也');}
+  // 背景：醒时素纸，梦时花野
+  const g1c=`rgb(${Math.round(lerp(243,214,s))},${Math.round(lerp(239,232,s))},${Math.round(lerp(228,246,s))})`;inkBg(g1c,s>0.5?'#e8f4dc':'#e3dccb');
+  if(s>0.3){for(let i=0;i<30;i++){const fx=(i*137%100)/100*W,fy=H*0.6+(i*53%40)/100*H;ctx.globalAlpha=(s-0.3)*1.2;ctx.fillStyle=['#f4a6b8','#f7d06b','#b6a3e8'][i%3];ctx.beginPath();ctx.arc(fx,fy+Math.sin(T+i)*3,5,0,7);ctx.fill();}ctx.globalAlpha=1;}
+  // 树
+  ctx.fillStyle='#6b5a3e';ctx.fillRect(g.zx-g.s*1.4,g.zy-g.s*3,g.s*0.25,g.s*3);ctx.fillStyle='rgba(70,110,60,.6)';ctx.beginPath();ctx.arc(g.zx-g.s*1.3,g.zy-g.s*3.2,g.s*1.1,0,7);ctx.fill();
+  // 庄周（坐）
+  ctx.globalAlpha=1-0.7*s;const zc='#3a3a3a';ctx.fillStyle=zc;ctx.beginPath();ctx.arc(g.zx,g.zy-g.s*1.2+s*g.s*0.25,g.s*0.3,0,7);ctx.fill();ctx.beginPath();ctx.ellipse(g.zx,g.zy-g.s*0.35,g.s*0.6,g.s*0.55,0,0,7);ctx.fill();ctx.globalAlpha=1;
+  txt(s>0.6?'（庄周已睡去）':'庄周',g.zx,g.zy+20,'#334',13);
+  if(s>0.4&&s<0.95){txt('z',g.zx+g.s*0.5,g.zy-g.s*1.7-Math.sin(T*3)*6,'#778',16);}
+  // 蝴蝶
+  const showB=s>0.6||ST.wakes>=2;
+  if(showB){const bx=W*A3.bx,by=H*A3.by;
+    if(s>0.6){A3.trail.push([bx,by]);if(A3.trail.length>40)A3.trail.shift();}else A3.trail=[];
+    A3.trail.forEach(([x,y],i)=>{ctx.fillStyle=`rgba(200,120,200,${i/40*0.4})`;ctx.beginPath();ctx.arc(x,y,2,0,7);ctx.fill();});
+    // 醒着拖向庄周：被一道“分”挡开
+    if(s<0.2&&ST.wakes>=2){const d=Math.hypot(bx-g.zx,by-(g.zy-g.s));if(d<g.s*1.2){A3.push+=dt;if(A3.dragB){const a=Math.atan2(by-(g.zy-g.s),bx-g.zx);A3.bx=(g.zx+Math.cos(a)*g.s*1.2)/W;A3.by=(g.zy-g.s+Math.sin(a)*g.s*1.2)/H;}
+        ctx.strokeStyle=`rgba(192,57,43,${0.5+0.4*Math.sin(T*10)})`;ctx.lineWidth=3;ctx.setLineDash([5,4]);ctx.beginPath();ctx.arc(g.zx,g.zy-g.s,g.s*1.15,0,7);ctx.stroke();ctx.setLineDash([]);
+        txt('必有分',g.zx,g.zy-g.s*2.4,'#c0392b',14,'center',true);if(A3.push>1)hit(3,5);}}
+    const fl=Math.sin(T*18)*0.6;const sz=s>0.6?26:18;ctx.save();ctx.translate(bx,by);
+    [[-1,'#c77dd1'],[1,'#e39be8']].forEach(([sd,c])=>{ctx.fillStyle=c;ctx.save();ctx.scale(sd*(0.5+0.5*Math.abs(Math.cos(fl))),1);ctx.beginPath();ctx.ellipse(sz*0.55,-sz*0.25,sz*0.6,sz*0.45,-0.4,0,7);ctx.fill();ctx.beginPath();ctx.ellipse(sz*0.45,sz*0.35,sz*0.4,sz*0.3,0.4,0,7);ctx.fill();ctx.restore();});
+    ctx.fillStyle='#333';ctx.fillRect(-2,-sz*0.5,4,sz);ctx.restore();
+    if(s<0.2&&ST.wakes>=2)txt('蝴蝶（可拖动）',bx,by+30,'#7a3e8a',11);}
+  if(A3.flash>0.02){ctx.fillStyle=`rgba(255,255,255,${A3.flash})`;ctx.fillRect(0,0,W,H);A3.flash*=0.92;}
+  const msg=s>0.6?(A3.asleepT>3?'梦中不知其梦也':'栩栩然胡蝶也：拖着它飞'):ST.wakes>=2?'周之梦为胡蝶与？胡蝶之梦为周与？——醒着时，试把蝴蝶拖向庄周':ST.wakes===1?'醒了。再按住入睡一次':'按住画面，让庄周入睡';
+  txt(msg,W/2,26,'#3a2a10',14,'center',true);
+  if(ST.wakes>=2&&s<0.2){txt('醒着的这一刻，会不会也是一场梦？',W/2,48,'#778',12);}}
+
+/* ================= 第 4 关：应用练习 · 正处 ================= */
+let A4;
+const HAB=[{k:'marsh',n:'湿地',x:0.2},{k:'tree',n:'树上',x:0.5},{k:'water',n:'水中',x:0.8}];
+const CRE=[{k:'man',n:'人',home:'tree0',native:'屋',like:null},{k:'eel',n:'泥鳅',native:'marsh'},{k:'ape',n:'猿',native:'tree'}];
+function init4(){A4={pos:{man:{x:0.12,y:0.25,in:null},eel:{x:0.24,y:0.25,in:null},ape:{x:0.36,y:0.25,in:null},other:{x:0.88,y:0.25,in:null}},drag:null,judge:null,judges:new Set(),lastJudge:null,man:{}};}
+function g4(){return{hy:H*0.72,hw:W*0.26,hh:H*0.42,sx:W*0.62,sy:H*0.2};}
+HD[4]={down(x,y){for(const k in A4.pos){const p=A4.pos[k];if(Math.hypot(x-W*p.x,y-H*p.y)<34){A4.drag=k;if(A4.judge===k)A4.judge=null;p.in=null;return;}}},
+ move(x,y){if(!A4.drag)return;const p=A4.pos[A4.drag];p.x=clamp(x/W,0.03,0.97);p.y=clamp(y/H,0.08,0.95);},
+ up(){const k=A4.drag;A4.drag=null;if(!k)return;const p=A4.pos[k],g=g4();
+  if(Math.abs(W*p.x-g.sx)<70&&Math.abs(H*p.y-g.sy)<45){ // 裁判席
+    if(A4.judge&&A4.judge!==k){const q=A4.pos[A4.judge];q.x=0.9;q.y=0.42;}
+    A4.judge=k;p.x=g.sx/W;p.y=g.sy/H;
+    if(k==='other'){if(A4.lastJudge){hit(4,3);toast(`旁人坐上裁判席：他的看法和${nameOf(A4.lastJudge)}一样，怎能裁决？`);}else toast('旁人没有自己的住处标准：先让人、泥鳅或猿当一次裁判');}
+    else{A4.judges.add(k);if(A4.lastJudge&&A4.lastJudge!==k&&A4.judges.size>=2)hit(4,2);A4.lastJudge=k;}
+    return;}
+  HAB.forEach(h=>{if(Math.abs(W*p.x-W*h.x)<g.hw/2&&H*p.y>g.hy-g.hh*0.6){p.in=h.k;if(k==='man'&&h.k==='marsh'){A4.man.m=1;}if(k==='man'&&h.k==='tree'){A4.man.t=1;}}});}};
+const nameOf=k=>({man:'人',eel:'泥鳅',ape:'猿',other:'旁人'})[k];
+const NATIVE={man:'ground',eel:'marsh',ape:'tree'};
+function t4(dt){const g=g4();inkBg('#eef3ea','#d9e2cf');
+  // 住处
+  HAB.forEach(h=>{const x=W*h.x;let ok=null;if(A4.judge&&A4.judge!=='other'){ok=NATIVE[A4.judge]===h.k;}else if(A4.judge==='other'&&A4.lastJudge){ok=NATIVE[A4.lastJudge]===h.k;}
+    ctx.fillStyle=ok===true?'rgba(47,158,87,.18)':ok===false?'rgba(192,57,43,.12)':'rgba(255,255,255,.35)';ctx.fillRect(x-g.hw/2,g.hy-g.hh*0.6,g.hw,g.hh*0.9);
+    if(h.k==='marsh'){ctx.fillStyle='#7a8a5a';ctx.beginPath();ctx.ellipse(x,g.hy+g.hh*0.15,g.hw*0.42,g.hh*0.12,0,0,7);ctx.fill();for(let i=0;i<7;i++){ctx.strokeStyle='#5a7a3a';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x-g.hw*0.35+i*g.hw*0.11,g.hy+g.hh*0.1);ctx.lineTo(x-g.hw*0.33+i*g.hw*0.11,g.hy-g.hh*0.08);ctx.stroke();}}
+    if(h.k==='tree'){ctx.fillStyle='#6b5a3e';ctx.fillRect(x-8,g.hy-g.hh*0.3,16,g.hh*0.6);ctx.fillStyle='#4f8a40';ctx.beginPath();ctx.arc(x,g.hy-g.hh*0.38,g.hw*0.32,0,7);ctx.fill();}
+    if(h.k==='water'){ctx.fillStyle='#5aa0d0';ctx.fillRect(x-g.hw*0.45,g.hy-g.hh*0.2,g.hw*0.9,g.hh*0.5);ctx.strokeStyle='rgba(255,255,255,.6)';for(let i=0;i<4;i++){ctx.beginPath();for(let j=0;j<=20;j++){const xx=x-g.hw*0.4+j*g.hw*0.04;const yy=g.hy-g.hh*0.1+i*18+Math.sin(j*0.8+T*2)*3;j?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy);}ctx.stroke();}}
+    txt(h.n+(ok===true?'  ✓ 正处':ok===false?'  ✗':''),x,g.hy+g.hh*0.38,ok===true?'#1f5e2f':ok===false?'#a0302a':'#334',14,'center',true);});
+  // 裁判席
+  ctx.fillStyle='#8a6b42';ctx.fillRect(g.sx-60,g.sy+18,120,10);ctx.strokeStyle='#8a6b42';ctx.lineWidth=2;ctx.setLineDash([4,4]);ctx.strokeRect(g.sx-62,g.sy-38,124,66);ctx.setLineDash([]);txt('裁判席',g.sx,g.sy+44,'#5a3b1e',12,'center',true);
+  // 生物
+  const s=Math.min(W,H)*0.045;
+  for(const k in A4.pos){const p=A4.pos[k],x=W*p.x,y=H*p.y;let state=0;
+    if(p.in){state=(k==='eel'&&p.in==='marsh')||(k==='ape'&&p.in==='tree')||(k==='eel'&&p.in==='water')?1:-1;}
+    const shake=state<0?Math.sin(T*25)*3:0;
+    if(k==='man'||k==='other'){person(x+shake,y+s,s,k==='other'?'#888':'#3a6f99');}
+    else if(k==='eel'){ctx.strokeStyle='#8a6a2a';ctx.lineWidth=s*0.35;ctx.lineCap='round';ctx.beginPath();for(let i=0;i<=12;i++){const xx=x-s+i*s/6+shake,yy=y+Math.sin(i*0.8+T*4)*s*0.2;i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy);}ctx.stroke();ctx.lineCap='butt';}
+    else{ctx.fillStyle='#8a5a3a';ctx.beginPath();ctx.ellipse(x+shake,y,s*0.6,s*0.75,0,0,7);ctx.fill();ctx.beginPath();ctx.arc(x+shake,y-s*0.95,s*0.45,0,7);ctx.fill();ctx.fillStyle='#e8c8a0';ctx.beginPath();ctx.arc(x+shake,y-s*0.9,s*0.28,0,7);ctx.fill();}
+    txt(nameOf(k),x,y+s*1.6,'#223',12,'center',true);
+    if(state!==0){txt(state>0?'自在':(k==='man'&&p.in==='marsh'?'腰疾！':k==='man'&&p.in==='tree'?'惴慄恂惧！':'难受！'),x,y-s*1.7,state>0?'#2f8a3a':'#c0392b',13,'center',true);
+      if(k==='man'&&p.in==='marsh'){A4.mT=(A4.mT||0)+dt;if(A4.mT>0.8)hit(4,0);}if(k==='man'&&p.in==='tree'){A4.tT=(A4.tT||0)+dt;if(A4.tT>0.8)hit(4,1);}}}
+  // 裁判的话
+  if(A4.judge){const j=A4.judge;let line;if(j==='other')line=A4.lastJudge?`旁人：“我同意${nameOf(A4.lastJudge)}。”——与它同，怎能裁决？`:'旁人：“我没有自己的标准……”';
+    else line=`${nameOf(j)}：“${j==='man'?'干燥的平地':j==='eel'?'湿地':'树上'}才是正处，其余都不对！”`;
+    txt(line,W/2,26,'#3a2a10',14,'center',true);}
+  else txt('把人、泥鳅、猿拖进不同住处；再把其中一个拖上“裁判席”',W/2,26,'#3a2a10',14,'center',true);
+  txt('“旁人”在右上角，也可以拖上裁判席',W*0.88,H*0.25+s*2.6,'#778',11);}
+
+/* ======== 调度 ======== */
+const INIT={1:init1,2:init2,3:init3,4:init4},TICK={1:t1,2:t2,3:t3,4:t4};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!ST.done[t.dataset.l]);});}
+function go(n){L=n;ST.lv=n;saveSt();tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{if(L===2)ST.morn=3;if(L===3)ST.wakes=0;saveSt();INIT[L]();toast('已重置本关（已对应的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(ST.lv||1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

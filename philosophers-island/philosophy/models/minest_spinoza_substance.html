@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 斯宾诺莎实体论 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+#side .core{grid-column:1/-1;font-size:13px;color:#1f2b38;background:#fff7e0;border:1px solid #f0d08a;border-radius:6px;padding:4px 8px}
+#side .bound{grid-column:1/-1;font-size:11.5px;color:#667;border-top:1px dashed #ccd;padding-top:4px}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>斯宾诺莎 · 实体论</b>
+  <button class="tab on" data-l="1">① 唯一的实体</button>
+  <button class="tab" data-l="2">② 属性</button>
+  <button class="tab" data-l="3">③ 样态</button>
+  <button class="tab" data-l="4">④ 切不出第二个</button>
+  <button class="tab" data-l="5">⑤ 应用练习</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="bd" id="sBody"></div></div>
+<div id="toast"></div>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=(b?'bold ':'')+(sz||13)+'px sans-serif';ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+const KEY='minest_spinoza_v1';let MEM={lit:{},done:{},lvl:1};
+try{const s=localStorage.getItem(KEY);if(s)MEM=JSON.parse(s);}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(MEM));}catch(e){}}
+const E='《伦理学》第一部分（Elwes 英译）',E2='《伦理学》第二部分（Elwes 英译）';
+const CORE='核心问题：世界上究竟有几个“实体”？石头、我、我的思想，是各自独立的东西，还是同一个实体的不同变化？';
+const BOUND='适用边界：画面中的“场”“波纹”“棱镜”只是教学比喻；斯宾诺莎的实体不是空间中的流体，思维也不在空间之中。';
+const MAP={
+1:[["按住场中任一点：它在自身之中","我所理解的实体，是在自身内并通过自身而被认识的东西；换言之，形成它的概念无须借助任何其他事物的概念。","By substance, I mean that which is in itself, and is conceived through itself: in other words, that of which a conception can be formed independently of any other conception.",E+' 界说三'],
+   ["按住更久：它不依赖外因而持续","我所理解的自因，是其本质包含存在的东西，或其本性只能被设想为存在的东西。","By that which is self—caused, I mean that of which the essence involves existence, or that of which the nature is only conceivable as existent.",E+' 界说一'],
+   ["拖出边界想把一块围起来：围不住","由无限多属性构成、每一属性都表现永恒无限本质的神或实体，必然存在。","God, or substance, consisting of infinite attributes, of which each expresses eternal and infinite essentiality, necessarily exists.",E+' 命题十一']],
+2:[["左右拖动转动棱镜：同一实体","我所理解的属性，是知性所知觉的、构成实体本质的东西。","By attribute, I mean that which the intellect perceives as constituting the essence of substance.",E+' 界说四'],
+   ["转到另一面：广延也是它的属性","广延是神的一个属性，换言之，神是一个广延的东西。","Extension is an attribute of God, or God is an extended thing.",E2+' 命题二'],
+   ["在一个窗口里点按：两面同时变化","观念的次序和联系与事物的次序和联系是相同的。","The order and connection of ideas is the same as the order and connection of things.",E2+' 命题七'],
+   ["两个窗口都点过：其实是一个","思维的实体与广延的实体是同一个实体，时而通过这一属性、时而通过那一属性被理解。","substance thinking and substance extended are one and the same substance, comprehended now through one attribute, now through the other.",E2+' 命题七附释']],
+3:[["点按场面：激起一个波纹","我所理解的样态，是实体的分殊，或在他物内并通过他物而被认识的东西。","By mode, I mean the modifications[1] of substance, or that which exists in, and is conceived through, something other than itself.",E+' 界说五'],
+   ["把波纹拖出场外：一离开就消失","凡存在的都在神之内，没有神，就不能有任何东西存在，也不能有任何东西被设想。","Whatsoever is, is in God, and without God nothing can be, or be conceived.",E+' 命题十五'],
+   ["激起许多波纹：一个个具体事物","个别事物不过是神的属性的分殊，或以某种确定方式表现神的属性的样态。","Individual things are nothing but modifications of the attributes of God, or modes by which the attributes of God are expressed in a fixed and definite manner.",E+' 命题二十五绎理'],
+   ["波纹按场的规律相互传递","宇宙中没有任何偶然的东西，一切事物都受神的本性的必然性决定而以一定方式存在和运作。","Nothing in the universe is contingent, but all things are conditioned to exist and operate in a particular manner by the necessity of the divine nature.",E+' 命题二十九']],
+4:[["划过场面想切下一块：切口愈合","绝对无限的实体是不可分的。","Substance absolutely infinite is indivisible.",E+' 命题十三'],
+   ["再切：切下的仍是同一实体","在宇宙中不能有两个或两个以上具有相同本性或属性的实体。","There cannot exist in the universe two or more substances having the same nature or attribute.",E+' 命题五'],
+   ["怎么切，实体数目都是 1","除了神以外，不能有也不能设想任何实体。","Besides God no substance can be granted or conceived.",E+' 命题十四'],
+   ["切开的只是“这一块”，不是实体","水作为水，我们设想它可被分割……但作为广延的实体，它既不被分离，也不可分。","water, in so far as it is water, we conceive to be divided, and its parts to be separated one from the other; but not in so far as it is extended substance; from this point of view it is neither separated nor divisible.",E+' 命题十五附释']],
+5:[["把石头、愤怒、三角形的观念拖进对应窗口","个别事物不过是神的属性的分殊……","Individual things are nothing but modifications of the attributes of God",E+' 命题二十五绎理'],
+   ["放入“我的身体”：它的观念同时出现","一个广延的样态与这个样态的观念是同一个东西，只是以两种方式表达。","a mode of extension and the idea of that mode are one and the same thing, though expressed in two ways.",E2+' 命题七附释'],
+   ["想把“独立的灵魂实体”放进来：放不进","凡存在的都在神之内，没有神，就不能有任何东西存在，也不能有任何东西被设想。","Whatsoever is, is in God, and without God nothing can be, or be conceived.",E+' 命题十五']]};
+const TITLE={1:'① 唯一的实体 · 按住场中任一点；或按住拖出一条边界，想把一块围起来',2:'② 属性 · 左右拖动转动棱镜；在任一窗口里点按，看另一面',3:'③ 样态 · 点按激起波纹；按住一个波纹把它拖出虚线框',4:'④ 切不出第二个 · 按住并划过场面，想切下一块',5:'⑤ 应用练习 · 把下方的事物拖进它所在的属性窗口；再试红色那张'};
+function mapHTML(l){return '<div class="core">'+CORE+'</div>'+MAP[l].map((r,i)=>'<div class="mr'+(MEM.lit[l+'_'+i]?' on':'')+'" id="mr'+l+'_'+i+'"><div class="op"><span class="n">'+(i+1)+'</span>'+r[0]+'</div><div class="tx">「'+r[1]+'」<div class="en">'+r[2]+'</div><div class="ref">——斯宾诺莎'+r[3]+'</div></div></div>').join('')+'<div class="bound">'+BOUND+'</div>';}
+function hit(l,i){const e=$('mr'+l+'_'+i);if(!e||e.classList.contains('on'))return;e.classList.add('on');MEM.lit[l+'_'+i]=1;e.scrollIntoView({block:'nearest',behavior:'smooth'});
+  if(MAP[l].every((_,k)=>MEM.lit[l+'_'+k])){MEM.done[l]=1;tabs();}save();}
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const p=pos(e);PT={x:p[0],y:p[1]};cv.setPointerCapture(e.pointerId);HD[L]&&HD[L].down&&HD[L].down(p[0],p[1]);});
+cv.addEventListener('pointermove',e=>{const p=pos(e);const dx=PT?p[0]-PT.x:0,dy=PT?p[1]-PT.y:0;if(PT){PT.x=p[0];PT.y=p[1];}HD[L]&&HD[L].move&&HD[L].move(p[0],p[1],dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]&&HD[L].up&&HD[L].up();});
+
+/* 实体场：连续高度场，波纹在其上传播 */
+const GX=64,GY=36;let F,V;
+function freshField(){F=new Float32Array(GX*GY);V=new Float32Array(GX*GY);}
+freshField();
+function poke(x,y,amp,rad){const gx=x/W*GX,gy=y/H*GY;for(let j=0;j<GY;j++)for(let i=0;i<GX;i++){const d=Math.hypot(i-gx,j-gy);if(d<rad)F[j*GX+i]+=amp*(1-d/rad);}}
+function stepField(dt,damp){const k=Math.min(1,dt*30);for(let j=1;j<GY-1;j++)for(let i=1;i<GX-1;i++){const id=j*GX+i;V[id]+=(F[id-1]+F[id+1]+F[id-GX]+F[id+GX]-4*F[id])*0.5*k;}
+  for(let n=0;n<F.length;n++){V[n]*=damp;F[n]+=V[n]*k;}}
+function energy(){let s=0;for(let n=0;n<F.length;n++)s+=Math.abs(F[n]);return s;}
+function drawField(x0,y0,w,h,mode,alpha){const cw=w/GX,ch=h/GY;ctx.globalAlpha=alpha==null?1:alpha;
+  for(let j=0;j<GY;j++)for(let i=0;i<GX;i++){const v=F[j*GX+i];let c;
+    if(mode==='th'){const a=clamp(Math.abs(v)*1.6,0,1);c='rgba('+Math.round(120+100*a)+','+Math.round(90+80*a)+',230,'+(0.25+0.75*a)+')';}
+    else if(mode==='ext'){const g=clamp(128+v*120,30,230);c='rgb('+Math.round(g*0.75)+','+Math.round(g*0.9)+','+Math.round(g)+')';}
+    else{const a=clamp(0.55+v*0.4,0.1,1);c='rgba(243,196,107,'+a+')';}
+    ctx.fillStyle=c;ctx.fillRect(x0+i*cw,y0+j*ch,cw+0.6,ch+0.6);}
+  if(mode==='th'){for(let j=2;j<GY-2;j+=3)for(let i=2;i<GX-2;i+=3){const v=F[j*GX+i];if(Math.abs(v)>0.25){ctx.fillStyle='rgba(255,255,255,'+clamp(Math.abs(v),0,1)+')';ctx.beginPath();ctx.arc(x0+i*cw,y0+j*ch,2+Math.abs(v)*3,0,7);ctx.fill();}}}
+  ctx.globalAlpha=1;}
+
+/* ① 唯一的实体 */
+let A;
+function init1(){freshField();A={hold:0,holdAt:null,fence:[],drawing:false,moved:0,leak:0};}
+HD[1]={down(x,y){A.holdAt=[x,y];A.hold=0;A.fence=[[x,y]];A.drawing=true;A.moved=0;},
+ move(x,y,dx,dy,d){if(!d)return;A.moved+=Math.hypot(dx,dy);if(A.moved>30){A.holdAt=null;A.fence.push([x,y]);}},
+ up(){if(A.fence.length>12&&A.moved>200){A.leak=1;hit(1,2);toast('围不住：边界两边是同一个场，它在边界处并没有断开');}A.drawing=false;A.holdAt=null;}};
+function t1(dt){stepField(dt,0.985);ctx.fillStyle='#120e08';ctx.fillRect(0,0,W,H);drawField(0,0,W,H,'sub');
+  if(Math.random()<dt*3)poke(Math.random()*W,Math.random()*H,0.12,3);
+  if(A.holdAt){A.hold+=dt;const x=A.holdAt[0],y=A.holdAt[1],r=20+Math.min(A.hold,4)*30;ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.stroke();
+    txt(A.hold<1.2?'这里……在它自身之中':'不需要任何别的东西来设想它',x,y-r-10,'#fff',13);if(A.hold>1.2)hit(1,0);
+    if(A.hold>3){hit(1,1);txt('它的本质就包含存在：不依赖外因而持续',x,y+r+18,'#ffe7b5',12);}}
+  if(A.fence.length>1){ctx.strokeStyle='rgba(255,90,90,.85)';ctx.setLineDash([6,5]);ctx.lineWidth=2;ctx.beginPath();A.fence.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.stroke();ctx.setLineDash([]);}
+  if(A.leak>0.02){A.leak*=0.98;A.fence.forEach(p=>{if(Math.random()<0.05)poke(p[0],p[1],0.3,3);});txt('边界两边是同一个场',W/2,H*0.12,'rgba(255,200,200,'+A.leak+')',16,'center',true);if(A.leak<0.05)A.fence=[];}
+  if(!A.holdAt)txt('按住场中任一点；或按住拖出一条边界，想把一块围起来',W/2,H-14,'rgba(255,255,255,.75)',13);}
+
+/* ② 属性 */
+let B;
+function geo2(){const w=W*0.38,h=Math.min(H*0.6,w*0.56);return{w,h,lx:W*0.06,rx:W*0.56,y0:H*0.32};}
+function init2(){freshField();B={rot:0,drag:false,pL:false,pR:false,sync:0,seenTh:false};}
+HD[2]={down(x,y){const r=geo2();const inY=y>r.y0&&y<r.y0+r.h,inL=inY&&x>r.lx&&x<r.lx+r.w,inR=inY&&x>r.rx&&x<r.rx+r.w;
+   if(inL||inR){const fx=(x-(inL?r.lx:r.rx))/r.w*W,fy=(y-r.y0)/r.h*H;poke(fx,fy,1.4,4);B.sync=1;if(inL)B.pL=true;else B.pR=true;hit(2,2);if(B.pL&&B.pR)hit(2,3);}else B.drag=true;},
+ move(x,y,dx,dy,d){if(B.drag&&d){B.rot+=dx/W*Math.PI*1.6;if(Math.abs(B.rot)>0.4)hit(2,0);if(B.seenTh)hit(2,1);}},
+ up(){B.drag=false;}};
+function t2(dt){stepField(dt,0.98);const r=geo2();ctx.fillStyle='#141823';ctx.fillRect(0,0,W,H);
+  const cx=W/2,cy=H*0.15,s=Math.min(W,H)*0.09,c=Math.cos(B.rot);
+  const faceExt=clamp(0.5+0.5*c,0,1),faceTh=1-faceExt;if(faceTh>0.7||faceExt<0.3)B.seenTh=true;
+  ctx.save();ctx.translate(cx,cy);ctx.fillStyle='rgba(243,196,107,.95)';ctx.beginPath();ctx.moveTo(-s,s*0.55);ctx.lineTo(0,-s*0.65);ctx.lineTo(s,s*0.55);ctx.closePath();ctx.fill();
+  ctx.fillStyle='rgba(140,170,215,'+(0.25+0.7*faceExt)+')';ctx.beginPath();ctx.moveTo(0,-s*0.65);ctx.lineTo(-s,s*0.55);ctx.lineTo(-s*0.1+s*0.5*Math.sin(B.rot),s*0.55);ctx.fill();
+  ctx.fillStyle='rgba(190,160,255,'+(0.25+0.7*faceTh)+')';ctx.beginPath();ctx.moveTo(0,-s*0.65);ctx.lineTo(s,s*0.55);ctx.lineTo(-s*0.1+s*0.5*Math.sin(B.rot),s*0.55);ctx.fill();ctx.restore();
+  txt('同一个实体（左右拖动转动）',cx,cy+s*0.95,'#ffe7b5',12);
+  drawField(r.lx,r.y0,r.w,r.h,'ext',0.25+0.75*faceExt);drawField(r.rx,r.y0,r.w,r.h,'th',0.25+0.75*faceTh);
+  ctx.strokeStyle='rgba(255,255,255,.3)';ctx.strokeRect(r.lx,r.y0,r.w,r.h);ctx.strokeRect(r.rx,r.y0,r.w,r.h);
+  txt('在广延属性下：物体与运动',r.lx+r.w/2,r.y0-8,'#cfe2ff',13,'center',true);txt('在思维属性下：观念',r.rx+r.w/2,r.y0-8,'#e5d6ff',13,'center',true);
+  B.sync*=0.97;if(B.sync>0.05){ctx.strokeStyle='rgba(243,196,107,'+B.sync+')';ctx.lineWidth=2;ctx.setLineDash([4,6]);ctx.beginPath();ctx.moveTo(r.lx+r.w,r.y0+r.h/2);ctx.lineTo(r.rx,r.y0+r.h/2);ctx.stroke();ctx.setLineDash([]);txt('同一个变化',W/2,r.y0+r.h/2-8,'rgba(243,196,107,'+B.sync+')',12);}
+  txt('在任一窗口里点按，激起变化；在空白处拖动转动棱镜',W/2,H-14,'rgba(255,255,255,.75)',13);}
+
+/* ③ 样态 */
+let C;const NAMES=['一块石头','一棵树','一个人','一阵风','一个念头','一只鸟'];
+function init3(){freshField();C={rip:[],drag:null,count:0};}
+HD[3]={down(x,y){const near=C.rip.find(r=>!r.gone&&Math.hypot(r.x-x,r.y-y)<30);if(near){C.drag=near;return;}
+   C.rip.push({x,y,a:1,age:0,label:NAMES[C.count%6]});C.count++;poke(x,y,1.6,5);hit(3,0);if(C.count>=4)hit(3,2);},
+ move(x,y){if(C.drag){C.drag.x=x;C.drag.y=y;poke(x,y,0.15,3);const m=W*0.05;if(x<m||x>W-m||y<m||y>H-m)C.drag.gone=true;}},
+ up(){if(C.drag&&C.drag.gone){hit(3,1);toast('一离开实体，它就什么也不是');}C.drag=null;}};
+function t3(dt){stepField(dt,0.985);ctx.fillStyle='#120e08';ctx.fillRect(0,0,W,H);drawField(0,0,W,H,'sub');
+  const m=W*0.05;ctx.strokeStyle='rgba(255,255,255,.2)';ctx.setLineDash([4,6]);ctx.strokeRect(m,m,W-2*m,H-2*m);ctx.setLineDash([]);
+  C.rip.forEach(r=>{r.age+=dt;if(r.gone)r.a-=dt*2;else{r.a=Math.max(0.35,r.a-dt*0.05);if(Math.random()<dt*2)poke(r.x,r.y,0.25,3);}
+    ctx.globalAlpha=Math.max(0,r.a);ctx.strokeStyle='#fff';ctx.lineWidth=1.5;for(let k=0;k<3;k++){ctx.beginPath();ctx.arc(r.x,r.y,((r.age*40+k*14)%42)+6,0,7);ctx.stroke();}txt(r.label,r.x,r.y-50,'#fff',12);ctx.globalAlpha=1;});
+  C.rip=C.rip.filter(r=>r.a>0);
+  if(C.count>=3&&energy()>40)hit(3,3);
+  txt(C.count<1?'点按场面，激起一个波纹：一个具体事物':C.count<4?'再多激起几个；按住一个波纹把它拖出虚线框':'它们按场的规律彼此传递，没有一个是自己决定的',W/2,H-14,'rgba(255,255,255,.8)',13);}
+
+/* ④ 切不出第二个 */
+let D;
+function init4(){freshField();D={cut:[],cuts:0,heal:[]};}
+HD[4]={down(x,y){D.cut=[[x,y]];},move(x,y,dx,dy,d){if(d&&D.cut.length)D.cut.push([x,y]);},
+ up(){if(D.cut.length>6){D.cuts++;D.heal.push({pts:D.cut.slice(),a:1});D.cut.forEach(p=>poke(p[0],p[1],-0.8,2));hit(4,0);if(D.cuts>=2)hit(4,1);if(D.cuts>=3)hit(4,2);if(D.cuts>=4)hit(4,3);
+   toast(D.cuts<3?'切口立刻愈合：切下的仍是同一个实体':'切开的只是“这一块”的样子，不是实体本身');}D.cut=[];}};
+function t4(dt){stepField(dt,0.985);ctx.fillStyle='#120e08';ctx.fillRect(0,0,W,H);drawField(0,0,W,H,'sub');
+  if(D.cut.length>1){ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();D.cut.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.stroke();}
+  D.heal.forEach(hh=>{hh.a-=dt*0.7;ctx.strokeStyle='rgba(20,12,4,'+Math.max(0,hh.a)+')';ctx.lineWidth=8*Math.max(0,hh.a)+1;ctx.beginPath();hh.pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.stroke();
+    if(hh.a>0.3){const p=hh.pts[Math.floor(hh.pts.length/2)];txt('愈合中……',p[0],p[1]-14,'rgba(255,231,181,'+hh.a+')',12);}});
+  D.heal=D.heal.filter(hh=>hh.a>0);
+  txt('已尝试切割 '+D.cuts+' 次 · 实体数目：1',W/2,26,'#ffe7b5',15,'center',true);
+  txt('按住并划过场面，想把它切成两个实体',W/2,H-14,'rgba(255,255,255,.75)',13);}
+
+/* ⑤ 应用练习 */
+let P5;
+const ITEMS=[{n:'石头',side:'ext'},{n:'我的愤怒',side:'th'},{n:'三角形的观念',side:'th'},{n:'我的身体',side:'ext',pair:'我的身体的观念'},{n:'独立的灵魂实体',side:'out'}];
+function g5(){return{lx:W*0.05,rx:W*0.53,y0:H*0.14,w:W*0.42,h:H*0.56};}
+function init5(){freshField();P5={items:ITEMS.map((it,i)=>({n:it.n,side:it.side,pair:it.pair,x:W*(0.11+i*0.195),y:H*0.87,hx:W*(0.11+i*0.195),hy:H*0.87,placed:false,inL:false})),drag:null,placed:0,pairShown:0};}
+HD[5]={down(x,y){P5.drag=P5.items.find(it=>!it.placed&&Math.abs(it.x-x)<62&&Math.abs(it.y-y)<20)||null;},move(x,y){if(P5.drag){P5.drag.x=x;P5.drag.y=y;}},
+ up(){const it=P5.drag;P5.drag=null;if(!it)return;const g=g5();const inY=it.y>g.y0&&it.y<g.y0+g.h,inL=inY&&it.x>g.lx&&it.x<g.lx+g.w,inR=inY&&it.x>g.rx&&it.x<g.rx+g.w;
+   if(it.side==='out'){toast(inL||inR?'它不能是实体之外的另一个实体：思维只能作为同一实体的属性':'它没有别处可去：凡存在的都在实体之中');hit(5,2);it.x=it.hx;it.y=it.hy;return;}
+   if((it.side==='ext'&&inL)||(it.side==='th'&&inR)){it.placed=true;it.inL=inL;P5.placed++;poke((it.x-(inL?g.lx:g.rx))/g.w*W,(it.y-g.y0)/g.h*H,1.5,5);
+     if(P5.placed>=3)hit(5,0);if(it.pair){P5.pairShown=1;hit(5,1);}toast('“'+it.n+'”：一个样态，在'+(inL?'广延':'思维')+'属性之下');}
+   else{toast(it.side==='ext'?'它是广延的样态：放到左边':'它是思维的样态：放到右边');it.x=it.hx;it.y=it.hy;}}};
+function t5(dt){stepField(dt,0.985);const g=g5();ctx.fillStyle='#141823';ctx.fillRect(0,0,W,H);
+  drawField(g.lx,g.y0,g.w,g.h,'ext');drawField(g.rx,g.y0,g.w,g.h,'th');ctx.strokeStyle='rgba(255,255,255,.35)';ctx.strokeRect(g.lx,g.y0,g.w,g.h);ctx.strokeRect(g.rx,g.y0,g.w,g.h);
+  txt('实体 · 在广延属性下',g.lx+g.w/2,g.y0-10,'#cfe2ff',14,'center',true);txt('同一实体 · 在思维属性下',g.rx+g.w/2,g.y0-10,'#e5d6ff',14,'center',true);
+  P5.items.forEach(it=>{if(it.placed){txt(it.n,it.x,it.y,'#fff',13,'center',true);return;}ctx.fillStyle=it.side==='out'?'#ff9b9b':'#fff';ctx.beginPath();ctx.roundRect(it.x-62,it.y-16,124,32,10);ctx.fill();txt(it.n,it.x,it.y+5,'#222',12.5,'center',true);});
+  if(P5.pairShown){const it=P5.items.find(i=>i.pair&&i.placed);if(it){const mx=g.rx+(it.x-g.lx);ctx.strokeStyle='rgba(243,196,107,.85)';ctx.setLineDash([4,6]);ctx.beginPath();ctx.moveTo(it.x+30,it.y-4);ctx.lineTo(mx-40,it.y-4);ctx.stroke();ctx.setLineDash([]);txt(it.pair,mx,it.y,'#fff',13,'center',true);txt('同一个东西，两种表达',(it.x+mx)/2,it.y-14,'#f3c46b',12);}}
+  txt(P5.placed<4?'把事物拖进它所在的属性窗口；也试试红色那张':'每一样都只是同一实体的样态',W/2,H*0.76,'rgba(255,255,255,.8)',13);}
+
+const INIT={1:init1,2:init2,3:init3,4:init4,5:init5},TICK={1:t1,2:t2,3:t3,4:t4,5:t5};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!MEM.done[t.dataset.l]);});}
+function go(n){L=n;MEM.lvl=n;save();tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{INIT[L]();toast('已重置（已对应的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(MEM.lvl||1);requestAnimationFrame(loop);
+})();
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

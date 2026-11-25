@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 克里普克可能世界 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .q{padding:4px 10px;font-size:12.5px;color:#1f2b38;background:#fff7e0;border-bottom:1px solid #f0d08a}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+#side .bnd{padding:4px 10px 8px;font-size:11.5px;color:#667}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>克里普克 · 可能世界</b>
+  <button class="tab on" data-l="1">① 名字与摹状词</button>
+  <button class="tab" data-l="2">② 不存在的世界</button>
+  <button class="tab" data-l="3">③ 水 = H₂O</button>
+  <button class="tab" data-l="4">④ 应用练习</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="q">核心问题：一个名字在“事情本可能不同”的世界里，仍然指向同一个东西吗？</div><div class="bd" id="sBody"></div><div class="bnd">适用边界：一排排“世界”只是教学类比；克里普克说的可能世界是被规定的反事实情形，不是要用望远镜去观察的远方星球。原文均据二手文献转引（《命名与必然性》受版权保护，未直接引用原书）。</div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+const store={get(k){try{return JSON.parse(localStorage.getItem('minest_kripke_'+k));}catch(e){return this.mem[k]||null;}},set(k,v){this.mem[k]=v;try{localStorage.setItem('minest_kripke_'+k,JSON.stringify(v));}catch(e){}},mem:{}};
+const done=store.get('done')||{};const lit=new Set(store.get('lit')||[]);
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ===== 原文（据二手文献转引；中文为编译）===== */
+const NN='据维基百科《Naming and Necessity》条目转引（词条概述）',RW='据维基百科《Rigid designator》条目转引（词条概述）',SEP='据 SEP《Rigid Designators》转引';
+const MAP={
+1:[["拖动世界带：名字“尼克松”始终钉在同一个人身上","专名指向被命名的对象，在该对象存在的每一个可能世界中都如此。","a proper name refers to the named object in every possible world in which the object exists",NN],
+   ["摹状词“1968 年大选获胜者”在各世界跳到不同的人","大多数摹状词在不同的可能世界中指称不同的对象。","most descriptions designate different objects in different possible worlds",NN],
+   ["同一排世界里，两根线时而重合时而分开","“1968 年美国总统大选获胜者”在不同可能世界中可以指尼克松、汉弗莱或其他人。","\"the person who won the United States presidential election of 1968\" could refer to Nixon, Hubert Humphrey, or others in different possible worlds",NN],
+   ["按住“尼克松”往别人身上拖：拖不过去","严格指示词在该对象存在的所有可能世界中指称同一对象，且从不指称别的东西。","A rigid designator designates the same object in all possible worlds in which that object exists and never designates anything else.",SEP+"（词条开篇）"]],
+2:[["拖到一个“亚里士多德两岁夭折”的世界","亚里士多德本可以两岁就死去，因而不满足我们与他的名字联系起来的任何描述，却仍然是亚里士多德。","Aristotle could have died at age two and so not satisfied any of the descriptions we associate with his name, and yet still have been Aristotle",NN],
+   ["按住“删去此人”：名字的线仍指向空位","若你说“假设希特勒从未出生”，那么“希特勒”在此仍然严格地指称某个在所描述的反事实情形中不会存在的东西。","'Hitler' refers here, still rigidly, to something that would not exist in the counterfactual situation described",SEP+"，Kripke 1980, p. 78"],
+   ["在他存在的世界里，线重新接上","在任何该对象确实存在的可能世界里，我们都用这个指示词去指称那个对象。","in any possible world where the object in question does exist, in any situation where the object would exist, we use the designator in question to designate that object",SEP+"（引克里普克原话）"]],
+3:[["用力拉扯“水”与“H₂O”之间的链：拉不断","如果水是 H₂O，那么水必然是 H₂O。","If water is H2O, then water is necessarily H2O.",RW],
+   ["滚动到任何世界：链都在","没有任何一个可能世界中，“水”挑出的东西不同于“H₂O”。","there is no possible world in which 'water' picks out something different from 'H2O'",RW],
+   ["实验台：按住加热、电解，才“发现”它","后天必然：必然为真，但只能通过经验研究才能知道的事实。","a posteriori necessities—facts that are necessarily true, though they can be known only through empirical investigation",NN],
+   ["晨星与暮星：两个名字最终汇合","两个指示词都是严格的同一性陈述，若为真，就必然为真，即使它不是先天的。","an identity statement in which both designators are rigid must be necessarily true if it is true at all, even if the statement is not a priori",SEP]],
+4:[["新情境：把每个词拖到世界带上测试","专名，以及某些自然种类词……都是严格指示的。","proper names and certain natural kind terms—including biological taxa and types of natural substances (most famously, \"water\" and \"H2O\") designate rigidly",RW],
+   ["全部分类正确","严格指示词与内涵词、非严格指示词相对，后者可能在不同可能世界中指称不同的东西。","Rigid designators are contrasted with connotative terms, non-rigid or flaccid designators, which may designate different things in different possible worlds.",RW]]};
+const TITLE={1:'① 名字与摹状词 · 左右拖动世界带；按住“尼克松”的线想把它拖到别人身上',2:'② 不存在的世界 · 拖到“夭折”世界；按住某个世界里的人把他删去',3:'③ 水 = H₂O · 按住链条用力拉扯；在实验台上按住加热',4:'④ 应用练习 · 把词卡拖进世界带，看它在各世界里是否钉住同一对象'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr${lit.has(l+'_'+i)?' on':''}" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const e=$('mr'+l+'_'+i);lit.add(l+'_'+i);store.set('lit',[...lit]);if(!e||e.classList.contains('on'))return;e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});
+  if(MAP[l].every((_,k)=>lit.has(l+'_'+k))){done[l]=1;store.set('done',done);tabs();}}
+
+/* ===== 世界数据 ===== */
+const PEOPLE={nixon:{n:'尼克松',c:'#3a6f99'},hum:{n:'汉弗莱',c:'#2f9e57'},wal:{n:'华莱士',c:'#a0522d'},mus:{n:'马斯基',c:'#8a6ab0'},ari:{n:'亚里士多德',c:'#c79b2f'},pla:{n:'柏拉图',c:'#c0392b'}};
+// 每个世界：在场的人与 1968 获胜者
+function makeWorlds(){const w=[];const win=['nixon','hum','nixon','wal','mus','hum','nixon','wal','hum','nixon','mus','hum'];
+  for(let i=0;i<12;i++){const ppl=['nixon','hum','wal','mus'];w.push({i,win:win[i],ppl,label:i===0?'现实世界':`世界 ${i}`,removed:null,ariDead:i===5});}return w;}
+let WS=makeWorlds();
+let S={};
+function freshLevel(){S={off:store.get('off'+L)||0,drag:null,vel:0,tug:0,tugT:0,tried:new Set(),seen:new Set(),heat:0,found:0,chain:1,strain:0,lab:false,ves:0,cards:null,placed:{}};
+  if(L===2){WS=makeWorlds();}
+  if(L===4){S.cards=[{w:'苏格拉底',rig:true},{w:'最高的山',rig:false},{w:'金',rig:true},{w:'2026 年的冠军',rig:false},{w:'老虎',rig:true},{w:'我最喜欢的颜色',rig:false}].map((c,k)=>({...c,x:0.08+k*0.15,y:0.88,on:null}));}}
+
+/* ===== 布局：一条横向世界带 ===== */
+const CW=()=>Math.max(150,Math.min(210,W/5)),BY=()=>H*0.16,BH=()=>H*0.56;
+function worldX(i){return 40+i*CW()-S.off;}
+function drawWorld(wd,x,y,w,h,opts={}){
+  ctx.fillStyle=wd.i===0?'#fff8e6':'#eef3f8';ctx.strokeStyle=wd.i===0?'#f3a52b':'#9fb0c3';ctx.lineWidth=wd.i===0?3:1.5;
+  ctx.beginPath();ctx.roundRect(x,y,w-14,h,14);ctx.fill();ctx.stroke();
+  txt(wd.label,x+(w-14)/2,y+20,'#334',13,'center',true);
+  const people=opts.people||wd.ppl;const pos={};
+  people.forEach((p,k)=>{const px=x+22+(k%2)*((w-58)),py=y+50+Math.floor(k/2)*((h-90)/2.2);pos[p]={x:px+12,y:py+20};
+    if(wd.removed===p){ctx.strokeStyle='#bbb';ctx.setLineDash([4,4]);ctx.beginPath();ctx.arc(px+12,py+20,16,0,7);ctx.stroke();ctx.setLineDash([]);txt('（不存在）',px+12,py+50,'#999',11);return;}
+    const P=PEOPLE[p];ctx.fillStyle=P.c;ctx.beginPath();ctx.arc(px+12,py+8,9,0,7);ctx.fill();ctx.beginPath();ctx.moveTo(px,py+38);ctx.quadraticCurveTo(px+12,py+10,px+24,py+38);ctx.fill();
+    txt(P.n,px+12,py+52,'#223',11);
+    if(opts.winner&&wd.win===p){txt('🏆',px+28,py+6,'#000',14);}});
+  return pos;}
+function anchor(x,y,label,col){ctx.fillStyle=col;ctx.beginPath();ctx.roundRect(x-48,y-16,96,30,10);ctx.fill();txt(label,x,y+5,'#fff',13,'center',true);}
+function rope(x1,y1,x2,y2,col,w,dash){ctx.strokeStyle=col;ctx.lineWidth=w||2.5;if(dash)ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(x1,y1);ctx.bezierCurveTo(x1,(y1+y2)/2,x2,(y1+y2)/2,x2,y2);ctx.stroke();ctx.setLineDash([]);}
+
+/* ===== 输入 ===== */
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y,x0:x,y0:y,t0:T};cv.setPointerCapture(e.pointerId);HD[L].down&&HD[L].down(x,y);});
+cv.addEventListener('pointermove',e=>{if(!PT)return;const [x,y]=pos(e);const dx=x-PT.x,dy=y-PT.y;PT.x=x;PT.y=y;HD[L].move&&HD[L].move(x,y,dx,dy);});
+addEventListener('pointerup',()=>{if(!PT)return;HD[L].up&&HD[L].up();PT=null;store.set('off'+L,S.off);});
+const maxOff=()=>Math.max(0,12*CW()-W+80);
+function scrollBy(dx){S.off=clamp(S.off-dx,0,maxOff());S.vel=-dx;}
+function visibleWorlds(){const out=[];for(const wd of WS){const x=worldX(wd.i);if(x>-CW()&&x<W)out.push(wd);}return out;}
+
+/* ===== 第 1 关 ===== */
+const HD={};
+HD[1]={down(x,y){if(y<BY()-4&&Math.abs(x-W*0.25)<60)S.drag='nixon';else S.drag='scroll';},
+ move(x,y,dx){if(S.drag==='scroll'){scrollBy(dx);}else if(S.drag==='nixon'){S.tug+=Math.abs(dx);S.tugX=x;S.tugY=y;}},
+ up(){if(S.drag==='nixon'&&S.tug>120){hit(1,3);toast('拖不过去：名字“尼克松”在每个世界都只指尼克松');}S.drag=null;S.tug=0;S.tugX=null;}};
+function t1(dt){bg();if(!PT){S.off=clamp(S.off+S.vel*0.92,0,maxOff());S.vel*=0.92;}
+  const y=BY(),h=BH(),cw=CW();const ax=W*0.25,dxA=W*0.7;
+  anchor(ax,y-26,'“尼克松”','#3a6f99');anchor(dxA,y-26,'“1968 获胜者”','#c0392b');
+  let together=0,apart=0;
+  visibleWorlds().forEach(wd=>{const x=worldX(wd.i);const p=drawWorld(wd,x,y,cw,h,{winner:true});
+    const n=p.nixon,wn=p[wd.win];
+    rope(ax,y-10,n.x,n.y-12,'#3a6f99',3);
+    rope(dxA,y-10,wn.x+4,wn.y-12,'rgba(192,57,43,.8)',2.5,[6,4]);
+    if(wd.win==='nixon')together++;else apart++;S.seen.add(wd.i);});
+  if(S.seen.size>=5){hit(1,0);hit(1,1);}if(together&&apart)hit(1,2);
+  if(S.drag==='nixon'&&S.tugX!=null){const k=Math.sin(T*40)*3;ctx.strokeStyle='rgba(58,111,153,.6)';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(ax,y-10);ctx.lineTo(S.tugX+k,S.tugY);ctx.stroke();
+    txt('拉不动……它只认这个人',S.tugX,S.tugY-14,'#3a6f99',12);}
+  footer(`已浏览 ${S.seen.size}/12 个世界 · 实线 = 名字（严格），虚线 = 摹状词（非严格）`);}
+
+/* ===== 第 2 关 ===== */
+HD[2]={down(x,y){const cw=CW(),yy=BY();for(const wd of visibleWorlds()){const X=worldX(wd.i);if(x>X&&x<X+cw-14&&y>yy+40&&y<yy+BH()){S.hold={wd,t0:T};return;}}S.drag='scroll';},
+ move(x,y,dx){if(S.drag==='scroll')scrollBy(dx);if(S.hold&&Math.hypot(x-PT.x0,y-PT.y0)>20){S.hold=null;S.drag='scroll';}},
+ up(){if(S.hold){const wd=S.hold.wd;if(T-S.hold.t0>0.9){wd.removed=wd.removed?null:'ari';if(wd.removed){hit(2,1);toast('他在这个世界不存在——但“亚里士多德”仍指向他');}else{hit(2,2);}}S.hold=null;}S.drag=null;}};
+function t2(dt){bg();if(!PT){S.off=clamp(S.off+S.vel*0.92,0,maxOff());S.vel*=0.92;}
+  const y=BY(),h=BH(),cw=CW(),ax=W*0.5;anchor(ax,y-26,'“亚里士多德”','#c79b2f');
+  visibleWorlds().forEach(wd=>{const x=worldX(wd.i);const ppl=['ari','pla'];const p=drawWorld({...wd,ppl},x,y,cw,h,{people:ppl});
+    if(wd.ariDead){txt('两岁夭折',x+(cw-14)/2,y+h-30,'#a0622d',12,'center',true);txt('没写《形而上学》、没教过亚历山大',x+(cw-14)/2,y+h-12,'#a0622d',10);}
+    const a=p.ari;if(wd.removed==='ari'){rope(ax,y-10,a.x,a.y-12,'rgba(199,155,47,.6)',2.5,[3,5]);}else rope(ax,y-10,a.x,a.y-12,'#c79b2f',3);
+    if(wd.ariDead&&worldX(wd.i)>W*0.2&&worldX(wd.i)<W*0.7)hit(2,0);});
+  if(S.hold){const k=clamp((T-S.hold.t0)/0.9,0,1);const X=worldX(S.hold.wd.i);ctx.fillStyle=`rgba(192,57,43,${0.25*k})`;ctx.fillRect(X,y,cw-14,h);txt(S.hold.wd.removed?'按住：让他回来':'按住：让他从未出生',X+(cw-14)/2,y+h/2,'#c0392b',12,'center',true);}
+  footer('滚动寻找“两岁夭折”的世界；在任一世界中按住约 1 秒，删去或恢复亚里士多德');}
+
+/* ===== 第 3 关 ===== */
+HD[3]={down(x,y){if(x>W*0.72&&y>H*0.62){S.lab=true;return;}if(Math.abs(y-H*0.45)<60&&x<W*0.7){S.drag='chain';S.cy=y;return;}S.drag='scroll';},
+ move(x,y,dx,dy){if(S.drag==='scroll')scrollBy(dx);if(S.drag==='chain'){S.strain=clamp(S.strain+Math.abs(dy)/120,0,1.4);S.cy=y;}},
+ up(){if(S.drag==='chain'&&S.strain>0.8){hit(3,0);toast('拉到极限也没断：在任何世界里，水都是 H₂O');}S.drag=null;S.lab=false;}};
+function t3(dt){bg();if(!PT){S.off=clamp(S.off+S.vel*0.92,0,maxOff());S.vel*=0.92;}
+  S.strain=Math.max(0,S.strain-dt*0.6);
+  const y=H*0.12,h=H*0.46,cw=CW();
+  visibleWorlds().forEach(wd=>{const x=worldX(wd.i);ctx.fillStyle=wd.i===0?'#fff8e6':'#eef3f8';ctx.strokeStyle='#9fb0c3';ctx.beginPath();ctx.roundRect(x,y,cw-14,h,14);ctx.fill();ctx.stroke();txt(wd.label,x+(cw-14)/2,y+20,'#334',12,'center',true);
+    const cx=x+(cw-14)/2,cy=y+h*0.55;const wob=Math.sin(T*3+wd.i)*4;
+    ctx.fillStyle='#5aa8d8';ctx.beginPath();ctx.ellipse(cx,cy+wob,30,18,0,0,7);ctx.fill();txt('水',cx,cy+wob+5,'#fff',13,'center',true);
+    const sy=cy-50-S.strain*18;txt('H₂O',cx,sy,'#1f5e8a',14,'center',true);
+    const n=6;for(let k=0;k<n;k++){const yy=lerp(sy+6,cy+wob-18,k/(n-1)),xx=cx+Math.sin(k+T*8)*S.strain*6;ctx.strokeStyle=S.strain>0.8?'#c0392b':'#6b7a8a';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(xx,yy,5,3,0,0,7);ctx.stroke();}
+    S.seen.add(wd.i);});
+  if(S.seen.size>=6)hit(3,1);
+  // 实验台
+  const lx=W*0.72,ly=H*0.62;ctx.fillStyle='#e7e1d6';ctx.fillRect(lx,ly,W*0.26,H*0.36);txt('实验台（按住）',lx+W*0.13,ly+18,'#5a3b1e',12,'center',true);
+  if(S.lab){S.heat=Math.min(1,S.heat+dt*0.3);}
+  ctx.fillStyle='#5aa8d8';ctx.fillRect(lx+W*0.06,ly+H*0.12+H*0.12*S.heat,W*0.14,H*0.18-H*0.12*S.heat);
+  for(let i=0;i<S.heat*20;i++){ctx.fillStyle='rgba(255,255,255,.8)';ctx.beginPath();ctx.arc(lx+W*0.07+((i*37+T*60)%(W*0.12)),ly+H*0.3-((i*23+T*80)%(H*0.16)),2,0,7);ctx.fill();}
+  txt(S.heat<1?`电解中…… ${Math.round(S.heat*100)}%`:'测得：2 份氢 + 1 份氧',lx+W*0.13,ly+H*0.34,'#334',12);
+  if(S.heat>=1){hit(3,2);S.found=Math.min(1,S.found+dt*0.4);}
+  // 晨星与暮星
+  const gx=W*0.04,gy=H*0.64,gw=W*0.64;ctx.fillStyle='#14203a';ctx.fillRect(gx,gy,gw,H*0.34);
+  const m=S.found;const sx1=lerp(gx+gw*0.15,gx+gw*0.5,m),sx2=lerp(gx+gw*0.85,gx+gw*0.5,m);
+  ctx.fillStyle='#fff3a0';ctx.beginPath();ctx.arc(sx1,gy+H*0.14,7,0,7);ctx.fill();ctx.beginPath();ctx.arc(sx2,gy+H*0.14,7,0,7);ctx.fill();
+  txt('晨星',sx1,gy+H*0.26,'#ffe9b0',12);txt('暮星',sx2,gy+H*0.26,'#ffe9b0',12);
+  if(m>0.98){txt('同一颗：金星（后天发现，却必然同一）',gx+gw/2,gy+H*0.32,'#ffd27a',13,'center',true);hit(3,3);}
+  else txt('完成实验后，两个名字的指称慢慢汇合',gx+gw/2,gy+H*0.32,'rgba(255,233,176,.7)',12);
+  footer('按住链条上下用力拉扯；左右拖动浏览世界；按住右下实验台');}
+
+/* ===== 第 4 关 应用练习 ===== */
+const OBJ4={'苏格拉底':w=>'苏格拉底','金':w=>'金（79 号元素）','老虎':w=>'老虎这个物种','最高的山':w=>['珠峰','乔戈里','某座山','珠峰','另一座山'][w%5],'2026 年的冠军':w=>['A 队','B 队','C 队','A 队','D 队'][w%5],'我最喜欢的颜色':w=>['蓝','红','绿','蓝','紫'][w%5]};
+HD[4]={down(x,y){for(const c of S.cards){if(Math.abs(x-W*c.x)<60&&Math.abs(y-H*c.y)<18){S.drag=c;c.on=null;return;}}S.drag='scroll';},
+ move(x,y,dx){if(S.drag==='scroll')scrollBy(dx);else if(S.drag){S.drag.x=x/W;S.drag.y=y/H;}},
+ up(){const c=S.drag;S.drag=null;if(!c||c==='scroll')return;
+   const zoneR=c.y<0.42&&c.y>0.12?'rig':c.y>=0.42&&c.y<0.76?'non':null;
+   if(zoneR){c.on=zoneR;const ok=(zoneR==='rig')===c.rig;hit(4,0);if(!ok){toast(`“${c.w}”在不同世界里${c.rig?'始终':'并不总'}指向同一个东西——再看看世界带`);c.on=null;c.y=0.88;}}
+   if(S.cards.every(k=>k.on&&((k.on==='rig')===k.rig))){hit(4,1);toast('全部归类正确');}}};
+function t4(dt){bg();if(!PT){S.off=clamp(S.off+S.vel*0.92,0,maxOff());S.vel*=0.92;}
+  ctx.fillStyle='rgba(58,111,153,.10)';ctx.fillRect(0,H*0.12,W,H*0.30);txt('严格：在每个世界都钉住同一对象（拖到这里）',12,H*0.12+18,'#3a6f99',13,'left',true);
+  ctx.fillStyle='rgba(192,57,43,.08)';ctx.fillRect(0,H*0.42,W,H*0.34);txt('非严格：在不同世界指向不同对象（拖到这里）',12,H*0.42+18,'#c0392b',13,'left',true);
+  const cw=CW();
+  // 当前被拖的卡，在世界带上实时显示它在各世界的指称
+  const probe=S.drag&&S.drag!=='scroll'?S.drag:null;
+  visibleWorlds().forEach(wd=>{const x=worldX(wd.i);ctx.strokeStyle='rgba(0,0,0,.12)';ctx.strokeRect(x,H*0.04,cw-14,H*0.07);txt(wd.label,x+(cw-14)/2,H*0.04+15,'#556',11);
+    if(probe)txt('→ '+OBJ4[probe.w](wd.i),x+(cw-14)/2,H*0.04+H*0.06,probe.rig?'#3a6f99':'#c0392b',12,'center',true);});
+  S.cards.forEach(c=>{const x=W*c.x,y=H*c.y;ctx.fillStyle=c.on?(c.on==='rig'?'#3a6f99':'#c0392b'):'#fff';ctx.strokeStyle='#556';ctx.beginPath();ctx.roundRect(x-56,y-16,112,32,10);ctx.fill();ctx.stroke();txt(c.w,x,y+5,c.on?'#fff':'#223',13,'center',true);});
+  footer('按住词卡：上方世界带会实时显示它在每个世界里指向什么；再把它放进严格或非严格区');}
+
+/* ===== 公共 ===== */
+function bg(){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#e3ebf3');g.addColorStop(1,'#cfd9e3');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);}
+function footer(t){txt(t,W/2,H-10,'#223',12.5);}
+const TICK={1:t1,2:t2,3:t3,4:t4};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!done[t.dataset.l]);});}
+function go(n){L=n;store.set('level',L);tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);freshLevel();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{store.set('off'+L,0);freshLevel();toast('已重置（已对应的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(store.get('level')||1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

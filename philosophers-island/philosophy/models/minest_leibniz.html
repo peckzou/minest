@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 莱布尼茨单子论 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>莱布尼茨 · 单子论</b>
+  <button class="tab on" data-l="1">① 没有部分</button>
+  <button class="tab" data-l="2">② 没有窗户</button>
+  <button class="tab" data-l="3">③ 宇宙之镜</button>
+  <button class="tab" data-l="4">④ 前定和谐</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="bd" id="sBody"></div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;const done={};
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ======== 原文：莱布尼茨《单子论》（1714，marxists.org 英译本）；中文编译 ======== */
+const E='《单子论》';
+const MAP={
+1:[["一颗单子：简单实体","我们这里所说的单子，无非是一种构成复合物的简单实体；所谓简单，就是没有部分。","The monad, of which we will speak here, is nothing else than a simple substance, which goes to make up compounds; by simple, we mean without parts.","§1"],
+   ["拉扯复合物：它散成碎片","复合物无非是简单实体的集合或聚合。","the compound is nothing else than a collection or aggregatum of simple substances","§2"],
+   ["拉扯单子：怎么也分不开","没有组成部分的地方，就既没有广延，也没有形状，也不可分割。这些单子是自然的真正原子。","where there are no constituent parts there is possible neither extension, nor form, nor divisibility. These monads are the true atoms of nature","§3"],
+   ["复合物按部分消散，单子只能一下子开始或终结","单子只能一下子开始或终结……复合物则是按部分开始或终结的。","the existence of monads can begin or end only all at once … Compounds, however, begin or end by parts.","§6"],
+   ["放大成磨坊：只见零件，不见知觉","进入它的内部，就像进入一座磨坊……只会看到零件相互推动，却永远找不到能解释知觉的东西。","on going into it he would find only pieces working upon one another, but never would he find anything to explain perception","§17"]],
+2:[["朝单子扔东西：全部弹开","单子没有可供事物出入的窗户。","The monads have no windows through which anything may come in or go out.","§7"],
+   ["外物进不去，性质也出不来","同样，无论实体还是属性，都不能从外面进入单子。","In the same way neither substance nor attribute can enter from without into a monad.","§7"],
+   ["内部的知觉持续变化","每一个被创造的存在物……都会变化，而且这种变化在每一个之中都是连续的。","every created being, and consequently the created monad, is subject to change, and indeed that this change is continuous in each","§10"],
+   ["变化来自内部原则","单子的自然变化来自一个内在原则，因为外部原因无法影响它的内在存在。","the natural changes of the monad come from an internal principle, because an external cause can have no influence on its inner being","§11"],
+   ["按住“欲求”：推向新的知觉","造成变化、即从一个知觉过渡到另一个知觉的内在原则的活动，可以称为欲求。","The action of the internal principle which brings about the change or the passing from one perception to another may be called appetition.","§15"]],
+3:[["每颗单子里映着整个宇宙","每一个简单实体都有表达其他一切的关系，因而是宇宙的一面永恒的活镜子。","every simple substance has relations which express all the others and that it is consequently a perpetual living mirror of the universe","§56"],
+   ["拖动单子：同一座城，各自的视角","正如同一座城市从不同方面看去显得完全不同……每个单子都从自己特殊的视角看同一个宇宙。","as the same city regarded from different sides appears entirely different … only the aspects of a single one as seen from the special point of view of each monad","§57"],
+   ["远处模糊，近处清晰","这种表象就整个宇宙的细节而言只是混乱的，只在一小部分上是清晰的。","this representation is, as regards the details of the whole universe, only a confused representation, and is distinct only as regards a small part of them","§60"],
+   ["最清晰的是自己的身体","每个被创造的单子虽然表象整个宇宙，但它更清晰地表象特别属于它的那个身体。","although each created monad represents the whole universe, it represents more distinctly the body which specially pertains to it","§62"]],
+4:[["灵魂与身体各自运行","灵魂遵循它自己的规律，身体也遵循它自己的规律。","The soul follows its own laws, and the body likewise follows its own laws.","§78"],
+   ["彼此协调：前定和谐","它们由于一切实体之间的前定和谐而彼此相合，因为它们都是同一个宇宙的表象。","They are fitted to each other in virtue of the preestablished harmony between all substances since they are all representations of one and the same universe.","§78"],
+   ["灵魂按目的，身体按动力","灵魂依照目的因的规律……行动。身体依照动力因或运动的规律行动。","Souls act in accordance with the laws of final causes through their desires, ends and means. Bodies act in accordance with the laws of efficient causes or of motion.","§79"],
+   ["试图让一方推动另一方：推不动","笛卡尔看到灵魂完全不能给物体以力，因为物质中力的总量总是相同的。","Descartes saw that souls cannot at all impart force to bodies, because there is always the same quantity of force in matter.","§80"],
+   ["看起来像相互影响","身体的活动就好像根本没有灵魂，灵魂的活动就好像没有身体，然而二者的活动又好像一方在影响另一方。","bodies act as if (to suppose the impossible) there were no souls at all, and souls act as if there were no bodies, and yet both body and soul act as if the one were influencing the other","§81"]]};
+const TITLE={1:'① 没有部分 · 按住复合物或单子向两边拉扯',2:'② 没有窗户 · 把小球朝单子拖拽、扔过去；按住单子中心：欲求',3:'③ 宇宙之镜 · 拖动下方的单子在城中移动，看它内部映出的城市',4:'④ 前定和谐 · 按住拖动“身体”或“灵魂”的指针，试着推动另一方；切断连线'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——莱布尼茨${E} ${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const e=$('mr'+l+'_'+i);if(!e||e.classList.contains('on'))return;e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});
+  if(MAP[l].every((_,k)=>$('mr'+l+'_'+k).classList.contains('on'))){done[l]=1;tabs();}}
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]?.move?.(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]?.up?.();});
+function monad(x,y,r,hue,glow){const g=ctx.createRadialGradient(x-r*.3,y-r*.3,r*.1,x,y,r);g.addColorStop(0,`hsla(${hue},90%,85%,1)`);g.addColorStop(1,`hsla(${hue},70%,45%,1)`);
+  ctx.save();ctx.shadowColor=`hsla(${hue},90%,70%,.9)`;ctx.shadowBlur=glow||18;ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.restore();}
+
+/* ================= 第 1 关：没有部分 ================= */
+let A;
+function init1(){A={parts:[],pull:null,stretch:0,mStretch:0,mTries:0,broken:false,zoom:0,zoomHold:false};
+  for(let i=0;i<14;i++){const a=i/14*6.283;A.parts.push({ox:Math.cos(a)*30*(0.4+(i%3)*0.3),oy:Math.sin(a)*30*(0.4+(i%3)*0.3),x:0,y:0,vx:0,vy:0,h:200+i*8});}}
+const P1=()=>({cx:W*0.28,cy:H*0.5,mx:W*0.72,my:H*0.5});
+HD[1]={down(x,y){const p=P1();if(Math.hypot(x-p.cx,y-p.cy)<90&&!A.broken)A.pull={k:'c',x0:x};else if(Math.hypot(x-p.mx,y-p.my)<60){A.pull={k:'m',x0:x,t0:T};}},
+ move(x){if(!A.pull)return;const d=Math.abs(x-A.pull.x0)/(W*0.25);if(A.pull.k==='c'){A.stretch=clamp(d,0,1.3);hit(1,1);if(A.stretch>1&&!A.broken){A.broken=true;A.parts.forEach(p=>{p.vx=p.ox*6+(Math.random()-.5)*140;p.vy=p.oy*6-Math.random()*100;});hit(1,3);toast('复合物按部分散开了');}}else{A.mStretch=clamp(d,0,1.5);}},
+ up(){if(A.pull&&A.pull.k==='m'){if(A.mStretch>0.5){A.mTries++;hit(1,2);toast('它没有可以分开的部分');if(A.mTries>=2)hit(1,3);}else if(T-A.pull.t0>0.6){A.zoomHold=false;}}A.pull=null;A.stretch=A.broken?A.stretch:0;}};
+function t1(dt){ctx.fillStyle='#141a2a';ctx.fillRect(0,0,W,H);const p=P1();if(T>0.8)hit(1,0);
+  txt('复合物',p.cx,30,'#cfd6e6',15,'center',true);txt('单子',p.mx,30,'#cfd6e6',15,'center',true);
+  // 复合物
+  A.parts.forEach(q=>{if(A.broken){q.vy+=300*dt;q.x+=q.vx*dt;q.y+=q.vy*dt;}else{const sx=1+A.stretch*1.6*Math.sign(q.ox||1)*0;q.x=q.ox*(1+A.stretch*(q.ox>0?1.4:1.4))*(1)+(q.ox>0?1:-1)*A.stretch*40;q.y=q.oy*(1-A.stretch*0.3);}
+    monad(p.cx+q.x,p.cy+q.y,11,q.h,6);});
+  if(!A.broken&&A.stretch>0.1){ctx.strokeStyle='rgba(255,255,255,.2)';ctx.setLineDash([3,3]);ctx.beginPath();ctx.arc(p.cx,p.cy,60+A.stretch*40,0,7);ctx.stroke();ctx.setLineDash([]);}
+  txt(A.broken?'散成了一个个单子':'按住向左右拉扯',p.cx,H*0.92,'#cfd6e6',13);
+  // 单子：拉伸时不变形，弹性地抖动回原状
+  const m=A.pull&&A.pull.k==='m'?A.mStretch:0;const wob=Math.sin(T*30)*m*3;
+  if(!A.pull)A.zoom=lerp(A.zoom,A.zoomHold?1:0,dt*2);
+  monad(p.mx+wob,p.my,40,45,22+m*30);
+  if(m>0.3){ctx.strokeStyle='rgba(255,120,120,.7)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(p.mx-60-m*60,p.my);ctx.lineTo(p.mx-46,p.my);ctx.moveTo(p.mx+46,p.my);ctx.lineTo(p.mx+60+m*60,p.my);ctx.stroke();txt('无处下手：没有部分',p.mx,p.my-60,'#ffb0b0',13);}
+  txt(`拉扯单子 ${A.mTries} 次`,p.mx,H*0.92,'#cfd6e6',13);
+  // 磨坊：把复合物“机器”放大
+  if(A.broken){const k=clamp((T%6)/6,0,1);ctx.strokeStyle='rgba(200,180,140,.5)';ctx.lineWidth=2;for(let i=0;i<3;i++){const gx=W*0.5,gy=H*0.18+i*0;const r=16+i*8;ctx.beginPath();ctx.arc(gx-40+i*40,H*0.82,r,T*(i%2?1:-1),T*(i%2?1:-1)+5.5);ctx.stroke();}
+    txt('走进思维机器的“磨坊”：只有零件相推，找不到知觉',W*0.5,H*0.72,'#e6d6b0',12);if(T>3)hit(1,4);}}
+
+/* ================= 第 2 关：没有窗户 ================= */
+let B;
+function init2(){B={balls:[],drag:null,app:0,hold:false,per:0,bounce:0,tries:0};for(let i=0;i<5;i++)B.balls.push({x:W*0.08+i*30,y:H*0.85,vx:0,vy:0,h:i*60});}
+const C2=()=>({x:W*0.6,y:H*0.48,r:Math.min(W,H)*0.2});
+HD[2]={down(x,y){const c=C2();if(Math.hypot(x-c.x,y-c.y)<c.r*0.5){B.hold=true;return;}for(const b of B.balls){if(Math.hypot(x-b.x,y-b.y)<20){B.drag=b;b.vx=b.vy=0;return;}}},
+ move(x,y,dx,dy){if(B.drag){B.drag.x=x;B.drag.y=y;B.drag.vx=dx*30;B.drag.vy=dy*30;}},
+ up(){B.drag=null;B.hold=false;}};
+function t2(dt){ctx.fillStyle='#141a2a';ctx.fillRect(0,0,W,H);const c=C2();
+  B.app=lerp(B.app,B.hold?1:0.15,dt*2);B.per+=dt*B.app*1.2;if(B.per>0.3)hit(2,2);if(B.hold){hit(2,3);if(B.app>0.6)hit(2,4);}
+  // 单子壳：闭合、无窗
+  ctx.save();ctx.shadowColor='#9bb8ff';ctx.shadowBlur=24;ctx.strokeStyle='#cfdcff';ctx.lineWidth=5;ctx.beginPath();ctx.arc(c.x,c.y,c.r,0,7);ctx.stroke();ctx.restore();
+  ctx.save();ctx.beginPath();ctx.arc(c.x,c.y,c.r-4,0,7);ctx.clip();
+  // 内部知觉：由内在原则持续变化的图案
+  for(let i=0;i<7;i++){const a=B.per*(0.6+i*0.15)+i;const rr=c.r*(0.2+0.1*i);ctx.fillStyle=`hsla(${(B.per*40+i*50)%360},70%,60%,.35)`;ctx.beginPath();ctx.ellipse(c.x+Math.cos(a)*c.r*0.25,c.y+Math.sin(a*1.3)*c.r*0.2,rr,rr*0.6,a,0,7);ctx.fill();}
+  ctx.restore();
+  monad(c.x,c.y,14+B.app*8,50,10+B.app*30);txt(B.hold?'欲求：推向新的知觉':'按住中心',c.x,c.y+c.r*0.5,'#ffe7b5',12);
+  // 小球：撞到外壳一律弹开
+  B.balls.forEach(b=>{if(b!==B.drag){b.vy+=200*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;b.vx*=0.995;
+      if(b.y>H-12){b.y=H-12;b.vy*=-0.5;}if(b.x<12||b.x>W-12){b.vx*=-0.8;b.x=clamp(b.x,12,W-12);}}
+    const d=Math.hypot(b.x-c.x,b.y-c.y);if(d<c.r+12){const nx=(b.x-c.x)/d,ny=(b.y-c.y)/d;b.x=c.x+nx*(c.r+12);b.y=c.y+ny*(c.r+12);const vn=b.vx*nx+b.vy*ny;if(vn<0){b.vx-=1.8*vn*nx;b.vy-=1.8*vn*ny;B.bounce=1;B.tries++;hit(2,0);if(B.tries>=3)hit(2,1);}
+      if(B.drag===b){B.drag=null;toast('进不去：单子没有窗户');}}
+    ctx.fillStyle=`hsl(${b.h},70%,60%)`;ctx.beginPath();ctx.arc(b.x,b.y,12,0,7);ctx.fill();});
+  if(B.bounce>0.02){ctx.strokeStyle=`rgba(255,255,255,${B.bounce})`;ctx.lineWidth=3;ctx.beginPath();ctx.arc(c.x,c.y,c.r+6+(1-B.bounce)*20,0,7);ctx.stroke();B.bounce*=0.9;}
+  txt(`撞击外壳 ${B.tries} 次 · 内部变化只来自它自己`,W*0.3,28,'#cfd6e6',13);}
+
+/* ================= 第 3 关：宇宙之镜 ================= */
+let C;
+const CITY=[[0.15,0.3,'#e06b5a'],[0.3,0.2,'#f3c24b'],[0.45,0.35,'#6bc28a'],[0.6,0.18,'#5aa0e0'],[0.75,0.32,'#b07be0'],[0.88,0.24,'#e0a05a'],[0.22,0.48,'#7fd0d0'],[0.52,0.5,'#e07bb0'],[0.8,0.5,'#9ad05a']];
+function init3(){C={mon:[{x:0.2,y:0.8},{x:0.5,y:0.8},{x:0.8,y:0.8}],drag:null,moved:0};}
+HD[3]={down(x,y){C.mon.forEach(m=>{if(Math.hypot(x-W*m.x,y-H*m.y)<26)C.drag=m;});},move(x,y){if(C.drag){C.drag.x=clamp(x/W,0.05,0.95);C.drag.y=clamp(y/H,0.62,0.92);C.moved++;if(C.moved>20)hit(3,1);if(C.moved>60)hit(3,2);}},up(){C.drag=null;}};
+function t3(dt){ctx.fillStyle='#0f1626';ctx.fillRect(0,0,W,H);if(T>0.8)hit(3,0);
+  // 城市（俯视）
+  CITY.forEach(([x,y,c],i)=>{ctx.fillStyle=c;ctx.fillRect(W*x-14,H*y-14-((i*13)%10),28,28+((i*13)%10));});txt('同一座城',W*0.5,24,'#cfd6e6',13);
+  C.mon.forEach((m,k)=>{const mx=W*m.x,my=H*m.y;monad(mx,my,18,40+k*100,14);
+    // 内镜：按视角从左到右的投影，距离越远越模糊、越小
+    const bx=mx-60,by=my-150,bw=120,bh=70;ctx.save();ctx.beginPath();ctx.ellipse(mx,by+bh/2,bw/2,bh/2,0,0,7);ctx.fillStyle='rgba(255,255,255,.08)';ctx.fill();ctx.strokeStyle=`hsla(${40+k*100},80%,70%,.8)`;ctx.lineWidth=2;ctx.stroke();ctx.clip();
+    const items=CITY.map(([x,y,c])=>{const dx=W*x-mx,dy=H*y-my;const d=Math.hypot(dx,dy);return{ang:Math.atan2(dx,-dy),d,c};}).sort((a,b)=>b.d-a.d);
+    items.forEach(it=>{const sx=mx+clamp(it.ang/1.6,-1,1)*bw*0.48;const s=clamp(1600/it.d,4,30);const blur=clamp(it.d/W*6,0,5);ctx.globalAlpha=clamp(1.3-it.d/W,0.25,1);ctx.filter=`blur(${blur.toFixed(1)}px)`;ctx.fillStyle=it.c;ctx.fillRect(sx-s/2,by+bh*0.7-s,s,s);});
+    ctx.filter='none';ctx.globalAlpha=1;
+    // 自己的身体：最清晰
+    ctx.fillStyle=`hsla(${40+k*100},90%,70%,1)`;ctx.fillRect(mx-8,by+bh-14,16,10);ctx.restore();
+    txt('自己的身体',mx,by+bh+12,`hsla(${40+k*100},80%,75%,.8)`,10);if(T>4)hit(3,3);
+    ctx.strokeStyle='rgba(255,255,255,.15)';ctx.beginPath();ctx.moveTo(mx,my-18);ctx.lineTo(mx,by+bh);ctx.stroke();});
+  txt('拖动底部的单子：每颗都映出整个城市，视角与清晰度各不相同',W*0.5,H*0.985,'#cfd6e6',12);}
+
+/* ================= 第 4 关：前定和谐 ================= */
+let D;
+function init4(){D={tb:0,ts:0,drag:null,push:0,pushes:0,cut:false,link:1};}
+HD[4]={down(x,y){const cb={x:W*0.27,y:H*0.5},cs={x:W*0.73,y:H*0.5};if(Math.hypot(x-cb.x,y-cb.y)<110)D.drag='b';else if(Math.hypot(x-cs.x,y-cs.y)<110)D.drag='s';else if(Math.abs(x-W*0.5)<60)D.cut=true;},
+ move(x,y,dx){if(D.drag){D.push+=Math.abs(dx)/(W*0.2);}},
+ up(){if(D.drag&&D.push>0.4){D.pushes++;hit(4,3);toast(D.drag==='b'?'身体的指针被拨动，又回到它自己的规律':'灵魂想推动身体：推不动');}D.drag=null;D.push=0;}};
+function clock(x,y,r,t,label,col,body){ctx.fillStyle='#f4efe2';ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=5;ctx.stroke();
+  for(let i=0;i<12;i++){const a=i/12*6.283;ctx.beginPath();ctx.moveTo(x+Math.cos(a)*r*0.85,y+Math.sin(a)*r*0.85);ctx.lineTo(x+Math.cos(a)*r*0.95,y+Math.sin(a)*r*0.95);ctx.stroke();}
+  const a=t*6.283-1.5708;ctx.strokeStyle='#222';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+Math.cos(a)*r*0.8,y+Math.sin(a)*r*0.8);ctx.stroke();
+  const a2=t*0.5236-1.5708;ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+Math.cos(a2)*r*0.5,y+Math.sin(a2)*r*0.5);ctx.stroke();
+  txt(label,x,y+r+26,col,15,'center',true);
+  if(body){for(let i=0;i<3;i++){ctx.strokeStyle='rgba(120,90,60,.8)';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x-r*1.05+i*0,y+r*0.6,10+i*6,T*(i%2?2:-2),T*(i%2?2:-2)+5);ctx.stroke();}txt('齿轮：动力因',x-r*1.05,y+r*0.6+40,'#b08a60',11);}
+  else{txt('目的：欲求与手段',x+r*1.05,y+r*0.6+40,'#a08ad0',11);ctx.fillStyle='rgba(160,138,208,.6)';ctx.beginPath();ctx.arc(x+r*1.05,y+r*0.6,10+Math.sin(T*3)*3,0,7);ctx.fill();}}
+function t4(dt){ctx.fillStyle='#1a1626';ctx.fillRect(0,0,W,H);const r=Math.min(W*0.17,H*0.3);
+  // 两只钟按各自规律走；用户拨动只造成瞬时偏离，随即回到前定的步调
+  const base=T*0.08;let ob=0,os=0;if(D.drag==='b')ob=Math.sin(T*20)*0.03*Math.min(1,D.push);if(D.drag==='s')os=Math.sin(T*20)*0.03*Math.min(1,D.push);
+  D.tb=base+ob;D.ts=base+os;
+  clock(W*0.27,H*0.48,r,D.tb,'身体',''+'#b08a60',true);clock(W*0.73,H*0.48,r,D.ts,'灵魂','#a08ad0',false);
+  if(T>1.5)hit(4,0);if(T>4)hit(4,1);if(T>6)hit(4,2);
+  // 中间：看似存在的连线
+  if(!D.cut){ctx.strokeStyle='rgba(255,231,181,.5)';ctx.setLineDash([6,6]);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(W*0.27+r,H*0.48);ctx.lineTo(W*0.73-r,H*0.48);ctx.stroke();ctx.setLineDash([]);txt('点中间：剪断“影响”之线',W/2,H*0.48-12,'rgba(255,231,181,.8)',12);}
+  else{D.link=Math.max(0,D.link-dt);txt('线已剪断，两只钟依旧同步',W/2,H*0.48-12,'#7dffb0',14,'center',true);hit(4,4);}
+  const sync=Math.abs(((D.tb-D.ts)%1+1)%1);txt(`两钟偏差：${(Math.min(sync,1-sync)*3600).toFixed(1)} 秒`,W/2,H*0.88,'#ffe7b5',14);
+  txt('按住一只钟左右拨动，试着让它带动另一只',W/2,H*0.95,'#cfd6e6',12);}
+
+/* ======== 调度 ======== */
+const INIT={1:init1,2:init2,3:init3,4:init4},TICK={1:t1,2:t2,3:t3,4:t4};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!done[t.dataset.l]);});}
+function go(n){L=n;tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{INIT[L]();toast('已重置（已对应的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

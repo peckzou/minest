@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 奎因信念之网 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .q0{padding:4px 10px;font-size:12.5px;color:#2c3e50;background:#fff7e0;border-bottom:1px solid #eadfb8}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+#side .bnd{padding:4px 10px 8px;font-size:11.5px;color:#667}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>奎因 · 信念之网</b>
+  <button class="tab on" data-l="1">① 整体接受检验</button>
+  <button class="tab" data-l="2">② 顽抗的经验</button>
+  <button class="tab" data-l="3">③ 修改核心</button>
+  <button class="tab" data-l="4">④ 应用练习</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="q0"><b>核心问题：</b>当经验与我们的信念冲突时，到底是哪一个信念错了？有没有什么信念是怎样都不必修改的？</div><div class="bd" id="sBody"></div><div class="bnd"><b>适用边界：</b>节点、弹簧与“代价”数值只是教学类比。奎因并未给信念赋予数值或规定修改的计算规则；“代价”只示意修改越靠近中心、牵连越广。卡片中凡未注明为奎因原话者，均为词条作者的概述。</div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);layout();}
+addEventListener('resize',resize);
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ===== 保存与恢复 ===== */
+const MEM={};
+const store={get(k){try{const v=localStorage.getItem(k);return v==null?MEM[k]:JSON.parse(v);}catch(e){return MEM[k];}},set(k,v){MEM[k]=v;try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
+const KEY='minest_quine_web_v1';
+const SAVED=store.get(KEY)||{lit:{},done:{},level:1,best:{}};
+function save(){store.set(KEY,SAVED);}
+
+/* ===== 原文对应 =====
+   SEP = "Willard Van Orman Quine", Stanford Encyclopedia of Philosophy (substantive revision 2023-07-06)
+   WP  = Wikipedia, "Two Dogmas of Empiricism" */
+const SEP='据 SEP《Willard Van Orman Quine》词条转引',SEPs='SEP《Willard Van Orman Quine》词条概述',WP='据维基百科《Two Dogmas of Empiricism》条目转引',WPs='维基百科《Two Dogmas of Empiricism》条目概述';
+const MAP={
+1:[["把一次经验拖到某个观察节点上","奎因的整体论认为，我们的知识几乎都不直接对经验负责。","almost none of our knowledge is directly answerable to experience",SEPs+" §3.2"],
+   ["经验只碰到边缘：脉冲沿网传向内部","我们的大多数语句单独来看，并没有对经验的蕴涵。","most of our sentences do not have implications for experience when they are taken one-by-one",SEPs+" §3.1"],
+   ["被点亮的是一整块理论，而非单个语句","具有经验蕴涵的，大多数情况下不是单个语句，而是一大块理论。","What has experiential implication is, in most cases, not an individual sentence but a larger chunk of theory.",SEPs+" §3.1"],
+   ["（转述）拖动一个节点，整张网被牵动","奎因把我们的全部知识比作一张人造的织物，只在边缘处与经验接触；边缘的冲突会引起网内部的重新调整。","—","奎因《经验论的两个教条》§6（转述，原文未能取得核对）"]],
+2:[["顽抗的经验：冲突链条持续发红","按照奎因，任何陈述都可以被坚持为真，只要在系统的其他地方作出适当的调整。","Any statement can be held as necessarily true according to Quine, if the right changes are made somewhere else in the system.",WPs],
+   ["按住某个节点：修改它，切断冲突","在原则上，一个主张是否正确，几乎从来不能仅凭它自己的经验证据来决定。","in principle the correctness of a given claim is almost never settled simply by looking at the empirical evidence for that claim alone",SEPs+" §3.1"],
+   ["比较不同修法的代价","起作用的还有：接受该主张会如何影响整个理论的效能与简单性。","the efficacy and simplicity of the theory as a whole",SEPs+" §3.1"],
+   ["用不同方式各解决一次","奎因由此接受“一种更彻底的实用主义”。","a more thorough pragmatism",SEP+"（Quine 1951, 46；SEP §3.1）"]],
+3:[["长按中心：修改逻辑或算术","没有任何陈述可以免于修改。","no statement is immune to revision",SEP+"（Quine 1951, 43；SEP §3.3）"],
+   ["中心被修改：逻辑律也在其列","按照奎因，甚至逻辑定律也可以被修改。","Even logical laws can be revised according to Quine.",WPs],
+   ["算术位于网的中心","在奎因著名的隐喻中，算术位于“信念之网”的中心附近。","it stands near the centre of the 'web of belief'",SEPs+" §3.2"],
+   ["整张网剧烈震动，代价巨大","放弃它就意味着放弃我们整个知识体系。","Abandoning it would mean abandoning our whole system of knowledge",SEPs+" §3.2"]],
+4:[["新的网：行星位置与预测不符","（应用练习）同样的整体论，换到一个新的天文情境中检验。","—","编者说明"],
+   ["拖入一个“新假定的物体”来吸收冲突","物理对象的神话被证明比大多数神话更有效，是把可操作的结构引入经验之流的手段。","proved more efficacious than other myths as a device for working a manageable structure into the flux of experience",WP+"（Quine 1951）"],
+   ["以较低代价化解冲突","重要的是我们的理论作为一个整体在应对经验时的成功。","the success of our theory as a whole",SEPs+" §3.2"]]};
+const TITLE={1:'① 整体接受检验 · 把左侧的“经验”拖到网边缘的某个观察节点上，看脉冲怎样传开',2:'② 顽抗的经验 · 冲突链条发红颤动：按住任一节点 1 秒即可修改它；目标是切断所有红色链条',3:'③ 修改核心 · 这一次冲突穿过中心：长按中心节点 4 秒，看会发生什么',4:'④ 应用练习 · 新的网：用尽量低的代价化解冲突；可把右下角的“新物体”拖到理论节点上'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr${SAVED.lit[l+'_'+i]?' on':''}" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」${r[2]!=='—'?`<div class="en">${r[2]}</div>`:''}<div class="ref">——${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const k=l+'_'+i;if(SAVED.lit[k])return;SAVED.lit[k]=1;save();const e=$('mr'+l+'_'+i);if(e&&L===l){e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});}
+  if(MAP[l].every((_,j)=>SAVED.lit[l+'_'+j])){SAVED.done[l]=1;save();tabs();}}
+
+/* ===== 网 ===== */
+const NETS={
+ base:{core:['逻辑律','算术'],theory:['力学定律','光学原理','原子论','热学','仪器原理','地质年代','进化论'],obs:['指针读数','天平平衡','星的位置','化石层','颜色变化','温度读数','光谱线','钟表读数','火花','石头下落'],
+  edges:[[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[1,0],[1,1],[1,2],[1,3],[1,4],[1,5]],
+  tt:[[0,4],[1,4],[2,3],[3,4],[5,6],[2,5],[0,1]],
+  to:[[0,0],[0,9],[0,1],[1,2],[1,6],[2,4],[2,8],[3,5],[3,4],[4,0],[4,5],[4,7],[5,3],[6,3],[1,7],[0,2],[2,6]]},
+ astro:{core:['逻辑律','算术'],theory:['引力定律','已知行星表','望远镜校准','轨道计算','光行差'],obs:['行星位置','恒星位置','月相','日食时刻','彗星回归'],
+  edges:[[0,0],[0,3],[1,0],[1,3],[1,4],[0,2]],tt:[[0,3],[1,3],[2,4],[3,4]],
+  to:[[3,0],[1,0],[2,0],[2,1],[4,1],[0,2],[3,3],[0,4],[3,4]]}};
+let N=[],E=[],chains=[],expNode=-1,revised=new Set(),cost=0,holdNode=-1,holdT=0,pulses=[],shake=0,drag=null,posit=null,tries=new Set(),coreDone=false,solved=false;
+function build(nm){const n=NETS[nm];N=[];E=[];
+  n.core.forEach((t,i)=>N.push({t,ring:0,i,k:n.core.length}));n.theory.forEach((t,i)=>N.push({t,ring:1,i,k:n.theory.length}));n.obs.forEach((t,i)=>N.push({t,ring:2,i,k:n.obs.length}));
+  const t0=n.core.length,o0=t0+n.theory.length;
+  n.edges.forEach(([a,b])=>E.push([a,t0+b]));n.tt.forEach(([a,b])=>E.push([t0+a,t0+b]));n.to.forEach(([a,b])=>E.push([t0+a,o0+b]));
+  N.forEach((v,i)=>{v.deg=E.filter(e=>e[0]===i||e[1]===i).length;v.vx=0;v.vy=0;v.glow=0;v.x=null;});
+  revised=new Set();cost=0;chains=[];expNode=-1;pulses=[];shake=0;posit=null;solved=false;layout();}
+function layout(){const cx=W*0.5,cy=H*0.5,R=Math.min(W*0.42,H*0.44);
+  N.forEach(v=>{const r=[0.12,0.52,0.92][v.ring]*R;const a=v.i/v.k*6.283+[0.4,0.15,0][v.ring];v.hx=cx+Math.cos(a)*r*1.25;v.hy=cy+Math.sin(a)*r;if(v.x==null){v.x=v.hx;v.y=v.hy;}});}
+function nbr(i){return E.filter(e=>e[0]===i||e[1]===i).map(e=>e[0]===i?e[1]:e[0]);}
+function findChains(o){const out=[];function dfs(p){const last=p[p.length-1];if(N[last].ring===0){out.push(p.slice());return;}if(p.length>5)return;
+  nbr(last).forEach(j=>{if(p.includes(j)||N[j].ring>N[last].ring)return;dfs([...p,j]);});}dfs([o]);return out;}
+function nodeCost(i){const v=N[i];return v.ring===0?20:v.ring===1?2+v.deg:1;}
+function liveChains(){return chains.filter(c=>c.every(i=>!revised.has(i)));}
+
+/* ===== 输入 ===== */
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const EXP=()=>({x:W*0.07,y:H*0.5});const POS=()=>({x:W*0.92,y:H*0.84});
+function nodeAt(x,y){let b=-1,bd=1e9;N.forEach((v,i)=>{const d=Math.hypot(x-v.x,y-v.y);if(d<(v.ring===0?34:26)&&d<bd){bd=d;b=i;}});return b;}
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y};cv.setPointerCapture(e.pointerId);const ex=EXP();
+  if((L===1||L===2)&&Math.hypot(x-ex.x,y-ex.y)<42){drag={kind:'exp',x,y};return;}
+  if(L===4&&!posit&&Math.hypot(x-POS().x,y-POS().y)<36){drag={kind:'posit',x,y};return;}
+  const i=nodeAt(x,y);if(i>=0){if(L===1){drag={kind:'node',i,moved:0};return;}holdNode=i;holdT=0;}});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);if(PT){PT.x=x;PT.y=y;}
+  if(drag){if(drag.kind==='node'){const v=N[drag.i];drag.moved+=Math.hypot(x-v.x,y-v.y);v.x=x;v.y=y;}else{drag.x=x;drag.y=y;}}
+  if(holdNode>=0){const v=N[holdNode];if(Math.hypot(x-v.x,y-v.y)>55){holdNode=-1;holdT=0;}}});
+addEventListener('pointerup',()=>{PT=null;
+  if(drag){if(drag.kind==='exp'){const i=nodeAt(drag.x,drag.y);if(i>=0&&N[i].ring===2)inject(i);else if(i>=0)toast('经验只能从网的边缘进入：试试最外圈的绿色观察节点');}
+   else if(drag.kind==='posit'){const i=nodeAt(drag.x,drag.y);if(i>=0&&N[i].ring===1){posit={on:i,born:1};revised.add(i);cost+=2;toast(`假定一个新物体，只调整“${N[i].t}”：代价 2`);hit(4,1);check();}else toast('把“新物体”放到中间一圈的蓝色理论节点上');}
+   else if(drag.kind==='node'&&L===1&&drag.moved>80)hit(1,3);
+   drag=null;}
+  holdNode=-1;holdT=0;});
+function inject(i){expNode=i;chains=findChains(i);pulses.push({from:i,t:0});solved=false;
+  if(L===1){hit(1,0);setTimeout(()=>hit(1,1),900);}
+  if(L===2)toast(`“${N[i].t}”出现了意料之外的结果：${chains.length} 条推理链与它冲突`);}
+function revise(i){if(revised.has(i))return;revised.add(i);cost+=nodeCost(i);N[i].glow=1;
+  nbr(i).forEach(j=>{N[j].vx+=(Math.random()-.5)*80;N[j].vy+=(Math.random()-.5)*80;});
+  if(L===2&&chains.some(c=>c.includes(i)))hit(2,1);
+  if(N[i].ring===0){shake=1.6;N.forEach(u=>{u.vx+=(Math.random()-.5)*280;u.vy+=(Math.random()-.5)*280;u.glow=0.8;});
+    if(L===3){hit(3,0);hit(3,1);setTimeout(()=>hit(3,3),900);coreDone=true;toast(`修改了“${N[i].t}”：整张网都要重新调整（代价 20）`);}
+    else toast('修改中心：可以做到，但代价极高');}
+  check();}
+function check(){if(expNode<0||solved)return;if(liveChains().length)return;solved=true;
+  if(L===2){tries.add([...revised].sort().join(','));hit(2,0);hit(2,2);toast(`冲突化解：修改了 ${revised.size} 个信念，代价 ${cost}${tries.size<2?'。重置本关，换一种修法再试':''}`);if(tries.size>=2)hit(2,3);}
+  if(L===4){const best=SAVED.best[4];if(best==null||cost<best){SAVED.best[4]=cost;save();}if(cost<=4){hit(4,2);toast(`以代价 ${cost} 化解了冲突`);}else toast(`冲突化解了，但代价 ${cost}：能否更低？（重置再试）`);}}
+
+/* ===== 关卡 ===== */
+function init(l){coreDone=false;
+  if(l===1)build('base');
+  if(l===2){build('base');inject(N.findIndex(v=>v.t==='光谱线'));}
+  if(l===3){build('base');const o=N.findIndex(v=>v.t==='石头下落');expNode=o;
+    chains=findChains(o).filter(c=>c[c.length-1]===0);if(!chains.length)chains=[[o,0]];
+    // 本关：冲突已穿过所有理论层的替代路径，只剩中心可修改——理论节点在此关被视为已被反复确证（锁定）
+    pulses.push({from:o,t:0});setTimeout(()=>{if(L===3)hit(3,2);},1500);}
+  if(l===4){build('astro');inject(N.findIndex(v=>v.t==='行星位置'));setTimeout(()=>{if(L===4)hit(4,0);},600);}}
+function locked(i){return L===3&&N[i].ring!==0;}
+
+/* ===== 绘制 ===== */
+function bfs(s){const d={};d[s]=0;const q=[s];while(q.length){const u=q.shift();nbr(u).forEach(v=>{if(d[v]==null){d[v]=d[u]+1;q.push(v);}});}return d;}
+function needHold(i){return N[i].ring===0?4:1;}
+function tick(dt){T+=dt;
+  const g=ctx.createRadialGradient(W/2,H/2,10,W/2,H/2,Math.max(W,H)*0.7);g.addColorStop(0,'#1d2a3a');g.addColorStop(1,'#0b1018');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  const cx=W/2,cy=H/2,R=Math.min(W*0.42,H*0.44);
+  [0.12,0.52,0.92].forEach((r,k)=>{ctx.strokeStyle=['rgba(255,217,107,.25)','rgba(125,180,255,.18)','rgba(160,255,190,.18)'][k];ctx.setLineDash([4,6]);ctx.beginPath();ctx.ellipse(cx,cy,r*R*1.25,r*R,0,0,7);ctx.stroke();ctx.setLineDash([]);});
+  txt('中心：逻辑与数学',cx,cy-R*0.12-30,'rgba(255,217,107,.6)',11);txt('理论',cx,cy-R*0.52-8,'rgba(125,180,255,.6)',11);txt('边缘：观察与经验',cx,cy-R*0.92-10,'rgba(160,255,190,.6)',11);
+  const live=liveChains();const inChain=new Set();live.forEach(c=>c.forEach(i=>inChain.add(i)));
+  shake=Math.max(0,shake-dt*0.6);
+  N.forEach((v,i)=>{if(drag&&drag.kind==='node'&&drag.i===i)return;v.vx+=(v.hx-v.x)*8*dt-v.vx*4*dt;v.vy+=(v.hy-v.y)*8*dt-v.vy*4*dt;
+    if(inChain.has(i)){v.vx+=(Math.random()-.5)*36;v.vy+=(Math.random()-.5)*36;}
+    if(shake>0){v.vx+=(Math.random()-.5)*shake*400*dt;v.vy+=(Math.random()-.5)*shake*400*dt;}
+    v.x+=v.vx*dt;v.y+=v.vy*dt;v.glow=Math.max(0,v.glow-dt*0.8);});
+  if(drag&&drag.kind==='node'){const v=N[drag.i];nbr(drag.i).forEach(j=>{const u=N[j];u.vx+=(v.x-u.x)*dt*4;u.vy+=(v.y-u.y)*dt*4;nbr(j).forEach(k=>{if(k===drag.i)return;const w=N[k];w.vx+=(u.x-w.x)*dt*1.5;w.vy+=(u.y-w.y)*dt*1.5;});});}
+  E.forEach(([a,b])=>{const A=N[a],B=N[b];const hot=live.some(c=>{const ia=c.indexOf(a),ib=c.indexOf(b);return ia>=0&&ib>=0&&Math.abs(ia-ib)===1;});
+    const cut=revised.has(a)||revised.has(b);
+    ctx.strokeStyle=hot?`rgba(255,80,80,${0.55+0.4*Math.sin(T*10)})`:cut?'rgba(255,255,255,.07)':'rgba(200,215,235,.25)';ctx.lineWidth=hot?2.6:1.2;
+    if(cut)ctx.setLineDash([3,5]);ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.lineTo(B.x,B.y);ctx.stroke();ctx.setLineDash([]);});
+  pulses.forEach(p=>{p.t+=dt;const dist=bfs(p.from);N.forEach((v,i)=>{const dd=dist[i];if(dd==null)return;const ph=p.t*1.6-dd;if(ph>0&&ph<1)v.glow=Math.max(v.glow,1-ph);});
+    if(L===1&&p.t>2.2&&!p.lit){p.lit=true;hit(1,2);}});
+  pulses=pulses.filter(p=>p.t<5);
+  N.forEach((v,i)=>{const r=v.ring===0?26:v.ring===1?20:15;const base=['#e9c45a','#6ea4e8','#78d79a'][v.ring];
+    if(v.glow>0.02){ctx.fillStyle=`rgba(255,255,255,${v.glow*0.35})`;ctx.beginPath();ctx.arc(v.x,v.y,r+12*v.glow,0,7);ctx.fill();}
+    ctx.fillStyle=revised.has(i)?'#4a5260':locked(i)?'#3f5a7a':base;ctx.beginPath();ctx.arc(v.x,v.y,r,0,7);ctx.fill();
+    if(inChain.has(i)){ctx.strokeStyle='#ff5050';ctx.lineWidth=2.5;ctx.stroke();}
+    if(i===expNode){ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(v.x,v.y,r+5,0,7);ctx.stroke();}
+    if(i===holdNode&&L>1){ctx.strokeStyle='#f3a52b';ctx.lineWidth=4;ctx.beginPath();ctx.arc(v.x,v.y,r+8,-1.57,-1.57+6.283*clamp(holdT/needHold(i),0,1));ctx.stroke();}
+    if(v.ring<2)txt(v.t,v.x,v.y+4,revised.has(i)?'#aab':'#0b1018',11.5,'center',true);else txt(v.t,v.x,v.y+r+13,revised.has(i)?'#889':'#cfe',11);
+    if(revised.has(i))txt('已修改',v.x,v.y-r-6,'#f3a52b',10);
+    if(locked(i)&&inChain.has(i))txt('🔒',v.x+r,v.y-r,'#fff',11);});
+  if(holdNode>=0&&L>1&&PT){if(locked(holdNode)){if(holdT===0)toast('本关中这些理论已被反复确证、牢牢锁定：冲突只剩中心可以吸收');holdT=0.001;}
+    else{holdT+=dt;if(N[holdNode].ring===0)shake=Math.max(shake,holdT/4*0.9);if(holdT>=needHold(holdNode)){revise(holdNode);holdNode=-1;holdT=0;}}}
+  if(L<=2){const ex=EXP();const x=drag&&drag.kind==='exp'?drag.x:ex.x,y=drag&&drag.kind==='exp'?drag.y:ex.y;
+    ctx.fillStyle='#fff3c4';ctx.strokeStyle='#f3a52b';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(x-38,y-22,76,44,10);ctx.fill();ctx.stroke();txt('经验',x,y-2,'#5a3a00',14,'center',true);txt('拖到边缘',x,y+14,'#8a6a20',10);}
+  if(L===4){const p=POS();if(!posit){const x=drag&&drag.kind==='posit'?drag.x:p.x,y=drag&&drag.kind==='posit'?drag.y:p.y;ctx.fillStyle='#d6b8ff';ctx.beginPath();ctx.arc(x,y,24,0,7);ctx.fill();txt('新物体',x,y+4,'#3a1a6a',12,'center',true);txt('（假定）',x,y+40,'#d6b8ff',10);}
+    else{const v=N[posit.on];posit.born=Math.max(0,posit.born-dt*0.5);ctx.strokeStyle='#d6b8ff';ctx.beginPath();ctx.moveTo(v.x,v.y);ctx.lineTo(v.x+34,v.y-26);ctx.stroke();ctx.fillStyle='#d6b8ff';ctx.beginPath();ctx.arc(v.x+34,v.y-26,12+8*posit.born,0,7);ctx.fill();txt('新物体',v.x+34,v.y-44,'#d6b8ff',10);}}
+  const lc=live.length;ctx.fillStyle='rgba(0,0,0,.45)';ctx.fillRect(W-214,10,204,expNode>=0?72:30);
+  if(expNode>=0){txt(lc?`仍在冲突的推理链：${lc}`:'冲突已化解',W-112,30,lc?'#ff8080':'#7dffb0',13,'center',true);txt(`已修改信念：${revised.size}　代价：${cost}`,W-112,50,'#dde',12);if(L===4&&SAVED.best[4]!=null)txt(`最低代价记录：${SAVED.best[4]}`,W-112,68,'#cfe',11);}
+  else txt('网静止着，无冲突',W-112,30,'#cfe',12);
+  const hint=L===1?(expNode<0?'把左边的“经验”拖到最外圈的绿色节点上；也可以拖动任一节点，看整张网如何被牵动':'经验只触到边缘，被牵动的却是一整块理论'):
+   L===2?(lc?'按住红圈中的任一节点 1 秒修改它（越靠中心越贵）':'冲突化解了。重置本关，用另一种方式再解决一次'):
+   L===3?(coreDone?'中心被修改：整张网都要重新调整':'这次只有中心能吸收冲突：长按“逻辑律”4 秒'):
+   (lc?'用尽量低的代价化解冲突：按住节点修改，或把“新物体”拖到理论节点上':'冲突化解了');
+  txt(hint,W/2,H-12,'#ffe7b5',13);}
+
+/* ===== 调度 ===== */
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!SAVED.done[t.dataset.l]);});}
+function go(n){L=n;SAVED.level=n;save();tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);init(L);}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{init(L);toast('已重置（已对应的原文保留）');};
+resize();
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;ctx.clearRect(0,0,W,H);tick(dt);requestAnimationFrame(loop);}
+go(SAVED.level||1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 哈贝马斯交往理性 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+
+#side .core{padding:5px 10px;background:#fff7e0;border-bottom:1px solid #f0d08a;font-size:12.5px;color:#5a4300}
+#side .bound{padding:5px 10px;font-size:11.5px;color:#667;border-top:1px dashed #ccd;margin-top:4px}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>哈贝马斯 · 交往理性</b>
+  <button class="tab on" data-l="1">① 三种有效性要求</button>
+  <button class="tab" data-l="2">② 力量与理由</button>
+  <button class="tab" data-l="3">③ 商谈的规则</button>
+  <button class="tab" data-l="4">④ 应用练习</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="core">核心问题：人们怎样不靠强迫、只靠理由达成真正的一致？</div><div class="bd" id="sBody"></div><div class="bound">适用边界：画面中的“共识值”“理由强度”是教学化的度量；哈贝马斯的理论是对言语行为内在预设的重构，并不主张一致可以被这样计量。</div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+const STORE='minest_habermas_v1';
+let SAVE={done:{},lit:{}};
+try{const s=localStorage.getItem(STORE);if(s)SAVE=JSON.parse(s);}catch(e){}
+function persist(){try{localStorage.setItem(STORE,JSON.stringify(SAVE));}catch(e){}}
+const done=SAVE.done;
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ======== 原文：均据 SEP 词条（Finlayson & Rees）转引或概述；括号内为词条所标的哈贝马斯原著出处 ======== */
+const R='据 Finlayson & Rees, SEP “Jürgen Habermas” 转引',SM='SEP “Jürgen Habermas” 词条概述（转述）';
+const MAP={
+1:[["把一句话拖到听者面前","哈贝马斯的论点：存在三种有效性要求，即对真实性、正确性和真诚性的要求（TCA I: 307）。","the thesis that there are three validity claims: to truth, rightness and sincerity",R],
+   ["同一句话同时亮起三个刻度","每一个言语行为都同时提出对真实、对正确和对真诚的要求。","Every speech-act simultaneously makes a claim to truth, to rightness, and to truthfulness.",SM],
+   ["按住质疑某一种要求","听者可以接过这句话，从命题的真实、规范的正确或表达的真诚三方面去评判它。","can be taken up by the hearer, and assessed in the light of its propositional truth, normative rightness, or the sincerity with which it is expressed",SM],
+   ["三项都被接受：一致形成","一旦被接受，一致就“同时在三个层面上”达成（TCA I: 307）。","agreement (Einverständnis) is reached “simultaneously on three levels”",R]],
+2:[["用力推人：强迫让其让步","策略行动者通过试图影响或操纵他人来协调彼此的行动。","Strategic actors coordinate their actions with others by trying to influence them or manipulate them.",SM],
+   ["松手：被强迫的“同意”回弹","（转述）靠威胁或操纵得来的顺从，在压力撤去后不会留下真正的一致；它只是成功取向的结果，不是理解。","—",SM],
+   ["把理由送过去：一致慢慢长出","交往行动中，行动者的协调不是靠自我中心的成功计算，而是靠达成理解的行为（TCA I: 285–6）。","coordinated not through egocentric calculations of success but through acts of reaching understanding",R],
+   ["只有更好论证的力量","这些规范要使商谈隔绝一切说服力量，只留下“更好论证的非强制的力量”。","insulate discourse from all persuasive forces except the “unforced force of the better argument”",R]],
+3:[["把场外的人拖进圆桌","（规则 1）每个具有言语和行动能力的主体都被允许参加商谈（1983 [1990: 89]）。","Every subject with the competence to speak and act is allowed to take part in a discourse.",R],
+   ["任何人都可以质疑任何主张","（规则 2a）每个人都被允许质疑任何主张。","Everyone is allowed to question any assertion whatever.",R],
+   ["任何人都可以提出新主张","（规则 2b）每个人都被允许把任何主张引入商谈。","Everyone is allowed to introduce any assertion whatever into the discourse.",R],
+   ["拖开压在发言者身上的“强制”","（规则 3）任何发言者都不得因内在或外在的强制而被阻止行使上述权利。","No speaker may be prevented, by internal or external coercion, from exercising his rights",R],
+   ["全体在场者都同意，规范才有效","（D）只有那些得到（或能够得到）所有作为实践商谈参与者者同意的规范，才能主张有效（1983 [1990: 66]）。","Only those norms can claim to be valid that meet (or could meet) with the approval of all in their capacity as participants in a practical discourse",R]],
+4:[["日常共识破裂，进入商谈","当交往破裂、平常协调互动的共享意义与理解被打断……","When communication breaks down and the everyday shared meanings and understandings that normally coordinate interactions are disrupted",SM],
+   ["用金钱或权力快速“搞定”","系统通过“去语言化的操控媒介”——如金钱和权力——实现整合。","“delinguistified steering media” like money and power",R],
+   ["只用理由达成新的规范","只有明确指向达成合理动机的共识的言语，才算作商谈（TCA I: 42）。","Only speech that is explicitly oriented towards reaching rationally motivated consensus counts as discourse",R]]};
+const TITLE={1:'① 三种有效性要求 · 把一句话拖给听者；按住某一刻度提出质疑；把理由卡拖去回应',2:'② 力量与理由 · 按住拖动“推力”压向对方，再松手；或把理由气泡一颗颗送过去',3:'③ 商谈的规则 · 把场外的人拖进圆桌；拖开压在发言者身上的强制；让每个人都能发言、质疑',4:'④ 应用练习 · 宿舍熄灯时间争议：试试用“钱/权”或用理由来定一条新规'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr${SAVE.lit[l+'_'+i]?' on':''}" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」${r[2]!=='—'?`<div class="en">${r[2]}</div>`:''}<div class="ref">——${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const e=$('mr'+l+'_'+i);if(!e||e.classList.contains('on'))return;e.classList.add('on');SAVE.lit[l+'_'+i]=1;e.scrollIntoView({block:'nearest',behavior:'smooth'});
+  if(MAP[l].every((_,k)=>$('mr'+l+'_'+k).classList.contains('on'))){done[l]=1;tabs();}persist();}
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]?.move?.(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]?.up?.();});
+
+/* ---- 人物 ---- */
+function person(x,y,r,col,lab,o={}){ctx.save();ctx.globalAlpha=o.a==null?1:o.a;ctx.translate(x,y);ctx.rotate(o.lean||0);
+  ctx.fillStyle=col;ctx.beginPath();ctx.arc(0,-r*2,r*.45,0,7);ctx.fill();ctx.beginPath();ctx.moveTo(-r*.55,0);ctx.quadraticCurveTo(-r*.6,-r*1.6,0,-r*1.65);ctx.quadraticCurveTo(r*.6,-r*1.6,r*.55,0);ctx.closePath();ctx.fill();
+  if(o.gag){ctx.fillStyle='#333';ctx.fillRect(-r*.4,-r*2,r*.8,r*.18);}ctx.restore();if(lab)txt(lab,x,y+16,'#334',12);}
+function bubble(x,y,t,col,w){ctx.font='13px sans-serif';const tw=Math.max(w||0,ctx.measureText(t).width+20);ctx.fillStyle='#fff';ctx.strokeStyle=col||'#3a6f99';ctx.lineWidth=2;
+  ctx.beginPath();ctx.roundRect(x-tw/2,y-26,tw,26,12);ctx.fill();ctx.stroke();txt(t,x,y-8,'#223',13);}
+function meter(x,y,w,v,col,t){ctx.fillStyle='#fff';ctx.fillRect(x,y,w,9);ctx.fillStyle=col;ctx.fillRect(x,y,w*clamp(v,0,1),9);ctx.strokeStyle='#888';ctx.strokeRect(x,y,w,9);txt(t,x+w/2,y-4,'#334',12);}
+
+/* ================= 第 1 关：三种有效性要求 ================= */
+const CL=[['真实','#3a6f99'],['正确','#2f9e57'],['真诚','#c0702a']];
+const DOUBT=['真的吗？窗外明明在下雨','你凭什么要求我这样做？','你是真心的吗？'];
+const REAS=['（指窗外）雨已经停了','这是我们一起定的规矩','（他神情认真，此前从未食言）'];
+let A;
+function init1(){A={sent:false,u:{x:0.2,y:0.25},drag:false,claims:[0.3,0.3,0.3],doubt:[0,0,0],acc:[false,false,false],cards:REAS.map((t,i)=>({t,i,x:0.12,y:0.55+i*0.14,used:false})),dc:null,agree:0};}
+HD[1]={down(x,y){if(!A.sent&&Math.abs(x-W*A.u.x)<110&&Math.abs(y-H*A.u.y)<22){A.drag=true;return;}
+  if(A.sent){for(let i=0;i<3;i++){const g=g1(i);if(Math.abs(x-g.x)<40&&y>g.y-60&&y<g.y+12){A.hold=i;return;}}}
+  for(const c of A.cards){if(!c.used&&Math.abs(x-W*c.x)<120&&Math.abs(y-H*c.y)<18){A.dc=c;return;}}},
+ move(x,y){if(A.drag){A.u.x=clamp(x/W,0.05,0.9);A.u.y=clamp(y/H,0.1,0.9);}if(A.dc){A.dc.x=x/W;A.dc.y=y/H;}},
+ up(){if(A.drag){A.drag=false;if(Math.hypot(W*A.u.x-W*0.72,H*A.u.y-H*0.45)<120){A.sent=true;hit(1,0);toast('听者接过了这句话');}}A.hold=null;
+  if(A.dc){const c=A.dc;A.dc=null;const g=g1(c.i);if(A.doubt[c.i]>0.5&&Math.abs(W*c.x-g.x)<70&&Math.abs(H*c.y-g.y)<90){c.used=true;A.acc[c.i]=true;A.doubt[c.i]=0;toast(`${CL[c.i][0]}要求得到了理由的支持`);if(A.acc.every(Boolean))hit(1,3);}
+   else if(A.doubt[c.i]<=0.5)toast('这项要求还没有被质疑；先按住它的刻度提出质疑'); else toast('把理由拖到被质疑的那个刻度上');}}};
+function g1(i){return{x:W*0.6+i*W*0.1,y:H*0.82};}
+function t1(dt){ctx.fillStyle='#eef1f5';ctx.fillRect(0,0,W,H);
+  person(W*0.22,H*0.62,H*0.08,'#3a6f99','说者');person(W*0.72,H*0.62,H*0.08,'#a0522d','听者');
+  const ux=W*A.u.x,uy=H*A.u.y;
+  if(!A.sent){bubble(ux,uy+13,'“请把窗关上，外面下雨了。”','#3a6f99');txt('拖动这句话交给听者',ux,uy+34,'#556',12);}
+  else{bubble(W*0.47,H*0.22,'“请把窗关上，外面下雨了。”','#3a6f99');
+    for(let i=0;i<3;i++){const g=g1(i);const k=A.acc[i]?1:0.3+0.2*Math.sin(T*2+i);A.claims[i]=lerp(A.claims[i],k,dt*3);
+      if(A.hold===i){A.doubt[i]=Math.min(1,A.doubt[i]+dt*0.9);A.acc[i]=false;}
+      const h=70;ctx.fillStyle='#fff';ctx.fillRect(g.x-12,g.y-h,24,h);ctx.fillStyle=CL[i][1];ctx.fillRect(g.x-12,g.y-h*A.claims[i],24,h*A.claims[i]);ctx.strokeStyle='#888';ctx.strokeRect(g.x-12,g.y-h,24,h);
+      txt(CL[i][0],g.x,g.y+16,CL[i][1],13,'center',true);
+      if(A.doubt[i]>0.05){ctx.strokeStyle=`rgba(192,57,43,${A.doubt[i]})`;ctx.lineWidth=3;ctx.beginPath();ctx.arc(g.x,g.y-h/2,30,0,7);ctx.stroke();if(A.doubt[i]>0.5)txt(DOUBT[i],g.x,g.y-h-14,'#c0392b',12);}
+      if(A.acc[i])txt('✓',g.x,g.y-h-14,'#2f9e57',16,'center',true);
+      ctx.strokeStyle='rgba(58,111,153,.25)';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(W*0.47,H*0.22);ctx.lineTo(g.x,g.y-h);ctx.stroke();ctx.setLineDash([]);}
+    if(T>0&&!A._lit2){A._t2=(A._t2||0)+dt;if(A._t2>1.5){A._lit2=1;hit(1,1);}}
+    if(A.doubt.filter(d=>d>0.5).length>=2)hit(1,2);
+    if(A.acc.every(Boolean)){A.agree=Math.min(1,A.agree+dt*0.5);ctx.fillStyle=`rgba(47,158,87,${A.agree*0.15})`;ctx.fillRect(0,0,W,H);txt('一致：同时在三个层面上',W*0.47,H*0.4,`rgba(31,94,47,${A.agree})`,17,'center',true);}}
+  A.cards.forEach(c=>{if(c.used)return;const x=W*c.x,y=H*c.y;ctx.fillStyle='#fffdf3';ctx.strokeStyle=CL[c.i][1];ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(x-115,y-15,230,30,8);ctx.fill();ctx.stroke();txt('理由：'+c.t,x,y+5,'#334',12);});
+  txt(A.sent?'按住某一刻度提出质疑；再把左侧对应的理由卡拖上去':'',W*0.5,H*0.97,'#556',12);}
+
+/* ================= 第 2 关：力量与理由 ================= */
+let B;
+function init2(){B={push:0,hold:false,pushedMax:0,released:false,comply:0,agree:0,reasons:[],sent:0,mode:''};}
+HD[2]={down(x,y){if(x<W*0.5)B.hold=true;else{B.reasons.push({x,y,tx:W*0.68,ty:H*0.45,t:0,k:B.reasons.length});}},
+ move(x,y,dx){if(B.hold)B.push=clamp(B.push+dx/(W*0.25),0,1);},
+ up(){if(B.hold){B.hold=false;if(B.pushedMax>0.6){B.released=true;}}}};
+function t2(dt){ctx.fillStyle='#eef1f5';ctx.fillRect(0,0,W,H);ctx.fillStyle='#e3e7ee';ctx.fillRect(W/2,0,W/2,H);
+  txt('左半边：按住向右推（力量）',W*0.25,24,'#7a2a2a',13,'center',true);txt('右半边：点击送出理由（理由）',W*0.75,24,'#1f5e2f',13,'center',true);
+  if(!B.hold)B.push=Math.max(0,B.push-dt*0.6);B.pushedMax=Math.max(B.pushedMax,B.push);
+  // 力量：顺从值随推力上升，松手后衰减
+  if(B.hold)B.comply=lerp(B.comply,B.push,dt*3);else B.comply=Math.max(0,B.comply-dt*0.35);
+  if(B.push>0.5)hit(2,0);
+  if(B.released&&B.comply<0.1&&B.pushedMax>0.6){hit(2,1);B.released=false;toast('压力一撤，“同意”也就没了');}
+  const ax=W*0.15+B.push*W*0.1,bx=W*0.38-B.push*W*0.04;
+  person(ax,H*0.62,H*0.08,'#7a2a2a','施压者',{lean:0.25*B.push});person(bx,H*0.62+B.push*10,H*0.08*(1-0.15*B.push),'#a0522d','对方',{lean:-0.3*B.push});
+  if(B.push>0.05){for(let i=0;i<5;i++){ctx.strokeStyle=`rgba(192,57,43,${B.push})`;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(ax+20,H*0.55+i*6);ctx.lineTo(bx-14,H*0.55+i*6);ctx.stroke();}}
+  if(B.comply>0.3)bubble(bx,H*0.36,'……好吧，听你的','#c0392b');
+  meter(W*0.06,H*0.12,W*0.36,B.comply,'#c0392b','顺从');meter(W*0.06,H*0.2,W*0.36,0,'#2f9e57','真正的一致：0');
+  // 理由：一颗颗送达，一致缓慢、稳定上升，不衰减
+  B.reasons.forEach(r=>{r.t+=dt;r.x=lerp(r.x,r.tx,dt*2.5);r.y=lerp(r.y,r.ty,dt*2.5);if(!r.arr&&Math.hypot(r.x-r.tx,r.y-r.ty)<10){r.arr=true;B.sent++;B.agree=Math.min(1,B.agree+0.18);if(B.sent>=2)hit(2,2);if(B.agree>=0.85)hit(2,3);}
+    if(!r.arr){ctx.fillStyle='#2f9e57';ctx.beginPath();ctx.arc(r.x,r.y,9,0,7);ctx.fill();txt('理',r.x,r.y+4,'#fff',10);}});
+  B.reasons=B.reasons.filter(r=>!r.arr||r.t<1);
+  person(W*0.58,H*0.62,H*0.08,'#3a6f99','说者');person(W*0.68+B.agree*0.0,H*0.62,H*0.08,'#a0522d','对方');
+  if(B.agree>0.3)bubble(W*0.68,H*0.36,B.agree>0.8?'我被说服了':'嗯……有道理','#2f9e57');
+  meter(W*0.56,H*0.12,W*0.36,B.agree,'#2f9e57','基于理由的一致');}
+
+/* ================= 第 3 关：商谈的规则 ================= */
+let C;
+function init3(){const cx=0.42,cy=0.52;C={cx,cy,ppl:[0,1,2,3,4,5].map(i=>({i,x:i<3?cx+0.17*Math.cos(i*2.1):0.82+0.06*(i-3),y:i<3?cy+0.28*Math.sin(i*2.1):0.3+0.2*(i-3),inside:i<3,gag:i===1,said:0,qs:0})),drag:null,block:{x:0,on:true},claims:[],talk:0,consent:0};}
+const inCircle=p=>Math.hypot((p.x-C.cx)*W,(p.y-C.cy)*H)<Math.min(W,H)*0.33;
+HD[3]={down(x,y){for(const p of C.ppl){if(Math.hypot(x-W*p.x,y-H*p.y+20)<30){C.drag=p;C.dragStart=[x,y];return;}}
+  if(C.ppl.every(inCircle)&&!C.ppl.some(p=>p.gag)&&Math.hypot(x-W*C.cx,y-H*C.cy)<70)C.holdCenter=true;},
+ move(x,y){if(C.drag){C.drag.x=x/W;C.drag.y=y/H;}},
+ up(){C.holdCenter=false;if(C.drag){const p=C.drag;C.drag=null;
+   if(p.gag){if(Math.hypot((p.x-C.cx)*W,(p.y-C.cy)*H)>Math.min(W,H)*0.36||Math.hypot(W*p.x-C.dragStart[0],H*p.y-C.dragStart[1])>60){p.gag=false;p.x=C.cx+0.1;p.y=C.cy+0.2;hit(3,3);toast('强制被拖开：他终于可以开口了');}}
+   else if(inCircle(p)&&!p.inside){p.inside=true;hit(3,0);toast('又一位能说能做的主体加入了商谈');}}}};
+function t3(dt){ctx.fillStyle='#eef1f5';ctx.fillRect(0,0,W,H);const R0=Math.min(W,H)*0.33;
+  ctx.fillStyle='#d9c7a8';ctx.beginPath();ctx.arc(W*C.cx,H*C.cy,R0*0.55,0,7);ctx.fill();ctx.strokeStyle='rgba(58,111,153,.35)';ctx.setLineDash([6,6]);ctx.beginPath();ctx.arc(W*C.cx,H*C.cy,R0,0,7);ctx.stroke();ctx.setLineDash([]);
+  txt('商谈圆桌',W*C.cx,H*C.cy+4,'#5a3b1e',13,'center',true);txt('场外',W*0.86,H*0.16,'#556',12);
+  const insiders=C.ppl.filter(inCircle).filter(p=>!p.gag);
+  C.talk+=dt;if(C.talk>1.3&&insiders.length){C.talk=0;const p=insiders[Math.floor(Math.random()*insiders.length)];const q=Math.random()<0.5&&C.claims.length;
+    C.claims.push({p,q,t:0});if(q){p.qs++;hit(3,1);}else{p.said++;if(C.claims.filter(c=>!c.q).length>=3)hit(3,2);}}
+  C.claims.forEach(c=>c.t+=dt);C.claims=C.claims.filter(c=>c.t<1.2);
+  C.ppl.forEach(p=>{const x=W*p.x,y=H*p.y;const inside=inCircle(p);person(x,y,H*0.06,inside?'#3a6f99':'#999',inside?'':'未参与',{gag:p.gag});
+    if(p.gag){ctx.fillStyle='rgba(60,60,60,.8)';ctx.fillRect(x-28,y-H*0.06*2.6,56,16);txt('强制',x,y-H*0.06*2.6+12,'#fff',11);}
+    const c=C.claims.find(c=>c.p===p);if(c)bubble(x,y-H*0.06*2.8,c.q?'我质疑这一点':'我主张……',c.q?'#c0392b':'#3a6f99');});
+  const all=C.ppl.every(inCircle)&&!C.ppl.some(p=>p.gag);
+  if(C.holdCenter&&all){C.consent=Math.min(1,C.consent+dt*0.35);if(C.consent>=1)hit(3,4);}else if(!C.holdCenter)C.consent=Math.max(0,C.consent-dt*0.1);
+  meter(W*0.74,H*0.82,W*0.22,C.consent,'#2f9e57','全体参与者的同意');
+  txt(all?'人都到齐、没人被堵嘴了：按住桌心，让规范接受所有人的检验':'把场外的人拖进圆桌；把被“强制”堵住嘴的人拖开',W*0.45,22,'#223',13);}
+
+/* ================= 第 4 关：应用练习 ================= */
+let D;
+function init4(){D={phase:0,money:0,moneyHold:false,crowd:[0,1,2,3].map(i=>({i,ok:0,grudge:0})),reasons:[],legit:0,brokeT:0};}
+HD[4]={down(x,y){if(x>W*0.78&&y>H*0.72){D.moneyHold=true;return;}D.reasons.push({x,y,t:0,tgt:Math.floor(Math.random()*4)});},up(){D.moneyHold=false;}};
+function t4(dt){ctx.fillStyle='#e9eef5';ctx.fillRect(0,0,W,H);D.brokeT+=dt;if(D.brokeT>1.2)hit(4,0);
+  txt('宿舍熄灯时间争议：有人要早睡，有人要复习，日常默契破裂了',W*0.45,24,'#223',14,'center',true);
+  const pos4=i=>[W*(0.18+i*0.15),H*0.6];
+  if(D.moneyHold){D.money=Math.min(1,D.money+dt*0.8);D.crowd.forEach(p=>{p.ok=Math.min(1,p.ok+dt*0.7);p.grudge=Math.min(1,p.grudge+dt*0.5);});hit(4,1);}
+  else{D.money=Math.max(0,D.money-dt*0.5);D.crowd.forEach(p=>{if(p.grudge>0.05)p.ok=Math.max(p.ok>0.5&&p.grudge<0.3?p.ok:0,p.ok-dt*0.4*p.grudge);});}
+  D.reasons.forEach(r=>{r.t+=dt;const [tx,ty]=pos4(r.tgt);const k=clamp(r.t*1.4,0,1);const x=lerp(r.x,tx,k),y=lerp(r.y,ty-H*0.12,k);
+    if(k<1){ctx.fillStyle='#2f9e57';ctx.beginPath();ctx.arc(x,y,8,0,7);ctx.fill();}else if(!r.done){r.done=true;const p=D.crowd[r.tgt];p.grudge=Math.max(0,p.grudge-0.35);p.ok=Math.min(1,p.ok+0.22);}});
+  D.reasons=D.reasons.filter(r=>!r.done);
+  D.crowd.forEach((p,i)=>{const [x,y]=pos4(i);person(x,y,H*0.07,p.grudge>0.4?'#a04040':'#3a6f99','室友 '+(i+1));
+    ctx.fillStyle='#fff';ctx.fillRect(x-24,y+22,48,7);ctx.fillStyle=p.grudge>0.4?'#c0392b':'#2f9e57';ctx.fillRect(x-24,y+22,48*p.ok,7);
+    if(p.grudge>0.4)txt('不服',x,y-H*0.07*2.8,'#c0392b',12);else if(p.ok>0.8)txt('同意',x,y-H*0.07*2.8,'#1f5e2f',12);});
+  const allOk=D.crowd.every(p=>p.ok>0.85&&p.grudge<0.15);D.legit=lerp(D.legit,allOk?1:0,dt*2);if(D.legit>0.9)hit(4,2);
+  meter(W*0.74,H*0.14,W*0.22,D.legit,'#2f9e57','新规的正当性');
+  ctx.fillStyle=D.moneyHold?'#f3a52b':'rgba(255,255,255,.92)';ctx.fillRect(W*0.79,H*0.74,W*0.19,H*0.18);txt('按住：用钱/权搞定',W*0.885,H*0.84,'#222',13,'center',true);
+  txt(D.legit>0.9?'每个人都是因为理由而同意的：新规正当':'在空白处点击，把理由送给某位室友；或按住右下角试试“搞定”',W*0.45,H*0.97,'#556',12);}
+
+/* ======== 调度 ======== */
+const INIT={1:init1,2:init2,3:init3,4:init4},TICK={1:t1,2:t2,3:t3,4:t4};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!done[t.dataset.l]);});}
+function go(n){L=n;SAVE.level=n;persist();tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{INIT[L]();toast('已重置（已对应的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(SAVE.level||1);tabs();requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

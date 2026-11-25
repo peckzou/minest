@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 洛克白板说 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>洛克 · 白板说</b>
+  <button class="tab on" data-l="1">① 白纸与感觉</button>
+  <button class="tab" data-l="2">② 反省</button>
+  <button class="tab" data-l="3">③ 组合复杂观念</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="bd" id="sBody"></div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;const done={};
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ======== 原文：洛克《人类理解论》（Gutenberg 本，1690）；中文编译 ======== */
+const E='《人类理解论》';
+const MAP={
+1:[["一张白纸：心灵起初空无一物","让我们假定心灵如我们所说，是一张白纸，没有任何字迹，没有任何观念。","Let us then suppose the mind to be, as we say, white paper, void of all characters, without any ideas",E+" 第二卷第1章 §2"],
+   ["拖动物体靠近感官：观念落到纸上","我们由此得到黄、白、热、冷、软、硬、苦、甜等观念，以及一切我们称为可感性质的观念。","we come by those IDEAS we have of yellow, white, heat, cold, soft, hard, bitter, sweet, and all those which we call sensible qualities",E+" 第二卷第1章 §3"],
+   ["一块冰：冷与硬分别进入","一个人在一块冰中感到的冷和硬，是心中两个截然不同的观念。","The coldness and hardness which a man feels in a piece of ice being as distinct ideas in the mind as the smell and whiteness of a lily",E+" 第二卷第2章 §1"],
+   ["想擦掉或拒绝：做不到","这些简单观念呈现给心灵时，理解既不能拒绝接受，也不能在印入后改变或抹去它们，正如镜子不能拒绝、改变或抹去物体在其中产生的影像。","the understanding can no more refuse to have, nor alter when they are imprinted, nor blot them out and make new ones itself, than a mirror can refuse, alter, or obliterate the images",E+" 第二卷第1章 §25"],
+   ["只给黑与白：没有猩红","如果一个孩子被养在除了黑白之外什么都看不到的地方直到成年，他就不会有猩红或绿色的观念。","if a child were kept in a place where he never saw any other but black and white till he were a man, he would have no more ideas of scarlet or green",E+" 第二卷第1章 §6"],
+   ["一切材料都来自经验","它从哪里得到理性和知识的全部材料？我用一个词回答：来自经验。","Whence has it all the MATERIALS of reason and knowledge? To this I answer, in one word, from EXPERIENCE.",E+" 第二卷第1章 §2"]],
+2:[["心灵对已有观念的操作被“照见”","经验供给理解观念的另一个源泉，是对我们自己心中的心灵操作的知觉。","the other fountain from which experience furnisheth the understanding with ideas is,—the perception of the operations of our own mind within us",E+" 第二卷第1章 §4"],
+   ["比较、怀疑、意愿……成为新观念","例如知觉、思维、怀疑、相信、推理、认识、意愿，以及我们心灵的一切不同活动。","perception, thinking, doubting, believing, reasoning, knowing, willing, and all the different actings of our own minds",E+" 第二卷第1章 §4"],
+   ["这类观念外物给不了","……提供另一组观念，那是从外物那里不能得到的。","do furnish the understanding with another set of ideas, which could not be had from things without",E+" 第二卷第1章 §4"],
+   ["两个源泉","这两者是知识的源泉，我们所有的或自然能有的一切观念都从这里涌出。","These two are the fountains of knowledge, from whence all the ideas we have, or can naturally have, do spring.",E+" 第二卷第1章 §2"]],
+3:[["把简单观念拖到一起：组合","由若干简单观念组合而成的观念，我称为复杂观念，例如美、感激、人、军队、宇宙。","Ideas thus made up of several simple ones put together, I call COMPLEX;—such as are beauty, gratitude, a man, an army, the universe",E+" 第二卷第12章 §1"],
+   ["自由重复、比较、结合：几乎无穷","理解一旦储存了这些简单观念，就有能力重复、比较和结合它们，几乎达到无穷的变化。","it has the power to repeat, compare, and unite them, even to an almost infinite variety, and so can make at pleasure new complex ideas",E+" 第二卷第2章 §2"],
+   ["按住“凭空发明”：一个新的简单观念？","但即使最高的才智……也不能在心中发明或构造一个不是由上述途径得来的新的简单观念。","But it is not in the power of the most exalted wit, or enlarged understanding, by any quickness or variety of thought, to INVENT or FRAME one new simple idea in the mind",E+" 第二卷第2章 §2"],
+   ["想象一种从未尝过的味道","我倒希望有人试试想象一种从未刺激过他味觉的味道……","I would have any one try to fancy any taste which had never affected his palate; or frame the idea of a scent he had never smelt",E+" 第二卷第2章 §2"]]};
+const TITLE={1:'① 白纸与感觉 · 把世界里的物体拖到感官前；试着在纸上擦掉一个观念',2:'② 反省 · 按住“心灵”，让它对纸上的观念进行操作',3:'③ 组合复杂观念 · 把纸上的简单观念拖到一起；按住右下角试图凭空发明'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——洛克${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const e=$('mr'+l+'_'+i);if(!e||e.classList.contains('on'))return;e.classList.add('on');e.scrollIntoView({block:'nearest',behavior:'smooth'});
+  if(MAP[l].every((_,k)=>$('mr'+l+'_'+k).classList.contains('on'))){done[l]=1;tabs();}}
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]?.move?.(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]?.up?.();});
+
+/* ======== 共享：心灵白纸上的观念（三关共用，体现“积累”） ======== */
+const QUAL={ // 简单观念：名字、颜色、所属感官
+ '黄':['#f2c230','眼'],'白':['#f4f4f4','眼'],'红':['#d9342b','眼'],'绿':['#3c9a3c','眼'],'黑':['#222','眼'],
+ '热':['#ff7b3a','触'],'冷':['#6ec6ff','触'],'软':['#e6b8d8','触'],'硬':['#7b8794','触'],'圆':['#b0b8c8','眼'],
+ '甜':['#ffb3c7','舌'],'苦':['#6b5a2a','舌'],'酸':['#c9e04a','舌'],'香':['#c79bff','鼻'],'响':['#ffd27a','耳']};
+const OBJ=[{n:'柠檬',q:['黄','酸','香','圆']},{n:'冰块',q:['冷','硬','白']},{n:'火',q:['热','红','黄']},{n:'糖',q:['甜','白','硬']},{n:'百合',q:['白','香','软']},{n:'钟',q:['响','硬','黄']},{n:'青草',q:['绿','软','香']},{n:'苦艾',q:['苦','绿']}];
+const SENSE={眼:{x:0.47,y:0.22,ic:'👁'},耳:{x:0.47,y:0.38,ic:'👂'},鼻:{x:0.47,y:0.54,ic:'👃'},舌:{x:0.47,y:0.70,ic:'👅'},触:{x:0.47,y:0.86,ic:'✋'}};
+let IDEAS=[],REFL=[],COMPLEX=[],BW=false;
+function paperRect(){return{x:W*0.55,y:H*0.06,w:W*0.42,h:H*0.88};}
+function addIdea(n,fromX,fromY){if(IDEAS.find(i=>i.n===n)){const i=IDEAS.find(i=>i.n===n);i.pulse=1;return false;}
+  const p=paperRect();const k=IDEAS.length;const col=k%5,row=Math.floor(k/5);
+  IDEAS.push({n,c:QUAL[n][0],tx:p.x+40+col*(p.w-80)/4,ty:p.y+50+row*58,x:fromX,y:fromY,a:0,pulse:1,ink:0});return true;}
+function drawPaper(){const p=paperRect();ctx.save();ctx.shadowColor='rgba(0,0,0,.3)';ctx.shadowBlur=14;ctx.fillStyle='#fffdf5';ctx.fillRect(p.x,p.y,p.w,p.h);ctx.restore();
+  ctx.strokeStyle='rgba(120,150,190,.18)';for(let y=p.y+30;y<p.y+p.h;y+=24){ctx.beginPath();ctx.moveTo(p.x+10,y);ctx.lineTo(p.x+p.w-10,y);ctx.stroke();}
+  txt('心灵（白纸）',p.x+p.w/2,p.y-0+20,'#8a8070',12);}
+function drawIdea(i,dt){i.x=lerp(i.x,i.tx,dt*4);i.y=lerp(i.y,i.ty,dt*4);i.ink=Math.min(1,i.ink+dt*1.5);i.pulse=Math.max(0,(i.pulse||0)-dt*1.5);
+  const r=20+i.pulse*6;ctx.globalAlpha=i.ink;ctx.fillStyle=i.c;ctx.beginPath();ctx.arc(i.x,i.y,r,0,7);ctx.fill();ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=1;ctx.stroke();
+  txt(i.n,i.x,i.y+5,['黑','苦','硬'].includes(i.n)?'#fff':'#222',14,'center',true);ctx.globalAlpha=1;}
+
+/* ================= 第 1 关：白纸与感觉 ================= */
+let A;
+function init1(){A={objs:OBJ.map((o,i)=>({...o,x:0.07+(i%2)*0.17,y:0.15+Math.floor(i/2)*0.22,hx:0,hy:0})),drag:null,beams:[],erase:null,eraseT:0,bwT:0};}
+HD[1]={down(x,y){const p=paperRect();
+  for(const i of IDEAS){if(Math.hypot(x-i.x,y-i.y)<24){A.erase={i,x,y,start:T};return;}}
+  if(x<W*0.12&&y>H*0.9){BW=!BW;toast(BW?'从现在起，世界只有黑与白':'颜色回来了');return;}
+  for(const o of A.objs){if(Math.hypot(x-W*o.x,y-H*o.y)<34){A.drag=o;return;}}},
+ move(x,y,dx,dy){if(A.drag){A.drag.x=clamp(A.drag.x+dx/W,0.02,0.44);A.drag.y=clamp(A.drag.y+dy/H,0.06,0.9);}
+  if(A.erase){A.eraseT+=Math.hypot(dx,dy);const i=A.erase.i;i.x+=(Math.random()-.5)*3;i.y+=(Math.random()-.5)*3;}},
+ up(){if(A.erase&&A.eraseT>80){hit(1,3);toast(`擦不掉“${A.erase.i.n}”：它已经印上去了`);}A.erase=null;A.eraseT=0;A.drag=null;}};
+function t1(dt){ctx.fillStyle='#2b3140';ctx.fillRect(0,0,W*0.52,H);ctx.fillStyle='#3b4254';ctx.fillRect(W*0.52,0,W*0.48,H);
+  txt('世界',W*0.22,22,'#cfd6e6',14,'center',true);
+  if(T>0.8)hit(1,0);
+  drawPaper();
+  // 感官
+  Object.entries(SENSE).forEach(([k,s])=>{ctx.fillStyle='rgba(255,255,255,.1)';ctx.beginPath();ctx.arc(W*s.x,H*s.y,24,0,7);ctx.fill();txt(s.ic,W*s.x,H*s.y+8,'#fff',22);});
+  // 物体；靠近感官时发射观念
+  A.objs.forEach(o=>{const ox=W*o.x,oy=H*o.y;
+    ctx.fillStyle=BW?'#888':QUAL[o.q[0]][0];ctx.beginPath();ctx.arc(ox,oy,26,0,7);ctx.fill();txt(o.n,ox,oy+44,'#cfd6e6',12);
+    o.q.forEach(q=>{const s=SENSE[QUAL[q][1]];const sx=W*s.x,sy=H*s.y;const d=Math.hypot(ox-sx,oy-sy);
+      if(d<W*0.12){ // 发射
+        const isColor=QUAL[q][1]==='眼'&&!['白','黑','圆'].includes(q);if(BW&&isColor){if(Math.random()<dt*2){A.beams.push({q:'灰',x:ox,y:oy,tx:sx,ty:sy,t:0,c:'#999'});}return;}
+        if(Math.random()<dt*2.2)A.beams.push({q,x:ox,y:oy,tx:sx,ty:sy,t:0,c:QUAL[q][0]});}});});
+  A.beams.forEach(b=>{b.t+=dt*1.3;let x,y;if(b.t<0.5){x=lerp(b.x,b.tx,b.t*2);y=lerp(b.y,b.ty,b.t*2);}else{const p=paperRect();x=lerp(b.tx,p.x+20,(b.t-0.5)*2);y=lerp(b.ty,p.y+p.h/2,(b.t-0.5)*2);}
+    ctx.fillStyle=b.c;ctx.beginPath();ctx.arc(x,y,6,0,7);ctx.fill();
+    if(b.t>=1&&!b.done){b.done=true;if(b.q!=='灰'){const fresh=addIdea(b.q,x,y);if(fresh){hit(1,1);if(IDEAS.length>=8)hit(1,5);
+        if(['冷','硬'].every(n=>IDEAS.find(i=>i.n===n)))hit(1,2);}}}});
+  A.beams=A.beams.filter(b=>b.t<1);
+  IDEAS.forEach(i=>drawIdea(i,dt));
+  if(A.erase){ctx.strokeStyle='rgba(255,80,80,.8)';ctx.lineWidth=3;ctx.beginPath();ctx.arc(A.erase.i.x,A.erase.i.y,30,0,7);ctx.stroke();txt('擦……',A.erase.i.x,A.erase.i.y-36,'#c33',12);}
+  // 黑白开关
+  ctx.fillStyle=BW?'#f3a52b':'rgba(255,255,255,.85)';ctx.fillRect(4,H*0.9,W*0.12,H*0.08);txt(BW?'只有黑白 ✓':'只给黑与白',W*0.06+4,H*0.95,'#222',12);
+  if(BW){A.bwT+=dt;const hasColor=IDEAS.some(i=>['红','绿','黄'].includes(i.n));if(A.bwT>4&&!IDEAS.find(i=>i.n==='红'))hit(1,4);}
+  txt(IDEAS.length===0?'白纸上一无所有。把左边的物体拖到中间的感官旁':`纸上的简单观念：${IDEAS.length}`,W*0.76,H*0.985,'#e8ecf4',12);
+  if(BW)ctx.fillStyle='rgba(128,128,128,0)';}
+
+/* ================= 第 2 关：反省 ================= */
+let B;
+const OPS=['知觉','比较','记忆','怀疑','相信','推理','意愿'];
+function init2(){B={hold:false,charge:0,ops:[],links:[],lastOp:0};
+  if(IDEAS.length<4){['黄','冷','甜','红','硬'].forEach(n=>addIdea(n,W*0.3,H*0.5));IDEAS.forEach(i=>{i.x=i.tx;i.y=i.ty;i.ink=1;});}}
+HD[2]={down(x,y){if(Math.hypot(x-W*0.24,y-H*0.5)<80)B.hold=true;},up(){B.hold=false;}};
+function t2(dt){ctx.fillStyle='#2b2140';ctx.fillRect(0,0,W*0.52,H);ctx.fillStyle='#3b4254';ctx.fillRect(W*0.52,0,W*0.48,H);
+  drawPaper();IDEAS.forEach(i=>drawIdea(i,dt));
+  // 心灵之眼：按住时向纸上发出操作光线
+  const mx=W*0.24,my=H*0.5;B.charge=lerp(B.charge,B.hold?1:0,dt*3);
+  const gg=ctx.createRadialGradient(mx,my,5,mx,my,90);gg.addColorStop(0,`rgba(199,155,255,${0.4+0.5*B.charge})`);gg.addColorStop(1,'rgba(199,155,255,0)');ctx.fillStyle=gg;ctx.beginPath();ctx.arc(mx,my,90,0,7);ctx.fill();
+  ctx.fillStyle='#c79bff';ctx.beginPath();ctx.arc(mx,my,30+B.charge*8,0,7);ctx.fill();txt('心灵',mx,my+5,'#221',14,'center',true);
+  txt(B.hold?'心灵转向自身，照见它的操作……':'按住“心灵”：让它在纸上的观念之间运作',mx,my+90,'#e8dcff',13);
+  if(B.hold){B.lastOp+=dt;if(B.lastOp>0.9&&IDEAS.length>=2){B.lastOp=0;const a=IDEAS[Math.floor(Math.random()*IDEAS.length)],b=IDEAS[Math.floor(Math.random()*IDEAS.length)];if(a!==b){const op=OPS[B.links.length%OPS.length];B.links.push({a,b,op,t:0});hit(2,0);}}}
+  B.links.forEach(l=>{l.t+=dt;const k=clamp(l.t*1.5,0,1);ctx.strokeStyle=`rgba(199,155,255,${0.9-0.5*clamp(l.t-1,0,1)})`;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(l.a.x,l.a.y);ctx.lineTo(lerp(l.a.x,l.b.x,k),lerp(l.a.y,l.b.y,k));ctx.stroke();
+    // 光线从心灵射向连接
+    if(l.t<0.6){ctx.strokeStyle='rgba(199,155,255,.5)';ctx.beginPath();ctx.moveTo(mx,my);ctx.lineTo((l.a.x+l.b.x)/2,(l.a.y+l.b.y)/2);ctx.stroke();}
+    // 操作本身变成新的观念飞入纸下半部
+    if(l.t>0.8&&!l.made){l.made=true;if(!REFL.find(r=>r.n===l.op)){const p=paperRect();const k2=REFL.length;REFL.push({n:l.op,x:(l.a.x+l.b.x)/2,y:(l.a.y+l.b.y)/2,tx:p.x+40+(k2%4)*(p.w-80)/3,ty:p.y+p.h-90+Math.floor(k2/4)*48,c:'#c79bff',ink:0,pulse:1});if(REFL.length>=3)hit(2,1);if(REFL.length>=4)hit(2,2);if(REFL.length>=5)hit(2,3);}}});
+  B.links=B.links.filter(l=>l.t<2.5);
+  const p=paperRect();ctx.strokeStyle='rgba(199,155,255,.5)';ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(p.x+10,p.y+p.h-130);ctx.lineTo(p.x+p.w-10,p.y+p.h-130);ctx.stroke();ctx.setLineDash([]);
+  txt('↑ 来自感觉',p.x+60,p.y+p.h-136,'#8a8070',11);txt('↓ 来自反省',p.x+60,p.y+p.h-116,'#8a6ab0',11);
+  REFL.forEach(r=>{r.x=lerp(r.x,r.tx,dt*3);r.y=lerp(r.y,r.ty,dt*3);r.ink=Math.min(1,r.ink+dt);ctx.globalAlpha=r.ink;ctx.fillStyle='#e8dcff';ctx.strokeStyle='#8a6ab0';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(r.x-30,r.y-16,60,32,10);ctx.fill();ctx.stroke();txt(r.n,r.x,r.y+5,'#4a2a80',14,'center',true);ctx.globalAlpha=1;});
+  // 左侧：世界里没有这些
+  txt('世界里的物体给不了“怀疑”或“意愿”',W*0.24,H*0.12,'rgba(232,220,255,.7)',12);}
+
+/* ================= 第 3 关：组合复杂观念 ================= */
+let C;
+const RECIPES=[{n:'苹果',need:['红','圆','甜','硬']},{n:'柠檬',need:['黄','酸','圆']},{n:'雪人',need:['白','冷','圆']},{n:'金山',need:['黄','硬']},{n:'感激',need:['意愿','记忆','相信']},{n:'人',need:['知觉','推理','软']}];
+function init3(){C={sel:null,drag:null,groups:[],invent:0,inventHold:false,inventTried:false,taste:0};
+  ['红','圆','甜','硬','黄','酸','白','冷'].forEach(n=>addIdea(n,W*0.75,H*0.5));IDEAS.forEach(i=>{i.x=i.tx;i.y=i.ty;i.ink=1;});
+  if(REFL.length<3){['记忆','意愿','相信','知觉','推理'].forEach((n,k)=>{if(!REFL.find(r=>r.n===n))REFL.push({n,c:'#c79bff'});});}
+  C.tokens=[...IDEAS.map(i=>({n:i.n,c:i.c,kind:'s'})),...REFL.map(r=>({n:r.n,c:'#e8dcff',kind:'r'}))].map((t,k)=>({...t,x:W*0.08+(k%7)*W*0.075,y:H*0.14+Math.floor(k/7)*H*0.12,hx:0,hy:0}));
+  C.tokens.forEach(t=>{t.hx=t.x;t.hy=t.y;});}
+HD[3]={down(x,y){if(x>W*0.8&&y>H*0.72){C.inventHold=true;return;}for(const t of C.tokens){if(Math.hypot(x-t.x,y-t.y)<22){C.drag=t;return;}}},
+ move(x,y){if(C.drag){C.drag.x=x;C.drag.y=y;}},
+ up(){C.inventHold=false;if(C.drag){const t=C.drag;C.drag=null;
+   if(t.y>H*0.48&&t.y<H*0.92&&t.x<W*0.78){ // 放进组合区
+     let g=C.groups.find(g=>Math.hypot(g.x-t.x,g.y-t.y)<90);if(!g){g={x:t.x,y:t.y,items:[],name:null,born:0};C.groups.push(g);}
+     if(!g.items.includes(t.n))g.items.push(t.n);hit(3,0);
+     const r=RECIPES.find(r=>r.need.every(n=>g.items.includes(n))&&!g.name);if(r){g.name=r.n;g.born=1;toast(`复杂观念：“${r.n}”`);if(r.n==='金山')toast('“金山”：世界上没有，但它的每个部分都来自经验');}
+     if(C.groups.filter(g=>g.items.length>=2).length>=3)hit(3,1);}
+   t.x=t.hx;t.y=t.hy;}}};
+function t3(dt){ctx.fillStyle='#24303d';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(255,253,245,.08)';ctx.fillRect(W*0.02,H*0.06,W*0.76,H*0.36);txt('心中已有的简单观念（拖动）',W*0.4,H*0.05+8,'#cfd6e6',12);
+  ctx.strokeStyle='rgba(255,255,255,.2)';ctx.setLineDash([6,6]);ctx.strokeRect(W*0.02,H*0.48,W*0.76,H*0.44);ctx.setLineDash([]);txt('组合区：把观念拖进来放在一起',W*0.4,H*0.47,'#cfd6e6',12);
+  C.groups.forEach(g=>{g.born=Math.max(0,g.born-dt*0.6);const R=40+g.items.length*10;
+    ctx.fillStyle=g.name?'rgba(243,165,43,.18)':'rgba(255,255,255,.06)';ctx.strokeStyle=g.name?'#f3a52b':'rgba(255,255,255,.3)';ctx.lineWidth=2+g.born*4;ctx.beginPath();ctx.arc(g.x,g.y,R,0,7);ctx.fill();ctx.stroke();
+    g.items.forEach((n,k)=>{const a=k/g.items.length*6.283+T*0.3,c=(QUAL[n]||['#e8dcff'])[0];ctx.fillStyle=c;ctx.beginPath();ctx.arc(g.x+Math.cos(a)*R*0.62,g.y+Math.sin(a)*R*0.62,13,0,7);ctx.fill();txt(n,g.x+Math.cos(a)*R*0.62,g.y+Math.sin(a)*R*0.62+4,['硬'].includes(n)?'#fff':'#222',11);});
+    if(g.name)txt(g.name,g.x,g.y+6,'#ffd27a',17,'center',true);});
+  C.tokens.forEach(t=>{ctx.fillStyle=t.c;ctx.beginPath();ctx.arc(t.x,t.y,20,0,7);ctx.fill();ctx.strokeStyle=t.kind==='r'?'#8a6ab0':'rgba(0,0,0,.3)';ctx.lineWidth=2;ctx.stroke();txt(t.n,t.x,t.y+5,['硬'].includes(t.n)?'#fff':'#222',13,'center',true);});
+  // 凭空发明：按住，一团没有颜色的雾试图凝聚，但永远凝不成
+  if(C.inventHold){C.invent=Math.min(1,C.invent+dt*0.5);hit(3,2);if(C.invent>0.6){hit(3,3);}}else C.invent=Math.max(0,C.invent-dt);
+  const ix=W*0.89,iy=H*0.55;ctx.fillStyle='rgba(255,255,255,.06)';ctx.fillRect(W*0.8,H*0.08,W*0.18,H*0.62);txt('凭空发明一个',ix,H*0.14,'#cfd6e6',13,'center',true);txt('新的简单观念',ix,H*0.19,'#cfd6e6',13,'center',true);
+  for(let i=0;i<40*C.invent;i++){const a=Math.random()*6.28,r=Math.random()*60*(1-C.invent*0.3);ctx.fillStyle=`rgba(${150+Math.random()*100|0},${150+Math.random()*100|0},${150+Math.random()*100|0},.4)`;ctx.fillRect(ix+Math.cos(a)*r,H*0.38+Math.sin(a)*r,3,3);}
+  if(C.invent>0.6){txt('它只是已有颜色的混合……',ix,H*0.56,'#ffb0b0',12);txt('一种你从未尝过的味道？',ix,H*0.61,'#ffb0b0',12);txt('想不出来',ix,H*0.66,'#ffb0b0',14,'center',true);}
+  ctx.fillStyle=C.inventHold?'#f3a52b':'rgba(255,255,255,.88)';ctx.fillRect(W*0.81,H*0.74,W*0.16,H*0.18);txt('按住：发明',ix,H*0.84,'#222',14,'center',true);}
+
+/* ======== 调度 ======== */
+const INIT={1:init1,2:init2,3:init3},TICK={1:t1,2:t2,3:t3};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!done[t.dataset.l]);});}
+function go(n){L=n;tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{if(L===1){IDEAS=[];REFL=[];BW=false;}if(L===2){REFL=[];}INIT[L]();toast('已重置（已对应的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>

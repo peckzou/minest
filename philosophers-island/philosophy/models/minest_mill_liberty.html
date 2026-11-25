@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Minest · 密尔自由原则 · 实时模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;user-select:none;-webkit-user-select:none;background:#000;color:#111}
+#tabs{position:fixed;top:0;left:0;right:0;height:48px;background:#1f2b38;display:flex;align-items:center;gap:6px;padding:0 10px;z-index:5;overflow-x:auto}
+#tabs b{color:#fff;font-size:15px;margin-right:8px;white-space:nowrap}
+.tab{background:#33475b;color:#cfe;border:none;border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab.on{background:#f3a52b;color:#222;font-weight:600}
+.tab.done::after{content:" ✓";color:#7dffb0}
+#tabs .sp{margin-left:auto}
+#tabs .view{background:#4f6b86;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cv{position:fixed;left:0;top:48px;width:100%;height:calc(100% - 48px - 190px);touch-action:none}
+#side{position:fixed;left:0;bottom:0;right:0;height:190px;overflow:auto;background:#f1f1f2;border-top:1px solid #444;font-size:13px;line-height:1.5}
+#side .tt{background:#3a6f99;color:#fff;padding:5px 10px;font-size:14px;position:sticky;top:0;z-index:1}
+#side .q{padding:4px 10px;background:#fff7e0;border-bottom:1px solid #f0d08a;font-size:12.5px}
+#side .bd{padding:4px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:4px 10px}
+#side .bnd{padding:4px 10px 8px;font-size:11.5px;color:#667}
+.mr{display:grid;grid-template-columns:34% 66%;border:1px solid #d5d8de;border-radius:6px;background:#fafafa;opacity:.4;transition:.4s}
+.mr.on{opacity:1;border-color:#3a6f99;background:#fff;box-shadow:0 0 0 2px rgba(58,111,153,.18)}
+.mr .op{padding:5px 7px;font-size:12.5px;color:#2c3e50;border-right:1px dashed #ccd;display:flex;gap:5px}
+.mr .n{flex:0 0 17px;height:17px;border-radius:50%;background:#99a;color:#fff;font-size:11px;text-align:center;line-height:17px}
+.mr.on .n{background:#3a6f99}
+.mr .tx{padding:5px 7px;font-size:12.5px}
+.mr .en{font-style:italic;color:#778;font-size:10.5px}
+.mr .ref{font-size:10.5px;color:#3a6f99}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:7px 14px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+@media (max-width:820px){#cv{height:calc(100% - 48px - 34%)}#side{height:34%}#side .bd{grid-template-columns:1fr}#tabs b{display:none}.tab{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="tabs">
+  <b>密尔 · 自由原则</b>
+  <button class="tab on" data-l="1">① 自主领域</button>
+  <button class="tab" data-l="2">② 伤害与冒犯</button>
+  <button class="tab" data-l="3">③ 醉酒与职责</button>
+  <button class="tab" data-l="4">④ 一个人的异见</button>
+  <button class="tab" data-l="5">⑤ 应用练习</button>
+  <span class="sp"></span><button class="view" id="bReset">↺ 重置本关</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="side"><div class="tt" id="sTitle"></div><div class="q"><b>核心问题：</b>社会在什么情况下，才有权干涉一个人的行动？</div><div class="bd" id="sBody"></div><div class="bnd"><b>适用边界：</b>画面中的“圆圈”“伤害线”是教学比喻。密尔本人承认自涉与涉他的界线常有争议（第四、五章），并以功利为最终依据，而非抽象权利。</div></div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,T=0,L=1;
+function resize(){const d=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+addEventListener('resize',resize);resize();
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2600);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k;
+function txt(t,x,y,c,sz,al,b){ctx.fillStyle=c||'#223';ctx.font=`${b?'bold ':''}${sz||13}px sans-serif`;ctx.textAlign=al||'center';ctx.fillText(t,x,y);}
+
+/* ======== 保存与恢复 ======== */
+const KEY='minest_mill_liberty_v1';let MEM={};
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||{lit:{},done:{}};}catch(e){return MEM.s||{lit:{},done:{}};}}
+let SAVE=load();
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(SAVE));}catch(e){MEM.s=SAVE;}}
+
+/* ======== 原文：密尔《论自由》（1859），Gutenberg #34901（第一、二章）与 utilitarianism.com 本（第四、五章）；中文编译 ======== */
+const B='《论自由》';
+const MAP={
+1:[["拖出行动：只涉及自己的，留在圈内","在仅仅涉及他本人的那部分行为上，他的独立性在权利上是绝对的。对于他自己，对于他自己的身体和心灵，个人是最高主权者。","In the part which merely concerns himself, his independence is, of right, absolute. Over himself, over his own body and mind, the individual is sovereign.",B+" 第一章"],
+   ["“为你好”的手推不进圈内","他自己的好处，无论是身体的还是道德的，都不是充分的理由。","His own good, either physical or moral, is not a sufficient warrant.",B+" 第一章"],
+   ["劝说可以穿过，强制不行","这些是劝诫他、同他讲理、说服他或恳求他的好理由，但不是强迫他的理由。","These are good reasons for remonstrating with him, or reasoning with him, or persuading him, or entreating him, but not for compelling him",B+" 第一章"],
+   ["行动越过边界、碰到他人：干涉亮起","对文明社会的任何成员违背其意志而正当行使权力的唯一目的，是防止对他人的伤害。","the only purpose for which power can be rightfully exercised over any member of a civilised community, against his will, is to prevent harm to others",B+" 第一章"],
+   ["圈内的三块领域","它首先包括内在的意识领域……其次，这个原则要求趣味和追求的自由……第三……个人之间联合的自由。","It comprises, first, the inward domain of consciousness … Secondly, the principle requires liberty of tastes and pursuits … Thirdly, from this liberty of each individual, follows the liberty, within the same limits, of combination among individuals",B+" 第一章"]],
+2:[["把“不喜欢”拖向他：没有分量","一个人对自己意见的感受，与另一个因他持有该意见而被冒犯的人的感受，二者之间并无对等。","there is no parity between the feeling of a person for his own opinion, and the feeling of another who is offended at his holding it",B+" 第四章"],
+   ["可以避开他：自由的自然后果","我们没有义务去寻求他的陪伴；我们有权避开它（但不可炫耀这种回避）。","We are not bound, for example, to seek his society; we have a right to avoid it (though not to parade the avoidance)",B+" 第四章"],
+   ["真实的伤害：越过界线","侵犯他们的权利；施加他自身权利不能证明其正当的损失或损害；对他们弄虚作假……这些都是道德谴责的恰当对象。","Encroachment on their rights; infliction on them of any loss or damage not justified by his own rights; falsehood or duplicity in dealing with them",B+" 第四章"],
+   ["在公开场合：冒犯体面可被禁止","有许多行为，直接伤害的只是行为者本人，不应受法律禁止；但若公开进行，就违反了良好风尚……可以正当地加以禁止。","there are many acts which, being directly injurious only to the agents themselves, ought not to be legally interdicted, but which, if done publicly, are a violation of good manners",B+" 第五章"]],
+3:[["按住喝酒：只伤自己，无人可罚","不应仅仅因为一个人喝醉而惩罚他；","No person ought to be punished simply for being drunk;",B+" 第四章"],
+   ["把他拖到岗哨上：执勤中醉酒","但一个士兵或警察应当因为执勤时喝醉而受到惩罚。","but a soldier or a policeman should be punished for being drunk on duty.",B+" 第四章"],
+   ["确定的损害或风险：移出自由领域","总之，凡是对个人或公众造成了确定的损害或确定的损害风险，这种情况就被移出自由的领域，置于道德或法律的领域。","Whenever, in short, there is a definite damage, or a definite risk of damage, either to an individual or to the public, the case is taken out of the province of liberty",B+" 第四章"],
+   ["曾酒后施暴的人：特别限制","对于一个曾因酒后对他人施暴而被定罪的人……使自己喝醉，对于一个醉酒会激使他伤害他人的人，就是对他人的犯罪。","The making himself drunk, in a person whom drunkenness excites to do harm to others, is a crime against others.",B+" 第五章"],
+   ["危桥：来得及警告，就只警告","如果看到一个人要走上一座已被查明不安全的桥，又来不及警告他……可以抓住他把他拉回来，这并不真正侵犯他的自由。","saw a person attempting to cross a bridge which had been ascertained to be unsafe, and there were no time to warn him of his danger, they might seize him and turn him back without any real infringement of his liberty",B+" 第五章"]],
+4:[["全人类站在一边，只有一人异见","假如全人类除了一人之外都持一种意见，只有一人持相反意见，人类也没有理由让那一个人沉默。","If all mankind minus one, were of one opinion, and only one person were of the contrary opinion, mankind would be no more justified in silencing that one person",B+" 第二章"],
+   ["按住压制：整个人类都在失去","压制意见表达的特殊罪恶在于，它是在掠夺人类。","the peculiar evil of silencing the expression of an opinion is, that it is robbing the human race",B+" 第二章"],
+   ["压下的意见原来是真的","被企图用权威压制的意见，有可能是真的。……一切压制讨论，都是假定自己不会错。","the opinion which it is attempted to suppress by authority may possibly be true … All silencing of discussion is an assumption of infallibility.",B+" 第二章"],
+   ["就算它是错的：真理与谬误碰撞","如果它是错的，他们就失去了……真理与谬误碰撞所产生的对真理更清楚的认识和更鲜活的印象。","if wrong, they lose, what is almost as great a benefit, the clearer perception and livelier impression of truth, produced by its collision with error",B+" 第二章"]],
+5:[["新情境：把每件事拖到合适的位置","第一，个人的行为只要不涉及他人的利益，就不必向社会负责……第二，对于有害他人利益的行为，个人应当负责。","the individual is not accountable to society for his actions, in so far as these concern the interests of no person but himself … Secondly, that for such actions as are prejudicial to the interests of others, the individual is accountable",B+" 第五章"],
+   ["竞争中胜出：伤了别人却不必干涉","不能因为只有对他人利益的损害才能证明干涉正当，就以为这种损害总能证明干涉正当。","it must by no means be supposed, because damage, or probability of damage, to the interests of others, can alone justify the interference of society, that therefore it always does justify such interference",B+" 第五章"],
+   ["卖身为奴：自由不包括放弃自由","自由原则不能要求他有不自由的自由。允许他让渡自己的自由，并不是自由。","The principle of freedom cannot require that he should be free not to be free. It is not freedom, to be allowed to alienate his freedom.",B+" 第五章"]]};
+const TITLE={1:'① 自主领域 · 从中心拖出行动；拖“为你好”的手试图推进圈内',2:'② 伤害与冒犯 · 把“不喜欢”和“真实损害”分别拖向他人；把他拖进广场',3:'③ 醉酒与职责 · 按住让他喝酒；把他拖到岗哨；危桥前按住警告或拉回',4:'④ 一个人的异见 · 按住“压制”；拖动异见者的灯照向人群',5:'⑤ 应用练习 · 把新情境卡片拖到“自主领域”或“社会可干涉”区，按住确认'};
+function mapHTML(l){return MAP[l].map((r,i)=>`<div class="mr${SAVE.lit[l+'_'+i]?' on':''}" id="mr${l}_${i}"><div class="op"><span class="n">${i+1}</span>${r[0]}</div><div class="tx">「${r[1]}」<div class="en">${r[2]}</div><div class="ref">——密尔${r[3]}</div></div></div>`).join('');}
+function hit(l,i){const e=$('mr'+l+'_'+i);if(!e||e.classList.contains('on'))return;e.classList.add('on');SAVE.lit[l+'_'+i]=1;e.scrollIntoView({block:'nearest',behavior:'smooth'});
+  if(MAP[l].every((_,k)=>SAVE.lit[l+'_'+k])){SAVE.done[l]=1;tabs();}persist();}
+
+let PT=null;const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+const HD={};
+cv.addEventListener('pointerdown',e=>{const [x,y]=pos(e);PT={x,y};cv.setPointerCapture(e.pointerId);HD[L]?.down?.(x,y);});
+cv.addEventListener('pointermove',e=>{const [x,y]=pos(e);const dx=PT?x-PT.x:0,dy=PT?y-PT.y:0;if(PT){PT.x=x;PT.y=y;}HD[L]?.move?.(x,y,dx,dy,!!PT);});
+addEventListener('pointerup',()=>{PT=null;HD[L]?.up?.();});
+
+function person(x,y,s,col,label){ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y-s*1.9,s*.42,0,7);ctx.fill();ctx.beginPath();ctx.moveTo(x-s*.55,y);ctx.quadraticCurveTo(x,y-s*1.8,x+s*.55,y);ctx.closePath();ctx.fill();if(label)txt(label,x,y+16,'#334',12);}
+function bg(c1,c2){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,c1);g.addColorStop(1,c2);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);}
+
+/* ================= ① 自主领域 ================= */
+let A;
+const ACTS=[{n:'读禁书',self:1},{n:'信一种宗教',self:1},{n:'留奇怪发型',self:1},{n:'登山冒险',self:1},{n:'和朋友结社',self:1},{n:'推倒邻居',self:0},{n:'骗人钱财',self:0}];
+function init1(){A={R:Math.min(W,H)*0.26,cx:W*0.4,cy:H*0.52,acts:[],drag:null,hand:{x:W*0.88,y:H*0.3,push:0,drag:false},persuade:{x:W*0.88,y:H*0.7,drag:false,inside:0},others:[{x:W*0.78,y:H*0.5},{x:W*0.12,y:H*0.25},{x:W*0.12,y:H*0.8}],flash:0,zones:new Set()};
+  ACTS.forEach((a,i)=>{const ang=i/ACTS.length*6.283;A.acts.push({...a,x:A.cx+Math.cos(ang)*A.R*0.35,y:A.cy+Math.sin(ang)*A.R*0.35,hx:0,hy:0});});A.acts.forEach(a=>{a.hx=a.x;a.hy=a.y;});}
+HD[1]={down(x,y){if(Math.hypot(x-A.hand.x,y-A.hand.y)<34){A.hand.drag=true;return;}if(Math.hypot(x-A.persuade.x,y-A.persuade.y)<34){A.persuade.drag=true;return;}
+  for(const a of A.acts){if(Math.hypot(x-a.x,y-a.y)<30){A.drag=a;return;}}},
+ move(x,y){if(A.drag){A.drag.x=x;A.drag.y=y;}
+  if(A.hand.drag){const d=Math.hypot(x-A.cx,y-A.cy);if(d<A.R+18){const k=(A.R+18)/Math.max(d,1);A.hand.x=A.cx+(x-A.cx)*k;A.hand.y=A.cy+(y-A.cy)*k;A.hand.push+=0.03;if(A.hand.push>1.2)hit(1,1);}else{A.hand.x=x;A.hand.y=y;}}
+  if(A.persuade.drag){A.persuade.x=x;A.persuade.y=y;const d=Math.hypot(x-A.cx,y-A.cy);if(d<A.R){A.persuade.inside+=0.02;if(A.persuade.inside>0.6)hit(1,2);}}},
+ up(){A.hand.drag=false;A.persuade.drag=false;if(A.drag){const a=A.drag;A.drag=null;const d=Math.hypot(a.x-A.cx,a.y-A.cy);
+   if(d<A.R){if(a.self){hit(1,0);const ang=Math.atan2(a.y-A.cy,a.x-A.cx);A.zones.add(a.n==='读禁书'||a.n==='信一种宗教'?'意识':a.n==='和朋友结社'?'联合':'趣味');if(A.zones.size>=3)hit(1,4);}}
+   else{const near=A.others.some(o=>Math.hypot(a.x-o.x,a.y-o.y)<70);if(!a.self&&near){A.flash=1;hit(1,3);toast(`“${a.n}”伤害了他人：社会有权干涉`);}
+     else if(a.self){toast(`“${a.n}”只关乎他自己，即使放到圈外，也没人因此受害`);}}
+   a.x=a.hx;a.y=a.hy;}}};
+function t1(dt){bg('#eaf1f7','#d8e4ee');A.hand.push=Math.max(0,A.hand.push-dt*0.2);A.flash*=0.96;
+  const {cx,cy,R}=A;
+  ctx.fillStyle='rgba(125,200,140,.25)';ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.fill();ctx.strokeStyle='#3c9a5a';ctx.lineWidth=3;ctx.stroke();
+  if(A.flash>0.05){ctx.strokeStyle=`rgba(220,60,60,${A.flash})`;ctx.lineWidth=8;ctx.beginPath();ctx.arc(cx,cy,R+6,0,7);ctx.stroke();}
+  txt('自主领域：只涉及他自己',cx,cy-R-12,'#2a6b3d',14,'center',true);
+  person(cx,cy+20,22,'#3a6f99','他');
+  A.others.forEach((o,i)=>person(o.x,o.y+20,18,'#8a6a9a','他人'));
+  A.acts.forEach(a=>{const inside=Math.hypot(a.x-cx,a.y-cy)<R;ctx.fillStyle=a.self?'#7dc68c':'#e0786a';ctx.beginPath();ctx.roundRect(a.x-44,a.y-13,88,26,13);ctx.fill();txt(a.n,a.x,a.y+5,'#123',12);});
+  // 为你好的手
+  const h=A.hand;ctx.fillStyle='#c0392b';ctx.beginPath();ctx.arc(h.x,h.y,24,0,7);ctx.fill();txt('强制',h.x,h.y+5,'#fff',12,'center',true);txt('“为你好”',h.x,h.y-30,'#c0392b',12);
+  if(h.push>0.2){ctx.strokeStyle=`rgba(60,154,90,${clamp(h.push,0,1)})`;ctx.lineWidth=4;ctx.beginPath();ctx.arc(cx,cy,R+2,0,7);ctx.stroke();txt('边界挡住了它',h.x,h.y+44,'#2a6b3d',12);}
+  const p=A.persuade;ctx.fillStyle='#4a9fe0';ctx.beginPath();ctx.arc(p.x,p.y,22,0,7);ctx.fill();txt('劝说',p.x,p.y+5,'#fff',12,'center',true);
+  if(Math.hypot(p.x-cx,p.y-cy)<R)txt('劝说可以进来，但决定仍是他的',p.x,p.y-30,'#2c5a85',12);
+  txt('拖动绿色/红色行动卡到圈外他人身边；拖动“强制”“劝说”试着进入圈内',W/2,H-10,'#334',12);}
+
+/* ================= ② 伤害与冒犯 ================= */
+let Bs;
+function init2(){Bs={me:{x:W*0.3,y:H*0.6,drag:false},crowd:[],dislike:[],harm:[],avoid:0,plaza:false,src:[{k:'dislike',x:W*0.86,y:H*0.25,n:'“我不喜欢他的生活方式”'},{k:'harm',x:W*0.86,y:H*0.55,n:'他砸了别人的窗户'}],drag:null,lineG:0};
+  for(let i=0;i<8;i++)Bs.crowd.push({x:W*0.55+(i%4)*W*0.06,y:H*0.35+Math.floor(i/4)*H*0.3,away:0});}
+HD[2]={down(x,y){const m=Bs.me;if(Math.hypot(x-m.x,y-m.y+20)<34){m.drag=true;return;}for(const s of Bs.src){if(Math.hypot(x-s.x,y-s.y)<40){Bs.drag={...s,x,y};return;}}},
+ move(x,y){if(Bs.me.drag){Bs.me.x=clamp(x,30,W*0.5);Bs.me.y=clamp(y,60,H-30);}if(Bs.drag){Bs.drag.x=x;Bs.drag.y=y;}},
+ up(){Bs.me.drag=false;const d=Bs.drag;Bs.drag=null;if(!d)return;const m=Bs.me;
+   if(Math.hypot(d.x-m.x,d.y-m.y)<70){if(d.k==='dislike'){Bs.dislike.push({t:0});hit(2,0);toast('“不喜欢”落在他身上，没有任何分量；人们可以走开');Bs.avoid=1;}
+     else{Bs.harm.push({t:0});hit(2,2);toast('真实的损害：社会可以介入');}}}};
+function t2(dt){bg('#f3efe6','#e3dccd');const m=Bs.me;
+  const plazaX=W*0.0,plazaW=W*0.22;ctx.fillStyle='rgba(243,165,43,.18)';ctx.fillRect(plazaX,H*0.08,plazaW,H*0.84);txt('公共广场',plazaX+plazaW/2,H*0.08+18,'#a0620a',13,'center',true);
+  const inPlaza=m.x<plazaX+plazaW;if(inPlaza&&Bs.dislike.length){if(!Bs.plaza){Bs.plaza=true;hit(2,3);toast('同一件只关乎自己的事，若公开进行而违反体面，可被禁止');}}
+  // 冒犯：人群远离
+  Bs.avoid*=0.995;Bs.crowd.forEach((c,i)=>{const dx=c.x-m.x;c.away=lerp(c.away,Bs.avoid*40,dt*2);const ang=Math.atan2(c.y-m.y,dx);const X=c.x+Math.cos(ang)*c.away,Y=c.y+Math.sin(ang)*c.away;person(X,Y+18,16,'#8a6a9a','');});
+  if(Bs.avoid>0.3){hit(2,1);txt('人们选择回避他（但没有惩罚他）',W*0.7,H*0.12,'#6b4f7a',13);}
+  person(m.x,m.y+20,24,'#3a6f99','他（可拖动）');
+  Bs.dislike.forEach(d=>{d.t+=dt;if(d.t<2){ctx.globalAlpha=1-d.t/2;ctx.fillStyle='#bbb';ctx.beginPath();ctx.arc(m.x,m.y-50-d.t*30,10,0,7);ctx.fill();txt('不喜欢',m.x,m.y-70-d.t*30,'#888',11);ctx.globalAlpha=1;}});
+  Bs.harm.forEach(d=>{d.t+=dt;ctx.strokeStyle=`rgba(220,60,60,${Math.max(0,1-d.t/3)})`;ctx.lineWidth=6;ctx.beginPath();ctx.arc(m.x,m.y-10,50+d.t*10,0,7);ctx.stroke();});
+  if(Bs.harm.length&&Bs.harm[Bs.harm.length-1].t<3)txt('越过伤害线：可以干涉',m.x,m.y-80,'#c0392b',14,'center',true);
+  Bs.src.forEach(s=>{ctx.fillStyle=s.k==='harm'?'#e0786a':'#cfd6e6';ctx.beginPath();ctx.roundRect(s.x-90,s.y-16,180,32,14);ctx.fill();txt(s.n,s.x,s.y+5,'#123',12);});
+  if(Bs.drag){ctx.globalAlpha=0.7;ctx.fillStyle=Bs.drag.k==='harm'?'#e0786a':'#cfd6e6';ctx.beginPath();ctx.roundRect(Bs.drag.x-90,Bs.drag.y-16,180,32,14);ctx.fill();ctx.globalAlpha=1;}
+  txt('把右侧两张卡分别拖到“他”身上；再把他拖进公共广场',W/2,H-10,'#334',12);}
+
+/* ================= ③ 醉酒与职责 ================= */
+let C;
+function init3(){C={p:{x:W*0.25,y:H*0.62,drag:false},drunk:0,hold:false,post:{x:W*0.62,y:H*0.62},onDuty:false,convicted:false,risk:0,bridge:{walker:0,hold:0,mode:''},warned:false};}
+HD[3]={down(x,y){const p=C.p;if(Math.hypot(x-p.x,y-p.y+20)<36){C.p.drag=true;C.hold=true;C.t0=T;return;}
+  if(x>W*0.75){C.bridge.hold=1;}},
+ move(x,y){if(C.p.drag&&PT&&Math.hypot(x-C.p.x,y-C.p.y)>6){C.hold=false;C.p.x=clamp(x,30,W*0.72);C.p.y=clamp(y,80,H-30);}},
+ up(){C.p.drag=false;C.hold=false;C.bridge.hold=0;
+   const d=Math.hypot(C.p.x-C.post.x,C.p.y-C.post.y);if(d<70){C.onDuty=true;if(C.drunk>0.4){hit(3,1);hit(3,2);toast('执勤中醉酒：对公众造成确定的风险');}}else C.onDuty=false;}};
+function t3(dt){bg('#e9eef3','#d7dfe7');
+  if(C.hold&&T-C.t0>0.2){C.drunk=Math.min(1,C.drunk+dt*0.35);}else C.drunk=Math.max(0,C.drunk-dt*0.03);
+  const p=C.p;const sway=C.drunk*Math.sin(T*3)*0.25;
+  if(C.drunk>0.5&&!C.onDuty){hit(3,0);}
+  // 岗哨
+  ctx.fillStyle='#7a8b9c';ctx.fillRect(C.post.x-40,C.post.y-90,80,90);ctx.fillStyle='#c0392b';ctx.fillRect(C.post.x-44,C.post.y-100,88,12);txt('岗哨',C.post.x,C.post.y+16,'#334',12,'center',true);
+  if(C.onDuty&&C.drunk>0.4){C.risk=Math.min(1,C.risk+dt*0.4);ctx.fillStyle=`rgba(220,60,60,${0.2+0.2*Math.sin(T*6)})`;ctx.fillRect(C.post.x-120,C.post.y-130,240,160);txt('确定的风险：岗位无人可靠',C.post.x,C.post.y-110,'#c0392b',13,'center',true);}
+  ctx.save();ctx.translate(p.x,p.y);ctx.rotate(sway);person(0,20,24,C.onDuty?'#2c3e50':'#3a6f99','');ctx.restore();
+  txt(C.onDuty?'执勤的士兵':'下班的人',p.x,p.y+40,'#334',12);
+  ctx.fillStyle='#fff';ctx.fillRect(p.x-30,p.y-80,60,8);ctx.fillStyle='#b07b3c';ctx.fillRect(p.x-30,p.y-80,60*C.drunk,8);txt('醉意',p.x,p.y-86,'#334',11);
+  if(!C.onDuty&&C.drunk>0.5)txt('只伤他自己：无人有权惩罚',p.x,p.y-100,'#2a6b3d',13,'center',true);
+  // 前科开关（画面中可点的“判决书”）
+  const vx=W*0.06,vy=H*0.12;ctx.fillStyle=C.convicted?'#f3a52b':'rgba(255,255,255,.9)';ctx.fillRect(vx,vy,130,34);txt(C.convicted?'曾酒后施暴 ✓':'点：给他“酒后施暴”前科',vx+65,vy+22,'#222',11);
+  C._v={vx,vy};
+  if(C.convicted&&C.drunk>0.5&&!C.onDuty){hit(3,3);txt('对他，喝醉本身就是对他人的犯罪',p.x,p.y-118,'#c0392b',13,'center',true);}
+  // 危桥
+  const bx=W*0.78,by=H*0.6,bw=W*0.2;ctx.fillStyle='#5aa0d0';ctx.fillRect(bx,by+10,bw,H-by);ctx.strokeStyle='#8a6b42';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(bx,by);ctx.lineTo(bx+bw*0.45,by);ctx.moveTo(bx+bw*0.6,by+6);ctx.lineTo(bx+bw,by);ctx.stroke();
+  txt('已查明不安全的桥',bx+bw/2,by-48,'#8a3a2a',12,'center',true);
+  const B=C.bridge;B.walker+=dt*0.06;if(B.walker>1)B.walker=0;
+  const wx=bx+bw*0.05+bw*0.4*B.walker;
+  if(B.hold){const near=B.walker>0.75;if(near){hit(3,4);txt('来不及警告：把他拉回来',bx+bw/2,by-28,'#2a6b3d',12);B.walker=Math.max(0,B.walker-dt*0.8);}else{txt('还来得及：只需警告他',bx+bw/2,by-28,'#2c5a85',12);}}
+  person(wx,by,14,'#555','');
+  txt('按住画面右侧：对桥上的人出手',bx+bw/2,H-10,'#334',11);
+  txt('按住“他”喝酒；把他拖到岗哨；点左上角判决书',W*0.35,H-10,'#334',12);}
+const _d3=HD[3].down;HD[3].down=(x,y)=>{if(C._v&&x>C._v.vx&&x<C._v.vx+130&&y>C._v.vy&&y<C._v.vy+34){C.convicted=!C.convicted;return;}_d3(x,y);};
+
+/* ================= ④ 一个人的异见 ================= */
+let D;
+function init4(){D={crowd:[],lamp:{x:W*0.82,y:H*0.5,drag:false},supp:0,hold:false,truth:false,lit:0,reveal:0,tried:0};
+  for(let i=0;i<40;i++)D.crowd.push({x:W*0.08+(i%8)*W*0.075,y:H*0.18+Math.floor(i/8)*H*0.15,g:0});}
+HD[4]={down(x,y){if(Math.hypot(x-D.lamp.x,y-D.lamp.y)<44){D.lamp.drag=true;return;}D.hold=true;},
+ move(x,y){if(D.lamp.drag){D.lamp.x=clamp(x,W*0.7,W*0.96);D.lamp.y=clamp(y,60,H-40);}},
+ up(){D.lamp.drag=false;D.hold=false;}};
+function t4(dt){bg('#1c2433','#2a3550');hit(4,0);
+  if(D.hold){D.supp=Math.min(1,D.supp+dt*0.4);if(D.supp>0.4)hit(4,1);}else D.supp=Math.max(0,D.supp-dt*0.2);
+  const L0=D.lamp,bright=1-D.supp;
+  // 光束照向人群
+  const g=ctx.createRadialGradient(L0.x,L0.y,5,L0.x,L0.y,W*0.7);g.addColorStop(0,`rgba(255,230,140,${0.5*bright})`);g.addColorStop(1,'rgba(255,230,140,0)');ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(L0.x,L0.y);ctx.lineTo(0,L0.y-H*0.6);ctx.lineTo(0,L0.y+H*0.6);ctx.closePath();ctx.fill();
+  let litN=0;D.crowd.forEach(c=>{const inBeam=Math.abs((c.y-L0.y)/(L0.x-c.x+1))<0.75;c.g=lerp(c.g,inBeam?bright:0,dt*1.5);if(c.g>0.5)litN++;person(c.x,c.y+16,13,`rgb(${Math.round(120+120*c.g)},${Math.round(130+100*c.g)},${Math.round(150+20*c.g)})`,'');});
+  D.lit=litN;
+  if(litN>10&&D.supp<0.2){D.reveal=Math.min(1,D.reveal+dt*0.3);}
+  person(L0.x,L0.y+40,22,'#f3a52b','唯一的异见者');ctx.fillStyle=`rgba(255,240,170,${0.4+0.6*bright})`;ctx.beginPath();ctx.arc(L0.x,L0.y-20,16,0,7);ctx.fill();
+  // 压制的手
+  if(D.supp>0.02){ctx.fillStyle=`rgba(0,0,0,${0.6*D.supp})`;ctx.beginPath();ctx.arc(L0.x,L0.y-20,16+40*D.supp,0,7);ctx.fill();txt(`被掠夺的：${Math.round(D.supp*100)}% 的人看不到这道光`,W*0.4,H*0.08,'#ffb0b0',14,'center',true);}
+  if(D.reveal>0.5){hit(4,2);txt('原来他是对的',L0.x,L0.y-60,'#ffe7b5',14,'center',true);}
+  if(D.reveal>0.95){hit(4,3);txt('就算他错了：碰撞让人群对真理看得更清楚',W*0.4,H*0.95,'#ffe7b5',13);}
+  txt(D.supp>0.02?'':'按住画面：压制他；拖动他的灯照向人群，放手让光持续',W*0.4,H*0.08,'#cfd6e6',12);}
+
+/* ================= ⑤ 应用练习 ================= */
+let E;
+const CASES=[{n:'独自在家喝到烂醉',z:'self'},{n:'在考试中打败对手',z:'self',tip:1},{n:'向邻居水井投毒',z:'other'},{n:'抽烟只伤自己的肺',z:'self'},{n:'醉驾校车',z:'other'},{n:'签约卖身为奴',z:'slave'},{n:'传播一种不受欢迎的观点',z:'self'}];
+function init5(){E={cards:CASES.map((c,i)=>({...c,x:W*0.1+(i%4)*W*0.2,y:H*0.14+Math.floor(i/4)*H*0.12,placed:false,hold:0})),drag:null,ok:0,holdT:0};}
+const ZONES=()=>({self:{x:W*0.03,y:H*0.42,w:W*0.44,h:H*0.5,n:'自主领域（社会不可干涉）',c:'rgba(125,200,140,.25)'},other:{x:W*0.53,y:H*0.42,w:W*0.44,h:H*0.5,n:'社会可干涉',c:'rgba(224,120,106,.25)'}});
+HD[5]={down(x,y){for(const c of E.cards){if(!c.placed&&Math.hypot(x-c.x,y-c.y)<60&&Math.abs(y-c.y)<16){E.drag=c;return;}}},
+ move(x,y){if(E.drag){E.drag.x=x;E.drag.y=y;E.holdT=0;}},
+ up(){const c=E.drag;E.drag=null;if(!c)return;const Z=ZONES();let z=null;for(const k in Z){const r=Z[k];if(c.x>r.x&&c.x<r.x+r.w&&c.y>r.y&&c.y<r.y+r.h)z=k;}
+   if(!z){return;}
+   if(c.z==='slave'){c.bounce=1;hit(5,2);toast('卖身为奴：哪一区都不对——自由不包括放弃自由，这种契约无效');c.x=W*0.5;c.y=H*0.3;c.placed=true;return;}
+   if(z===c.z){c.placed=true;E.ok++;hit(5,0);if(c.tip){hit(5,1);toast('胜出让对手受损，但社会不必干涉：只禁止欺诈、背叛与暴力');}}
+   else{toast(c.z==='self'?`“${c.n}”只涉及他自己`:`“${c.n}”对他人造成确定的损害或风险`);c.y=H*0.3;}}};
+function t5(dt){bg('#eef2f5','#dfe6ec');const Z=ZONES();for(const k in Z){const r=Z[k];ctx.fillStyle=r.c;ctx.fillRect(r.x,r.y,r.w,r.h);ctx.strokeStyle='rgba(0,0,0,.2)';ctx.strokeRect(r.x,r.y,r.w,r.h);txt(r.n,r.x+r.w/2,r.y+22,'#223',14,'center',true);}
+  E.cards.forEach(c=>{ctx.fillStyle=c.placed?(c.z==='slave'?'#f3a52b':'#fff'):'#fffdf3';ctx.strokeStyle='#8a8070';ctx.lineWidth=1.5;ctx.beginPath();ctx.roundRect(c.x-80,c.y-15,160,30,10);ctx.fill();ctx.stroke();txt(c.n+(c.placed&&c.z!=='slave'?' ✓':''),c.x,c.y+5,'#222',12);});
+  txt(`已正确放置：${E.ok} / 6（另有一张卡哪里都放不进）`,W/2,H-10,'#334',12);}
+
+/* ======== 调度 ======== */
+const INIT={1:init1,2:init2,3:init3,4:init4,5:init5},TICK={1:t1,2:t2,3:t3,4:t4,5:t5};
+function tabs(){document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('on',+t.dataset.l===L);t.classList.toggle('done',!!SAVE.done[t.dataset.l]);});}
+function go(n){L=n;SAVE.level=n;persist();tabs();$('sTitle').textContent=TITLE[L];$('sBody').innerHTML=mapHTML(L);INIT[L]();}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(+t.dataset.l));
+$('bReset').onclick=()=>{INIT[L]();toast('已重置（已对应的原文保留）');};
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;T+=dt;ctx.clearRect(0,0,W,H);TICK[L](dt);requestAnimationFrame(loop);}
+go(SAVE.level||1);requestAnimationFrame(loop);
+</script>
+<a href="index.html" style="position:fixed;right:10px;bottom:198px;z-index:99;background:#f3a52b;color:#222;padding:6px 12px;border-radius:14px;font:13px sans-serif;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.3)">← 总目录</a></body>
+</html>
