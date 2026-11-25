@@ -25,7 +25,7 @@
 <body>
 <div id="glow"></div><div id="base"></div>
 <div id="stage"><div id="ball"></div></div><div id="seats"></div>
-<div class="top"><h1>🌐 环球巨幕</h1><button id="setsw"></button><button id="mode">🚶 走进球内</button><button id="spin" class="on">⟳ 自转</button><button id="imp">📂 导入素材</button><button id="one">▣ 一幅铺满</button><button id="reset" style="display:none">↺ 恢复词根</button><button id="full">⛶ 全屏</button><button id="hide">👁 隐藏界面</button><input type="file" id="file" accept="image/*,video/*" multiple style="display:none"><span></span><button id="back">🎞 词根馆</button><button id="close">✕ 回到小岛</button></div>
+<div class="top"><h1>🌐 环球巨幕</h1><button id="setsw"></button><button id="lib">📚 资源库</button><button id="mode">🚶 走进球内</button><button id="spin" class="on">⟳ 自转</button><button id="imp">📂 导入素材</button><button id="one">▣ 一幅铺满</button><button id="reset" style="display:none">↺ 恢复词根</button><button id="full">⛶ 全屏</button><button id="hide">👁 隐藏界面</button><input type="file" id="file" accept="image/*,video/*" multiple style="display:none"><span></span><button id="back">🎞 词根馆</button><button id="close">✕ 回到小岛</button></div>
 <div id="roots"></div>
 <div id="tip"></div><div id="big"><div><img alt=""><b></b><i></i></div></div>
 <script src="data.js"></script>
@@ -73,6 +73,7 @@
   document.getElementById('hide').onclick = function () { hideUI(true); };
   addEventListener('keydown', function (e) { if (e.key === 'h' || e.key === 'H') hideUI(!document.body.classList.contains('clean')); if (e.key === 'f' || e.key === 'F') fullOn(); }, true);
   window.__imp = function (files) { var dt = new DataTransfer(); files.forEach(function (f) { dt.items.add(f); }); var inp = document.getElementById('file'); inp.files = dt.files; inp.onchange(); };
+  document.getElementById('lib').onclick = function () { location.href = '../media/index.html?from=sphere&set=' + (TM ? 'thinking' : 'roots'); };
   var sw = document.getElementById('setsw'); sw.textContent = TM ? '🔤 换成词根动图' : '🧠 换成思维模型 · 111'; sw.onclick = function () { location.search = TM ? '' : '?set=models'; };
   if (TM) { document.querySelector('.top h1').textContent = '🧠 思维模型巨幕'; tip('111 张思维模型动图 · 底部按类别筛选 · 点一块放大'); }
   place(); requestAnimationFrame(frame); document.getElementById('mode').click(); window.__sphere = { n: tiles.length, loaded: load, toggle: function () { document.getElementById('mode').click(); } };

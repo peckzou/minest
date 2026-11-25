@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>资源库</title>
+<style>
+  :root { --c: #f3ecd6; --sub: rgba(243,236,214,.7); --line: rgba(243,236,214,.3); --glass: radial-gradient(circle at 50% 0%, rgba(40,44,46,.72), rgba(8,10,12,.82)); --hi: #9fe8ff; }
+  html, body { margin: 0; min-height: 100%; background: #0b0e10; color: var(--c); font: 14px/1.6 "Avenir Next", "Helvetica Neue", "PingFang SC", sans-serif; }
+  body { background: radial-gradient(ellipse at 50% -10%, #12313a 0%, #0c1416 45%, #0b0e10 100%) fixed; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: calc(16px + env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom)); }
+  header { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; } header .t { flex: 1; min-width: 240px; }
+  h1 { margin: 0; font-size: 26px; letter-spacing: .08em; } h1 small { display: block; font-size: 12.5px; letter-spacing: .12em; color: var(--hi); font-weight: 500; margin-top: 3px; }
+  .lede { color: var(--sub); font-size: 13px; margin: 6px 0 0; max-width: 760px; }
+  .key { display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; border-radius: 999px; border: 1.5px solid rgba(243,236,214,.75); background: var(--glass); color: var(--c); font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; }
+  .key:hover, .key.on { border-color: #ffe7a3; color: #fff3cc; } .key.on { background: rgba(255,231,163,.12); }
+  .tabs, .groups { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; } .groups { margin-top: 8px; } .groups .key { font-size: 12px; padding: 4px 10px; border-width: 1px; }
+  .bar { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; } .bar input { flex: 1; min-width: 180px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: rgba(0,0,0,.35); color: var(--c); font: inherit; outline: none; } .bar span { color: var(--sub); font-size: 12.5px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin-top: 14px; }
+  .it { border-radius: 12px; overflow: hidden; background: var(--glass); border: 1px solid var(--line); cursor: pointer; transition: transform .15s, border-color .15s; }
+  .it:hover { transform: translateY(-2px); border-color: #ffe7a3; } .it .pic { aspect-ratio: 16 / 9; background: #f6f4ee; } .it img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .it b { display: block; padding: 7px 10px 0; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .it small { display: block; padding: 0 10px 8px; color: var(--sub); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #view { position: fixed; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center; background: rgba(3,4,5,.78); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); padding: 14px; }
+  #view.on { display: flex; } #view .box { width: min(760px, 100%); max-height: 92vh; overflow: auto; border-radius: 14px; background: var(--glass); border: 1px solid rgba(243,236,214,.5); padding: 14px; }
+  #view img { width: 100%; border-radius: 8px; background: #f6f4ee; display: block; } #view h3 { margin: 10px 0 0; font-size: 21px; } #view .z { color: var(--hi); font-size: 13px; } #view p { margin: 8px 0; } #view small { color: var(--sub); }
+  #view .r { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  #frame { position: fixed; inset: 0; z-index: 30; display: none; background: #000; } #frame.on { display: block; } #frame iframe { width: 100%; height: 100%; border: 0; } #frame .key { position: absolute; left: calc(10px + env(safe-area-inset-left)); bottom: calc(12px + env(safe-area-inset-bottom)); }
+  @media (max-width: 520px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><div class="t"><h1>资源库<small>MEDIA LIBRARY · 哲学家小岛</small></h1><p class="lede">岛上所有动图和图解收在这里，每一张都能拿出来用不同方式呈现：在全息操作台上看、贴上 Sphere 巨幕，或者在这里放大细看。</p></div>
+    <button class="key" id="holo">🔷 整套在全息台看</button><button class="key" id="close">✕ 回到小岛</button></header>
+  <div class="tabs" id="tabs"></div><div class="groups" id="groups"></div>
+  <div class="bar"><input id="q" type="search" placeholder="搜索名称、说明…" aria-label="搜索"><span id="count"></span></div>
+  <div class="grid" id="grid"></div>
+</div>
+<div id="view"><div class="box"></div></div>
+<div id="frame"><iframe title=""></iframe><button class="key" id="frameX">‹ 回到资源库</button></div>
+<script src="library.js"></script>
+<script>
+/* 资源库 — the island's media library page: every picture set in media/library.js (window.PIMedia), browsable by set,
+   category and search. A picture opens large; from there, or for a whole set, it can be shown on the holo console
+   (holo-lab-2 ?mode=media) or on the Sphere (rootmap/sphere.html). New sets come in through media/build.js. */
+(function () {
+  'use strict';
+  var L = window.PIMedia, $ = function (id) { return document.getElementById(id); }, EMBED = parent !== window, BASE = '../';
+  var Q = new URLSearchParams(location.search), st = { set: Q.get('set') || L.sets[0].id, group: '', q: '' };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function setOf(id) { return L.sets.filter(function (s) { return s.id === id; })[0]; }
+  function list() { var q = st.q.toLowerCase(); return L.items.filter(function (it) { return (q ? true : it.set === st.set) && (!st.group || it.group === st.group) && (!q || (it.title + ' ' + it.zh + ' ' + it.line + ' ' + it.group).toLowerCase().indexOf(q) >= 0); }); }
+  var io = 'IntersectionObserver' in window ? new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { var im = e.target; im.src = im.getAttribute('data-src'); io.unobserve(im); } }); }, { rootMargin: '200px' }) : null;
+  function draw() {
+    $('tabs').innerHTML = L.sets.map(function (s) { return '<button class="key' + (s.id === st.set && !st.q ? ' on' : '') + '" data-set="' + s.id + '" title="' + esc(s.note) + '">' + esc(s.name) + ' · ' + L.set(s.id).length + '</button>'; }).join('');
+    var gs = st.q ? [] : setOf(st.set).groups || [];
+    $('groups').innerHTML = gs.length > 1 ? ['<button class="key' + (!st.group ? ' on' : '') + '" data-g="">全部</button>'].concat(gs.map(function (g) { return '<button class="key' + (st.group === g ? ' on' : '') + '" data-g="' + esc(g) + '">' + esc(g) + '</button>'; })).join('') : '';
+    var a = list(); $('count').textContent = a.length + ' 张';
+    $('grid').innerHTML = a.map(function (it) { return '<div class="it" data-id="' + it.id + '"><div class="pic"><img alt="" data-src="' + esc(L.url(it, BASE)) + '"' + (io ? '' : ' src="' + esc(L.url(it, BASE)) + '"') + '></div><b>' + esc(it.zh || it.title) + '</b><small>' + esc(it.title !== it.zh ? it.title + ' · ' : '') + esc(it.group) + '</small></div>'; }).join('');
+    if (io) [].forEach.call($('grid').querySelectorAll('img[data-src]'), function (im) { io.observe(im); });
+  }
+  function holoUrl(set, id) { return BASE + 'holo-lab-2/index.html?mode=media&set=' + encodeURIComponent(set) + (id ? '&focus=' + encodeURIComponent(id) : ''); }
+  function sphereUrl(set) { return set === 'roots' ? BASE + 'rootmap/sphere.html' : set === 'ec6' ? BASE + 'ec6/sphere.html' : BASE + 'rootmap/sphere.html?set=models'; }
+  function openFrame(url) { $('view').classList.remove('on'); $('frame').querySelector('iframe').src = url; $('frame').classList.add('on'); }
+  function view(it) {
+    var s = setOf(it.set) || {};
+    $('view').querySelector('.box').innerHTML = '<img alt="" src="' + esc(L.url(it, BASE)) + '"><h3>' + esc(it.zh || it.title) + '</h3><div class="z">' + esc(it.title) + ' · ' + esc(s.name) + ' · ' + esc(it.group) + '</div>' + (it.line ? '<p>' + esc(it.line) + '</p>' : '') + (it.credit ? '<small>' + esc(it.credit) + '</small>' : '') +
+      '<div class="r"><button class="key" data-holo="' + it.id + '">🔷 在全息台看</button><button class="key" data-sphere="' + it.set + '">🌐 上巨幕</button><button class="key" data-say="' + esc(it.title) + '">🔊 朗读</button><button class="key" data-x>合上</button></div>';
+    $('view').classList.add('on');
+  }
+  document.addEventListener('click', function (e) {
+    var t = e.target, b;
+    if ((b = t.closest('[data-set]'))) { st.set = b.getAttribute('data-set'); st.group = ''; st.q = ''; $('q').value = ''; draw(); return; }
+    if ((b = t.closest('[data-g]'))) { st.group = b.getAttribute('data-g'); draw(); return; }
+    if ((b = t.closest('.it'))) { var it = L.byId(b.getAttribute('data-id')); if (it) view(it); return; }
+    if ((b = t.closest('[data-holo]'))) { var x = L.byId(b.getAttribute('data-holo')); openFrame(holoUrl(x.set, x.id)); return; }
+    if ((b = t.closest('[data-sphere]'))) { openFrame(sphereUrl(b.getAttribute('data-sphere'))); return; }
+    if ((b = t.closest('[data-say]'))) { try { speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(b.getAttribute('data-say')); u.lang = 'en-US'; speechSynthesis.speak(u); } catch (er) {} return; }
+    if (t.closest('[data-x]') || t.id === 'view') $('view').classList.remove('on');
+  });
+  $('q').addEventListener('input', function () { st.q = this.value.trim(); st.group = ''; draw(); });
+  $('holo').onclick = function () { openFrame(holoUrl(st.set)); };
+  $('frameX').onclick = function () { $('frame').classList.remove('on'); $('frame').querySelector('iframe').src = 'about:blank'; };
+  $('close').onclick = function () { if (Q.get('from') === 'sphere') history.back(); else if (EMBED) parent.postMessage({ media: 1, op: 'close' }, location.origin); else history.back(); };
+  addEventListener('message', function (e) { var m = e.data; if (!m || e.source !== $('frame').querySelector('iframe').contentWindow) return; if ((m.holo === 1 || m.rootmap === 1 || m.ec6 === 1) && m.op === 'close') $('frameX').click(); });
+  addEventListener('keydown', function (e) { if (e.key !== 'Escape') return; if ($('frame').classList.contains('on')) $('frameX').click(); else if ($('view').classList.contains('on')) $('view').classList.remove('on'); else $('close').click(); });
+  draw();
+})();
+</script>
+</body>
+</html>
