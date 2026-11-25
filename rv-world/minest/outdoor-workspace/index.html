@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+  <title>Minest Painterly 3D — 原图精准三维重建 · 小范围漫步与鸟瞰全景</title>
+  <style>
+    :root {
+      --glass: rgba(13, 19, 27, 0.72);
+      --glass-hover: rgba(26, 36, 50, 0.86);
+      --border: rgba(255, 255, 255, 0.18);
+      --accent: #f6c465;
+      --accent-emerald: #38c9b4;
+      --ink: #faf8f4;
+      --muted: rgba(244, 240, 232, 0.75);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #0a0f16; color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Hiragino Sans GB", sans-serif;
+    }
+    #canvas-wrap { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 1; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+
+    #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; transition: opacity 0.3s ease; }
+    #hud.hidden { opacity: 0; }
+
+    .top-bar {
+      position: absolute; top: 16px; left: 20px; right: 20px;
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap;
+    }
+    .brand-card {
+      pointer-events: auto;
+      background: var(--glass); backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+      border: 1px solid var(--border); border-radius: 18px; padding: 12px 18px;
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.38); max-width: 470px;
+    }
+    .brand-card .eyebrow {
+      font-size: 10.5px; text-transform: uppercase; letter-spacing: 1.0px;
+      color: var(--accent); font-weight: 700;
+    }
+    .brand-card h1 { margin-top: 3px; font-size: 18px; font-weight: 700; }
+    .brand-card p { margin-top: 3px; font-size: 12px; color: var(--muted); }
+
+    .right-controls {
+      display: flex; flex-direction: column; align-items: flex-end; gap: 7px; pointer-events: auto;
+    }
+    .control-bar {
+      display: flex; align-items: center; gap: 6px; padding: 5px 11px; flex-wrap: wrap;
+      background: var(--glass); backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+      border: 1px solid var(--border); border-radius: 999px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32);
+    }
+    .bar-label { font-size: 11px; color: var(--muted); font-weight: 600; padding: 0 4px; }
+    .pill-btn {
+      background: transparent; border: 1px solid transparent; color: var(--muted);
+      padding: 5px 11px; border-radius: 999px; font-size: 11.5px; font-weight: 600; cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    .pill-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.10); }
+    .pill-btn.active {
+      background: rgba(246, 196, 101, 0.22); color: var(--accent);
+      border-color: rgba(246, 196, 101, 0.50);
+    }
+    .pill-btn.walk-active {
+      background: rgba(56, 201, 180, 0.25); color: #7ef7e6;
+      border-color: rgba(56, 201, 180, 0.55);
+    }
+    input[type="range"] { accent-color: var(--accent); cursor: pointer; height: 4px; }
+    .mono-val {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 11px; color: var(--accent); min-width: 36px; text-align: center; font-weight: 600;
+    }
+
+    /* Bottom-Left Walking D-Pad & Controls Hint */
+    #walk-hud {
+      position: absolute; bottom: 140px; left: 20px; pointer-events: auto;
+      background: var(--glass); backdrop-filter: blur(18px);
+      border: 1px solid var(--border); border-radius: 16px; padding: 10px 13px;
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.38);
+      display: flex; align-items: center; gap: 11px;
+    }
+    .dpad {
+      display: grid; grid-template-columns: repeat(3, 29px); grid-template-rows: repeat(2, 27px); gap: 4px;
+    }
+    .dpad-btn {
+      background: rgba(255, 255, 255, 0.10); border: 1px solid rgba(255, 255, 255, 0.20);
+      border-radius: 7px; color: #fff; font-size: 11.5px; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .dpad-btn:hover, .dpad-btn:active {
+      background: rgba(56, 201, 180, 0.45); border-color: var(--accent-emerald);
+    }
+    .walk-info { font-size: 11px; line-height: 1.45; color: var(--muted); max-width: 195px; }
+    .walk-info b { color: var(--accent); }
+
+    /* Reference Photo Comparison Card */
+    #ref-card {
+      position: absolute; bottom: 140px; right: 20px; pointer-events: auto;
+      width: 268px; background: var(--glass); backdrop-filter: blur(18px);
+      border: 1px solid var(--border); border-radius: 14px; padding: 8px;
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.42); display: none;
+    }
+    #ref-card.visible { display: block; }
+    #ref-card img { width: 100%; height: 150px; object-fit: cover; border-radius: 9px; display: block; }
+    #ref-card .caption { font-size: 11px; color: var(--muted); text-align: center; margin-top: 5px; }
+
+    /* Bottom Vantage Bar & 4-Scene Dock */
+    .vantage-bar {
+      position: absolute; bottom: 84px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 6px; padding: 5px 9px; pointer-events: auto;
+      background: var(--glass); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--border); border-radius: 999px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.36); white-space: nowrap;
+    }
+    .scene-dock {
+      position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      width: min(95vw, 940px); padding: 7px; pointer-events: auto;
+      background: var(--glass); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--border); border-radius: 18px;
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.48);
+    }
+    .scene-tab {
+      background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 12px; padding: 8px 12px; cursor: pointer; text-align: left;
+      color: var(--ink); display: flex; align-items: center; gap: 10px; transition: all 0.2s ease;
+    }
+    #scene-dock { display: flex; width: auto; max-width: min(95vw, 1180px); overflow-x: auto; scrollbar-width: thin; } .scene-tab { flex: none; padding: 6px 10px; }
+    .scene-tab:hover { background: rgba(255, 255, 255, 0.11); }
+    .scene-tab.active {
+      background: linear-gradient(135deg, rgba(246, 196, 101, 0.24), rgba(56, 201, 180, 0.18));
+      border-color: var(--accent); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+    }
+    .scene-num {
+      width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+      background: rgba(246, 196, 101, 0.16); border: 1px solid rgba(246, 196, 101, 0.42);
+      color: var(--accent); font-size: 12.5px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .scene-info { overflow: hidden; }
+    .scene-title-zh { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .scene-title-en { font-size: 10.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    #loader {
+      position: fixed; inset: 0; z-index: 30;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+      background: radial-gradient(circle at center, #1b2534 0%, #090d12 100%);
+      transition: opacity 0.35s ease;
+    }
+    #loader.done { opacity: 0; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <div id="canvas-wrap"></div>
+
+  <div id="loader">
+    <div style="font-size: 19px; font-weight: 650; letter-spacing: 0.4px; color: #f6c465;">Minest Painterly 3D · 3K 原图精准三维空间重建</div>
+    <div id="load-msg" style="font-size: 12.5px; color: rgba(255,255,255,0.75);">正在加载 3K 超清纹理与 80,640 面真 3D 地形网格……</div>
+  </div>
+
+  <div id="hud">
+    <div class="top-bar">
+      <div class="brand-card">
+        <div class="eyebrow">🎨 手绘水彩动画 3D · 零拉伸曲面剧场 · 支持小范围漫步与鸟瞰</div>
+        <h1 id="ui-title">01 · 高山草甸 · Alpine Meadow</h1>
+        <p id="ui-sub">手绘水彩淡彩动画风格 · 起伏花海草甸、山脊木屋与阿尔卑斯连绵雪山</p>
+      </div>
+
+      <div class="right-controls">
+        <!-- Row 1: Exploration Modes (Classic / Walk / Bird's-Eye) -->
+        <div class="control-bar">
+          <span class="bar-label">探索模式:</span>
+          <button id="btn-mode-hero" class="pill-btn active">🎬 经典水彩主视角</button>
+          <button id="btn-mode-walk" class="pill-btn">🚶 小范围行走 (WASD/点击地面)</button>
+          <button id="btn-mode-birdseye" class="pill-btn">🦅 高空鸟瞰全景</button>
+          <button id="btn-ref" class="pill-btn">🖼️ 原图对比</button>
+        </div>
+
+        <!-- Row 2: Painterly Watercolor Detail & Time of Day -->
+        <div class="control-bar">
+          <span class="bar-label">🎨 手绘水彩笔触:</span>
+          <input id="painterly-slider" type="range" min="0" max="1" step="0.02" value="0.72" style="width: 72px;" />
+          <span id="painterly-val" class="mono-val">72%</span>
+          <span class="bar-label">昼夜:</span>
+          <button class="pill-btn tod-btn active" data-tod="13.5">☀️ 白昼</button>
+          <button class="pill-btn tod-btn" data-tod="17.8">🌅 夕照</button>
+          <button class="pill-btn tod-btn" data-tod="19.6">🌌 蓝调</button>
+          <button class="pill-btn tod-btn" data-tod="22.8">🌙 星夜</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom-Left Walking Controls -->
+    <div id="walk-hud">
+      <div class="dpad">
+        <div></div>
+        <button class="dpad-btn" data-move="forward" title="向前行走 (W / ↑)">▲</button>
+        <div></div>
+        <button class="dpad-btn" data-move="left" title="向左移动 (A / ←)">◄</button>
+        <button class="dpad-btn" data-move="backward" title="向后移动 (S / ↓)">▼</button>
+        <button class="dpad-btn" data-move="right" title="向右移动 (D / →)">►</button>
+      </div>
+      <div class="walk-info">
+        <b>🚶 真 3D 小范围漫步 & 鸟瞰</b><br/>
+        按 <b>WASD / 方向键</b> 或左侧按钮即可走入场景内部；<b>点击地面</b>可自动走过去；点击 <b>🦅 鸟瞰全景</b> 可升空俯瞰。
+      </div>
+    </div>
+
+    <!-- Reference Image Comparison Card -->
+    <div id="ref-card">
+      <img id="ref-img" src="./references/01-alpine-meadow.jpg" alt="Reference" />
+      <div class="caption" id="ref-caption">参考原图 · 01 高山草甸</div>
+    </div>
+
+    <div class="vantage-bar" id="vantage-bar"></div>
+    <div class="scene-dock" id="scene-dock"></div>
+  </div>
+
+  <script src="../vendor/three.min.js"></script>
+  <script src="../vendor/GLTFLoader.js"></script>
+  <script>
+  (async function () {
+    const SCENES = [
+      {
+        id: "alpine-meadow",
+        num: "01",
+        idx: 1,
+        titleZh: "高山草甸",
+        titleEn: "Alpine Meadow",
+        subtitle: "手绘水彩淡彩动画风格 · 起伏花海草甸、山脊木屋与阿尔卑斯连绵雪山（C² 零拉伸三维剧场）",
+        refImg: "./references/01-alpine-meadow.jpg",
+      },
+      {
+        id: "royal-garden",
+        num: "02",
+        idx: 2,
+        titleZh: "皇家花园",
+        titleEn: "Royal Garden (Hampton Court)",
+        subtitle: "手绘水彩淡彩动画风格 · 汉普顿宫红砖立面、修剪树篱、对称花坛与中央喷泉（C² 零拉伸三维剧场）",
+        refImg: "./references/02-royal-garden.jpg",
+      },
+      {
+        id: "lofoten-islands",
+        num: "03",
+        idx: 3,
+        titleZh: "罗弗敦峡湾",
+        titleEn: "Lofoten Islands Fjord",
+        subtitle: "手绘水彩淡彩动画风格 · 奥尔斯廷恩陡峭山峰、蓝绿水彩峡湾与雷讷红渔屋半岛（C² 零拉伸三维剧场）",
+        refImg: "./references/03-lofoten-islands.jpg",
+      },
+      {
+        id: "plitvice-lakes",
+        num: "04",
+        idx: 4,
+        titleZh: "十六湖瀑布森林",
+        titleEn: "Plitvice Lakes & Waterfalls",
+        subtitle: "手绘水彩淡彩动画风格 · 层叠翡翠湖泊、钙华群瀑、峡谷大瀑布与 S 形木栈道（C² 零拉伸三维剧场）",
+        refImg: "./references/04-plitvice-lakes.jpg",
+      },
+    ];
+
+    // RV World: ten more scenes built with the same pipeline (tools/build_office_scenes.py); the list lives in scenes/extra.json
+    try { (await (await fetch("./scenes/extra.json")).json()).forEach((s) => SCENES.push(s)); } catch (e) { console.warn("extra scenes", e); }
+    let currentSceneId = new URLSearchParams(location.search).get("scene") || "royal-garden";
+    let currentPainterlyStrength = 0.65;
+    let timeOfDay = 13.5;
+
+    const wrap = document.getElementById("canvas-wrap");
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      powerPreference: "high-performance",
+      preserveDrawingBuffer: true,
+    });
+    // Ultra-crisp 2.5x Retina rendering
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 2, 2.5));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.03;
+    if ("outputColorSpace" in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
+    else renderer.outputEncoding = THREE.sRGBEncoding;
+    const maxAniso = renderer.capabilities.getMaxAnisotropy() || 8;
+    wrap.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x8ec5f2);
+    const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.2, 500);
+
+    const gltfLoader = new THREE.GLTFLoader();
+    const texLoader = new THREE.TextureLoader();
+    const loadGLB = (url, retries = 2) => new Promise((res, rej) => {
+      gltfLoader.load(url, res, undefined, (err) => {
+        if (retries > 0) setTimeout(() => loadGLB(url, retries - 1).then(res, rej), 120);
+        else rej(err);
+      });
+    });
+    const loadTex = (url, retries = 2) => new Promise((res, rej) => {
+      texLoader.load(url, res, undefined, (err) => {
+        if (retries > 0) setTimeout(() => loadTex(url, retries - 1).then(res, rej), 120);
+        else rej(err);
+      });
+    });
+
+    // 360° Painterly Sky Dome surrounding the 3D terrain mesh for Bird's-Eye & Wide Orbit views
+    function createSkyDome() {
+      const uniforms = {
+        uTime: { value: 0.0 },
+        uNightMix: { value: 0.0 },
+        uSunsetMix: { value: 0.0 },
+      };
+      const mat = new THREE.ShaderMaterial({
+        uniforms,
+        side: THREE.BackSide,
+        depthWrite: false,
+        vertexShader: `
+          varying vec3 vDir;
+          void main() {
+            vec4 wp = modelMatrix * vec4(position, 1.0);
+            vDir = normalize(wp.xyz);
+            gl_Position = projectionMatrix * viewMatrix * wp;
+          }
+        `,
+        fragmentShader: `
+          uniform float uTime;
+          uniform float uNightMix;
+          uniform float uSunsetMix;
+          varying vec3 vDir;
+          void main() {
+            float y = clamp(vDir.y, 0.0, 1.0);
+            vec3 dayZenith = vec3(0.20, 0.50, 0.84);
+            vec3 dayHorizon = vec3(0.76, 0.90, 0.99);
+            vec3 col = mix(dayHorizon, dayZenith, pow(y, 0.55));
+            if (uSunsetMix > 0.01) {
+              vec3 sunSky = mix(vec3(0.96, 0.62, 0.40), vec3(0.24, 0.32, 0.62), pow(y, 0.5));
+              col = mix(col, sunSky, uSunsetMix * 0.85);
+            }
+            if (uNightMix > 0.01) {
+              vec3 nightSky = mix(vec3(0.09, 0.17, 0.32), vec3(0.03, 0.06, 0.14), pow(y, 0.5));
+              col = mix(col, nightSky, uNightMix);
+            }
+            gl_FragColor = vec4(col, 1.0);
+          }
+        `,
+      });
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(360, 48, 32), mat);
+      dome.userData.uniforms = uniforms;
+      return dome;
+    }
+    const skyDome = createSkyDome();
+    scene.add(skyDome);
+
+    // Ground Walk Target Ring
+    const walkRingGeo = new THREE.RingGeometry(0.28, 0.40, 32);
+    walkRingGeo.rotateX(-Math.PI / 2);
+    const walkRing = new THREE.Mesh(
+      walkRingGeo,
+      new THREE.MeshBasicMaterial({ color: 0x38c9b4, side: THREE.DoubleSide, transparent: true, opacity: 0.85 })
+    );
+    walkRing.visible = false;
+    scene.add(walkRing);
+
+    let activeRoot = new THREE.Group();
+    scene.add(activeRoot);
+    let activeTerrainMesh = null;
+    let activeShaderUniforms = null;
+    let activeFloraInstanced = null;
+    let currentPresets = null;
+
+    // Camera & Walking State
+    const camState = {
+      pos: new THREE.Vector3(0, 5.5, 26),
+      look: new THREE.Vector3(0, 4.2, -30),
+      fov: 38,
+      goalPos: new THREE.Vector3(0, 5.5, 26),
+      goalLook: new THREE.Vector3(0, 4.2, -30),
+      goalFov: 38,
+      keys: { forward: false, backward: false, left: false, right: false },
+      walkTarget: null,
+      bobPhase: 0,
+    };
+
+    function computeDayNightFactors(hour) {
+      const distFromNoon = Math.abs(hour - 13.2);
+      const nightMix = THREE.MathUtils.smoothstep(distFromNoon, 4.6, 7.6);
+      const sunsetPeak1 = Math.exp(-Math.pow((hour - 17.8) / 1.35, 2));
+      const sunsetPeak2 = Math.exp(-Math.pow((hour - 6.2) / 1.25, 2));
+      const sunsetMix = Math.min(1.0, sunsetPeak1 + sunsetPeak2);
+      return { nightMix, sunsetMix };
+    }
+
+    // ============================================================================
+    // 3K ULTRA-CRISP + PROCEDURAL MICRO-DETAIL + WATERCOLOR SHADER
+    // ============================================================================
+    function createCrispPainterlyShader(albedoTex, normalTex, depthTex, animMaskTex, sceneIdx) {
+      const f = computeDayNightFactors(timeOfDay);
+      const uniforms = {
+        uAlbedo: { value: albedoTex },
+        uNormal: { value: normalTex },
+        uDepth: { value: depthTex },
+        uAnimMask: { value: animMaskTex },
+        uTime: { value: 0.0 },
+        uPainterlyStrength: { value: currentPainterlyStrength },
+        uSceneIdx: { value: sceneIdx },
+        uNightMix: { value: f.nightMix },
+        uSunsetMix: { value: f.sunsetMix },
+      };
+
+      const vertexShader = `
+        varying vec2 vUv;
+        varying vec3 vWorldPos;
+        void main() {
+          vUv = uv;
+          vec4 wp = modelMatrix * vec4(position, 1.0);
+          vWorldPos = wp.xyz;
+          gl_Position = projectionMatrix * viewMatrix * wp;
+        }
+      `;
+
+      const fragmentShader = `
+        uniform sampler2D uAlbedo;
+        uniform sampler2D uNormal;
+        uniform sampler2D uDepth;
+        uniform sampler2D uAnimMask;
+        uniform float uTime;
+        uniform float uPainterlyStrength;
+        uniform int uSceneIdx;
+        uniform float uNightMix;
+        uniform float uSunsetMix;
+
+        varying vec2 vUv;
+        varying vec3 vWorldPos;
+
+        float hash21(vec2 p) {
+          p = fract(p * vec2(123.34, 456.21));
+          p += dot(p, p + 45.32);
+          return fract(p.x * p.y);
+        }
+        float noise2D(vec2 p) {
+          vec2 i = floor(p);
+          vec2 f = fract(p);
+          f = f * f * (3.0 - 2.0 * f);
+          return mix(
+            mix(hash21(i), hash21(i + vec2(1.0, 0.0)), f.x),
+            mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), f.x),
+            f.y
+          );
+        }
+
+        vec2 mirrorUV(vec2 uv) {
+          vec2 m = 1.0 - abs(1.0 - abs(uv));
+          return clamp(m, 0.001, 0.999);
+        }
+
+        void main() {
+          vec2 uv = mirrorUV(vUv);
+          vec4 masks = texture2D(uAnimMask, uv);
+          float foliageMask = masks.r;
+          float waterMask = masks.g;
+          float cloudMask = masks.b;
+          float depthVal = texture2D(uDepth, uv).r;
+          vec3 normSample = normalize(texture2D(uNormal, uv).rgb * 2.0 - 1.0);
+
+          // 1. Subtle Micro-Breeze, Horizontal Lake/Fjord Ripples & Vertical Waterfall/Fountain Flow
+          vec2 sampleUv = uv;
+          float wfMask = (uSceneIdx == 4) ? cloudMask : ((uSceneIdx == 2 && uv.y > 0.55) ? cloudMask : 0.0);
+          float skyCloudMask = (uSceneIdx == 4) ? 0.0 : ((uSceneIdx == 2 && uv.y > 0.55) ? 0.0 : cloudMask);
+
+          float breeze = sin(uTime * 1.4 + uv.x * 28.0 + uv.y * 18.0) * 0.00042 * foliageMask * depthVal;
+          sampleUv.x += breeze;
+
+          // Horizontal emerald lake ripples (0% on wooden boardwalk!)
+          sampleUv.x += cos(uTime * 1.6 + uv.x * 45.0 - uv.y * 35.0) * 0.00035 * waterMask;
+
+          // Vertical downward-flowing waterfall streams for Scene 04 (Veliki Slap & 28 travertine cascades)
+          if (wfMask > 0.02) {
+            sampleUv.y -= sin(uv.y * 85.0 - uTime * 4.4 + uv.x * 45.0) * 0.00048 * wfMask;
+          }
+
+          // 2. 3K High-Definition Fine-Line Watercolor & Gouache Plate
+          vec3 col = texture2D(uAlbedo, mirrorUV(sampleUv)).rgb;
+
+          // World-space fine gouache brush stroke & watercolor pigment granulation
+          float stroke1 = noise2D(vWorldPos.xz * 4.5 + vec2(vWorldPos.y * 2.4, 0.0));
+          float stroke2 = noise2D(vWorldPos.xz * 12.0 - vec2(0.0, vWorldPos.y * 6.5));
+          float brushDab = (stroke1 * 0.6 + stroke2 * 0.4) - 0.5;
+
+          // 3. Configurable Hand-Painted Watercolor Brush Relief & Cold-Press Paper Tooth (Preserves 100% 3K sharpness!)
+          if (uPainterlyStrength > 0.01) {
+            float paper1 = noise2D(uv * vec2(520.0, 350.0)) - 0.5;
+            float paper2 = noise2D(uv * vec2(1040.0, 700.0)) - 0.5;
+            float paper = paper1 * 0.65 + paper2 * 0.35;
+
+            vec3 sunDir = normalize(vec3(0.46, 0.68, 0.58));
+            float diff = clamp(dot(normSample, sunDir), -1.0, 1.0);
+            vec3 warmSunWash = vec3(1.04, 1.02, 0.96);
+            vec3 coolSkyWash = vec3(0.95, 0.97, 1.04);
+            col *= mix(vec3(1.0), mix(coolSkyWash, warmSunWash, diff * 0.5 + 0.5), uPainterlyStrength * 0.32);
+
+            col += brushDab * 0.022 * uPainterlyStrength * (1.0 - skyCloudMask * 0.6);
+            col += paper * 0.024 * uPainterlyStrength;
+          }
+
+          // 4. Emerald Lake Caustics & Vertical Waterfall Silk Filaments / Mist Spray
+          if (waterMask > 0.04) {
+            float w1 = noise2D(uv * vec2(85.0, 120.0) + vec2(uTime * 0.24, -uTime * 0.18));
+            float w2 = noise2D(uv * vec2(160.0, 210.0) - vec2(uTime * 0.18, uTime * 0.26));
+            float glint = smoothstep(0.66, 0.88, w1 * 0.55 + w2 * 0.45);
+            col += vec3(0.14, 0.26, 0.28) * glint * waterMask * 0.30 * (1.0 - uNightMix * 0.5);
+          }
+
+          if (wfMask > 0.03) {
+            // Downward-streaming silky water threads & sparkling cascade spray!
+            float f1 = noise2D(vec2(uv.x * 240.0, uv.y * 52.0 - uTime * 3.4));
+            float f2 = noise2D(vec2(uv.x * 460.0, uv.y * 98.0 - uTime * 5.1));
+            float silk = smoothstep(0.56, 0.88, f1 * 0.6 + f2 * 0.4);
+            col += vec3(0.22, 0.28, 0.30) * silk * wfMask * 0.42 * (1.0 - uNightMix * 0.4);
+          }
+
+          // 5. Sunset & Starry Night Lighting
+          float luma = dot(col, vec3(0.299, 0.587, 0.114));
+          if (uSunsetMix > 0.001) {
+            vec3 sunsetWarm = col * vec3(1.22, 0.90, 0.66);
+            sunsetWarm += vec3(0.18, 0.07, 0.02) * clamp(1.0 - uv.y * 1.2, 0.0, 1.0);
+            col = mix(col, sunsetWarm, uSunsetMix * 0.78);
+          }
+          if (uNightMix > 0.001) {
+            vec3 moonlit = mix(vec3(luma), col, 0.42) * vec3(0.18, 0.29, 0.52);
+            if (cloudMask > 0.22 && uv.y < 0.36) {
+              vec2 sGrid = floor(uv * vec2(320.0, 180.0));
+              vec2 sFrac = fract(uv * vec2(320.0, 180.0)) - 0.5;
+              float sSeed = hash21(sGrid);
+              if (sSeed > 0.984) {
+                float d = length(sFrac);
+                float star = exp(-d * d * 28.0) * (0.55 + 0.45 * sin(uTime * 2.4 + sSeed * 90.0));
+                moonlit += vec3(0.88, 0.94, 1.0) * star * cloudMask * 0.85;
+              }
+            }
+            float warmHue = clamp((col.r - col.b) * 2.2, 0.0, 1.0);
+            float midZone = smoothstep(0.18, 0.35, uv.y) * smoothstep(0.85, 0.45, uv.y);
+            float winMask = smoothstep(0.32, 0.72, luma) * smoothstep(0.12, 0.48, warmHue) * midZone * (1.0 - waterMask) * (1.0 - cloudMask);
+            moonlit += vec3(1.0, 0.68, 0.26) * winMask * 0.85;
+            col = mix(col, moonlit, uNightMix);
+          }
+
+          gl_FragColor = vec4(col, 1.0);
+        }
+      `;
+
+      return {
+        material: new THREE.ShaderMaterial({
+          uniforms,
+          vertexShader,
+          fragmentShader,
+          side: THREE.DoubleSide,
+        }),
+        uniforms,
+      };
+    }
+
+    // ============================================================================
+    // SUBTLE SUNLIT POLLEN / ATMOSPHERIC MOTE PARTICLES IN 3D SPACE
+    // ============================================================================
+    function buildSunlitAtmosphereMotes() {
+      const count = 120;
+      const geo = new THREE.BufferGeometry();
+      const pos = new Float32Array(count * 3);
+      for (let i = 0; i < count; i++) {
+        pos[i * 3 + 0] = (Math.random() - 0.5) * 32.0;
+        pos[i * 3 + 1] = 1.5 + Math.random() * 10.0;
+        pos[i * 3 + 2] = 22.0 - Math.random() * 42.0;
+      }
+      geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      const mat = new THREE.PointsMaterial({
+        color: 0xfff8dc,
+        size: 0.06,
+        transparent: true,
+        opacity: 0.45,
+        depthWrite: false,
+      });
+      return new THREE.Points(geo, mat);
+    }
+
+    // ============================================================================
+    // LOAD SCENE
+    // ============================================================================
+    async function loadScene(sceneId) {
+      const meta = SCENES.find((s) => s.id === sceneId) || SCENES[0];
+      currentSceneId = meta.id;
+
+      const loaderEl = document.getElementById("loader");
+      loaderEl.classList.remove("done");
+      document.getElementById("load-msg").textContent = `正在加载 ${meta.num} · ${meta.titleZh} 3K 三维空间层……`;
+
+      document.querySelectorAll(".scene-tab").forEach((b) => {
+        b.classList.toggle("active", b.dataset.id === meta.id);
+      });
+
+      const basePath = `./scenes/${meta.id}`;
+      const [presets, gltf, albedoTex, normalTex, depthTex, animMaskTex] = await Promise.all([
+        fetch(`${basePath}/presets.json`).then((r) => r.json()),
+        loadGLB(`${basePath}/scene_mesh.glb`),
+        loadTex(`${basePath}/albedo.jpg`),
+        loadTex(`${basePath}/normal.png`),
+        loadTex(`${basePath}/depth.png`),
+        loadTex(`${basePath}/anim_mask.png`),
+      ]);
+
+      currentPresets = presets;
+
+      [albedoTex, normalTex, depthTex, animMaskTex].forEach((t) => {
+        t.flipY = false;
+        t.wrapS = THREE.ClampToEdgeWrapping;
+        t.wrapT = THREE.ClampToEdgeWrapping;
+        t.anisotropy = maxAniso;
+        t.minFilter = THREE.LinearMipmapLinearFilter;
+        t.magFilter = THREE.LinearFilter;
+        t.needsUpdate = true;
+      });
+      if ("colorSpace" in albedoTex) albedoTex.colorSpace = THREE.SRGBColorSpace;
+      else albedoTex.encoding = THREE.sRGBEncoding;
+
+      document.getElementById("ui-title").textContent = `${meta.num} · ${meta.titleZh} · ${meta.titleEn}`;
+      document.getElementById("ui-sub").textContent = meta.subtitle;
+      document.getElementById("ref-img").src = meta.refImg;
+      document.getElementById("ref-caption").textContent = `参考原图 · ${meta.num} ${meta.titleZh}`;
+
+      scene.remove(activeRoot);
+      activeRoot = new THREE.Group();
+      scene.add(activeRoot);
+
+      const { material, uniforms } = createCrispPainterlyShader(
+        albedoTex, normalTex, depthTex, animMaskTex, meta.idx
+      );
+      activeShaderUniforms = uniforms;
+
+      activeTerrainMesh = null;
+      gltf.scene.traverse((child) => {
+        if (child.isMesh) {
+          child.material = material;
+          activeTerrainMesh = child;
+        }
+      });
+      activeRoot.add(gltf.scene);
+
+      activeFloraInstanced = buildSunlitAtmosphereMotes();
+      if (activeFloraInstanced) {
+        activeRoot.add(activeFloraInstanced);
+      }
+
+      // Populate Bottom Vantage Bar
+      const vBar = document.getElementById("vantage-bar");
+      vBar.innerHTML = "";
+      (presets.vantages || []).forEach((v, i) => {
+        const btn = document.createElement("button");
+        btn.className = "pill-btn" + (i === 0 ? " active" : "");
+        btn.textContent = v.name;
+        btn.onclick = () => activateVantage(v, i);
+        vBar.appendChild(btn);
+      });
+
+      activateVantage(presets.vantages[0], 0, true);
+      loaderEl.classList.add("done");
+    }
+
+    function activateVantage(v, idx, instant = false) {
+      document.querySelectorAll("#vantage-bar .pill-btn").forEach((b, i) => {
+        b.classList.toggle("active", i === idx);
+      });
+      document.getElementById("btn-mode-hero").classList.toggle("active", v.id === "hero");
+      document.getElementById("btn-mode-walk").classList.toggle("walk-active", v.id === "walk");
+      document.getElementById("btn-mode-birdseye").classList.toggle("active", v.id === "birdseye");
+
+      camState.walkTarget = null;
+      walkRing.visible = false;
+      camState.goalPos.set(...v.pos);
+      camState.goalLook.set(...v.look);
+      camState.goalFov = v.fov || 38.0;
+      if (instant) {
+        camState.pos.copy(camState.goalPos);
+        camState.look.copy(camState.goalLook);
+        camState.fov = camState.goalFov;
+      }
+    }
+
+    // ============================================================================
+    // INTERACTIVE WALKING (WASD / D-PAD / CLICK-TO-WALK) & CAMERA ORBIT/ZOOM
+    // ============================================================================
+    const downRaycaster = new THREE.Raycaster();
+    const clickRaycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+
+    function getGroundElevationAt(x, z, fallbackY) {
+      if (!activeTerrainMesh) return fallbackY;
+      downRaycaster.set(new THREE.Vector3(x, 45.0, z), new THREE.Vector3(0, -1, 0));
+      const hits = downRaycaster.intersectObject(activeTerrainMesh, true);
+      if (hits.length > 0) {
+        return hits[0].point.y;
+      }
+      return fallbackY;
+    }
+
+    function updateWalkMovement(dt) {
+      const k = camState.keys;
+      const anyKey = k.forward || k.backward || k.left || k.right;
+      const forwardDir = new THREE.Vector3().subVectors(camState.goalLook, camState.goalPos);
+      forwardDir.y = 0;
+      if (forwardDir.lengthSq() < 1e-4) forwardDir.set(0, 0, -1);
+      forwardDir.normalize();
+      const rightDir = new THREE.Vector3().crossVectors(forwardDir, new THREE.Vector3(0, 1, 0)).normalize();
+
+      let moveVec = new THREE.Vector3();
+      const speed = 5.5;
+
+      if (anyKey) {
+        camState.walkTarget = null;
+        walkRing.visible = false;
+        document.getElementById("btn-mode-walk").classList.add("walk-active");
+        document.getElementById("btn-mode-hero").classList.remove("active");
+        if (k.forward) moveVec.add(forwardDir);
+        if (k.backward) moveVec.sub(forwardDir);
+        if (k.right) moveVec.add(rightDir);
+        if (k.left) moveVec.sub(rightDir);
+      } else if (camState.walkTarget) {
+        const toTarget = new THREE.Vector3(
+          camState.walkTarget.x - camState.goalPos.x,
+          0,
+          camState.walkTarget.z - camState.goalPos.z
+        );
+        if (toTarget.length() < 0.35) {
+          camState.walkTarget = null;
+          walkRing.visible = false;
+        } else {
+          moveVec.copy(toTarget.normalize());
+        }
+      }
+
+      if (moveVec.lengthSq() > 0.001) {
+        moveVec.normalize().multiplyScalar(speed * dt);
+        const nextX = THREE.MathUtils.clamp(camState.goalPos.x + moveVec.x, -3.2, 3.2);
+        const nextZ = THREE.MathUtils.clamp(camState.goalPos.z + moveVec.z, 18.0, 28.5);
+        const dx = nextX - camState.goalPos.x;
+        const dz = nextZ - camState.goalPos.z;
+
+        camState.goalPos.x = nextX;
+        camState.goalPos.z = nextZ;
+        camState.goalLook.x = THREE.MathUtils.clamp(camState.goalLook.x + dx * 0.85, -7.2, 7.2);
+        camState.goalLook.z = THREE.MathUtils.clamp(camState.goalLook.z + dz * 0.35, -36.0, -24.0);
+
+        camState.bobPhase += dt * 8.5;
+        const walkProgress = (26.0 - nextZ) / 8.0;
+        const targetEyeY = THREE.MathUtils.clamp(5.5 - walkProgress * 0.9 + Math.sin(camState.bobPhase) * 0.03, 4.3, 9.6);
+        camState.goalPos.y = targetEyeY;
+      }
+    }
+
+    // Drag to Look / Orbit & Click on 3D Ground to Walk
+    let dragging = false;
+    let downX = 0, downY = 0;
+    let lastX = 0, lastY = 0;
+
+    window.addEventListener("pointerdown", (e) => {
+      if (e.target.closest("#hud")) return;
+      dragging = true;
+      downX = lastX = e.clientX;
+      downY = lastY = e.clientY;
+    });
+
+    window.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+      lastX = e.clientX;
+      lastY = e.clientY;
+
+      camState.goalLook.x = THREE.MathUtils.clamp(camState.goalLook.x - dx * 0.024, -7.2, 7.2);
+      camState.goalLook.y = THREE.MathUtils.clamp(camState.goalLook.y + dy * 0.018, 2.2, 6.2);
+      camState.goalPos.x = THREE.MathUtils.clamp(camState.goalPos.x - dx * 0.006, -3.2, 3.2);
+      camState.goalPos.y = THREE.MathUtils.clamp(camState.goalPos.y + dy * 0.006, 4.3, 9.6);
+    });
+
+    window.addEventListener("pointerup", (e) => {
+      if (!dragging) return;
+      dragging = false;
+      const moved = Math.hypot(e.clientX - downX, e.clientY - downY);
+      if (moved < 5 && activeTerrainMesh && !e.target.closest("#hud")) {
+        pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+        pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        clickRaycaster.setFromCamera(pointer, camera);
+        const hits = clickRaycaster.intersectObject(activeTerrainMesh, true);
+        if (hits.length > 0) {
+          const pt = hits[0].point;
+          // Walk smoothly toward the clicked 3D direction within the distortion-free amphitheater zone!
+          const targetStopZ = THREE.MathUtils.clamp(18.5 + (pt.z + 15.0) * 0.25, 18.2, 26.5);
+          const targetStopX = THREE.MathUtils.clamp(pt.x * 0.22, -3.0, 3.0);
+          camState.walkTarget = { x: targetStopX, z: targetStopZ };
+          walkRing.position.set(pt.x, pt.y + 0.08, pt.z);
+          walkRing.visible = true;
+          document.getElementById("btn-mode-walk").classList.add("walk-active");
+          document.getElementById("btn-mode-hero").classList.remove("active");
+        }
+      }
+    });
+
+    // Wheel Zoom / Pull Back to Bird's-Eye
+    window.addEventListener("wheel", (e) => {
+      const zStep = e.deltaY * 0.012;
+      camState.goalPos.z = THREE.MathUtils.clamp(camState.goalPos.z + zStep, 18.0, 28.5);
+      camState.goalPos.y = THREE.MathUtils.clamp(camState.goalPos.y + zStep * 0.35, 4.4, 9.5);
+    }, { passive: true });
+
+    // Keyboard & D-Pad
+    const keyMap = {
+      KeyW: "forward", ArrowUp: "forward",
+      KeyS: "backward", ArrowDown: "backward",
+      KeyA: "left", ArrowLeft: "left",
+      KeyD: "right", ArrowRight: "right",
+    };
+    window.addEventListener("keydown", (e) => {
+      if (keyMap[e.code]) camState.keys[keyMap[e.code]] = true;
+    });
+    window.addEventListener("keyup", (e) => {
+      if (keyMap[e.code]) camState.keys[keyMap[e.code]] = false;
+    });
+    document.querySelectorAll(".dpad-btn").forEach((btn) => {
+      const dir = btn.dataset.move;
+      btn.addEventListener("pointerdown", (e) => { e.preventDefault(); camState.keys[dir] = true; });
+      window.addEventListener("pointerup", () => { camState.keys[dir] = false; });
+    });
+
+    // ============================================================================
+    // UI WIRING
+    // ============================================================================
+    const dockEl = document.getElementById("scene-dock");
+    SCENES.forEach((s) => {
+      const btn = document.createElement("button");
+      btn.className = "scene-tab";
+      btn.dataset.id = s.id;
+      btn.innerHTML = `
+        <div class="scene-num">${s.num}</div>
+        <div class="scene-info">
+          <div class="scene-title-zh">${s.titleZh}</div>
+          <div class="scene-title-en">${s.titleEn}</div>
+        </div>
+      `;
+      btn.onclick = () => loadScene(s.id);
+      dockEl.appendChild(btn);
+    });
+
+    document.getElementById("btn-mode-hero").onclick = () => {
+      if (currentPresets) activateVantage(currentPresets.vantages[0], 0);
+    };
+    document.getElementById("btn-mode-walk").onclick = () => {
+      if (currentPresets) activateVantage(currentPresets.vantages[1], 1);
+    };
+    document.getElementById("btn-mode-birdseye").onclick = () => {
+      if (currentPresets) activateVantage(currentPresets.vantages[3], 3);
+    };
+
+    const btnRef = document.getElementById("btn-ref");
+    const refCard = document.getElementById("ref-card");
+    btnRef.onclick = () => {
+      refCard.classList.toggle("visible");
+      btnRef.classList.toggle("active", refCard.classList.contains("visible"));
+    };
+
+    const painterlySlider = document.getElementById("painterly-slider");
+    const painterlyVal = document.getElementById("painterly-val");
+    painterlySlider.addEventListener("input", (e) => {
+      currentPainterlyStrength = parseFloat(e.target.value);
+      painterlyVal.textContent = `${Math.round(currentPainterlyStrength * 100)}%`;
+      if (activeShaderUniforms) activeShaderUniforms.uPainterlyStrength.value = currentPainterlyStrength;
+    });
+
+    document.querySelectorAll(".tod-btn").forEach((btn) => {
+      btn.onclick = () => {
+        document.querySelectorAll(".tod-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        timeOfDay = parseFloat(btn.dataset.tod);
+        const f = computeDayNightFactors(timeOfDay);
+        if (activeShaderUniforms) {
+          activeShaderUniforms.uNightMix.value = f.nightMix;
+          activeShaderUniforms.uSunsetMix.value = f.sunsetMix;
+        }
+        skyDome.userData.uniforms.uNightMix.value = f.nightMix;
+        skyDome.userData.uniforms.uSunsetMix.value = f.sunsetMix;
+      };
+    });
+
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // ============================================================================
+    // ANIMATION LOOP
+    // ============================================================================
+    const clock = new THREE.Clock();
+    const swayDummy = new THREE.Object3D();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = Math.min(clock.getDelta(), 0.05);
+      const t = clock.getElapsedTime();
+
+      if (activeShaderUniforms) activeShaderUniforms.uTime.value = t;
+      skyDome.userData.uniforms.uTime.value = t;
+
+      if (activeFloraInstanced) {
+        activeFloraInstanced.position.y = Math.sin(t * 0.6) * 0.18;
+        activeFloraInstanced.position.x = Math.cos(t * 0.4) * 0.25;
+      }
+
+      updateWalkMovement(dt);
+
+      camState.pos.lerp(camState.goalPos, 0.085);
+      camState.look.lerp(camState.goalLook, 0.085);
+      camState.fov += (camState.goalFov - camState.fov) * 0.085;
+
+      camera.position.copy(camState.pos);
+      camera.lookAt(camState.look);
+      if (Math.abs(camera.fov - camState.fov) > 0.01) {
+        camera.fov = camState.fov;
+        camera.updateProjectionMatrix();
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    await loadScene(currentSceneId);
+    animate();
+  })();
+  </script>
+</body>
+</html>
