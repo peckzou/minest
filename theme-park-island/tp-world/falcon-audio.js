@@ -131,16 +131,9 @@
       pickup() { if (!ctx) return; const t = ctx.currentTime; [72, 76, 79, 84].forEach((m, i) => tone('sine', mtof(m), t + i * 0.08, 0.005, 0.5, 0.09, sfx)); },
       powerUp() { if (!ctx) return; const t = ctx.currentTime; tone('sawtooth', 45, t, 1.8, 0.6, 0.1, sfx, 190, 600); [0, 0.25, 0.5, 0.9, 1.3].forEach((d, i) => tone('square', 700 + i * 130, t + d, 0.004, 0.07, 0.03, sfx)); },
       speak(text, onEnd) {
-        const ss = root.speechSynthesis;
-        if (!ss || !root.SpeechSynthesisUtterance) { if (onEnd) onEnd(); return; }
-        try {
-          const u = new root.SpeechSynthesisUtterance(text);
-          u.lang = 'zh-CN'; u.rate = 1.08; u.pitch = 0.85; u.volume = 0.9;
-          const id = ++spk;
-          ss.cancel(); speaking = true; duck = 0.4;
-          u.onend = u.onerror = () => { if (id !== spk) return; speaking = false; duck = 1; if (onEnd) onEnd(); };
-          ss.speak(u);
-        } catch (e) { speaking = false; duck = 1; if (onEnd) onEnd(); }
+        const id = ++spk, V = root.TPVoice;
+        if (!V) { if (onEnd) onEnd(); return; }
+        V.say(text, { onStart: () => { speaking = true; duck = 0.4; }, onEnd: () => { if (id === spk) { speaking = false; duck = 1; } if (onEnd) onEnd(); } });
       },
       isSpeaking: () => speaking,
       update(dt) {

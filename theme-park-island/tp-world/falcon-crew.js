@@ -19,7 +19,7 @@
     var lh = new T.Group(); lh.position.y = 1.3; lk.add(lh); add(lh, new T.CylinderGeometry(0.05, 0.06, 0.08, 8), skin, 0, -0.08, 0); add(lh, new T.SphereGeometry(0.13, 14, 10), skin, 0, 0.04, 0); var hr = add(lh, new T.SphereGeometry(0.142, 14, 8, 0, Math.PI * 2, 0, Math.PI * 0.6), hair, 0, 0.055, 0.005); hr.rotation.x = 0.35; add(lh, new T.BoxGeometry(0.27, 0.16, 0.08), hair, 0, 0.0, 0.1);
     [-0.045, 0.045].forEach(function (x) { add(lh, new T.SphereGeometry(0.016, 6, 5), B(0x1e3a5f), x, 0.05, -0.122); }); add(lh, new T.BoxGeometry(0.05, 0.01, 0.02), M(0x9a4a3a), 0, -0.02, -0.125);
     var sb = new T.Group(); sb.position.set(0.16, 0.66, 0.06); sb.rotation.z = 1.2; lk.add(sb); add(sb, new T.CylinderGeometry(0.018, 0.018, 0.2, 8), M(0x9aa3ad), 0, 0, 0);
-    function line(k, icon, who, t) { if (said[k]) return; said[k] = 1; try { API.toast(icon + ' ' + who + '：' + t); var ss = root.speechSynthesis; if (ss && root.SpeechSynthesisUtterance) { var u = new root.SpeechSynthesisUtterance(t); u.lang = 'zh-CN'; u.rate = 1.05; ss.speak(u); } } catch (e) {} }
+    function line(k, icon, who, t) { if (said[k]) return; said[k] = 1; try { API.toast(icon + ' ' + who + '：' + t); if (root.TPVoice) root.TPVoice.say(t.replace(/（[^）]*）/g, ''), { who: who }); } catch (e) {} }
     function beep() { try { var W = root.TPStarWarsWorkshops; if (W && W.beep) W.beep(true); } catch (e) {} }
     var last = performance.now();
     (function tick(now) { requestAnimationFrame(tick); var dt = Math.min(0.05, (now - last) / 1000); last = now; clock += dt; var on = API.state.activeRide === 'falcon_flight', st = C.st; bb.visible = lk.visible = on; if (!on) { said = {}; shots = 0; return; }

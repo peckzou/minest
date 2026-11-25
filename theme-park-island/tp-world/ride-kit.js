@@ -16,8 +16,8 @@
   K.seq = function (notes, step, type, vol) { var i = 0, iv = setInterval(function () { var n = notes[i++ % notes.length]; if (n) K.tone(n, step * 1.6, type || 'triangle', vol || 0.05); }, step * 1000); return { stop: function () { clearInterval(iv); } }; };
   K.blaster = function () { K.tone(1500, 0.22, 'sawtooth', 0.05, 220); K.noise(0.12, 3000, 800, 0.06); };
   K.boom = function (v) { K.tone(90, 0.9, 'sine', (v || 1) * 0.3, 30); K.noise(0.9, 900, 60, (v || 1) * 0.3, 0.5); };
-  K.say = function (icon, who, text) { try { root.TPParkAPI.toast(icon + ' ' + (who ? who + '：' : '') + text); var ss = root.speechSynthesis; if (ss && root.SpeechSynthesisUtterance) { ss.cancel(); var u = new root.SpeechSynthesisUtterance(text); u.lang = 'zh-CN'; u.rate = 1.05; u.pitch = 0.9; ss.speak(u); } } catch (e) {} };
-  K.hush = function () { try { root.speechSynthesis.cancel(); } catch (e) {} };
+  K.say = function (icon, who, text) { try { root.TPParkAPI.toast(icon + ' ' + (who ? who + '：' : '') + text); if (root.TPVoice) root.TPVoice.say(text); } catch (e) {} };
+  K.hush = function () { if (root.TPVoice) root.TPVoice.hush(); };
   /* materials that look the same at noon and at midnight, far above the park: lit, but with a floor of their own light; no fog */
   K.mat = function (col, e, o) { var T = K.T(), m = new T.MeshLambertMaterial(Object.assign({ color: col, fog: false }, o || {})); m.emissive = new T.Color(col).multiplyScalar(e == null ? 0.38 : e); return m; };
   K.glow = function (col, o) { var T = K.T(); return new T.MeshBasicMaterial(Object.assign({ color: col, fog: false }, o || {})); };
