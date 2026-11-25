@@ -11,6 +11,7 @@ require(path.join(ROOT, 'rootmap/data.js'));
 require(path.join(ROOT, 'rootmap/thinking-gifs/data.js'));
 require(path.join(ROOT, 'ec6/ec6-data.js'));
 require(path.join(ROOT, 'ec6/study/study.js'));
+require(path.join(ROOT, 'ec6/terms-gifs/data.js'));
 const W = global.window, sets = [], items = [];
 const kind = (f) => (/\.svg$/i.test(f) ? 'svg' : /\.gif$/i.test(f) ? 'gif' : 'image');
 const exists = (rel) => fs.existsSync(path.join(ROOT, rel));
@@ -29,6 +30,10 @@ const exists = (rel) => fs.existsSync(path.join(ROOT, rel));
 { const E = W.PIEC6, S = W.PIEC6_STUDY; sets.push({ id: 'ec6', name: 'EC-6 单元图解', en: 'EC-6 unit charts', note: 'EC–6 391 学习看板 1.0 的 44 张单元图解', groups: E.exams.map((e) => e.code + ' ' + e.zh) });
   S.modules.forEach((m) => { const e = E.exams.filter((x) => m.code.indexOf(x.code + '-') === 0)[0];
     items.push({ id: 'ec6-' + m.code, set: 'ec6', group: e.code + ' ' + e.zh, title: m.code + ' ' + m.official_title, zh: m.zh, line: m.skill, src: 'ec6/study/sphere/' + m.code + '.svg', kind: 'svg', credit: 'EC–6 391 学习看板 1.0（自编）' }); }); }
+// 5 · EC-6 术语动图: one stick-figure GIF for each of the study board's 178 core terms
+{ const E = W.PIEC6, G = W.PIEC6_TERM_GIFS; sets.push({ id: 'ec6terms', name: 'EC-6 术语动图', en: 'EC-6 term GIFs', note: 'EC–6 391 学习看板 1.0 的 178 个核心术语，每个一张 6 秒火柴人动图', groups: E.exams.map((e) => e.code + ' ' + e.zh) });
+  G.items.forEach((it) => { const e = E.exams.filter((x) => it.u.indexOf(x.code + '-') === 0)[0];
+    items.push({ id: 'ec6t-' + it.f.replace(/\.gif$/, ''), set: 'ec6terms', group: e.code + ' ' + e.zh, title: it.en, zh: it.zh, line: it.def + '（' + it.u + '）', src: 'ec6/terms-gifs/' + it.f, kind: 'gif', credit: 'EC–6 391 术语火柴人 GIF（自制）' }); }); }
 
 const missing = items.filter((it) => !/^https?:/.test(it.src) && !exists(it.src));
 if (missing.length) { console.error('missing files:', missing.map((m) => m.src).slice(0, 10)); process.exit(1); }

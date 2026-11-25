@@ -27,6 +27,7 @@
 <div id="tip"></div><div id="big"><div><img alt=""><p></p><small>点任意处合上 · 已为你朗读英文术语</small></div></div>
 <script src="ec6-data.js"></script>
 <script src="study/study.js"></script>
+<script src="terms-gifs/data.js"></script>
 <script>
 /* EC-6 on the Sphere: every tile is one card of the framework — a competency, or one of its key terms — drawn on a
    canvas in its subject's colour (science, 904, first: Earth and space on a globe). Tiles are <img> elements placed on a
@@ -40,7 +41,8 @@
       note: '我能完成的任务：' + m.skill + '\n' + m.knowledge.map(function (x, k) { return (k + 1) + '. ' + x; }).join('\n') + '\n常见误区：' + m.trap });
   }); });
   if (SD) [4, 3, 0, 1, 2].forEach(function (xi) { var code = E.exams[xi].code; SD.modules.filter(function (m) { return m.code.indexOf(code + '-') === 0; }).forEach(function (m) {
-    m.terms.forEach(function (t) { cards.push({ ex: xi, big: m.code.slice(4), en: t.en, zh: t.zh, say: t.en, note: t.definition + '\n出自：' + m.code + ' ' + m.zh }); }); }); });
+    m.terms.forEach(function (t) { var g = window.PIEC6_TERM_GIFS && PIEC6_TERM_GIFS.byTerm(m.code, t.en);   /* each term's own stick-figure GIF (terms-gifs/) when it has one */
+      cards.push({ ex: xi, big: m.code.slice(4), en: t.en, zh: t.zh, say: t.en, url: g ? 'terms-gifs/' + g.f : '', note: t.zh + ' · ' + t.en + '\n' + t.definition + '\n出自：' + m.code + ' ' + m.zh }); }); }); });
   if (!SD) [3, 0, 1, 2, 4].forEach(function (xi) { E.exams[xi].comps.forEach(function (c) {
     cards.push({ ex: xi, big: c.n, en: c.en, zh: c.zh, note: c.gist, say: c.en, head: true });
     c.keys.forEach(function (k) { cards.push({ ex: xi, big: c.n, en: k.en, zh: k.zh, note: c.zh + ' · ' + c.en + '\n' + c.gist, say: k.en }); });
