@@ -27,6 +27,8 @@ SWAPS = [
      "new URL('type3d-2/index.html', location.href).href : SITE + 'type3d-2/index.html'"),
     ("'https://minest-app.vercel.app/spatial-home/clun/' + q : 'spatial-home/clun/index.html' + q",
      "'https://minest-app.vercel.app/spatial-home/clun-2/' + q : 'spatial-home/clun-2/index.html' + q"),
+    ("url: '../hologram/index.html', web: 'hologram/index.html', flat: 'https://minest-app.vercel.app/hologram/index.html', entry: 'hologram/index.html'",
+     "url: '../hologram-2/index.html', web: 'hologram-2/index.html', flat: 'https://minest-app.vercel.app/hologram-2/index.html', entry: 'hologram-2/index.html'"),
 ]
 BLOCK = re.compile(r'\n?<script id="mn-v2-routes">.*?</script><!-- mn-v2-routes:end -->', re.S)
 

@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Minest Duo Holographic Portal · 3D 走动与 GIF 全息屏</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="../hologram/style.css">
+<link rel="stylesheet" href="v2.css">
+</head>
+<body data-mode="1" data-backdrop="dots">
+
+<!-- 背景层：真实摄像头 / 明确标注的 Demo 背景 / 下半屏投影台 -->
+<video id="bg-video" playsinline muted autoplay></video>
+<div id="bg-demo" aria-hidden="true">
+  <div class="demo-blobs"></div>
+  <div class="demo-mark">DEMO 背景 · 非摄像头画面</div>
+</div>
+<div id="deck" aria-hidden="true"></div>
+
+<canvas id="gl"></canvas>
+<div id="crease" aria-hidden="true"></div>
+
+<!-- 拖放上传提示层 -->
+<div id="drop-mask" hidden>
+  <div class="drop-box">
+    <b>松开即可投射到全息屏</b>
+    <span>支持动态 GIF / WebP / PNG / MP4 小视频</span>
+  </div>
+</div>
+
+<!-- 顶部状态 -->
+<div id="hud">
+  <div class="hud-left">
+    <div class="brand">MINEST · HOLOGRAPHIC PORTAL 2.0</div>
+    <span id="exhibit-badge" class="hud-tag">3D 漫步</span>
+  </div>
+  <div class="hud-right">
+    <button id="duo-cam-btn" type="button" hidden>📷 开启透视</button>
+    <button id="cam-chip" type="button" hidden></button>
+  </div>
+</div>
+<div id="hint">拖动旋转 · 双指缩放 · 轻点切换人物/GIF · 点「＋传GIF」放上自己的动图</div>
+
+<!-- 底部简洁控制（延续原版小全息屏布局，新增 ＋传GIF） -->
+<div id="bar">
+  <button id="back" type="button" aria-label="返回 Minest" hidden>‹ 返回</button>
+  <div class="seg" role="tablist" aria-label="模式">
+    <button type="button" data-mode="1" class="on">全息</button>
+    <button type="button" data-mode="2">透视</button>
+    <button type="button" data-mode="3">Duo</button>
+  </div>
+  <button id="exhibit" type="button" title="切换走动人物 / GIF"><span id="exhibit-name">漫步少女</span><i id="dots"></i></button>
+  <button id="upload-btn" type="button" title="上传自己的动态 GIF / 贴纸 / 视频">＋ 传GIF</button>
+  <button id="gear" type="button" aria-label="设置">⚙</button>
+</div>
+
+<input id="gif-input" type="file" accept="image/gif,image/webp,image/png,image/jpeg,video/mp4,video/webm" multiple hidden>
+
+<!-- 控制面板 -->
+<div id="panel" hidden>
+  <div class="p-head"><b>全息走动与 GIF 控制面板</b><button id="p-close" type="button" aria-label="关闭">✕</button></div>
+
+  <div class="p-sub">当前投射角色 / GIF <small id="gif-meta"></small></div>
+  <div id="exhibit-list" class="ex-chips"></div>
+  <div class="p-row btns">
+    <button id="b-upload" type="button" class="pri-btn">＋ 上传我的 GIF / 动图</button>
+    <button id="b-del-gif" type="button" hidden>删除当前 GIF</button>
+  </div>
+
+  <div class="p-sub">人物走动与 3D 呈现</div>
+  <div class="p-row seg-row" id="walk-seg">
+    <button type="button" data-walk="roam" class="on">自由走动</button>
+    <button type="button" data-walk="orbit">绕环漫步</button>
+    <button type="button" data-walk="pace">左右散步</button>
+    <button type="button" data-walk="idle">原地</button>
+  </div>
+  <label class="p-row"><span>走动速度</span><input type="range" id="s-speed" min="0.2" max="2.2" step="0.05"><em id="v-speed"></em></label>
+
+  <div class="p-row seg-row" id="style-seg">
+    <button type="button" data-style="vivid" class="on">原彩立体发光</button>
+    <button type="button" data-style="holo">全息青蓝扫描</button>
+  </div>
+
+  <div id="gif-key-box">
+    <div class="p-sub">GIF 抠底与立体厚度</div>
+    <div class="p-row seg-row" id="key-seg">
+      <button type="button" data-key="auto" class="on">智能去底</button>
+      <button type="button" data-key="black">去黑底</button>
+      <button type="button" data-key="white">去白底</button>
+      <button type="button" data-key="none">保留原图</button>
+    </div>
+    <label class="p-row"><span>抠底容差</span><input type="range" id="s-keyTol" min="8" max="110" step="1"><em id="v-keyTol"></em></label>
+    <label class="p-row"><span>立体层厚</span><input type="range" id="s-depth" min="0" max="0.24" step="0.01"><em id="v-depth"></em></label>
+  </div>
+
+  <div class="p-sub">舞台与全息特效</div>
+  <div class="p-row toggles">
+    <label><input type="checkbox" id="t-dotStage" checked><span>点阵舞台</span></label>
+    <label><input type="checkbox" id="t-deskProp" checked><span>小书桌参照</span></label>
+    <label><input type="checkbox" id="t-reflect" checked><span>底屏倒影</span></label>
+  </div>
+  <div class="p-row toggles">
+    <label><input type="checkbox" id="t-scan" checked><span>扫描线</span></label>
+    <label><input type="checkbox" id="t-flicker" checked><span>闪烁</span></label>
+    <label><input type="checkbox" id="t-particles" checked><span>粒子</span></label>
+  </div>
+  <div class="p-row toggles">
+    <label><input type="checkbox" id="t-billboard" checked><span>GIF 朝向视角</span></label>
+    <label><input type="checkbox" id="t-classic"><span>含经典 M / Vader</span></label>
+  </div>
+
+  <label class="p-row"><span>投影高度</span><input type="range" id="s-hover" min="0" max="0.8" step="0.01"><em id="v-hover"></em></label>
+  <label class="p-row"><span>角色大小</span><input type="range" id="s-size" min="0.5" max="2" step="0.01"><em id="v-size"></em></label>
+  <label class="p-row"><span>透明度</span><input type="range" id="s-opacity" min="0.2" max="1" step="0.01"><em id="v-opacity"></em></label>
+
+  <div id="p-duo">
+    <div class="p-sub">Duo 折屏校准 <small id="duo-info"></small></div>
+    <label class="p-row"><span>折痕位置</span><input type="range" id="s-crease" min="0.3" max="0.7" step="0.005"><em id="v-crease"></em></label>
+    <label class="p-row"><span>折叠角度</span><input type="range" id="s-angle" min="70" max="180" step="1"><em id="v-angle"></em></label>
+    <label class="p-row"><span>观看仰角</span><input type="range" id="s-elev" min="15" max="75" step="1"><em id="v-elev"></em></label>
+  </div>
+
+  <div class="p-sub">透视与头部追踪 <small id="track-info"></small></div>
+  <label class="p-row"><span>透视缩放</span><input type="range" id="s-camZoom" min="1" max="3" step="0.01"><em id="v-camZoom"></em></label>
+  <div class="p-row toggles">
+    <label><input type="checkbox" id="t-track" checked><span>头部追踪</span></label>
+    <label><input type="checkbox" id="t-flipX"><span>左右反向</span></label>
+    <label><input type="checkbox" id="t-flipY"><span>上下反向</span></label>
+  </div>
+  <label class="p-row"><span>追踪强度</span><input type="range" id="s-gain" min="0.2" max="2.5" step="0.01"><em id="v-gain"></em></label>
+
+  <div class="p-row btns">
+    <button id="b-reset" type="button">重置视角</button>
+    <button id="b-replay" type="button">重新生成</button>
+    <button id="b-recenter" type="button">头部校准</button>
+    <button id="b-cam" type="button">重试摄像头</button>
+  </div>
+  <div class="p-foot" id="stats"></div>
+</div>
+
+<!-- 1.0 原版着色器与经典模型原封不动引入，v2.js 在同一套 Kooima 折屏全息引擎上升级动态人物与 GIF -->
+<script src="../vendor/three.min.js"></script>
+<script src="../hologram/js/exhibit_vader.js"></script>
+<script src="../hologram/js/models.js"></script>
+<script src="../hologram/js/materials.js"></script>
+<script src="v2.js"></script>
+</body>
+</html>
