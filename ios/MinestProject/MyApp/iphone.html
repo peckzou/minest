@@ -183828,16 +183828,36 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
     coverWas = on;
   }
 
+  /* ---- 动态卡片 button (2026-11-25): the board's Views button (and its Dock icon) is 动态卡片 — it opens cards-2/ on the
+     board you are on, with every mode on its deck: Minest's own 看板 · 照片 · 图钉, its iTunes-style 3D Cover, and the
+     card formations. Picking one of Minest's views closes the page and Minest shows that view (MinestImageViews.requestMode).
+     The 3D Cover view itself is 1.0's own Cover Flow again; watchCover above is kept, unused. Student mode keeps 1.0's switcher. */
+  function cards() {
+    open('cards-2/index.html', '动态卡片', function (d) {
+      var v = d && d.view; if (!v) return;
+      try { var M = window.MinestImageViews; if (M && M.requestMode) M.requestMode(v); else if (window.__setViewMode) window.__setViewMode(v); } catch (e) {}
+    });
+  }
+  function hookCards() {
+    var M = window.MinestImageViews; if (!M || !M.openSwitcher) return false; if (M.__v3) return true; M.__v3 = true;
+    M.openSwitcher1 = M.openSwitcher;
+    M.openSwitcher = function () { if (student() || ov) return M.openSwitcher1.apply(M, arguments); cards(); };
+    return true;
+  }
+  function label() {   /* the button's name says what it opens */
+    if (student()) return;
+    [].forEach.call(document.querySelectorAll('.sf-mode-toggle-btn'), function (b) { if (b.title !== '动态卡片') { b.title = '动态卡片'; b.setAttribute('aria-label', '动态卡片'); } });
+  }
+
   function boot() {
-    hookDyn(); hookEC6();
-    /* 2026-11-25: the 3D Cover view is 1.0's own iTunes-style Cover Flow again; cards-2/ no longer takes it over (watchCover is kept, unused) */
-    watchCover();
+    hookDyn(); hookEC6(); hookCards(); label();
+    var lq = 0; if (document.body) new MutationObserver(function () { if (!lq) lq = setTimeout(function () { lq = 0; label(); }, 400); }).observe(document.body, { childList: true, subtree: true });
   }
   /* the modules come later in the page than some entries, and Spatial Home builds its room later still: retry a while */
-  var tries = 0, t = setInterval(function () { var d = hookDyn(), e = hookEC6(); if ((d && e) || ++tries > 120) clearInterval(t); }, 500);
+  var tries = 0, t = setInterval(function () { var d = hookDyn(), e = hookEC6(), c = hookCards(); if ((d && e && c) || ++tries > 120) clearInterval(t); }, 500);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
-  window.MinestV2Routes = { open: open, close: function () { close(); }, isOpen: function () { return !!ov; }, dyn: dyn, version: '1.1' };
+  window.MinestV2Routes = { open: open, close: function () { close(); }, isOpen: function () { return !!ov; }, dyn: dyn, cards: cards, version: '1.2' };
 })();
 </script><!-- mn-v2-routes:end -->
 </body>

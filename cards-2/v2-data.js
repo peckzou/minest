@@ -23,7 +23,9 @@
   try { if (window.PIEC6 && window.PIEC6.glossaryBoard) EC6S.push(window.PIEC6.glossaryBoard()); } catch (e) {}
   var EC6 = EC6S[0] || null;
   function use(list, sample) {
-    if (EC6S.length) list = EC6S.concat(list.filter(function (b) { return !EC6S.some(function (x) { return x.id === b.id; }); }));
+    /* Minest's own pages carry the study board built in as EC6 Outline: then it is not added a second time */
+    var ex = list.some(function (b) { return b.id === 'board-ec6-outline'; }) ? EC6S.slice(1) : EC6S;
+    if (ex.length) list = ex.concat(list.filter(function (b) { return !ex.some(function (x) { return x.id === b.id; }); }));
     var t = told(list); if (t !== last) { last = t; rev++; }
     boards = list; isSample = !!sample && !EC6;
     var m = mem() || {}, act = ''; try { act = localStorage.getItem(LS_ACTIVE) || ''; } catch (e) {}
@@ -94,7 +96,7 @@
   if (BR && BR.embedded && !/[?&]sample\b/.test(location.search)) {
     BR.hello().then(function (r) {
       var v = r && clean(r.boards);
-      if (v && v.length) { if (r.active && !EC6) mem({ b: r.active, l: '' }); use(v, false); finish(); } else load();
+      if (v && v.length) { if (r.active) mem({ b: r.active, l: '' }); use(v, false); finish(); }   /* in Minest: the board you are on */ else load();
     });
     return;
   }

@@ -135,10 +135,28 @@
 
   /* ───────────── the mode deck, keys, the tour ───────────── */
   var box = $('v2-modes'), tourBtn = $('v2-tour'), tourT = 0, touring = false, played = false;
+  /* Opened from Minest's 动态卡片 button: the deck also holds Minest's own views (看板 · 照片 · 图钉), and 3D 封面 is
+     Minest's own iTunes-style Cover Flow — choosing one of these closes this page and Minest shows it. */
+  var VIEWS = [['board', '看板', 'Board', '<rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="7" rx="1.5"/>'],
+    ['photos', '照片', 'Photos', '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-5 4 4 3-3 4 4"/>'],
+    ['pins', '图钉', 'Pins', '<rect x="3" y="3" width="8" height="11" rx="1.5"/><rect x="13" y="3" width="8" height="7" rx="1.5"/><rect x="3" y="16" width="8" height="5" rx="1.5"/><rect x="13" y="12" width="8" height="9" rx="1.5"/>']];
+  function inMinest() { var B = window.MinestV2Bridge; return !!(B && B.live && B.live()); }
+  function leave(view) { var B = window.MinestV2Bridge; tour(false); if (B && B.close) B.close({ view: view }); }
+  function pick(m) { if (m === 'flow' && inMinest()) { leave('coverflow'); return; } tour(false); go(m); }
+  function addViews() {
+    if (!inMinest() || box.querySelector('.vw')) return;
+    var first = box.firstChild, sep = document.createElement('i'); sep.className = 'vw-sep'; sep.setAttribute('aria-hidden', 'true');
+    VIEWS.forEach(function (v) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'vw'; b.dataset.v = v[0]; b.title = v[1] + ' · ' + v[2];
+      b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + v[3] + '</svg><span>' + v[1] + '</span>';
+      b.onclick = function () { leave(v[0]); }; box.insertBefore(b, first);
+    });
+    box.insertBefore(sep, first);
+  }
   MODES.forEach(function (x, i) {
     var b = document.createElement('button'); b.type = 'button'; b.dataset.m = x[0]; b.setAttribute('role', 'tab'); b.title = x[1] + ' · ' + x[2] + ' (' + KEYS[i] + ')';
     b.innerHTML = '<svg viewBox="0 0 24 24"></svg><span>' + esc(x[1]) + '</span><kbd>' + KEYS[i] + '</kbd>';
-    b.onclick = function () { tour(false); go(x[0]); }; box.appendChild(b);
+    b.onclick = function () { pick(x[0]); }; box.appendChild(b);
   });
   (function icons(n) {   // the deck wears the 1.0 key bar's own icons
     var bar = $('cm-bar'); if (!bar) { if (n < 80) setTimeout(function () { icons(n + 1); }, 50); return; }
@@ -147,8 +165,9 @@
   function tour(on) {
     if (on === touring) return; touring = on; tourBtn.classList.toggle('on', on); clearInterval(tourT);
     if (on) { var pl = document.querySelector('#cm-bar .pl'); played = !!(pl && pl.classList.contains('on')); CM.play(true);   // (play() tells nothing: the 1.0 key shows whether it was already playing)
-      tourT = setInterval(function () { var i = MODES.indexOf(info(CM.get())); go(MODES[(i + 1) % MODES.length][0]); }, 6500);
-      var i0 = MODES.indexOf(info(CM.get())); go(MODES[(i0 + 1) % MODES.length][0]);
+      var nx = function (at) { var i = MODES.indexOf(info(at)), n = MODES[(i + 1) % MODES.length][0]; return n === 'flow' && inMinest() ? MODES[(i + 2) % MODES.length][0] : n; };   /* in Minest, 3D 封面 is Minest's own view: the tour passes it */
+      tourT = setInterval(function () { go(nx(CM.get())); }, 6500);
+      go(nx(CM.get()));
     } else if (!played) CM.play(false);
   }
   tourBtn.onclick = function () { tour(!touring); };
@@ -156,8 +175,8 @@
   document.addEventListener('keydown', function (e) {
     if (e.metaKey || e.ctrlKey || e.altKey || /input|textarea|select/i.test((e.target && e.target.tagName) || '') || $('xl')) return;
     var i = KEYS.indexOf(e.key), at = MODES.indexOf(info(CM.get()));
-    if (i >= 0) { tour(false); go(MODES[i][0]); }
-    else if (e.key === ']' || e.key === '[') { tour(false); go(MODES[(at + (e.key === ']' ? 1 : MODES.length - 1)) % MODES.length][0]); }
+    if (i >= 0) pick(MODES[i][0]);
+    else if (e.key === ']' || e.key === '[') pick(MODES[(at + (e.key === ']' ? 1 : MODES.length - 1)) % MODES.length][0]);
     else if (e.key === 't' || e.key === 'T') tour(!touring);
     else if (e.key === 'Escape') { panel(false); tour(false); }
   });
@@ -196,6 +215,6 @@
   window.addEventListener('cards2:data', fresh);
 
   paint(CM.get()); mount(); fresh();
-  D.ready(function () { setTimeout(function () { caption(CM.get()); }, 250); });
+  D.ready(function () { addViews(); if (CM.get() === 'flow' && inMinest()) go('wall', true); setTimeout(function () { caption(CM.get()); }, 250); });
   window.Cards2 = { go: go, tour: tour, modes: MODES.map(function (x) { return x[0]; }) };
 })();
