@@ -10,8 +10,8 @@
   var slot = document.querySelector('.sf-slot[data-sf-view="coverflow"]');
   if (!CM || !D || !slot) return;
   var MODES = [['flow', '3D 封面', 'Cover Flow', '#5cc8ff'], ['wall', '卡片墙', 'Wall', '#8b9dff'], ['fan', '扇形', 'Fan', '#ffb86b'], ['helix', '螺旋', 'Helix', '#6ff0c2'], ['stack', '叠放', 'Stack', '#ff8fb1'], ['spiral', '旋涡', 'Spiral', '#c08bff'],
-    ['orbit', '轨道', 'Orbit', '#5ee0ff'], ['sphere', '球体', 'Sphere', '#7fb0ff'], ['wave', '波浪', 'Wave', '#62e6d0'], ['ring', '环形', 'Ring', '#ff7ad9'], ['stream', '流光', 'Stream', '#f5a524']];
-  var KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-'];
+    ['orbit', '轨道', 'Orbit', '#5ee0ff'], ['sphere', '球体', 'Sphere', '#7fb0ff'], ['wave', '波浪', 'Wave', '#62e6d0'], ['ring', '环形', 'Ring', '#ff7ad9'], ['stream', '流光', 'Stream', '#f5a524'], ['rolodex', '旋转名片夹', 'Rolodex', '#e6b450']];
+  var KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '='];
   var $ = function (id) { return document.getElementById(id); };
   var calm = false; try { calm = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
   function info(m) { for (var i = 0; i < MODES.length; i++) if (MODES[i][0] === m) return MODES[i]; return MODES[0]; }
@@ -31,7 +31,7 @@
     var ov = $('cm-ov');
     if (ov && cv.parentNode !== ov) { ov.insertBefore(cv, ov.firstChild); fit(); }
     if (ov) { light = ov.classList.contains('stream') || ov.classList.contains('bg-light'); document.body.classList.toggle('v2-light', light); }
-    $('v2-empty').hidden = !!(ov && ov.querySelector('.cm-c'));
+    $('v2-empty').hidden = !!(ov && (ov.querySelector('.cm-c') || ov.querySelector('.rdx-stage')));
   }
   new MutationObserver(mount).observe(slot, { childList: true });
   addEventListener('resize', fit);
