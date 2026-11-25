@@ -30,6 +30,8 @@
     ' vec3 sp=vW-uSpotP; float sl=length(sp); float sd=dot(sp/max(sl,0.001),uSpotD); float cone=smoothstep(uSpotCos,uSpotCos+0.16,sd)*(1.0-smoothstep(uSpotR*0.35,uSpotR,sl))*smoothstep(1.5,5.0,sl);' +
     ' c+=vC*uSpotC*cone*(0.55+0.45*max(dot(n,-uSpotD),0.0));' +
     ' c+=vC*uFlash;' +
+    ' float sh=max(-vG,0.0); if(sh>0.0){ vec3 hk=normalize(normalize(vec3(0.3,0.8,0.5))+v); vec3 hs=normalize(v-uSpotD); float gl=fract(sin(dot(floor(vW*7.0),vec3(12.9898,78.233,37.719)))*43758.5453+uTime*0.35);' +
+    '  c+=sh*vec3(1.0,0.9,0.62)*(pow(max(dot(n,hk),0.0),22.0)*0.9+pow(max(dot(n,hs),0.0),18.0)*cone*length(uSpotC)*1.2+smoothstep(0.965,1.0,gl)*0.9+rim*0.25); }' +
     ' c=mix(c,vC*(1.0+uPulse*sin(uTime*2.2+vW.x*0.7+vW.z*0.9)),clamp(vG,0.0,1.0));' +
     ' float f=smoothstep(uNear,uFar,vD)*(1.0-clamp(vG,0.0,1.0)*0.55); c=mix(c,uFog,f);' +
     ' gl_FragColor=vec4(c,1.0); }';
@@ -160,6 +162,18 @@
   K.water = function (g, w, d, o, x, y, z) { var T = K.T(), V = function (h) { var c = rgb(h); return new T.Vector3(c[0], c[1], c[2]); };
     var u = { uA: { value: V(o.a) }, uB: { value: V(o.b) }, uS: { value: V(o.s == null ? 0xffffff : o.s) }, uFog: { value: V(o.fog || 0) }, uNear: { value: o.near == null ? 30 : o.near }, uFar: { value: o.far == null ? 200 : o.far }, uTime: uTime, uOp: { value: o.op == null ? 1 : o.op }, uFlash: { value: new T.Vector3() } };
     var m = new T.Mesh(new T.PlaneGeometry(w, d), new T.ShaderMaterial({ uniforms: u, vertexShader: WVS, fragmentShader: WFS, transparent: (o.op || 1) < 1 })); m.rotation.x = -PI / 2; m.position.set(x || 0, y || 0, z || 0); m.userData.u = u; g.add(m); return m; };
+  var FVS = 'uniform float uThrow; uniform float uSpread; varying vec2 vU; varying float vD; void main(){ vU=uv; float k=1.0-uv.y; vec3 p=position; p.x*=1.0+k*uSpread; p.z+=uThrow*sqrt(k)*(1.0-k*0.35); vec4 mv=modelViewMatrix*vec4(p,1.0); vD=-mv.z; gl_Position=projectionMatrix*mv; }';
+  var FFS = 'uniform float uTime; uniform vec3 uCol; uniform vec3 uFog; uniform float uNear; uniform float uFar; uniform float uSeed; varying vec2 vU; varying float vD;' +
+    'float h(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); } float n(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(h(i),h(i+vec2(1.0,0.0)),f.x),mix(h(i+vec2(0.0,1.0)),h(i+vec2(1.0,1.0)),f.x),f.y); }' +
+    'void main(){ float k=1.0-vU.y; float t=uTime*(0.55+k*0.5); float st=n(vec2(vU.x*26.0+uSeed,vU.y*3.0+t*2.2))*0.6+n(vec2(vU.x*9.0+uSeed*2.0,vU.y*1.4+t*1.3))*0.5+n(vec2(vU.x*60.0,vU.y*9.0+t*4.0))*0.25;' +
+    ' float edge=pow(sin(vU.x*3.14159),0.7); float body=smoothstep(0.42+k*0.32,1.05,st); float mistA=smoothstep(0.55,1.0,k)*n(vec2(vU.x*4.0+uSeed,vU.y*2.0+t))*0.55; float a=edge*(body*(1.0-k*0.45)+mistA)*smoothstep(0.0,0.03,k);' +
+    ' vec3 c=mix(uCol,vec3(1.0),body*0.7); float f=smoothstep(uNear,uFar,vD); gl_FragColor=vec4(mix(c,uFog,f*0.8),a*(1.0-f*0.5)); }';
+  /* o: w (width at the lip), h (the drop), throw (how far out it leaps), spread, col. Returns a group; fogTo(look) keeps its haze with the scene's */
+  K.fall = function (g, o, x, y, z, ry) { var T = K.T(), grp = new T.Group(), V = function (hx) { var c = rgb(hx); return new T.Vector3(c[0], c[1], c[2]); }; grp.position.set(x || 0, y || 0, z || 0); grp.rotation.y = ry || 0; g.add(grp);
+    var u = { uTime: uTime, uCol: { value: V(o.col == null ? 0xcfeeff : o.col) }, uFog: { value: V(o.fog || 0xffffff) }, uNear: { value: o.near == null ? 200 : o.near }, uFar: { value: o.far == null ? 1600 : o.far }, uThrow: { value: o.throw == null ? 6 : o.throw }, uSpread: { value: o.spread == null ? 0.9 : o.spread }, uSeed: { value: (o.seed || 1) * 3.7 } };
+    var mat = new T.ShaderMaterial({ uniforms: u, vertexShader: FVS, fragmentShader: FFS, transparent: true, depthWrite: false, side: T.DoubleSide });
+    [0, 0.5, -0.5].forEach(function (a, n) { var geo = new T.PlaneGeometry(o.w * (n ? 0.8 : 1), o.h, 6, 24); geo.translate(0, -o.h / 2, 0); var m = new T.Mesh(geo, mat); m.rotation.y = a; m.frustumCulled = false; m.renderOrder = 4; grp.add(m); });
+    grp.userData.u = u; return grp; };
   var dot = null;
   function dotTex() { if (dot) return dot; dot = K.paint(64, 64, function (c) { var gr = c.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0, 0, 64, 64); }); return dot; }
   /* motes in a box that travels with the rider: o: n, box [x,y,z], col, size, vel [x,y,z], add (additive), op */

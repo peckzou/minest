@@ -22,12 +22,23 @@
         p.add(f); g.add(p); return [p, f]; }
       var aL = limb(-1, true), aR = limb(1, true), lL = limb(-1, false), lR = limb(1, false); u.armL = aL[0]; u.foreL = aL[1]; u.armR = aR[0]; u.foreR = aR[1]; u.legL = lL[0]; u.shinL = lL[1]; u.legR = lR[0]; u.shinR = lR[1]; g.userData = u; return g; }
     function sword(Lk, hand, col) { return Lk.mesh(hand, function (b) { b.box(col || 0xcfd6dc, 0.035, 0.9, 0.012, 0, -0.78, 0.05).box(GOLD, 0.2, 0.03, 0.05, 0, -0.33, 0.05).cyl(DARK, 0.022, 0.022, 0.14, 0, -0.27, 0.05).torus(GOLD, 0.07, 0.012, 0, -0.33, 0.1, 0, PI / 2, 0, PI); }); }
-    function gold(b, x, y, z, r, seed) { var rn = K.rnd(seed + 3), H = function (d) { return y + r * 0.62 * Math.max(0, 1 - Math.pow(d / (r * 1.25), 2)); };
-      b.glow(0.05).rock(function (px, py, pz) { var hsh = Math.sin(Math.round(px * 5) * 12.9898 + Math.round(py * 5) * 78.233 + Math.round(pz * 5) * 37.719) * 43758.5453; hsh -= Math.floor(hsh); return K.mix(K.mix(0x4a3206, 0x8a6612, Math.min(1, Math.max(0, (py - y) / (r * 0.6)))), 0xe0b030, hsh > 0.62 ? 0.6 : hsh < 0.2 ? 0.25 : 0); }, r, x, y, z, seed, 1.35, 0.6, 1.35, 2, 0.1);
-      var n = Math.round(40 + r * 26); for (var i = 0; i < n; i++) { var a = rn() * PI * 2, d = Math.sqrt(rn()) * r * 1.2, h = H(d) - 0.04, px = x + Math.cos(a) * d, pz = z + Math.sin(a) * d;
-        if (i % 9 === 0) b.glow(0.8).sph([0xe0245e, 0x2ecc71, 0x3498db, 0x9b59b6, 0xf4f4f4][i % 5], 0.1 + rn() * 0.05, px, h + 0.08, pz, 1, 0.8, 1, 6);
-        else if (i % 13 === 5) b.glow(0.35).lathe(0xf2c230, [[0.1, 0], [0.03, 0.05], [0.03, 0.16], [0.13, 0.22], [0.14, 0.4]], px, h, pz, 8, (rn() - 0.5), 0, (rn() - 0.5));
-        else b.glow(i % 3 ? 0.15 : 0.6).cyl(i % 3 ? 0xd8a820 : 0xffe066, 0.17, 0.17, 0.035, px, h + 0.03, pz, (rn() - 0.5) * 0.9, 0, (rn() - 0.5) * 0.9, 8); } b.glow(0); }
+    function gold(b, x, y, z, r, seed) { var rn = K.rnd(seed + 3), AX = r * 1.3, BY = r * 0.6, C = [0xd8a41c, 0xf0c030, 0xb88a14, 0xffd858];
+      function top(d) { return y + BY * Math.sqrt(Math.max(0, 1 - (d / AX) * (d / AX))); }
+      /* the heap itself, dark and polished, with smaller heaps slumped against it so the outline is not one smooth curve */
+      b.glow(-0.5).rock(function (px, py) { return K.mix(0x4a3206, 0x9a7214, Math.min(1, Math.max(0, (py - y) / BY))); }, r, x, y, z, seed, 1.3, 0.6, 1.3, 2, 0.12);
+      for (var k = 0; k < 7; k++) { var ka = rn() * PI * 2, kd = AX * (0.4 + rn() * 0.4), kr = r * (0.14 + rn() * 0.12); b.rock(K.mix(0x5a3e08, 0xa87a16, rn()), kr, x + Math.cos(ka) * kd, top(kd) - kr * 0.25, z + Math.sin(ka) * kd, seed * 7 + k, 1.3, 0.75, 1.3, 1, 0.16); }
+      /* coins, lying to the slope, every one catching the light */
+      var n = Math.round(70 + r * 80); b.glow(-1); for (var i = 0; i < n; i++) { var a = rn() * PI * 2, d = Math.sqrt(rn()) * AX * 1.02, px = x + Math.cos(a) * d, pz = z + Math.sin(a) * d, h = top(Math.min(d, AX * 0.98)), sl = Math.min(1.2, (d / AX) * 1.3), cr = 0.1 + rn() * 0.07;
+        b.cyl(C[i % 4], cr, cr, 0.03, px, h + 0.03 + rn() * 0.08, pz, Math.sin(a) * sl + (rn() - 0.5) * 0.7, rn() * 3, -Math.cos(a) * sl + (rn() - 0.5) * 0.7, 6); }
+      /* a skirt of coins spilled on the floor round it, little stacks, and the things that are not coins */
+      for (i = 0; i < n * 0.25; i++) { a = rn() * PI * 2; d = AX * (1.0 + rn() * 0.35); b.cyl(C[i % 4], 0.11, 0.11, 0.03, x + Math.cos(a) * d, y + 0.04, z + Math.sin(a) * d, (rn() - 0.5) * 0.3, 0, (rn() - 0.5) * 0.3, 6); }
+      for (i = 0; i < 3 + r * 2; i++) { a = rn() * PI * 2; d = rn() * AX * 0.9; var sh = 0.12 + rn() * 0.3; b.cyl(C[i % 2], 0.12, 0.12, sh, x + Math.cos(a) * d, top(d) + sh / 2, z + Math.sin(a) * d, 0, 0, 0, 8); }
+      for (i = 0; i < 2 + r * 2.4; i++) { a = rn() * PI * 2; d = rn() * AX * 0.85; px = x + Math.cos(a) * d; pz = z + Math.sin(a) * d; h = top(d) + 0.04; var kind = i % 5;
+        if (kind === 0) b.glow(-1).lathe(0xf2c230, [[0.1, 0], [0.03, 0.05], [0.03, 0.17], [0.13, 0.23], [0.15, 0.42]], px, h, pz, 8, (rn() - 0.5), 0, (rn() - 0.5));
+        else if (kind === 1) { b.glow(-1).cyl(0xf2c230, 0.17, 0.15, 0.1, px, h + 0.06, pz, (rn() - 0.5) * 0.8, 0, (rn() - 0.5) * 0.8, 10); for (var q = 0; q < 5; q++) b.cone(0xf2c230, 0.035, 0.1, px + Math.cos(q * 1.257) * 0.15, h + 0.15, pz + Math.sin(q * 1.257) * 0.15, 0, 0, 0, 4); b.glow(0.85).sph(0xe0245e, 0.035, px, h + 0.08, pz + 0.16).glow(-1); }
+        else if (kind === 2) { b.glow(0.5); for (q = 0; q < 9; q++) b.sph(0xfaf6ee, 0.045, px + Math.cos(q * 0.5) * (0.1 + q * 0.035), h + 0.03, pz + Math.sin(q * 0.5) * (0.1 + q * 0.035)); b.glow(-1); }
+        else b.glow(0.85).add(new T.OctahedronGeometry(0.11 + rn() * 0.06, 0), [0xe0245e, 0x2ecc71, 0x3498db, 0x9b59b6][i % 4], px, h + 0.1, pz, rn(), rn() * 3, rn()).glow(-1); }
+      b.glow(0); }
     function chest(b, x, y, z, ry, open) { b.push(x, y, z, ry).box(WOOD, 1.0, 0.55, 0.65, 0, 0.28, 0).box(GOLD, 1.04, 0.06, 0.69, 0, 0.5, 0).box(GOLD, 0.1, 0.56, 0.67, -0.35, 0.28, 0).box(GOLD, 0.1, 0.56, 0.67, 0.35, 0.28, 0).box(GOLD, 0.14, 0.16, 0.04, 0, 0.42, 0.34);
       if (open) { b.glow(0.8).box(0xffd84a, 0.9, 0.16, 0.56, 0, 0.6, 0).sph(0xe0245e, 0.08, 0.2, 0.72, 0.1).sph(0x3498db, 0.07, -0.25, 0.71, -0.1).sph(0xf4f4f4, 0.05, 0, 0.72, 0.18).glow(0); b.push(0, 0.55, -0.32, 0, 1, -1.1).add(new T.CylinderGeometry(0.33, 0.33, 1.0, 10, 1, false, 0, PI), WOOD, 0, 0, 0.32, 0, 0, PI / 2).pop(); }
       else b.add(new T.CylinderGeometry(0.33, 0.33, 1.0, 10, 1, false, 0, PI), WOOD, 0, 0.55, 0, 0, 0, PI / 2); b.pop(); }

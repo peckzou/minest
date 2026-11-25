@@ -110,10 +110,10 @@
       var m = pdL.mesh(pd, function (b) { b.rock(function (px, py) { return py > y + s * 0.18 ? 0x3f9a52 : K.mix(0x6a6a5a, 0x565e52, hashy(px, py)); }, s, x, y, z, k + 5, 1.25, 0.55, 1.25, 2, 0.2).rock(K.shade(0x5a5e52, 0.9), s * 0.7, x + s * 0.1, y - s * 0.62, z, k + 50, 0.9, 1.25, 0.9, 2, 0.26).rock(0x4a5248, s * 0.36, x - s * 0.1, y - s * 1.45, z + s * 0.1, k + 90, 0.8, 1.3, 0.8, 1, 0.3);
         for (var n = 0; n < 7; n++) { var ta = r() * PI * 2, td = r() * s * 0.8; tree(b, x + Math.cos(ta) * td, y + s * 0.42, z + Math.sin(ta) * td, 5 + r() * 7, 5 + r() * 5, GREENS[Math.floor(r() * 5)], 0); }
         for (n = 0; n < 9; n++) { var va = r() * PI * 2, vl = 14 + r() * 40, vx = x + Math.cos(va) * s * 1.05, vz = z + Math.sin(va) * s * 1.05; b.tube(0x2f6a3a, [[vx, y + s * 0.1, vz], [vx + 2, y - vl * 0.5, vz + 1], [vx - 1, y - vl, vz]], 0.5, 0.18, 8, 4); }
-        if (k % 3 === 0) { var fa = side > 0 ? PI : 0, fx = x + Math.cos(fa) * s * 1.1, fz = z + 4; b.glow(0.55).tube(function (px, py) { return K.mix(0xbfe8ff, 0xffffff, hashy(px, py)); }, [[fx, y + s * 0.2, fz], [fx + Math.cos(fa) * 3, y - 30, fz], [fx + Math.cos(fa) * 4, y - 90, fz], [fx + Math.cos(fa) * 4, y - 170, fz]], 2.2, 5.5, 14, 7).glow(0); falls.push([fx + Math.cos(fa) * 4, y - 60, fz]); } });
+        if (k % 3 === 0) { var fa = side > 0 ? PI : 0, fx = x + Math.cos(fa) * s * 1.02, fz = z + 4, fy = y + s * 0.2; b.rock(0x5a5e52, 4.5, fx - Math.cos(fa) * 2, fy - 1.5, fz, k + 9, 1.4, 0.5, 1.6, 1, 0.2).glow(0.35).box(0x9fd8e8, 5, 0.3, 7, fx - Math.cos(fa) * 4, fy + 0.9, fz, 0, 0, 0).glow(0); falls.push([fx, fy + 0.6, fz, fa, 150 + s * 1.5, k]); } });
       m.geometry.computeBoundingSphere(); m.frustumCulled = true; })(mi);
     function hashy(x, y) { var s = Math.sin(Math.round(x) * 12.9898 + Math.round(y) * 78.233) * 43758.5453; return s - Math.floor(s); }
-    var mist = falls.map(function (q) { return K.halo(pd, 0xffffff, 60, q[0], q[1] - 70, q[2], 0.22); });
+    var water = falls.map(function (q) { return K.fall(pd, { w: 9, h: q[4], throw: 9, spread: 1.6, col: 0xcfeeff, fog: 0x9fd6e0, near: 200, far: 1700, seed: q[5] }, q[0], q[1], q[2], q[3] === 0 ? PI / 2 : -PI / 2); }), mist = falls.map(function (q) { return K.halo(pd, 0xffffff, 70, q[0] + Math.cos(q[3]) * 8, q[1] - q[4] * 0.92, q[2], 0.2); });
     var seaW = K.water(pd, 3000, 420, { a: 0x0e5a7a, b: 0x7fd8e8, s: 0xffffff, fog: 0x9fd6e0, near: 200, far: 1500 }, 0, 0.3, -1700);
     /* sea stacks and an arch to fly through */
     pdL.mesh(pd, function (b) { var r = K.rnd(12); for (var k = 0; k < 26; k++) { var z = -1520 - r() * 360, x = at(z).p.x + (r() < 0.5 ? -1 : 1) * (56 + r() * 260), h = 30 + r() * 80; b.rock(K.mix(0x6a6a5a, 0x4a5a4a, r()), 12 + r() * 12, x, h * 0.4, z, k + 1, 1, h / 16, 1, 2, 0.26); tree(b, x, h * 0.9, z, 6, 7, GREENS[k % 5], 0); }
@@ -185,7 +185,7 @@
       /* the light: day; the cave; dusk on the far side */
       var inCave = sm((-1895 - z) / 30) * (1 - sm((-2130 - z) / 30)), dusk = z < -2030 ? 1 : 0; if (dusk) { duskCyc.visible = true; dayCyc.visible = false; } else { duskCyc.visible = false; dayCyc.visible = true; }
       wc.copy(dusk ? duskC : dayC).lerp(caveC, inCave); var u = pdL.u; u.uFog.value.set(wc.r, wc.g, wc.b); pdSky.material.color.copy(wc); u.uAmb.value = (dusk ? 0.34 : 0.56) - inCave * 0.2; u.uNear.value = 140 - inCave * 120 - dusk * 60; u.uFar.value = 1700 - inCave * 1550 - dusk * 700; u.uTint.value.set(dusk ? 0.75 : 0.9, dusk ? 0.8 : 1.0, dusk ? 1.0 : 0.95);
-      rideL.u.uAmb.value = 0.58 - inCave * 0.2 - dusk * 0.14; seaW.userData.u.uFog.value.set(wc.r, wc.g, wc.b);
+      rideL.u.uAmb.value = 0.58 - inCave * 0.2 - dusk * 0.14; seaW.userData.u.uFog.value.set(wc.r, wc.g, wc.b); water.forEach(function (wf) { wf.userData.u.uFog.value.set(wc.r, wc.g, wc.b); });
       mist.forEach(function (m, n) { m.material.opacity = 0.18 + Math.sin(t * 0.8 + n) * 0.05; });
       /* those who fly with us */
       mates.forEach(function (m, n) { var lag = at(z + m.off[2]), k = rest ? 1 : 0, lx2 = lag.p.x + lag.s.x * m.off[0] + Math.sin(t * 0.4 + m.ph) * 3, ly2 = lag.p.y + m.off[1] + Math.sin(t * 0.5 + m.ph) * 2; if (z < -1900 && z > -2150) { lx2 = lag.p.x + lag.s.x * m.off[0] * 0.3; ly2 = lag.p.y + m.off[1] * 0.3; }
