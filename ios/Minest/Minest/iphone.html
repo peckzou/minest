@@ -186811,6 +186811,86 @@ button.mn-fx-scan::after {
     nb.onclick = function (e) { e.stopPropagation(); holo(); };
     b.after(nb);
   }
+  /* The built-in islands as islands of their own in My World's sky, beside the worlds and main islands (they were
+     small hexagons in the centre island's menu): Philosophers' Island, Cathedrals' Island, the Theme Park, Pocket City,
+     RV World and the reef dive. One tap says how to land; a double-tap lands (opens the page). Each takes a free spot
+     in the sky, near the island it belongs with when there is one (the park by the first main island, the philosophers
+     by the second, RV World by a travel world). */
+  var BI_SATS = true;
+  var BI = [
+    { id: 'park', title: 'Theme Park', zh: '奇想主题乐园', art: 'world_30_entertainment_universe', near: 'hub0', go: function () { themepark(); } },
+    { id: 'phil', title: 'Philosophers’ Island', zh: '哲学家小岛', art: 'world_15_philosophy_wisdom', near: 'hub1', go: function () { island(); } },
+    { id: 'rv', title: 'RV World', zh: '环球房车旅行', art: 'world_28_transportation_universe', near: 'travel', go: function () { rvworld(); } },
+    { id: 'cath', title: 'Cathedrals’ Island', zh: '教堂小岛', art: 'world_14_history_civilizations', near: '', go: function () { cathedrals(); } },
+    { id: 'reef', title: 'Great Barrier Reef', zh: '大堡礁潜水', art: 'world_24_ecology_oceans', near: '', go: function () { reefdive(); } },
+    { id: 'pocket', title: 'Pocket City', zh: '施陶巴赫瀑布', art: 'world_01_natural', near: '', go: function () { pocketcity(); } }
+  ];
+  function biCss() {
+    if (document.getElementById('mn-bi-css')) return;
+    var st = document.createElement('style'); st.id = 'mn-bi-css';
+    st.textContent = 'html body .uv .uv-sea > .uv-isle.mn-bi{z-index:1}' +
+      'html body .uv[data-island-home=true] .uv-isle.mn-bi b{font-size:11.5px!important;padding:2px 8px!important;max-width:140px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+      'html body .uv .uv-isle.mn-bi .uv-art{display:block;position:relative;aspect-ratio:1}html body .uv .uv-isle.mn-bi .uv-art img{width:100%;height:100%;object-fit:contain}' +
+      'html body .uv[data-island-home=true] .uv-isle.mn-bi .uv-art img{transform:scale(1.45)}' +
+      'html body .uv .uv-isle.mn-bi.mn-bi-tap .uv-art{animation:mnBiTap .5s ease}@keyframes mnBiTap{40%{transform:translateY(-8px) scale(1.06)}}';
+    document.head.appendChild(st);
+  }
+  function addSats() {
+    var sea = document.querySelector('.uv[data-island-home="true"] .uv-sea'); if (!sea) return;
+    biCss();
+    BI.forEach(function (s) {
+      if (sea.querySelector('.uv-isle.mn-bi[data-bi="' + s.id + '"]')) return;
+      var e = document.createElement('button'); e.type = 'button'; e.className = 'uv-isle mn-bi'; e.setAttribute('data-bi', s.id);
+      e.setAttribute('aria-label', s.title + ' · ' + s.zh + ' — double-tap to land'); e.title = s.zh + ' · 双击登岛';
+      e.innerHTML = '<span class="uv-art ready"><img alt="" data-a3="' + s.art + '"></span><b class="mn-en-keep">' + s.title + '</b>';
+      e.style.visibility = 'hidden'; sea.appendChild(e);
+    });
+    biPlace(sea);
+  }
+  function biPlace(sea) {
+    var W = sea.clientWidth, H = sea.clientHeight; if (!W || !H) return;
+    var mine = [].slice.call(sea.querySelectorAll('.uv-isle.mn-bi')), others = [].slice.call(sea.querySelectorAll('.uv-isle:not(.mn-bi)'));
+    var pos = function (b) { return { x: parseFloat(b.style.left) || 0, y: parseFloat(b.style.top) || 0, r: (parseFloat(b.style.width) || b.offsetWidth || 100) * .5 }; };
+    var taken = others.map(pos), worldsW = others.filter(function (b) { return b.hasAttribute('data-world'); }).map(function (b) { return parseFloat(b.style.width) || 0; });
+    var sw = Math.max(70, Math.min(130, (worldsW.length ? Math.min.apply(null, worldsW) : W * .26) * .72, W * .2));
+    var hubs = others.filter(function (b) { return b.classList.contains('mn-hub'); });
+    var travel = others.filter(function (b) { return b.hasAttribute('data-world') && /travel|trip|journey|旅/i.test((b.querySelector('b') || {}).textContent || ''); })[0];
+    var anchorOf = function (k) { var a = k === 'hub0' ? hubs[0] : k === 'hub1' ? (hubs[1] || hubs[0]) : k === 'travel' ? travel : null; return a ? pos(a) : null; };
+    var hill = Math.min(H * .14, 110), cand = [];
+    for (var gy = 0; gy < 7; gy++) for (var gx = 0; gx < 9; gx++) cand.push({ x: W * (.07 + .86 * gx / 8), y: sw * .5 + 6 + ((H - hill) - sw - 6) * gy / 6 });
+    BI.forEach(function (s) {
+      var e = mine.filter(function (b) { return b.getAttribute('data-bi') === s.id; })[0]; if (!e) return;
+      var an = anchorOf(s.near), best = null, bs = -1e9;
+      cand.forEach(function (c) {
+        var gap = 1e9; taken.forEach(function (t) { gap = Math.min(gap, Math.hypot(c.x - t.x, (c.y - t.y) * 1.25) - t.r - sw * .5); });
+        var sc = Math.min(gap, sw) - (an ? Math.hypot(c.x - an.x, c.y - an.y) * .35 : 0);
+        if (sc > bs) { bs = sc; best = c; }
+      });
+      if (!best) return;
+      var L = best.x.toFixed(0) + 'px', T = best.y.toFixed(0) + 'px', Wd = sw.toFixed(0) + 'px';
+      if (e.style.left !== L) e.style.left = L; if (e.style.top !== T) e.style.top = T; if (e.style.width !== Wd) e.style.width = Wd;
+      if (e.style.visibility) e.style.visibility = '';
+      taken.push({ x: best.x, y: best.y, r: sw * .5 });
+    });
+  }
+  (function () {   // taps on a built-in island: one says how to land, two land
+    var pend = null;
+    function toastMsg(m) { try { if (window.GlassUI && GlassUI.toast) return GlassUI.toast(m); } catch (x) {} }
+    function land(b) { var s = BI.filter(function (q) { return q.id === b.getAttribute('data-bi'); })[0]; if (!s) return; try { if (window.MinestNative && MinestNative.haptic) MinestNative.haptic('medium'); } catch (x) {} s.go(); }
+    window.addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('.uv-isle.mn-bi'); if (!b) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (pend && pend.b === b && Date.now() - pend.t < 450) { clearTimeout(pend.timer); pend = null; return land(b); }
+      if (pend) clearTimeout(pend.timer);
+      b.classList.remove('mn-bi-tap'); void b.offsetWidth; b.classList.add('mn-bi-tap');
+      pend = { b: b, t: Date.now(), timer: setTimeout(function () { pend = null; var s = BI.filter(function (q) { return q.id === b.getAttribute('data-bi'); })[0]; if (s) toastMsg(s.zh + ' · ' + s.title + ' — 双击登岛'); }, 460) };
+    }, true);
+    window.addEventListener('dblclick', function (e) { var b = e.target.closest && e.target.closest('.uv-isle.mn-bi'); if (!b) return; e.preventDefault(); e.stopImmediatePropagation(); if (pend) { clearTimeout(pend.timer); pend = null; land(b); } }, true);
+    ['pointerdown', 'pointerup'].forEach(function (ev) { window.addEventListener(ev, function (e) { if (e.target.closest && e.target.closest('.uv-isle.mn-bi')) e.stopPropagation(); }, true); });
+    var q = false; function tick() { if (q) return; q = true; requestAnimationFrame(function () { q = false; try { addSats(); } catch (x) {} }); }
+    if (window.MutationObserver) new MutationObserver(tick).observe(document.documentElement, { childList: true, subtree: true });
+    window.addEventListener('resize', tick);
+  })();
   function addIsland() {
     var cs = document.querySelector('[data-centerstyle]');   // My World's overview sheet (it sits outside .uv)
     if (cs && !cs.parentNode.querySelector('[data-philisland]')) {
@@ -186857,7 +186937,7 @@ button.mn-fx-scan::after {
     }
     // the centre island's hexagon menu (mn-island-game-script): one more hexagon, in the free bottom-left slot
     var m = document.querySelector('.mn-island-actions[aria-label="My World actions"]'), b4 = m && m.querySelector('.mn-island-action-4');
-    if (m && b4 && !m.querySelector('[data-philisland]')) {
+    if (!BI_SATS && m && b4 && !m.querySelector('[data-philisland]')) {   // (the built-in islands are islands in the sky now: see addSats)
       var t4 = m.querySelector('.mn-action-tip-4'), hb = document.createElement('button'), n = m.querySelectorAll('.mn-island-action').length;
       hb.type = 'button'; hb.className = 'mn-island-action mn-island-action-' + n; hb.setAttribute('data-philisland', ''); hb.setAttribute('role', 'menuitem'); hb.setAttribute('aria-label', '哲学家小岛 Philosophers’ Island'); hb.title = '哲学家小岛 · Philosophers’ Island';
       hb.innerHTML = '<span class="mn-action-icon" aria-hidden="true" style="font-size:22px;line-height:1">🏛️</span>';
