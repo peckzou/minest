@@ -48,22 +48,23 @@
     function quiet() { snd.forEach(function (q) { try { q.stop(); } catch (e) {} }); snd = []; K.hush(); if (fade) fade.style.opacity = 0; }
     function setPhase(i, now) { st.i = i; st.t = 0; var p = PH[i]; if (!p) return; if (st.scene !== S[p.sc]) { if (now || p.cut) show(p.sc); else { fadeTo(1); setTimeout(function () { if (st.i === i && st.on) { show(p.sc); fadeTo(0); } }, 460); } } }
     A = { T: T, R: R, S: S, st: st, pose: pose, gy: gy, car: null, fadeTo: fadeTo, quiet: quiet,
+      w: function (p) { var ox = st.scene ? st.scene.userData.ox : 0; return [o.x + ox + p[0], o.oy + p[1], o.z + p[2]]; }, goto: function (i, t) { setPhase(i, true); st.t = t || 0; },
       scene: function (name, i) { var g = new T.Group(); g.position.x = i * gap; g.userData.ox = i * gap; g.visible = false; R.add(g); S[name] = g; return g; },
       once: function (k, f) { if (!ev[k]) { ev[k] = 1; f(); } }, keep: function (q) { snd.push(q); return q; }, L: function (a, b, k) { return a + (b - a) * K.sm(k); },
       run: function (ph, done) { PH = ph;
         var ride = { id: o.id, name: o.name, land: o.land, boardPos: { x: o.x, y: gy, z: o.z + 7 }, exitPos: { x: o.x, y: gy, z: o.z + 10, yaw: Math.PI },
-          start: function () { if (!st.on) { st.on = true; R.visible = true; ev = {}; st.scene = null; st.shake = 0; if (o.reset) o.reset(); setPhase(0, true); } st.run = true; }, stop: function () { st.run = false; }, isRunning: function () { return st.run; },
+          start: function () { if (!st.on) { st.on = true; R.visible = true; ev = {}; st.scene = null; st.shake = 0; if (o.reset) o.reset(); if (A.resetHook) A.resetHook(); setPhase(0, true); } st.run = true; }, stop: function () { st.run = false; }, isRunning: function () { return st.run; },
           onExit: function () { st.on = false; st.run = false; st.i = -1; R.visible = false; quiet(); },
           getHudInfo: function () { var p = PH[Math.min(Math.max(st.i, 0), PH.length - 1)], base = p.n + ' · ' + (Math.max(st.i, 0) + 1) + '/' + PH.length; return o.hud ? o.hud(base) : base; },
           getCameraPose: function () { var ox = st.scene ? st.scene.userData.ox : 0, sx = (Math.random() - 0.5) * st.shake * 0.3, sy = (Math.random() - 0.5) * st.shake * 0.3, c = A.car, eye = o.eye == null ? 1.3 : o.eye;
-            if (c) { c.visible = !!PH[st.i] && !!PH[st.i].car; c.position.set(ox + pose.p[0], pose.p[1] - eye, pose.p[2]); c.lookAt(R.position.x + ox + pose.t[0], R.position.y + pose.t[1] - eye, R.position.z + pose.t[2]); c.rotateY(Math.PI); c.rotateZ(-(pose.roll || 0)); }
+            if (c) { c.visible = !!PH[st.i] && !!PH[st.i].car; c.position.set(ox + pose.p[0], pose.p[1] - eye, pose.p[2]); var ct = pose.h || pose.t; c.lookAt(R.position.x + ox + ct[0], R.position.y + ct[1] - eye, R.position.z + ct[2]); c.rotateY(Math.PI); c.rotateZ(-(pose.roll || 0)); }
             return { px: o.x + ox + pose.p[0] + sx, py: o.oy + pose.p[1] + sy, pz: o.z + pose.p[2], tx: o.x + ox + pose.t[0], ty: o.oy + pose.t[1], tz: o.z + pose.t[2], roll: pose.roll || 0 }; } };
         if (o.steer) ride.steer = o.steer; if (o.fire) ride.fire = o.fire; K.register(ride);
         var last = performance.now(); (function tick(now) { requestAnimationFrame(tick); var dt = Math.min(0.05, (now - last) / 1000); last = now; if (!st.on || !st.run || st.i < 0) return; st.shake = Math.max(0, st.shake - dt * 1.4); st.t += dt; var p = PH[st.i]; if (!p) return; pose.roll = 0;
           try { p.f(st.t, dt); } catch (e) { if (root.console) console.warn('[ride ' + o.id + ']', e); }
           if (st.t >= p.d) { if (st.i + 1 >= PH.length) { st.i = PH.length; if (API.exitRide) API.exitRide(); API.toast(done); } else setPhase(st.i + 1); } })(last);
         var q = function (n) { var G = root.TPGame; if (!G || !G.quests) { if (n < 80) setTimeout(function () { q(n + 1); }, 400); return; } G.quests.push({ id: 'q_' + o.id, icon: o.icon, name: o.quest, tip: o.tip, need: 'gate', ride: o.id }); if (G.render) G.render(); }; q(0);
-        (root.TPRides = root.TPRides || {})[o.id] = { state: st, phases: PH.length }; } };
+        (root.TPRides = root.TPRides || {})[o.id] = { state: st, phases: PH.length, goto: A.goto, pose: pose }; } };
     return A;
   };
   root.TPRideKit = K;

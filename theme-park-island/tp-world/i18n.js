@@ -334,5 +334,5 @@
     if (row && !document.getElementById('tp-lang-btn')) { var b = document.createElement('button'); b.type = 'button'; b.id = 'tp-lang-btn'; b.textContent = lang === 'en' ? 'EN → 中' : '中 → EN'; b.title = '游乐设施的语言 / Ride language'; b.style.cssText = 'padding:5px 12px;border-radius:999px;border:none;background:#0f172a;color:#fde68a;font-weight:900;font-size:11.5px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.35)'; b.onclick = function (e) { e.stopPropagation(); try { localStorage.setItem('tp.lang', lang === 'en' ? 'zh' : 'en'); } catch (er) {} location.reload(); }; row.appendChild(b); }
   }
   watch(); new MutationObserver(watch).observe(document.documentElement, { childList: true, subtree: true });
-  root.TPI18N = { t: t, lang: function () { return lang; } };
+  root.TPI18N = { t: t, lang: function () { return lang; }, add: function (pairs) { pairs.forEach(function (p) { for (var i = 0; i < D.length; i++) { if (D[i][0] === p[0]) return; if (D[i][0].length < p[0].length) { D.splice(i, 0, p); return; } } D.push(p); }); } };
 })(window);
