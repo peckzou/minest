@@ -186702,17 +186702,24 @@ button.mn-fx-scan::after {
   var phEl = null, SITE = /^https?:$/.test(location.protocol) ? '' : 'https://minest-app.vercel.app/';
   function phil(file, title) { full(SITE + 'philosophy/models/' + file, title || '哲学交互模型'); }
   /* 哲学家小岛 Philosophers' Island (philosophers-island/, Antigravity): the voxel island of 20 philosophers, full screen */
-  function island() { full(SITE + 'philosophers-island/philosophers.html', '哲学家小岛 · Philosophers’ Island'); }
+  /* In the Minest app the heavy 3D pages open in a web view of their own (bridge action openPage): inside this page's
+     iframe they shared its memory, and iOS closed the page while Philosophers' Island was being built. On the web: full(). */
+  function fullApart(url, title) {
+    try { var h = SITE && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.minestBridge;
+      if (h) { h.postMessage({ action: 'openPage', url: url, title: title }); return; } } catch (e) {}
+    full(url, title);
+  }
+  function island() { fullApart(SITE + 'philosophers-island/philosophers.html', '哲学家小岛 · Philosophers’ Island'); }
   /* 教堂小岛 Cathedrals' Island (cathedrals-island/, Antigravity): the second built-in island, next to the philosophers' */
-  function cathedrals() { full(SITE + 'cathedrals-island/cathedrals.html', '教堂小岛 · Cathedrals’ Island'); }
+  function cathedrals() { fullApart(SITE + 'cathedrals-island/cathedrals.html', '教堂小岛 · Cathedrals’ Island'); }
   /* 奇想主题乐园 Theme Park (theme-park-island/, Antigravity): the third built-in island */
-  function themepark() { full(SITE + 'theme-park-island/theme-park.html', '奇想主题乐园 · Theme Park'); }
+  function themepark() { fullApart(SITE + 'theme-park-island/theme-park.html', '奇想主题乐园 · Theme Park'); }
   /* 施陶巴赫瀑布 Pocket City (staubbach.html, built by pocket-city/build.sh): a 250 m hand-drawn map of a real place */
   function pocketcity() { full(SITE + 'staubbach.html?framed=1', '施陶巴赫瀑布 · Pocket City'); }
   /* RV World (rv-world/): a round-the-world RV trip planner on real map data, with a 3D drive, a globe and a picture book */
-  function rvworld() { full(SITE + 'rv-world/index.html', 'RV World · 环球房车旅行'); }
+  function rvworld() { fullApart(SITE + 'rv-world/index.html', 'RV World · 环球房车旅行'); }
   /* 大堡礁潜水 Great Barrier Reef (great-barrier-reef/): a procedural WebGL2 reef to dive through */
-  function reefdive() { full(SITE + 'great-barrier-reef/index.html', '大堡礁潜水 · Great Barrier Reef'); }
+  function reefdive() { fullApart(SITE + 'great-barrier-reef/index.html', '大堡礁潜水 · Great Barrier Reef'); }
   /* 梦工坊 Dream Workshop (dream-workshop/): direct an experience — characters, voices, triggers, a show timeline, then walk in as a guest */
   function workshop(id, play) {   /* (id, true): walk straight into that work as its guest — a placed experience in a room or on an island */
     var q = id && /^[A-Za-z0-9_-]{1,40}$/.test(String(id)) ? '?' + (play ? 'play=' : 'open=') + id : '';

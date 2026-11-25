@@ -277,6 +277,12 @@ public final class MinestBridge: NSObject, WKScriptMessageHandler {
         // =====================================================================
         // Diagnostics & Memory
         // =====================================================================
+        case "openPage":   // a heavy 3D page (Philosophers' Island, the parks, RV World…) in a web view of its own,
+                            // so it gets its own web content process instead of sharing the home page's memory
+            if let s = data["url"] as? String, let u = URL(string: s), u.scheme == "https" {
+                MinestPageViewController.present(url: u, title: data["title"] as? String ?? "")
+            }
+
         case "getMemoryUsage":
             let mb = NativeDocumentManager.getProcessMemoryMB()
             sendEventToWeb(event: "onMemoryUsage", payload: ["memoryMB": mb])
@@ -599,3 +605,125 @@ extension Notification.Name {
     static let minestPetRewardEvent = Notification.Name("MinestPetRewardEventP0")
 }
 
+
+
+/// A full-screen page in its own WKWebView (and so its own web content process), with a bar to go back to Minest.
+/// Used for the heavy 3D pages the home page opens: inside the home page's iframe they shared its memory and
+/// iOS closed the page while Philosophers' Island was being built.
+final class MinestPageViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
+    private let url: URL
+    private let pageTitle: String
+    private var webView: WKWebView!
+    private var reloads = 0
+
+    static func present(url: URL, title: String) {
+        guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first,
+              let window = scene.windows.first(where: { $0.isKeyWindow }) ?? scene.windows.first,
+              var top = window.rootViewController else { return }
+        while let p = top.presentedViewController { top = p }
+        if top is MinestPageViewController { return }
+        let vc = MinestPageViewController(url: url, title: title)
+        vc.modalPresentationStyle = .fullScreen
+        top.present(vc, animated: true)
+    }
+
+    init(url: URL, title: String) {
+        self.url = url
+        self.pageTitle = title
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override var prefersStatusBarHidden: Bool { false }
+    override var preferredStatusBarStyle: UIStatusBarStyle { .lightContent }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        let bg = UIColor(red: 0.043, green: 0.059, blue: 0.078, alpha: 1)
+        view.backgroundColor = bg
+
+        let config = WKWebViewConfiguration()
+        config.allowsInlineMediaPlayback = true
+        config.mediaTypesRequiringUserActionForPlayback = []
+        config.websiteDataStore = .default()
+        let wv = WKWebView(frame: .zero, configuration: config)
+        wv.navigationDelegate = self
+        wv.uiDelegate = self
+        wv.isOpaque = false
+        wv.backgroundColor = bg
+        wv.scrollView.contentInsetAdjustmentBehavior = .never
+        if #available(iOS 16.4, *) { wv.isInspectable = true }
+        wv.translatesAutoresizingMaskIntoConstraints = false
+        webView = wv
+
+        let bar = UIView()
+        bar.backgroundColor = bg
+        bar.translatesAutoresizingMaskIntoConstraints = false
+        let close = UIButton(type: .system)
+        close.setTitle("✕ 返回 Minest", for: .normal)
+        close.setTitleColor(.white, for: .normal)
+        close.titleLabel?.font = .systemFont(ofSize: 14, weight: .medium)
+        close.contentEdgeInsets = UIEdgeInsets(top: 4, left: 11, bottom: 4, right: 11)
+        close.layer.cornerRadius = 13
+        close.layer.borderWidth = 1
+        close.layer.borderColor = UIColor(white: 1, alpha: 0.22).cgColor
+        close.backgroundColor = UIColor(white: 1, alpha: 0.06)
+        close.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
+        close.translatesAutoresizingMaskIntoConstraints = false
+        let label = UILabel()
+        label.text = pageTitle
+        label.textColor = UIColor(white: 1, alpha: 0.85)
+        label.font = .systemFont(ofSize: 14, weight: .semibold)
+        label.lineBreakMode = .byTruncatingTail
+        label.translatesAutoresizingMaskIntoConstraints = false
+
+        view.addSubview(wv)
+        view.addSubview(bar)
+        bar.addSubview(close)
+        bar.addSubview(label)
+        NSLayoutConstraint.activate([
+            bar.topAnchor.constraint(equalTo: view.topAnchor),
+            bar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            bar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            bar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 38),
+            close.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 10),
+            close.bottomAnchor.constraint(equalTo: bar.bottomAnchor, constant: -5),
+            label.leadingAnchor.constraint(equalTo: close.trailingAnchor, constant: 10),
+            label.trailingAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -10),
+            label.centerYAnchor.constraint(equalTo: close.centerYAnchor),
+            wv.topAnchor.constraint(equalTo: bar.bottomAnchor),
+            wv.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            wv.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            wv.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+        wv.load(URLRequest(url: url))
+    }
+
+    @objc private func closeTapped() {
+        webView.stopLoading()
+        webView.loadHTMLString("", baseURL: nil)   // let the page's memory go before the sheet animates away
+        dismiss(animated: true)
+    }
+
+    // The page's web content process was closed (out of memory): load it again once, then say so.
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        reloads += 1
+        if reloads <= 1 { webView.load(URLRequest(url: url)); return }
+        let a = UIAlertController(title: "页面内存不足", message: "这个页面太大，系统把它关闭了。", preferredStyle: .alert)
+        a.addAction(UIAlertAction(title: "再试一次", style: .default) { [weak self] _ in
+            guard let self = self else { return }
+            self.reloads = 0
+            self.webView.load(URLRequest(url: self.url))
+        })
+        a.addAction(UIAlertAction(title: "返回 Minest", style: .cancel) { [weak self] _ in self?.closeTapped() })
+        present(a, animated: true)
+    }
+
+    // Links that open a new window stay in this view.
+    func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
+                 for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+        if navigationAction.targetFrame == nil, let u = navigationAction.request.url { webView.load(URLRequest(url: u)) }
+        return nil
+    }
+}
