@@ -54,11 +54,14 @@ for (const p of pages) {
     await pg.waitForTimeout(SETTLE);
     const idle = await pg.evaluate(ms => window.__mnPerfIdle(ms), IDLE);
     const m = await pg.evaluate(() => window.__mnPerf);
-    runs.push({ dcl: m.dcl, load: m.load, dock: m.dock, ...idle, errors: errors.length });
+    // the resources that finished last: what the load event waited on
+    const last = await pg.evaluate(() => performance.getEntriesByType('resource').sort((a, b) => b.responseEnd - a.responseEnd).slice(0, 6).map(e => Math.round(e.startTime) + '-' + Math.round(e.responseEnd) + ' ' + e.initiatorType + ' ' + e.name.replace(location.origin, '').slice(0, 90)));
+    runs.push({ dcl: m.dcl, load: m.load, dock: m.dock, ...idle, errors: errors.length, last });
     await ctx.close();
   }
   const row = { page: p.page, size: p.device || (p.viewport.width + 'x' + p.viewport.height) };
   for (const k of ['dcl', 'load', 'dock', 'mutations', 'jank', 'maxGap', 'busy', 'frames', 'errors']) row[k] = median(runs.map(r => r[k]));
+  row.last = runs[runs.length - 1].last;
   rows.push(row);
   const lim = { ...budget.runtime.limits, ...(p.limits || {}) };
   for (const k of Object.keys(lim)) if (row[k] == null ? k === 'dock' : row[k] > lim[k]) fails.push(`${p.page}: ${k} ${row[k]} > ${lim[k]}`);
