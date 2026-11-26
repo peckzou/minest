@@ -200904,343 +200904,6 @@ body.theme-white .fbfx-pk-badge {
   window.MinestLightFXPicker = { open: openMenu, close: closeMenu, pick: applyPick };
 })();
 </script>
-<script id="mn-v2-routes">
-/* 卡片风格 3.0 — eight materials (from 2.0); also carried inside Minest's own pages (tools/v2-routes) —, written the way tools/cover-modes/card-styles.js writes its own (same
-   selectors, same palette and light variables), so each can move into the app's script as it stands.
-   Loaded after that script and before its gallery is built: the materials join its list. */
-(function () {
-  var CS = window.MinestCardStyles;
-  if (!CS || window.MinestCardStyles2Materials) return;
-
-  var NEW = [
-    { id: 'ink-wash', cat: 'east', name: 'Ink Wash Landscape', zh: '水墨山水', desc: '宣纸上晕开的远山与一轮朱砂落日，一抹云雾随光在山腰游走；楷体墨字，朱砂印章标签。', accent: '#57534e' },
-    { id: 'lacquer', cat: 'east', name: 'Lacquer & Gold Line', zh: '朱漆描金', desc: '层层髹涂的大漆镜面，描金回纹框与祥云；一道湿润的高光随角度滑过漆面。', accent: '#dc2626' },
-    { id: 'titanium', cat: 'material', name: 'Brushed Titanium', zh: '拉丝钛', desc: '横向拉丝的钛合金板，倒角边缘与阳极氧化的淡彩；高光带跟着光横扫，文字像激光蚀刻。', accent: '#94a3b8' },
-    { id: 'walnut', cat: 'material', name: 'Walnut Inlay', zh: '胡桃木镶嵌', desc: '深色胡桃木顺纹板，嵌一圈彩色树脂细线；雕刻凹字，黄铜铭牌标签，缎面清漆的柔光。', accent: '#92400e' },
-    { id: 'terrazzo', cat: 'material', name: 'Terrazzo', zh: '水磨石', desc: '米白水泥底里嵌着赤陶、墨绿、沙黄的碎石，表面抛光；圆润粗体字，彩色胶囊标签。', accent: '#e07a5f' },
-    { id: 'riso', cat: 'art', name: 'Risograph Print', zh: '孔版印刷', desc: '两色荧光油墨叠印出第三种颜色，套色微微错位，纸面留白边与油墨颗粒。', accent: '#ff5a8a' },
-    { id: 'blueprint', cat: 'art', name: 'Blueprint', zh: '工程蓝图', desc: '晒图蓝底、粗细两级网格、白色制图线与尺寸标注；等宽字，虚线框标签。', accent: '#3b82f6' },
-    { id: 'acrylic', cat: 'light', name: 'Edge-lit Acrylic', zh: '侧光亚克力', desc: '磨砂亚克力板，底边一条灯带把光导进板里：边缘发亮，刻字自带辉光。', accent: '#22d3ee' }
-  ];
-
-  function svgUri(svg) { return 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")'; }
-  var GRAIN = svgUri('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><filter id="g"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="160" height="160" filter="url(#g)" opacity=".16"/></svg>');
-  var INK_SVG = svgUri('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 320" preserveAspectRatio="none"><defs><linearGradient id="a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#292524" stop-opacity=".46"/><stop offset=".8" stop-color="#292524" stop-opacity="0"/></linearGradient><linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1c1917" stop-opacity=".82"/><stop offset=".72" stop-color="#1c1917" stop-opacity="0"/></linearGradient><filter id="f" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="1.4"/></filter></defs><circle cx="178" cy="62" r="17" fill="#c2331f" opacity=".86"/><path filter="url(#f)" fill="url(#a)" d="M-6 152 L30 112 L52 134 L88 78 L116 124 L146 96 L184 142 L212 116 L246 148 L246 300 L-6 300Z"/><path filter="url(#f)" fill="url(#b)" d="M-6 214 L26 176 L50 200 L84 150 L112 190 L140 168 L172 210 L202 186 L246 222 L246 320 L-6 320Z"/><g fill="none" stroke="#1c1917" stroke-width="1" stroke-linecap="round" opacity=".5"><path d="M40 50 q8 -7 16 0 M58 44 q7 -6 14 0"/></g></svg>');
-  var LACQUER_SVG = svgUri('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 320" preserveAspectRatio="none"><g fill="none" stroke="#e9c46a" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="222" height="302" rx="9" stroke-width="1.5"/><rect x="14.5" y="14.5" width="211" height="291" rx="5" stroke-width=".7" opacity=".8"/><g stroke-width="1.2" opacity=".9"><path d="M15 44 H34 V25 H24 V35"/><path d="M225 44 H206 V25 H216 V35"/></g><g stroke-width="1.5" opacity=".92"><path d="M108 104 h78 a13 13 0 1 0 -13 -13"/><path d="M173 91 a17 17 0 1 0 -32 -6"/><path d="M141 85 a13 13 0 1 0 -21 15"/><path d="M96 126 h56 a9 9 0 1 0 -9 -9"/><path d="M162 126 h34"/></g></g><g fill="#e9c46a" opacity=".85"><circle cx="120" cy="20" r="1.6"/><circle cx="120" cy="300" r="1.6"/></g></svg>');
-  var BRUSH_SVG = svgUri('<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320"><filter id="b" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".004 .9" numOctaves="2" seed="3"/><feColorMatrix type="saturate" values="0"/></filter><rect width="320" height="320" filter="url(#b)" opacity=".34"/></svg>');
-  var WOOD_SVG = svgUri('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400"><filter id="w" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".11 .006" numOctaves="3" seed="11"/><feColorMatrix values="0 0 0 0 .13  0 0 0 0 .06  0 0 0 0 .02  0 0 0 -2.2 1.5"/></filter><rect width="300" height="400" filter="url(#w)"/></svg>');
-  var CHIPS_SVG = svgUri('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><g fill="#e07a5f"><path d="M12 14l13-4 6 9-9 8-11-5z"/><path d="M96 38l10 2 2 9-9 4-7-7z"/><path d="M54 112l14-3 5 10-12 7-9-6z"/><path d="M132 126l9 5-3 10-11-2-1-8z"/></g><g fill="#3d405b"><path d="M58 22l8-5 9 6-4 9-11-1z"/><path d="M18 78l10-2 4 8-7 7-9-5z"/><path d="M118 82l12-3 6 9-8 8-11-4z"/><path d="M92 142l7-2 4 6-5 5-7-3z"/></g><g fill="#81b29a"><path d="M130 12l11 3 1 10-10 3-6-8z"/><path d="M72 66l9-6 9 5-2 10-12 1z"/><path d="M8 126l9 2 2 9-9 3-5-7z"/></g><g fill="#f2cc8f"><path d="M34 46l8-3 6 6-4 8-9-2z"/><path d="M142 52l8 4-2 9-9-1-2-7z"/><path d="M100 104l8-2 4 7-6 6-8-4z"/><path d="M36 146l10-3 5 7-7 6-9-3z"/></g><g fill="#a8a29e"><circle cx="84" cy="14" r="2.2"/><circle cx="46" cy="84" r="1.8"/><circle cx="150" cy="96" r="2.4"/><circle cx="70" cy="146" r="1.9"/><circle cx="112" cy="58" r="1.6"/><circle cx="14" cy="50" r="1.5"/></g></svg>');
-  var BLUEPRINT_SVG = svgUri('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 320" preserveAspectRatio="none"><g fill="none" stroke="#eaf2ff" stroke-width="1.1" opacity=".8"><circle cx="150" cy="96" r="46"/><circle cx="150" cy="96" r="22" stroke-dasharray="4 3"/><path d="M92 96h116M150 38v116" stroke-width=".7"/><path d="M104 160h92" stroke-width=".8"/><path d="M104 155v10M196 155v10"/><path d="M104 160l7 -3v6zM196 160l-7 -3v6z" fill="#eaf2ff"/><path d="M34 40v62h34" stroke-dasharray="6 4" stroke-width=".8"/><path d="M12 12h14M12 12v14M228 12h-14M228 12v14M12 308h14M12 308v-14M228 308h-14M228 308v-14" stroke-width="1.4"/></g></svg>');
-
-  var TARGETS = '.coverflow-card-item .face-front, .coverflow-card-item .face-back, .cm-c, [data-card-id]:not(.coverflow-card-item)';
-  function H(s) { return 'html[data-card-style="' + s + '"] '; }
-  function rule(s, body) {
-    return TARGETS.split(',').map(function (sel) { return H(s) + sel.trim(); }).concat('.cs-prev[data-s="' + s + '"]').join(',') + '{' + body + '}';
-  }
-  function focusRule(s, body) {
-    return [H(s) + '.cm-c.act', H(s) + '.cm-c:hover', H(s) + '[data-card-id]:not(.coverflow-card-item):hover', H(s) + '[data-card-id]:not(.coverflow-card-item):focus-within',
-      H(s) + '.coverflow-card-item.is-held-active .face-front', '.cs-opt:hover .cs-prev[data-s="' + s + '"]', '.cs-opt.on .cs-prev[data-s="' + s + '"]'].join(',') + '{' + body + '}';
-  }
-  function typo(s, body) {
-    return TARGETS.split(',').map(function (sel) { var t = sel.trim(); return H(s) + t + ', ' + H(s) + t + ' *'; }).concat('.cs-prev[data-s="' + s + '"] span').join(',') + '{' + body + '}';
-  }
-  /* the small label: the app's tags and badges, and the pill on a gallery card */
-  function label(s, body) {
-    return [H(s) + '.cm-c .ws', H(s) + '.cm-c .wg', H(s) + '[data-card-id]:not(.coverflow-card-item) .card-label', H(s) + '[data-card-id]:not(.coverflow-card-item) span[class*="badge"]',
-      H(s) + '[data-card-id]:not(.coverflow-card-item) span[class*="tag"]', '.cs-prev[data-s="' + s + '"] span.cs-pl'].join(',') + '{' + body + '}';
-  }
-  function before(s, body) {
-    return TARGETS.split(',').map(function (sel) { return H(s) + sel.trim() + '::before'; }).concat('.cs-prev[data-s="' + s + '"]::before').join(',') + '{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;z-index:1;' + body + '}';
-  }
-  function after(s, body) {
-    return TARGETS.split(',').map(function (sel) { return H(s) + sel.trim() + '::after'; }).concat('.cs-prev[data-s="' + s + '"]::after').join(',') + '{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;z-index:9;' + body + '}';
-  }
-  var INK2 = 'hsl(calc(var(--cs-hue) + 165deg) 88% 60%)';
-
-  var css = document.createElement('style');
-  css.id = 'cs2-materials';
-  css.textContent = [
-    /* 水墨山水 */
-    rule('ink-wash', 'border-radius:6px!important;border:1px solid #d6cbb4!important;background:' + GRAIN + ' repeat,radial-gradient(70% 42% at 72% 22%,color-mix(in srgb,var(--cs-bd) 22%,transparent),transparent 72%),linear-gradient(180deg,#f8f3e8,#eee5d3)!important;color:#1c1917!important;box-shadow:0 18px 34px -14px rgba(41,37,36,.5),inset 0 0 0 1px rgba(255,255,255,.55)!important;'),
-    focusRule('ink-wash', 'border-color:#44403c!important;box-shadow:0 0 0 1px #44403c,0 24px 44px -14px rgba(41,37,36,.6)!important;'),
-    typo('ink-wash', 'font-family:"Kaiti SC","STKaiti","KaiTi","Songti SC","Palatino",serif!important;letter-spacing:.05em!important;color:#1c1917!important;text-shadow:0 0 1px rgba(28,25,23,.4)!important;'),
-    label('ink-wash', 'border-radius:3px!important;background:#b91c1c!important;border:0!important;color:#fff7ed!important;font-weight:700!important;letter-spacing:.14em!important;text-shadow:none!important;'),
-    before('ink-wash', 'background:' + INK_SVG + ' center/100% 100% no-repeat;'),
-    after('ink-wash', 'background:radial-gradient(64% 20% at var(--cs-px) 58%,rgba(248,243,232,.85),transparent 72%);'),
-    '.cs-prev[data-s="ink-wash"]{--cs-bd:#78716c}',
-
-    /* 朱漆描金 */
-    rule('lacquer', 'border-radius:14px!important;border:1px solid color-mix(in srgb,var(--cs-lip) 55%,#000)!important;background:radial-gradient(120% 70% at 30% 0%,color-mix(in srgb,var(--cs-lip) 86%,#fff) 0%,color-mix(in srgb,var(--cs-lip) 80%,#000) 48%,color-mix(in srgb,var(--cs-lt) 78%,#000) 100%)!important;color:#f3d98b!important;box-shadow:0 24px 44px -16px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.4),inset 0 -12px 26px rgba(0,0,0,.35)!important;'),
-    focusRule('lacquer', 'box-shadow:0 0 0 1.5px #e9c46a,0 30px 54px -16px rgba(0,0,0,.75),0 0 30px color-mix(in srgb,var(--cs-lip) 50%,transparent)!important;'),
-    typo('lacquer', 'font-family:"Songti SC","STSong","Noto Serif SC","Palatino",serif!important;font-weight:700!important;letter-spacing:.05em!important;color:#f3d98b!important;text-shadow:0 1px 0 rgba(0,0,0,.55)!important;'),
-    label('lacquer', 'border-radius:2px!important;background:rgba(0,0,0,.18)!important;border:1px solid rgba(233,196,106,.75)!important;color:#f3d98b!important;letter-spacing:.16em!important;'),
-    before('lacquer', 'background:' + LACQUER_SVG + ' center/100% 100% no-repeat;'),
-    after('lacquer', 'background:linear-gradient(105deg,transparent calc(var(--cs-px) - 26%),rgba(255,255,255,.36) calc(var(--cs-px) - 4%),rgba(255,255,255,.07) calc(var(--cs-px) + 4%),transparent calc(var(--cs-px) + 22%)),radial-gradient(90% 26% at 50% 0%,rgba(255,255,255,.24),transparent 70%);mix-blend-mode:screen;'),
-    '.cs-prev[data-s="lacquer"]{--cs-lip:#b3201a;--cs-lt:#4a0a08}',
-
-    /* 拉丝钛 */
-    rule('titanium', 'border-radius:14px!important;border:1px solid rgba(255,255,255,.6)!important;background:' + BRUSH_SVG + ' 0 0/100% 100%,linear-gradient(100deg,color-mix(in srgb,var(--cs-bd) 26%,#7d838c) 0%,color-mix(in srgb,var(--cs-bd) 14%,#c3c8d0) calc(var(--cs-px) - 20%),#f5f7fa var(--cs-px),color-mix(in srgb,var(--cs-bd) 16%,#a9afb8) calc(var(--cs-px) + 18%),color-mix(in srgb,var(--cs-bd) 30%,#6b717a) 100%)!important;color:#1b1e23!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.9),inset 0 -1px 0 rgba(0,0,0,.35),0 22px 40px -14px rgba(0,0,0,.6)!important;'),
-    focusRule('titanium', 'box-shadow:inset 0 1px 0 #fff,0 0 0 1.5px rgba(255,255,255,.9),0 28px 50px -14px rgba(0,0,0,.65),0 0 28px color-mix(in srgb,var(--cs-bd) 40%,transparent)!important;'),
-    typo('titanium', 'font-family:"SF Pro Display","Helvetica Neue",-apple-system,"PingFang SC",sans-serif!important;font-weight:600!important;letter-spacing:.01em!important;color:#22262d!important;text-shadow:0 1px 0 rgba(255,255,255,.65)!important;'),
-    label('titanium', 'border-radius:4px!important;background:rgba(20,23,28,.1)!important;border:1px solid rgba(20,23,28,.42)!important;color:#22262d!important;font-family:ui-monospace,"SF Mono",Menlo,monospace!important;letter-spacing:.14em!important;'),
-    before('titanium', 'inset:5px;border-radius:9px;border:1px solid rgba(0,0,0,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.55);'),
-    after('titanium', 'background:linear-gradient(var(--cs-ang),color-mix(in srgb,var(--cs-bd) 34%,transparent),transparent 42%,color-mix(in srgb,var(--cs-c2) 30%,transparent));mix-blend-mode:overlay;'),
-    '.cs-prev[data-s="titanium"]{--cs-bd:#7aa2c8;--cs-c2:#e2e8f0}',
-
-    /* 胡桃木镶嵌 */
-    rule('walnut', 'border-radius:12px!important;border:1px solid #2b170b!important;background:' + WOOD_SVG + ' 0 0/100% 100%,linear-gradient(95deg,#80502f 0%,#5d361c 38%,#73472a 64%,#4c2a15 100%)!important;color:#f1e0c2!important;box-shadow:inset 0 1px 0 rgba(255,235,200,.3),inset 0 -2px 0 rgba(0,0,0,.4),0 24px 44px -16px rgba(0,0,0,.7)!important;'),
-    focusRule('walnut', 'box-shadow:inset 0 1px 0 rgba(255,235,200,.4),0 0 0 1.5px #e9c97a,0 30px 52px -16px rgba(0,0,0,.75)!important;'),
-    typo('walnut', 'font-family:"Iowan Old Style","Palatino","Songti SC",Georgia,serif!important;letter-spacing:.02em!important;color:#f1e0c2!important;text-shadow:0 -1px 0 rgba(0,0,0,.6),0 1px 0 rgba(255,235,200,.2)!important;'),
-    label('walnut', 'border-radius:999px!important;background:linear-gradient(180deg,#ecd08a,#b8892f)!important;border:1px solid #7a5516!important;color:#3b2408!important;letter-spacing:.12em!important;text-shadow:0 1px 0 rgba(255,255,255,.4)!important;'),
-    before('walnut', 'inset:8px;border-radius:6px;border:1.5px solid var(--cs-bd);box-shadow:0 0 0 1px rgba(0,0,0,.4),inset 0 0 0 1px rgba(0,0,0,.4);'),
-    after('walnut', 'background:linear-gradient(100deg,transparent calc(var(--cs-px) - 32%),rgba(255,232,196,.26) var(--cs-px),transparent calc(var(--cs-px) + 32%));mix-blend-mode:screen;'),
-    '.cs-prev[data-s="walnut"]{--cs-bd:#e9c46a}',
-
-    /* 水磨石 */
-    rule('terrazzo', 'border-radius:20px!important;border:1px solid color-mix(in srgb,var(--cs-bd) 35%,#d6d3d1)!important;background:' + CHIPS_SVG + ' 0 0/128px 128px,linear-gradient(160deg,color-mix(in srgb,var(--cs-c1) 60%,#f5f1ea),#ebe5da)!important;color:#292524!important;box-shadow:inset 0 1px 0 #fff,0 18px 34px -14px rgba(68,64,60,.5)!important;'),
-    focusRule('terrazzo', 'border-color:var(--cs-lip)!important;box-shadow:inset 0 1px 0 #fff,0 0 0 2px color-mix(in srgb,var(--cs-lip) 45%,transparent),0 24px 44px -14px rgba(68,64,60,.55)!important;'),
-    typo('terrazzo', 'font-family:"Avenir Next","Futura","PingFang SC",-apple-system,sans-serif!important;font-weight:700!important;letter-spacing:-.01em!important;color:#292524!important;text-shadow:0 1px 0 rgba(255,255,255,.75)!important;'),
-    label('terrazzo', 'border-radius:999px!important;background:var(--cs-lip)!important;border:0!important;color:#fff!important;letter-spacing:.1em!important;text-shadow:none!important;'),
-    before('terrazzo', 'background:linear-gradient(180deg,transparent 40%,rgba(245,241,234,.86) 76%);'),
-    after('terrazzo', 'background:radial-gradient(circle at var(--cs-px) var(--cs-py),rgba(255,255,255,.6),transparent 40%);mix-blend-mode:soft-light;'),
-    '.cs-prev[data-s="terrazzo"]{--cs-c1:#fef6e4;--cs-bd:#e07a5f;--cs-lip:#c8553d}',
-
-    /* 孔版印刷 */
-    rule('riso', 'border-radius:4px!important;border:0!important;background:' + GRAIN + ' repeat,radial-gradient(circle closest-side at 60% 30%,var(--cs-bd) 0 86%,transparent 87%),radial-gradient(circle closest-side at 40% 45%,' + INK2 + ' 0 84%,transparent 85%),repeating-linear-gradient(-45deg,' + INK2 + ' 0 2px,transparent 2px 8px) 0 100%/100% 9% no-repeat,#f5efe0!important;background-blend-mode:multiply!important;color:#1f2a7a!important;box-shadow:0 14px 26px -12px rgba(0,0,0,.5)!important;'),
-    focusRule('riso', 'box-shadow:6px 6px 0 var(--cs-bd),0 20px 34px -12px rgba(0,0,0,.5)!important;'),
-    typo('riso', 'font-family:"Futura","Avenir Next Condensed","Helvetica Neue","PingFang SC",sans-serif!important;font-weight:800!important;letter-spacing:-.01em!important;color:#1f2a7a!important;text-shadow:1.5px 1.5px 0 color-mix(in srgb,var(--cs-bd) 75%,transparent)!important;'),
-    label('riso', 'border-radius:0!important;background:#1f2a7a!important;border:0!important;color:#f5efe0!important;letter-spacing:.14em!important;text-shadow:none!important;'),
-    after('riso', 'box-shadow:inset 0 0 0 6px #f5efe0;'),
-    '.cs-prev[data-s="riso"]{--cs-bd:#ff5a8a;--cs-hue:40deg}',
-
-    /* 工程蓝图 */
-    rule('blueprint', 'border-radius:8px!important;border:1px solid rgba(255,255,255,.55)!important;background:linear-gradient(rgba(255,255,255,.16) 1px,transparent 1px) 0 0/100% 40px,linear-gradient(90deg,rgba(255,255,255,.16) 1px,transparent 1px) 0 0/40px 100%,linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px) 0 0/100% 8px,linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px) 0 0/8px 100%,radial-gradient(120% 90% at var(--cs-px) var(--cs-py),color-mix(in srgb,var(--cs-lip) 55%,#1d4ed8),color-mix(in srgb,var(--cs-lt) 45%,#0b2a66))!important;color:#eaf2ff!important;box-shadow:0 20px 38px -14px rgba(5,20,60,.7)!important;'),
-    focusRule('blueprint', 'border-color:#fff!important;box-shadow:0 0 0 1px rgba(255,255,255,.7),0 26px 46px -14px rgba(5,20,60,.8)!important;'),
-    typo('blueprint', 'font-family:"SF Mono",ui-monospace,Menlo,"PingFang SC",monospace!important;font-weight:600!important;letter-spacing:.02em!important;color:#eaf2ff!important;text-shadow:none!important;'),
-    label('blueprint', 'border-radius:0!important;background:transparent!important;border:1px dashed rgba(234,242,255,.75)!important;color:#eaf2ff!important;letter-spacing:.14em!important;'),
-    before('blueprint', 'background:' + BLUEPRINT_SVG + ' center/100% 100% no-repeat;'),
-    after('blueprint', 'box-shadow:inset 0 0 36px rgba(0,0,0,.3);'),
-    '.cs-prev[data-s="blueprint"]{--cs-lip:#1d4ed8;--cs-lt:#0b2a66}',
-
-    /* 侧光亚克力 */
-    rule('acrylic', 'border-radius:16px!important;border:1.5px solid color-mix(in srgb,var(--cs-bd) 55%,#fff)!important;background:radial-gradient(130% 58% at 50% 112%,color-mix(in srgb,var(--cs-bd) 85%,transparent),transparent 70%),radial-gradient(60% 40% at var(--cs-px) 0%,rgba(255,255,255,.2),transparent 70%),linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.03)),rgba(14,17,26,.72)!important;-webkit-backdrop-filter:blur(10px)!important;backdrop-filter:blur(10px)!important;color:#fff!important;box-shadow:0 0 26px color-mix(in srgb,var(--cs-bd) 55%,transparent),inset 0 0 22px color-mix(in srgb,var(--cs-bd) 45%,transparent),inset 0 1px 0 rgba(255,255,255,.6),0 22px 40px -14px rgba(0,0,0,.6)!important;'),
-    focusRule('acrylic', 'box-shadow:0 0 40px color-mix(in srgb,var(--cs-bd) 75%,transparent),inset 0 0 28px color-mix(in srgb,var(--cs-bd) 60%,transparent),inset 0 1px 0 rgba(255,255,255,.75),0 28px 50px -14px rgba(0,0,0,.65)!important;'),
-    typo('acrylic', 'font-family:"SF Pro Rounded","SF Pro Display",-apple-system,"PingFang SC",sans-serif!important;font-weight:700!important;color:#fff!important;text-shadow:0 0 10px var(--cs-bd),0 0 22px color-mix(in srgb,var(--cs-bd) 70%,transparent)!important;'),
-    label('acrylic', 'border-radius:999px!important;background:transparent!important;border:1px solid color-mix(in srgb,var(--cs-bd) 70%,#fff)!important;color:#fff!important;letter-spacing:.12em!important;box-shadow:0 0 10px color-mix(in srgb,var(--cs-bd) 60%,transparent)!important;'),
-    before('acrylic', 'background:' + GRAIN + ' repeat;opacity:.55;'),
-    after('acrylic', 'background:linear-gradient(115deg,transparent calc(var(--cs-px) - 14%),rgba(255,255,255,.22) var(--cs-px),transparent calc(var(--cs-px) + 10%));box-shadow:inset 0 0 0 1px rgba(255,255,255,.22),inset 0 -3px 0 color-mix(in srgb,var(--cs-bd) 90%,#fff);'),
-    '.cs-prev[data-s="acrylic"]{--cs-bd:#22d3ee}'
-  ].join('\n');
-  document.head.appendChild(css);
-
-  NEW.forEach(function (s) { if (!CS.styles.some(function (x) { return x.id === s.id; })) CS.styles.push(s); });
-  window.MinestCardStyles2Materials = NEW.map(function (s) { return s.id; });
-})();
-
-/* Minest · 2.0 routes — the app's own entries open the 2.0 pages in place of 1.0 (tools/v2-routes/patch_v2_routes.py).
-   Holo Lab, 3D Type and Clun were already pages in a frame: the patch points their addresses at holo-lab-2/, type3d-2/
-   and spatial-home/clun-2/. The three below were drawn by Minest itself; here their entries open the 2.0 page full screen:
-     · 动态卡片   the board's 3D Cover view, when you switch to it          → cards-2/      (on the board you are on)
-     · 动态呈现   MinestDrive.gallery() (the 🚗 entries) and the presentations' own open()  → dynamic-2/ (?mode= that one)
-     · EC–6 布告栏 the Spatial Home board's panel                         → ec6-board-2/
-   The 2.0 pages ask this page for their data and send their changes back (v2-bridge/bridge.js on their side, answer() here):
-   in the app this page runs from the app's files and the 2.0 page from the web site, so they share no storage.
-   The 2.0 pages load the 1.0 scripts as they are, so nothing of 1.0 is removed. World Search stays 1.0 (its
-   2.0 page keeps data of its own). 卡片风格 opens 3.0 (card-styles-3/, below), which shares Minest's choice. */
-(function () {
-  'use strict';
-  if (window.MinestV2Routes) return;
-  var SITE = 'https://minest-app.vercel.app/', ov = null, frame = null, onClose = null;
-  /* where each page's ✕ sits, clear of the page's own controls */
-  var XPOS = { 'cards-2/': 'top', 'dynamic-2/': 'top', 'ec6-board-2/': 'top-left' };
-  var LS_SYNC = { 'minest.ec6board.v1': 1, 'minest.gptstudy.v1': 1, 'minest.cardStyle': 1, 'minest.cardStyle.mindful': 1 };
-
-  function url(path) { return /^https?:$/.test(location.protocol) ? new URL(path, location.href).href : SITE + path; }
-  function css() {
-    if (document.getElementById('mn-v2r-css')) return;
-    var s = document.createElement('style'); s.id = 'mn-v2r-css';
-    s.textContent = '.mn-v2r{position:fixed;inset:0;z-index:2147483646;background:#05070f}' +
-      '.mn-v2r iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}' +
-      '.mn-v2r-x{position:absolute;top:calc(env(safe-area-inset-top,0px) + 8px);left:50%;transform:translateX(-50%);z-index:2;width:34px;height:34px;border-radius:17px;border:1px solid rgba(255,255,255,.28);' +
-      'background:rgba(20,22,30,.55);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);padding:0;opacity:.8}' +
-      '.mn-v2r-x.top-left{left:calc(env(safe-area-inset-left,0px) + 10px);transform:none}' +
-      '.mn-v2r-x:hover{opacity:1}.mn-v2r-x svg{width:16px;height:16px}html.mn-v2r-on{overflow:hidden}html.mn-v2r-on .mn-bdock{visibility:hidden!important}';
-    document.head.appendChild(s);
-  }
-  /* one page at a time; closing (✕, Esc, the page asking through the bridge, or the page leaving itself for another
-     address) calls back with what the page asked for */
-  function open(path, title, done) {
-    close(null, true); css(); onClose = done || null;
-    ov = document.createElement('div'); ov.className = 'mn-v2r'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', title || '2.0');
-    var fr = frame = document.createElement('iframe'); fr.title = title || '2.0';
-    fr.setAttribute('allow', 'autoplay; fullscreen; camera; microphone; clipboard-write');
-    var want = url(path);
-    fr.addEventListener('load', function () {
-      /* same site only (the web): the 2.0 page went to another address of its own accord — that means "close" here.
-         In the app the page is on another site and cannot be read; it closes through the bridge instead. */
-      var p = null; try { p = fr.contentWindow.location.href; } catch (e) {}
-      if (p && p !== 'about:blank' && new URL(p).pathname !== new URL(want).pathname) close();
-    });
-    fr.src = want;
-    var x = document.createElement('button'); x.type = 'button'; x.className = 'mn-v2r-x';
-    var pos = Object.keys(XPOS).filter(function (k) { return path.indexOf(k) === 0; })[0]; if (pos && XPOS[pos] !== 'top') x.classList.add(XPOS[pos]);
-    x.title = '关闭 · Close'; x.setAttribute('aria-label', '关闭 · Close');
-    x.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
-    /* on press, not click: Minest's page-wide touch handlers take the pointer between down and up, so a click never lands */
-    var shut = function (e) { e.stopPropagation(); e.preventDefault(); close(); };
-    x.addEventListener('pointerdown', shut); x.addEventListener('click', shut);
-    ov.appendChild(fr); ov.appendChild(x); document.body.appendChild(ov);
-    ['pointerdown', 'touchstart', 'wheel', 'keydown', 'click'].forEach(function (t) { ov.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
-    document.documentElement.classList.add('mn-v2r-on');
-    try { fr.focus(); } catch (e) {}
-  }
-  function close(result, silent) {
-    if (!ov) return;
-    var o = ov, f = onClose; ov = null; frame = null; onClose = null;
-    try { o.querySelector('iframe').src = 'about:blank'; } catch (e) {}
-    o.remove(); document.documentElement.classList.remove('mn-v2r-on');
-    if (f && !silent) try { f(result || null); } catch (e) {}
-  }
-  document.addEventListener('keydown', function (e) { if (ov && e.key === 'Escape') close(); });
-
-  /* ---- the bridge: answers only the page in our own frame */
-  function AI() { return window.MinestAI || null; }
-  function activeId() {
-    try { var b = AI() && AI().board && AI().board(); if (b && b.id) return b.id; } catch (e) {}
-    try { return localStorage.getItem('focusboard_active_id_v7_2') || ''; } catch (e) { return ''; }
-  }
-  function ec6Reload(v) {   // Minest's own 1.0 board keeps its state in memory: it takes the page's copy, then paints
-    try { var E = window.SpatialEC6, S = E && E._ && E._.S(); if (!S) return; var n = JSON.parse(v);
-      Object.keys(S).forEach(function (k) { delete S[k]; }); Object.keys(n || {}).forEach(function (k) { S[k] = n[k]; }); E.paint(); } catch (e) {}
-  }
-  window.addEventListener('message', function (e) {
-    var m = e.data; if (!frame || e.source !== frame.contentWindow || !m || m.type !== 'minest-v2') return;
-    var A = AI(), d = m.data || {};
-    var reply = function (data) { try { e.source.postMessage({ type: 'minest-v2', re: m.id, data: data }, e.origin && e.origin !== 'null' ? e.origin : '*'); } catch (x) {} };
-    try {
-      if (m.op === 'hello') {
-        var ls = {}; Object.keys(LS_SYNC).forEach(function (k) { try { ls[k] = localStorage.getItem(k); } catch (x) { ls[k] = null; } });
-        try { var CSn = window.MinestCardStyles; if (CSn) ls['minest.cardStyle'] = localStorage.getItem(CS_KEEP) || CSn.get(); } catch (x) {}
-        var boards = []; try { boards = A && A.boards ? A.boards() || [] : []; } catch (x) {}
-        reply({ boards: boards, active: activeId(), ls: ls });
-      }
-      else if (m.op === 'patchCard' && A && A.patchCard) A.patchCard(d.id, d.patch || {});
-      else if (m.op === 'rateCard' && A && A.rateCard) A.rateCard(d.id, d.m);
-      else if (m.op === 'setBoard' && A && A.updateBoard && d.board && d.board.id) A.updateBoard(d.board.id, function () { return d.board; });
-      else if (m.op === 'ls' && LS_SYNC[d.key] && typeof d.value === 'string') {
-        localStorage.setItem(d.key, d.value);
-        if (d.key === 'minest.ec6board.v1') ec6Reload(d.value);
-        var CSm = window.MinestCardStyles;   /* 卡片风格 3.0: the board behind takes the pick at once */
-        if (CSm && d.key === 'minest.cardStyle') CSm.set(d.value);
-        if (CSm && d.key === 'minest.cardStyle.mindful') CSm.set(CSm.get());
-      }
-      else if (m.op === 'close') close(d);
-    } catch (x) {}
-  });
-
-  /* ---- 动态呈现: the 🚗 entries (MinestDrive.gallery) and each presentation's own open() go to 2.0, that presentation
-     already running (?mode=). gallery1 / open1 keep 1.0 for code that needs it. */
-  var DYN = { drive: 'MinestDrive', train: 'MinestTrain', metro: 'MinestMetro', tower: 'MinestTower', rack: 'MinestRack', library: 'MinestLibrary',
-    museum: 'MinestMuseum', city: 'MinestCity', galaxy: 'MinestGalaxy', balloon: 'MinestBalloon' };
-  function dyn(mode) { open('dynamic-2/index.html' + (mode ? '?mode=' + mode : ''), '动态呈现 2.0'); return { close: function () { close(); } }; }
-  function hookDyn() {
-    var all = true;
-    Object.keys(DYN).forEach(function (mode) {
-      var M = window[DYN[mode]]; if (!M) { all = false; return; } if (M.__v2) return; M.__v2 = true;
-      if (M.open) { M.open1 = M.open; M.open = function (o) { var trip = mode === 'drive' && o && o.style && (M.trips || []).some(function (t) { return t.id === o.style; }); return dyn(trip ? 'roadtrip' : mode); }; }
-      if (mode === 'drive' && M.gallery) { M.gallery1 = M.gallery; M.gallery = function () { dyn(''); }; }
-    });
-    return all;
-  }
-
-  /* ---- EC–6 布告栏: the room's board panel (o.panel, set by SpatialEC6.attach) opens 2.0; a card or the Kanban asked
-     for there comes back as 1.0's own answer, so the room hands over to the Kanban the way it always has */
-  function hookEC6() {
-    var E = window.SpatialEC6; if (!E || E.__v2) return !!E;
-    var a0 = E.attach; E.__v2 = true;
-    E.attach = function (o) {
-      var r = a0.apply(this, arguments);
-      if (o) o.panel = function () { return new Promise(function (res) {
-        open('ec6-board-2/index.html', 'EC–6 布告栏 2.0', function (d) {
-          try { E.paint(); } catch (e) {}
-          if (d && d.openCard) { var id = d.openCard; res({ feature: 'kanban', after: function (w) { setTimeout(function () { try { w.MinestAI.openCard(id); } catch (e) {} }, 120); } }); }
-          else if (d && d.kanban) res({ feature: 'kanban' });
-          else res(null);
-        });
-      }); };
-      return r;
-    };
-    return true;
-  }
-
-  /* ---- 动态卡片: switching the board to its 3D Cover view yourself opens 2.0 on the same board; closing returns to the
-     board view. Only a switch you made (a tap or a key just before) counts: a view restored at start goes back to the
-     board, and one the Duo's fold makes later stays 1.0's own. Student mode keeps its own 3D Cover (its whole screen). */
-  var coverWas = false, lastInput = 0, t0 = Date.now();
-  ['pointerdown', 'keydown'].forEach(function (t) { document.addEventListener(t, function () { lastInput = Date.now(); }, true); });
-  function student() { try { return !!(window.isStudentMode && window.isStudentMode()); } catch (e) { return false; } }
-  function toBoardView() { try { if (window.__setViewMode) window.__setViewMode('board'); else if (window.MinestAI && MinestAI.setViewMode) MinestAI.setViewMode('board'); } catch (e) {} }
-  function watchCover() {
-    var on = !!(document.body && document.body.classList.contains('mode-coverflow'));
-    if (on && !coverWas && !student() && !ov) {
-      var mine = Date.now() - lastInput < 2500;
-      if (mine) open('cards-2/index.html', '动态卡片 2.0', toBoardView);
-      else if (Date.now() - t0 < 15000) toBoardView();
-    }
-    coverWas = on;
-  }
-
-  /* ---- 动态卡片 button (2026-11-25): the board's Views button (and its Dock icon) is 动态卡片 — it opens cards-2/ on the
-     board you are on, with every mode on its deck: Minest's own 看板 · 照片 · 图钉, its iTunes-style 3D Cover, and the
-     card formations. Picking one of Minest's views closes the page and Minest shows that view (MinestImageViews.requestMode).
-     The 3D Cover view itself is 1.0's own Cover Flow again; watchCover above is kept, unused. Student mode keeps 1.0's switcher. */
-  function cards() {
-    open('cards-2/index.html', '动态卡片', function (d) {
-      if (d && d.cardStyles) { cardStyles(cards); return; }   /* its style key: 3.0, then back to 动态卡片 */
-      var v = d && d.view; if (!v) return;
-      try { var M = window.MinestImageViews; if (M && M.requestMode) M.requestMode(v); else if (window.__setViewMode) window.__setViewMode(v); } catch (e) {}
-    });
-  }
-  function hookCards() {
-    var M = window.MinestImageViews; if (!M || !M.openSwitcher) return false; if (M.__v3) return true; M.__v3 = true;
-    M.openSwitcher1 = M.openSwitcher;
-    M.openSwitcher = function () { if (student() || ov) return M.openSwitcher1.apply(M, arguments); cards(); };
-    return true;
-  }
-  function label() {   /* the button's name says what it opens */
-    if (student()) return;
-    [].forEach.call(document.querySelectorAll('.sf-mode-toggle-btn'), function (b) { if (b.title !== '动态卡片') { b.title = '动态卡片'; b.setAttribute('aria-label', '动态卡片'); } });
-  }
-
-  /* ---- 卡片风格 3.0 (2026-11-25): Minest's 卡片风格 keys open card-styles-3/ — 1.0's materials and gallery, 2.0's eight
-     new materials and studio — on your board's own style; each pick comes back through the bridge (LS_SYNC) and the
-     board changes at once. The eight materials are carried in this block too (card-styles-3/materials.js, put in
-     ahead of this script by patch_v2_routes.py). 1.0 falls back to its default for a material it did not know at its
-     start, so the pick is also kept under minest.cardStyle.v3 and put back here. Student mode keeps 1.0's own panel. */
-  var CS_KEEP = 'minest.cardStyle.v3';
-  function cardStyles(then) { open('card-styles-3/index.html', '卡片风格 3.0', then ? function () { setTimeout(then, 60); } : null); }
-  function hookCS() {
-    var C = window.MinestCardStyles; if (!C || !C.set) return !document.getElementById('cs-btn') && tries > 20; if (C.__v3) return true; C.__v3 = true;
-    var set1 = C.set;
-    C.set = function (id) { var r = set1.apply(C, arguments); try { localStorage.setItem(CS_KEEP, C.get()); } catch (e) {} return r; };
-    try { var k = localStorage.getItem(CS_KEEP); if (k && k !== C.get() && C.styles.some(function (s) { return s.id === k; })) set1.call(C, k); } catch (e) {}
-    C.open1 = C.open;
-    C.open = function () { if (student() || ov) return C.open1.apply(C, arguments); cardStyles(); };
-    var b = document.getElementById('cs-btn'); if (b) b.onclick = function (e) { if (e) e.stopPropagation(); C.open(); };
-    return true;
-  }
-
-  function boot() {
-    hookDyn(); hookEC6(); hookCards(); hookCS(); label();
-    var lq = 0; if (document.body) new MutationObserver(function () { if (!lq) lq = setTimeout(function () { lq = 0; label(); }, 400); }).observe(document.body, { childList: true, subtree: true });
-  }
-  /* the modules come later in the page than some entries, and Spatial Home builds its room later still: retry a while */
-  var tries = 0, t = setInterval(function () { var d = hookDyn(), e = hookEC6(), c = hookCards(), y = hookCS(); if ((d && e && c && y) || ++tries > 120) clearInterval(t); }, 500);
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
-
-  window.MinestV2Routes = { open: open, close: function () { close(); }, isOpen: function () { return !!ov; }, dyn: dyn, cards: cards, cardStyles: function () { cardStyles(); }, version: '1.4' };
-})();
-</script><!-- mn-v2-routes:end -->
 <style id="minest-wordlist-preview-style">
 /* Isolated card preview. Mirrors Learn Chinese without styling other screens. */
 #minest-wordlist-preview{position:fixed;inset:0;z-index:2147483647;width:100%;height:100%;max-width:none;max-height:none;margin:0;padding:0;border:0;background:repeating-linear-gradient(135deg,#ffffff09 0 26px,transparent 26px 52px),linear-gradient(150deg,#6823e5,#9446f5);color:#fff;font:700 16px/1.5 Nunito,"PingFang SC",ui-rounded,system-ui,sans-serif;overflow:hidden}
@@ -207019,5 +206682,342 @@ body.theme-white .fbfx-pk-badge {
   window.MinestExplode = { open: open, close: close, isOpen: function () { return !!cur; }, facts: facts, parts: parts, breakdown: breakdown };
 })();
 </script>
+<script id="mn-v2-routes">
+/* 卡片风格 3.0 — eight materials (from 2.0); also carried inside Minest's own pages (tools/v2-routes) —, written the way tools/cover-modes/card-styles.js writes its own (same
+   selectors, same palette and light variables), so each can move into the app's script as it stands.
+   Loaded after that script and before its gallery is built: the materials join its list. */
+(function () {
+  var CS = window.MinestCardStyles;
+  if (!CS || window.MinestCardStyles2Materials) return;
+
+  var NEW = [
+    { id: 'ink-wash', cat: 'east', name: 'Ink Wash Landscape', zh: '水墨山水', desc: '宣纸上晕开的远山与一轮朱砂落日，一抹云雾随光在山腰游走；楷体墨字，朱砂印章标签。', accent: '#57534e' },
+    { id: 'lacquer', cat: 'east', name: 'Lacquer & Gold Line', zh: '朱漆描金', desc: '层层髹涂的大漆镜面，描金回纹框与祥云；一道湿润的高光随角度滑过漆面。', accent: '#dc2626' },
+    { id: 'titanium', cat: 'material', name: 'Brushed Titanium', zh: '拉丝钛', desc: '横向拉丝的钛合金板，倒角边缘与阳极氧化的淡彩；高光带跟着光横扫，文字像激光蚀刻。', accent: '#94a3b8' },
+    { id: 'walnut', cat: 'material', name: 'Walnut Inlay', zh: '胡桃木镶嵌', desc: '深色胡桃木顺纹板，嵌一圈彩色树脂细线；雕刻凹字，黄铜铭牌标签，缎面清漆的柔光。', accent: '#92400e' },
+    { id: 'terrazzo', cat: 'material', name: 'Terrazzo', zh: '水磨石', desc: '米白水泥底里嵌着赤陶、墨绿、沙黄的碎石，表面抛光；圆润粗体字，彩色胶囊标签。', accent: '#e07a5f' },
+    { id: 'riso', cat: 'art', name: 'Risograph Print', zh: '孔版印刷', desc: '两色荧光油墨叠印出第三种颜色，套色微微错位，纸面留白边与油墨颗粒。', accent: '#ff5a8a' },
+    { id: 'blueprint', cat: 'art', name: 'Blueprint', zh: '工程蓝图', desc: '晒图蓝底、粗细两级网格、白色制图线与尺寸标注；等宽字，虚线框标签。', accent: '#3b82f6' },
+    { id: 'acrylic', cat: 'light', name: 'Edge-lit Acrylic', zh: '侧光亚克力', desc: '磨砂亚克力板，底边一条灯带把光导进板里：边缘发亮，刻字自带辉光。', accent: '#22d3ee' }
+  ];
+
+  function svgUri(svg) { return 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")'; }
+  var GRAIN = svgUri('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><filter id="g"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="160" height="160" filter="url(#g)" opacity=".16"/></svg>');
+  var INK_SVG = svgUri('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 320" preserveAspectRatio="none"><defs><linearGradient id="a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#292524" stop-opacity=".46"/><stop offset=".8" stop-color="#292524" stop-opacity="0"/></linearGradient><linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1c1917" stop-opacity=".82"/><stop offset=".72" stop-color="#1c1917" stop-opacity="0"/></linearGradient><filter id="f" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="1.4"/></filter></defs><circle cx="178" cy="62" r="17" fill="#c2331f" opacity=".86"/><path filter="url(#f)" fill="url(#a)" d="M-6 152 L30 112 L52 134 L88 78 L116 124 L146 96 L184 142 L212 116 L246 148 L246 300 L-6 300Z"/><path filter="url(#f)" fill="url(#b)" d="M-6 214 L26 176 L50 200 L84 150 L112 190 L140 168 L172 210 L202 186 L246 222 L246 320 L-6 320Z"/><g fill="none" stroke="#1c1917" stroke-width="1" stroke-linecap="round" opacity=".5"><path d="M40 50 q8 -7 16 0 M58 44 q7 -6 14 0"/></g></svg>');
+  var LACQUER_SVG = svgUri('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 320" preserveAspectRatio="none"><g fill="none" stroke="#e9c46a" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="222" height="302" rx="9" stroke-width="1.5"/><rect x="14.5" y="14.5" width="211" height="291" rx="5" stroke-width=".7" opacity=".8"/><g stroke-width="1.2" opacity=".9"><path d="M15 44 H34 V25 H24 V35"/><path d="M225 44 H206 V25 H216 V35"/></g><g stroke-width="1.5" opacity=".92"><path d="M108 104 h78 a13 13 0 1 0 -13 -13"/><path d="M173 91 a17 17 0 1 0 -32 -6"/><path d="M141 85 a13 13 0 1 0 -21 15"/><path d="M96 126 h56 a9 9 0 1 0 -9 -9"/><path d="M162 126 h34"/></g></g><g fill="#e9c46a" opacity=".85"><circle cx="120" cy="20" r="1.6"/><circle cx="120" cy="300" r="1.6"/></g></svg>');
+  var BRUSH_SVG = svgUri('<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320"><filter id="b" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".004 .9" numOctaves="2" seed="3"/><feColorMatrix type="saturate" values="0"/></filter><rect width="320" height="320" filter="url(#b)" opacity=".34"/></svg>');
+  var WOOD_SVG = svgUri('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400"><filter id="w" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".11 .006" numOctaves="3" seed="11"/><feColorMatrix values="0 0 0 0 .13  0 0 0 0 .06  0 0 0 0 .02  0 0 0 -2.2 1.5"/></filter><rect width="300" height="400" filter="url(#w)"/></svg>');
+  var CHIPS_SVG = svgUri('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><g fill="#e07a5f"><path d="M12 14l13-4 6 9-9 8-11-5z"/><path d="M96 38l10 2 2 9-9 4-7-7z"/><path d="M54 112l14-3 5 10-12 7-9-6z"/><path d="M132 126l9 5-3 10-11-2-1-8z"/></g><g fill="#3d405b"><path d="M58 22l8-5 9 6-4 9-11-1z"/><path d="M18 78l10-2 4 8-7 7-9-5z"/><path d="M118 82l12-3 6 9-8 8-11-4z"/><path d="M92 142l7-2 4 6-5 5-7-3z"/></g><g fill="#81b29a"><path d="M130 12l11 3 1 10-10 3-6-8z"/><path d="M72 66l9-6 9 5-2 10-12 1z"/><path d="M8 126l9 2 2 9-9 3-5-7z"/></g><g fill="#f2cc8f"><path d="M34 46l8-3 6 6-4 8-9-2z"/><path d="M142 52l8 4-2 9-9-1-2-7z"/><path d="M100 104l8-2 4 7-6 6-8-4z"/><path d="M36 146l10-3 5 7-7 6-9-3z"/></g><g fill="#a8a29e"><circle cx="84" cy="14" r="2.2"/><circle cx="46" cy="84" r="1.8"/><circle cx="150" cy="96" r="2.4"/><circle cx="70" cy="146" r="1.9"/><circle cx="112" cy="58" r="1.6"/><circle cx="14" cy="50" r="1.5"/></g></svg>');
+  var BLUEPRINT_SVG = svgUri('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 320" preserveAspectRatio="none"><g fill="none" stroke="#eaf2ff" stroke-width="1.1" opacity=".8"><circle cx="150" cy="96" r="46"/><circle cx="150" cy="96" r="22" stroke-dasharray="4 3"/><path d="M92 96h116M150 38v116" stroke-width=".7"/><path d="M104 160h92" stroke-width=".8"/><path d="M104 155v10M196 155v10"/><path d="M104 160l7 -3v6zM196 160l-7 -3v6z" fill="#eaf2ff"/><path d="M34 40v62h34" stroke-dasharray="6 4" stroke-width=".8"/><path d="M12 12h14M12 12v14M228 12h-14M228 12v14M12 308h14M12 308v-14M228 308h-14M228 308v-14" stroke-width="1.4"/></g></svg>');
+
+  var TARGETS = '.coverflow-card-item .face-front, .coverflow-card-item .face-back, .cm-c, [data-card-id]:not(.coverflow-card-item)';
+  function H(s) { return 'html[data-card-style="' + s + '"] '; }
+  function rule(s, body) {
+    return TARGETS.split(',').map(function (sel) { return H(s) + sel.trim(); }).concat('.cs-prev[data-s="' + s + '"]').join(',') + '{' + body + '}';
+  }
+  function focusRule(s, body) {
+    return [H(s) + '.cm-c.act', H(s) + '.cm-c:hover', H(s) + '[data-card-id]:not(.coverflow-card-item):hover', H(s) + '[data-card-id]:not(.coverflow-card-item):focus-within',
+      H(s) + '.coverflow-card-item.is-held-active .face-front', '.cs-opt:hover .cs-prev[data-s="' + s + '"]', '.cs-opt.on .cs-prev[data-s="' + s + '"]'].join(',') + '{' + body + '}';
+  }
+  function typo(s, body) {
+    return TARGETS.split(',').map(function (sel) { var t = sel.trim(); return H(s) + t + ', ' + H(s) + t + ' *'; }).concat('.cs-prev[data-s="' + s + '"] span').join(',') + '{' + body + '}';
+  }
+  /* the small label: the app's tags and badges, and the pill on a gallery card */
+  function label(s, body) {
+    return [H(s) + '.cm-c .ws', H(s) + '.cm-c .wg', H(s) + '[data-card-id]:not(.coverflow-card-item) .card-label', H(s) + '[data-card-id]:not(.coverflow-card-item) span[class*="badge"]',
+      H(s) + '[data-card-id]:not(.coverflow-card-item) span[class*="tag"]', '.cs-prev[data-s="' + s + '"] span.cs-pl'].join(',') + '{' + body + '}';
+  }
+  function before(s, body) {
+    return TARGETS.split(',').map(function (sel) { return H(s) + sel.trim() + '::before'; }).concat('.cs-prev[data-s="' + s + '"]::before').join(',') + '{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;z-index:1;' + body + '}';
+  }
+  function after(s, body) {
+    return TARGETS.split(',').map(function (sel) { return H(s) + sel.trim() + '::after'; }).concat('.cs-prev[data-s="' + s + '"]::after').join(',') + '{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;z-index:9;' + body + '}';
+  }
+  var INK2 = 'hsl(calc(var(--cs-hue) + 165deg) 88% 60%)';
+
+  var css = document.createElement('style');
+  css.id = 'cs2-materials';
+  css.textContent = [
+    /* 水墨山水 */
+    rule('ink-wash', 'border-radius:6px!important;border:1px solid #d6cbb4!important;background:' + GRAIN + ' repeat,radial-gradient(70% 42% at 72% 22%,color-mix(in srgb,var(--cs-bd) 22%,transparent),transparent 72%),linear-gradient(180deg,#f8f3e8,#eee5d3)!important;color:#1c1917!important;box-shadow:0 18px 34px -14px rgba(41,37,36,.5),inset 0 0 0 1px rgba(255,255,255,.55)!important;'),
+    focusRule('ink-wash', 'border-color:#44403c!important;box-shadow:0 0 0 1px #44403c,0 24px 44px -14px rgba(41,37,36,.6)!important;'),
+    typo('ink-wash', 'font-family:"Kaiti SC","STKaiti","KaiTi","Songti SC","Palatino",serif!important;letter-spacing:.05em!important;color:#1c1917!important;text-shadow:0 0 1px rgba(28,25,23,.4)!important;'),
+    label('ink-wash', 'border-radius:3px!important;background:#b91c1c!important;border:0!important;color:#fff7ed!important;font-weight:700!important;letter-spacing:.14em!important;text-shadow:none!important;'),
+    before('ink-wash', 'background:' + INK_SVG + ' center/100% 100% no-repeat;'),
+    after('ink-wash', 'background:radial-gradient(64% 20% at var(--cs-px) 58%,rgba(248,243,232,.85),transparent 72%);'),
+    '.cs-prev[data-s="ink-wash"]{--cs-bd:#78716c}',
+
+    /* 朱漆描金 */
+    rule('lacquer', 'border-radius:14px!important;border:1px solid color-mix(in srgb,var(--cs-lip) 55%,#000)!important;background:radial-gradient(120% 70% at 30% 0%,color-mix(in srgb,var(--cs-lip) 86%,#fff) 0%,color-mix(in srgb,var(--cs-lip) 80%,#000) 48%,color-mix(in srgb,var(--cs-lt) 78%,#000) 100%)!important;color:#f3d98b!important;box-shadow:0 24px 44px -16px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.4),inset 0 -12px 26px rgba(0,0,0,.35)!important;'),
+    focusRule('lacquer', 'box-shadow:0 0 0 1.5px #e9c46a,0 30px 54px -16px rgba(0,0,0,.75),0 0 30px color-mix(in srgb,var(--cs-lip) 50%,transparent)!important;'),
+    typo('lacquer', 'font-family:"Songti SC","STSong","Noto Serif SC","Palatino",serif!important;font-weight:700!important;letter-spacing:.05em!important;color:#f3d98b!important;text-shadow:0 1px 0 rgba(0,0,0,.55)!important;'),
+    label('lacquer', 'border-radius:2px!important;background:rgba(0,0,0,.18)!important;border:1px solid rgba(233,196,106,.75)!important;color:#f3d98b!important;letter-spacing:.16em!important;'),
+    before('lacquer', 'background:' + LACQUER_SVG + ' center/100% 100% no-repeat;'),
+    after('lacquer', 'background:linear-gradient(105deg,transparent calc(var(--cs-px) - 26%),rgba(255,255,255,.36) calc(var(--cs-px) - 4%),rgba(255,255,255,.07) calc(var(--cs-px) + 4%),transparent calc(var(--cs-px) + 22%)),radial-gradient(90% 26% at 50% 0%,rgba(255,255,255,.24),transparent 70%);mix-blend-mode:screen;'),
+    '.cs-prev[data-s="lacquer"]{--cs-lip:#b3201a;--cs-lt:#4a0a08}',
+
+    /* 拉丝钛 */
+    rule('titanium', 'border-radius:14px!important;border:1px solid rgba(255,255,255,.6)!important;background:' + BRUSH_SVG + ' 0 0/100% 100%,linear-gradient(100deg,color-mix(in srgb,var(--cs-bd) 26%,#7d838c) 0%,color-mix(in srgb,var(--cs-bd) 14%,#c3c8d0) calc(var(--cs-px) - 20%),#f5f7fa var(--cs-px),color-mix(in srgb,var(--cs-bd) 16%,#a9afb8) calc(var(--cs-px) + 18%),color-mix(in srgb,var(--cs-bd) 30%,#6b717a) 100%)!important;color:#1b1e23!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.9),inset 0 -1px 0 rgba(0,0,0,.35),0 22px 40px -14px rgba(0,0,0,.6)!important;'),
+    focusRule('titanium', 'box-shadow:inset 0 1px 0 #fff,0 0 0 1.5px rgba(255,255,255,.9),0 28px 50px -14px rgba(0,0,0,.65),0 0 28px color-mix(in srgb,var(--cs-bd) 40%,transparent)!important;'),
+    typo('titanium', 'font-family:"SF Pro Display","Helvetica Neue",-apple-system,"PingFang SC",sans-serif!important;font-weight:600!important;letter-spacing:.01em!important;color:#22262d!important;text-shadow:0 1px 0 rgba(255,255,255,.65)!important;'),
+    label('titanium', 'border-radius:4px!important;background:rgba(20,23,28,.1)!important;border:1px solid rgba(20,23,28,.42)!important;color:#22262d!important;font-family:ui-monospace,"SF Mono",Menlo,monospace!important;letter-spacing:.14em!important;'),
+    before('titanium', 'inset:5px;border-radius:9px;border:1px solid rgba(0,0,0,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.55);'),
+    after('titanium', 'background:linear-gradient(var(--cs-ang),color-mix(in srgb,var(--cs-bd) 34%,transparent),transparent 42%,color-mix(in srgb,var(--cs-c2) 30%,transparent));mix-blend-mode:overlay;'),
+    '.cs-prev[data-s="titanium"]{--cs-bd:#7aa2c8;--cs-c2:#e2e8f0}',
+
+    /* 胡桃木镶嵌 */
+    rule('walnut', 'border-radius:12px!important;border:1px solid #2b170b!important;background:' + WOOD_SVG + ' 0 0/100% 100%,linear-gradient(95deg,#80502f 0%,#5d361c 38%,#73472a 64%,#4c2a15 100%)!important;color:#f1e0c2!important;box-shadow:inset 0 1px 0 rgba(255,235,200,.3),inset 0 -2px 0 rgba(0,0,0,.4),0 24px 44px -16px rgba(0,0,0,.7)!important;'),
+    focusRule('walnut', 'box-shadow:inset 0 1px 0 rgba(255,235,200,.4),0 0 0 1.5px #e9c97a,0 30px 52px -16px rgba(0,0,0,.75)!important;'),
+    typo('walnut', 'font-family:"Iowan Old Style","Palatino","Songti SC",Georgia,serif!important;letter-spacing:.02em!important;color:#f1e0c2!important;text-shadow:0 -1px 0 rgba(0,0,0,.6),0 1px 0 rgba(255,235,200,.2)!important;'),
+    label('walnut', 'border-radius:999px!important;background:linear-gradient(180deg,#ecd08a,#b8892f)!important;border:1px solid #7a5516!important;color:#3b2408!important;letter-spacing:.12em!important;text-shadow:0 1px 0 rgba(255,255,255,.4)!important;'),
+    before('walnut', 'inset:8px;border-radius:6px;border:1.5px solid var(--cs-bd);box-shadow:0 0 0 1px rgba(0,0,0,.4),inset 0 0 0 1px rgba(0,0,0,.4);'),
+    after('walnut', 'background:linear-gradient(100deg,transparent calc(var(--cs-px) - 32%),rgba(255,232,196,.26) var(--cs-px),transparent calc(var(--cs-px) + 32%));mix-blend-mode:screen;'),
+    '.cs-prev[data-s="walnut"]{--cs-bd:#e9c46a}',
+
+    /* 水磨石 */
+    rule('terrazzo', 'border-radius:20px!important;border:1px solid color-mix(in srgb,var(--cs-bd) 35%,#d6d3d1)!important;background:' + CHIPS_SVG + ' 0 0/128px 128px,linear-gradient(160deg,color-mix(in srgb,var(--cs-c1) 60%,#f5f1ea),#ebe5da)!important;color:#292524!important;box-shadow:inset 0 1px 0 #fff,0 18px 34px -14px rgba(68,64,60,.5)!important;'),
+    focusRule('terrazzo', 'border-color:var(--cs-lip)!important;box-shadow:inset 0 1px 0 #fff,0 0 0 2px color-mix(in srgb,var(--cs-lip) 45%,transparent),0 24px 44px -14px rgba(68,64,60,.55)!important;'),
+    typo('terrazzo', 'font-family:"Avenir Next","Futura","PingFang SC",-apple-system,sans-serif!important;font-weight:700!important;letter-spacing:-.01em!important;color:#292524!important;text-shadow:0 1px 0 rgba(255,255,255,.75)!important;'),
+    label('terrazzo', 'border-radius:999px!important;background:var(--cs-lip)!important;border:0!important;color:#fff!important;letter-spacing:.1em!important;text-shadow:none!important;'),
+    before('terrazzo', 'background:linear-gradient(180deg,transparent 40%,rgba(245,241,234,.86) 76%);'),
+    after('terrazzo', 'background:radial-gradient(circle at var(--cs-px) var(--cs-py),rgba(255,255,255,.6),transparent 40%);mix-blend-mode:soft-light;'),
+    '.cs-prev[data-s="terrazzo"]{--cs-c1:#fef6e4;--cs-bd:#e07a5f;--cs-lip:#c8553d}',
+
+    /* 孔版印刷 */
+    rule('riso', 'border-radius:4px!important;border:0!important;background:' + GRAIN + ' repeat,radial-gradient(circle closest-side at 60% 30%,var(--cs-bd) 0 86%,transparent 87%),radial-gradient(circle closest-side at 40% 45%,' + INK2 + ' 0 84%,transparent 85%),repeating-linear-gradient(-45deg,' + INK2 + ' 0 2px,transparent 2px 8px) 0 100%/100% 9% no-repeat,#f5efe0!important;background-blend-mode:multiply!important;color:#1f2a7a!important;box-shadow:0 14px 26px -12px rgba(0,0,0,.5)!important;'),
+    focusRule('riso', 'box-shadow:6px 6px 0 var(--cs-bd),0 20px 34px -12px rgba(0,0,0,.5)!important;'),
+    typo('riso', 'font-family:"Futura","Avenir Next Condensed","Helvetica Neue","PingFang SC",sans-serif!important;font-weight:800!important;letter-spacing:-.01em!important;color:#1f2a7a!important;text-shadow:1.5px 1.5px 0 color-mix(in srgb,var(--cs-bd) 75%,transparent)!important;'),
+    label('riso', 'border-radius:0!important;background:#1f2a7a!important;border:0!important;color:#f5efe0!important;letter-spacing:.14em!important;text-shadow:none!important;'),
+    after('riso', 'box-shadow:inset 0 0 0 6px #f5efe0;'),
+    '.cs-prev[data-s="riso"]{--cs-bd:#ff5a8a;--cs-hue:40deg}',
+
+    /* 工程蓝图 */
+    rule('blueprint', 'border-radius:8px!important;border:1px solid rgba(255,255,255,.55)!important;background:linear-gradient(rgba(255,255,255,.16) 1px,transparent 1px) 0 0/100% 40px,linear-gradient(90deg,rgba(255,255,255,.16) 1px,transparent 1px) 0 0/40px 100%,linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px) 0 0/100% 8px,linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px) 0 0/8px 100%,radial-gradient(120% 90% at var(--cs-px) var(--cs-py),color-mix(in srgb,var(--cs-lip) 55%,#1d4ed8),color-mix(in srgb,var(--cs-lt) 45%,#0b2a66))!important;color:#eaf2ff!important;box-shadow:0 20px 38px -14px rgba(5,20,60,.7)!important;'),
+    focusRule('blueprint', 'border-color:#fff!important;box-shadow:0 0 0 1px rgba(255,255,255,.7),0 26px 46px -14px rgba(5,20,60,.8)!important;'),
+    typo('blueprint', 'font-family:"SF Mono",ui-monospace,Menlo,"PingFang SC",monospace!important;font-weight:600!important;letter-spacing:.02em!important;color:#eaf2ff!important;text-shadow:none!important;'),
+    label('blueprint', 'border-radius:0!important;background:transparent!important;border:1px dashed rgba(234,242,255,.75)!important;color:#eaf2ff!important;letter-spacing:.14em!important;'),
+    before('blueprint', 'background:' + BLUEPRINT_SVG + ' center/100% 100% no-repeat;'),
+    after('blueprint', 'box-shadow:inset 0 0 36px rgba(0,0,0,.3);'),
+    '.cs-prev[data-s="blueprint"]{--cs-lip:#1d4ed8;--cs-lt:#0b2a66}',
+
+    /* 侧光亚克力 */
+    rule('acrylic', 'border-radius:16px!important;border:1.5px solid color-mix(in srgb,var(--cs-bd) 55%,#fff)!important;background:radial-gradient(130% 58% at 50% 112%,color-mix(in srgb,var(--cs-bd) 85%,transparent),transparent 70%),radial-gradient(60% 40% at var(--cs-px) 0%,rgba(255,255,255,.2),transparent 70%),linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.03)),rgba(14,17,26,.72)!important;-webkit-backdrop-filter:blur(10px)!important;backdrop-filter:blur(10px)!important;color:#fff!important;box-shadow:0 0 26px color-mix(in srgb,var(--cs-bd) 55%,transparent),inset 0 0 22px color-mix(in srgb,var(--cs-bd) 45%,transparent),inset 0 1px 0 rgba(255,255,255,.6),0 22px 40px -14px rgba(0,0,0,.6)!important;'),
+    focusRule('acrylic', 'box-shadow:0 0 40px color-mix(in srgb,var(--cs-bd) 75%,transparent),inset 0 0 28px color-mix(in srgb,var(--cs-bd) 60%,transparent),inset 0 1px 0 rgba(255,255,255,.75),0 28px 50px -14px rgba(0,0,0,.65)!important;'),
+    typo('acrylic', 'font-family:"SF Pro Rounded","SF Pro Display",-apple-system,"PingFang SC",sans-serif!important;font-weight:700!important;color:#fff!important;text-shadow:0 0 10px var(--cs-bd),0 0 22px color-mix(in srgb,var(--cs-bd) 70%,transparent)!important;'),
+    label('acrylic', 'border-radius:999px!important;background:transparent!important;border:1px solid color-mix(in srgb,var(--cs-bd) 70%,#fff)!important;color:#fff!important;letter-spacing:.12em!important;box-shadow:0 0 10px color-mix(in srgb,var(--cs-bd) 60%,transparent)!important;'),
+    before('acrylic', 'background:' + GRAIN + ' repeat;opacity:.55;'),
+    after('acrylic', 'background:linear-gradient(115deg,transparent calc(var(--cs-px) - 14%),rgba(255,255,255,.22) var(--cs-px),transparent calc(var(--cs-px) + 10%));box-shadow:inset 0 0 0 1px rgba(255,255,255,.22),inset 0 -3px 0 color-mix(in srgb,var(--cs-bd) 90%,#fff);'),
+    '.cs-prev[data-s="acrylic"]{--cs-bd:#22d3ee}'
+  ].join('\n');
+  document.head.appendChild(css);
+
+  NEW.forEach(function (s) { if (!CS.styles.some(function (x) { return x.id === s.id; })) CS.styles.push(s); });
+  window.MinestCardStyles2Materials = NEW.map(function (s) { return s.id; });
+})();
+
+/* Minest · 2.0 routes — the app's own entries open the 2.0 pages in place of 1.0 (tools/v2-routes/patch_v2_routes.py).
+   Holo Lab, 3D Type and Clun were already pages in a frame: the patch points their addresses at holo-lab-2/, type3d-2/
+   and spatial-home/clun-2/. The three below were drawn by Minest itself; here their entries open the 2.0 page full screen:
+     · 动态卡片   the board's 3D Cover view, when you switch to it          → cards-2/      (on the board you are on)
+     · 动态呈现   MinestDrive.gallery() (the 🚗 entries) and the presentations' own open()  → dynamic-2/ (?mode= that one)
+     · EC–6 布告栏 the Spatial Home board's panel                         → ec6-board-2/
+   The 2.0 pages ask this page for their data and send their changes back (v2-bridge/bridge.js on their side, answer() here):
+   in the app this page runs from the app's files and the 2.0 page from the web site, so they share no storage.
+   The 2.0 pages load the 1.0 scripts as they are, so nothing of 1.0 is removed. World Search stays 1.0 (its
+   2.0 page keeps data of its own). 卡片风格 opens 3.0 (card-styles-3/, below), which shares Minest's choice. */
+(function () {
+  'use strict';
+  if (window.MinestV2Routes) return;
+  var SITE = 'https://minest-app.vercel.app/', ov = null, frame = null, onClose = null;
+  /* where each page's ✕ sits, clear of the page's own controls */
+  var XPOS = { 'cards-2/': 'top', 'dynamic-2/': 'top', 'ec6-board-2/': 'top-left' };
+  var LS_SYNC = { 'minest.ec6board.v1': 1, 'minest.gptstudy.v1': 1, 'minest.cardStyle': 1, 'minest.cardStyle.mindful': 1 };
+
+  function url(path) { return /^https?:$/.test(location.protocol) ? new URL(path, location.href).href : SITE + path; }
+  function css() {
+    if (document.getElementById('mn-v2r-css')) return;
+    var s = document.createElement('style'); s.id = 'mn-v2r-css';
+    s.textContent = '.mn-v2r{position:fixed;inset:0;z-index:2147483646;background:#05070f}' +
+      '.mn-v2r iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}' +
+      '.mn-v2r-x{position:absolute;top:calc(env(safe-area-inset-top,0px) + 8px);left:50%;transform:translateX(-50%);z-index:2;width:34px;height:34px;border-radius:17px;border:1px solid rgba(255,255,255,.28);' +
+      'background:rgba(20,22,30,.55);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);padding:0;opacity:.8}' +
+      '.mn-v2r-x.top-left{left:calc(env(safe-area-inset-left,0px) + 10px);transform:none}' +
+      '.mn-v2r-x:hover{opacity:1}.mn-v2r-x svg{width:16px;height:16px}html.mn-v2r-on{overflow:hidden}html.mn-v2r-on .mn-bdock{visibility:hidden!important}';
+    document.head.appendChild(s);
+  }
+  /* one page at a time; closing (✕, Esc, the page asking through the bridge, or the page leaving itself for another
+     address) calls back with what the page asked for */
+  function open(path, title, done) {
+    close(null, true); css(); onClose = done || null;
+    ov = document.createElement('div'); ov.className = 'mn-v2r'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', title || '2.0');
+    var fr = frame = document.createElement('iframe'); fr.title = title || '2.0';
+    fr.setAttribute('allow', 'autoplay; fullscreen; camera; microphone; clipboard-write; accelerometer; gyroscope; magnetometer');   /* the motion sensors: 动态卡片's gyroscope */
+    var want = url(path);
+    fr.addEventListener('load', function () {
+      /* same site only (the web): the 2.0 page went to another address of its own accord — that means "close" here.
+         In the app the page is on another site and cannot be read; it closes through the bridge instead. */
+      var p = null; try { p = fr.contentWindow.location.href; } catch (e) {}
+      if (p && p !== 'about:blank' && new URL(p).pathname !== new URL(want).pathname) close();
+    });
+    fr.src = want;
+    var x = document.createElement('button'); x.type = 'button'; x.className = 'mn-v2r-x';
+    var pos = Object.keys(XPOS).filter(function (k) { return path.indexOf(k) === 0; })[0]; if (pos && XPOS[pos] !== 'top') x.classList.add(XPOS[pos]);
+    x.title = '关闭 · Close'; x.setAttribute('aria-label', '关闭 · Close');
+    x.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+    /* on press, not click: Minest's page-wide touch handlers take the pointer between down and up, so a click never lands */
+    var shut = function (e) { e.stopPropagation(); e.preventDefault(); close(); };
+    x.addEventListener('pointerdown', shut); x.addEventListener('click', shut);
+    ov.appendChild(fr); ov.appendChild(x); document.body.appendChild(ov);
+    ['pointerdown', 'touchstart', 'wheel', 'keydown', 'click'].forEach(function (t) { ov.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
+    document.documentElement.classList.add('mn-v2r-on');
+    try { fr.focus(); } catch (e) {}
+  }
+  function close(result, silent) {
+    if (!ov) return;
+    var o = ov, f = onClose; ov = null; frame = null; onClose = null;
+    try { o.querySelector('iframe').src = 'about:blank'; } catch (e) {}
+    o.remove(); document.documentElement.classList.remove('mn-v2r-on');
+    if (f && !silent) try { f(result || null); } catch (e) {}
+  }
+  document.addEventListener('keydown', function (e) { if (ov && e.key === 'Escape') close(); });
+
+  /* ---- the bridge: answers only the page in our own frame */
+  function AI() { return window.MinestAI || null; }
+  function activeId() {
+    try { var b = AI() && AI().board && AI().board(); if (b && b.id) return b.id; } catch (e) {}
+    try { return localStorage.getItem('focusboard_active_id_v7_2') || ''; } catch (e) { return ''; }
+  }
+  function ec6Reload(v) {   // Minest's own 1.0 board keeps its state in memory: it takes the page's copy, then paints
+    try { var E = window.SpatialEC6, S = E && E._ && E._.S(); if (!S) return; var n = JSON.parse(v);
+      Object.keys(S).forEach(function (k) { delete S[k]; }); Object.keys(n || {}).forEach(function (k) { S[k] = n[k]; }); E.paint(); } catch (e) {}
+  }
+  window.addEventListener('message', function (e) {
+    var m = e.data; if (!frame || e.source !== frame.contentWindow || !m || m.type !== 'minest-v2') return;
+    var A = AI(), d = m.data || {};
+    var reply = function (data) { try { e.source.postMessage({ type: 'minest-v2', re: m.id, data: data }, e.origin && e.origin !== 'null' ? e.origin : '*'); } catch (x) {} };
+    try {
+      if (m.op === 'hello') {
+        var ls = {}; Object.keys(LS_SYNC).forEach(function (k) { try { ls[k] = localStorage.getItem(k); } catch (x) { ls[k] = null; } });
+        try { var CSn = window.MinestCardStyles; if (CSn) ls['minest.cardStyle'] = localStorage.getItem(CS_KEEP) || CSn.get(); } catch (x) {}
+        var boards = []; try { boards = A && A.boards ? A.boards() || [] : []; } catch (x) {}
+        reply({ boards: boards, active: activeId(), ls: ls });
+      }
+      else if (m.op === 'patchCard' && A && A.patchCard) A.patchCard(d.id, d.patch || {});
+      else if (m.op === 'rateCard' && A && A.rateCard) A.rateCard(d.id, d.m);
+      else if (m.op === 'setBoard' && A && A.updateBoard && d.board && d.board.id) A.updateBoard(d.board.id, function () { return d.board; });
+      else if (m.op === 'ls' && LS_SYNC[d.key] && typeof d.value === 'string') {
+        localStorage.setItem(d.key, d.value);
+        if (d.key === 'minest.ec6board.v1') ec6Reload(d.value);
+        var CSm = window.MinestCardStyles;   /* 卡片风格 3.0: the board behind takes the pick at once */
+        if (CSm && d.key === 'minest.cardStyle') CSm.set(d.value);
+        if (CSm && d.key === 'minest.cardStyle.mindful') CSm.set(CSm.get());
+      }
+      else if (m.op === 'close') close(d);
+    } catch (x) {}
+  });
+
+  /* ---- 动态呈现: the 🚗 entries (MinestDrive.gallery) and each presentation's own open() go to 2.0, that presentation
+     already running (?mode=). gallery1 / open1 keep 1.0 for code that needs it. */
+  var DYN = { drive: 'MinestDrive', train: 'MinestTrain', metro: 'MinestMetro', tower: 'MinestTower', rack: 'MinestRack', library: 'MinestLibrary',
+    museum: 'MinestMuseum', city: 'MinestCity', galaxy: 'MinestGalaxy', balloon: 'MinestBalloon' };
+  function dyn(mode) { open('dynamic-2/index.html' + (mode ? '?mode=' + mode : ''), '动态呈现 2.0'); return { close: function () { close(); } }; }
+  function hookDyn() {
+    var all = true;
+    Object.keys(DYN).forEach(function (mode) {
+      var M = window[DYN[mode]]; if (!M) { all = false; return; } if (M.__v2) return; M.__v2 = true;
+      if (M.open) { M.open1 = M.open; M.open = function (o) { var trip = mode === 'drive' && o && o.style && (M.trips || []).some(function (t) { return t.id === o.style; }); return dyn(trip ? 'roadtrip' : mode); }; }
+      if (mode === 'drive' && M.gallery) { M.gallery1 = M.gallery; M.gallery = function () { dyn(''); }; }
+    });
+    return all;
+  }
+
+  /* ---- EC–6 布告栏: the room's board panel (o.panel, set by SpatialEC6.attach) opens 2.0; a card or the Kanban asked
+     for there comes back as 1.0's own answer, so the room hands over to the Kanban the way it always has */
+  function hookEC6() {
+    var E = window.SpatialEC6; if (!E || E.__v2) return !!E;
+    var a0 = E.attach; E.__v2 = true;
+    E.attach = function (o) {
+      var r = a0.apply(this, arguments);
+      if (o) o.panel = function () { return new Promise(function (res) {
+        open('ec6-board-2/index.html', 'EC–6 布告栏 2.0', function (d) {
+          try { E.paint(); } catch (e) {}
+          if (d && d.openCard) { var id = d.openCard; res({ feature: 'kanban', after: function (w) { setTimeout(function () { try { w.MinestAI.openCard(id); } catch (e) {} }, 120); } }); }
+          else if (d && d.kanban) res({ feature: 'kanban' });
+          else res(null);
+        });
+      }); };
+      return r;
+    };
+    return true;
+  }
+
+  /* ---- 动态卡片: switching the board to its 3D Cover view yourself opens 2.0 on the same board; closing returns to the
+     board view. Only a switch you made (a tap or a key just before) counts: a view restored at start goes back to the
+     board, and one the Duo's fold makes later stays 1.0's own. Student mode keeps its own 3D Cover (its whole screen). */
+  var coverWas = false, lastInput = 0, t0 = Date.now();
+  ['pointerdown', 'keydown'].forEach(function (t) { document.addEventListener(t, function () { lastInput = Date.now(); }, true); });
+  function student() { try { return !!(window.isStudentMode && window.isStudentMode()); } catch (e) { return false; } }
+  function toBoardView() { try { if (window.__setViewMode) window.__setViewMode('board'); else if (window.MinestAI && MinestAI.setViewMode) MinestAI.setViewMode('board'); } catch (e) {} }
+  function watchCover() {
+    var on = !!(document.body && document.body.classList.contains('mode-coverflow'));
+    if (on && !coverWas && !student() && !ov) {
+      var mine = Date.now() - lastInput < 2500;
+      if (mine) open('cards-2/index.html', '动态卡片 2.0', toBoardView);
+      else if (Date.now() - t0 < 15000) toBoardView();
+    }
+    coverWas = on;
+  }
+
+  /* ---- 动态卡片 button (2026-11-25): the board's Views button (and its Dock icon) is 动态卡片 — it opens cards-2/ on the
+     board you are on, with every mode on its deck: Minest's own 看板 · 照片 · 图钉, its iTunes-style 3D Cover, and the
+     card formations. Picking one of Minest's views closes the page and Minest shows that view (MinestImageViews.requestMode).
+     The 3D Cover view itself is 1.0's own Cover Flow again; watchCover above is kept, unused. Student mode keeps 1.0's switcher. */
+  function cards() {
+    open('cards-2/index.html', '动态卡片', function (d) {
+      if (d && d.cardStyles) { cardStyles(cards); return; }   /* its style key: 3.0, then back to 动态卡片 */
+      var v = d && d.view; if (!v) return;
+      try { var M = window.MinestImageViews; if (M && M.requestMode) M.requestMode(v); else if (window.__setViewMode) window.__setViewMode(v); } catch (e) {}
+    });
+  }
+  function hookCards() {
+    var M = window.MinestImageViews; if (!M || !M.openSwitcher) return false; if (M.__v3) return true; M.__v3 = true;
+    M.openSwitcher1 = M.openSwitcher;
+    M.openSwitcher = function () { if (student() || ov) return M.openSwitcher1.apply(M, arguments); cards(); };
+    return true;
+  }
+  function label() {   /* the button's name says what it opens */
+    if (student()) return;
+    [].forEach.call(document.querySelectorAll('.sf-mode-toggle-btn'), function (b) { if (b.title !== '动态卡片') { b.title = '动态卡片'; b.setAttribute('aria-label', '动态卡片'); } });
+  }
+
+  /* ---- 卡片风格 3.0 (2026-11-25): Minest's 卡片风格 keys open card-styles-3/ — 1.0's materials and gallery, 2.0's eight
+     new materials and studio — on your board's own style; each pick comes back through the bridge (LS_SYNC) and the
+     board changes at once. The eight materials are carried in this block too (card-styles-3/materials.js, put in
+     ahead of this script by patch_v2_routes.py). 1.0 falls back to its default for a material it did not know at its
+     start, so the pick is also kept under minest.cardStyle.v3 and put back here. Student mode keeps 1.0's own panel. */
+  var CS_KEEP = 'minest.cardStyle.v3';
+  function cardStyles(then) { open('card-styles-3/index.html', '卡片风格 3.0', then ? function () { setTimeout(then, 60); } : null); }
+  function hookCS() {
+    var C = window.MinestCardStyles; if (!C || !C.set) return !document.getElementById('cs-btn') && tries > 20; if (C.__v3) return true; C.__v3 = true;
+    var set1 = C.set;
+    C.set = function (id) { var r = set1.apply(C, arguments); try { localStorage.setItem(CS_KEEP, C.get()); } catch (e) {} return r; };
+    try { var k = localStorage.getItem(CS_KEEP); if (k && k !== C.get() && C.styles.some(function (s) { return s.id === k; })) set1.call(C, k); } catch (e) {}
+    C.open1 = C.open;
+    C.open = function () { if (student() || ov) return C.open1.apply(C, arguments); cardStyles(); };
+    var b = document.getElementById('cs-btn'); if (b) b.onclick = function (e) { if (e) e.stopPropagation(); C.open(); };
+    return true;
+  }
+
+  function boot() {
+    hookDyn(); hookEC6(); hookCards(); hookCS(); label();
+    var lq = 0; if (document.body) new MutationObserver(function () { if (!lq) lq = setTimeout(function () { lq = 0; label(); }, 400); }).observe(document.body, { childList: true, subtree: true });
+  }
+  /* the modules come later in the page than some entries, and Spatial Home builds its room later still: retry a while */
+  var tries = 0, t = setInterval(function () { var d = hookDyn(), e = hookEC6(), c = hookCards(), y = hookCS(); if ((d && e && c && y) || ++tries > 120) clearInterval(t); }, 500);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+
+  window.MinestV2Routes = { open: open, close: function () { close(); }, isOpen: function () { return !!ov; }, dyn: dyn, cards: cards, cardStyles: function () { cardStyles(); }, version: '1.4' };
+})();
+</script><!-- mn-v2-routes:end -->
 </body>
 </html>

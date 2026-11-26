@@ -34,7 +34,7 @@
     close(null, true); css(); onClose = done || null;
     ov = document.createElement('div'); ov.className = 'mn-v2r'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', title || '2.0');
     var fr = frame = document.createElement('iframe'); fr.title = title || '2.0';
-    fr.setAttribute('allow', 'autoplay; fullscreen; camera; microphone; clipboard-write');
+    fr.setAttribute('allow', 'autoplay; fullscreen; camera; microphone; clipboard-write; accelerometer; gyroscope; magnetometer');   /* the motion sensors: 动态卡片's gyroscope */
     var want = url(path);
     fr.addEventListener('load', function () {
       /* same site only (the web): the 2.0 page went to another address of its own accord — that means "close" here.
