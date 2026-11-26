@@ -377,13 +377,17 @@ public final class iPhoneWatchSyncManager: NSObject, WCSessionDelegate {
                         "isDone": isDone
                     ])
                     
+                    // 2026-11-26: pass the watch's state (an untick on the watch used to tick the card on the phone,
+                    // because the page reads a missing isDone as done); the id goes in as JSON, never raw in quotes
+                    let detailJSON = (try? JSONSerialization.data(withJSONObject: ["cardId": cardId, "isDone": isDone]))
+                        .flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
                     let js = """
                     (function() {
-                        var cardId = '\(cardId)';
+                        var detail = \(detailJSON);
                         if (window.MinestNative && window.MinestNative.toggleCard) {
-                            window.MinestNative.toggleCard(cardId);
+                            window.MinestNative.toggleCard(detail.cardId, detail.isDone);
                         }
-                        window.dispatchEvent(new CustomEvent('minestCardToggled', { detail: { cardId: cardId } }));
+                        window.dispatchEvent(new CustomEvent('minestCardToggled', { detail: detail }));
                     })();
                     """
                     self.bridge?.webView?.evaluateJavaScript(js, completionHandler: nil)
@@ -422,10 +426,10 @@ public final class iPhoneWatchSyncManager: NSObject, WCSessionDelegate {
                     }
                     
                     // Notify Web Canvas
-                    self.bridge?.sendEventToWeb(event: "checklistToggled", payload: [
-                        "id": id,
-                        "cardId": cardId
-                    ])
+                    // the page sets the item to the watch's state when it is sent, so a repeated message cannot flip it back
+                    var toggled: [String: Any] = ["id": id, "cardId": cardId]
+                    if let isDone = dict["isDone"] as? Bool { toggled["isDone"] = isDone }
+                    self.bridge?.sendEventToWeb(event: "checklistToggled", payload: toggled)
                 }
                 
             case "addCardItem":

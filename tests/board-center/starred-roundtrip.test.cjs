@@ -1,8 +1,8 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
 const s=fs.readFileSync('iphone.html','utf8');
 const sanitize=s.slice(s.indexOf('function sanitizeLoadedBoards('),s.indexOf('var Be = function()',s.indexOf('function sanitizeLoadedBoards(')));
-const merge=s.slice(s.indexOf('function minestSame('),s.indexOf('// 31.7: Trello',s.indexOf('function minestSame(')));
-const c={console,y:[],getBoardDisplayPrefs:()=>({}),splitBilingualTitle:title=>({title}),DEFAULT_PRESET_LABELS:[]};vm.createContext(c);vm.runInContext(sanitize+'\n'+merge,c);
+const merge=s.slice(s.indexOf('function minestSame(a, b)'),s.indexOf('// 31.7: Trello',s.indexOf('function minestSame(a, b)')));
+const c={console,minestWithEc6Outline:l=>l,window:{MinestBoardMerge:require('../../tools/cloud-transport/board-merge.js')},y:[],getBoardDisplayPrefs:()=>({}),splitBilingualTitle:title=>({title}),DEFAULT_PRESET_LABELS:[]};vm.createContext(c);vm.runInContext(sanitize+'\n'+merge,c);
 const read=rows=>c.sanitizeLoadedBoards(JSON.parse(JSON.stringify(rows)));
 const input=[{id:'active',title:'Active',columns:[]},{id:'other',title:'Other',starred:true,columns:[]}];
 const stored=read(input);assert.equal(stored[1].starred,true);assert.equal(stored[0].starred,false);

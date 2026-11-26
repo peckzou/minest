@@ -191,6 +191,41 @@ rep('''          var pulled = sanitizeLoadedBoards(pulledBoards);
           setBoards(function(cur) { var pulled = minestBuiltinPatchAll(sanitizeLoadedBoards(minestKeepBuiltins(pulledBoards, cur)), pullTodo); isRemoteUpdateRef.current = pulled; return pulled; });''')
 
 
+# --- the watch (and widget): ticks and new checklist items reach the board, so they sync like any edit ---
+WATCH_MARK = 'watch checklist sync (patch_board_sync.py)'
+WATCH_APP = (HERE / 'watch-app.js').read_text(encoding='utf8').rstrip('\n')
+TOGGLED_END = '''    window.addEventListener('minestCardToggled', onToggled);
+    return function() { window.removeEventListener('minestCardToggled', onToggled); };
+  }, []);'''
+W = [
+    (TOGGLED_END, TOGGLED_END + '\n' + WATCH_APP),
+    ('''      setBoards(function(prevBoards) {
+        return prevBoards.map(function(board) {
+          var isTargetBoard = (board.id === activeBoardId) || (board.title && detail.category && board.title.indexOf(detail.category) !== -1);
+          if (!isTargetBoard) return board;''',
+     '''      setBoards(function(prevBoards) {
+        /* 2026-11-26: a card the board already has (a resent watch message) is not added twice, and a new card goes on
+           one board only (the open one, else the first whose title has the category): the same card on two boards
+           made the sync merge drop one of them */
+        if (prevBoards.some(function(b) { return (b.columns || []).some(function(c) { return (c.cards || []).some(function(k) { return k && k.id === newCard.id; }); }); })) return prevBoards;
+        var targetId = prevBoards.some(function(b) { return b.id === activeBoardId; }) ? activeBoardId : (prevBoards.filter(function(b) { return b.title && detail.category && b.title.indexOf(detail.category) !== -1; })[0] || {}).id;
+        return prevBoards.map(function(board) {
+          var isTargetBoard = board.id === targetId;
+          if (!isTargetBoard) return board;'''),
+]
+
+
+def patch_watch(text, why):
+    if WATCH_MARK in text:
+        return text, why
+    for old, new in W:
+        n = text.count(old)
+        if n != 1:
+            return None, 'watch anchor found %d times: %r' % (n, old[:90])
+        text = text.replace(old, new)
+    return text, why + ' (+watch)'
+
+
 def cut(s, start, end):
     i = s.find(start)
     if i < 0 or s.count(start) != 1:
@@ -203,7 +238,7 @@ def cut(s, start, end):
 
 def patch(text, name):
     if MARK in text:
-        return text, 'already'
+        return patch_watch(text, 'already')
     # head block
     m = cut(text, OLD_MERGE_START, OLD_MERGE_END)
     r = cut(text, OLD_RECONCILE_START, OLD_RECONCILE_END)
@@ -222,9 +257,12 @@ def patch(text, name):
         if n != 1:
             return None, 'anchor found %d times: %r' % (n, old[:90])
         text = text.replace(old, new)
+    text, why = patch_watch(text, 'patched')
+    if text is None:
+        return None, why
     if '</script' in APP.lower() or '</script' in NEW_MERGE_HEAD.lower() or '</script' in NEW_RECONCILE.lower():
         raise SystemExit('source contains </script')
-    return text, 'patched'
+    return text, why
 
 
 def main(argv):
@@ -237,7 +275,7 @@ def main(argv):
         p = ROOT / name
         s = p.read_text(encoding='utf8')
         if check:
-            ok = MARK in s
+            ok = MARK in s and WATCH_MARK in s
             print(('ok      ' if ok else 'MISSING ') + name)
             bad += not ok
             continue
