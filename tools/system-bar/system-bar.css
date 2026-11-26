@@ -164,6 +164,13 @@ html.student-mode body .mn-bdock.mn-bdock, html.student-mode #mn-sys-exit, html.
 /* the Duo's pinned Dock: shown (not slid away) without being moved off its place */
 html.mn-sysbar.duo-dockpin:not(.mn-sys-reading) body .mn-bdock.mn-bdock, html.mn-sysbar.duo-docktop:not(.mn-sys-reading) body .mn-bdock.mn-bdock { opacity: 1 !important; pointer-events: auto !important; visibility: visible !important; }
 
+/* the Dock's default place (2026-11-24, the user): standing in the bottom right corner on every screen — the opening, the board,
+   the room — growing upward; "=" is always its lowest key, so it never moves under the pointer when the Dock folds or unfolds.
+   On the Duo held sideways it stands at the bottom of the black status column. Placed by hand (mn-dock-free) or set to Bottom / Top: as chosen. */
+html[data-mn-bd=right][data-mn-bd][data-mn-bd][data-mn-bd]:not(.mn-dock-free):not(.mn-sys-reading):not(.mn-start-reading) body .mn-bdock.mn-bdock { left: auto !important; right: calc(env(safe-area-inset-right, 0px) + 8px) !important; top: auto !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px) !important; inset-inline: auto; transform: none !important; margin: 0 !important; flex-direction: column !important; justify-content: flex-end !important; max-height: calc(100% - env(safe-area-inset-top, 0px) - 24px) !important; }
+html.duo-dockpin[data-mn-bd][data-mn-bd][data-mn-bd][data-mn-bd]:not(.mn-dock-free):not(.mn-sys-reading):not(.mn-start-reading) body .mn-bdock.mn-bdock { left: auto !important; right: calc((var(--duo-dock, 84px) - 52px) / 2) !important; top: auto !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px) !important; transform: none !important; margin: 0 !important; flex-direction: column !important; justify-content: flex-end !important; max-height: calc(100% - var(--sat, 0px) - 20px) !important; }
+html[data-mn-bd=right]:not(.mn-dock-free) body .mn-bdock .mn-bapp.mn-sk-tools, html.duo-dockpin:not(.mn-dock-free) body .mn-bdock .mn-bapp.mn-sk-tools { order: 99 !important; }
+
 /* the Dock placed freely (hold, then drag) — wins over every side / centring rule */
 html.mn-dock-free.mn-dock-free .mn-bdock.mn-bdock { left: var(--mn-fx, 50%) !important; top: var(--mn-fy, 50%) !important; right: auto !important; bottom: auto !important; transform: none !important; margin: 0 !important; }
 .mn-bdock.mn-bdock { touch-action: none; -webkit-user-select: none; user-select: none; }   /* a press-and-move drags the Dock (the page must not scroll instead) */
