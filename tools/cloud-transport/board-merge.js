@@ -1,34 +1,114 @@
-(function(root){function minestSame(a,b){return JSON.stringify(a)===JSON.stringify(b);}
+(function(root){
+/* Board three-way merge (2026-11-26, board sync repair).
+   base = the boards as the cloud last had them, local = this device, remote = the server now.
+   - Boards, lists and cards are merged field by field: a field only one side changed takes that side; a field both
+     sides changed takes the newer side (mineNewer). So a tick on one device and a title edit on another both survive.
+   - Added on either side is kept. Deleted on one side is dropped only if the other side left it untouched.
+   - Order is merged too: a side that reordered (and the other did not) keeps its order. Before this, the server's
+     order always won, so a reorder made on this device was reverted by the next upload.
+   - A card moved to another list follows the move, and an edit made elsewhere to that card is kept with it.
+   - Without a base nothing is inferred deleted. */
+function minestSame(a,b){return JSON.stringify(a)===JSON.stringify(b);}
 function minestMerge3(base, local, remote, mineNewer) {
-  var LEVELS = ['columns', 'cards'];
-  function idx(a) { var m = {}; (a || []).forEach(function(x) { if (x && x.id != null) m[x.id] = x; }); return m; }
-  function strip(x, key) { if (!key || !x) return x; var o = {}; Object.keys(x).forEach(function(k) { if (k !== key) o[k] = x[k]; }); return o; }
-  function one(b, l, r, depth) {
-    if (!l && !r) return null;
-    if (!l) return b && minestSame(b, r) ? null : r;
-    if (!r) return b && minestSame(b, l) ? null : l;
-    if (minestSame(l, r)) return l;
-    var key = LEVELS[depth];
-    var lc = !b || !minestSame(strip(b, key), strip(l, key)), rc = !b || !minestSame(strip(b, key), strip(r, key));
-    var own = (lc && !rc) ? l : (rc && !lc) ? r : (mineNewer ? l : r);
-    if (!key) return own;
-    var o = strip(own, key); o[key] = list(b && b[key], l[key], r[key], depth + 1); return o;
-  }
-  function list(bA, lA, rA, depth) {
-    var B = idx(bA), L = idx(lA), out = [], have = {};
-    (rA || []).forEach(function(r) { if (!r || r.id == null || have[r.id]) return; have[r.id] = 1; var v = one(B[r.id], L[r.id], r, depth); if (v) out.push(v); });
-    (lA || []).forEach(function(l, i) {
-      if (!l || l.id == null || have[l.id]) return; have[l.id] = 1;
-      var v = one(B[l.id], l, null, depth); if (!v) return;
-      var prev = i > 0 && lA[i - 1] ? lA[i - 1].id : null, at = prev == null ? 0 : out.length;
-      for (var j = 0; prev != null && j < out.length; j++) if (out[j].id === prev) { at = j + 1; break; }
-      out.splice(at, 0, v);
+  function has(x) { return !!x && typeof x === 'object' && x.id != null; }
+  function ids(a) { var out = [], seen = {}; (a || []).forEach(function(x) { if (has(x) && !seen[x.id]) { seen[x.id] = 1; out.push(x.id); } }); return out; }
+  function idx(a) { var m = {}; (a || []).forEach(function(x) { if (has(x) && !(x.id in m)) m[x.id] = x; }); return m; }
+  function clone(x) { return x === undefined ? undefined : JSON.parse(JSON.stringify(x)); }
+  /* field-level three-way of one object; `skip` (its child list) is left out */
+  function fields(b, l, r, skip) {
+    if (!l) return clone(r); if (!r) return clone(l);
+    var out = {}, keys = {};
+    Object.keys(l).concat(Object.keys(r)).forEach(function(k) { if (k !== skip) keys[k] = 1; });
+    Object.keys(keys).forEach(function(k) {
+      var lv = l[k], rv = r[k], v;
+      if (minestSame(lv, rv)) v = lv;
+      else {
+        var lc = !b || !minestSame(b[k], lv), rc = !b || !minestSame(b[k], rv);
+        v = (lc && !rc) ? lv : (rc && !lc) ? rv : (mineNewer ? lv : rv);
+      }
+      if (v !== undefined) out[k] = clone(v);
     });
     return out;
   }
-  var res = list(base, local, remote, 0);
-  res.forEach(function(bd) { var seen = {}; (bd.columns || []).forEach(function(c) { if (c && c.cards) c.cards = c.cards.filter(function(k) { if (!k || seen[k.id]) return false; seen[k.id] = 1; return true; }); }); });
-  return res;
+  /* present on one side only: dropped if the side that still has it left it as the base had it */
+  function keepOne(b, x) { return !(b && minestSame(b, x)); }
+  function seqChanged(bIds, xIds) {
+    var inB = {}, inX = {}; bIds.forEach(function(i) { inB[i] = 1; }); xIds.forEach(function(i) { inX[i] = 1; });
+    return bIds.filter(function(i) { return inX[i]; }).join('\u0001') !== xIds.filter(function(i) { return inB[i]; }).join('\u0001');
+  }
+  /* order the ids in `keep`, with the side that reordered as the skeleton; the rest go in after their neighbour */
+  function order(bIds, lIds, rIds, keep) {
+    var lc = seqChanged(bIds, lIds), rc = seqChanged(bIds, rIds);
+    var useLocal = (lc && !rc) ? true : (rc && !lc) ? false : !!mineNewer;
+    var primary = useLocal ? lIds : rIds, secondary = useLocal ? rIds : lIds;
+    var out = [], placed = {};
+    primary.forEach(function(i) { if (keep[i] && !placed[i]) { out.push(i); placed[i] = 1; } });
+    [secondary, bIds].forEach(function(seq) {
+      seq.forEach(function(i, n) {
+        if (!keep[i] || placed[i]) return;
+        var at = 0;
+        for (var p = n - 1; p >= 0; p--) { var j = out.indexOf(seq[p]); if (j >= 0) { at = j + 1; break; } }
+        out.splice(at, 0, i); placed[i] = 1;
+      });
+    });
+    Object.keys(keep).forEach(function(i) { if (!placed[i]) { out.push(i); placed[i] = 1; } });
+    return out;
+  }
+  function cardsOf(board) {
+    var m = {};
+    ((board && board.columns) || []).forEach(function(c) {
+      if (!has(c)) return;
+      (c.cards || []).forEach(function(k) { if (has(k) && !(k.id in m)) m[k.id] = { col: c.id, card: k }; });
+    });
+    return m;
+  }
+  function colIds(board, colId) {
+    var c = ((board && board.columns) || []).filter(function(x) { return has(x) && x.id === colId; })[0];
+    return c ? ids(c.cards) : [];
+  }
+  function mergeBoard(b, l, r) {
+    var out = fields(b, l, r, 'columns');
+    var bC = idx(b && b.columns), lC = idx(l.columns), rC = idx(r.columns), keepCols = {}, cols = {};
+    Object.keys(lC).concat(Object.keys(rC)).forEach(function(id) {
+      if (cols[id]) return;
+      var bc = bC[id], lc = lC[id], rc = rC[id];
+      if (lc && rc) cols[id] = fields(bc, lc, rc, 'cards');
+      else if (lc ? keepOne(bc, lc) : keepOne(bc, rc)) cols[id] = fields(null, lc, rc, 'cards');
+      if (cols[id]) { keepCols[id] = 1; cols[id].cards = []; }
+    });
+    var colOrder = order(ids(b && b.columns), ids(l.columns), ids(r.columns), keepCols);
+    var bK = cardsOf(b), lK = cardsOf(l), rK = cardsOf(r), where = {}, cards = {};
+    Object.keys(lK).concat(Object.keys(rK)).forEach(function(id) {
+      if (cards[id]) return;
+      var bk = bK[id], lk = lK[id], rk = rK[id], card, col;
+      if (lk && rk) {
+        card = fields(bk && bk.card, lk.card, rk.card, null);
+        var lm = !bk || lk.col !== bk.col, rm = !bk || rk.col !== bk.col;
+        col = lk.col === rk.col ? lk.col : (lm && !rm) ? lk.col : (rm && !lm) ? rk.col : (mineNewer ? lk.col : rk.col);
+        if (!cols[col]) col = cols[lk.col] ? lk.col : rk.col;
+      } else {
+        var one = lk || rk;
+        if (!(bk && minestSame(bk.card, one.card) && bk.col === one.col)) { card = clone(one.card); col = one.col; }
+      }
+      if (card && cols[col]) { cards[id] = card; where[id] = col; }
+    });
+    colOrder.forEach(function(cid) {
+      var keep = {}; Object.keys(where).forEach(function(id) { if (where[id] === cid) keep[id] = 1; });
+      cols[cid].cards = order(colIds(b, cid), colIds(l, cid), colIds(r, cid), keep).map(function(id) { return cards[id]; });
+    });
+    out.columns = colOrder.map(function(cid) { return cols[cid]; });
+    return out;
+  }
+  var B = idx(base), L = idx(local), R = idx(remote), keep = {}, merged = {};
+  Object.keys(L).concat(Object.keys(R)).forEach(function(id) {
+    if (merged[id]) return;
+    var b = B[id], l = L[id], r = R[id];
+    if (l && r) merged[id] = minestSame(l, r) ? clone(l) : mergeBoard(b, l, r);
+    else if (l ? keepOne(b, l) : keepOne(b, r)) merged[id] = clone(l || r);
+    if (merged[id]) keep[id] = 1;
+  });
+  return order(ids(base), ids(local), ids(remote), keep).map(function(id) { return merged[id]; });
 }
-
-root.MinestBoardMerge=minestMerge3;})(window);
+root.MinestBoardMerge=minestMerge3;
+if(typeof module==='object'&&module.exports)module.exports=minestMerge3;
+})(typeof window!=='undefined'?window:this);
