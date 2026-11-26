@@ -1,5 +1,5 @@
 /* The opening landscape uses Minest's original Dock and opens the desktop board.
-   The "=" / "||" key only folds the Dock's tools, and the back key steps back inside the opening: both stay on it. */
+   The "=" / "||" key only folds the Dock's tools, the back key steps back inside the opening, and ⛶ reads it full screen: all three stay on it. */
 (function () {
   'use strict';
   if (window.MinestStartControls) return;
@@ -76,8 +76,20 @@ html.mn-start-reading #mn-start-exit{visibility:visible!important;pointer-events
   function detach() {
     if(reading)setReading(false);restoreDock();clearTimeout(idle);unwatch.forEach(function(fn){fn();});unwatch=[];down=false;frame=null;dock=null;root.classList.remove('mn-start-active','mn-start-idle','mn-start-reading');
   }
-  document.addEventListener('click',function(e){if(frame&&e.target.closest&&e.target.closest('.mn-bdock button')&&!e.target.closest('.mn-sk-tools,.mn-sk-back'))openWeb(false);},true);
+  document.addEventListener('click',function(e){if(frame&&e.target.closest&&e.target.closest('.mn-bdock button')&&!e.target.closest('.mn-sk-tools,.mn-sk-back,.mn-sk-full'))openWeb(false);},true);
   ['pointermove','pointerdown','wheel','keydown','focusin'].forEach(function(t){document.addEventListener(t,wake,{capture:true,passive:true});});
+  /* ⛶ on the opening: the page's reading mode hides the Dock, and its exit key would sit under the opening (a top-layer frame),
+     leaving no way out — so while the opening is up, the exit key goes into the top layer above it, and back down after.
+     Native full screen puts the page itself on top of the top layer; once it is in, the opening, the Dock and the exit key are
+     put back above it in that order */
+  function sysExit(){var x=document.getElementById('mn-sys-exit');return x&&x.showPopover?x:null;}
+  function lift(el){if(!el||!el.hasAttribute('popover'))return;try{if(el.matches(':popover-open'))el.hidePopover();el.showPopover();}catch(err){}}
+  function liftAll(){if(!frame)return;lift(frame);lift(dock||document.querySelector('.mn-bdock'));lift(sysExit());}
+  window.addEventListener('minest:reading',function(e){var x=sysExit();if(!x)return;try{
+    if(e.detail&&e.detail.on&&frame){x.setAttribute('popover','manual');lift(x);}
+    else if(x.hasAttribute('popover')){if(x.matches(':popover-open'))x.hidePopover();x.removeAttribute('popover');}
+  }catch(err){}});
+  document.addEventListener('fullscreenchange',function(){if(frame&&document.fullscreenElement)liftAll();});
   document.addEventListener('fullscreenchange',function(){if(reading&&nativeFull&&!document.fullscreenElement)setReading(false);});
   var queued=false;new MutationObserver(function(){if(queued)return;queued=true;queueMicrotask(function(){queued=false;var f=document.getElementById('mn-clun-splash');if(f===frame){if(frame)ensureDock();return;}if(frame)detach();if(f)attach(f);});}).observe(document.body,{childList:true,subtree:true});
   /* the system back key: one layer of the opening (map, telescope, treehouse, inside the house); false = already at the opening itself */
