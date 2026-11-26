@@ -1,0 +1,37 @@
+/* Minest · the Duo's pages in the system Dock (see duo-pages.js) */
+
+/* the Dock stays above every page: only Glance (on top) and reading mode put it away */
+html.duo.mn-sysbar:not(.mn-sys-reading):not(.duo-gl-top):not(.sh-reading):not(.mn-start-reading) body .mn-bdock.mn-bdock.mn-bdock {
+  display: flex !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; z-index: 2147483647 !important; }
+html.duo.duo-gl-top body .mn-bdock.mn-bdock.mn-bdock { display: none !important; }
+
+/* a page's keys: the board's apps give way in My World too, and the "Dock · 全部入口" key stays out on a page */
+html.duo.mn-ctx-page[data-mn-ctx=world]:not(.mn-ctx-apps) body .mn-bdock .mn-bapp:not(.mn-sys-key):not(.mn-ctx-key):not(.mn-page-key) { display: none !important; }
+html.duo.mn-sys-tools-off body .mn-bdock .duo-pg-key { display: none !important; }
+html.duo:not(.mn-sys-tools-off) body .mn-bdock .duo-pg .duo-pg-key { display: inline-flex !important; }
+html.duo.duo-pg-on body .mn-bdock .mn-bapp.mn-ctx-dock { display: none !important; }
+html.duo body .mn-bdock .duo-pg-key img { width: 62% !important; height: auto !important; border-radius: 4px; }
+html.duo body .mn-bdock .duo-pg-key.on { color: #7dd3fc !important; }
+html.duo[data-mn-ctx=world] body .mn-bdock .duo-pg-key.on { background: rgba(70,140,70,.85) !important; color: #fff !important; }
+
+/* full-screen pages keep clear of the pinned Dock's column (their buttons were under it) */
+html.duo-dockpin body .arcade, html.duo-dockpin body .mn-routine, html.duo-dockpin body .mn-hermes, html.duo-dockpin body .mn-type3d,
+html.duo-dockpin body .mn-v2r, html.duo-dockpin body #minest-pet-raising-overlay, html.duo-dockpin body .mo-root,
+html.duo-dockpin body .minest-activity-modal-backdrop, html.duo-dockpin body .board-settings-overlay {
+  box-sizing: border-box !important; padding-right: var(--duo-dock, 62px) !important; }
+
+/* Octo stays on the board: over a page (My World, Settings, Arcade…) it only covered the page */
+html.duo.duo-pg-on body #minest-mini-pet-p0, html.duo.duo-pg-on body .mpet-menu, html.duo.duo-pg-on body .mpet-tip, html.duo.duo-pg-on body .mpet-say { display: none !important; }
+
+/* over a page the Dock is dark glass, so its keys read on a light page too (Liquid Routine's daylight, Settings…);
+   My World keeps the room's Minecraft look */
+html.duo.duo-pg-on:not([data-mn-ctx=world]) body .mn-bdock.mn-bdock.mn-bdock {
+  background: rgba(20,24,34,.78) !important; border: 1px solid rgba(255,255,255,.16) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(160%) !important; backdrop-filter: blur(18px) saturate(160%) !important; box-shadow: 0 10px 28px rgba(0,0,0,.35) !important; }
+html.duo.duo-pg-on:not([data-mn-ctx=world]) body .mn-bdock .mn-bapp { color: #f1f5f9 !important; }
+
+/* the Dock changes its look (a page's dark glass, My World's hotbar) with a short cross-fade instead of a jump */
+html.duo body .mn-bdock.mn-bdock { transition: transform .38s cubic-bezier(.2,.9,.25,1), opacity .25s ease, background-color .32s ease, border-color .32s ease, box-shadow .32s ease; }
+
+/* the press is drawn by duo-motion.js: no grey tap flash on top of it (the page clears it for <button> only) */
+html.duo [role=button], html.duo [role=tab], html.duo [role=menuitem], html.duo [role=option], html.duo a[href], html.duo summary, html.duo label[for] { -webkit-tap-highlight-color: transparent; }
