@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // Minest open-speed and jank check.  node tools/perf/run.mjs [--base http://127.0.0.1:3005] [--pages iphone.html,...] [--json out.json]
+// --trace also prints what each page's load event waited on (tools/perf/trace.js), to stderr so the summary stays a table.
 // Opens each page in WebKit (Safari's engine) at its own screen size, closes the start screen, lets the page settle,
 // then watches 10 s with no input (tools/perf/probe.js). Fails when a number goes over tools/perf/budget.json.
 // Needs: npm i -D playwright && npx playwright install --with-deps webkit   (CI does this; see .github/workflows/perf.yml)
@@ -32,6 +33,7 @@ const { webkit, devices } = await import('playwright');
 const srv = arg('base') ? null : await serve();
 const base = arg('base') || srv.base;
 const probe = fs.readFileSync(path.join(HERE, 'probe.js'), 'utf8');
+const TRACE = process.argv.includes('--trace'), tracer = TRACE ? fs.readFileSync(path.join(HERE, 'trace.js'), 'utf8') : '';
 const browser = await webkit.launch();
 const rows = [], fails = [];
 const median = a => { const s = a.filter(x => x != null).sort((x, y) => x - y); return s.length ? s[Math.floor((s.length - 1) / 2)] : null; };
@@ -42,6 +44,7 @@ for (const p of pages) {
     const ctx = await browser.newContext(p.device ? { ...devices[p.device] } : { viewport: p.viewport, deviceScaleFactor: 1 });
     await ctx.route(/^https?:\/\/(?!127\.0\.0\.1)/, r => r.abort());   // only the page itself: no network noise, no live services
     await ctx.addInitScript(probe);
+    if (TRACE) await ctx.addInitScript(tracer);
     const pg = await ctx.newPage(); const errors = [];
     pg.on('pageerror', e => errors.push(String(e.message || e).slice(0, 160)));
     await pg.goto(base + '/' + p.page + (p.query || ''), { waitUntil: 'load', timeout: 120000 });
@@ -57,6 +60,15 @@ for (const p of pages) {
     // the resources that finished last: what the load event waited on
     const last = await pg.evaluate(() => performance.getEntriesByType('resource').sort((a, b) => b.responseEnd - a.responseEnd).slice(0, 6).map(e => Math.round(e.startTime) + '-' + Math.round(e.responseEnd) + ' ' + e.initiatorType + ' ' + e.name.replace(location.origin, '').slice(0, 90)));
     runs.push({ dcl: m.dcl, load: m.load, dock: m.dock, ...idle, errors: errors.length, last });
+    if (TRACE) {
+      const t = await pg.evaluate(() => window.__mnTrace);
+      const inLoad = x => x[0] >= (m.dcl || 0) - 500 && x[0] <= (m.load || 1e9) + 200;
+      console.error(`\n## trace ${p.page} run ${i + 1}: dcl ${m.dcl} load ${m.load} dock ${m.dock}  readyState ${t.rs.join(' ')}`);
+      console.error('  last resources:\n    ' + last.join('\n    '));
+      console.error('  main thread blocked (start ms, ms, readyState):\n    ' + t.gaps.filter(inLoad).map(g => g.join(' ')).join('\n    '));
+      console.error('  callbacks over 40 ms between dcl and load (start, ms, fn):\n    ' + t.long.filter(inLoad).sort((a, b) => b[1] - a[1]).slice(0, 15).map(g => g.join(' ')).join('\n    '));
+      console.error('  pending:\n    ' + t.pending.map(x => JSON.stringify(x)).join('\n    '));
+    }
     await ctx.close();
   }
   const row = { page: p.page, size: p.device || (p.viewport.width + 'x' + p.viewport.height) };
