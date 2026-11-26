@@ -7,6 +7,15 @@ on:
   pull_request:
     paths: ['*.html', 'ios/Minest/Minest/*.html', 'tools/**', 'spatial-home/**', 'tests/**', '.github/workflows/perf.yml']
   workflow_dispatch:
+    inputs:
+      trace:
+        description: Also print what each page's load event waited on
+        type: boolean
+        default: false
+      pages:
+        description: Only these pages (comma separated), empty for all
+        type: string
+        default: ''
 permissions:
   contents: read
 concurrency:
@@ -31,7 +40,10 @@ jobs:
           npm i --no-save --no-package-lock playwright@1.49.1
           npx playwright install --with-deps webkit
       - name: Open speed and jank (WebKit)
-        run: node tools/perf/run.mjs --json perf.json | tee -a "$GITHUB_STEP_SUMMARY"
+        env:
+          TRACE: ${{ inputs.trace && '--trace' || '' }}
+          PAGES: ${{ inputs.pages }}
+        run: node tools/perf/run.mjs --json perf.json $TRACE ${PAGES:+--pages "$PAGES"} | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
