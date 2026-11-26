@@ -201590,6 +201590,11 @@ html.duo [role=button], html.duo [role=tab], html.duo [role=menuitem], html.duo 
       close: function (r) { return call('MinestPetRaising', 'close') || click(r, '.minest-pet-x'); } },
     { id: 'rings', label: '成就', root: '.minest-activity-modal-backdrop', own: ['.minest-activity-modal-close'],
       close: function (r) { return click(r, '.minest-activity-modal-close'); } },
+    /* My World's sheets (Settings, a new world, an island's setup…): one head for all of them, ‹ title ×. The Dock's ✕ and ‹ are
+       those two, so the sheet's own pair steps aside (2026-11-26, duo-polish: Settings showed × twice) */
+    { id: 'sheet', label: '设置', root: '.mn-nw', own: ['.mn-nw .mn-nw-head > .mn-nw-b[aria-label="Close"]', '.mn-nw .mn-nw-head > .mn-nw-b[aria-label="Back"]'],
+      close: function (r) { return click(r, '.mn-nw-head > .mn-nw-b[aria-label="Close"]') || call('MinestSettings', 'close'); },
+      back: function (r) { return click(r, '.mn-nw-head > .mn-nw-b[aria-label="Back"]'); } },
     { id: 'world', label: 'My World', root: '.uv', own: ['.uv-head .uv-b', '.uv-add'],
       close: function (r) { return click(r, '.uv-head .uv-b[data-x]') || call('MinestUniverse', 'close'); },
       back: function (r) { return click(r, '.uv-head .uv-b[data-back]'); },
@@ -209127,6 +209132,11 @@ html.duo.mn-immersive.mn-chrome body:not(.clear-mode) header.iphone-topbar {
    half and left a strip of clipped letters on top of every card; the window now starts below the title (the card shows
    the title underneath anyway) and shows the steps */
 html.duo img.card-front-cover-img[src^="data:image/svg+xml"] { object-position: 50% 66%; }
+
+/* ───────── 3 · My World's sheets (Settings, new world, island setup — .mn-nw) ─────────
+   on the inner screen the sheet was held to 640px, so eight colour swatches (hair, shirt) left the eighth alone on a second
+   line; 740px gives each row room for all of them. The sheet's own × / ‹ give way to the Dock's (tools/system-bar/duo-pages.js) */
+html.duo.duo-inner .mn-nw .mn-nw-page { max-width: 740px; }
 
 @media (prefers-reduced-motion: reduce) {
   html.duo #mn-sh #sh-card:not([hidden]), html.duo #mn-sh #sh-settings:not([hidden]), html.duo #mn-sh #sh-toast:not([hidden]) {

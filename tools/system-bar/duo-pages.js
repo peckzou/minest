@@ -93,6 +93,11 @@
       close: function (r) { return call('MinestPetRaising', 'close') || click(r, '.minest-pet-x'); } },
     { id: 'rings', label: '成就', root: '.minest-activity-modal-backdrop', own: ['.minest-activity-modal-close'],
       close: function (r) { return click(r, '.minest-activity-modal-close'); } },
+    /* My World's sheets (Settings, a new world, an island's setup…): one head for all of them, ‹ title ×. The Dock's ✕ and ‹ are
+       those two, so the sheet's own pair steps aside (2026-11-26, duo-polish: Settings showed × twice) */
+    { id: 'sheet', label: '设置', root: '.mn-nw', own: ['.mn-nw .mn-nw-head > .mn-nw-b[aria-label="Close"]', '.mn-nw .mn-nw-head > .mn-nw-b[aria-label="Back"]'],
+      close: function (r) { return click(r, '.mn-nw-head > .mn-nw-b[aria-label="Close"]') || call('MinestSettings', 'close'); },
+      back: function (r) { return click(r, '.mn-nw-head > .mn-nw-b[aria-label="Back"]'); } },
     { id: 'world', label: 'My World', root: '.uv', own: ['.uv-head .uv-b', '.uv-add'],
       close: function (r) { return click(r, '.uv-head .uv-b[data-x]') || call('MinestUniverse', 'close'); },
       back: function (r) { return click(r, '.uv-head .uv-b[data-back]'); },
