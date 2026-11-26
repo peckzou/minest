@@ -121,7 +121,11 @@
         }
         if (!mixer) { var pulse = Math.sin(t * 3.2); arms.forEach(function (arm, j) { arm.rotation.z = -0.35 - 0.3 * pulse + Math.sin(t * 2 + j) * 0.12; }); stand.scale.set(1 + 0.04 * pulse, 1 - 0.05 * pulse, 1 + 0.04 * pulse); }
       },
-      afterBuild: function () { setTimeout(loadModel, 1200); }
+      afterBuild: function () {
+        var done = false; function go() { if (done) return; done = true; root.removeEventListener('spatialhome:envready', soon); loadModel(); }
+        function soon() { setTimeout(go, 500); }
+        if (root.SpatialGLB && root.SpatialGLB.pending()) { root.addEventListener('spatialhome:envready', soon); setTimeout(go, 12000); } else setTimeout(go, 1200);   // 2026-11-26
+      }
     };
     return o;
   }
