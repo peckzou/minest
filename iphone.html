@@ -122,40 +122,137 @@ let raw=JSON.stringify(e);S.setItem(KEY,raw);if(S.getItem(KEY)!==raw)throw Error
 return {get(){let e=read();view=e?JSON.stringify(e.state):null;return view;},set(raw,previous){let incoming=JSON.parse(raw),current=read()||E.migrate({state:incoming}),before=previous?JSON.parse(previous):view?JSON.parse(view):current.state,e=E.edit(current,before,incoming,o.actor,o.now?o.now():Date.now());e.pending=true;let accepted=persist(e);view=accepted;o.notify();return accepted;},cloud(){let e=read();if(!e)return null;return {v:2,at:e.at,clock:e.clock,state:e.state,sync:e.sync};},pending(){return !!read()?.pending;},mergeCloud(remote){if(!remote||!remote.state)return;let current=read(),next=E.merge(current,remote);next.pending=!covered(next,remote);let before=current&&JSON.stringify(current);if(before!==JSON.stringify(next)){let accepted=persist(next);view=accepted;o.apply(accepted);}if(next.pending)o.notify();},read};}
 if(typeof module==='object'&&module.exports)module.exports=create;else root.MinestRoutineHostStore=create;})(typeof window!=='undefined'?window:this);
 
-(function(root){function minestSame(a,b){return JSON.stringify(a)===JSON.stringify(b);}
+(function(root){
+/* Board three-way merge (2026-11-26, board sync repair).
+   base = the boards as the cloud last had them, local = this device, remote = the server now.
+   - Boards, lists and cards are merged field by field: a field only one side changed takes that side; a field both
+     sides changed takes the newer side (mineNewer). So a tick on one device and a title edit on another both survive.
+   - Added on either side is kept. Deleted on one side is dropped only if the other side left it untouched.
+   - Order is merged too: a side that reordered (and the other did not) keeps its order. Before this, the server's
+     order always won, so a reorder made on this device was reverted by the next upload.
+   - A card moved to another list follows the move, and an edit made elsewhere to that card is kept with it.
+   - A card's stacked cards and checklist items are merged item by item too.
+   - Without a base nothing is inferred deleted. */
+function minestSame(a,b){return JSON.stringify(a)===JSON.stringify(b);}
 function minestMerge3(base, local, remote, mineNewer) {
-  var LEVELS = ['columns', 'cards'];
-  function idx(a) { var m = {}; (a || []).forEach(function(x) { if (x && x.id != null) m[x.id] = x; }); return m; }
-  function strip(x, key) { if (!key || !x) return x; var o = {}; Object.keys(x).forEach(function(k) { if (k !== key) o[k] = x[k]; }); return o; }
-  function one(b, l, r, depth) {
-    if (!l && !r) return null;
-    if (!l) return b && minestSame(b, r) ? null : r;
-    if (!r) return b && minestSame(b, l) ? null : l;
-    if (minestSame(l, r)) return l;
-    var key = LEVELS[depth];
-    var lc = !b || !minestSame(strip(b, key), strip(l, key)), rc = !b || !minestSame(strip(b, key), strip(r, key));
-    var own = (lc && !rc) ? l : (rc && !lc) ? r : (mineNewer ? l : r);
-    if (!key) return own;
-    var o = strip(own, key); o[key] = list(b && b[key], l[key], r[key], depth + 1); return o;
-  }
-  function list(bA, lA, rA, depth) {
-    var B = idx(bA), L = idx(lA), out = [], have = {};
-    (rA || []).forEach(function(r) { if (!r || r.id == null || have[r.id]) return; have[r.id] = 1; var v = one(B[r.id], L[r.id], r, depth); if (v) out.push(v); });
-    (lA || []).forEach(function(l, i) {
-      if (!l || l.id == null || have[l.id]) return; have[l.id] = 1;
-      var v = one(B[l.id], l, null, depth); if (!v) return;
-      var prev = i > 0 && lA[i - 1] ? lA[i - 1].id : null, at = prev == null ? 0 : out.length;
-      for (var j = 0; prev != null && j < out.length; j++) if (out[j].id === prev) { at = j + 1; break; }
-      out.splice(at, 0, v);
+  function has(x) { return !!x && typeof x === 'object' && x.id != null; }
+  function ids(a) { var out = [], seen = {}; (a || []).forEach(function(x) { if (has(x) && !seen[x.id]) { seen[x.id] = 1; out.push(x.id); } }); return out; }
+  function idx(a) { var m = {}; (a || []).forEach(function(x) { if (has(x) && !(x.id in m)) m[x.id] = x; }); return m; }
+  function clone(x) { return x === undefined ? undefined : JSON.parse(JSON.stringify(x)); }
+  /* field-level three-way of one object; `skip` (its child list) is left out */
+  function fields(b, l, r, skip) {
+    if (!l) return clone(r); if (!r) return clone(l);
+    var out = {}, keys = {};
+    Object.keys(l).concat(Object.keys(r)).forEach(function(k) { if (k !== skip) keys[k] = 1; });
+    Object.keys(keys).forEach(function(k) {
+      var lv = l[k], rv = r[k], v;
+      if (minestSame(lv, rv)) v = lv;
+      else if (LISTS[k] && Array.isArray(lv) && Array.isArray(rv)) v = mergeList(b && Array.isArray(b[k]) ? b[k] : null, lv, rv);
+      else {
+        var lc = !b || !minestSame(b[k], lv), rc = !b || !minestSame(b[k], rv);
+        v = (lc && !rc) ? lv : (rc && !lc) ? rv : (mineNewer ? lv : rv);
+      }
+      if (v !== undefined) out[k] = clone(v);
     });
     return out;
   }
-  var res = list(base, local, remote, 0);
-  res.forEach(function(bd) { var seen = {}; (bd.columns || []).forEach(function(c) { if (c && c.cards) c.cards = c.cards.filter(function(k) { if (!k || seen[k.id]) return false; seen[k.id] = 1; return true; }); }); });
-  return res;
+  /* a card's stacked cards (My World's items) and checklist items: merged item by item like cards, so an item added,
+     ticked or reordered on one device and another item changed on another device both survive */
+  var LISTS = { stack: 1, checklistItems: 1 };
+  function mergeList(b, l, r) {
+    if (!l.every(has) || !r.every(has)) return mineNewer ? l : r;
+    var B = idx(b), L = idx(l), R = idx(r), keep = {}, out = {};
+    Object.keys(L).concat(Object.keys(R)).forEach(function(id) {
+      if (out[id]) return;
+      var bi = B[id], li = L[id], ri = R[id];
+      if (li && ri) out[id] = fields(bi, li, ri, null);
+      else if (li ? keepOne(bi, li) : keepOne(bi, ri)) out[id] = clone(li || ri);
+      if (out[id]) keep[id] = 1;
+    });
+    return order(ids(b), ids(l), ids(r), keep).map(function(id) { return out[id]; });
+  }
+  /* present on one side only: dropped if the side that still has it left it as the base had it */
+  function keepOne(b, x) { return !(b && minestSame(b, x)); }
+  function seqChanged(bIds, xIds) {
+    var inB = {}, inX = {}; bIds.forEach(function(i) { inB[i] = 1; }); xIds.forEach(function(i) { inX[i] = 1; });
+    return bIds.filter(function(i) { return inX[i]; }).join('\u0001') !== xIds.filter(function(i) { return inB[i]; }).join('\u0001');
+  }
+  /* order the ids in `keep`, with the side that reordered as the skeleton; the rest go in after their neighbour */
+  function order(bIds, lIds, rIds, keep) {
+    var lc = seqChanged(bIds, lIds), rc = seqChanged(bIds, rIds);
+    var useLocal = (lc && !rc) ? true : (rc && !lc) ? false : !!mineNewer;
+    var primary = useLocal ? lIds : rIds, secondary = useLocal ? rIds : lIds;
+    var out = [], placed = {};
+    primary.forEach(function(i) { if (keep[i] && !placed[i]) { out.push(i); placed[i] = 1; } });
+    [secondary, bIds].forEach(function(seq) {
+      seq.forEach(function(i, n) {
+        if (!keep[i] || placed[i]) return;
+        var at = 0;
+        for (var p = n - 1; p >= 0; p--) { var j = out.indexOf(seq[p]); if (j >= 0) { at = j + 1; break; } }
+        out.splice(at, 0, i); placed[i] = 1;
+      });
+    });
+    Object.keys(keep).forEach(function(i) { if (!placed[i]) { out.push(i); placed[i] = 1; } });
+    return out;
+  }
+  function cardsOf(board) {
+    var m = {};
+    ((board && board.columns) || []).forEach(function(c) {
+      if (!has(c)) return;
+      (c.cards || []).forEach(function(k) { if (has(k) && !(k.id in m)) m[k.id] = { col: c.id, card: k }; });
+    });
+    return m;
+  }
+  function colIds(board, colId) {
+    var c = ((board && board.columns) || []).filter(function(x) { return has(x) && x.id === colId; })[0];
+    return c ? ids(c.cards) : [];
+  }
+  function mergeBoard(b, l, r) {
+    var out = fields(b, l, r, 'columns');
+    var bC = idx(b && b.columns), lC = idx(l.columns), rC = idx(r.columns), keepCols = {}, cols = {};
+    Object.keys(lC).concat(Object.keys(rC)).forEach(function(id) {
+      if (cols[id]) return;
+      var bc = bC[id], lc = lC[id], rc = rC[id];
+      if (lc && rc) cols[id] = fields(bc, lc, rc, 'cards');
+      else if (lc ? keepOne(bc, lc) : keepOne(bc, rc)) cols[id] = fields(null, lc, rc, 'cards');
+      if (cols[id]) { keepCols[id] = 1; cols[id].cards = []; }
+    });
+    var colOrder = order(ids(b && b.columns), ids(l.columns), ids(r.columns), keepCols);
+    var bK = cardsOf(b), lK = cardsOf(l), rK = cardsOf(r), where = {}, cards = {};
+    Object.keys(lK).concat(Object.keys(rK)).forEach(function(id) {
+      if (cards[id]) return;
+      var bk = bK[id], lk = lK[id], rk = rK[id], card, col;
+      if (lk && rk) {
+        card = fields(bk && bk.card, lk.card, rk.card, null);
+        var lm = !bk || lk.col !== bk.col, rm = !bk || rk.col !== bk.col;
+        col = lk.col === rk.col ? lk.col : (lm && !rm) ? lk.col : (rm && !lm) ? rk.col : (mineNewer ? lk.col : rk.col);
+        if (!cols[col]) col = cols[lk.col] ? lk.col : rk.col;
+      } else {
+        var one = lk || rk;
+        if (!(bk && minestSame(bk.card, one.card) && bk.col === one.col)) { card = clone(one.card); col = one.col; }
+      }
+      if (card && cols[col]) { cards[id] = card; where[id] = col; }
+    });
+    colOrder.forEach(function(cid) {
+      var keep = {}; Object.keys(where).forEach(function(id) { if (where[id] === cid) keep[id] = 1; });
+      cols[cid].cards = order(colIds(b, cid), colIds(l, cid), colIds(r, cid), keep).map(function(id) { return cards[id]; });
+    });
+    out.columns = colOrder.map(function(cid) { return cols[cid]; });
+    return out;
+  }
+  var B = idx(base), L = idx(local), R = idx(remote), keep = {}, merged = {};
+  Object.keys(L).concat(Object.keys(R)).forEach(function(id) {
+    if (merged[id]) return;
+    var b = B[id], l = L[id], r = R[id];
+    if (l && r) merged[id] = minestSame(l, r) ? clone(l) : mergeBoard(b, l, r);
+    else if (l ? keepOne(b, l) : keepOne(b, r)) merged[id] = clone(l || r);
+    if (merged[id]) keep[id] = 1;
+  });
+  return order(ids(base), ids(local), ids(remote), keep).map(function(id) { return merged[id]; });
 }
-
-root.MinestBoardMerge=minestMerge3;})(window);
+root.MinestBoardMerge=minestMerge3;
+if(typeof module==='object'&&module.exports)module.exports=minestMerge3;
+})(typeof window!=='undefined'?window:this);
 
 /* Entity-level three-way merge: independent creations survive a newer save elsewhere. */
 (function(root){'use strict';function same(a,b){return JSON.stringify(a)===JSON.stringify(b);}
@@ -178,6 +275,8 @@ if(typeof local[key+'Gz']==='string'){out[key+'Gz']=await pack(merged);}else out
 if(out.syncVersionsV1&&w.MinestSyncCore){out.syncVersionsV1=Object.assign({},out.syncVersionsV1);var cat={boards:'boards',routine:'routine',knowledge:'myworld'}[key];out.syncVersionsV1[cat]=Object.assign({},out.syncVersionsV1[cat],{version:w.MinestSyncCore.version(key==='routine'?merged.state:merged)});}}
 if(local.teachingWordsets&&remote.teachingWordsets){out.teachingWordsets=w.MinestBoardMerge(base.teaching?[base.teaching]:[], [local.teachingWordsets],[remote.teachingWordsets],mine)[0];out.teachingAssets=Object.assign({},remote.teachingAssets,local.teachingAssets);if(out.syncVersionsV1&&w.MinestSyncCore){out.syncVersionsV1=Object.assign({},out.syncVersionsV1,{teaching:Object.assign({},out.syncVersionsV1.teaching,{version:w.MinestSyncCore.version({wordsets:out.teachingWordsets,assets:out.teachingAssets||{}})})});}}
 if(local.workspaceGroups&&remote.workspaceGroups){var groups=new Map();remote.workspaceGroups.concat(local.workspaceGroups).forEach(r=>{var old=groups.get(r.name);if(!old||r.at>old.at||r.at===old.at&&r.deleted)groups.set(r.name,r);});out.workspaceGroups=Array.from(groups.values());}
+/* 2026-11-26 · built-in boards (EC6 Outline / Glossary): per-card edits, newest stamp wins, other devices' cards kept */
+if(local.builtinEdits&&typeof local.builtinEdits==='object'&&remote.builtinEdits&&typeof remote.builtinEdits==='object'){var be={};[remote.builtinEdits,local.builtinEdits].forEach(function(src){Object.keys(src).forEach(function(bid){var m=src[bid];if(!m||typeof m!=='object')return;var o=be[bid]||(be[bid]={});Object.keys(m).forEach(function(id){var x=m[id];if(!x||typeof x.e!=='string')return;if(!o[id]||(Number(x.t)||0)>(Number(o[id].t)||0))o[id]=x;});});});out.builtinEdits=be;}
 return out;}
 w.MinestSyncReconcile={prepare:prepare,merge:reconcile,applyAccepted:async function(p){var r=await unpack(p,'routine');if(r&&w.MinestRoutine&&w.MinestRoutine.confirm)w.MinestRoutine.confirm(r);}};})(window);
 
@@ -43471,6 +43570,8 @@ function openBoardsIdb() {
   });
 }
 
+/* 2026-11-26: settles once this device's own boards (IndexedDB) are loaded, at most 6 s after start */
+var minestBoardsBootDone, minestBoardsBoot = new Promise(function(r) { minestBoardsBootDone = r; setTimeout(r, 6000); });
 function idbGetBoards() {
   return openBoardsIdb().then(function(db) {
     return new Promise(function(resolve, reject) {
@@ -84577,12 +84678,14 @@ function minestCloudWriter() {
   return dev + ' ' + br;
 }
 async function minestCloudPayload(boards, extra) {
+  var builtinEdits = null; try { builtinEdits = minestBuiltinEditsPayload(boards); } catch (e) {}
   if (Array.isArray(boards)) boards = boards.filter(function(b) { return !b || (b.id !== 'board-ec6-outline' && b.id !== 'board-ec6-glossary'); });
   if(window.MinestDurableStorage)await window.MinestDurableStorage.ready;
   if(window.MinestRoutine&&window.MinestRoutine.flush)await window.MinestRoutine.flush();
   var now = Date.now();
   var base = Object.assign({}, extra, { clientUpdatedAt: now, writer: minestCloudWriter(), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
   base.workspaceGroups = window.MinestWorkspaceCloud.snapshot();
+  if (builtinEdits) base.builtinEdits = builtinEdits;
   // 44.6 Learning Path: the study log (per device, merged on every device) rides along
   try { if (window.MinestLearn && window.MinestLearn._cloud) base.learning = JSON.parse(JSON.stringify(window.MinestLearn._cloud())); } catch (e) {}
   var know = null, gpt = null, rtn = null;
@@ -84592,7 +84695,7 @@ async function minestCloudPayload(boards, extra) {
   if (!minestCanGzip()) { if (know) base.knowledge = JSON.parse(know); if(rtn)base.routine=JSON.parse(rtn);if(gpt)base.gptstudy=JSON.parse(gpt); return Promise.resolve(Object.assign(base, { boards: boards })); }
   return Promise.all([minestGzipText(JSON.stringify(boards)), know ? minestGzipText(know) : null, gpt ? minestGzipText(gpt) : null, rtn ? minestGzipText(rtn) : null]).then(function(g) {
     // 53.84: the whole document counts against Firestore's 1 MB, not just the boards
-    var total = g[0].length + (g[1] || '').length + (g[2] || '').length + (g[3] || '').length + JSON.stringify(base.learning || null).length + JSON.stringify(base.workspaceGroups).length;
+    var total = g[0].length + (g[1] || '').length + (g[2] || '').length + (g[3] || '').length + JSON.stringify(base.learning || null).length + JSON.stringify(base.workspaceGroups).length + JSON.stringify(base.builtinEdits || null).length;
     if (total > MINEST_CLOUD_GZ_LIMIT) {
       var err = new Error('Boards are too large for cloud sync even when compressed (' + Math.round(total / 1024) + ' KB).');
       err.tooLarge = true;
@@ -84710,36 +84813,123 @@ function minestSame(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 /* three-way merge of boards → lists → cards against `base`: a thing only one side changed takes that side; a thing both
    changed takes the newer side (mineNewer); added on either side is kept, deleted on one side is dropped only if the
    other side left it untouched; a card moved to another list follows the move */
-function minestMerge3(base, local, remote, mineNewer) {
-  var LEVELS = ['columns', 'cards'];
-  function idx(a) { var m = {}; (a || []).forEach(function(x) { if (x && x.id != null) m[x.id] = x; }); return m; }
-  function strip(x, key) { if (!key || !x) return x; var o = {}; Object.keys(x).forEach(function(k) { if (k !== key) o[k] = x[k]; }); return o; }
-  function one(b, l, r, depth) {
-    if (!l && !r) return null;
-    if (!l) return b && minestSame(b, r) ? null : r;
-    if (!r) return b && minestSame(b, l) ? null : l;
-    if (minestSame(l, r)) return l;
-    var key = LEVELS[depth];
-    var lc = !b || !minestSame(strip(b, key), strip(l, key)), rc = !b || !minestSame(strip(b, key), strip(r, key));
-    var own = (lc && !rc) ? l : (rc && !lc) ? r : (mineNewer ? l : r);
-    if (!key) return own;
-    var o = strip(own, key); o[key] = list(b && b[key], l[key], r[key], depth + 1); return o;
+function minestMerge3(base, local, remote, mineNewer) { return window.MinestBoardMerge(base, local, remote, mineNewer); }
+/* 2026-11-26 · board sync repair (tools/cloud-transport/board-app.js, inserted by patch_board_sync.py).
+   Built-in boards (EC6 Outline, EC6 Glossary) are rebuilt from the page, not stored whole in the cloud copy. Before
+   this, every cloud copy that came in replaced them with fresh defaults, so ticks and mastery on them were lost on
+   each sync and never reached other devices. Now: this device keeps its own built-in boards, and the cloud doc
+   carries only what differs from the default, card by card (builtinEdits), newest edit per card wins. */
+var MINEST_BUILTIN_BOARD_IDS = { 'board-ec6-outline': 1, 'board-ec6-glossary': 1 };
+var MINEST_BUILTIN_EDITS_KEY = 'minest.builtinEdits.v1';
+function minestIsBuiltin(b) { return !!(b && MINEST_BUILTIN_BOARD_IDS[b.id]); }
+function minestNoBuiltins(list) { return Array.isArray(list) ? list.filter(function(b) { return !minestIsBuiltin(b); }) : list; }
+/* `list` with this device's own built-in boards in place of whatever built-in boards it has */
+function minestKeepBuiltins(list, local) {
+  if (!Array.isArray(list)) return list;
+  return (local || []).filter(minestIsBuiltin).concat(minestNoBuiltins(list));
+}
+function minestBuiltinDefaults() {
+  if (!minestBuiltinDefaults.c) {
+    var m = {};
+    sanitizeLoadedBoards([MINEST_EC6_OUTLINE, MINEST_EC6_GLOSSARY]).forEach(function(b) { if (minestIsBuiltin(b)) m[b.id] = b; });
+    minestBuiltinDefaults.c = m;
   }
-  function list(bA, lA, rA, depth) {
-    var B = idx(bA), L = idx(lA), out = [], have = {};
-    (rA || []).forEach(function(r) { if (!r || r.id == null || have[r.id]) return; have[r.id] = 1; var v = one(B[r.id], L[r.id], r, depth); if (v) out.push(v); });
-    (lA || []).forEach(function(l, i) {
-      if (!l || l.id == null || have[l.id]) return; have[l.id] = 1;
-      var v = one(B[l.id], l, null, depth); if (!v) return;
-      var prev = i > 0 && lA[i - 1] ? lA[i - 1].id : null, at = prev == null ? 0 : out.length;
-      for (var j = 0; prev != null && j < out.length; j++) if (out[j].id === prev) { at = j + 1; break; }
-      out.splice(at, 0, v);
+  return minestBuiltinDefaults.c;
+}
+function minestBuiltinStore() {
+  try { var s = JSON.parse((window.MinestDurableStorage || localStorage).getItem(MINEST_BUILTIN_EDITS_KEY) || 'null'); return s && typeof s === 'object' ? s : {}; } catch (e) { return {}; }
+}
+function minestBuiltinStoreSave(s) { try { (window.MinestDurableStorage || localStorage).setItem(MINEST_BUILTIN_EDITS_KEY, JSON.stringify(s)); } catch (e) {} }
+function minestBuiltinCards(board) {
+  var m = {};
+  ((board && board.columns) || []).forEach(function(c, ci) {
+    ((c && c.cards) || []).forEach(function(k, ki) { if (k && k.id != null && !(k.id in m)) m[k.id] = { col: c.id, at: ki, card: k }; });
+  });
+  return m;
+}
+/* what this board has that the default does not: {cardId: {f: changed fields, u: removed fields, c: list} | {del} | {add, c}} */
+function minestBuiltinDiff(board, def) {
+  var out = {}, D = minestBuiltinCards(def), L = minestBuiltinCards(board);
+  Object.keys(D).forEach(function(id) {
+    var d = D[id], l = L[id];
+    if (!l) { out[id] = { del: 1 }; return; }
+    var e = {}, f = {}, n = 0;
+    Object.keys(l.card).forEach(function(k) { if (k !== 'id' && JSON.stringify(l.card[k]) !== JSON.stringify(d.card[k])) { f[k] = l.card[k]; n++; } });
+    var u = Object.keys(d.card).filter(function(k) { return !(k in l.card); });
+    if (n) e.f = f; if (u.length) e.u = u; if (l.col !== d.col) e.c = l.col;
+    if (n || u.length || e.c) out[id] = e;
+  });
+  Object.keys(L).forEach(function(id) { if (!D[id]) out[id] = { add: L[id].card, c: L[id].col }; });
+  return out;
+}
+/* stamp this device's built-in edits (a card whose difference from the default changed gets the time now) */
+function minestBuiltinStamp(boards) {
+  var defs = minestBuiltinDefaults(), store = minestBuiltinStore(), now = Date.now(), changed = false;
+  (boards || []).forEach(function(b) {
+    if (!minestIsBuiltin(b) || !defs[b.id]) return;
+    var cur = minestBuiltinDiff(b, defs[b.id]), st = store[b.id] || {};
+    Object.keys(cur).concat(Object.keys(st)).forEach(function(id) {
+      var e = JSON.stringify(cur[id] || {});
+      if (st[id] ? st[id].e === e : e === '{}') return;
+      st[id] = { t: now, e: e }; changed = true;
+    });
+    if (Object.keys(st).length) store[b.id] = st;
+  });
+  if (changed) minestBuiltinStoreSave(store);
+  return store;
+}
+/* the field for the cloud doc, or null when there is nothing (an empty map would wipe the cloud's entries) */
+function minestBuiltinEditsPayload(boards) {
+  var store = minestBuiltinStamp(boards), out = null;
+  Object.keys(store).forEach(function(bid) { if (MINEST_BUILTIN_BOARD_IDS[bid] && store[bid] && Object.keys(store[bid]).length) { out = out || {}; out[bid] = store[bid]; } });
+  return out;
+}
+/* the cloud's built-in edits that are newer than this device's: {boardId: {cardId: entry}}; this device now holds them */
+function minestBuiltinIncoming(remote, localBoards) {
+  var todo = {};
+  if (!remote || typeof remote !== 'object') return todo;
+  var store = minestBuiltinStamp(localBoards), changed = false;
+  Object.keys(remote).forEach(function(bid) {
+    var rb = remote[bid]; if (!MINEST_BUILTIN_BOARD_IDS[bid] || !rb || typeof rb !== 'object') return;
+    var st = store[bid] || (store[bid] = {});
+    Object.keys(rb).forEach(function(id) {
+      var r = rb[id], e; if (!r || typeof r.e !== 'string') return;
+      if (st[id] && (Number(st[id].t) || 0) >= (Number(r.t) || 0)) return;
+      try { e = JSON.parse(r.e); } catch (err) { return; }
+      (todo[bid] = todo[bid] || {})[id] = e; st[id] = { t: Number(r.t) || 0, e: r.e }; changed = true;
+    });
+  });
+  if (changed) minestBuiltinStoreSave(store);
+  return todo;
+}
+/* apply incoming built-in edits to these boards (pure; the same array when there is nothing to do) */
+function minestBuiltinPatchAll(boards, todo) {
+  if (!todo || !Object.keys(todo).length || !Array.isArray(boards)) return boards;
+  var defs = minestBuiltinDefaults();
+  return boards.map(function(b) {
+    var edits = b && todo[b.id], def = b && defs[b.id];
+    if (!edits || !def) return b;
+    var D = minestBuiltinCards(def), out = JSON.parse(JSON.stringify(b));
+    Object.keys(edits).forEach(function(id) {
+      var e = edits[id] || {}, d = D[id], was = null;
+      (out.columns || []).forEach(function(c) {
+        if (!c || !c.cards) return;
+        var i = c.cards.findIndex(function(k) { return k && k.id === id; });
+        if (i >= 0) { was = { col: c.id, at: i }; c.cards.splice(i, 1); }
+      });
+      if (e.del) return;
+      var card, col;
+      if (e.add) { card = e.add; col = e.c || (was && was.col); }
+      else if (d) { card = Object.assign(JSON.parse(JSON.stringify(d.card)), e.f || {}); (e.u || []).forEach(function(k) { delete card[k]; }); col = e.c || d.col; }
+      else return;
+      var find = function(cid) { return (out.columns || []).filter(function(c) { return c && c.id === cid; })[0]; };
+      var target = find(col) || (was && find(was.col)); if (!target) return;
+      target.cards = target.cards || [];
+      var at = was && was.col === target.id ? was.at : (d && d.col === target.id ? d.at : target.cards.length);
+      target.cards.splice(Math.min(at, target.cards.length), 0, card);
     });
     return out;
-  }
-  var res = list(base, local, remote, 0);
-  res.forEach(function(bd) { var seen = {}; (bd.columns || []).forEach(function(c) { if (c && c.cards) c.cards = c.cards.filter(function(k) { if (!k || seen[k.id]) return false; seen[k.id] = 1; return true; }); }); });
-  return res;
+  });
 }
 
 // 31.7: Trello "Export as JSON" → a Minest board. Open lists and cards only, in
@@ -84827,13 +85017,13 @@ function sanitizeLoadedBoards(list) {
   list = minestWithEc6Outline(list);
   if (!Array.isArray(list) || list.length === 0) return y;
   try {
-    return list.map(function(b, bIdx) {
+    return list.filter(function(b) { return b && typeof b === 'object'; }).map(function(b, bIdx) { try {
       var lp = getBoardDisplayPrefs(b.id);
       var bTitleParts = splitBilingualTitle(b.title || "Board");
       var ws = (typeof b.workspace === 'string' && b.workspace.trim())
         ? b.workspace.trim()
         : ((b.id && (b.id.indexOf('board-ec6') >= 0 || b.id.indexOf('anchor-charts') >= 0)) ? 'ec-6 framework' : 'General');
-      return {
+      return Object.assign({}, b, {
         id: typeof b.id === 'string' && b.id ? b.id : ("board-" + bIdx),
         title: bTitleParts.title,
         titleZh: b.titleZh || bTitleParts.titleZh || "",
@@ -84862,9 +85052,9 @@ function sanitizeLoadedBoards(list) {
         labelDefinitions: Array.isArray(b.labelDefinitions) ? b.labelDefinitions : [],
         archivedCards: Array.isArray(b.archivedCards) ? b.archivedCards : [],
         inkEnabled: !!b.inkEnabled,
-        columns: Array.isArray(b.columns) ? b.columns.map(function(col, cIdx) {
+        columns: Array.isArray(b.columns) ? b.columns.filter(function(col) { return col && typeof col === 'object'; }).map(function(col, cIdx) {
           var colParts = splitBilingualTitle(col.title || "List");
-          return {
+          return Object.assign({}, col, {
             id: typeof col.id === 'string' && col.id ? col.id : ("col-" + cIdx),
             title: colParts.title,
             titleZh: col.titleZh || colParts.titleZh || "",
@@ -84880,9 +85070,9 @@ function sanitizeLoadedBoards(list) {
             showCovers: col.showCovers !== undefined ? !!col.showCovers : undefined,
             hideCovers: col.hideCovers !== undefined ? !!col.hideCovers : undefined,
             inkMode: col.inkMode === 'on' || col.inkMode === 'off' ? col.inkMode : 'inherit',
-            cards: Array.isArray(col.cards) ? col.cards.map(function(card, kIdx) {
+            cards: Array.isArray(col.cards) ? col.cards.filter(function(card) { return card && typeof card === 'object'; }).map(function(card, kIdx) {
               var cardParts = splitBilingualTitle(card.title || "Task");
-              return {
+              return Object.assign({}, card, {
                 id: typeof card.id === 'string' && card.id ? card.id : ("card-" + kIdx),
                 title: cardParts.title,
                 titleZh: card.titleZh || cardParts.titleZh || "",
@@ -84935,12 +85125,12 @@ function sanitizeLoadedBoards(list) {
                 pron: card.pron && typeof card.pron === 'object' && typeof card.pron.latest === 'number' ? card.pron : null,
                 lastReviewed: typeof card.lastReviewed === 'number' ? card.lastReviewed : 0,
                 learn: card.learn && typeof card.learn === 'object' ? card.learn : null
-              };
+              });
             }) : []
-          };
+          });
         }) : []
-      };
-    });
+      });
+    } catch (e1) { return b; } });
   } catch (err) {
     return y;
   }
@@ -85037,7 +85227,7 @@ var Be = function() {
   // the Firestore listener uses) so restoring known state doesn't get
   // mistaken for a fresh local edit and re-pushed to the cloud.
   (0, _.useEffect)(function() {
-    var cancelled = false;
+    var cancelled = false, bootSeed = boards;
     idbGetBoards().then(function(idbBoards) {
       if (cancelled || !idbBoards) return;
       var sanitized = sanitizeLoadedBoards(idbBoards);
@@ -85061,8 +85251,11 @@ var Be = function() {
           }
         }
       });
-      isRemoteUpdateRef.current = sanitized;
-      setBoards(sanitized);
+      setBoards(function(cur) {
+        /* something changed the boards since start (a quick edit, a tidy-up effect): keep that on top of the stored boards */
+        var next = cur === bootSeed ? sanitized : minestKeepBuiltins(minestMerge3(minestNoBuiltins(bootSeed), minestNoBuiltins(sanitized), minestNoBuiltins(cur), true), sanitized);
+        isRemoteUpdateRef.current = next; return next;
+      });
       setActiveBoardId(function(prevActiveId) {
         if (prevActiveId && sanitized.some(function(b) { return b.id === prevActiveId; })) {
           return prevActiveId;
@@ -85070,7 +85263,7 @@ var Be = function() {
         return sanitized[0].id;
       });
       /* Remote updates are identified by their exact array, never by a timed edit lock. */
-    }).catch(function() {});
+    }).catch(function() {}).then(function() { minestBoardsBootDone(); });
     return function() { cancelled = true; };
   }, []);
 
@@ -85632,6 +85825,47 @@ var Be = function() {
     window.addEventListener('minestCardToggled', onToggled);
     return function() { window.removeEventListener('minestCardToggled', onToggled); };
   }, []);
+  /* 2026-11-26 · watch checklist sync (patch_board_sync.py): a checklist tick or a new checklist item on the watch
+     changes the card here, so it is saved and synced like any edit. Before, the phone ignored both. */
+  (0, _.useEffect)(function() {
+    var onNative = function(e) {
+      var d = (e && e.detail) || {}, p = d.payload || {}, ev = d.event;
+      if ((ev !== 'checklistToggled' && ev !== 'checklistItemAdded') || !p.cardId) return;
+      setBoards(function(prev) {
+        var hit = false;
+        var next = prev.map(function(board) {
+          var touched = false;
+          var cols = (board.columns || []).map(function(col) {
+            var cards = (col.cards || []).map(function(card) {
+              if (!card || card.id !== p.cardId) return card;
+              var items = Array.isArray(card.checklistItems) ? card.checklistItems : [];
+              if (ev === 'checklistItemAdded') {
+                if (!p.text || items.some(function(it) { return it && it.id === p.id; })) return card;
+                touched = true;
+                return Object.assign({}, card, { checklistItems: items.concat([{ id: p.id || ('chk-' + Date.now()), text: String(p.text), done: false }]) });
+              }
+              var at = items.findIndex(function(it) { return it && (it.id === p.id || (it.text || it.title) === p.id); });
+              if (at < 0) return card;
+              var done = typeof p.isDone === 'boolean' ? p.isDone : !items[at].done;
+              if (!!items[at].done === done) return card;
+              touched = true;
+              var nextItems = items.slice(); nextItems[at] = Object.assign({}, items[at], { done: done });
+              var patch = { checklistItems: nextItems };
+              /* as on the watch: every item ticked marks the card done */
+              if (done && nextItems.every(function(it) { return it && it.done; })) patch.complete = true;
+              return Object.assign({}, card, patch);
+            });
+            return touched ? Object.assign({}, col, { cards: cards }) : col;
+          });
+          if (touched) hit = true;
+          return touched ? Object.assign({}, board, { columns: cols }) : board;
+        });
+        return hit ? next : prev;
+      });
+    };
+    window.addEventListener('minestNativeEvent', onNative);
+    return function() { window.removeEventListener('minestNativeEvent', onNative); };
+  }, []);
 
   // 31.6: keep the watch's boards, lists and cards current (boards live in IndexedDB,
   // so the native side cannot read them from localStorage). Sent slim: ids, titles,
@@ -85673,8 +85907,13 @@ var Be = function() {
         checklistItems: []
       };
       setBoards(function(prevBoards) {
+        /* 2026-11-26: a card the board already has (a resent watch message) is not added twice, and a new card goes on
+           one board only (the open one, else the first whose title has the category): the same card on two boards
+           made the sync merge drop one of them */
+        if (prevBoards.some(function(b) { return (b.columns || []).some(function(c) { return (c.cards || []).some(function(k) { return k && k.id === newCard.id; }); }); })) return prevBoards;
+        var targetId = prevBoards.some(function(b) { return b.id === activeBoardId; }) ? activeBoardId : (prevBoards.filter(function(b) { return b.title && detail.category && b.title.indexOf(detail.category) !== -1; })[0] || {}).id;
         return prevBoards.map(function(board) {
-          var isTargetBoard = (board.id === activeBoardId) || (board.title && detail.category && board.title.indexOf(detail.category) !== -1);
+          var isTargetBoard = board.id === targetId;
           if (!isTargetBoard) return board;
           var newCols = (board.columns || []).map(function(col, idx) {
             if (idx === 0) {
@@ -85862,7 +86101,7 @@ var Be = function() {
             try { if (data.learning && window.MinestLearn && window.MinestLearn._mergeCloud) window.MinestLearn._mergeCloud(data.learning); } catch (e) {} minestCloudExtras(data);
             try { window.MinestWorkspaceCloud.merge(data.workspaceGroups, !(doc.metadata && doc.metadata.fromCache)); } catch (e) { setSyncStatus('error'); return Promise.reject(e); }
             if (doc.metadata && doc.metadata.fromCache) { if (!cloudReadyRef.current) setSyncStatus("connecting"); return Promise.resolve(); }
-            return minestCloudBoards(data).then(function(remoteBoards) {
+            return minestBoardsBoot.then(function() { return minestCloudBoards(data); }).then(function(remoteBoards) {
               if (stopped) return;
               var rAt = Math.max(Number(data.clientUpdatedAt) || 0, Number(data.gzUpdatedAt) || 0);
               if (remoteBoards && remoteBoards.length > 0 && minestCloudBoardsDirty()) {
@@ -85872,7 +86111,8 @@ var Be = function() {
                 setSyncStatus("saving");
                 return minestCloudBaseGet().then(function(base) {
                   if (stopped) return;
-                  setBoards(function(local) { return base ? minestMerge3(base, local, remote, minestCloudNum(MINEST_CLOUD_DIRTY)>=rAt) : minestCloudNum(MINEST_CLOUD_DIRTY)>=rAt ? minestMergeBoards(local, remote) : minestMergeBoards(remote, local); });
+                  var todo = minestBuiltinIncoming(data.builtinEdits, cloudLatestRef.current && cloudLatestRef.current.boards);
+                  setBoards(function(local) { return minestBuiltinPatchAll(minestKeepBuiltins(minestMerge3(minestNoBuiltins(base), minestNoBuiltins(local), minestNoBuiltins(remote), mineNewer), local), todo); });
                   cloudReadyRef.current = true;
                   setCloudKick(function(k) { return k + 1; });
                 });
@@ -85884,9 +86124,13 @@ var Be = function() {
                 var takenStamp = String(rAt) + ':' + remoteBoards.length;
                 if (window.__minestTakenStamp !== takenStamp) {
                   window.__minestTakenStamp = takenStamp;
-                  var incoming = sanitizeLoadedBoards(remoteBoards);
-                  isRemoteUpdateRef.current = incoming;
-                  setBoards(incoming);
+                  var todoIn = minestBuiltinIncoming(data.builtinEdits, cloudLatestRef.current && cloudLatestRef.current.boards);
+                  setBoards(function(cur) {
+                    var incoming = minestBuiltinPatchAll(sanitizeLoadedBoards(minestKeepBuiltins(remoteBoards, cur)), todoIn);
+                    /* a local edit the save effect has not seen yet: merge it instead of overwriting it */
+                    if (cloudSeenRef.current && cur !== cloudSeenRef.current) return minestBuiltinPatchAll(minestKeepBuiltins(minestMerge3(minestNoBuiltins(cloudSeenRef.current), minestNoBuiltins(cur), minestNoBuiltins(incoming), true), cur), todoIn);
+                    isRemoteUpdateRef.current = incoming; return incoming;
+                  });
                   if (data.activeBoardId && !cloudReadyRef.current && data.activeBoardId !== 'board-ec6-outline') { /* EC6 Outline stays open at launch */ }
                 }
                 /* Remote updates are identified by their exact array, never by a timed edit lock. */
@@ -86000,14 +86244,34 @@ var Be = function() {
           userEmail: user.email
         }).then(function(payload) {
           if (sentAt) { payload.clientUpdatedAt = sentAt; if (payload.boardsGz) payload.gzUpdatedAt = sentAt; }
-          return (window.MinestSyncManagement ? window.MinestSyncManagement.ref(db.collection("users").doc(user.uid).collection("focusboard").doc("data")) : db.collection("users").doc(user.uid).collection("focusboard").doc("data")).set(payload, { merge: true }).then(function() {
+          return (window.MinestSyncManagement ? window.MinestSyncManagement.ref(db.collection("users").doc(user.uid).collection("focusboard").doc("data")) : db.collection("users").doc(user.uid).collection("focusboard").doc("data")).set(payload, { merge: true }).then(function(res) {
             // Acknowledge only the exact groups in this successful write; newer local edits stay pending.
             window.MinestWorkspaceCloud.merge(payload.workspaceGroups, true);
+            return res;
           });
-        }).then(function() {
+        }).then(function(res) {
           uploadSucceeded = true;
           if (sentAt > minestCloudNum(MINEST_CLOUD_ACK)) minestCloudMark(MINEST_CLOUD_ACK, sentAt);
-          minestCloudBaseSet(L.boards);
+          /* 2026-11-26: the server may now hold more than this device sent (the commit merged in other devices' edits).
+             That accepted copy becomes the merge base and is taken in now, instead of a poll reverting edits later. */
+          var accepted = res && res.payload;
+          return (accepted ? minestCloudBoards(accepted) : Promise.resolve(null)).catch(function() { return null; }).then(function(acc) {
+            var now = cloudLatestRef.current ? cloudLatestRef.current.boards : latest.boards;
+            var todo = accepted ? minestBuiltinIncoming(accepted.builtinEdits, now) : {};
+            if (!acc || !acc.length || minestSame(acc, minestNoBuiltins(L.boards))) {
+              minestCloudBaseSet(L.boards);
+              if (Object.keys(todo).length) setBoards(function(cur) { var next = minestBuiltinPatchAll(cur, todo); if (cur === latest.boards) isRemoteUpdateRef.current = next; return next; });
+              return;
+            }
+            var acceptedBoards = sanitizeLoadedBoards(acc);
+            minestCloudBaseSet(acceptedBoards);
+            window.__minestTakenStamp = String(sentAt) + ':' + acc.length;
+            setBoards(function(cur) {
+              if (cur === latest.boards) { var next = minestBuiltinPatchAll(sanitizeLoadedBoards(minestKeepBuiltins(acc, cur)), todo); isRemoteUpdateRef.current = next; return next; }
+              return minestBuiltinPatchAll(minestKeepBuiltins(minestMerge3(minestNoBuiltins(L.boards), minestNoBuiltins(cur), minestNoBuiltins(acceptedBoards), true), cur), todo);
+            });
+          });
+        }).then(function() {
           window.__minestCloudFailWarned = false;if(window.MinestSyncManagement)window.MinestSyncManagement.clearSyncError();
           setLastSyncTime(new Date());
           if (minestCloudUnsynced()) setCloudKick(function(k) { return k + 1; }); else setSyncStatus("synced");
@@ -86143,9 +86407,8 @@ var Be = function() {
         var pulledBoards = await minestCloudBoards(data);
         if (pulledBoards && pulledBoards.length > 0) {
           minestCloudMark(MINEST_CLOUD_ACK, Math.max(Date.now(), minestCloudNum(MINEST_CLOUD_DIRTY))); minestCloudBaseSet(sanitizeLoadedBoards(pulledBoards));
-          var pulled = sanitizeLoadedBoards(pulledBoards);
-          isRemoteUpdateRef.current = pulled;
-          setBoards(pulled);
+          var pullTodo = minestBuiltinIncoming(data.builtinEdits, boards);
+          setBoards(function(cur) { var pulled = minestBuiltinPatchAll(sanitizeLoadedBoards(minestKeepBuiltins(pulledBoards, cur)), pullTodo); isRemoteUpdateRef.current = pulled; return pulled; });
           if (data.activeBoardId) setActiveBoardId(data.activeBoardId);
           if (data.viewMode) setViewMode(data.viewMode);
           if (data.themeMode) setThemeMode(data.themeMode);
