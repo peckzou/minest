@@ -189852,6 +189852,22 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
     if (!loaderP) loaderP = Promise.all([THREE.GLTFLoader ? null : add('vendor/GLTFLoader.js'), root.MeshoptDecoder ? null : add('vendor/meshopt_decoder.js')]);   // the scans ship meshopt-compressed
     return loaderP;
   }
+  /* 2026-11-26 打开快：模型的字节在房间一搭就开始下（或更早：开屏时 SpatialGLB.prefetch），不再等房间搭完、解码脚本 onload 之后 */
+  var GLB_BYTES = {}, GLB_DEFS = {};
+  function glbUrl(def) { return siteBase() + (def.lite && TEXCAP && TEXCAP <= 1024 ? def.lite : def.glb); }   // phones: the same model with its textures already at 1024² (a third of the bytes)
+  function glbBytes(def) {
+    var u = glbUrl(def); if (GLB_BYTES[u]) return GLB_BYTES[u];
+    var p = GLB_BYTES[u] = new Promise(function (res, rej) {
+      var x = new XMLHttpRequest(); x.open('GET', u, true); x.responseType = 'arraybuffer';
+      x.onload = function () { if ((x.status === 200 || x.status === 0) && x.response && x.response.byteLength) res(x.response); else rej(new Error('glb ' + x.status)); };
+      x.onerror = function () { rej(new Error('glb network')); }; x.send();
+    });
+    p.catch(function () { if (GLB_BYTES[u] === p) delete GLB_BYTES[u]; });
+    return p;
+  }
+  var GLB_PENDING = 0;
+  root.SpatialGLB = { prefetch: function (id) { var d = GLB_DEFS[id]; if (!d) return false; gltfLoader().catch(function () {}); glbBytes(d).catch(function () {}); return true; },
+    warm: function () { gltfLoader().catch(function () {}); }, has: function (id) { return !!GLB_DEFS[id]; }, pending: function () { return GLB_PENDING > 0; } };
   function raw(attr, i, c) {
     var a = attr.isInterleavedBufferAttribute ? attr.data.array : attr.array, v = c === 0 ? attr.getX(i) : c === 1 ? attr.getY(i) : attr.getZ(i);
     if (!attr.normalized) return v;
@@ -191056,7 +191072,7 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
     };
   }
   function makeEnv(def) {
-    registerMovable(def);
+    registerMovable(def); GLB_DEFS[def.id] = def;
     return function build(scene) {
       var holder = new THREE.Group(); holder.name = 'env-' + def.id; scene.add(holder);
       var g = new THREE.Group(); holder.add(g);
@@ -191081,10 +191097,14 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
       var areas = [def.walk.slice()], surfaces = [], fin = null, tmode = 'auto';
       if (def.chandelier) chandelier(g, def.chandelier[0], def.chandelier[1], def.chandelier[2]);                                   // the whole hall can be walked; the model's own obstacles stop you
 
-      gltfLoader().then(function () {
+      var envObj = null, bytes = glbBytes(def), pend = true; GLB_PENDING++;   // the download starts now, while the room is still being built
+      function ready(ok) { if (pend) { pend = false; GLB_PENDING--; } if (!envObj || envObj.ready) return; envObj.ready = true; envObj.failed = !ok; try { root.dispatchEvent(new CustomEvent('spatialhome:envready', { detail: { env: def.id, ok: !!ok } })); } catch (er) {} }
+      function failed(e) { ready(false); if (root.console) console.warn('Spatial Home: ' + def.id + ' model could not load', e); }
+      Promise.all([gltfLoader(), bytes]).then(function (got) {
         var GL = new THREE.GLTFLoader(); if (root.MeshoptDecoder && GL.setMeshoptDecoder) GL.setMeshoptDecoder(root.MeshoptDecoder);
         capDecode(GL);                                                  // phones: decode every texture at most 1024²
-        GL.load(siteBase() + def.glb, function (gl) {
+        var url = glbUrl(def); if (GLB_BYTES[url] === bytes) delete GLB_BYTES[url];   // parsed once: let the 8 MB go
+        GL.parse(got[1], url.replace(/[^/]*$/, ''), function (gl) {
           if (!holder.parent) return;                                   // the room was switched away while loading
           var m = gl.scene; capLoaded(m); m.position.fromArray(def.offset); m.rotation.y = def.ry || 0;
           m.traverse(function (o) { if (o.isMesh && o.material) { o.material.side = THREE.DoubleSide; o.receiveShadow = !!def.lit; if (o.material.map) o.material.map.anisotropy = 4; } });
@@ -191094,17 +191114,18 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
           var SF = surfacesOf(m, def.walk); holder.add(SF.group); surfaces.push(SF.group);      // things can stand on the model now
           if (def.finish) try { fin = def.finish({ holder: holder, model: m, scene: scene, hemi: hemi, templates: Object.keys(TPL).filter(function (k) { return k.indexOf('glb:' + def.id + ':') === 0; }).map(function (k) { return TPL[k]; }) }); if (fin && fin.setTime) fin.setTime(tmode); } catch (er) { if (root.console) console.warn('Spatial Home: finishing ' + def.id, er); }
           if (def.movable) try { root.dispatchEvent(new CustomEvent('spatialhome:furnish', { detail: { env: def.id, items: furn } })); } catch (er) {}
-        }, undefined, function (e) { if (root.console) console.warn('Spatial Home: ' + def.id + ' model could not load', e); });
-      }, function () {});
+          ready(true);
+        }, failed);
+      }, failed);
 
-      return {
-        id: def.id, name: def.name, group: g, holder: holder, far: def.far || 80, size: { W: 3.0, D: 2.6, H: def.h },
+      return (envObj = {
+        ready: false, id: def.id, name: def.name, group: g, holder: holder, far: def.far || 80, size: { W: 3.0, D: 2.6, H: def.h },
         anchors: A, avatar: PT.avatar, start: def.start || PT.start, startV: def.startV || 0, bounds: def.walk ? def.walk.slice() : null, desk: def.deskCam || PT.deskCam, solids: solids, areas: areas, credit: def.credit,
         surfaces: surfaces, dress: def.dress || null, view: def.view || null, realistic: !!def.realistic, upgrade: def.upgrade || null, movable: !!def.movable,
         defaultLayout: def.layout ? function () { return JSON.parse(JSON.stringify(def.layout)); } : null,
         setTime: function (m) { tmode = m || 'auto'; if (fin && fin.setTime) fin.setTime(tmode); }, tick: function (t) { if (fin && fin.tick) fin.tick(t); },
         dispose: function () { if (fin && fin.dispose) fin.dispose(); SR.disposeTree(holder); scene.background = null; }
-      };
+      });
     };
   }
   /* offset: where the model sits so the office corner (x −3…3, z −2.6…2.6, desk at the back) lands in an open part of the room */
@@ -191259,7 +191280,7 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
 9502: { p: [-0.85, -3.65], ry: -1.15 }, 9503: { p: [-0.35, -4.95], ry: -1.3 },                // two armchairs in the left foreground
 9500: { p: [-3.2, -10.9], ry: -1.36 }, 9501: { p: [-1.8, -10.4], ry: -0.99 },   // the fireplace pair, in the left foreground facing the fire
     9504: { p: VNT, ry: 0 }, 9506: { p: VNT, ry: 0 } };                                         // the round tables; the pedestal desk
-  var VICT = { realistic: true, id: 'victorian', name: 'EC–6 Victorian Study', finish: victorianFinish, glb: 'interiors-glb/assets/victorian_study.glb', h: 6.5, lit: true, showroom: true,
+  var VICT = { realistic: true, id: 'victorian', name: 'EC–6 Victorian Study', finish: victorianFinish, glb: 'interiors-glb/assets/victorian_study.glb', lite: 'interiors-glb/assets/victorian_study_1k.glb', h: 6.5, lit: true, showroom: true,
     offset: [0, -0.2, -5.1], walk: [-8.4, -13.5, 8.4, 3.4], easel: null, far: 600,
     /* v20: each opening is one bay of the west bookcases, inside its uprights (bays: A −5.33…−7.06, B −7.29…−9.04,
        C −9.27…−11.00, D −11.23…−12.98; the front at x −8.36, the back at −8.85): A the rotating bookcase, C the board */
@@ -195327,7 +195348,11 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
         }
         if (!mixer) { var pulse = Math.sin(t * 3.2); arms.forEach(function (arm, j) { arm.rotation.z = -0.35 - 0.3 * pulse + Math.sin(t * 2 + j) * 0.12; }); stand.scale.set(1 + 0.04 * pulse, 1 - 0.05 * pulse, 1 + 0.04 * pulse); }
       },
-      afterBuild: function () { setTimeout(loadModel, 1200); }
+      afterBuild: function () {
+        var done = false; function go() { if (done) return; done = true; root.removeEventListener('spatialhome:envready', soon); loadModel(); }
+        function soon() { setTimeout(go, 500); }
+        if (root.SpatialGLB && root.SpatialGLB.pending()) { root.addEventListener('spatialhome:envready', soon); setTimeout(go, 12000); } else setTimeout(go, 1200);   // 2026-11-26
+      }
     };
     return o;
   }
@@ -199207,7 +199232,7 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
   var THREE = window.THREE, B = window.SpatialBridge, KEY = 'minest.spatialHome.v1', EMBED = B.EMBED, API = null;
   if (window.MinestSpatialHome) return;
   var MARKUP =
-    '<canvas id="sh-gl" tabindex="0" aria-label="Santorini Atelier"></canvas><div id="sh-labels" aria-hidden="true"></div>' +
+    '<canvas id="sh-gl" tabindex="0" aria-label="Santorini Atelier"></canvas><div id="sh-loadcover" hidden aria-hidden="true"><b></b></div><div id="sh-labels" aria-hidden="true"></div>' +
     '<div id="sh-top"><div class="sh-brand"><strong>Minest</strong><span id="sh-brandName">Santorini Atelier</span></div>' +
     '<div class="sh-seg" id="sh-modeSeg" role="tablist" aria-label="模式"><button type="button" data-mode="explore" role="tab">Explore</button><button type="button" data-mode="desk" role="tab">Desk</button></div>' +
     '<button type="button" class="sh-ic" id="sh-packBtn" title="背包 · 布置">🎒</button><button type="button" class="sh-ic" id="sh-envBtn" title="切换环境">🌐</button><button type="button" class="sh-ic" id="sh-viewsBtn" title="窗外风景">🪟</button><button type="button" class="sh-ic" id="sh-sitBtn" title="坐下 / 起立（C）">🪑</button><button type="button" class="sh-ic" id="sh-viewBtn" title="第一 / 第三人称">👤</button><button type="button" class="sh-ic" id="sh-setBtn" title="设置">⚙</button><button type="button" class="sh-ic" id="sh-dockBtn" title="显示 Dock" aria-label="显示 Dock" aria-controls="mn-main-dock" aria-pressed="false">Dock</button><button type="button" class="sh-ic" id="sh-readingBtn" title="全屏 · 纯净阅览" aria-label="全屏 · 纯净阅览">⛶</button><button type="button" class="sh-ic" id="sh-menuBtn" title="显示 / 收起按钮" aria-expanded="false">≡</button>' +
@@ -200574,7 +200599,7 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
       deskBase = (function () { var p = room.desk.pos, l = room.desk.look, dx = l[0] - p[0], dy = l[1] - p[1], dz = l[2] - p[2]; return { yaw: Math.atan2(-dx, -dz), pitch: Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)) }; })();
       $('brandName').textContent = room.name; canvas.setAttribute('aria-label', room.name); $('credit').textContent = room.credit || '';
       if (window.SpatialMedia) window.SpatialMedia.audio.setEnv(room.envId);
-      camAuto = true; autoPose(camera.position, camera.quaternion); S.env = room.envId; save();
+      camAuto = true; autoPose(camera.position, camera.quaternion); S.env = room.envId; save(); cover();
       return veilFade(0, 0.35);
     }).then(function () { busy = false; body.classList.remove('busy'); });
   }
@@ -200649,7 +200674,7 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
   $('optMotion').addEventListener('change', function () { S.motion = this.checked; save(); });
   if ($('optPreload')) $('optPreload').addEventListener('change', function () { S.preload = this.checked; save(); if (S.preload) B.load().then(renderSettings); renderSettings(); });
   if ($('optBoot')) $('optBoot').addEventListener('change', function () { S.boot = this.checked; save(); });
-  function exitHome() { if (busy) return; if (window.SpatialMedia) window.SpatialMedia.audio.suspend(); save(); setEl.hidden = true; closeCard(); B.release(); inFeature = null; body.hidden = true; paused = true; }
+  function exitHome(force) { if (busy && force !== true) return; snapSave(); if (window.SpatialMedia) window.SpatialMedia.audio.suspend(); save(); setEl.hidden = true; closeCard(); B.release(); inFeature = null; body.hidden = true; paused = true; }
   if ($('exitBtn')) $('exitBtn').addEventListener('click', exitHome);
   if ($('setExit')) $('setExit').addEventListener('click', exitHome);
 
@@ -200699,10 +200724,38 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
   markAvailability();
   frame();
 
+  /* 2026-11-26 打开慢 / 黑边：扫描房间（维多利亚书房等）的模型还在路上时，画面只有桌上几件东西浮在一片黑里。现在先盖上
+     上次离开这个房间时的画面（没有就用暖色底和转圈），模型画出来再淡掉；离开房间时存一张小图（每个房间、横竖屏各一张） */
+  var LC = $('loadcover'), lcT = 0;
+  if (!document.getElementById('sh-loadcover-css')) { var lcs = document.createElement('style'); lcs.id = 'sh-loadcover-css'; lcs.textContent = '#sh-loadcover{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:0;transition:opacity .45s ease;background:#24160f radial-gradient(130% 95% at 50% 62%,#7a4329 0%,#43271a 52%,#1d130d 100%) center/cover no-repeat}#sh-loadcover.on{opacity:1}#sh-loadcover.snap{background-color:#1d130d}#sh-loadcover b{position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;box-sizing:border-box;border-radius:50%;border:2.5px solid rgba(255,255,255,.26);border-top-color:rgba(255,255,255,.92);animation:shLoadSpin .9s linear infinite}#sh-loadcover.snap b{top:auto;bottom:calc(120px + env(safe-area-inset-bottom));width:22px;height:22px;margin:0 0 0 -11px;border-width:2px}@keyframes shLoadSpin{to{transform:rotate(360deg)}}@media (prefers-reduced-motion:reduce){#sh-loadcover b{animation-duration:2.6s}}'; document.head.appendChild(lcs); }
+  function snapKey() { return 'minest.sh.snap.' + room.envId + (window.innerWidth > window.innerHeight ? '.l' : '.p'); }
+  function cover() {
+    if (!LC) return; clearTimeout(lcT);
+    if (!room || room.ready !== false) { LC.classList.remove('on'); LC.hidden = true; return; }
+    var img = null; try { img = localStorage.getItem(snapKey()); } catch (e) {}
+    LC.style.backgroundImage = img ? 'url("' + img + '")' : ''; LC.classList.toggle('snap', !!img); LC.hidden = false; LC.classList.add('on');
+    lcT = setTimeout(uncover, 30000);                                       // never stay on: a model that never comes shows what there is
+  }
+  function uncover() { if (!LC || LC.hidden) return; clearTimeout(lcT); LC.classList.remove('on'); setTimeout(function () { if (!LC.classList.contains('on')) LC.hidden = true; }, 480); }
+  function snapSave() {
+    if (!room || room.ready !== true || body.hidden || paused) return;
+    try {
+      renderer.render(scene, camera);
+      var c = renderer.domElement, k = Math.min(1, 640 / Math.max(c.width, c.height, 1)), t = document.createElement('canvas');
+      t.width = Math.max(1, Math.round(c.width * k)); t.height = Math.max(1, Math.round(c.height * k)); t.getContext('2d').drawImage(c, 0, 0, t.width, t.height);
+      var url = t.toDataURL('image/jpeg', 0.62); if (url.length > 2000 && url.length < 400000) localStorage.setItem(snapKey(), url);
+    } catch (e) {}
+  }
+  window.addEventListener('spatialhome:envready', function (e) {
+    if (!e.detail || !room || e.detail.env !== room.envId) return;
+    if (!e.detail.ok) { uncover(); return; }
+    requestAnimationFrame(function () { requestAnimationFrame(function () { requestAnimationFrame(uncover); }); });   // the model is drawn first
+    setTimeout(function () { var k = snapKey(), has = null; try { has = localStorage.getItem(k); } catch (er) {} if (!has) snapSave(); }, 2000);   // a first picture
+  });
   function open() {
     if (inFeature) { B.leave('home'); return; }                                   // a feature is up: the usual way back
     if (!body.hidden) return;
-    body.hidden = false; paused = false; resize(); clock.getDelta(); markAvailability();
+    body.hidden = false; paused = false; resize(); clock.getDelta(); markAvailability(); cover();
     if (mode === 'desk') { DK.yaw = 0; DK.pitch = 0; }
     camAuto = true; try { canvas.focus(); } catch (e) {}
     if (third()) gesture('wave', 1.6);
@@ -200741,7 +200794,7 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
   var PUB = {
     version: '1.0',
     open: function () { document.documentElement.classList.remove('mn-mac-web'); var a = mount(); a.open(); return a; },
-    close: function () { if (API) API.close(); },
+    close: function (force) { if (API) API.close(force === true); },
     isOpen: function () { return !!(API && API.isOpen()); },
     api: function () { return API; },
     bootsFirst: function () { return bootsFirst(); }
@@ -200783,7 +200836,19 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
     if (!force && /[?&]clun=0\b/.test(location.search)) { done(); return; }
     var f = document.createElement('iframe'), ready = false, opened = false, feature = null;
     f.id = 'mn-clun-splash'; f.src = clunSrc(inside); f.title = 'Clun';
-    f.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;max-width:none;max-height:none;margin:0;padding:0;border:0;z-index:2147483647;background:#cfe0ee;opacity:1';
+    f.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;max-width:none;max-height:none;margin:0;padding:0;border:0;z-index:2147483647;background:#9cc3e6 no-repeat;opacity:1';
+    /* 2026-11-26：开屏页自己还没到之前，框里就先铺它的预览图，取景和开屏页一样（spatial-home/clun-2/index.html 的 fit），不再是一片空白 */
+    var PST = (location.protocol === 'file:' ? 'https://minest-app.vercel.app/' : '') + 'spatial-home/clun/art/plate-poster.jpg?v=2', loaded = false, t0 = Date.now();
+    if (!inside) f.style.backgroundImage = 'url("' + PST + '")';
+    function poster(vw, vh) {
+      if (inside) return; var W = 2576, H = 1438, A = W / H, HOUSE = [860, 868], va = vw / vh, k, r;
+      k = !(navigator.maxTouchPoints > 0) ? 'normal' : (Math.min(vw, vh) >= 600 && Math.max(vw, vh) / Math.min(vw, vh) < 1.6) ? 'inner' : vw < vh ? 'outer' : 'normal';
+      if (k === 'outer') { var ho = Math.min(H, Math.max(1100, 640 / va)); r = { cx: HOUSE[0], cy: HOUSE[1] - 30, w: ho * va, h: ho }; }
+      else { var fw = va > A ? W : H * va; r = { cx: va > A ? W / 2 : (k === 'inner' ? 520 + fw / 2 : W / 2), cy: H / 2, w: fw, h: fw / va }; }
+      var w = Math.min(r.w, W, H * r.w / r.h), h = w * r.h / r.w, x = Math.max(0, Math.min(W - w, r.cx - w / 2)), y = Math.max(0, Math.min(H - h, r.cy - h / 2)), s = vw / w;
+      f.style.backgroundSize = (W * s).toFixed(1) + 'px ' + (H * s).toFixed(1) + 'px'; f.style.backgroundPosition = (-x * s).toFixed(1) + 'px ' + (-y * s).toFixed(1) + 'px';
+    }
+    f.addEventListener('load', function () { loaded = true; });
     document.body.appendChild(f);
     try { if (f.showPopover) { f.setAttribute('popover', 'manual'); f.showPopover(); } } catch (e) {}   /* 放进顶层，盖过页面里所有浮层（迷你宠物、速览页等） */
     /* Dock 也在开屏上面（2026-11-22，用户：开屏也要有 Dock）：跟在开屏后面进顶层，开屏走了再回原处。Dock 可能被重画，隔一会儿再确认一次 */
@@ -200798,10 +200863,11 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
     function fit() {                                                         /* 按看得见的区域（visualViewport）定大小：App 里页面的布局宽度可能比屏幕宽 */
       var v = window.visualViewport, w = v ? v.width : window.innerWidth, h = v ? v.height : window.innerHeight;
       f.style.left = (v ? v.offsetLeft : 0) + 'px'; f.style.top = (v ? v.offsetTop : 0) + 'px'; f.style.right = 'auto'; f.style.bottom = 'auto';
-      f.style.width = Math.round(w) + 'px'; f.style.height = Math.round(h) + 'px';
+      f.style.width = Math.round(w) + 'px'; f.style.height = Math.round(h) + 'px'; poster(w, h);
     }
     fit(); window.addEventListener('resize', fit); if (window.visualViewport) { visualViewport.addEventListener('resize', fit); visualViewport.addEventListener('scroll', fit); }
-    var to = setTimeout(function () { if (!ready) end(); }, 9000);           /* 9 秒还没加载好（离线等）：直接进房间 */
+    /* 9 秒还没加载好（离线等）：直接进房间。框里的页面已经到了、只是还在搭（手机慢、后台忙）就再等等，最多 30 秒 */
+    var to = 0; (function wait(ms) { to = setTimeout(function () { if (ready) return; if (loaded && Date.now() - t0 < 30000) { wait(1500); return; } end(); }, ms); })(9000);
     function room() { if (opened) return; opened = true; done(feature); }
     function end() {
       room(); clearTimeout(to); window.removeEventListener('message', on); window.removeEventListener('resize', fit); if (window.visualViewport) { visualViewport.removeEventListener('resize', fit); visualViewport.removeEventListener('scroll', fit); }
@@ -200811,12 +200877,14 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
     f.addEventListener('minest:open-web', function () { feature = '@mac-web'; end(); });
     function on(e) {
       if (e.source !== f.contentWindow || !e.data || typeof e.data.clun !== 'string') return;
-      if (e.data.clun === 'ready') { ready = true; clearTimeout(to); }
+      if (e.data.clun === 'ready') { ready = true; clearTimeout(to); prefetchRoom(); }
       else if (e.data.clun === 'web') { feature = '@mac-web'; end(); }
       else if (e.data.clun === 'enter') { feature = typeof e.data.feature === 'string' ? e.data.feature : (typeof e.data.action === 'string' && /^(pack|env|views|set)$/.test(e.data.action) ? '@' + e.data.action : null); end(); }   /* 进房间后打开某个功能，或按房间顶栏的同一个按钮（@pack 背包、@env 环境、@views 窗外、@set 设置） */   /* Clun 里点了 ≡ 的某项、或书桌上的打字机 / 羽毛笔：进房间后打开它 */
     }
     window.addEventListener('message', on);
   }
+  /* 开屏放着的时候，把要进的房间的模型先下好（扫描房间 8 MB，iOS App 里走网络） */
+  function prefetchRoom() { try { var env = settings().env || 'victorian'; if (window.SpatialGLB) setTimeout(function () { SpatialGLB.prefetch(env); }, 600); } catch (e) {} }
   function boot() {
     if (!bootsFirst()) return;
     clunFirst(enterRoom);
@@ -200824,10 +200892,10 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
   /* 🌐 里的 Home：关掉房间（不再渲染），重新放一遍 Clun 开屏；点门进屋后照常回到房间 */
   PUB.home = function () {
     if (document.getElementById('mn-clun-splash')) return;
-    try { PUB.close(); } catch (e) {}
+    try { PUB.close(true); } catch (e) {}                                    // the room stops rendering behind the opening, even mid-move
     clunFirst(enterRoom, true);
   };
-  PUB.house = function () { if (document.getElementById('mn-clun-splash')) return; try { PUB.close(); } catch (e) {} clunFirst(enterRoom, true, true); };
+  PUB.house = function () { if (document.getElementById('mn-clun-splash')) return; try { PUB.close(true); } catch (e) {} clunFirst(enterRoom, true, true); };
   function enterRoom(feature) {
     if (feature === '@mac-web') {
       try { PUB.close(); if (window.SpatialBridge) SpatialBridge.release(); if (window.MinestStartControls) MinestStartControls.showBoardDock(); } catch (e) {}
@@ -200847,7 +200915,9 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
       if (Date.now() - t0 > 2500) clearInterval(iv);
     }, 150);
   }
-  if (document.readyState === 'complete') setTimeout(boot, 300); else window.addEventListener('load', function () { setTimeout(boot, 300); }, { once: true });
+  /* 2026-11-26：开屏不再等整页（几十 MB）的 load 事件，DOM 好了就放；页面 load 之后在后台把模型解码脚本预热 */
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 0); }, { once: true }); else setTimeout(boot, 0);
+  (function () { function go() { setTimeout(function () { try { if (window.SpatialGLB) SpatialGLB.warm(); } catch (e) {} }, 2500); } if (document.readyState === 'complete') go(); else window.addEventListener('load', go, { once: true }); })();
 })();
 
 </script>
