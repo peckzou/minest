@@ -173,7 +173,7 @@
   function boards() { try { return (root.MinestAI && root.MinestAI.boards && root.MinestAI.boards()) || []; } catch (e) { return []; } }
   var IX = { key: '', lists: [], byRef: {}, byId: {}, at: 0 };
   function card(c, L, ref) {
-    return { ref: ref, id: c.id, title: String(c.title || c.term || '卡片'), zh: c.titleZh && c.titleZh !== c.title ? String(c.titleZh) : '', desc: String(c.meaning || c.desc || c.text || ''), pic: picOf(c), date: c.date || c.due || c.dueDate || null, done: !!c.complete, mastery: c.mastery || 0, list: L.title, lid: L.id };
+    return { ref: ref, id: c.id, title: String(c.title || c.term || '卡片'), zh: c.titleZh && c.titleZh !== c.title ? String(c.titleZh) : '', desc: String(c.meaning || c.desc || c.text || ''), pic: picOf(c), date: c.date || c.due || c.dueDate || null, labels: Array.isArray(c.labels) ? c.labels.slice(0, 4).map(String) : [], done: !!c.complete, mastery: c.mastery || 0, list: L.title, lid: L.id };
   }
   // lists as My World counts them: a column's plain cards are one list, a card with sub-cards is a list of its own
   function index(bid) {
@@ -900,7 +900,7 @@
     site: site, ui: function () { return ui; }, select: function (listId) { ui.list = listId; },
     stats: function () { var tris = 0; if (GROUP) GROUP.traverse(function (o) { if (o.isMesh && o.geometry) tris += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; }); return { fixtures: Object.keys(LIVE).length, items: STATS.items, rebuilt: STATS.rebuilt, triangles: Math.round(tris), cached: Object.keys(CACHE).length, spinning: SPIN.length }; },
     ext: EXT,
-    _: { faceRes: faceRes, signRes: signRes, picState: picState, openCard: openCard, THEMES: THEMES, listOf: listOf, curList: function (ix) { return curList(ix); }, Buf: Buf, res: res, mats: mats, tex: tex, canvas: canvas, wrap: wrap, rgb: rgb, hsl: hsl, hash: hash, esc: esc, el: el, modal: modal, uid: uid, clone: clone, snap: snap, site: site, near: near, list: list, index: index, cardOf: cardOf, rotToward: rotToward, byId: byId, ctx: function () { return lastCtx; }, T: T, live: function (id) { return LIVE[id] ? LIVE[id].grp : null; }, redraw: function () { if (LAST) render(LAST); }, PX: PX },
+    _: { pic: pic, faceRes: faceRes, signRes: signRes, picState: picState, openCard: openCard, THEMES: THEMES, listOf: listOf, curList: function (ix) { return curList(ix); }, Buf: Buf, res: res, mats: mats, tex: tex, canvas: canvas, wrap: wrap, rgb: rgb, hsl: hsl, hash: hash, esc: esc, el: el, modal: modal, uid: uid, clone: clone, snap: snap, site: site, near: near, list: list, index: index, cardOf: cardOf, rotToward: rotToward, byId: byId, ctx: function () { return lastCtx; }, T: T, live: function (id) { return LIVE[id] ? LIVE[id].grp : null; }, redraw: function () { if (LAST) render(LAST); }, PX: PX },
     reset: function () { Object.keys(LIVE).forEach(drop); memo = { src: null, key: '', out: null }; START = {}; IX.key = ''; }
   };
 })(typeof window === 'object' ? window : globalThis);
