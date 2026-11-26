@@ -52,6 +52,16 @@ assert.deepStrictEqual(cardIds(merge(null, l, r, true)[0]).join('|').split(/[:,|
 l = C(base); l[0].columns[0].cards[0].favorite = true;
 assert.strictEqual(merge(base, l, C(base), false)[0].columns[0].cards[0].favorite, true);
 
+// a card's stacked cards (My World items) and checklist items merge item by item
+{
+  const sb = [board('w', [['A', [card('k', 'K', { stack: [card('s1'), card('s2')], checklistItems: [{ id: 'i1', text: 'x', done: false }] })]]])];
+  const sl = C(sb), sr = C(sb), kl = sl[0].columns[0].cards[0], kr = sr[0].columns[0].cards[0];
+  kl.stack.push(card('s3')); kl.checklistItems[0].done = true; kl.stack.reverse();
+  kr.stack[0].title = 'renamed'; kr.checklistItems.push({ id: 'i2', text: 'y', done: false }); kr.stack.splice(1, 1);
+  const k = merge(sb, sl, sr, false)[0].columns[0].cards[0];
+  assert.deepStrictEqual(k.stack.map(s => s.id), ['s3', 's1']); assert.strictEqual(k.stack[1].title, 'renamed');
+  assert.deepStrictEqual(k.checklistItems.map(i => i.id + ':' + i.done), ['i1:true', 'i2:false']);
+}
 // laws: merge(b, x, x) = x, merge(b, l, b) = l, merge(b, b, r) = r
 for (const x of [l, r, base]) {
   assert.deepStrictEqual(merge(base, x, C(x), true), x);

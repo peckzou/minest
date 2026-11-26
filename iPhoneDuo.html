@@ -131,6 +131,7 @@ if(typeof module==='object'&&module.exports)module.exports=create;else root.Mine
    - Order is merged too: a side that reordered (and the other did not) keeps its order. Before this, the server's
      order always won, so a reorder made on this device was reverted by the next upload.
    - A card moved to another list follows the move, and an edit made elsewhere to that card is kept with it.
+   - A card's stacked cards and checklist items are merged item by item too.
    - Without a base nothing is inferred deleted. */
 function minestSame(a,b){return JSON.stringify(a)===JSON.stringify(b);}
 function minestMerge3(base, local, remote, mineNewer) {
@@ -146,6 +147,7 @@ function minestMerge3(base, local, remote, mineNewer) {
     Object.keys(keys).forEach(function(k) {
       var lv = l[k], rv = r[k], v;
       if (minestSame(lv, rv)) v = lv;
+      else if (LISTS[k] && Array.isArray(lv) && Array.isArray(rv)) v = mergeList(b && Array.isArray(b[k]) ? b[k] : null, lv, rv);
       else {
         var lc = !b || !minestSame(b[k], lv), rc = !b || !minestSame(b[k], rv);
         v = (lc && !rc) ? lv : (rc && !lc) ? rv : (mineNewer ? lv : rv);
@@ -153,6 +155,21 @@ function minestMerge3(base, local, remote, mineNewer) {
       if (v !== undefined) out[k] = clone(v);
     });
     return out;
+  }
+  /* a card's stacked cards (My World's items) and checklist items: merged item by item like cards, so an item added,
+     ticked or reordered on one device and another item changed on another device both survive */
+  var LISTS = { stack: 1, checklistItems: 1 };
+  function mergeList(b, l, r) {
+    if (!l.every(has) || !r.every(has)) return mineNewer ? l : r;
+    var B = idx(b), L = idx(l), R = idx(r), keep = {}, out = {};
+    Object.keys(L).concat(Object.keys(R)).forEach(function(id) {
+      if (out[id]) return;
+      var bi = B[id], li = L[id], ri = R[id];
+      if (li && ri) out[id] = fields(bi, li, ri, null);
+      else if (li ? keepOne(bi, li) : keepOne(bi, ri)) out[id] = clone(li || ri);
+      if (out[id]) keep[id] = 1;
+    });
+    return order(ids(b), ids(l), ids(r), keep).map(function(id) { return out[id]; });
   }
   /* present on one side only: dropped if the side that still has it left it as the base had it */
   function keepOne(b, x) { return !(b && minestSame(b, x)); }

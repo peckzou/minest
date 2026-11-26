@@ -238,6 +238,13 @@ def cut(s, start, end):
 
 def patch(text, name):
     if MARK in text:
+        # already repaired: bring the head copies of board-merge.js and reconcile.js up to date with this folder
+        for start, end, new in (('(function(root){\n/* Board three-way merge', "})(typeof window!=='undefined'?window:this);", NEW_MERGE_HEAD),
+                                (OLD_RECONCILE_START, OLD_RECONCILE_END, NEW_RECONCILE)):
+            c = cut(text, start, end)
+            if not c:
+                return None, 'head block to refresh not found: %r' % start[:60]
+            text = text[:c[0]] + new + text[c[1]:]
         return patch_watch(text, 'already')
     # head block
     m = cut(text, OLD_MERGE_START, OLD_MERGE_END)
