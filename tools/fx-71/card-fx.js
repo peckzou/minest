@@ -277,7 +277,7 @@
     if (target.closest('#fbfx-picker-menu')) return null;
     return target.closest(
       '.bar-fx-btn[aria-label="Light FX"], ' +
-      '.ios-tab-item.dock-fx-tab, ' +
+      '.ios-tab-item.dock-fx-tab:not([title^="Card"]):not([aria-label^="Card"]), ' +
       '.fbfx-btn, ' +
       '.mn-bapp[aria-label^="Light FX"], ' +
       '.student-game-float-btn[title^="Light FX"], ' +
