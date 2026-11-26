@@ -208310,14 +208310,16 @@ html body .minest-activity-modal-panel, html body .kh .kh-side { overscroll-beha
   }
 
   var done = new WeakSet(), stats = { hover: 0, all: 0 };
-  function unstick(r) {
+  /* the moves to take out of one rule. It only reads: atRest() asks the engine for a computed value, and a computed
+     value costs a style pass over the whole page whenever a style sheet has changed since the last one, so every
+     change to the style sheets waits until all the reading is done (see pass). Reading and writing in turn here cost
+     about 30 s of frozen page on a phone (one full style pass per hover rule, 2026-11-26 perf trace). */
+  function moves(r) {
     var st = r.style;
-    if (!r.selectorText || r.selectorText.indexOf(':hover') < 0 || !subjectHover(r.selectorText)) return;
-    for (var i = 0; i < st.length; i++) if (SHOWS.test(st[i])) return;   // it reveals something: keep it whole
-    MOVE.forEach(function (p) {
-      var v = st.getPropertyValue(p); if (!v || atRest(p, v)) return;
-      st.removeProperty(p); stats.hover++;
-    });
+    if (!r.selectorText || r.selectorText.indexOf(':hover') < 0 || !subjectHover(r.selectorText)) return null;
+    for (var i = 0; i < st.length; i++) if (SHOWS.test(st[i])) return null;   // it reveals something: keep it whole
+    var out = MOVE.filter(function (p) { var v = st.getPropertyValue(p); return v && !atRest(p, v); });
+    return out.length ? out : null;
   }
   function narrow(r) {
     var st = r.style, tp = st.getPropertyValue('transition-property');
@@ -208334,22 +208336,29 @@ html body .minest-activity-modal-panel, html body .kh .kh-side { overscroll-beha
     st.setProperty('transition-timing-function', F.join(', '), pri); st.setProperty('transition-delay', L.join(', '), pri);
     stats.all++;
   }
-  function walk(list) {
+  /* the rules not seen yet, each with the moves to take out of it (reads only) */
+  function walk(list, todo) {
     for (var i = 0; i < list.length; i++) {
       var r = list[i];
       if (r.cssRules && !r.selectorText) {   // @media / @supports / @layer: in; a reduced-motion block is left as written
         if (r.media && /reduced-motion/.test(r.media.mediaText)) continue;
-        walk(r.cssRules); continue;
+        walk(r.cssRules, todo); continue;
       }
       if (!r.style || done.has(r)) continue;
       done.add(r);
-      try { if (touch) unstick(r); narrow(r); } catch (e) {}
+      var m = null; try { if (touch) m = moves(r); } catch (e) {}
+      todo.push([r, m]);
     }
   }
   var sheetsSeen = -1;
   function pass(force) {
     var ss = document.styleSheets; if (!force && ss.length === sheetsSeen) return; sheetsSeen = ss.length;
-    for (var i = 0; i < ss.length; i++) { var s = ss[i]; if (s.ownerNode && s.ownerNode.id === 'mn-motion-polish-css') continue; try { walk(s.cssRules); } catch (e) {} }
+    var todo = [];
+    for (var i = 0; i < ss.length; i++) { var s = ss[i]; if (s.ownerNode && s.ownerNode.id === 'mn-motion-polish-css') continue; try { walk(s.cssRules, todo); } catch (e) {} }
+    /* then all the writing, with no reads in between */
+    todo.forEach(function (t) {
+      try { if (t[1]) t[1].forEach(function (p) { t[0].style.removeProperty(p); stats.hover++; }); narrow(t[0]); } catch (e) {}
+    });
   }
   /* style sheets keep arriving (a page's own CSS when it first opens): look again a moment after one is added */
   var t = 0;
