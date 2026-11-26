@@ -228,6 +228,9 @@
         /* Raised upper convex cabochon dome window (slimmer side glass bezel) */
         '.gw-dome{position:absolute;left:12px;right:12px;top:12px;height:242px;border-radius:86px 86px 26px 26px;overflow:hidden;transform:translateZ(3px);box-sizing:border-box;background:rgba(18,24,30,0.22);box-shadow:0 8px 16px -5px rgba(0,0,0,0.38),0 1.5px 0 rgba(255,255,255,0.44),inset 0 1.5px 2px rgba(255,255,255,0.78),inset 0 -1.5px 2px rgba(255,255,255,0.42)}',
         '.gw-dome-lens{position:absolute;inset:0;transform:translateZ(0)}',
+        /* iOS WebKit: overflow:hidden + border-radius does not clip 3D-composited children — clip-path and a mask keep the painting inside the glass */
+        '.gw-dome{clip-path:inset(0 round 86px 86px 26px 26px);-webkit-clip-path:inset(0 round 86px 86px 26px 26px);-webkit-mask-image:-webkit-radial-gradient(white,black);isolation:isolate}',
+        '.gw-face{clip-path:inset(0 round 98px);-webkit-clip-path:inset(0 round 98px);isolation:isolate}',
         '.gw-art-layer{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover;will-change:filter,opacity,transform;transform-origin:50% 50%}',
         /* Subtle optical glass bevel rim & curved meniscus vignette (keeps central 80% 100% tack-sharp!) */
         '.gw-dome-meniscus{display:none}',
@@ -252,6 +255,7 @@
         '.gw-hud button:hover{background:rgba(255,255,255,0.12);color:#fff}',
         '.gw-hud button.on{background:rgba(255,255,255,0.2);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,0.28)}',
         '.gw-hud .gw-ic{padding:0;width:28px}',
+        '.gw-hud{max-width:calc(100vw - 24px);box-sizing:border-box}.gw-hud button,.gw-hud span{white-space:nowrap;flex:none}',
         '.gw-hud .gw-sep{width:1px;height:14px;background:rgba(255,255,255,0.15);flex:none}',
         '.gw-hud .gw-cnt{font:600 11px/1 ui-monospace,"SF Mono",Menlo,monospace;color:rgba(226,236,250,0.72);padding:0 4px;letter-spacing:0.05em}',
         '.gw-hud button svg{width:13.5px;height:13.5px;flex:none;display:block}',
@@ -1018,12 +1022,20 @@
       return 0;
     }
 
-    function feedGyroAttitude(lr, fb, now) {
+    function feedGyroAttitude(lr, fb, now, src) {
       if (!isFinite(lr) || !isFinite(fb)) return;
       gyro.hasSignal = true;
       gyro.permState = 'granted';
+      /* a new source or a new screen orientation starts from a new zero (their angles are not comparable) */
+      var angNow = screenAngle();
+      if (src !== gyro.src || angNow !== gyro.ang) { gyro.src = src; gyro.ang = angNow; gyro.baseLr = null; gyro.baseFb = null; gyro.armed = true; }
+      var dtFeed = gyro.lastFeedAt ? Math.min(0.2, (now - gyro.lastFeedAt) / 1000) : 0; gyro.lastFeedAt = now;
       gyro.rawLr = lr;
       gyro.rawFb = fb;
+      /* a hand held steady (well short of a switch) slowly becomes the new zero, so a slight lean never sticks */
+      if (gyro.baseLr !== null && gyro.armed && Math.abs(lr - gyro.baseLr) < GYRO_SWITCH_DEG * 0.45) {
+        var kz = Math.min(1, dtFeed / 3.5); gyro.baseLr += (lr - gyro.baseLr) * kz; gyro.baseFb += (fb - gyro.baseFb) * kz;
+      }
       if (gyro.baseLr === null) {
         gyro.baseLr = lr;
         gyro.baseFb = fb;
@@ -1075,13 +1087,13 @@
       var now = performance.now();
       var ang = screenAngle(), b = e.beta, g = e.gamma, lr, fb;
       /* Avoid Euler gamma gimbal flip when iPhone is held nearly vertical (|beta| > 80 deg) if devicemotion gravity is active */
-      if (Math.abs(b) > 80 && now - gyro.lastMotionAt < 250) return;
+      if (now - (gyro.lastMotionAt || 0) < 500) return;   /* gravity (devicemotion) is the source whenever it is there */
       if (ang === 90) { lr = b; fb = -g; }
       else if (ang === -90 || ang === 270) { lr = -b; fb = g; }
       else if (ang === 180) { lr = -g; fb = -b; }
       else { lr = g; fb = b; }
       gyro.lastOrientAt = now;
-      feedGyroAttitude(lr, fb, now);
+      feedGyroAttitude(lr, fb, now, 'orient');
     }
 
     function onDeviceMotion(e) {
@@ -1105,10 +1117,8 @@
       var rollDeg = Math.atan2(rxG, Math.max(1.5, Math.hypot(ryG, gz))) * 57.29578;
       var pitchDeg = Math.atan2(-ryG, Math.max(1.5, Math.hypot(rxG, gz))) * 57.29578;
       gyro.lastMotionAt = now;
-      /* Use gravity attitude when deviceorientation hasn't fired recently or phone is near upright gimbal zone */
-      if (now - gyro.lastOrientAt > 120 || Math.abs(gyro.rawFb) > 78) {
-        feedGyroAttitude(rollDeg, pitchDeg, now);
-      }
+      /* gravity attitude is free of the Euler gimbal flip in any holding angle: it is the only source while it comes */
+      feedGyroAttitude(rollDeg, pitchDeg, now, 'motion');
     }
 
     function requestIosGyroPermission(explicitFromBtn) {
@@ -1378,11 +1388,14 @@
     function fit() {
       var W = box.clientWidth || window.innerWidth || 800;
       var H = box.clientHeight || window.innerHeight || 600;
-      /* Reserve room for top bar (#v2-top / #cm-bar) and bottom deck (#v2-deck + .gw-hud) */
-      var availW = W * 0.80;
-      var availH = Math.max(220, H - 210);
+      /* Reserve room for top bar (#v2-top / #cm-bar) and bottom deck (#v2-deck + .gw-hud); on a short (landscape)
+         screen both shrink the space, so the widget is sized to what is left and centred in it, never behind the keys */
+      var short = H < 520, topR = short ? 60 : 92, botR = short ? 175 : 200;
+      var availW = W * (short ? 0.62 : 0.80);
+      var availH = Math.max(110, H - topR - botR);
       /* Account for rotated bounding box (~510px effective diagonal span) */
-      fitScale = clamp(Math.min(availW / 515, availH / 495), 0.48, 1.18);
+      fitScale = clamp(Math.min(availW / 515, availH / 495), 0.22, 1.18);
+      rig.style.top = Math.round(topR + availH / 2) + 'px';
       rig.style.transform = 'scale(' + fitScale.toFixed(3) + ')';
     }
 
@@ -1686,6 +1699,21 @@
       ro = new ResizeObserver(fit);
       ro.observe(box);
     }
+    /* Turning the phone (or coming back to the app): iOS may drop the canvases' pixels, which leaves the stage black —
+       once the size has settled, fit again and paint the card in front afresh; the tilt starts from a new zero */
+    var reTimer = 0;
+    function repaintSoon() {
+      clearTimeout(reTimer);
+      reTimer = setTimeout(function () {
+        if (dead) return;
+        try { fit(); if (!trans.active) showImmediate(activeIdx); } catch (e) {}
+        gyro.baseLr = null; gyro.baseFb = null; gyro.armed = true;
+      }, 380);
+    }
+    function onVis() { if (!document.hidden) repaintSoon(); }
+    window.addEventListener('orientationchange', repaintSoon);
+    window.addEventListener('resize', repaintSoon);
+    document.addEventListener('visibilitychange', onVis);
 
     var syncTimer = setInterval(syncHud, 500);
 
@@ -1711,6 +1739,10 @@
         document.removeEventListener('keydown', onKeyDown);
         window.removeEventListener('deviceorientation', onDeviceOrientation);
         window.removeEventListener('devicemotion', onDeviceMotion);
+        window.removeEventListener('orientationchange', repaintSoon);
+        window.removeEventListener('resize', repaintSoon);
+        document.removeEventListener('visibilitychange', onVis);
+        clearTimeout(reTimer);
         if (stage.parentNode) stage.parentNode.removeChild(stage);
       }
     };
