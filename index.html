@@ -209082,5 +209082,100 @@ html body .minest-activity-modal-panel, html body .kh .kh-side { overscroll-beha
   window.MinestMotionPolish = { pass: function () { pass(true); return stats; }, stats: stats, touch: touch };
 })();
 </script>
+<style id="mn-duo-polish-css">
+/* Minest · Duo polish (see duo-polish.js). Page by page, Duo only (html.duo). Values from the skills in .claude/skills
+   (emil-design-eng, motion-design, mobile-native): strong ease-out for anything arriving, exits faster than entrances,
+   nothing from scale(0), no motion on high-frequency or keyboard actions, reduced motion keeps opacity only. */
+html.duo { --dp-out: cubic-bezier(.23, 1, .32, 1); }
+
+/* ───────── 1 · Spatial Home (the room) ─────────
+   The room is drawn in a Minecraft look on purpose (square, bevelled slots — system-bar.css / home.css): its motion is
+   kept the same way, short and blunt — a panel steps in by a few pixels and fades, no scaling, no bounce. */
+
+/* the object card, the room's settings and its toast used to pop in from display:none with no transition at all;
+   now they arrive (160–200ms, strong ease-out) and leave instantly (hidden = gone: an exit should be faster than an entrance) */
+html.duo #mn-sh #sh-card:not([hidden]) {
+  transition: opacity .18s var(--dp-out), translate .2s var(--dp-out);
+  @starting-style { opacity: 0; translate: 0 8px; }
+}
+html.duo #mn-sh #sh-settings:not([hidden]) {
+  transform-origin: top right;
+  transition: opacity .16s var(--dp-out), translate .18s var(--dp-out);
+  @starting-style { opacity: 0; translate: 0 -6px; }
+}
+html.duo #mn-sh #sh-toast:not([hidden]) {
+  transition: opacity .16s var(--dp-out), translate .18s var(--dp-out);
+  @starting-style { opacity: 0; translate: 0 -6px; }
+}
+/* the top row folds away with the room's own curve, not CSS's weak default `ease` */
+html.duo #mn-sh #sh-top > * { transition-timing-function: var(--dp-out); }
+
+/* the credit line ("… assets, with the author's permission") ran under the system Dock at the bottom centre; it now
+   keeps to the free space beside the Dock, or steps above it when there is none (positions set by duo-polish.js) */
+html.duo #mn-sh #sh-credit.dp-moved { max-width: var(--dp-credit-w, 60vw); bottom: var(--dp-credit-b, calc(4px + env(safe-area-inset-bottom))); right: var(--dp-credit-r, calc(10px + env(safe-area-inset-right))); }
+
+@media (prefers-reduced-motion: reduce) {
+  html.duo #mn-sh #sh-card:not([hidden]), html.duo #mn-sh #sh-settings:not([hidden]), html.duo #mn-sh #sh-toast:not([hidden]) {
+    transition: opacity .12s linear; @starting-style { opacity: 0; translate: none; }
+  }
+}
+</style>
+<script id="mn-duo-polish-js">
+/* Minest · Duo polish (2026-11-26): page-by-page UI and motion fixes on the Duo (html.duo), following the motion / UI skills
+   in .claude/skills. CSS in duo-polish.css; this file only does what CSS cannot measure. window.MinestDuoPolish = { pass } */
+(function () {
+  'use strict';
+  if (window.MinestDuoPolish) return;
+  var R = document.documentElement;
+  function duo() { return R.classList.contains('duo'); }
+
+  /* ── Spatial Home: the credit line keeps clear of the system Dock ──
+     beside the Dock when the gap to the right edge holds at least 140px of text, otherwise just above the Dock */
+  function credit() {
+    var c = document.getElementById('sh-credit');
+    if (!c) return;
+    var d = document.querySelector('.mn-bdock');
+    if (!duo() || !c.textContent.trim() || !d) { c.classList.remove('dp-moved'); return; }
+    var dr = d.getBoundingClientRect(), cs = getComputedStyle(d);
+    if (dr.width < 2 || cs.display === 'none' || cs.visibility === 'hidden' || dr.bottom < innerHeight - 140) { c.classList.remove('dp-moved'); return; }
+    var free = innerWidth - dr.right - 18, left = dr.left - 18;
+    c.style.removeProperty('--dp-credit-r');
+    if (free >= 140) {
+      c.style.setProperty('--dp-credit-w', Math.round(free) + 'px');
+      c.style.setProperty('--dp-credit-b', 'calc(4px + env(safe-area-inset-bottom))');
+    } else if (left >= 140 && innerWidth - dr.right < 60) {   // the outer screen: the Dock stands up along the right edge
+      c.style.setProperty('--dp-credit-w', Math.round(left - 10) + 'px');
+      c.style.setProperty('--dp-credit-r', Math.round(innerWidth - dr.left + 8) + 'px');
+      c.style.setProperty('--dp-credit-b', 'calc(4px + env(safe-area-inset-bottom))');
+    } else {
+      c.style.setProperty('--dp-credit-w', '60vw');
+      c.style.setProperty('--dp-credit-b', Math.round(innerHeight - dr.top + 6) + 'px');
+    }
+    c.classList.add('dp-moved');
+  }
+
+  var queued = false;
+  function pass() {
+    if (queued) return; queued = true;
+    requestAnimationFrame(function () { queued = false; try { credit(); } catch (e) {} });
+  }
+  window.MinestDuoPolish = { pass: pass };
+  addEventListener('resize', pass);
+  addEventListener('orientationchange', pass);
+  /* the Dock changes size as pages hand it their keys; the room fills the credit in when it loads */
+  try {
+    new MutationObserver(pass).observe(R, { attributes: true, attributeFilter: ['class', 'data-mn-ctx', 'data-mn-bd'] });
+    var ro = window.ResizeObserver ? new ResizeObserver(pass) : null;
+    var hook = function () {
+      var d = document.querySelector('.mn-bdock'); if (ro && d && !d.__dpRO) { d.__dpRO = 1; ro.observe(d); }
+      var c = document.getElementById('sh-credit'); if (c && !c.__dpMO) { c.__dpMO = 1; new MutationObserver(pass).observe(c, { childList: true, characterData: true, subtree: true }); }
+      pass();
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hook); else hook();
+    setTimeout(hook, 1500); setTimeout(hook, 5000);
+    document.addEventListener('click', function () { setTimeout(hook, 400); }, true);
+  } catch (e) {}
+})();
+</script>
 </body>
 </html>
