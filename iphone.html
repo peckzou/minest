@@ -208142,6 +208142,24 @@ html.duo img.card-front-cover-img[src^="data:image/svg+xml"] { object-position: 
    line; 740px gives each row room for all of them. The sheet's own × / ‹ give way to the Dock's (tools/system-bar/duo-pages.js) */
 html.duo.duo-inner .mn-nw .mn-nw-page { max-width: 740px; }
 
+/* ───────── 4 · My World (the islands) ─────────
+   a tap made an island hop by swapping its float loop for a 500ms keyframe (`ease`) on the same element: an island caught
+   mid-float (up to 7px up, tilted) snapped back to rest first, then hopped. The float now keeps running on .uv-art (same
+   name, duration and delay as at rest, so it never restarts) and the hop rides on the island around it, on the separate
+   `translate` / `scale` properties: up on the strong ease-out, down on an ease-in-out, 420ms. Where the islands hold still
+   on purpose (the island home, data-island-home — mn-island-game turns the float off) they stay still: only the hop plays */
+@media (prefers-reduced-motion: no-preference) {
+  html.duo body .uv:not([data-island-home="true"]) .uv-isle.mn-bi.mn-bi-tap .uv-art { animation: mnBiFloat 7s ease-in-out infinite !important; }
+  html.duo body .uv:not([data-island-home="true"]) .uv-isle.mn-bi.mn-bi-tap:nth-of-type(2n) .uv-art { animation-delay: -2.3s !important; animation-duration: 8s !important; }
+  html.duo body .uv:not([data-island-home="true"]) .uv-isle.mn-bi.mn-bi-tap:nth-of-type(3n) .uv-art { animation-delay: -4.6s !important; animation-duration: 6.4s !important; }
+  html.duo body .uv .uv-isle.mn-bi.mn-bi-tap { animation: dpIsleHop .42s both; }
+}
+@keyframes dpIsleHop {
+  0% { translate: 0 0; scale: 1; animation-timing-function: cubic-bezier(.23, 1, .32, 1); }
+  38% { translate: 0 -10px; scale: 1.04; animation-timing-function: cubic-bezier(.45, 0, .55, 1); }
+  100% { translate: 0 0; scale: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html.duo #mn-sh #sh-card:not([hidden]), html.duo #mn-sh #sh-settings:not([hidden]), html.duo #mn-sh #sh-toast:not([hidden]) {
     transition: opacity .12s linear; @starting-style { opacity: 0; translate: none; }
