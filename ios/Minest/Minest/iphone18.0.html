@@ -170,10 +170,14 @@ if(typeof module==='object'&&module.exports)module.exports=merge;else root.Mines
 async function unpack(p,key){if(typeof p[key+'Gz']==='string'){if(typeof DecompressionStream==='undefined')throw Error('此设备不支持安全解压，未上传');var b=Uint8Array.from(atob(p[key+'Gz']),c=>c.charCodeAt(0));return JSON.parse(await new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream('gzip'))).text());}return p[key]&&typeof p[key]==='object'&&typeof p[key].isEqual!=='function'?p[key]:null;}
 async function pack(value){var bytes=new Uint8Array(await new Response(new Blob([JSON.stringify(value)]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());var text='';for(var i=0;i<bytes.length;i++)text+=String.fromCharCode(bytes[i]);return btoa(text);}
 async function prepare(){var b=null,r=null;try{b=w.MinestBoardBase?await w.MinestBoardBase():null;}catch(e){}try{r=JSON.parse(localStorage.getItem('liquid-routine.cloud-base.v1')||'null');}catch(e){}var teaching=null;try{var u=w.firebase.auth().currentUser;teaching=JSON.parse(localStorage.getItem('minest.teaching.cloud-base.'+u.uid)||'null');}catch(e){}return {boards:b,routine:r,teaching:teaching};}
-async function reconcile(local,remote,base){var out=Object.assign({},local),mine=(local.clientUpdatedAt||0)>=(remote.clientUpdatedAt||0);for(var key of ['boards','routine','knowledge']){var l=await unpack(local,key);if(!l)continue;var r=await unpack(remote,key);if(!r)continue;var merged;
+/* My World (Knowledge) maps: per key, the newer stamp wins; `b` wins a tie. 2026-11-26: the cloud can hold a plain
+   `knowledge` field (older clients wrote it straight to the doc) beside `knowledgeGz`; both count now, so keys only the
+   plain field had are no longer dropped when the next save deletes it. */
+function knMerge(a,b){var m=Object.assign({},a,b);for(var map of ['h','off','o','m','t','x']){m[map]=Object.assign({},a&&a[map]);Object.keys(b&&b[map]||{}).forEach(k=>{var x=b[map][k],y=m[map][k];if(!y||(x&&x.t||0)>=(y&&y.t||0))m[map][k]=x;});}return m;}
+async function reconcile(local,remote,base){var out=Object.assign({},local),mine=(local.clientUpdatedAt||0)>=(remote.clientUpdatedAt||0);for(var key of ['boards','routine','knowledge']){var l=await unpack(local,key);if(!l)continue;var r=await unpack(remote,key);if(key==='knowledge'&&r&&typeof remote.knowledgeGz==='string'&&remote.knowledge&&typeof remote.knowledge==='object'&&typeof remote.knowledge.isEqual!=='function')r=knMerge(remote.knowledge,r);if(!r)continue;var merged;
 if(key==='boards')merged=w.MinestBoardMerge(base.boards,l,r,mine);
 if(key==='routine'){merged=w.MinestRoutineEnvelope?w.MinestRoutineEnvelope.merge(l,r):{v:1,at:Math.max(l.at||0,r.at||0),state:w.MinestRoutineMerge(l.state,l.at,r.state,r.at,base.routine)};}
-if(key==='knowledge'){merged=Object.assign({},r,l);for(var map of ['h','off','o','m','t','x']){merged[map]=Object.assign({},r[map]);Object.keys(l[map]||{}).forEach(k=>{var a=l[map][k],b=merged[map][k];if(!b||(a&&a.t||0)>=(b&&b.t||0))merged[map][k]=a;});}}
+if(key==='knowledge')merged=knMerge(r,l);
 if(typeof local[key+'Gz']==='string'){out[key+'Gz']=await pack(merged);}else out[key]=merged;
 if(out.syncVersionsV1&&w.MinestSyncCore){out.syncVersionsV1=Object.assign({},out.syncVersionsV1);var cat={boards:'boards',routine:'routine',knowledge:'myworld'}[key];out.syncVersionsV1[cat]=Object.assign({},out.syncVersionsV1[cat],{version:w.MinestSyncCore.version(key==='routine'?merged.state:merged)});}}
 if(local.teachingWordsets&&remote.teachingWordsets){out.teachingWordsets=w.MinestBoardMerge(base.teaching?[base.teaching]:[], [local.teachingWordsets],[remote.teachingWordsets],mine)[0];out.teachingAssets=Object.assign({},remote.teachingAssets,local.teachingAssets);if(out.syncVersionsV1&&w.MinestSyncCore){out.syncVersionsV1=Object.assign({},out.syncVersionsV1,{teaching:Object.assign({},out.syncVersionsV1.teaching,{version:w.MinestSyncCore.version({wordsets:out.teachingWordsets,assets:out.teachingAssets||{}})})});}}
@@ -101343,15 +101347,14 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
   // ================================================================== knowledge metadata (synced)
   var KN_KEY = 'minest.knowledge.v1';
   var K = (function () { try { var v = JSON.parse(localStorage.getItem(KN_KEY) || 'null'); if (v && typeof v === 'object') return { h: v.h || {}, off: v.off || {}, o: v.o || {}, m: v.m || {}, t: v.t || {}, x: v.x || {} }; } catch (e) {} return { h: {}, off: {}, o: {}, m: {}, t: {}, x: {} }; })();
-  function knSave() { try { localStorage.setItem(KN_KEY, JSON.stringify(K)); } catch (e) {} }
-  function knPush() {
-    // straight to the cloud doc (merge), so a heading reaches the other devices without waiting for a board edit
-    try {
-      var fb = window.firebase, u = fb && fb.auth && fb.auth().currentUser;
-      if (!u || !fb.firestore) return;
-      fb.firestore().collection('users').doc(u.uid).collection('focusboard').doc('data').set({ knowledge: JSON.parse(JSON.stringify(K)) }, { merge: true }).catch(function () {});
-    } catch (e) {}
-  }
+  /* 2026-11-26 · My World sync repair (tools/myworld/patch_myworld_sync.py): kept in the durable store too (localStorage
+     alone can be cleared by iOS), and a change goes up with the next cloud save, which merges it per key with what the
+     cloud has. Before, it was written straight to the doc outside the sync transport and never marked unsynced. */
+  function knSave() { var s = JSON.stringify(K); try { localStorage.setItem(KN_KEY, s); } catch (e) {} try { if (window.MinestDurableStorage) window.MinestDurableStorage.setItem(KN_KEY, s); } catch (e) {} }
+  var knTimer = 0;
+  function knUp() { knTimer = 0; try { window.dispatchEvent(new CustomEvent('minest:cloud-dirty', { detail: { immediate: true, domain: 'myworld' } })); } catch (e) {} }
+  function knPush() { if (knTimer) clearTimeout(knTimer); knTimer = setTimeout(knUp, 1200); }
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden' && knTimer) { clearTimeout(knTimer); knUp(); } });
   function setKey(map, id, on) { K[map][id] = { on: on ? 1 : 0, t: Date.now() }; knSave(); knPush(); }
   var listeners = [];
   // one appearance for every knowledge view: auto (the board's own light / dark theme), light or dark — html.kn-light
@@ -101396,6 +101399,16 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
       if (changed) { knSave(); if (ui.open) render(); listeners.forEach(function (f) { try { f(); } catch (e) {} }); }
     }
   };
+  /* the durable copy may hold keys localStorage lost: take them in, and send them up if the cloud may not have them */
+  try {
+    var DS = window.MinestDurableStorage;
+    if (DS && DS.ready) DS.ready.then(function () {
+      var v = null; try { v = JSON.parse(DS.getItem(KN_KEY) || 'null'); } catch (e) {}
+      if (!v || typeof v !== 'object') return;
+      var before = JSON.stringify(K); window.MinestKnowledge._mergeCloud(v);
+      if (JSON.stringify(K) !== before) knPush();
+    });
+  } catch (e) {}
 
   // ================================================================== view state (this device)
   var ST_KEY = 'minest.contents.v1';
