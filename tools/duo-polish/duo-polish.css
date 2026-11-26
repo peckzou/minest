@@ -29,8 +29,24 @@ html.duo #mn-sh #sh-top > * { transition-timing-function: var(--dp-out); }
    keeps to the free space beside the Dock, or steps above it when there is none (positions set by duo-polish.js) */
 html.duo #mn-sh #sh-credit.dp-moved { max-width: var(--dp-credit-w, 60vw); bottom: var(--dp-credit-b, calc(4px + env(safe-area-inset-bottom))); right: var(--dp-credit-r, calc(10px + env(safe-area-inset-right))); }
 
+/* ───────── 2 · The board ─────────
+   immersive mode's title bar and tab bar slid in and out in 380ms both ways. It follows every tap on the board (tens of
+   times a day), so it gets the high-frequency budget: away in 200ms, back in 260ms, strong ease-out, opacity a touch quicker */
+html.duo.mn-immersive body:not(.clear-mode) header.iphone-topbar, html.duo.mn-immersive .ios-bottom-tab-bar {
+  transition: transform .2s var(--dp-out), opacity .14s var(--dp-out) !important;
+}
+html.duo.mn-immersive.mn-chrome body:not(.clear-mode) header.iphone-topbar {
+  transition: transform .26s var(--dp-out), opacity .18s var(--dp-out) !important;
+}
+/* the cards' generated study-summary covers (SVG, 3:2) were cropped around their middle, which cut the chart's title in
+   half and left a strip of clipped letters on top of every card; the window now starts below the title (the card shows
+   the title underneath anyway) and shows the steps */
+html.duo img.card-front-cover-img[src^="data:image/svg+xml"] { object-position: 50% 66%; }
+
 @media (prefers-reduced-motion: reduce) {
   html.duo #mn-sh #sh-card:not([hidden]), html.duo #mn-sh #sh-settings:not([hidden]), html.duo #mn-sh #sh-toast:not([hidden]) {
     transition: opacity .12s linear; @starting-style { opacity: 0; translate: none; }
   }
+  html.duo.mn-immersive body:not(.clear-mode) header.iphone-topbar, html.duo.mn-immersive .ios-bottom-tab-bar,
+  html.duo.mn-immersive.mn-chrome body:not(.clear-mode) header.iphone-topbar { transition: opacity .14s linear !important; }
 }
