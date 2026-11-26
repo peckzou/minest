@@ -1,0 +1,37 @@
+# Minest open-speed and jank check (tools/perf). Runs on pull requests that touch the app pages or their sources.
+# Static budget: page size, whole-document observers, fast timers, blocking head scripts (seconds, no browser).
+# Runtime: each page in WebKit (Safari's engine) — time to DOMContentLoaded and to a usable board, then 10 s at rest:
+# DOM changes, janky frames and main-thread time. The table lands in the run's summary.
+name: perf
+on:
+  pull_request:
+    paths: ['*.html', 'ios/Minest/Minest/*.html', 'tools/**', 'spatial-home/**', 'tests/**', '.github/workflows/perf.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: perf-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  perf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Static budget
+        run: node tools/perf/static.mjs | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Install WebKit
+        run: |
+          npm i --no-save --no-package-lock playwright@1.49.1
+          npx playwright install --with-deps webkit
+      - name: Open speed and jank (WebKit)
+        run: node tools/perf/run.mjs --json perf.json | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: perf
+          path: perf.json
+          if-no-files-found: ignore
