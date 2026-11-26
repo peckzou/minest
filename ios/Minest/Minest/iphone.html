@@ -197475,23 +197475,34 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
       });
     }).catch(function () { st.error = '连不上云端（离线？）· 改动先存在本机'; emit(null); });
   }
-  /* Minest's own page: the keys go up by themselves, small. Minest Knowledge's own push sends the whole store in plain
-     form, which fails without a word once the store is near Firestore's 1 MB (the full upload compresses it, but runs
-     only after a board edit); so a move made in the room waited for the next board edit to reach the cloud. */
   function hostFlush(h) {
-    if (flushing || !pending()) return;
-    if (root.navigator && root.navigator.onLine === false) return;
-    var F = null, u = null; try { F = h.w.firebase; u = F && F.auth && F.auth().currentUser; } catch (e) {}
-    if (!u || !F.firestore) return;
-    var x = h.K._cloud().x || {}, send = {}, sent = {};
-    Object.keys(outbox).forEach(function (k) { if (x[k]) { send[k] = x[k]; sent[k] = outbox[k]; } else delete outbox[k]; });
-    if (!Object.keys(send).length) { outSave(); return; }
-    flushing = true;
-    F.firestore().collection('users').doc(u.uid).collection('focusboard').doc('data').set({ knowledge: { x: send } }, { merge: true }).then(function () {
-      Object.keys(sent).forEach(function (k) { if (outbox[k] === sent[k]) delete outbox[k]; });
-      outSave(); flushing = false; st.synced = Date.now(); st.error = ''; emit(null);
-      if (pending()) flush();
-    }).catch(function (e) { flushing = false; st.error = (e && e.code) || '上传失败 · 稍后再试'; emit(null); });
+    /* 2026-11-26 · Spatial Home sync repair (tools/spatial-home/patch_home_sync.py): on Minest's own page the keys go up
+       with Minest's own cloud save (the sync transport, compressed, merged per key with what the cloud has). Before,
+       they were written straight to the doc as a plain `knowledge` field with the Firestore SDK: on the iPhone and the
+       iPad that write often never arrived, and the next full save dropped keys only that plain field had. A key leaves
+       the outbox once Minest's save has taken everything up to the moment it was handed over. */
+    if (!pending()) return;
+    var x = h.K._cloud().x || {}, newest = 0;
+    Object.keys(outbox).forEach(function (k) { if (!x[k]) delete outbox[k]; else newest = Math.max(newest, outbox[k] || 0); });
+    var un = hostUnsynced(h);
+    if (hostAsk && un === false) Object.keys(outbox).forEach(function (k) { if ((outbox[k] || 0) <= hostAsk) delete outbox[k]; });
+    if (pending() && (!hostAsk || newest > hostAsk || un === false || un === null) && !(root.navigator && root.navigator.onLine === false)) {
+      hostAsk = Math.max(Date.now(), newest);
+      try { h.w.dispatchEvent(new h.w.CustomEvent('minest:cloud-dirty', { detail: { immediate: true, domain: 'spatialHome' } })); } catch (e) {}
+      if (un === null) Object.keys(outbox).forEach(function (k) { if ((outbox[k] || 0) <= hostAsk) delete outbox[k]; });   // an older Minest: nothing to wait on
+      clearTimeout(hostT); hostT = setTimeout(flush, 4000);
+    }
+    if (!pending()) { st.synced = Date.now(); st.error = ''; }
+    outSave(); emit(null);
+  }
+  var hostAsk = 0, hostT = 0;
+  /* Minest's own record of edits the cloud has not taken yet (its dirtyAt > ackAt); null when it has none */
+  function hostUnsynced(h) {
+    try {
+      var S = h.w.MinestDurableStorage || h.w.localStorage, d = Number(S.getItem('minest.cloud.dirtyAt')), a = Number(S.getItem('minest.cloud.ackAt'));
+      if (!d && !a && S.getItem('minest.cloud.dirtyAt') == null) return null;
+      return (d || 0) > (a || 0);
+    } catch (e) { return null; }
   }
   function flush() {
     if (st.mode === 'bridge') return bridgeFlush();
