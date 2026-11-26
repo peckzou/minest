@@ -95,6 +95,7 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock
     if (!o.length) return;
     haptic('light');
     var r = anchor.getBoundingClientRect(), dock = anchor.closest('.mn-bdock'), d = dock.getBoundingClientRect();
+    if (!r.width || !r.height) r = d.width ? { left: d.right - 52, top: d.top, width: 46, height: d.height } : { left: innerWidth - 60, top: innerHeight - 70, width: 46, height: 46 };   /* rest-polish: opened from the pill Dock */
     var vertical = d.height > d.width, toLeft = vertical ? d.left > innerWidth / 2 : false;
     var dir = vertical ? (toLeft ? 'left' : 'right') : 'up', S = 46, GAP = 56;
     var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
@@ -108,11 +109,13 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock
     });
     var minY = Math.min.apply(null, pts.map(function (p) { return p.y; })) - S / 2, maxY = Math.max.apply(null, pts.map(function (p) { return p.y; })) + S / 2;
     var shiftY = minY < 8 ? 8 - minY : maxY > innerHeight - 8 ? innerHeight - 8 - maxY : 0;
+    var LW = 112, minX = Math.min.apply(null, pts.map(function (p) { return p.x; })) - S / 2 - (dir !== 'right' ? LW : 0), maxX = Math.max.apply(null, pts.map(function (p) { return p.x; })) + S / 2 + (dir === 'right' ? LW : 0);   /* rest-polish: labels on screen */
+    var shiftX = minX < 8 ? 8 - minX : maxX > innerWidth - 8 ? innerWidth - 8 - maxX : 0;
     o.forEach(function (orig, i) {
       var p = pts[i], it = document.createElement('button'); it.type = 'button'; it.className = 'miv-fan-item'; it.setAttribute('role', 'menuitem');
       it.title = orig.getAttribute('aria-label') || '';
-      it.style.setProperty('--x', p.x + 'px'); it.style.setProperty('--y', (p.y + shiftY) + 'px'); it.style.setProperty('--r', p.rot + 'deg');
-      it.style.setProperty('--dx', (cx - p.x) + 'px'); it.style.setProperty('--dy', (cy - p.y - shiftY) + 'px');
+      it.style.setProperty('--x', (p.x + shiftX) + 'px'); it.style.setProperty('--y', (p.y + shiftY) + 'px'); it.style.setProperty('--r', p.rot + 'deg');
+      it.style.setProperty('--dx', (cx - p.x - shiftX) + 'px'); it.style.setProperty('--dy', (cy - p.y - shiftY) + 'px');
       it.style.setProperty('--d', ((n - 1 - i) * 32) + 'ms'); it.style.setProperty('--dc', (i * 20) + 'ms');
       var svg = orig.querySelector('svg'), img = orig.querySelector('img');
       var ic = svg ? svg.outerHTML.replace('<svg', '<svg class="miv-ic"') : img ? img.outerHTML : '';

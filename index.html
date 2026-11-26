@@ -184366,6 +184366,7 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock
     if (!o.length) return;
     haptic('light');
     var r = anchor.getBoundingClientRect(), dock = anchor.closest('.mn-bdock'), d = dock.getBoundingClientRect();
+    if (!r.width || !r.height) r = d.width ? { left: d.right - 52, top: d.top, width: 46, height: d.height } : { left: innerWidth - 60, top: innerHeight - 70, width: 46, height: 46 };   /* rest-polish: opened from the pill Dock */
     var vertical = d.height > d.width, toLeft = vertical ? d.left > innerWidth / 2 : false;
     var dir = vertical ? (toLeft ? 'left' : 'right') : 'up', S = 46, GAP = 56;
     var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
@@ -184379,11 +184380,13 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock
     });
     var minY = Math.min.apply(null, pts.map(function (p) { return p.y; })) - S / 2, maxY = Math.max.apply(null, pts.map(function (p) { return p.y; })) + S / 2;
     var shiftY = minY < 8 ? 8 - minY : maxY > innerHeight - 8 ? innerHeight - 8 - maxY : 0;
+    var LW = 112, minX = Math.min.apply(null, pts.map(function (p) { return p.x; })) - S / 2 - (dir !== 'right' ? LW : 0), maxX = Math.max.apply(null, pts.map(function (p) { return p.x; })) + S / 2 + (dir === 'right' ? LW : 0);   /* rest-polish: labels on screen */
+    var shiftX = minX < 8 ? 8 - minX : maxX > innerWidth - 8 ? innerWidth - 8 - maxX : 0;
     o.forEach(function (orig, i) {
       var p = pts[i], it = document.createElement('button'); it.type = 'button'; it.className = 'miv-fan-item'; it.setAttribute('role', 'menuitem');
       it.title = orig.getAttribute('aria-label') || '';
-      it.style.setProperty('--x', p.x + 'px'); it.style.setProperty('--y', (p.y + shiftY) + 'px'); it.style.setProperty('--r', p.rot + 'deg');
-      it.style.setProperty('--dx', (cx - p.x) + 'px'); it.style.setProperty('--dy', (cy - p.y - shiftY) + 'px');
+      it.style.setProperty('--x', (p.x + shiftX) + 'px'); it.style.setProperty('--y', (p.y + shiftY) + 'px'); it.style.setProperty('--r', p.rot + 'deg');
+      it.style.setProperty('--dx', (cx - p.x - shiftX) + 'px'); it.style.setProperty('--dy', (cy - p.y - shiftY) + 'px');
       it.style.setProperty('--d', ((n - 1 - i) * 32) + 'ms'); it.style.setProperty('--dc', (i * 20) + 'ms');
       var svg = orig.querySelector('svg'), img = orig.querySelector('img');
       var ic = svg ? svg.outerHTML.replace('<svg', '<svg class="miv-ic"') : img ? img.outerHTML : '';
@@ -202944,7 +202947,7 @@ body.theme-white .fbfx-pk-badge {
     if (target.closest('#fbfx-picker-menu')) return null;
     return target.closest(
       '.bar-fx-btn[aria-label="Light FX"], ' +
-      '.ios-tab-item.dock-fx-tab, ' +
+      '.ios-tab-item.dock-fx-tab:not([title^="Card"]):not([aria-label^="Card"]), ' +
       '.fbfx-btn, ' +
       '.mn-bapp[aria-label^="Light FX"], ' +
       '.student-game-float-btn[title^="Light FX"], ' +
@@ -209095,6 +209098,26 @@ body.theme-white .fbfx-pk-badge {
   window.MinestV2Routes = { open: open, close: function () { close(); }, isOpen: function () { return !!ov; }, dyn: dyn, cards: cards, cardStyles: function () { cardStyles(); }, version: '1.4' };
 })();
 </script><!-- mn-v2-routes:end -->
+<style id="mn-rest-polish-css">
+/* Minest polish · the rest (tools/polish/patch_rest_polish.py) */
+/* Wallpaper Studio, Board Settings, Activity Rings, the Light FX picker: the mini pet steps aside while the sheet is
+   open (it sat on the Glass cards row, the settings tabs, the rings and the Spotlight effect) */
+html:is(:has(.fbfx-picker),:has(.board-wallpaper-popover),:has(.theme-studio-overlay),:has(.board-settings-overlay),:has(.minest-activity-modal-backdrop)) #minest-mini-pet-p0{visibility:hidden!important;pointer-events:none!important}
+/* Board Settings: a denser sheet, so the board behind it doesn't read through the text */
+html body .board-settings-modal{background:linear-gradient(180deg,rgba(40,47,64,.94) 0%,rgba(20,25,36,.97) 100%)!important}
+/* Board Settings · My World island card: its type was the sheet's body size (its font shorthands were invalid), now it
+   matches the other cards; the button matches the sheet's own buttons instead of a blocky green one */
+html body .mn-bs-isle{background:linear-gradient(135deg,rgba(52,199,106,.14),rgba(56,120,220,.12))!important;border-radius:18px;font-family:inherit}
+html body .mn-bs-isle .h{font-size:12px;font-weight:800;line-height:1.2;letter-spacing:.08em;margin-bottom:6px}
+html body .mn-bs-isle p{font-size:13px;font-weight:500;line-height:1.45}
+html body .mn-bs-isle button{padding:9px 15px;font-size:13px;font-weight:700;line-height:1;text-shadow:none;border:0!important;border-radius:999px;color:#fff;
+  background:linear-gradient(180deg,#22c58b,#0f9f6e);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 6px 16px -8px rgba(16,185,129,.7)}
+html body .mn-bs-isle button.sec{background:rgba(255,255,255,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.14)}
+/* Activity Rings & Badges: the last cards (Streaks, Index) scroll clear of the floating Dock */
+.minest-activity-modal-panel{padding-bottom:var(--mn-dock-clear,0px)!important}
+/* 3D Type: the world strip ends above the floating Dock instead of under it */
+.mn-type3d iframe{height:calc(100% - var(--mn-dock-clear,0px))!important}
+</style>
 <style id="mn-polish-board-css">
 /* Minest polish · board (tools/polish/patch_board_polish.py) */
 :root{
