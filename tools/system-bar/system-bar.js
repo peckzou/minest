@@ -183,8 +183,31 @@
   /* 1, 2 */
   function dockKey(sel) { var b = document.querySelector('.mn-bdock ' + sel); if (b) { b.click(); return true; } return false; }
   function esc() { return document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true, cancelable: true })); }
-  function close(b) { var s0 = snap(); if (ctx === 'room' && press('sh-exitBtn')) return; if (!dockKey('.mn-sys-exit')) esc(); orNothing(b, s0, '没有可关闭的'); }
-  function back(b) { var s0 = snap(); if (ctx === 'room') { if (esc() && !press('sh-exitBtn')) {} return; } if (!dockKey('.mn-sys-back') && esc() && location.hash.length > 1) history.back(); orNothing(b, s0, '已经是最前一页'); }
+  /* another layer can take a key over (the Duo's pages: tools/system-bar/duo-pages.js): true = done */
+  function hook(n, b) { try { var h = window.MinestSystemBar && MinestSystemBar.hooks && MinestSystemBar.hooks[n]; return !!(h && h(b, ctx)); } catch (e) { return false; } }
+  function close(b) { if (hook('close', b)) return; var s0 = snap(); if (ctx === 'room' && press('sh-exitBtn')) return; if (!dockKey('.mn-sys-exit')) esc(); orNothing(b, s0, '没有可关闭的'); }
+  /* 2026-11-24 (the user: "系统返回键要真正返回之前的页面或操作，最重要的是层级的返回"): one level per press, innermost first —
+     the opening's own layers (map / telescope / treehouse / inside the house) → what is open over the board (the Dock's back, Esc) →
+     the room → the opening the board was opened from → the page before this one (Mac ⇄ iPhone); only then "已经是最前一页" */
+  function pageBack() {
+    try {
+      var r = document.referrer, can = window.navigation && typeof navigation.canGoBack === 'boolean' ? navigation.canGoBack : history.length > 1;
+      if (!r || !can) return false; var u = new URL(r); if (u.origin !== location.origin || u.pathname === location.pathname) return false;
+      history.back(); return true;
+    } catch (e) { return false; }
+  }
+  function back(b) {
+    if (hook('back', b)) return;
+    var s0 = snap(), SC = window.MinestStartControls;
+    if (SC && SC.active && SC.active()) { if (!SC.back() && !pageBack()) nothing(b, '已经是最前一页'); return; }
+    if (ctx === 'room') { if (esc() && !press('sh-exitBtn')) {} return; }
+    if (!dockKey('.mn-sys-back') && esc() && location.hash.length > 1) { history.back(); return; }
+    setTimeout(function () {
+      if (snap() !== s0) return;
+      if (SC && SC.fromOpening && SC.fromOpening() && window.MinestSpatialHome && MinestSpatialHome.home) { try { MinestSpatialHome.home(); return; } catch (e) {} }
+      if (!pageBack()) nothing(b, '已经是最前一页');
+    }, 280);
+  }
   /* 3: reading mode, here and in every open frame of the same site */
   var HIDE = 'button,[role="button"],[role="toolbar"],header.iphone-topbar,.ios-bottom-tab-bar,.mn-bdock,#minest-mini-pet-p0,#cs-btn,' +
     '#sh-top,#sh-labels,#sh-stick,#sh-hint,#sh-credit,#sh-pill,#sh-reading-enter,#sh-dock,#sh-settings,#sh-pack,#sh-edit,#sh-card,#sh-toast,#sh-skip,.clun-entry,.mn-start-control';
@@ -276,7 +299,10 @@
       var k = key('mn-ctx-key mn-ctx-slide', q[0], svg(q[1]), function () { var b = window.MinestStudyBoard; if (b && b.slide) b.slide(i); });
       k.classList.remove('mn-sys-key'); k.dataset.ctx = 'off'; roomKeys.push(k); return k; });
   function study() { try { var e = window.MinestSpatialHome.api().env(); return !!(e && e.envId === 'victorian' && window.MinestStudyBoard && window.MinestStudyBoard.slide); } catch (er) { return false; } }
-  function inWorld() { try { return !!(window.MinestMyWorld && MinestMyWorld.isOpen && MinestMyWorld.isOpen()); } catch (e) { return false; } }
+  function inWorld() {
+    try { if (window.MinestMyWorld && MinestMyWorld.isOpen && MinestMyWorld.isOpen()) return true; } catch (e) {}
+    var u = document.querySelector('.uv'); if (!u) return false; var r = u.getBoundingClientRect(); return r.width > innerWidth * .6 && getComputedStyle(u).display !== 'none';   // the island universe
+  }
 
   /* the page's own keys (2026-11-20, the user: the right of the Dock holds only what the page in use needs — its top
      bar moves down here): a page hands over one group of keys; while it is there, the board's apps give way (the
@@ -312,7 +338,7 @@
     var lens = mc ? 0 : (h ? 1.6 : 1.35), room = (h ? innerWidth : innerHeight) - 28 - (h ? 0 : 20);
     if (R.classList.contains('mn-dock-free')) room = (h ? innerWidth : innerHeight) - 24;   // placed freely: the whole screen is the limit
     else if (R.classList.contains('duo-dockpin') || R.classList.contains('duo-docktop')) {   // the Duo's pinned Dock starts at its own place: the room left from there
-      var dr = d.getBoundingClientRect(); room = h ? innerWidth - Math.max(0, dr.left) - 16 : innerHeight - Math.max(0, dr.top) - 16;
+      var dr = d.getBoundingClientRect(); room = h ? innerWidth - Math.max(0, dr.left) - 16 : innerHeight - 44;   /* it stands on the bottom now: the whole column is its room */
     }
     var k = Math.floor((room - 10 - seps * 10 - Math.max(0, keys - 1) * 4) / (keys + lens));
     k = Math.max(22, Math.min(mc ? 38 : 40, k));
@@ -451,5 +477,5 @@
   window.addEventListener('load', function () { setTimeout(syncFrames, 300); }, true);
   function start() { mount(); setTools(toolsOn()); context(); sides(); fit(); freeApply(); }
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
-  window.MinestSystemBar = { page: setPage, reading: setReading, tools: setTools, state: function () { return { reading: reading, tools: !R.classList.contains('mn-sys-tools-off'), ctx: ctx }; } };
+  window.MinestSystemBar = { page: setPage, reading: setReading, tools: setTools, say: nothing, hooks: {}, pageEl: function () { return pageEl; }, state: function () { return { reading: reading, tools: !R.classList.contains('mn-sys-tools-off'), ctx: ctx }; } };
 })();
