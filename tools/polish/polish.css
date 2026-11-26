@@ -1,0 +1,22 @@
+/* Minest polish · board (tools/polish/patch_board_polish.py) */
+:root{
+  --mn-r-sm:10px;--mn-r-md:14px;--mn-r-lg:20px;
+  --mn-ease-out:cubic-bezier(.22,1,.36,1);
+  --mn-focus:0 0 0 2px rgba(255,255,255,.9),0 0 0 4px rgba(56,189,248,.75);
+  --mn-dock-clear:0px;
+}
+/* one focus ring for every control, keyboard only (iPad keyboard, Mac) */
+button:focus-visible,[role=button]:focus-visible,a[href]:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:none!important;box-shadow:var(--mn-focus)!important}
+button,[role=button],a[href]{-webkit-tap-highlight-color:transparent}
+/* list-stack shimmer: moved from a background-position repaint (two per list, under backdrop-filter) to a composited transform */
+.liquid-refraction-caustic{right:auto!important;width:200%!important;background-size:100% 100%!important;background-position:0 0!important;animation:mnCaustic 4.5s ease-in-out infinite alternate!important;will-change:transform}
+@keyframes mnCaustic{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}
+@media (prefers-reduced-motion:reduce){.liquid-refraction-caustic{animation:none!important;transform:translate3d(-25%,0,0)}}
+/* mini pet: only the octopus itself takes taps, not its whole 152px square (it used to cover the first rows of a board) */
+#minest-mini-pet-p0.mn-pet-slim{pointer-events:none!important}
+#minest-mini-pet-p0.mn-pet-slim.is-dragging,#minest-mini-pet-p0.mn-pet-slim.is-holding{pointer-events:auto!important}
+#minest-mini-pet-p0 .mn-pet-hit{position:absolute;left:20%;right:20%;top:12%;bottom:26%;border-radius:46%;pointer-events:auto}
+#minest-mini-pet-p0.is-hidden .mn-pet-hit,#minest-mini-pet-p0.mn-pet-inert .mn-pet-hit,html.mnh-cl #minest-mini-pet-p0 .mn-pet-hit{pointer-events:none!important}
+/* Study Arcade: the Play bar sits above the floating Dock instead of under it; the deck picker draws the same on every engine */
+.arcade.ar-phone .ar-lobby-foot{padding-bottom:calc(12px + var(--mn-dock-clear))!important}
+.ar-select{-webkit-appearance:none;appearance:none;padding-right:30px!important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23e2e8f0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")!important;background-repeat:no-repeat!important;background-position:right 10px center!important;background-size:11px 7px!important;border-radius:var(--mn-r-sm)!important;line-height:1.3}

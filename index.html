@@ -1,6 +1,65 @@
 <!doctype html>
 <html lang="zh-CN">
   <head>
+<meta charset="utf-8">
+<script id="mn-polish-mo">
+/* Minest polish · MutationObserver batching (tools/polish/mo-batch.js) — first script in <head>.
+   About sixty of the app's layers each watch the whole document (subtree of <body> / <html>) and re-scan it on every
+   change. While the page loads, and on every tap that changes the DOM, each change woke all of them at once, and
+   what they changed woke them again: the main thread was busy for seconds and frames were dropped.
+   Here an observer of the whole document gets its records once per frame (before that frame is painted, or within
+   100 ms when no frames are drawn), all records of that frame together. Observers of a single element are not
+   touched: they still run at once. disconnect() and takeRecords() keep their meaning. */
+(function () {
+  'use strict';
+  var MO = window.MutationObserver;
+  if (!MO || MO.__mnBatched) return;
+  var pending = [], scheduled = 0;
+  function flush() {
+    if (!scheduled) return;
+    scheduled = 0;
+    var list = pending; pending = [];
+    for (var i = 0; i < list.length; i++) {
+      var w = list[i]; w.waiting = false;
+      var recs = w.q; w.q = [];
+      if (!recs.length || !w.on) continue;
+      try { w.cb.call(w.self, recs, w.self); } catch (e) { setTimeout(function () { throw e; }); }
+    }
+  }
+  function schedule() {
+    if (scheduled) return;
+    scheduled = 1;
+    requestAnimationFrame(flush);
+    setTimeout(flush, 100);
+  }
+  function whole(t) { return t === document || t === document.documentElement || t === document.body; }
+  function Batched(cb) {
+    if (!new.target) throw new TypeError("Failed to construct 'MutationObserver': Please use the 'new' operator.");
+    var self = this, w = { cb: cb, q: [], self: self, on: false, batch: false, waiting: false };
+    this.__w = w;
+    this.__mo = new MO(function (recs) {
+      if (!w.batch) { cb.call(self, recs, self); return; }
+      for (var i = 0; i < recs.length; i++) w.q.push(recs[i]);
+      if (!w.waiting) { w.waiting = true; pending.push(w); }
+      schedule();
+    });
+  }
+  Batched.prototype.observe = function (target, opts) {
+    var w = this.__w;
+    w.on = true;
+    if (opts && opts.subtree && whole(target)) w.batch = true;
+    return this.__mo.observe(target, opts);
+  };
+  Batched.prototype.disconnect = function () { var w = this.__w; w.on = false; w.batch = false; w.q = []; return this.__mo.disconnect(); };
+  Batched.prototype.takeRecords = function () { var w = this.__w, r = w.q.concat(this.__mo.takeRecords()); w.q = []; return r; };
+  Batched.__mnBatched = true;
+  Batched.Native = MO;
+  try { Object.defineProperty(Batched, Symbol.hasInstance, { value: function (o) { return o instanceof MO || (!!o && !!o.__w && !!o.__mo); } }); } catch (e) {}
+  window.MutationObserver = Batched;
+  if (window.WebKitMutationObserver) window.WebKitMutationObserver = Batched;
+})();
+
+</script>
 <script id="mn-build">window.MINEST_BUILD = {"line": "desktop", "version": "2.2", "name": "desktop v2.2", "device": "Web · Mac", "snapshot": "desktop-v2.2.html"};</script>
 <style id="minest-sync-management-css">#minest-sync-management{--ms-bg:#f6f9fb;--ms-card:#fff;--ms-ink:#233b45;--ms-muted:#71858c;--ms-line:#e2ebef;--ms-green:#238476;--ms-tint:#e8f5f0;position:fixed;inset:0;margin:auto;width:min(1060px,calc(100% - 32px));height:min(900px,calc(100dvh - 40px));max-width:none;max-height:none;border:1px solid var(--ms-line);border-radius:28px;padding:0;background:var(--ms-bg);color:var(--ms-ink);font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;box-shadow:0 28px 100px #102e4330;z-index:2147483647;overflow:hidden;font-size:14px;line-height:1.5;box-sizing:border-box}
 #minest-sync-management::backdrop{background:#142c3b66;backdrop-filter:blur(8px)}#minest-sync-management.ms-dark{--ms-bg:#14212b;--ms-card:#1d2c37;--ms-ink:#e4f0f2;--ms-muted:#9bafb5;--ms-line:#30434f;--ms-green:#83d0b8;--ms-tint:#203f3b;color-scheme:dark}
@@ -175990,6 +176049,7 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Switch to light"],html.mn-bd .mn-bdoc
     var o = originals().filter(Boolean); if (!o.length) return;
     haptic();
     var r = anchor.getBoundingClientRect(), dock = anchor.closest('.mn-bdock'), d = dock.getBoundingClientRect();
+    if (!r.width || !r.height) r = d.width ? { left: d.left + d.width / 2 - 23, top: d.top, width: 46, height: d.height } : { left: innerWidth / 2 - 23, top: innerHeight - 70, width: 46, height: 46 };   /* polish: opened from the pill Dock */
     var vertical = d.height > d.width, toLeft = vertical ? d.left > innerWidth / 2 : false;
     var dir = vertical ? (toLeft ? 'left' : 'right') : 'up', S = 46, GAP = 58;
     var cx = r.left + r.width / 2, cy = r.top + r.height / 2, mid = (o.length - 1) / 2;
@@ -176002,11 +176062,13 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Switch to light"],html.mn-bd .mn-bdoc
     });
     var minY = Math.min.apply(null, pts.map(function (p) { return p.y; })) - S / 2, maxY = Math.max.apply(null, pts.map(function (p) { return p.y; })) + S / 2;
     var shiftY = minY < 8 ? 8 - minY : maxY > innerHeight - 8 ? innerHeight - 8 - maxY : 0;
+    var minX = Math.min.apply(null, pts.map(function (p) { return p.x; })) - S / 2, maxX = Math.max.apply(null, pts.map(function (p) { return p.x; })) + S / 2;
+    var shiftX = minX < 8 ? 8 - minX : maxX > innerWidth - 8 ? innerWidth - 8 - maxX : 0;
     o.forEach(function (orig, i) {
       var p = pts[i], it = document.createElement('button'); it.type = 'button'; it.className = 'miv-fan-item'; it.setAttribute('role', 'menuitem');
       it.title = orig.getAttribute('aria-label') || '';
-      it.style.setProperty('--x', p.x + 'px'); it.style.setProperty('--y', (p.y + shiftY) + 'px'); it.style.setProperty('--r', p.rot + 'deg');
-      it.style.setProperty('--dx', (cx - p.x) + 'px'); it.style.setProperty('--dy', (cy - p.y - shiftY) + 'px');
+      it.style.setProperty('--x', (p.x + shiftX) + 'px'); it.style.setProperty('--y', (p.y + shiftY) + 'px'); it.style.setProperty('--r', p.rot + 'deg');
+      it.style.setProperty('--dx', (cx - p.x - shiftX) + 'px'); it.style.setProperty('--dy', (cy - p.y - shiftY) + 'px');
       it.style.setProperty('--d', (i * 38) + 'ms'); it.style.setProperty('--dc', ((o.length - 1 - i) * 22) + 'ms');
       var svg = orig.querySelector('svg'), lab = LABEL(MATCH.findIndex(function (m) { return m.test(orig.getAttribute('aria-label') || ''); }), orig);
       it.innerHTML = '<span class="miv-fan-ic">' + (svg ? svg.outerHTML.replace('<svg', '<svg class="miv-ic"') : '') + '</span><span class="miv-fan-label">' + lab + '</span>';
@@ -184276,8 +184338,8 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock
     var back = dock.querySelector('.mn-sys-back'), ex = dock.querySelector('.mn-sys-exit');
     if (!ex) ex = tile('mn-sys-btn mn-sys-exit', 'Close · 关闭', CROSS, closeOpen);
     if (!back) back = tile('mn-sys-btn mn-sys-back', 'Back · 返回', BACK, goBack);
-    if (dock.firstElementChild !== ex) dock.insertBefore(ex, dock.firstElementChild);
-    if (ex.nextElementSibling !== back) dock.insertBefore(back, ex.nextElementSibling);
+    if (ex.parentNode !== dock) dock.insertBefore(ex, dock.querySelector(':scope > :not(.mn-sys-key):not(.mn-sys-sep)'));
+    if (back.parentNode !== dock) dock.insertBefore(back, ex.nextElementSibling);   /* polish: mount() orders the system keys */
     var o = originals(); if (!o.some(Boolean)) return;
     var more = dock.querySelector('.mn-more-btn');
     if (!more) { more = tile('mn-more-btn', 'More · 更多', DOTS, toggle); more.setAttribute('aria-haspopup', 'menu'); more.setAttribute('aria-expanded', 'false'); }
@@ -208963,6 +209025,69 @@ body.theme-white .fbfx-pk-badge {
   window.MinestV2Routes = { open: open, close: function () { close(); }, isOpen: function () { return !!ov; }, dyn: dyn, cards: cards, cardStyles: function () { cardStyles(); }, version: '1.4' };
 })();
 </script><!-- mn-v2-routes:end -->
+<style id="mn-polish-board-css">
+/* Minest polish · board (tools/polish/patch_board_polish.py) */
+:root{
+  --mn-r-sm:10px;--mn-r-md:14px;--mn-r-lg:20px;
+  --mn-ease-out:cubic-bezier(.22,1,.36,1);
+  --mn-focus:0 0 0 2px rgba(255,255,255,.9),0 0 0 4px rgba(56,189,248,.75);
+  --mn-dock-clear:0px;
+}
+/* one focus ring for every control, keyboard only (iPad keyboard, Mac) */
+button:focus-visible,[role=button]:focus-visible,a[href]:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:none!important;box-shadow:var(--mn-focus)!important}
+button,[role=button],a[href]{-webkit-tap-highlight-color:transparent}
+/* list-stack shimmer: moved from a background-position repaint (two per list, under backdrop-filter) to a composited transform */
+.liquid-refraction-caustic{right:auto!important;width:200%!important;background-size:100% 100%!important;background-position:0 0!important;animation:mnCaustic 4.5s ease-in-out infinite alternate!important;will-change:transform}
+@keyframes mnCaustic{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}
+@media (prefers-reduced-motion:reduce){.liquid-refraction-caustic{animation:none!important;transform:translate3d(-25%,0,0)}}
+/* mini pet: only the octopus itself takes taps, not its whole 152px square (it used to cover the first rows of a board) */
+#minest-mini-pet-p0.mn-pet-slim{pointer-events:none!important}
+#minest-mini-pet-p0.mn-pet-slim.is-dragging,#minest-mini-pet-p0.mn-pet-slim.is-holding{pointer-events:auto!important}
+#minest-mini-pet-p0 .mn-pet-hit{position:absolute;left:20%;right:20%;top:12%;bottom:26%;border-radius:46%;pointer-events:auto}
+#minest-mini-pet-p0.is-hidden .mn-pet-hit,#minest-mini-pet-p0.mn-pet-inert .mn-pet-hit,html.mnh-cl #minest-mini-pet-p0 .mn-pet-hit{pointer-events:none!important}
+/* Study Arcade: the Play bar sits above the floating Dock instead of under it; the deck picker draws the same on every engine */
+.arcade.ar-phone .ar-lobby-foot{padding-bottom:calc(12px + var(--mn-dock-clear))!important}
+.ar-select{-webkit-appearance:none;appearance:none;padding-right:30px!important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23e2e8f0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")!important;background-repeat:no-repeat!important;background-position:right 10px center!important;background-size:11px 7px!important;border-radius:var(--mn-r-sm)!important;line-height:1.3}
+</style>
+<script id="mn-polish-board-js">
+/* Minest polish · board (tools/polish/patch_board_polish.py) */
+(function () {
+  'use strict';
+  if (window.__mnPolishBoard) return; window.__mnPolishBoard = 1;
+  var R = document.documentElement;
+  /* --mn-dock-clear: how far a bottom bar must stay above the floating Dock (0 when the Dock is on a side or hidden) */
+  var q = 0;
+  function dockClear() {
+    q = 0;
+    var d = document.querySelector('.mn-bdock'), v = 0;
+    if (d) {
+      var r = d.getBoundingClientRect(), cs = getComputedStyle(d);
+      if (r.width > r.height && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none' && r.bottom > innerHeight - 40) v = Math.max(0, Math.round(innerHeight - r.top + 8));
+    }
+    var s = v + 'px'; if (R.style.getPropertyValue('--mn-dock-clear') !== s) R.style.setProperty('--mn-dock-clear', s);
+  }
+  function soon() { if (!q) q = requestAnimationFrame(dockClear); }
+  addEventListener('resize', soon, { passive: true });
+  new (MutationObserver.Native || MutationObserver)(function () { soon(); slimPet(); }).observe(R, { attributes: true, attributeFilter: ['class'] });
+  /* mini pet: a hit area the size of the octopus; the rest of its square lets taps through */
+  function slimPet() {
+    var p = document.getElementById('minest-mini-pet-p0');
+    if (!p) return false;
+    if (window.__miniPetHost || p.__mnSlim) return true;
+    p.__mnSlim = 1;
+    var h = document.createElement('i'); h.className = 'mn-pet-hit'; h.setAttribute('aria-hidden', 'true');
+    p.appendChild(h); p.classList.add('mn-pet-slim');
+    function inert() { p.classList.toggle('mn-pet-inert', p.style.pointerEvents === 'none'); }
+    new (MutationObserver.Native || MutationObserver)(inert).observe(p, { attributes: true, attributeFilter: ['style'] });
+    inert();
+    return true;
+  }
+  var tries = 0;
+  (function wait() { if (slimPet() || ++tries > 90) return; setTimeout(wait, 1000); })();
+  function boot() { soon(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+</script>
 <style id="mn-motion-polish-css">
 /* Minest · motion polish (see motion-polish.js) */
 
