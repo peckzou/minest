@@ -209166,12 +209166,27 @@ html.duo .kh .kh-row button.on, html.duo.kn-light .kh .kh-row button.pri {
   background: var(--kh-accent); border-color: var(--kh-accent); color: var(--kh-on);
 }
 
+/* ───────── 6 · Search (Omni) ─────────
+   a command palette is opened many times a day: it arrived in 420ms on an overshooting curve (cubic-bezier(.2,1.2,.3,1))
+   and left by playing that backwards (slow start = an ease-in exit). Now in 200ms on the strong ease-out, results right
+   behind it, and out in 140ms with its own ease-out keyframe (exits faster than entrances) */
+html.duo .mo-root:not(.out) .mo-backdrop { animation: moFade .18s var(--dp-out) both; }
+html.duo .mo-root:not(.out) .mo-box { animation: moDrop .2s var(--dp-out) both; }
+html.duo .mo-root:not(.out) .mo-res { animation: moRise .18s .03s var(--dp-out) both; }
+html.duo .mo-root.out .mo-backdrop { animation: moFadeOut .14s var(--dp-out) both; }
+html.duo .mo-root.out .mo-box { animation: dpOmniOut .14s var(--dp-out) both; }
+@keyframes dpOmniOut { to { opacity: 0; transform: translateX(-50%) translateY(-8px) scale(.98); } }
+/* "esc" is a keyboard hint: on a touch screen with no keyboard it is a label for a key that is not there */
+@media (hover: none) and (pointer: coarse) { html.duo .mo-root .mo-bar kbd { display: none; } }
+
 @media (prefers-reduced-motion: reduce) {
   html.duo #mn-sh #sh-card:not([hidden]), html.duo #mn-sh #sh-settings:not([hidden]), html.duo #mn-sh #sh-toast:not([hidden]) {
     transition: opacity .12s linear; @starting-style { opacity: 0; translate: none; }
   }
   html.duo.mn-immersive body:not(.clear-mode) header.iphone-topbar, html.duo.mn-immersive .ios-bottom-tab-bar,
   html.duo.mn-immersive.mn-chrome body:not(.clear-mode) header.iphone-topbar { transition: opacity .14s linear !important; }
+  html.duo .mo-root:not(.out) .mo-box, html.duo .mo-root:not(.out) .mo-res { animation: moFade .14s linear both; }
+  html.duo .mo-root.out .mo-box { animation: moFadeOut .12s linear both; }
 }
 </style>
 <script id="mn-duo-polish-js">
