@@ -266,6 +266,12 @@ if(typeof module==='object'&&module.exports)module.exports=merge;else root.Mines
 (function(w){'use strict';
 async function unpack(p,key){if(typeof p[key+'Gz']==='string'){if(typeof DecompressionStream==='undefined')throw Error('此设备不支持安全解压，未上传');var b=Uint8Array.from(atob(p[key+'Gz']),c=>c.charCodeAt(0));return JSON.parse(await new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream('gzip'))).text());}return p[key]&&typeof p[key]==='object'&&typeof p[key].isEqual!=='function'?p[key]:null;}
 async function pack(value){var bytes=new Uint8Array(await new Response(new Blob([JSON.stringify(value)]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());var text='';for(var i=0;i<bytes.length;i++)text+=String.fromCharCode(bytes[i]);return btoa(text);}
+/* 2026-11-26 · the other records riding in the doc are merged with the server's before a commit, by the rules their own
+   pages use when they take a cloud copy in. Before, the study log (learning) and the CarPlay study record (gptstudy)
+   went up as this device had them, so a device that had not yet seen another device's study overwrote it. */
+function learnMerge(r,l){var out=Object.assign({},r,l),devs={};[r.devs||{},l.devs||{}].forEach(function(src,isLocal){Object.keys(src).forEach(function(dv){var d=devs[dv]||(devs[dv]={days:{}}),days=(src[dv]&&src[dv].days)||{};Object.keys(days).forEach(function(k){var a=d.days[k],b=days[k];if(!b)return;if(!a||(b.activeMs||0)>(a.activeMs||0)||((b.activeMs||0)===(a.activeMs||0)&&((b.sessions||0)>(a.sessions||0)||isLocal&&(b.sessions||0)===(a.sessions||0))))d.days[k]=b;});});});out.devs=devs;var seen={},ss=[];(l.sessions||[]).concat(r.sessions||[]).forEach(function(x){if(x&&x.id&&!seen[x.id]){seen[x.id]=1;ss.push(x);}});ss.sort(function(a,b){return(a.at||0)-(b.at||0);});out.sessions=ss.slice(-50);return out;}
+function gptStamp(c){return c?Math.max(c.seenAt||0,c.learnedAt||0,c.gptAt||0,c.starAt||0):0;}
+function gptMerge(r,l){var out=Object.assign({},r,l),lists={};Object.keys(r.lists||{}).concat(Object.keys(l.lists||{})).forEach(function(k){if(lists[k])return;var R=(r.lists||{})[k],L=(l.lists||{})[k];if(!R||!L){lists[k]=JSON.parse(JSON.stringify(L||R));return;}var M=JSON.parse(JSON.stringify(L));M.cards=M.cards||{};Object.keys(R.cards||{}).forEach(function(id){var a=M.cards[id],b=R.cards[id];if(b&&(!a||gptStamp(b)>gptStamp(a)))M.cards[id]=Object.assign({},a||{},b);});if((R.last||0)>(L.last||0)){M.round=R.round;M.rounds=R.rounds;M.current=R.current;M.mode=R.mode||M.mode;M.last=R.last;if(R.name)M.name=R.name;}var seen={};M.history=(L.history||[]).concat(R.history||[]).filter(function(h){var q=h.at+'/'+h.ev+'/'+h.id;if(seen[q])return false;seen[q]=1;return true;}).sort(function(x,y){return x.at-y.at;}).slice(-400);lists[k]=M;});out.lists=lists;return out;}
 async function prepare(){var b=null,r=null;try{b=w.MinestBoardBase?await w.MinestBoardBase():null;}catch(e){}try{r=JSON.parse(localStorage.getItem('liquid-routine.cloud-base.v1')||'null');}catch(e){}var teaching=null;try{var u=w.firebase.auth().currentUser;teaching=JSON.parse(localStorage.getItem('minest.teaching.cloud-base.'+u.uid)||'null');}catch(e){}return {boards:b,routine:r,teaching:teaching};}
 /* My World (Knowledge) maps: per key, the newer stamp wins; `b` wins a tie. 2026-11-26: the cloud can hold a plain
    `knowledge` field (older clients wrote it straight to the doc) beside `knowledgeGz`; both count now, so keys only the
@@ -278,6 +284,8 @@ if(key==='knowledge')merged=knMerge(r,l);
 if(typeof local[key+'Gz']==='string'){out[key+'Gz']=await pack(merged);}else out[key]=merged;
 if(out.syncVersionsV1&&w.MinestSyncCore){out.syncVersionsV1=Object.assign({},out.syncVersionsV1);var cat={boards:'boards',routine:'routine',knowledge:'myworld'}[key];out.syncVersionsV1[cat]=Object.assign({},out.syncVersionsV1[cat],{version:w.MinestSyncCore.version(key==='routine'?merged.state:merged)});}}
 if(local.teachingWordsets&&remote.teachingWordsets){out.teachingWordsets=w.MinestBoardMerge(base.teaching?[base.teaching]:[], [local.teachingWordsets],[remote.teachingWordsets],mine)[0];out.teachingAssets=Object.assign({},remote.teachingAssets,local.teachingAssets);if(out.syncVersionsV1&&w.MinestSyncCore){out.syncVersionsV1=Object.assign({},out.syncVersionsV1,{teaching:Object.assign({},out.syncVersionsV1.teaching,{version:w.MinestSyncCore.version({wordsets:out.teachingWordsets,assets:out.teachingAssets||{}})})});}}
+if(local.learning&&typeof local.learning==='object'&&remote.learning&&typeof remote.learning==='object'&&typeof remote.learning.isEqual!=='function')out.learning=learnMerge(remote.learning,local.learning);
+try{var lg=await unpack(local,'gptstudy'),rg=lg&&await unpack(remote,'gptstudy');if(lg&&rg&&lg.lists&&rg.lists){var mg=gptMerge(rg,lg);if(typeof local.gptstudyGz==='string')out.gptstudyGz=await pack(mg);else out.gptstudy=mg;}}catch(e){}
 if(local.workspaceGroups&&remote.workspaceGroups){var groups=new Map();remote.workspaceGroups.concat(local.workspaceGroups).forEach(r=>{var old=groups.get(r.name);if(!old||r.at>old.at||r.at===old.at&&r.deleted)groups.set(r.name,r);});out.workspaceGroups=Array.from(groups.values());}
 /* 2026-11-26 · built-in boards (EC6 Outline / Glossary): per-card edits, newest stamp wins, other devices' cards kept */
 if(local.builtinEdits&&typeof local.builtinEdits==='object'&&remote.builtinEdits&&typeof remote.builtinEdits==='object'){var be={};[remote.builtinEdits,local.builtinEdits].forEach(function(src){Object.keys(src).forEach(function(bid){var m=src[bid];if(!m||typeof m!=='object')return;var o=be[bid]||(be[bid]={});Object.keys(m).forEach(function(id){var x=m[id];if(!x||typeof x.e!=='string')return;if(!o[id]||(Number(x.t)||0)>(Number(o[id].t)||0))o[id]=x;});});});out.builtinEdits=be;}
@@ -96531,10 +96539,14 @@ var Ve = (function(_Component) {
     if (!Array.isArray(L.sessions)) L.sessions = [];
     return L;
   }
+  /* 2026-11-26 · other records sync repair (tools/cloud-transport/patch_other_sync.py): what is recorded here asks for a
+     cloud save (within 20 s, at once when the app goes to the background); a cloud copy taken in does not */
+  var learnQuiet = false;
   function logSave(L) {
     Object.keys(L.devs).forEach(function (dv) { var days = (L.devs[dv] && L.devs[dv].days) || {}, keys = Object.keys(days).sort(); while (keys.length > 120) delete days[keys.shift()]; });
     L.sessions = L.sessions.slice(-50);
     store(LKEY, L);
+    if (!learnQuiet) try { window.dispatchEvent(new CustomEvent('minest:cloud-dirty', { detail: { domain: 'learning' } })); } catch (e) {}
   }
   function myDay(L, k) { var m = L.devs[DEV] || (L.devs[DEV] = { days: {} }); m.days = m.days || {}; return m.days[k] || (m.days[k] = { activeMs: 0, sessions: 0, byList: {}, bySubject: {} }); }
   function dayTotal(L, k) {
@@ -96565,7 +96577,7 @@ var Ve = (function(_Component) {
     });
     var seen = {}; L.sessions.forEach(function (x) { if (x && x.id) seen[x.id] = 1; });
     (R.sessions || []).forEach(function (x) { if (x && x.id && !seen[x.id]) { L.sessions.push(x); seen[x.id] = 1; changed = true; } });
-    if (changed) { L.sessions.sort(function (a, b) { return (a.at || 0) - (b.at || 0); }); logSave(L); }
+    if (changed) { L.sessions.sort(function (a, b) { return (a.at || 0) - (b.at || 0); }); learnQuiet = true; try { logSave(L); } finally { learnQuiet = false; } }
     return changed;
   }
   function commit(final) {
@@ -186553,7 +186565,8 @@ button.mn-fx-scan::after {
   // ---------------------------------------------------------------- the toolkit asks, the host answers
   function reply(src, id, data) { try { src.postMessage({ type: 'minest-toolkit-reply', id: id, data: data }, '*'); } catch (e) {} }
   function user() { try { var fb = window.firebase; return fb && fb.auth && fb.auth().currentUser; } catch (e) { return null; } }
-  function doc(u) { return window.firebase.firestore().collection('users').doc(u.uid).collection('focusboard').doc('toolkit'); }
+  /* 2026-11-26: through the sync transport (MinestSyncManagement.ref), like the main doc */
+  function doc(u) { var r = window.firebase.firestore().collection('users').doc(u.uid).collection('focusboard').doc('toolkit'); return window.MinestSyncManagement && window.MinestSyncManagement.ref ? window.MinestSyncManagement.ref(r) : r; }
   function items() {
     var out = [];
     try {
