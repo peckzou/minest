@@ -1,6 +1,65 @@
 <!doctype html>
 <html lang="zh-CN">
   <head>
+<meta charset="utf-8">
+<script id="mn-polish-mo">
+/* Minest polish · MutationObserver batching (tools/polish/mo-batch.js) — first script in <head>.
+   About sixty of the app's layers each watch the whole document (subtree of <body> / <html>) and re-scan it on every
+   change. While the page loads, and on every tap that changes the DOM, each change woke all of them at once, and
+   what they changed woke them again: the main thread was busy for seconds and frames were dropped.
+   Here an observer of the whole document gets its records once per frame (before that frame is painted, or within
+   100 ms when no frames are drawn), all records of that frame together. Observers of a single element are not
+   touched: they still run at once. disconnect() and takeRecords() keep their meaning. */
+(function () {
+  'use strict';
+  var MO = window.MutationObserver;
+  if (!MO || MO.__mnBatched) return;
+  var pending = [], scheduled = 0;
+  function flush() {
+    if (!scheduled) return;
+    scheduled = 0;
+    var list = pending; pending = [];
+    for (var i = 0; i < list.length; i++) {
+      var w = list[i]; w.waiting = false;
+      var recs = w.q; w.q = [];
+      if (!recs.length || !w.on) continue;
+      try { w.cb.call(w.self, recs, w.self); } catch (e) { setTimeout(function () { throw e; }); }
+    }
+  }
+  function schedule() {
+    if (scheduled) return;
+    scheduled = 1;
+    requestAnimationFrame(flush);
+    setTimeout(flush, 100);
+  }
+  function whole(t) { return t === document || t === document.documentElement || t === document.body; }
+  function Batched(cb) {
+    if (!new.target) throw new TypeError("Failed to construct 'MutationObserver': Please use the 'new' operator.");
+    var self = this, w = { cb: cb, q: [], self: self, on: false, batch: false, waiting: false };
+    this.__w = w;
+    this.__mo = new MO(function (recs) {
+      if (!w.batch) { cb.call(self, recs, self); return; }
+      for (var i = 0; i < recs.length; i++) w.q.push(recs[i]);
+      if (!w.waiting) { w.waiting = true; pending.push(w); }
+      schedule();
+    });
+  }
+  Batched.prototype.observe = function (target, opts) {
+    var w = this.__w;
+    w.on = true;
+    if (opts && opts.subtree && whole(target)) w.batch = true;
+    return this.__mo.observe(target, opts);
+  };
+  Batched.prototype.disconnect = function () { var w = this.__w; w.on = false; w.batch = false; w.q = []; return this.__mo.disconnect(); };
+  Batched.prototype.takeRecords = function () { var w = this.__w, r = w.q.concat(this.__mo.takeRecords()); w.q = []; return r; };
+  Batched.__mnBatched = true;
+  Batched.Native = MO;
+  try { Object.defineProperty(Batched, Symbol.hasInstance, { value: function (o) { return o instanceof MO || (!!o && !!o.__w && !!o.__mo); } }); } catch (e) {}
+  window.MutationObserver = Batched;
+  if (window.WebKitMutationObserver) window.WebKitMutationObserver = Batched;
+})();
+
+</script>
 <script id="mn-build">window.MINEST_BUILD = {"line": "iPad", "version": "2.2", "name": "iPad v2.2", "device": "iPad", "snapshot": "iPad-v2.2.html"};</script>
 <style id="minest-sync-management-css">#minest-sync-management{--ms-bg:#f6f9fb;--ms-card:#fff;--ms-ink:#233b45;--ms-muted:#71858c;--ms-line:#e2ebef;--ms-green:#238476;--ms-tint:#e8f5f0;position:fixed;inset:0;margin:auto;width:min(1060px,calc(100% - 32px));height:min(900px,calc(100dvh - 40px));max-width:none;max-height:none;border:1px solid var(--ms-line);border-radius:28px;padding:0;background:var(--ms-bg);color:var(--ms-ink);font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;box-shadow:0 28px 100px #102e4330;z-index:2147483647;overflow:hidden;font-size:14px;line-height:1.5;box-sizing:border-box}
 #minest-sync-management::backdrop{background:#142c3b66;backdrop-filter:blur(8px)}#minest-sync-management.ms-dark{--ms-bg:#14212b;--ms-card:#1d2c37;--ms-ink:#e4f0f2;--ms-muted:#9bafb5;--ms-line:#30434f;--ms-green:#83d0b8;--ms-tint:#203f3b;color-scheme:dark}
@@ -174994,6 +175053,7 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Switch to light"],html.mn-bd .mn-bdoc
     var o = originals().filter(Boolean); if (!o.length) return;
     haptic();
     var r = anchor.getBoundingClientRect(), dock = anchor.closest('.mn-bdock'), d = dock.getBoundingClientRect();
+    if (!r.width || !r.height) r = d.width ? { left: d.left + d.width / 2 - 23, top: d.top, width: 46, height: d.height } : { left: innerWidth / 2 - 23, top: innerHeight - 70, width: 46, height: 46 };   /* polish: opened from the pill Dock */
     var vertical = d.height > d.width, toLeft = vertical ? d.left > innerWidth / 2 : false;
     var dir = vertical ? (toLeft ? 'left' : 'right') : 'up', S = 46, GAP = 58;
     var cx = r.left + r.width / 2, cy = r.top + r.height / 2, mid = (o.length - 1) / 2;
@@ -175006,11 +175066,13 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Switch to light"],html.mn-bd .mn-bdoc
     });
     var minY = Math.min.apply(null, pts.map(function (p) { return p.y; })) - S / 2, maxY = Math.max.apply(null, pts.map(function (p) { return p.y; })) + S / 2;
     var shiftY = minY < 8 ? 8 - minY : maxY > innerHeight - 8 ? innerHeight - 8 - maxY : 0;
+    var minX = Math.min.apply(null, pts.map(function (p) { return p.x; })) - S / 2, maxX = Math.max.apply(null, pts.map(function (p) { return p.x; })) + S / 2;
+    var shiftX = minX < 8 ? 8 - minX : maxX > innerWidth - 8 ? innerWidth - 8 - maxX : 0;
     o.forEach(function (orig, i) {
       var p = pts[i], it = document.createElement('button'); it.type = 'button'; it.className = 'miv-fan-item'; it.setAttribute('role', 'menuitem');
       it.title = orig.getAttribute('aria-label') || '';
-      it.style.setProperty('--x', p.x + 'px'); it.style.setProperty('--y', (p.y + shiftY) + 'px'); it.style.setProperty('--r', p.rot + 'deg');
-      it.style.setProperty('--dx', (cx - p.x) + 'px'); it.style.setProperty('--dy', (cy - p.y - shiftY) + 'px');
+      it.style.setProperty('--x', (p.x + shiftX) + 'px'); it.style.setProperty('--y', (p.y + shiftY) + 'px'); it.style.setProperty('--r', p.rot + 'deg');
+      it.style.setProperty('--dx', (cx - p.x - shiftX) + 'px'); it.style.setProperty('--dy', (cy - p.y - shiftY) + 'px');
       it.style.setProperty('--d', (i * 38) + 'ms'); it.style.setProperty('--dc', ((o.length - 1 - i) * 22) + 'ms');
       var svg = orig.querySelector('svg'), lab = LABEL(MATCH.findIndex(function (m) { return m.test(orig.getAttribute('aria-label') || ''); }), orig);
       it.innerHTML = '<span class="miv-fan-ic">' + (svg ? svg.outerHTML.replace('<svg', '<svg class="miv-ic"') : '') + '</span><span class="miv-fan-label">' + lab + '</span>';
@@ -183280,8 +183342,8 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock
     var back = dock.querySelector('.mn-sys-back'), ex = dock.querySelector('.mn-sys-exit');
     if (!ex) ex = tile('mn-sys-btn mn-sys-exit', 'Close · 关闭', CROSS, closeOpen);
     if (!back) back = tile('mn-sys-btn mn-sys-back', 'Back · 返回', BACK, goBack);
-    if (dock.firstElementChild !== ex) dock.insertBefore(ex, dock.firstElementChild);
-    if (ex.nextElementSibling !== back) dock.insertBefore(back, ex.nextElementSibling);
+    if (ex.parentNode !== dock) dock.insertBefore(ex, dock.querySelector(':scope > :not(.mn-sys-key):not(.mn-sys-sep)'));
+    if (back.parentNode !== dock) dock.insertBefore(back, ex.nextElementSibling);   /* polish: mount() orders the system keys */
     var o = originals(); if (!o.some(Boolean)) return;
     var more = dock.querySelector('.mn-more-btn');
     if (!more) { more = tile('mn-more-btn', 'More · 更多', DOTS, toggle); more.setAttribute('aria-haspopup', 'menu'); more.setAttribute('aria-expanded', 'false'); }
@@ -183308,6 +183370,7 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock
     if (!o.length) return;
     haptic('light');
     var r = anchor.getBoundingClientRect(), dock = anchor.closest('.mn-bdock'), d = dock.getBoundingClientRect();
+    if (!r.width || !r.height) r = d.width ? { left: d.right - 52, top: d.top, width: 46, height: d.height } : { left: innerWidth - 60, top: innerHeight - 70, width: 46, height: 46 };   /* rest-polish: opened from the pill Dock */
     var vertical = d.height > d.width, toLeft = vertical ? d.left > innerWidth / 2 : false;
     var dir = vertical ? (toLeft ? 'left' : 'right') : 'up', S = 46, GAP = 56;
     var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
@@ -183321,11 +183384,13 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock
     });
     var minY = Math.min.apply(null, pts.map(function (p) { return p.y; })) - S / 2, maxY = Math.max.apply(null, pts.map(function (p) { return p.y; })) + S / 2;
     var shiftY = minY < 8 ? 8 - minY : maxY > innerHeight - 8 ? innerHeight - 8 - maxY : 0;
+    var LW = 112, minX = Math.min.apply(null, pts.map(function (p) { return p.x; })) - S / 2 - (dir !== 'right' ? LW : 0), maxX = Math.max.apply(null, pts.map(function (p) { return p.x; })) + S / 2 + (dir === 'right' ? LW : 0);   /* rest-polish: labels on screen */
+    var shiftX = minX < 8 ? 8 - minX : maxX > innerWidth - 8 ? innerWidth - 8 - maxX : 0;
     o.forEach(function (orig, i) {
       var p = pts[i], it = document.createElement('button'); it.type = 'button'; it.className = 'miv-fan-item'; it.setAttribute('role', 'menuitem');
       it.title = orig.getAttribute('aria-label') || '';
-      it.style.setProperty('--x', p.x + 'px'); it.style.setProperty('--y', (p.y + shiftY) + 'px'); it.style.setProperty('--r', p.rot + 'deg');
-      it.style.setProperty('--dx', (cx - p.x) + 'px'); it.style.setProperty('--dy', (cy - p.y - shiftY) + 'px');
+      it.style.setProperty('--x', (p.x + shiftX) + 'px'); it.style.setProperty('--y', (p.y + shiftY) + 'px'); it.style.setProperty('--r', p.rot + 'deg');
+      it.style.setProperty('--dx', (cx - p.x - shiftX) + 'px'); it.style.setProperty('--dy', (cy - p.y - shiftY) + 'px');
       it.style.setProperty('--d', ((n - 1 - i) * 32) + 'ms'); it.style.setProperty('--dc', (i * 20) + 'ms');
       var svg = orig.querySelector('svg'), img = orig.querySelector('img');
       var ic = svg ? svg.outerHTML.replace('<svg', '<svg class="miv-ic"') : img ? img.outerHTML : '';
@@ -188795,6 +188860,22 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
     if (!loaderP) loaderP = Promise.all([THREE.GLTFLoader ? null : add('vendor/GLTFLoader.js'), root.MeshoptDecoder ? null : add('vendor/meshopt_decoder.js')]);   // the scans ship meshopt-compressed
     return loaderP;
   }
+  /* 2026-11-26 打开快：模型的字节在房间一搭就开始下（或更早：开屏时 SpatialGLB.prefetch），不再等房间搭完、解码脚本 onload 之后 */
+  var GLB_BYTES = {}, GLB_DEFS = {};
+  function glbUrl(def) { return siteBase() + (def.lite && TEXCAP && TEXCAP <= 1024 ? def.lite : def.glb); }   // phones: the same model with its textures already at 1024² (a third of the bytes)
+  function glbBytes(def) {
+    var u = glbUrl(def); if (GLB_BYTES[u]) return GLB_BYTES[u];
+    var p = GLB_BYTES[u] = new Promise(function (res, rej) {
+      var x = new XMLHttpRequest(); x.open('GET', u, true); x.responseType = 'arraybuffer';
+      x.onload = function () { if ((x.status === 200 || x.status === 0) && x.response && x.response.byteLength) res(x.response); else rej(new Error('glb ' + x.status)); };
+      x.onerror = function () { rej(new Error('glb network')); }; x.send();
+    });
+    p.catch(function () { if (GLB_BYTES[u] === p) delete GLB_BYTES[u]; });
+    return p;
+  }
+  var GLB_PENDING = 0;
+  root.SpatialGLB = { prefetch: function (id) { var d = GLB_DEFS[id]; if (!d) return false; gltfLoader().catch(function () {}); glbBytes(d).catch(function () {}); return true; },
+    warm: function () { gltfLoader().catch(function () {}); }, has: function (id) { return !!GLB_DEFS[id]; }, pending: function () { return GLB_PENDING > 0; } };
   function raw(attr, i, c) {
     var a = attr.isInterleavedBufferAttribute ? attr.data.array : attr.array, v = c === 0 ? attr.getX(i) : c === 1 ? attr.getY(i) : attr.getZ(i);
     if (!attr.normalized) return v;
@@ -189999,7 +190080,7 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
     };
   }
   function makeEnv(def) {
-    registerMovable(def);
+    registerMovable(def); GLB_DEFS[def.id] = def;
     return function build(scene) {
       var holder = new THREE.Group(); holder.name = 'env-' + def.id; scene.add(holder);
       var g = new THREE.Group(); holder.add(g);
@@ -190024,10 +190105,14 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
       var areas = [def.walk.slice()], surfaces = [], fin = null, tmode = 'auto';
       if (def.chandelier) chandelier(g, def.chandelier[0], def.chandelier[1], def.chandelier[2]);                                   // the whole hall can be walked; the model's own obstacles stop you
 
-      gltfLoader().then(function () {
+      var envObj = null, bytes = glbBytes(def), pend = true; GLB_PENDING++;   // the download starts now, while the room is still being built
+      function ready(ok) { if (pend) { pend = false; GLB_PENDING--; } if (!envObj || envObj.ready) return; envObj.ready = true; envObj.failed = !ok; try { root.dispatchEvent(new CustomEvent('spatialhome:envready', { detail: { env: def.id, ok: !!ok } })); } catch (er) {} }
+      function failed(e) { ready(false); if (root.console) console.warn('Spatial Home: ' + def.id + ' model could not load', e); }
+      Promise.all([gltfLoader(), bytes]).then(function (got) {
         var GL = new THREE.GLTFLoader(); if (root.MeshoptDecoder && GL.setMeshoptDecoder) GL.setMeshoptDecoder(root.MeshoptDecoder);
         capDecode(GL);                                                  // phones: decode every texture at most 1024²
-        GL.load(siteBase() + def.glb, function (gl) {
+        var url = glbUrl(def); if (GLB_BYTES[url] === bytes) delete GLB_BYTES[url];   // parsed once: let the 8 MB go
+        GL.parse(got[1], url.replace(/[^/]*$/, ''), function (gl) {
           if (!holder.parent) return;                                   // the room was switched away while loading
           var m = gl.scene; capLoaded(m); m.position.fromArray(def.offset); m.rotation.y = def.ry || 0;
           m.traverse(function (o) { if (o.isMesh && o.material) { o.material.side = THREE.DoubleSide; o.receiveShadow = !!def.lit; if (o.material.map) o.material.map.anisotropy = 4; } });
@@ -190037,17 +190122,18 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
           var SF = surfacesOf(m, def.walk); holder.add(SF.group); surfaces.push(SF.group);      // things can stand on the model now
           if (def.finish) try { fin = def.finish({ holder: holder, model: m, scene: scene, hemi: hemi, templates: Object.keys(TPL).filter(function (k) { return k.indexOf('glb:' + def.id + ':') === 0; }).map(function (k) { return TPL[k]; }) }); if (fin && fin.setTime) fin.setTime(tmode); } catch (er) { if (root.console) console.warn('Spatial Home: finishing ' + def.id, er); }
           if (def.movable) try { root.dispatchEvent(new CustomEvent('spatialhome:furnish', { detail: { env: def.id, items: furn } })); } catch (er) {}
-        }, undefined, function (e) { if (root.console) console.warn('Spatial Home: ' + def.id + ' model could not load', e); });
-      }, function () {});
+          ready(true);
+        }, failed);
+      }, failed);
 
-      return {
-        id: def.id, name: def.name, group: g, holder: holder, far: def.far || 80, size: { W: 3.0, D: 2.6, H: def.h },
+      return (envObj = {
+        ready: false, id: def.id, name: def.name, group: g, holder: holder, far: def.far || 80, size: { W: 3.0, D: 2.6, H: def.h },
         anchors: A, avatar: PT.avatar, start: def.start || PT.start, startV: def.startV || 0, bounds: def.walk ? def.walk.slice() : null, desk: def.deskCam || PT.deskCam, solids: solids, areas: areas, credit: def.credit,
         surfaces: surfaces, dress: def.dress || null, view: def.view || null, realistic: !!def.realistic, upgrade: def.upgrade || null, movable: !!def.movable,
         defaultLayout: def.layout ? function () { return JSON.parse(JSON.stringify(def.layout)); } : null,
         setTime: function (m) { tmode = m || 'auto'; if (fin && fin.setTime) fin.setTime(tmode); }, tick: function (t) { if (fin && fin.tick) fin.tick(t); },
         dispose: function () { if (fin && fin.dispose) fin.dispose(); SR.disposeTree(holder); scene.background = null; }
-      };
+      });
     };
   }
   /* offset: where the model sits so the office corner (x −3…3, z −2.6…2.6, desk at the back) lands in an open part of the room */
@@ -190202,7 +190288,7 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
 9502: { p: [-0.85, -3.65], ry: -1.15 }, 9503: { p: [-0.35, -4.95], ry: -1.3 },                // two armchairs in the left foreground
 9500: { p: [-3.2, -10.9], ry: -1.36 }, 9501: { p: [-1.8, -10.4], ry: -0.99 },   // the fireplace pair, in the left foreground facing the fire
     9504: { p: VNT, ry: 0 }, 9506: { p: VNT, ry: 0 } };                                         // the round tables; the pedestal desk
-  var VICT = { realistic: true, id: 'victorian', name: 'EC–6 Victorian Study', finish: victorianFinish, glb: 'interiors-glb/assets/victorian_study.glb', h: 6.5, lit: true, showroom: true,
+  var VICT = { realistic: true, id: 'victorian', name: 'EC–6 Victorian Study', finish: victorianFinish, glb: 'interiors-glb/assets/victorian_study.glb', lite: 'interiors-glb/assets/victorian_study_1k.glb', h: 6.5, lit: true, showroom: true,
     offset: [0, -0.2, -5.1], walk: [-8.4, -13.5, 8.4, 3.4], easel: null, far: 600,
     /* v20: each opening is one bay of the west bookcases, inside its uprights (bays: A −5.33…−7.06, B −7.29…−9.04,
        C −9.27…−11.00, D −11.23…−12.98; the front at x −8.36, the back at −8.85): A the rotating bookcase, C the board */
@@ -194270,7 +194356,11 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
         }
         if (!mixer) { var pulse = Math.sin(t * 3.2); arms.forEach(function (arm, j) { arm.rotation.z = -0.35 - 0.3 * pulse + Math.sin(t * 2 + j) * 0.12; }); stand.scale.set(1 + 0.04 * pulse, 1 - 0.05 * pulse, 1 + 0.04 * pulse); }
       },
-      afterBuild: function () { setTimeout(loadModel, 1200); }
+      afterBuild: function () {
+        var done = false; function go() { if (done) return; done = true; root.removeEventListener('spatialhome:envready', soon); loadModel(); }
+        function soon() { setTimeout(go, 500); }
+        if (root.SpatialGLB && root.SpatialGLB.pending()) { root.addEventListener('spatialhome:envready', soon); setTimeout(go, 12000); } else setTimeout(go, 1200);   // 2026-11-26
+      }
     };
     return o;
   }
@@ -198150,7 +198240,7 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
   var THREE = window.THREE, B = window.SpatialBridge, KEY = 'minest.spatialHome.v1', EMBED = B.EMBED, API = null;
   if (window.MinestSpatialHome) return;
   var MARKUP =
-    '<canvas id="sh-gl" tabindex="0" aria-label="Santorini Atelier"></canvas><div id="sh-labels" aria-hidden="true"></div>' +
+    '<canvas id="sh-gl" tabindex="0" aria-label="Santorini Atelier"></canvas><div id="sh-loadcover" hidden aria-hidden="true"><b></b></div><div id="sh-labels" aria-hidden="true"></div>' +
     '<div id="sh-top"><div class="sh-brand"><strong>Minest</strong><span id="sh-brandName">Santorini Atelier</span></div>' +
     '<div class="sh-seg" id="sh-modeSeg" role="tablist" aria-label="模式"><button type="button" data-mode="explore" role="tab">Explore</button><button type="button" data-mode="desk" role="tab">Desk</button></div>' +
     '<button type="button" class="sh-ic" id="sh-packBtn" title="背包 · 布置">🎒</button><button type="button" class="sh-ic" id="sh-envBtn" title="切换环境">🌐</button><button type="button" class="sh-ic" id="sh-viewsBtn" title="窗外风景">🪟</button><button type="button" class="sh-ic" id="sh-sitBtn" title="坐下 / 起立（C）">🪑</button><button type="button" class="sh-ic" id="sh-viewBtn" title="第一 / 第三人称">👤</button><button type="button" class="sh-ic" id="sh-setBtn" title="设置">⚙</button><button type="button" class="sh-ic" id="sh-dockBtn" title="显示 Dock" aria-label="显示 Dock" aria-controls="mn-main-dock" aria-pressed="false">Dock</button><button type="button" class="sh-ic" id="sh-readingBtn" title="全屏 · 纯净阅览" aria-label="全屏 · 纯净阅览">⛶</button><button type="button" class="sh-ic" id="sh-menuBtn" title="显示 / 收起按钮" aria-expanded="false">≡</button>' +
@@ -199517,7 +199607,7 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
       deskBase = (function () { var p = room.desk.pos, l = room.desk.look, dx = l[0] - p[0], dy = l[1] - p[1], dz = l[2] - p[2]; return { yaw: Math.atan2(-dx, -dz), pitch: Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)) }; })();
       $('brandName').textContent = room.name; canvas.setAttribute('aria-label', room.name); $('credit').textContent = room.credit || '';
       if (window.SpatialMedia) window.SpatialMedia.audio.setEnv(room.envId);
-      camAuto = true; autoPose(camera.position, camera.quaternion); S.env = room.envId; save();
+      camAuto = true; autoPose(camera.position, camera.quaternion); S.env = room.envId; save(); cover();
       return veilFade(0, 0.35);
     }).then(function () { busy = false; body.classList.remove('busy'); });
   }
@@ -199592,7 +199682,7 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
   $('optMotion').addEventListener('change', function () { S.motion = this.checked; save(); });
   if ($('optPreload')) $('optPreload').addEventListener('change', function () { S.preload = this.checked; save(); if (S.preload) B.load().then(renderSettings); renderSettings(); });
   if ($('optBoot')) $('optBoot').addEventListener('change', function () { S.boot = this.checked; save(); });
-  function exitHome() { if (busy) return; if (window.SpatialMedia) window.SpatialMedia.audio.suspend(); save(); setEl.hidden = true; closeCard(); B.release(); inFeature = null; body.hidden = true; paused = true; }
+  function exitHome(force) { if (busy && force !== true) return; snapSave(); if (window.SpatialMedia) window.SpatialMedia.audio.suspend(); save(); setEl.hidden = true; closeCard(); B.release(); inFeature = null; body.hidden = true; paused = true; }
   if ($('exitBtn')) $('exitBtn').addEventListener('click', exitHome);
   if ($('setExit')) $('setExit').addEventListener('click', exitHome);
 
@@ -199642,10 +199732,38 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
   markAvailability();
   frame();
 
+  /* 2026-11-26 打开慢 / 黑边：扫描房间（维多利亚书房等）的模型还在路上时，画面只有桌上几件东西浮在一片黑里。现在先盖上
+     上次离开这个房间时的画面（没有就用暖色底和转圈），模型画出来再淡掉；离开房间时存一张小图（每个房间、横竖屏各一张） */
+  var LC = $('loadcover'), lcT = 0;
+  if (!document.getElementById('sh-loadcover-css')) { var lcs = document.createElement('style'); lcs.id = 'sh-loadcover-css'; lcs.textContent = '#sh-loadcover{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:0;transition:opacity .45s ease;background:#24160f radial-gradient(130% 95% at 50% 62%,#7a4329 0%,#43271a 52%,#1d130d 100%) center/cover no-repeat}#sh-loadcover.on{opacity:1}#sh-loadcover.snap{background-color:#1d130d}#sh-loadcover b{position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;box-sizing:border-box;border-radius:50%;border:2.5px solid rgba(255,255,255,.26);border-top-color:rgba(255,255,255,.92);animation:shLoadSpin .9s linear infinite}#sh-loadcover.snap b{top:auto;bottom:calc(120px + env(safe-area-inset-bottom));width:22px;height:22px;margin:0 0 0 -11px;border-width:2px}@keyframes shLoadSpin{to{transform:rotate(360deg)}}@media (prefers-reduced-motion:reduce){#sh-loadcover b{animation-duration:2.6s}}'; document.head.appendChild(lcs); }
+  function snapKey() { return 'minest.sh.snap.' + room.envId + (window.innerWidth > window.innerHeight ? '.l' : '.p'); }
+  function cover() {
+    if (!LC) return; clearTimeout(lcT);
+    if (!room || room.ready !== false) { LC.classList.remove('on'); LC.hidden = true; return; }
+    var img = null; try { img = localStorage.getItem(snapKey()); } catch (e) {}
+    LC.style.backgroundImage = img ? 'url("' + img + '")' : ''; LC.classList.toggle('snap', !!img); LC.hidden = false; LC.classList.add('on');
+    lcT = setTimeout(uncover, 30000);                                       // never stay on: a model that never comes shows what there is
+  }
+  function uncover() { if (!LC || LC.hidden) return; clearTimeout(lcT); LC.classList.remove('on'); setTimeout(function () { if (!LC.classList.contains('on')) LC.hidden = true; }, 480); }
+  function snapSave() {
+    if (!room || room.ready !== true || body.hidden || paused) return;
+    try {
+      renderer.render(scene, camera);
+      var c = renderer.domElement, k = Math.min(1, 640 / Math.max(c.width, c.height, 1)), t = document.createElement('canvas');
+      t.width = Math.max(1, Math.round(c.width * k)); t.height = Math.max(1, Math.round(c.height * k)); t.getContext('2d').drawImage(c, 0, 0, t.width, t.height);
+      var url = t.toDataURL('image/jpeg', 0.62); if (url.length > 2000 && url.length < 400000) localStorage.setItem(snapKey(), url);
+    } catch (e) {}
+  }
+  window.addEventListener('spatialhome:envready', function (e) {
+    if (!e.detail || !room || e.detail.env !== room.envId) return;
+    if (!e.detail.ok) { uncover(); return; }
+    requestAnimationFrame(function () { requestAnimationFrame(function () { requestAnimationFrame(uncover); }); });   // the model is drawn first
+    setTimeout(function () { var k = snapKey(), has = null; try { has = localStorage.getItem(k); } catch (er) {} if (!has) snapSave(); }, 2000);   // a first picture
+  });
   function open() {
     if (inFeature) { B.leave('home'); return; }                                   // a feature is up: the usual way back
     if (!body.hidden) return;
-    body.hidden = false; paused = false; resize(); clock.getDelta(); markAvailability();
+    body.hidden = false; paused = false; resize(); clock.getDelta(); markAvailability(); cover();
     if (mode === 'desk') { DK.yaw = 0; DK.pitch = 0; }
     camAuto = true; try { canvas.focus(); } catch (e) {}
     if (third()) gesture('wave', 1.6);
@@ -199684,7 +199802,7 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
   var PUB = {
     version: '1.0',
     open: function () { document.documentElement.classList.remove('mn-mac-web'); var a = mount(); a.open(); return a; },
-    close: function () { if (API) API.close(); },
+    close: function (force) { if (API) API.close(force === true); },
     isOpen: function () { return !!(API && API.isOpen()); },
     api: function () { return API; },
     bootsFirst: function () { return bootsFirst(); }
@@ -199726,7 +199844,19 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
     if (!force && /[?&]clun=0\b/.test(location.search)) { done(); return; }
     var f = document.createElement('iframe'), ready = false, opened = false, feature = null;
     f.id = 'mn-clun-splash'; f.src = clunSrc(inside); f.title = 'Clun';
-    f.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;max-width:none;max-height:none;margin:0;padding:0;border:0;z-index:2147483647;background:#cfe0ee;opacity:1';
+    f.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;max-width:none;max-height:none;margin:0;padding:0;border:0;z-index:2147483647;background:#9cc3e6 no-repeat;opacity:1';
+    /* 2026-11-26：开屏页自己还没到之前，框里就先铺它的预览图，取景和开屏页一样（spatial-home/clun-2/index.html 的 fit），不再是一片空白 */
+    var PST = (location.protocol === 'file:' ? 'https://minest-app.vercel.app/' : '') + 'spatial-home/clun/art/plate-poster.jpg?v=2', loaded = false, t0 = Date.now();
+    if (!inside) f.style.backgroundImage = 'url("' + PST + '")';
+    function poster(vw, vh) {
+      if (inside) return; var W = 2576, H = 1438, A = W / H, HOUSE = [860, 868], va = vw / vh, k, r;
+      k = !(navigator.maxTouchPoints > 0) ? 'normal' : (Math.min(vw, vh) >= 600 && Math.max(vw, vh) / Math.min(vw, vh) < 1.6) ? 'inner' : vw < vh ? 'outer' : 'normal';
+      if (k === 'outer') { var ho = Math.min(H, Math.max(1100, 640 / va)); r = { cx: HOUSE[0], cy: HOUSE[1] - 30, w: ho * va, h: ho }; }
+      else { var fw = va > A ? W : H * va; r = { cx: va > A ? W / 2 : (k === 'inner' ? 520 + fw / 2 : W / 2), cy: H / 2, w: fw, h: fw / va }; }
+      var w = Math.min(r.w, W, H * r.w / r.h), h = w * r.h / r.w, x = Math.max(0, Math.min(W - w, r.cx - w / 2)), y = Math.max(0, Math.min(H - h, r.cy - h / 2)), s = vw / w;
+      f.style.backgroundSize = (W * s).toFixed(1) + 'px ' + (H * s).toFixed(1) + 'px'; f.style.backgroundPosition = (-x * s).toFixed(1) + 'px ' + (-y * s).toFixed(1) + 'px';
+    }
+    f.addEventListener('load', function () { loaded = true; });
     document.body.appendChild(f);
     try { if (f.showPopover) { f.setAttribute('popover', 'manual'); f.showPopover(); } } catch (e) {}   /* 放进顶层，盖过页面里所有浮层（迷你宠物、速览页等） */
     /* Dock 也在开屏上面（2026-11-22，用户：开屏也要有 Dock）：跟在开屏后面进顶层，开屏走了再回原处。Dock 可能被重画，隔一会儿再确认一次 */
@@ -199741,10 +199871,11 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
     function fit() {                                                         /* 按看得见的区域（visualViewport）定大小：App 里页面的布局宽度可能比屏幕宽 */
       var v = window.visualViewport, w = v ? v.width : window.innerWidth, h = v ? v.height : window.innerHeight;
       f.style.left = (v ? v.offsetLeft : 0) + 'px'; f.style.top = (v ? v.offsetTop : 0) + 'px'; f.style.right = 'auto'; f.style.bottom = 'auto';
-      f.style.width = Math.round(w) + 'px'; f.style.height = Math.round(h) + 'px';
+      f.style.width = Math.round(w) + 'px'; f.style.height = Math.round(h) + 'px'; poster(w, h);
     }
     fit(); window.addEventListener('resize', fit); if (window.visualViewport) { visualViewport.addEventListener('resize', fit); visualViewport.addEventListener('scroll', fit); }
-    var to = setTimeout(function () { if (!ready) end(); }, 9000);           /* 9 秒还没加载好（离线等）：直接进房间 */
+    /* 9 秒还没加载好（离线等）：直接进房间。框里的页面已经到了、只是还在搭（手机慢、后台忙）就再等等，最多 30 秒 */
+    var to = 0; (function wait(ms) { to = setTimeout(function () { if (ready) return; if (loaded && Date.now() - t0 < 30000) { wait(1500); return; } end(); }, ms); })(9000);
     function room() { if (opened) return; opened = true; done(feature); }
     function end() {
       room(); clearTimeout(to); window.removeEventListener('message', on); window.removeEventListener('resize', fit); if (window.visualViewport) { visualViewport.removeEventListener('resize', fit); visualViewport.removeEventListener('scroll', fit); }
@@ -199754,12 +199885,14 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
     f.addEventListener('minest:open-web', function () { feature = '@mac-web'; end(); });
     function on(e) {
       if (e.source !== f.contentWindow || !e.data || typeof e.data.clun !== 'string') return;
-      if (e.data.clun === 'ready') { ready = true; clearTimeout(to); }
+      if (e.data.clun === 'ready') { ready = true; clearTimeout(to); prefetchRoom(); }
       else if (e.data.clun === 'web') { feature = '@mac-web'; end(); }
       else if (e.data.clun === 'enter') { feature = typeof e.data.feature === 'string' ? e.data.feature : (typeof e.data.action === 'string' && /^(pack|env|views|set)$/.test(e.data.action) ? '@' + e.data.action : null); end(); }   /* 进房间后打开某个功能，或按房间顶栏的同一个按钮（@pack 背包、@env 环境、@views 窗外、@set 设置） */   /* Clun 里点了 ≡ 的某项、或书桌上的打字机 / 羽毛笔：进房间后打开它 */
     }
     window.addEventListener('message', on);
   }
+  /* 开屏放着的时候，把要进的房间的模型先下好（扫描房间 8 MB，iOS App 里走网络） */
+  function prefetchRoom() { try { var env = settings().env || 'victorian'; if (window.SpatialGLB) setTimeout(function () { SpatialGLB.prefetch(env); }, 600); } catch (e) {} }
   function boot() {
     if (!bootsFirst()) return;
     clunFirst(enterRoom);
@@ -199767,10 +199900,10 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
   /* 🌐 里的 Home：关掉房间（不再渲染），重新放一遍 Clun 开屏；点门进屋后照常回到房间 */
   PUB.home = function () {
     if (document.getElementById('mn-clun-splash')) return;
-    try { PUB.close(); } catch (e) {}
+    try { PUB.close(true); } catch (e) {}                                    // the room stops rendering behind the opening, even mid-move
     clunFirst(enterRoom, true);
   };
-  PUB.house = function () { if (document.getElementById('mn-clun-splash')) return; try { PUB.close(); } catch (e) {} clunFirst(enterRoom, true, true); };
+  PUB.house = function () { if (document.getElementById('mn-clun-splash')) return; try { PUB.close(true); } catch (e) {} clunFirst(enterRoom, true, true); };
   function enterRoom(feature) {
     if (feature === '@mac-web') {
       try { PUB.close(); if (window.SpatialBridge) SpatialBridge.release(); if (window.MinestStartControls) MinestStartControls.showBoardDock(); } catch (e) {}
@@ -199790,7 +199923,9 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
       if (Date.now() - t0 > 2500) clearInterval(iv);
     }, 150);
   }
-  if (document.readyState === 'complete') setTimeout(boot, 300); else window.addEventListener('load', function () { setTimeout(boot, 300); }, { once: true });
+  /* 2026-11-26：开屏不再等整页（几十 MB）的 load 事件，DOM 好了就放；页面 load 之后在后台把模型解码脚本预热 */
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 0); }, { once: true }); else setTimeout(boot, 0);
+  (function () { function go() { setTimeout(function () { try { if (window.SpatialGLB) SpatialGLB.warm(); } catch (e) {} }, 2500); } if (document.readyState === 'complete') go(); else window.addEventListener('load', go, { once: true }); })();
 })();
 
 </script>
@@ -201175,7 +201310,7 @@ body.theme-white .fbfx-pk-badge {
     if (target.closest('#fbfx-picker-menu')) return null;
     return target.closest(
       '.bar-fx-btn[aria-label="Light FX"], ' +
-      '.ios-tab-item.dock-fx-tab, ' +
+      '.ios-tab-item.dock-fx-tab:not([title^="Card"]):not([aria-label^="Card"]), ' +
       '.fbfx-btn, ' +
       '.mn-bapp[aria-label^="Light FX"], ' +
       '.student-game-float-btn[title^="Light FX"], ' +
@@ -207326,5 +207461,150 @@ body.theme-white .fbfx-pk-badge {
   window.MinestV2Routes = { open: open, close: function () { close(); }, isOpen: function () { return !!ov; }, dyn: dyn, cards: cards, cardStyles: function () { cardStyles(); }, version: '1.4' };
 })();
 </script><!-- mn-v2-routes:end -->
+<style id="mn-rest-polish-css">
+/* Minest polish · the rest (tools/polish/patch_rest_polish.py) */
+/* Wallpaper Studio, Board Settings, Activity Rings, the Light FX picker: the mini pet steps aside while the sheet is
+   open (it sat on the Glass cards row, the settings tabs, the rings and the Spotlight effect) */
+html:is(:has(.fbfx-picker),:has(.board-wallpaper-popover),:has(.theme-studio-overlay),:has(.board-settings-overlay),:has(.minest-activity-modal-backdrop)) #minest-mini-pet-p0{visibility:hidden!important;pointer-events:none!important}
+/* Board Settings: a denser sheet, so the board behind it doesn't read through the text */
+html body .board-settings-modal{background:linear-gradient(180deg,rgba(40,47,64,.94) 0%,rgba(20,25,36,.97) 100%)!important}
+/* Board Settings · My World island card: its type was the sheet's body size (its font shorthands were invalid), now it
+   matches the other cards; the button matches the sheet's own buttons instead of a blocky green one */
+html body .mn-bs-isle{background:linear-gradient(135deg,rgba(52,199,106,.14),rgba(56,120,220,.12))!important;border-radius:18px;font-family:inherit}
+html body .mn-bs-isle .h{font-size:12px;font-weight:800;line-height:1.2;letter-spacing:.08em;margin-bottom:6px}
+html body .mn-bs-isle p{font-size:13px;font-weight:500;line-height:1.45}
+html body .mn-bs-isle button{padding:9px 15px;font-size:13px;font-weight:700;line-height:1;text-shadow:none;border:0!important;border-radius:999px;color:#fff;
+  background:linear-gradient(180deg,#22c58b,#0f9f6e);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 6px 16px -8px rgba(16,185,129,.7)}
+html body .mn-bs-isle button.sec{background:rgba(255,255,255,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.14)}
+/* Activity Rings & Badges: the last cards (Streaks, Index) scroll clear of the floating Dock */
+.minest-activity-modal-panel{padding-bottom:var(--mn-dock-clear,0px)!important}
+/* 3D Type: the world strip ends above the floating Dock instead of under it */
+.mn-type3d iframe{height:calc(100% - var(--mn-dock-clear,0px))!important}
+</style>
+<style id="mn-polish-board-css">
+/* Minest polish · board (tools/polish/patch_board_polish.py) */
+:root{
+  --mn-r-sm:10px;--mn-r-md:14px;--mn-r-lg:20px;
+  --mn-ease-out:cubic-bezier(.22,1,.36,1);
+  --mn-focus:0 0 0 2px rgba(255,255,255,.9),0 0 0 4px rgba(56,189,248,.75);
+  --mn-dock-clear:0px;
+}
+/* one focus ring for every control, keyboard only (iPad keyboard, Mac) */
+button:focus-visible,[role=button]:focus-visible,a[href]:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:none!important;box-shadow:var(--mn-focus)!important}
+button,[role=button],a[href]{-webkit-tap-highlight-color:transparent}
+/* list-stack shimmer: moved from a background-position repaint (two per list, under backdrop-filter) to a composited transform */
+.liquid-refraction-caustic{right:auto!important;width:200%!important;background-size:100% 100%!important;background-position:0 0!important;animation:mnCaustic 4.5s ease-in-out infinite alternate!important;will-change:transform}
+@keyframes mnCaustic{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}
+@media (prefers-reduced-motion:reduce){.liquid-refraction-caustic{animation:none!important;transform:translate3d(-25%,0,0)}}
+/* mini pet: only the octopus itself takes taps, not its whole 152px square (it used to cover the first rows of a board) */
+#minest-mini-pet-p0.mn-pet-slim{pointer-events:none!important}
+#minest-mini-pet-p0.mn-pet-slim.is-dragging,#minest-mini-pet-p0.mn-pet-slim.is-holding{pointer-events:auto!important}
+#minest-mini-pet-p0 .mn-pet-hit{position:absolute;left:20%;right:20%;top:12%;bottom:26%;border-radius:46%;pointer-events:auto}
+#minest-mini-pet-p0.is-hidden .mn-pet-hit,#minest-mini-pet-p0.mn-pet-inert .mn-pet-hit,html.mnh-cl #minest-mini-pet-p0 .mn-pet-hit{pointer-events:none!important}
+/* Study Arcade: the Play bar sits above the floating Dock instead of under it; the deck picker draws the same on every engine */
+.arcade.ar-phone .ar-lobby-foot{padding-bottom:calc(12px + var(--mn-dock-clear))!important}
+.ar-select{-webkit-appearance:none;appearance:none;padding-right:30px!important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23e2e8f0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")!important;background-repeat:no-repeat!important;background-position:right 10px center!important;background-size:11px 7px!important;border-radius:var(--mn-r-sm)!important;line-height:1.3}
+</style>
+<script id="mn-polish-board-js">
+/* Minest polish · board (tools/polish/patch_board_polish.py) */
+(function () {
+  'use strict';
+  if (window.__mnPolishBoard) return; window.__mnPolishBoard = 1;
+  var R = document.documentElement;
+  /* --mn-dock-clear: how far a bottom bar must stay above the floating Dock (0 when the Dock is on a side or hidden) */
+  var q = 0;
+  function dockClear() {
+    q = 0;
+    var d = document.querySelector('.mn-bdock'), v = 0;
+    if (d) {
+      var r = d.getBoundingClientRect(), cs = getComputedStyle(d);
+      if (r.width > r.height && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none' && r.bottom > innerHeight - 40) v = Math.max(0, Math.round(innerHeight - r.top + 8));
+    }
+    var s = v + 'px'; if (R.style.getPropertyValue('--mn-dock-clear') !== s) R.style.setProperty('--mn-dock-clear', s);
+  }
+  function soon() { if (!q) q = requestAnimationFrame(dockClear); }
+  addEventListener('resize', soon, { passive: true });
+  new (MutationObserver.Native || MutationObserver)(function () { soon(); slimPet(); }).observe(R, { attributes: true, attributeFilter: ['class'] });
+  /* mini pet: a hit area the size of the octopus; the rest of its square lets taps through */
+  function slimPet() {
+    var p = document.getElementById('minest-mini-pet-p0');
+    if (!p) return false;
+    if (window.__miniPetHost || p.__mnSlim) return true;
+    p.__mnSlim = 1;
+    var h = document.createElement('i'); h.className = 'mn-pet-hit'; h.setAttribute('aria-hidden', 'true');
+    p.appendChild(h); p.classList.add('mn-pet-slim');
+    function inert() { p.classList.toggle('mn-pet-inert', p.style.pointerEvents === 'none'); }
+    new (MutationObserver.Native || MutationObserver)(inert).observe(p, { attributes: true, attributeFilter: ['style'] });
+    inert();
+    return true;
+  }
+  var tries = 0;
+  (function wait() { if (slimPet() || ++tries > 90) return; setTimeout(wait, 1000); })();
+  function boot() { soon(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+</script>
+<style id="mn-polish-mwh-css">
+/* Minest polish · My World + Spatial Home (tools/polish/patch_myworld_home.py) */
+/* My World on a phone: seven 44px header keys left the title 0px wide (and pushed the last key 8px off-screen).
+   The keys keep one row; the title gets its own line under them. */
+@media (max-width:520px){
+  html body .uv.uv .uv-head{flex-wrap:wrap!important;column-gap:6px!important;row-gap:4px!important;padding-left:12px!important;padding-right:12px!important}
+  html body .uv.uv .uv-head > .uv-ti{order:50;flex:1 0 100%!important;min-width:0}
+  html body .uv.uv .uv-head > .uv-ti h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:clamp(20px,6.4vw,26px)}
+}
+/* Spatial Home: the walk hint and the room's own key row sit above the floating Dock, the asset credit moves to the top */
+html.mn-bd #mn-sh #sh-hint{bottom:max(calc(18px + env(safe-area-inset-bottom)),calc(var(--mn-dock-clear,0px) + 6px))}
+html.mn-bd.mf-top #mn-sh #sh-hint,html.mn-bd.mf-book #mn-sh #sh-hint{bottom:max(calc(60px + env(safe-area-inset-bottom)),calc(var(--mn-dock-clear,0px) + 6px))}
+html.mn-bd:not(.mf-top):not(.mf-book) #mn-sh #sh-dock{bottom:max(calc(14px + env(safe-area-inset-bottom)),calc(var(--mn-dock-clear,0px) + 4px))}
+html.mn-bd #mn-sh #sh-credit{top:calc(10px + env(safe-area-inset-top));bottom:auto}
+</style>
+<script id="mn-polish-mwh-js">
+/* Minest polish · My World + Spatial Home (tools/polish/patch_myworld_home.py)
+   My World: a mini pet that was never dragged rests on an island (Philosophers' Island on a phone) and takes its taps.
+   While My World is open it moves to the free spot that covers the fewest islands and keys, and goes back after. */
+(function () {
+  'use strict';
+  if (window.__mnPolishMW) return; window.__mnPolishMW = 1;
+  var MO = MutationObserver.Native || MutationObserver;
+  var HIT = { l: .2, t: .12, r: .2, b: .26 };   // the octopus inside its square (same as polish.css .mn-pet-hit)
+  function dragged() { try { return !!localStorage.getItem('minest.miniPetP0.position'); } catch (e) { return true; } }
+  function targets(uv) {
+    var out = [], els = uv.querySelectorAll('button, a[href], [role=button], input, select');
+    for (var i = 0; i < els.length; i++) { var r = els[i].getBoundingClientRect(); if (r.width > 4 && r.height > 4) out.push(r); }
+    var d = document.querySelector('.mn-bdock'); if (d) out.push(d.getBoundingClientRect());
+    return out;
+  }
+  function cost(x, y, w, h, rs) {
+    var L = x + w * HIT.l, T = y + h * HIT.t, R = x + w * (1 - HIT.r), B = y + h * (1 - HIT.b), s = 0;
+    if (L < 0 || T < 0 || R > innerWidth || B > innerHeight) return 1e9;
+    for (var i = 0; i < rs.length; i++) {
+      var r = rs[i], ox = Math.min(R, r.right) - Math.max(L, r.left), oy = Math.min(B, r.bottom) - Math.max(T, r.top);
+      if (ox > 0 && oy > 0) s += ox * oy;
+    }
+    return s;
+  }
+  function park() {
+    var pet = document.getElementById('minest-mini-pet-p0');
+    if (!pet || window.__miniPetHost) return;
+    var uv = document.querySelector('body > .uv'), mine = pet.hasAttribute('data-mn-park');
+    if (!uv || dragged() || pet.hasAttribute('data-mn70-park')) {
+      if (mine) { pet.removeAttribute('data-mn-park'); if (!dragged()) { pet.style.left = '14px'; pet.style.top = '88px'; } }
+      return;
+    }
+    var w = pet.offsetWidth || 152, h = pet.offsetHeight || 152, rs = targets(uv), W = innerWidth, H = innerHeight;
+    var spots = [[14, 88], [W - w - 6, 88], [-24, H * .5 - h / 2], [W - w + 24, H * .5 - h / 2], [-24, H - h - 70], [W - w + 24, H - h - 70], [-24, 120], [W - w + 24, 120]];
+    var best = null, bc = 1e9, here = cost(pet.offsetLeft, pet.offsetTop, w, h, rs);
+    for (var i = 0; i < spots.length; i++) { var c = cost(spots[i][0], spots[i][1], w, h, rs); if (c < bc - 1) { bc = c; best = spots[i]; } }
+    if (!best || bc >= here) return;
+    pet.setAttribute('data-mn-park', '');
+    pet.style.left = Math.round(best[0]) + 'px'; pet.style.top = Math.round(best[1]) + 'px';
+  }
+  var tm = [];
+  function soon() { tm.forEach(clearTimeout); tm = [450, 1400, 3500].map(function (ms) { return setTimeout(park, ms); }); }   // the islands come in over a few seconds
+  function boot() { new MO(soon).observe(document.body, { childList: true }); addEventListener('resize', soon, { passive: true }); soon(); }
+  if (document.body) boot(); else document.addEventListener('DOMContentLoaded', boot);
+})();
+</script>
 </body>
 </html>

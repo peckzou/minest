@@ -22,6 +22,22 @@
     if (!loaderP) loaderP = Promise.all([THREE.GLTFLoader ? null : add('vendor/GLTFLoader.js'), root.MeshoptDecoder ? null : add('vendor/meshopt_decoder.js')]);   // the scans ship meshopt-compressed
     return loaderP;
   }
+  /* 2026-11-26 打开快：模型的字节在房间一搭就开始下（或更早：开屏时 SpatialGLB.prefetch），不再等房间搭完、解码脚本 onload 之后 */
+  var GLB_BYTES = {}, GLB_DEFS = {};
+  function glbUrl(def) { return siteBase() + (def.lite && TEXCAP && TEXCAP <= 1024 ? def.lite : def.glb); }   // phones: the same model with its textures already at 1024² (a third of the bytes)
+  function glbBytes(def) {
+    var u = glbUrl(def); if (GLB_BYTES[u]) return GLB_BYTES[u];
+    var p = GLB_BYTES[u] = new Promise(function (res, rej) {
+      var x = new XMLHttpRequest(); x.open('GET', u, true); x.responseType = 'arraybuffer';
+      x.onload = function () { if ((x.status === 200 || x.status === 0) && x.response && x.response.byteLength) res(x.response); else rej(new Error('glb ' + x.status)); };
+      x.onerror = function () { rej(new Error('glb network')); }; x.send();
+    });
+    p.catch(function () { if (GLB_BYTES[u] === p) delete GLB_BYTES[u]; });
+    return p;
+  }
+  var GLB_PENDING = 0;
+  root.SpatialGLB = { prefetch: function (id) { var d = GLB_DEFS[id]; if (!d) return false; gltfLoader().catch(function () {}); glbBytes(d).catch(function () {}); return true; },
+    warm: function () { gltfLoader().catch(function () {}); }, has: function (id) { return !!GLB_DEFS[id]; }, pending: function () { return GLB_PENDING > 0; } };
   function raw(attr, i, c) {
     var a = attr.isInterleavedBufferAttribute ? attr.data.array : attr.array, v = c === 0 ? attr.getX(i) : c === 1 ? attr.getY(i) : attr.getZ(i);
     if (!attr.normalized) return v;
@@ -1226,7 +1242,7 @@
     };
   }
   function makeEnv(def) {
-    registerMovable(def);
+    registerMovable(def); GLB_DEFS[def.id] = def;
     return function build(scene) {
       var holder = new THREE.Group(); holder.name = 'env-' + def.id; scene.add(holder);
       var g = new THREE.Group(); holder.add(g);
@@ -1251,10 +1267,14 @@
       var areas = [def.walk.slice()], surfaces = [], fin = null, tmode = 'auto';
       if (def.chandelier) chandelier(g, def.chandelier[0], def.chandelier[1], def.chandelier[2]);                                   // the whole hall can be walked; the model's own obstacles stop you
 
-      gltfLoader().then(function () {
+      var envObj = null, bytes = glbBytes(def), pend = true; GLB_PENDING++;   // the download starts now, while the room is still being built
+      function ready(ok) { if (pend) { pend = false; GLB_PENDING--; } if (!envObj || envObj.ready) return; envObj.ready = true; envObj.failed = !ok; try { root.dispatchEvent(new CustomEvent('spatialhome:envready', { detail: { env: def.id, ok: !!ok } })); } catch (er) {} }
+      function failed(e) { ready(false); if (root.console) console.warn('Spatial Home: ' + def.id + ' model could not load', e); }
+      Promise.all([gltfLoader(), bytes]).then(function (got) {
         var GL = new THREE.GLTFLoader(); if (root.MeshoptDecoder && GL.setMeshoptDecoder) GL.setMeshoptDecoder(root.MeshoptDecoder);
         capDecode(GL);                                                  // phones: decode every texture at most 1024²
-        GL.load(siteBase() + def.glb, function (gl) {
+        var url = glbUrl(def); if (GLB_BYTES[url] === bytes) delete GLB_BYTES[url];   // parsed once: let the 8 MB go
+        GL.parse(got[1], url.replace(/[^/]*$/, ''), function (gl) {
           if (!holder.parent) return;                                   // the room was switched away while loading
           var m = gl.scene; capLoaded(m); m.position.fromArray(def.offset); m.rotation.y = def.ry || 0;
           m.traverse(function (o) { if (o.isMesh && o.material) { o.material.side = THREE.DoubleSide; o.receiveShadow = !!def.lit; if (o.material.map) o.material.map.anisotropy = 4; } });
@@ -1264,17 +1284,18 @@
           var SF = surfacesOf(m, def.walk); holder.add(SF.group); surfaces.push(SF.group);      // things can stand on the model now
           if (def.finish) try { fin = def.finish({ holder: holder, model: m, scene: scene, hemi: hemi, templates: Object.keys(TPL).filter(function (k) { return k.indexOf('glb:' + def.id + ':') === 0; }).map(function (k) { return TPL[k]; }) }); if (fin && fin.setTime) fin.setTime(tmode); } catch (er) { if (root.console) console.warn('Spatial Home: finishing ' + def.id, er); }
           if (def.movable) try { root.dispatchEvent(new CustomEvent('spatialhome:furnish', { detail: { env: def.id, items: furn } })); } catch (er) {}
-        }, undefined, function (e) { if (root.console) console.warn('Spatial Home: ' + def.id + ' model could not load', e); });
-      }, function () {});
+          ready(true);
+        }, failed);
+      }, failed);
 
-      return {
-        id: def.id, name: def.name, group: g, holder: holder, far: def.far || 80, size: { W: 3.0, D: 2.6, H: def.h },
+      return (envObj = {
+        ready: false, id: def.id, name: def.name, group: g, holder: holder, far: def.far || 80, size: { W: 3.0, D: 2.6, H: def.h },
         anchors: A, avatar: PT.avatar, start: def.start || PT.start, startV: def.startV || 0, bounds: def.walk ? def.walk.slice() : null, desk: def.deskCam || PT.deskCam, solids: solids, areas: areas, credit: def.credit,
         surfaces: surfaces, dress: def.dress || null, view: def.view || null, realistic: !!def.realistic, upgrade: def.upgrade || null, movable: !!def.movable,
         defaultLayout: def.layout ? function () { return JSON.parse(JSON.stringify(def.layout)); } : null,
         setTime: function (m) { tmode = m || 'auto'; if (fin && fin.setTime) fin.setTime(tmode); }, tick: function (t) { if (fin && fin.tick) fin.tick(t); },
         dispose: function () { if (fin && fin.dispose) fin.dispose(); SR.disposeTree(holder); scene.background = null; }
-      };
+      });
     };
   }
   /* offset: where the model sits so the office corner (x −3…3, z −2.6…2.6, desk at the back) lands in an open part of the room */
@@ -1429,7 +1450,7 @@
 9502: { p: [-0.85, -3.65], ry: -1.15 }, 9503: { p: [-0.35, -4.95], ry: -1.3 },                // two armchairs in the left foreground
 9500: { p: [-3.2, -10.9], ry: -1.36 }, 9501: { p: [-1.8, -10.4], ry: -0.99 },   // the fireplace pair, in the left foreground facing the fire
     9504: { p: VNT, ry: 0 }, 9506: { p: VNT, ry: 0 } };                                         // the round tables; the pedestal desk
-  var VICT = { realistic: true, id: 'victorian', name: 'EC–6 Victorian Study', finish: victorianFinish, glb: 'interiors-glb/assets/victorian_study.glb', h: 6.5, lit: true, showroom: true,
+  var VICT = { realistic: true, id: 'victorian', name: 'EC–6 Victorian Study', finish: victorianFinish, glb: 'interiors-glb/assets/victorian_study.glb', lite: 'interiors-glb/assets/victorian_study_1k.glb', h: 6.5, lit: true, showroom: true,
     offset: [0, -0.2, -5.1], walk: [-8.4, -13.5, 8.4, 3.4], easel: null, far: 600,
     /* v20: each opening is one bay of the west bookcases, inside its uprights (bays: A −5.33…−7.06, B −7.29…−9.04,
        C −9.27…−11.00, D −11.23…−12.98; the front at x −8.36, the back at −8.85): A the rotating bookcase, C the board */
