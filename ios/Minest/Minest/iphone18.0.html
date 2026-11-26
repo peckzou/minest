@@ -200558,7 +200558,9 @@ html.duo [role=button], html.duo [role=tab], html.duo [role=menuitem], html.duo 
       close: function () { return call('MinestRoutine', 'close'); },
       keys: function () {
         var sr = shadowOf('.mn-routine-host'); if (!sr) return [];
-        shadowStyle(sr, 'nav.lr-dock{display:none!important}');
+        /* the river kept right:54px for the capsule (.app.immersive) even with the capsule gone: an empty strip down the
+           right edge. The half-open book posture keeps its own split (duo-book) */
+        shadowStyle(sr, 'nav.lr-dock{display:none!important}.app.immersive:not(.duo-book) .river-panel{right:0!important}');
         return [].filter.call(sr.querySelectorAll('nav.lr-dock button'), function (b) { return name(b) !== '返回 Minest'; })
           .map(function (b) { return { el: b, label: name(b).replace(/（.*）$/, ''), icon: iconOf(b) }; });
       } },
