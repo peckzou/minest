@@ -208410,9 +208410,7 @@ html.duo #mn-sh #sh-toast:not([hidden]) {
 /* the top row folds away with the room's own curve, not CSS's weak default `ease` */
 html.duo #mn-sh #sh-top > * { transition-timing-function: var(--dp-out); }
 
-/* the credit line ("… assets, with the author's permission") ran under the system Dock at the bottom centre; it now
-   keeps to the free space beside the Dock, or steps above it when there is none (positions set by duo-polish.js) */
-html.duo #mn-sh #sh-credit.dp-moved { max-width: var(--dp-credit-w, 60vw); bottom: var(--dp-credit-b, calc(4px + env(safe-area-inset-bottom))); right: var(--dp-credit-r, calc(10px + env(safe-area-inset-right))); }
+/* (the credit line that ran under the Dock: main moved it to the top of the room — tools/polish/myworld-home.css) */
 
 /* ───────── 2 · The board ─────────
    immersive mode's title bar and tab bar slid in and out in 380ms both ways. It follows every tap on the board (tens of
@@ -208472,26 +208470,19 @@ html.duo .mo-root.out .mo-box { animation: dpOmniOut .14s var(--dp-out) both; }
 /* "esc" is a keyboard hint: on a touch screen with no keyboard it is a label for a key that is not there */
 @media (hover: none) and (pointer: coarse) { html.duo .mo-root .mo-bar kbd { display: none; } }
 
-/* ───────── 7 · Study Arcade ─────────
-   the lobby's sticky footer put its main button ("Play … · N cards", full width) on the bottom 52px of the screen —
-   exactly where the Duo's Dock lies when it runs along the bottom, so the one button that starts a game was covered.
-   The footer now keeps the Dock's band free (52px Dock + 10px above it + its 12px from the edge). The outer screen's
-   standing Dock has its own column already (duo-pages.css) */
-html.duo.mn-sysbar.mn-dock-h:not(.duo-dockpin):not(.mn-sys-reading) body .arcade .ar-lobby-foot {
-  padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important;
-}
+/* (7 · Study Arcade's Play button under the Dock, and 3D Type's frame: main's tools/polish keeps them above the Dock with
+   --mn-dock-clear, measured from the Dock itself) */
 
-/* ───────── 8 · Hermes 3000 (the typewriter) and 3D Type ─────────
+/* ───────── 8 · Hermes 3000 (the typewriter) ─────────
    the machine fills its frame to the bottom edge, so with the Dock along the bottom the space bar was entirely under
-   it. The frame now ends above the Dock's band and the machine lays itself out in that height; the band below takes
-   the colour of the desk the machine stands on */
-html.duo.mn-sysbar.mn-dock-h:not(.duo-dockpin):not(.mn-sys-reading) body .mn-hermes > iframe,
-html.duo.mn-sysbar.mn-dock-h:not(.duo-dockpin):not(.mn-sys-reading) body .mn-type3d > iframe {
-  height: calc(100% - 74px - env(safe-area-inset-bottom, 0px)) !important; bottom: auto !important;
+   it. The frame now ends above the Dock — by --mn-dock-clear, the clearance tools/polish/polish.js measures from the Dock
+   (as 3D Type's frame does); 74px where that is not there — and the machine lays itself out in that height; the band
+   below takes the colour of the desk the machine stands on. Closing is the typewriter's own business: on the Duo it hides
+   its "Back to Minest" key and the Dock's ✕ closes it; other builds keep that key */
+html.duo.mn-sysbar.mn-dock-h:not(.duo-dockpin):not(.mn-sys-reading) body .mn-hermes > iframe {
+  height: calc(100% - var(--mn-dock-clear, 74px)) !important; bottom: auto !important;
 }
 html.duo.mn-sysbar.mn-dock-h:not(.duo-dockpin):not(.mn-sys-reading) body .mn-hermes { background: var(--dp-hermes-desk, #15100c); }
-/* 3D Type: the same frame, the same fix — its strip of 23 worlds ran under the Dock (two worlds' names covered) */
-html.duo.mn-sysbar.mn-dock-h:not(.duo-dockpin):not(.mn-sys-reading) body .mn-type3d { background: #0d0b0a; }
 
 @media (prefers-reduced-motion: reduce) {
   html.duo #mn-sh #sh-card:not([hidden]), html.duo #mn-sh #sh-settings:not([hidden]), html.duo #mn-sh #sh-toast:not([hidden]) {
@@ -208505,59 +208496,13 @@ html.duo.mn-sysbar.mn-dock-h:not(.duo-dockpin):not(.mn-sys-reading) body .mn-typ
 </style>
 <script id="mn-duo-polish-js">
 /* Minest · Duo polish (2026-11-26): page-by-page UI and motion fixes on the Duo (html.duo), following the motion / UI skills
-   in .claude/skills. CSS in duo-polish.css; this file only does what CSS cannot measure. window.MinestDuoPolish = { pass } */
+   in .claude/skills. Everything is CSS (duo-polish.css). The credit line this file used to place beside the Dock is now
+   moved to the top of the room by main's tools/polish, so nothing here needs measuring any more.
+   window.MinestDuoPolish = { pass } stays as a no-op hook for later pages. */
 (function () {
   'use strict';
   if (window.MinestDuoPolish) return;
-  var R = document.documentElement;
-  function duo() { return R.classList.contains('duo'); }
-
-  /* ── Spatial Home: the credit line keeps clear of the system Dock ──
-     beside the Dock when the gap to the right edge holds at least 140px of text, otherwise just above the Dock */
-  function credit() {
-    var c = document.getElementById('sh-credit');
-    if (!c) return;
-    var d = document.querySelector('.mn-bdock');
-    if (!duo() || !c.textContent.trim() || !d) { c.classList.remove('dp-moved'); return; }
-    var dr = d.getBoundingClientRect(), cs = getComputedStyle(d);
-    if (dr.width < 2 || cs.display === 'none' || cs.visibility === 'hidden' || dr.bottom < innerHeight - 140) { c.classList.remove('dp-moved'); return; }
-    var free = innerWidth - dr.right - 18, left = dr.left - 18;
-    c.style.removeProperty('--dp-credit-r');
-    if (free >= 140) {
-      c.style.setProperty('--dp-credit-w', Math.round(free) + 'px');
-      c.style.setProperty('--dp-credit-b', 'calc(4px + env(safe-area-inset-bottom))');
-    } else if (left >= 140 && innerWidth - dr.right < 60) {   // the outer screen: the Dock stands up along the right edge
-      c.style.setProperty('--dp-credit-w', Math.round(left - 10) + 'px');
-      c.style.setProperty('--dp-credit-r', Math.round(innerWidth - dr.left + 8) + 'px');
-      c.style.setProperty('--dp-credit-b', 'calc(4px + env(safe-area-inset-bottom))');
-    } else {
-      c.style.setProperty('--dp-credit-w', '60vw');
-      c.style.setProperty('--dp-credit-b', Math.round(innerHeight - dr.top + 6) + 'px');
-    }
-    c.classList.add('dp-moved');
-  }
-
-  var queued = false;
-  function pass() {
-    if (queued) return; queued = true;
-    requestAnimationFrame(function () { queued = false; try { credit(); } catch (e) {} });
-  }
-  window.MinestDuoPolish = { pass: pass };
-  addEventListener('resize', pass);
-  addEventListener('orientationchange', pass);
-  /* the Dock changes size as pages hand it their keys; the room fills the credit in when it loads */
-  try {
-    new MutationObserver(pass).observe(R, { attributes: true, attributeFilter: ['class', 'data-mn-ctx', 'data-mn-bd'] });
-    var ro = window.ResizeObserver ? new ResizeObserver(pass) : null;
-    var hook = function () {
-      var d = document.querySelector('.mn-bdock'); if (ro && d && !d.__dpRO) { d.__dpRO = 1; ro.observe(d); }
-      var c = document.getElementById('sh-credit'); if (c && !c.__dpMO) { c.__dpMO = 1; new MutationObserver(pass).observe(c, { childList: true, characterData: true, subtree: true }); }
-      pass();
-    };
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hook); else hook();
-    setTimeout(hook, 1500); setTimeout(hook, 5000);
-    document.addEventListener('click', function () { setTimeout(hook, 400); }, true);
-  } catch (e) {}
+  window.MinestDuoPolish = { pass: function () {} };
 })();
 </script>
 </body>
