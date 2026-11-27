@@ -132,6 +132,16 @@ html.duo.mn-sysbar.mn-dock-h:not(.duo-dockpin):not(.mn-sys-reading) body .mn-v2r
    bar belongs to what is underneath and steps out; it is back as soon as the page closes */
 html.duo.duo-pg-on body header.iphone-topbar { visibility: hidden !important; pointer-events: none !important; }
 
+/* ───────── 10 · The Duo's own controls (motion audit: system-bar.css, live-perf/duo.css) ─────────
+   (the Dock's "=" ⇄ "‖" is drawn per frame by system-bar.js — 620ms, a liquid squeeze — a motion asked for on purpose
+   in "Dock micro-motion: every key its own little animation"; left as it is)
+   · the side rail's keys pressed to .94 on a weak `ease`: a small key sinks less (.96) and answers on the strong ease-out
+   · the "⌂ 速览" pill rose and sank on `ease`; the dropped pin on the island fell on `ease` (a drop lands decisively) */
+html.duo body .duo-rail button { transition: transform .14s var(--dp-out), background .2s ease; }
+html.duo body .duo-rail button:active { transform: scale(.96); }
+html.duo:root body .duo-back { transition: opacity .2s var(--dp-out), transform .22s var(--dp-out); }
+html.duo body .duo-spot { animation-duration: .3s; animation-timing-function: var(--dp-out); }
+
 @media (prefers-reduced-motion: reduce) {
   html.duo #mn-sh #sh-card:not([hidden]), html.duo #mn-sh #sh-settings:not([hidden]), html.duo #mn-sh #sh-toast:not([hidden]) {
     transition: opacity .12s linear; @starting-style { opacity: 0; translate: none; }
@@ -140,4 +150,8 @@ html.duo.duo-pg-on body header.iphone-topbar { visibility: hidden !important; po
   html.duo.mn-immersive.mn-chrome body:not(.clear-mode) header.iphone-topbar { transition: opacity .14s linear !important; }
   html.duo .mo-root:not(.out) .mo-box, html.duo .mo-root:not(.out) .mo-res { animation: moFade .14s linear both; }
   html.duo .mo-root.out .mo-box { animation: moFadeOut .12s linear both; }
+  /* duo.css had no reduced-motion rules: the pin does not fall, the pill does not slide, the rail keys do not sink */
+  html.duo body .duo-spot { animation: none; }
+  html.duo:root body .duo-back { transform: none !important; transition: opacity .12s linear; }
+  html.duo body .duo-rail button:active { transform: none; }
 }
