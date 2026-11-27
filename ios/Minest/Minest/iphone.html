@@ -208463,6 +208463,9 @@ html.duo .mo-root.out .mo-box { animation: dpOmniOut .14s var(--dp-out) both; }
 @keyframes dpOmniOut { to { opacity: 0; transform: translateX(-50%) translateY(-8px) scale(.98); } }
 /* "esc" is a keyboard hint: on a touch screen with no keyboard it is a label for a key that is not there */
 @media (hover: none) and (pointer: coarse) { html.duo .mo-root .mo-bar kbd { display: none; } }
+/* the bar already glows to say it has focus; tools/polish's focus ring for every input drew a square inside its round
+   ends (seen on the outer screen, where the field is focused on open) — the bar's own glow is the one focus mark here */
+html.duo .mo-root .mo-bar .mo-in:focus-visible { box-shadow: none !important; }
 
 /* (7 · Study Arcade's Play button under the Dock, and 3D Type's frame: main's tools/polish keeps them above the Dock with
    --mn-dock-clear, measured from the Dock itself) */
@@ -208478,6 +208481,20 @@ html.duo.mn-sysbar.mn-dock-h:not(.duo-dockpin):not(.mn-sys-reading) body .mn-v2r
   height: calc(100% - var(--mn-dock-clear, 74px)) !important; bottom: auto !important;
 }
 html.duo.mn-sysbar.mn-dock-h:not(.duo-dockpin):not(.mn-sys-reading) body .mn-hermes { background: var(--dp-hermes-desk, #15100c); }
+/* the outer screen: the Dock stands up in the bottom-right corner (x 336–382 of 390) and these frames ran under it —
+   the typewriter's right column of keys (= ' ; / ⇧ TAB), 动态呈现's 巡演 button, 3D Type's ↵. With a standing Dock the
+   frames end left of it (58px: the Dock, its 8px from the edge and a 4px gap); the strip beside the Dock is the page's
+   colour (rules below). (duo-pages.css pads these pages for the pinned Dock, but padding does not move a frame placed
+   with inset: 0, so the width is set on the frame itself.) The typewriter does not re-lay itself out in a narrower
+   frame (it keeps its width and centres: both ends of the keyboard were cut), so it is scaled down whole instead —
+   duo-polish.js fits it left of the Dock */
+html.duo.mn-sysbar:not(.mn-dock-h):not(.mn-sys-reading) body .mn-v2r > iframe,
+html.duo.mn-sysbar:not(.mn-dock-h):not(.mn-sys-reading) body .mn-type3d > iframe {
+  width: calc(100% - 58px - env(safe-area-inset-right, 0px)) !important; right: auto !important;
+}
+html.duo.mn-sysbar:not(.mn-dock-h):not(.mn-sys-reading) body .mn-hermes { background: var(--dp-hermes-desk, #15100c); }
+html.duo.mn-sysbar:not(.mn-dock-h):not(.mn-sys-reading) body .mn-v2r { background: #110d12; }
+html.duo.mn-sysbar:not(.mn-dock-h):not(.mn-sys-reading) body .mn-type3d { background: #0d0b0a; }
 /* 动态呈现 2.0 (MinestV2Routes): the same full-screen frame; its detail panel's second row of styles (萤火, 花瓣…) ran under
    the Dock. The band below is the gallery's own dark */
 html.duo.mn-sysbar.mn-dock-h:not(.duo-dockpin):not(.mn-sys-reading) body .mn-v2r { background: #110d12; }
@@ -208500,13 +208517,46 @@ html.duo.duo-pg-on body header.iphone-topbar { visibility: hidden !important; po
 </style>
 <script id="mn-duo-polish-js">
 /* Minest · Duo polish (2026-11-26): page-by-page UI and motion fixes on the Duo (html.duo), following the motion / UI skills
-   in .claude/skills. Everything is CSS (duo-polish.css). The credit line this file used to place beside the Dock is now
-   moved to the top of the room by main's tools/polish, so nothing here needs measuring any more.
-   window.MinestDuoPolish = { pass } stays as a no-op hook for later pages. */
+   in .claude/skills. Most of it is CSS (duo-polish.css); this file does only what CSS cannot measure.
+   window.MinestDuoPolish = { pass } */
 (function () {
   'use strict';
   if (window.MinestDuoPolish) return;
-  window.MinestDuoPolish = { pass: function () {} };
+  var R = document.documentElement;
+
+  /* ── Hermes 3000 on the outer screen ──
+     the Dock stands up in the bottom-right corner and the machine's right column of keys was under it. The machine keeps
+     its own width when its frame narrows (both ends of the keyboard get cut), so the frame keeps the screen's size for
+     the layout and is scaled down whole to end left of the Dock: k = (width − Dock's column) / width. Taps follow the
+     transform. Off (back to the frame as it was) with the Dock along the bottom (duo-polish.css handles that), in reading
+     mode, or off the Duo. */
+  function hermes() {
+    var f = document.querySelector('.mn-hermes > iframe'); if (!f) return;
+    var d = document.querySelector('.mn-bdock');
+    var on = R.classList.contains('duo') && R.classList.contains('mn-sysbar') && !R.classList.contains('mn-dock-h') && !R.classList.contains('mn-sys-reading') && d;
+    var k = 1;
+    if (on) {
+      var r = d.getBoundingClientRect(), cs = getComputedStyle(d);
+      if (r.width > 0 && r.height > r.width && cs.display !== 'none' && cs.visibility !== 'hidden' && r.left > innerWidth / 2) k = Math.max(.6, (r.left - 4) / innerWidth);
+    }
+    var want = k < .999 ? k.toFixed(4) : '';
+    if (f.__dpK === want) return; f.__dpK = want;
+    if (!want) { ['width', 'height', 'transform', 'transform-origin'].forEach(function (p) { f.style.removeProperty(p); }); return; }
+    f.style.setProperty('width', innerWidth + 'px', 'important');
+    f.style.setProperty('height', (innerHeight / k).toFixed(1) + 'px', 'important');
+    f.style.setProperty('transform-origin', '0 0', 'important');
+    f.style.setProperty('transform', 'scale(' + want + ')', 'important');
+  }
+
+  var queued = false;
+  function pass() { if (queued) return; queued = true; requestAnimationFrame(function () { queued = false; try { hermes(); } catch (e) {} }); }
+  window.MinestDuoPolish = { pass: pass };
+  addEventListener('resize', function () { var f = document.querySelector('.mn-hermes > iframe'); if (f) f.__dpK = null; pass(); });
+  try {
+    new MutationObserver(pass).observe(R, { attributes: true, attributeFilter: ['class'] });
+    var hook = function () { if (document.body) new MutationObserver(pass).observe(document.body, { childList: true }); pass(); };
+    if (document.body) hook(); else document.addEventListener('DOMContentLoaded', hook);
+  } catch (e) {}
 })();
 </script>
 </body>
