@@ -200016,6 +200016,10 @@ html.mn-sysbar #sh-reading-enter { display: none !important; }
 #mn-sys-exit svg { width: 22px; height: 22px; display: block; pointer-events: none; }
 #mn-sys-exit:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 html.mn-sys-reading #mn-sys-exit { display: grid !important; visibility: visible !important; pointer-events: auto !important; }
+/* full screen like a video: the exit key fades out after 2.5s without a touch, back on the next touch (system-bar.js) */
+html.mn-sys-reading #mn-sys-exit { transition: opacity .2s cubic-bezier(.23,1,.32,1), scale .2s cubic-bezier(.23,1,.32,1); }
+html.mn-sys-reading #mn-sys-exit.mn-exit-idle { opacity: 0 !important; scale: .92; pointer-events: none !important; }
+@media (prefers-reduced-motion: reduce) { html.mn-sys-reading #mn-sys-exit { transition: opacity .12s linear; } html.mn-sys-reading #mn-sys-exit.mn-exit-idle { scale: 1; } }
 
 /* reading: every tool is hidden; only the exit stays */
 html.mn-sys-reading body button:not(#mn-sys-exit),
@@ -200332,13 +200336,28 @@ html.student-mode .mn-sk-world { display: none !important; }
       try {
         if (!d.getElementById('mn-sys-frame-css')) { var s = d.createElement('style'); s.id = 'mn-sys-frame-css'; s.textContent = FRAME_CSS; (d.head || d.documentElement).appendChild(s); }
         d.documentElement.classList.toggle('mn-sys-reading', reading);
-        if (!d.__mnSysKeys) { d.__mnSysKeys = 1; d.addEventListener('keydown', onKey, true); }
+        if (!d.__mnSysKeys) { d.__mnSysKeys = 1; d.addEventListener('keydown', onKey, true); d.addEventListener('pointerdown', exitWake, true); }
       } catch (e) {}
     });
   }
+  /* full screen, like a video or a photo in iOS (2026-11-28, the user): in the app the status bar and the home indicator
+     go too (bridge action "setFullscreen", ContentView.swift); the exit key stays out of the picture — it fades after
+     2.5s without a touch and any touch brings it back for another 2.5s (kept while it has keyboard focus) */
+  var exitIdle = 0;
+  function exitWake() {
+    if (!reading) return;
+    exitKey.classList.remove('mn-exit-idle'); clearTimeout(exitIdle);
+    exitIdle = setTimeout(function () {
+      var kb = false; try { kb = exitKey.matches(':focus-visible'); } catch (e) {}
+      if (reading && !kb) exitKey.classList.add('mn-exit-idle'); else if (reading) exitWake();
+    }, 2500);
+  }
+  function nativeFullscreen(on) { try { if (window.MinestNative && MinestNative.send) MinestNative.send('setFullscreen', { on: on }); } catch (e) {} }
   function setReading(on) {
     on = !!on; if (on === reading) return;
     reading = on; R.classList.toggle('mn-sys-reading', on); syncFrames();
+    nativeFullscreen(on);
+    if (on) exitWake(); else { clearTimeout(exitIdle); exitKey.classList.remove('mn-exit-idle'); }
     try { if (window.SpatialBridge && SpatialBridge.setReading) SpatialBridge.setReading(false); } catch (e) {}
     try { if (window.MinestStartControls && MinestStartControls.setReading) MinestStartControls.setReading(false); } catch (e) {}
     if (on) {
@@ -200353,7 +200372,7 @@ html.student-mode .mn-sk-world { display: none !important; }
     }
     try { window.dispatchEvent(new CustomEvent('minest:reading', { detail: { on: on } })); } catch (e) {}
   }
-  function onKey(e) { if (reading && e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setReading(false); } }
+  function onKey(e) { if (reading && e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setReading(false); return; } exitWake(); }
   /* 4: "=" folds the tools away, turning into "||" */
   /* 2026-11-22 (the user: "默认 dock 只要显示系统级的 4 个按钮，搜索按钮放到展开里，展开后就不用显示系统按钮"): every start is
      folded — only ✕ ‹ ⛶ = ; unfolded, the tools (search first) take the Dock and ✕ ‹ ⛶ step aside, "||" folds back */
@@ -200574,6 +200593,7 @@ html.student-mode .mn-sk-world { display: none !important; }
     })();
   }, true);
   document.addEventListener('keydown', onKey, true);
+  document.addEventListener('pointerdown', exitWake, true);
   document.addEventListener('fullscreenchange', function () { if (reading && nativeFull && !document.fullscreenElement) setReading(false); });
   var queued = false;
   new MutationObserver(function () {

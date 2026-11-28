@@ -25,6 +25,8 @@ struct ContentView: View {
     @State private var isWebViewReady = false
     // 31.6: Home Screen quick actions
     @ObservedObject private var quickActions = MinestQuickActionRouter.shared
+    // the page's full screen (⛶): no status bar, home indicator hidden — like a video or a photo
+    @ObservedObject private var fullscreen = MinestFullscreen.shared
     @State private var showNewCardPrompt = false
     @State private var newCardTitle = ""
     @State private var pollTimer: Timer? = nil
@@ -162,6 +164,9 @@ struct ContentView: View {
         }
         .onChange(of: quickActions.pending) { _, _ in runPendingQuickAction() }
         .onChange(of: isWebViewReady) { _, _ in runPendingQuickAction() }
+        .statusBarHidden(fullscreen.on)
+        .persistentSystemOverlays(fullscreen.on ? .hidden : .automatic)
+        .animation(.easeOut(duration: 0.25), value: fullscreen.on)
         .alert("新建卡片", isPresented: $showNewCardPrompt) {
             TextField("卡片标题", text: $newCardTitle)
             Button("取消", role: .cancel) { newCardTitle = "" }

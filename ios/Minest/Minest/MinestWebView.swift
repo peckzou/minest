@@ -405,6 +405,7 @@ public struct MinestWebView: UIViewRepresentable {
         
         public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             print("🚀 [MinestWebView] Finished loading successfully")
+            MinestFullscreen.shared.set(false)   // a page that (re)loads starts out of full screen
             if let customView = webView as? CustomWKWebView {
                 customView.injectSafeAreaInsets()
             }
