@@ -201217,17 +201217,18 @@ html.student-mode .mn-sk-world { display: none !important; }
     rise(b); if (ph === 'cancel') return;
     bloom(b); iconFx(b);
   }
-  /* "=": the two bars turn into "||" (and back) with a liquid squeeze, the second a beat behind */
+  /* "=": the two bars turn into "||" (and back) with a liquid squeeze, the second a beat behind — 280ms + 40ms (was
+     620 + 70; the tools fold and unfold many times a day, so the morph keeps inside the 300ms budget: 2026-11-28, the user) */
   var EQ = { on: [[0, -3.6, 0, 1], [0, 3.6, 0, 1]], off: [[-3.6, 0, 90, .82], [3.6, 0, 90, .82]] };
   function eqMorph(on) {
     var bars = toolsKey.querySelectorAll('.mn-eq i'), from = on ? EQ.off : EQ.on, to = on ? EQ.on : EQ.off;
     [].forEach.call(bars, function (bar, i) {
       var f = from[i], t = to[i];
-      tween(620, function (k) {
+      tween(280, function (k) {
         var e = EZ.io(Math.min(1, k * 1.25)), sp = EZ.spring(k), sq = EZ.bell(Math.min(1, k * 1.25)) * .38;
         var x = f[0] + (t[0] - f[0]) * e, y = f[1] + (t[1] - f[1]) * e, r = f[2] + (t[2] - f[2]) * sp, sx = (f[3] + (t[3] - f[3]) * e) * (1 - sq);
         bar.style.transform = 'translate(' + x.toFixed(2) + 'px,' + y.toFixed(2) + 'px) rotate(' + r.toFixed(1) + 'deg) scaleX(' + sx.toFixed(3) + ')';
-      }, function () { bar.style.transform = ''; }, i * 70);
+      }, function () { bar.style.transform = ''; }, i * 40);
     });
   }
   /* "=": the tools fold into the key, the Dock closing round them — and come out of it one by one */
