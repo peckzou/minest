@@ -64,8 +64,13 @@
       keys: function () {
         var sr = shadowOf('.mn-routine-host'); if (!sr) return [];
         /* the river kept right:54px for the capsule (.app.immersive) even with the capsule gone: an empty strip down the
-           right edge. The half-open book posture keeps its own split (duo-book) */
-        shadowStyle(sr, 'nav.lr-dock{display:none!important}.app.immersive:not(.duo-book) .river-panel{right:0!important}');
+           right edge. The half-open book posture keeps its own split (duo-book).
+           And the day is fitted to the river's height (100dvh), so the last hour lay behind the Dock along the bottom:
+           the river now ends --mn-dock-clear above the edge (tools/polish measures it; 0 when the Dock stands at the
+           side), the same way the routine makes room for its own live editor; book, tent and the editors keep theirs */
+        var FIT = '.app.immersive:not(.duo-book):not(.duo-tent):not(.has-live-editor):not(.has-studio)';
+        shadowStyle(sr, 'nav.lr-dock{display:none!important}.app.immersive:not(.duo-book) .river-panel{right:0!important}' +
+          FIT + ' .river-panel{bottom:var(--mn-dock-clear,0px)!important}' + FIT + ' .chamber-scroll{height:calc(100dvh - var(--mn-dock-clear,0px))!important}');
         return [].filter.call(sr.querySelectorAll('nav.lr-dock button'), function (b) { return name(b) !== '返回 Minest'; })
           .map(function (b) { return { el: b, label: name(b).replace(/（.*）$/, ''), icon: iconOf(b) }; });
       } },
