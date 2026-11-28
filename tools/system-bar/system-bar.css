@@ -91,6 +91,10 @@ html.mn-sysbar #sh-reading-enter { display: none !important; }
 #mn-sys-exit svg { width: 22px; height: 22px; display: block; pointer-events: none; }
 #mn-sys-exit:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 html.mn-sys-reading #mn-sys-exit { display: grid !important; visibility: visible !important; pointer-events: auto !important; }
+/* full screen like a video: the exit key fades out after 2.5s without a touch, back on the next touch (system-bar.js) */
+html.mn-sys-reading #mn-sys-exit { transition: opacity .2s cubic-bezier(.23,1,.32,1), scale .2s cubic-bezier(.23,1,.32,1); }
+html.mn-sys-reading #mn-sys-exit.mn-exit-idle { opacity: 0 !important; scale: .92; pointer-events: none !important; }
+@media (prefers-reduced-motion: reduce) { html.mn-sys-reading #mn-sys-exit { transition: opacity .12s linear; } html.mn-sys-reading #mn-sys-exit.mn-exit-idle { scale: 1; } }
 
 /* reading: every tool is hidden; only the exit stays */
 html.mn-sys-reading body button:not(#mn-sys-exit),

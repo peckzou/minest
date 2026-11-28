@@ -157,6 +157,9 @@ public final class MinestBridge: NSObject, WKScriptMessageHandler {
         case "setOrientation":   // 53.6: the island view is landscape
             MinestOrientation.set(data["orientation"] as? String ?? "auto")
 
+        case "setFullscreen":   // the Dock's ⛶ / its exit key: no status bar, home indicator hidden
+            MinestFullscreen.shared.set((data["on"] as? Bool) ?? false)
+
         case "triggerHaptic", "haptic":
             let style = data["style"] as? String ?? "light"
             let sound = (data["sound"] as? Bool) ?? false

@@ -63,7 +63,14 @@
       close: function () { return call('MinestRoutine', 'close'); },
       keys: function () {
         var sr = shadowOf('.mn-routine-host'); if (!sr) return [];
-        shadowStyle(sr, 'nav.lr-dock{display:none!important}');
+        /* the river kept right:54px for the capsule (.app.immersive) even with the capsule gone: an empty strip down the
+           right edge. The half-open book posture keeps its own split (duo-book).
+           And the day is fitted to the river's height (100dvh), so the last hour lay behind the Dock along the bottom:
+           the river now ends --mn-dock-clear above the edge (tools/polish measures it; 0 when the Dock stands at the
+           side), the same way the routine makes room for its own live editor; book, tent and the editors keep theirs */
+        var FIT = '.app.immersive:not(.duo-book):not(.duo-tent):not(.has-live-editor):not(.has-studio)';
+        shadowStyle(sr, 'nav.lr-dock{display:none!important}.app.immersive:not(.duo-book) .river-panel{right:0!important}' +
+          FIT + ' .river-panel{bottom:var(--mn-dock-clear,0px)!important}' + FIT + ' .chamber-scroll{height:calc(100dvh - var(--mn-dock-clear,0px))!important}');
         return [].filter.call(sr.querySelectorAll('nav.lr-dock button'), function (b) { return name(b) !== '返回 Minest'; })
           .map(function (b) { return { el: b, label: name(b).replace(/（.*）$/, ''), icon: iconOf(b) }; });
       } },
@@ -93,6 +100,11 @@
       close: function (r) { return call('MinestPetRaising', 'close') || click(r, '.minest-pet-x'); } },
     { id: 'rings', label: '成就', root: '.minest-activity-modal-backdrop', own: ['.minest-activity-modal-close'],
       close: function (r) { return click(r, '.minest-activity-modal-close'); } },
+    /* My World's sheets (Settings, a new world, an island's setup…): one head for all of them, ‹ title ×. The Dock's ✕ and ‹ are
+       those two, so the sheet's own pair steps aside (2026-11-26, duo-polish: Settings showed × twice) */
+    { id: 'sheet', label: '设置', root: '.mn-nw', own: ['.mn-nw .mn-nw-head > .mn-nw-b[aria-label="Close"]', '.mn-nw .mn-nw-head > .mn-nw-b[aria-label="Back"]'],
+      close: function (r) { return click(r, '.mn-nw-head > .mn-nw-b[aria-label="Close"]') || call('MinestSettings', 'close'); },
+      back: function (r) { return click(r, '.mn-nw-head > .mn-nw-b[aria-label="Back"]'); } },
     { id: 'world', label: 'My World', root: '.uv', own: ['.uv-head .uv-b', '.uv-add'],
       close: function (r) { return click(r, '.uv-head .uv-b[data-x]') || call('MinestUniverse', 'close'); },
       back: function (r) { return click(r, '.uv-head .uv-b[data-back]'); },

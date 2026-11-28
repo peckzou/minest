@@ -23,6 +23,16 @@ final class MinestQuickActionRouter: ObservableObject {
     }
 }
 
+/// The page's full screen (bridge action "setFullscreen", sent by the Dock's ⛶ and its exit key): like a video or a
+/// photo in iOS — the status bar goes and the home indicator hides itself. ContentView reads `on`.
+final class MinestFullscreen: ObservableObject {
+    static let shared = MinestFullscreen()
+    @Published var on = false
+    func set(_ value: Bool) {
+        DispatchQueue.main.async { if self.on != value { self.on = value } }
+    }
+}
+
 /// The page can ask for an orientation (bridge action "setOrientation": landscape / portrait / auto).
 enum MinestOrientation {
     static var mask: UIInterfaceOrientationMask = .allButUpsideDown
