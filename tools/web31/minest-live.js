@@ -295,13 +295,13 @@
   var CARDS = [
     ['monster-sunny', 'Sunny Sea Otter', 'common', 'cash'], ['monster-berry', 'Berry Penguin', 'common', 'guard'], ['monster-mint', 'Mint Turtle', 'common', 'bonus'], ['monster-sky', 'Sky Dolphin', 'common', 'streak'],
     ['monster-lilac', 'Lilac Bunny', 'rare', 'bonus'], ['monster-coral', 'Coral Fox', 'rare', 'cash'], ['monster-lime', 'Lime Panda', 'epic', 'guard'], ['monster-night', 'Night Lion', 'legendary', 'streak'],
-    ['strike-3', '3-Day Strike', 'common', 'cash'], ['strike-7', '7-Day Strike', 'common', 'guard'], ['perfect-week', 'Perfect Week', 'common', 'bonus'],
+    ['strike-3', '3-Day Streak', 'common', 'cash'], ['strike-7', '7-Day Streak', 'common', 'guard'], ['perfect-week', 'Perfect Week', 'common', 'bonus'],
     ['minion-stuart', 'Stuart', 'common', 'streak'], ['pikachu', 'Pikachu', 'common', 'cash'],
-    ['strike-14', '14-Day Emerald Strike', 'rare', 'bonus'], ['strike-30', '30-Day Strike', 'rare', 'cash'], ['strike-40', '40-Day Strike', 'rare', 'guard'],
+    ['strike-14', '14-Day Emerald Streak', 'rare', 'bonus'], ['strike-30', '30-Day Streak', 'rare', 'cash'], ['strike-40', '40-Day Streak', 'rare', 'guard'],
     ['lucy-axolotl', 'Lucy the Axolotl', 'rare', 'streak'], ['archimedes-owl', 'Archimedes Owl', 'rare', 'bonus'],
-    ['strike-50', '50-Day Strike', 'epic', 'cash'], ['strike-60', '60-Day Strike', 'epic', 'guard'], ['octopus-polymath', 'Octopus Polymath', 'epic', 'bonus'], ['sith-lightsaber', 'Lightsaber', 'epic', 'streak'],
-    ['strike-80', '80-Day Strike', 'legendary', 'guard'], ['ender-dragon', 'Ender Dragon', 'legendary', 'cash'], ['study-streak-365', '365-Day Study Streak', 'legendary', 'streak'],
-    ['strike-90', '90-Day Strike', 'mythic', 'bonus'], ['strike-100', '100-Day Strike', 'mythic', 'cash']
+    ['strike-50', '50-Day Streak', 'epic', 'cash'], ['strike-60', '60-Day Streak', 'epic', 'guard'], ['octopus-polymath', 'Octopus Polymath', 'epic', 'bonus'], ['sith-lightsaber', 'Lightsaber', 'epic', 'streak'],
+    ['strike-80', '80-Day Streak', 'legendary', 'guard'], ['ender-dragon', 'Ender Dragon', 'legendary', 'cash'], ['study-streak-365', '365-Day Study Streak', 'legendary', 'streak'],
+    ['strike-90', '90-Day Streak', 'mythic', 'bonus'], ['strike-100', '100-Day Streak', 'mythic', 'cash']
   ].map(function (a) {
     var m = /^strike-(\d+)$/.exec(a[0]);
     return { id: a[0], name: a[1], r: a[2], perk: a[3], monster: /^monster-/.test(a[0]), img: m ? BADGE_BASE + 'hd/strike-' + m[1] + '-days.webp' : BADGE_BASE + a[0] + '.webp' };
